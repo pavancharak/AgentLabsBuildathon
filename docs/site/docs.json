@@ -41,6 +41,7 @@
               "concepts/credential-isolation",
               "concepts/gateway-attestation",
               "concepts/execution-trust-records",
+              "concepts/refusal-records",
               "concepts/determinism-and-clocks",
               "concepts/content-binding-toctou",
               "concepts/settlement"

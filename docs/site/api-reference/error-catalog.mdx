@@ -46,6 +46,7 @@ handling](/api-reference/error-handling) for the envelope shape this table assum
 | 404 | none | `Execution Trust Record not found.` | Same underlying condition, but reached via a GET, no `code` field on this path | `GET /verification/{id}`, `GET /receipt/latest/{id}`, `GET /trust-records/{id}` | Same fix; note the `code` field's presence depends on which route you called, not on the underlying cause. |
 | 404 | none | `Verification not found.` | Record exists but has no Verification yet | `GET /verification/{id}` | In practice every Execution produces a Verification synchronously, this is an edge case for records that haven't completed that step. |
 | 404 | none | `Receipt not found.` | Record exists but has no Receipt yet | `GET /receipt/latest/{id}` | Call `POST /receipt` first, or the record's Execution hasn't reached that stage. |
+| 404 | none | `No authenticated caller identity available.` | No caller identity on the request, in practice only reachable when caller authentication is disabled (`PARMANA_AUTH_DISABLED=true`, local development only) | `GET /callers/me` | Not reachable under normal, authenticated operation. See [Authentication](/api-reference/authentication). |
 
 ## Rate limited
 
@@ -65,7 +66,7 @@ handling](/api-reference/error-handling) for the envelope shape this table assum
 `NONCE_ALREADY_CONSUMED`) is a real, tested error `error-handler.ts` maps — thrown by
 `ExecutionGateway.execute()` when every other verification check passed and only nonce
 consumption failed (an isolated replay of an already-executed authorization). It is not
-reachable through any of the 14 routes this catalog covers: a resubmitted
+reachable through any of the 15 routes this catalog covers: a resubmitted
 `businessTransactionId` is always caught first by the `DuplicateBusinessTransactionError` 409
 above, before a second authorization — and thus a second nonce — is ever generated. It's a
 library-level guarantee for a receiving system calling `@parmana/execution-gateway` directly,
@@ -82,7 +83,7 @@ exact scope.
 
 ## What's deliberately not here
 
-This catalog lists errors from the 14 routes in `packages/api/src/app.ts`. It does not cover
+This catalog lists errors from the 15 routes in `packages/api/src/app.ts`. It does not cover
 exceptions raised only in code paths unreachable from the HTTP API (for example, internal
 validator classes that never escape a route handler uncaught), or client-side SDK exceptions,
 see [Python SDK](/sdks/python) and [TypeScript SDK](/sdks/typescript) for how each wraps these

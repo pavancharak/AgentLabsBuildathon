@@ -172,6 +172,62 @@ paths:
                     version: 0.4.0
                     api: v1
 
+  /callers/me:
+    get:
+      tags:
+        - System
+      summary: Get the authenticated caller's identity and resolved scope
+      operationId: getCallerMe
+      description: >
+        The proof artifact a security review asks for: "show me this agent's
+        identity and exactly what it's authorized to do." Read-only,
+        self-lookup only, an authenticated caller sees its own record, never
+        another caller's, and this never returns key material. Values are
+        resolved (the effective scope after defaults are applied), not the
+        raw configured entry: allowedPrincipalIds defaults to [callerId] and
+        allowedCapabilities defaults to an empty array when unset on the key,
+        see packages/api/src/routes/callers-me.ts. Requires caller
+        authentication, like every route except GET /health, GET /ready, GET
+        /openapi.yaml, and GET /documentation.
+
+
+        Returns 404 with {"error":"No authenticated caller identity
+        available."} when no caller identity is present on the request, which
+        in practice only happens when caller authentication is disabled
+        (PARMANA_AUTH_DISABLED=true, local development only) — under normal,
+        authenticated operation this route always has a callerId by the time
+        it runs.
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: No authenticated caller identity on the request (caller auth disabled).
+          content:
+            application/json:
+              schema:
+                $ref: '../schemas/common/error.schema.json'
+              examples:
+                noCallerIdentity:
+                  summary: Real captured response when caller-auth is disabled
+                  value:
+                    error: No authenticated caller identity available.
+        '200':
+          description: The authenticated caller's identity and resolved scope.
+          content:
+            application/json:
+              schema:
+                $ref: '../schemas/responses/callers-me-response.schema.json'
+              examples:
+                callerMe:
+                  summary: Real captured response
+                  value:
+                    callerId: demo
+                    allowedPrincipalIds:
+                      - demo
+                    allowedCapabilities:
+                      - 'test:fixture-execute'
+                    unrestrictedCapabilities: false
+
   /execute:
     post:
       tags:

@@ -118,25 +118,18 @@ this demo key.
 pip install -e ./python
 ```
 
-<Warning>
-**The Python SDK cannot send the bearer key above yet.** `ParmanaClient.__init__`
-(`python/parmana/client.py`) has no `api_key` parameter, and `HttpTransport` never sets an
-`Authorization` header, checked directly against source. Submitting the transaction below
-against the authenticated server from step 4 gets a `401`. To run this specific example,
-restart the server from step 3 with `PARMANA_AUTH_DISABLED=true` added, local development
-only, never in a real deployment, see [Authentication](/api-reference/authentication):
+<Note>
+**The Python SDK sends the bearer key from step 4 on every request.**
+`ParmanaClient.__init__` and `HttpTransport.__init__` (`python/parmana/client.py`,
+`python/parmana/transport/http_transport.py`) accept an `api_key` parameter and set
+`Authorization: Bearer <api_key>` on the underlying session, added in commit `a19e452`
+(2026-07-29). Pass the demo key from step 4 when constructing the client, no server
+restart or `PARMANA_AUTH_DISABLED` workaround needed:
 
-```bash
-NODE_ENV=test \
-  PARMANA_STORAGE=memory \
-  PARMANA_POLICY_DIR=/absolute/path/to/policies \
-  PARMANA_AUTH_DISABLED=true \
-  npm run dev
+```python
+client = ParmanaClient(endpoint="http://localhost:3000", api_key="my-secret-api-key")
 ```
-
-This gap is tracked on [Python SDK](/sdks/python), it's a real, current limitation, not
-something this walkthrough is working around cosmetically.
-</Warning>
+</Note>
 
 ## 6. Execute a Business Transaction
 
@@ -149,7 +142,7 @@ from parmana import (
     BusinessTransactionMetadata, Intent, ParmanaClient, PolicyReference,
 )
 
-client = ParmanaClient(endpoint="http://localhost:3000")
+client = ParmanaClient(endpoint="http://localhost:3000", api_key="my-secret-api-key")
 
 transaction_id = str(uuid4())
 now = datetime.now(UTC)

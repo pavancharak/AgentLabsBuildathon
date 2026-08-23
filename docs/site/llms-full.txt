@@ -29,7 +29,7 @@ A short-link version of this file, with descriptions instead of full content, is
 
 ## REST API introduction
 
-Source: `/api-reference/introduction`. 14 routes, enumerated from `packages/api/src/app.ts`.
+Source: `/api-reference/introduction`. 15 routes, enumerated from `packages/api/src/app.ts`.
 The full per-route reference is generated from `openapi/openapi.yaml`; this section covers what
 the spec can't express.
 
@@ -263,7 +263,7 @@ code.
 
 ### What's deliberately not here
 
-This catalog lists errors from the 14 routes in `packages/api/src/app.ts`. It does not cover
+This catalog lists errors from the 15 routes in `packages/api/src/app.ts`. It does not cover
 exceptions raised only in code paths unreachable from the HTTP API, or client-side SDK
 exceptions — see the SDK sections below for how each wraps these same HTTP responses.
 

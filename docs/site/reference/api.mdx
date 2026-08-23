@@ -23,7 +23,7 @@ patterns](/guides/deploy-patterns).
 | Path | Purpose |
 |---|---|
 | `src/server.ts` | Entry point. Builds the execution system, the application, then the Express app, and listens on port 3000. |
-| `src/app.ts` | Mounts the caller-auth middleware (every route except `/health`), all 14 routes, and the error handler, in order, the error handler must be registered last. |
+| `src/app.ts` | Mounts the caller-auth middleware (every route except `/health`), all 15 routes, and the error handler, in order, the error handler must be registered last. |
 | `src/application.ts` | `createApplication(executionSystem)`, wires `RuntimeFactory.create()` with the repositories and policy repository. |
 | `src/routes/*.ts` | One file per route (or router factory), see [REST API Introduction](/api-reference/introduction) for each one's behavior. |
 | `src/middleware/error-handler.ts` | Maps thrown errors to HTTP status codes by `instanceof`, falls through to an unstructured 500 for anything unrecognized. |

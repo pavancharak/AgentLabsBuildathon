@@ -7,11 +7,71 @@ description: "What actually shipped, by commit, newest first. Not a marketing su
 Pulled directly from `git log` on `main` in `pavancharak/parmana-exp`, commit hashes are
 real and checkable. This page covers the commits that changed what a reader of this site can
 actually do or rely on, not every commit in the repository's history, run `git log` yourself
-for the complete record, 192 commits as of this page's last update.
+for the complete record, 230 commits as of this page's last update.
 </Info>
+
+## 2026-08-19
+
+- **`38658c0`** / **`751310a`** / **`5ffc85c`** feat(connector-github): add a GitHub connector
+  with ephemeral GitHub-App-installation credentials, wired into the production execution
+  chain, see `docs/CLAIMS.md` §3.17. No dedicated docs page yet, see [Add a
+  connector](/guides/add-a-connector) for the general pattern this follows.
+- **`496c79e`** / **`030d01b`** docs(claims): add §3.17 (GitHub connector, cross-referenced
+  from §3.10) and §3.18 (deployment infrastructure requirements) to `docs/CLAIMS.md`.
+- **`36f20c8`** / **`9f0f6b2`** test(hubspot): add an explicit credential-lifecycle
+  non-exposure test, cited in `docs/CLAIMS.md` §2.23/§3.10.
+- **`d496f41`** docs(claims): document §2.26's CI policy-governance check and its real
+  Git-enforcement gap.
+- **`4fb7f1c`** docs(claims): record and reject an atomic/fail-closed refusal-record proposal,
+  a design considered during review and turned down, not shipped.
+- **`cbd4650`**, **`57e9667`**, **`6cc0963`**, **`a835c98`**, **`1bbd196`** — a same-day
+  claims-audit session: a master-verification pass across claims 2/3/7/9/10, `PolicyNotFoundError`'s
+  fail-closed behavior documented in §2.2, and a final pass across claims 14-19 finding zero
+  gaps.
+
+## 2026-08-18
+
+- **`aae1aca`** feat(governance): Policy Governance, a maker-checker workflow for policy
+  changes (propose/approve/reject, step-up auth, signed approval records), see
+  `docs/CLAIMS.md` §2.26. No dedicated concept page on this site yet.
+- **`a13d52f`** / **`9bd595a`** / **`9e51df2`** feat+fix(governance): bind content hash at
+  decision time, add a fail-open deploy/startup integrity check, and close two findings from
+  an independent audit of the maker-checker feature.
+- **`9b3ed34`** feat(governance-ui): add a read-only internal UI for Policy Governance.
+- **`9374191`** / **`9b4f679`** ci: add policy-approval verification to CI, documented in
+  `docs/CLAIMS.md`.
+- **`8b66f35`** fix: remove secret-like HubSpot token examples from the repository, placeholder
+  tokens made unambiguously fake.
+
+## 2026-08-17
+
+- **`4959af3`** docs: add INC-10, an SDK version-tracking incident and its fix.
+- **`b4c2e5a`** chore: align package versions across the workspace.
+
+## 2026-08-16
+
+- **`900621d`** feat: add a durable audit record for principal-binding violations.
+- **`1aba968`** fix(sdk): add `RateLimitError`, preserve `CAPABILITY_NOT_ALLOWED` on the
+  client, correct 403 docstrings, see [Error catalog](/api-reference/error-catalog).
+- **`41e5d2c`** / **`3253322`** / **`40aebe7`** test: add capability-denied and
+  principal-denied scenarios to tutorial 84, plus caller-C/D key placeholders, and a pass
+  documenting and investigating execution incidents.
+- **`e848b98`** fix(hubspot): replace realistic-format placeholder tokens with clearly-fake
+  ones.
+- **`e5e0b1c`**, **`cca3231`**, **`f39f64f`**, **`3bed7d0`** — a documentation-cleanup series:
+  fixed broken references to deleted Razorpay files, added a citation-integrity test, fixed
+  dangling `CLAIMS.md` section citations, and a general README/`llms-full.txt`/API-reference
+  cleanup pass.
+
+## 2026-08-12
+
+- **`a996b89`** feat(api): caller-to-capability scoping (`allowedCapabilities`), see
+  [Authentication](/api-reference/authentication).
+- **`d8a6ded`** docs: add HubSpot integration evidence and update the TRL assessment.
 
 ## 2026-08-11
 
+- **`1061e02`** build: include TypeScript SDK and configure Python tests.
 - **`6a1c3ae`** docs: latency/voice-AI readiness investigation — four findings on whether
   Parmana can meet a sub-500ms latency budget (cold Postgres connections, since fixed;
   synchronous caller-auth audit writes, confirmed deliberate; a region mismatch; anycast

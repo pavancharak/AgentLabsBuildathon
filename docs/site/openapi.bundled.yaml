@@ -156,6 +156,62 @@ paths:
                     api: v1
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /callers/me:
+    get:
+      tags:
+        - System
+      summary: Get the authenticated caller's identity and resolved scope
+      operationId: getCallerMe
+      description: >
+        The proof artifact a security review asks for: "show me this agent's
+        identity and exactly what it's authorized to do." Read-only, self-lookup
+        only, an authenticated caller sees its own record, never another
+        caller's, and this never returns key material. Values are resolved (the
+        effective scope after defaults are applied), not the raw configured
+        entry: allowedPrincipalIds defaults to [callerId] and
+        allowedCapabilities defaults to an empty array when unset on the key,
+        see packages/api/src/routes/callers-me.ts. Requires caller
+        authentication, like every route except GET /health, GET /ready, GET
+        /openapi.yaml, and GET /documentation.
+
+
+        Returns 404 with {"error":"No authenticated caller identity available."}
+        when no caller identity is present on the request, which in practice
+        only happens when caller authentication is disabled
+        (PARMANA_AUTH_DISABLED=true, local development only) — under normal,
+        authenticated operation this route always has a callerId by the time it
+        runs.
+      responses:
+        "200":
+          description: The authenticated caller's identity and resolved scope.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/callers-me-response.schema"
+              examples:
+                callerMe:
+                  summary: Real captured response
+                  value:
+                    callerId: demo
+                    allowedPrincipalIds:
+                      - demo
+                    allowedCapabilities:
+                      - test:fixture-execute
+                    unrestrictedCapabilities: false
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No authenticated caller identity on the request (caller auth
+            disabled).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error.schema"
+              examples:
+                noCallerIdentity:
+                  summary: Real captured response when caller-auth is disabled
+                  value:
+                    error: No authenticated caller identity available.
   /execute:
     post:
       tags:
@@ -1701,6 +1757,48 @@ components:
         - name: Parmana
           version: 0.4.0
           api: v1
+    callers-me-response.schema:
+      title: Callers Me Response
+      description: "Response returned by GET /callers/me
+        (packages/api/src/routes/callers-me.ts). Resolved, not raw:
+        allowedPrincipalIds/allowedCapabilities reflect the effective scope
+        after defaults are applied (isPrincipalAllowed.ts /
+        isCapabilityAllowed.ts), not the raw ApiKeyEntry configuration. Never
+        returns key material."
+      type: object
+      additionalProperties: false
+      required:
+        - callerId
+        - allowedPrincipalIds
+        - allowedCapabilities
+        - unrestrictedCapabilities
+      properties:
+        callerId:
+          type: string
+          description: The authenticated caller's identity.
+        allowedPrincipalIds:
+          type: array
+          items:
+            type: string
+          description: Principal IDs this caller may assert as authority.principalId.
+            Defaults to [callerId] when the key's allowedPrincipalIds is unset.
+        allowedCapabilities:
+          type: array
+          items:
+            type: string
+          description: Capabilities (intent.action values) this caller may execute.
+            Defaults to an empty array, not all capabilities, when the key's
+            allowedCapabilities is unset.
+        unrestrictedCapabilities:
+          type: boolean
+          description: True when allowedCapabilities contains the wildcard "*".
+      examples:
+        - callerId: demo
+          allowedPrincipalIds:
+            - demo
+          allowedCapabilities:
+            - test:fixture-execute
+          unrestrictedCapabilities: false
     metadata.schema:
       title: Metadata
       description: Immutable Business Transaction metadata supplied by the calling
