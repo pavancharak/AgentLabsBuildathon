@@ -36,14 +36,17 @@ import type { CallerAuditEvent, CallerAuditSink } from "./CallerAuditSink.js";
  * supabase/migrations/20260812120000_add_capability_to_caller_audit_
  * events.sql), CallerAuditEvent.principalId (caller-principal-
  * scoping milestone, supabase/migrations/20260816120000_add_principal_
- * to_caller_audit_events.sql), and CallerAuditEvent.severity (policy-
+ * to_caller_audit_events.sql), CallerAuditEvent.severity (policy-
  * governance milestone, supabase/migrations/20260818130000_add_non_
- * human_denied_to_caller_audit_events.sql) are each signed as part of
+ * human_denied_to_caller_audit_events.sql), and
+ * CallerAuditEvent.businessTransactionId (G-29, structural-validation
+ * audit milestone, supabase/migrations/20260824090000_add_structural_
+ * rejected_to_caller_audit_events.sql) are each signed as part of
  * the event (this.crypto.sign(event) below covers the full object)
  * and written to their own nullable column here, the same as every
  * other optional field — null on events that don't concern a specific
- * capability, principal, or elevated-severity outcome
- * (caller.authenticated, caller.rejected).
+ * capability, principal, elevated-severity outcome, or structural
+ * rejection (caller.authenticated, caller.rejected).
  *
  * TEMPORARY WORKAROUND: writes via a direct Postgres connection (see
  * PostgresPoolFactory), not supabase-js — PostgREST's schema cache is
@@ -56,9 +59,9 @@ import type { CallerAuditEvent, CallerAuditSink } from "./CallerAuditSink.js";
  */
 const INSERT_CALLER_AUDIT_EVENT_SQL = `
   INSERT INTO caller_audit_events
-    (type, occurred_at, route, caller_id, reason, capability, principal_id, severity, signature_json)
+    (type, occurred_at, route, caller_id, reason, capability, principal_id, severity, business_transaction_id, signature_json)
   VALUES
-    ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+    ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)
 `;
 
 export class SupabaseCallerAuditSink implements CallerAuditSink {
@@ -78,6 +81,7 @@ export class SupabaseCallerAuditSink implements CallerAuditSink {
       event.capability ?? null,
       event.principalId ?? null,
       event.severity ?? null,
+      event.businessTransactionId ?? null,
       JSON.stringify(signature),
     ]);
   }

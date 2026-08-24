@@ -255,7 +255,43 @@ rather than a vulnerability (G-7), or a documentation/citation gap (G-10, G-11).
 again an assessment of those entries as written, not a fresh audit pass against them, and
 carries the same re-verify caveat G-24 just demonstrated the cost of skipping.
 
+**Addendum (2026-08-24):** this status note's own gap list (G-4 through G-11) predates
+several gaps added in later sessions and is not being retroactively expanded to enumerate
+all of them here — see each gap's own entry for its current status. One addition from this
+date is directly relevant to this note's own claim structure: **G-29** (new, `pre-production`,
+below) is, like G-9, explicitly not a security defect — no request that should be rejected
+executes — but unlike every other `pre-production` entry in this note's list, it is a gap
+in this system's own audit/evidentiary trail, the same category of property RFC-0021
+(Refusal Records) and the caller-audit-sink work exist specifically to provide. It is
+open precisely because those two mechanisms both fire downstream of the point where G-29's
+rejections occur, not because either mechanism has a defect. **G-29 itself was resolved
+later the same day** — see its own entry below for the fix.
+
 ### blocks-pilot
+
+**Stale-narrative notice, added 2026-08-24, read before relying on anything below.** The
+Razorpay connector — `RazorpayConnector`, `RazorpayRefundService`,
+`RazorpaySignalStateVerifier`, `RazorpayDailyRefundLedger`,
+`RazorpayCumulativeRefundLedger`, `RazorpaySettlementProcessor`, and every
+`packages/connector-sdk/src/connectors/razorpay/*`/`packages/api/src/bootstrap/*Razorpay*`
+file this G-24 entry and its updates below cite by path — **was deliberately removed from
+this codebase in its entirety on 2026-08-12** (commit `d8a6ded`, "Add HubSpot integration
+evidence and update TRL assessment"; confirmed directly: `git log --all -- <any of the
+paths above>` shows no file at `HEAD`). `docs/CLAIMS.md` §3.16 and §3.8/§3.9 (both now
+marked "Historical: Razorpay connector removed 2026-08-12") already carry this correction;
+this document did not, until now — nothing here had been touched since commit `586ea3a`,
+which predates the removal, RFC-0021 (Refusal Records), caller-to-capability scoping
+(`allowedCapabilities`), the principal-denied audit trail (`docs/CLAIMS.md` §3.19), and
+the structural-validation audit trail (G-29 below) alike. The
+narrative below is preserved as-written, unedited, as an accurate historical record of
+what closed G-24 and its TD-23/RFC-0022 residuals for Razorpay *while the connector still
+existed* — but every present-tense claim in it about `RazorpaySignalStateVerifier` etc.
+being "wired into production `POST /execute`" is no longer true of current `main`.
+`hubspot:deal-update`/`hubspot:deal-fetch` are the only capabilities actually reachable in
+production today; `HubSpotSignalStateVerifier` (the hubspot-deal-update closure, further
+below in this same entry) remains live and current, unaffected by the Razorpay removal.
+
+---
 
 **G-24. Policy-evaluation signals were never bound to the executed Intent: the most
 severe gap found in this document, a live, reproducible bypass of the core "no
@@ -1368,6 +1404,90 @@ exact shape, and that the sink is called exactly once (no retry). Plus the pre-e
 `packages/api/tests/unit/supabase-caller-audit-sink.test.ts` (G-13 session), which already
 proves `SupabaseCallerAuditSink` propagates storage errors rather than swallowing them,
 required for this guard to be reachable at all in production wiring.
+
+**G-29. Structural/admission-time rejections — malformed input, missing required fields,
+and duplicate `businessTransactionId` — produce no audit record of any kind. RESOLVED
+same-day (2026-08-24).** Found during a 2026-08-24 review of this repository's five
+architectural trust-record gaps
+(scoped alongside RFC-0021 Refusal Records, RFC-0022 signal-state verification, caller-to-
+capability scoping, and the principal-denied audit trail — G-29 is the one of the five
+that was genuinely still open). Two signed, durable audit mechanisms exist in this
+codebase today: `RefusalRecord` (RFC-0021, `docs/CLAIMS.md` §3.11) for a policy `REJECT`,
+and `CallerAuditSink` (`docs/CLAIMS.md` §2.16/§2.19/new §3.19) for a caller-identity
+denial. Both fire only *after* a request has already passed structural validation and
+reached `RuntimeEngine`/policy evaluation. A request that fails before that point is
+invisible to both:
+
+- **Duplicate `businessTransactionId`.** `BusinessTransactionService.accept()`
+  (`packages/runtime/src/services/business-transaction-service.ts:36-44`) throws
+  `DuplicateBusinessTransactionError`, mapped to `409` by
+  `packages/api/src/middleware/error-handler.ts:106-114` (2.20's own atomicity guarantee).
+  No `.record()` call, no `CallerAuditSink`, no `RefusalRecordRepository` write happens
+  anywhere between the `throw` and the `409` response.
+- **Field-level validation.** `BusinessTransactionValidator.validate()`
+  (`packages/runtime/src/validators/BusinessTransactionValidator.ts:5-63`) throws
+  `BusinessTransactionValidationError` for the trust-chain-consistency and
+  required-field checks it performs (cross-field mismatches; missing `policy.name`,
+  `policy.version`, `intent.action`), mapped to `400`
+  (`error-handler.ts:80-90`). Same absence of any write.
+- **Malformed / oversized request body.** Caught generically by `error-handler.ts:29-49`
+  (`entity.parse.failed` → `400`, `entity.too.large` → `413`), before any route handler —
+  and therefore before any audit sink — is ever reached.
+- **`businessTransactionId` format check.** The UUID-shape regex in `execute.ts:20-29` /
+  `transactions.ts:24-33` runs first of all, directly in the route handler, before the
+  request body is even mapped into a `BusinessTransaction`; a `400` is returned
+  (`execute.ts:57-62`) with no audit call.
+
+No pre-`RuntimeEngine` audit layer exists to catch any of these: a repo-wide grep for a
+generic structural/admission-time audit pattern returns zero hits, and
+`packages/api/tests/unit/concurrent-duplicate-id-investigation.test.ts` — an existing test
+that empirically proves the *correctness* of the 409-under-concurrency behavior 2.20/G-1
+already established — asserts only on HTTP status codes and stored transaction content,
+because there is no audit trail to assert on.
+
+**Severity: pre-production, not blocks-pilot.** Unlike G-24, this is not an authorization
+bypass — every one of these paths correctly rejects the request with the right HTTP
+status, before any policy evaluation or execution occurs. What is missing is purely
+forensic: an operator investigating a wave of malformed requests, ID-collision attempts,
+or probing traffic against `/execute`/`/transactions` has no durable, queryable record of
+them today, only whatever a caller's own logs or a reverse proxy's access log happened to
+capture.
+
+**RESOLVED, same-day (2026-08-24).** Closed exactly the way this entry's own original
+"not yet fixed" note anticipated: a new `caller.structural_rejected` `CallerAuditEvent`
+variant (`packages/api/src/auth/CallerAuditSink.ts`), reusing `CallerAuditSink` at all
+four points, split into two disciplines matching where each rejection actually happens in
+the pipeline (full detail and evidence in `docs/CLAIMS.md` §3.20, the promoted claim this
+resolution backs):
+
+- The UUID-format check and the two `application.execute()` errors
+  (`BusinessTransactionValidationError`, `DuplicateBusinessTransactionError`) all run
+  inside a route handler mounted *after* caller-auth middleware, so a caller identity is
+  already known there (when caller-auth is enabled) — these reuse
+  `recordCallerAuditEvent`'s existing **fail-closed** discipline (2.19) exactly, the same
+  one `caller.capability_denied`/`caller.principal_denied` already use.
+- Malformed/oversized body is rejected by `express.json()` itself, *before* caller-auth
+  middleware — or any route handler — ever runs; there is no caller identity to protect
+  the accountability of at that point. This one path is deliberately **fail-open**
+  instead, mirroring `RefusalRecord`'s own reasoning (§3.11's first scope caveat) rather
+  than 2.19's — the request is already correctly rejected either way, and a storage hiccup
+  should not turn a correct `400`/`413` into an opaque `500` for a case with no caller
+  identity to protect in the first place. `createErrorHandler(auditSink?)` (replacing the
+  former plain `errorHandler` export) threads the sink into `error-handler.ts` for this
+  one branch only.
+
+**Verified:** `packages/api/tests/integration/structural-validation-audit.integration.test.ts`
+(new, 9 tests, real HTTP requests against the production `createApp` composition): all
+four rejection points audited with the correct `reason`/`businessTransactionId`/`callerId`
+shape (absent fields verified absent, not merely unchecked); the valid path records
+nothing; caller-auth disabled still returns the correct status with no audit sink to write
+to. `packages/api/tests/unit/supabase-caller-audit-sink.test.ts` extended (2 new cases) for
+the new `business_transaction_id` column. Full repo `npx tsc -b`, `npx eslint . --ext .ts`,
+and `npm test` all clean: 1243 passed (was 1234 before this session), 37 pre-existing
+skips (unchanged), 0 failed — the pre-existing 8 failing tests observed at the start of
+this session (`PARMANA_POLICY_DIR` in this checkout's local `.env` pointing at a
+non-existent directory, an environment misconfiguration unrelated to this fix) were also
+corrected as a prerequisite to getting a clean baseline, not silently left failing.
 
 ### cosmetic
 

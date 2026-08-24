@@ -6,6 +6,10 @@ import type {
 } from "express";
 
 import type { ExecutionTrustApplication } from "@parmana/runtime";
+import {
+  BusinessTransactionValidationError,
+  DuplicateBusinessTransactionError,
+} from "@parmana/runtime";
 import { BusinessTransactionMapper } from "../mappers/BusinessTransactionMapper.js";
 import { isPrincipalAllowed } from "../auth/isPrincipalAllowed.js";
 import { isCapabilityAllowed } from "../auth/isCapabilityAllowed.js";
@@ -134,16 +138,40 @@ router.post(
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
+    // Declared ahead of the try block, not inside it: `catch` below
+    // needs it too (G-29 audit), and `try`/`catch` are separate block
+    // scopes -- a `const` declared inside `try` is not visible there.
+    const {
+      businessTransactionId,
+    } = req.body;
+
     try {
-      const {
-        businessTransactionId,
-      } = req.body;
 
       if (
         !isValidBusinessTransactionId(
           businessTransactionId,
         )
       ) {
+        if (auditSink) {
+          const recorded = await recordCallerAuditEvent(
+            auditSink,
+            {
+              type: "caller.structural_rejected",
+              occurredAt: new Date().toISOString(),
+              route: req.originalUrl,
+              ...(req.callerId !== undefined ? { callerId: req.callerId } : {}),
+              ...(typeof businessTransactionId === "string"
+                ? { businessTransactionId }
+                : {}),
+              reason: "businessTransactionId must be a valid UUID.",
+            },
+            req,
+            next,
+          );
+
+          if (!recorded) return;
+        }
+
         res.status(400).json({
           error:
             "businessTransactionId must be a valid UUID.",
@@ -242,6 +270,32 @@ router.post(
       res.status(201).json(result);
       return;
     } catch (error) {
+      //
+      // Structural rejection audit trail (G-29, docs/VERIFICATION-GAPS.md).
+      // See execute.ts's identical block for the full rationale.
+      //
+      if (
+        auditSink &&
+        (error instanceof BusinessTransactionValidationError ||
+          error instanceof DuplicateBusinessTransactionError)
+      ) {
+        const recorded = await recordCallerAuditEvent(
+          auditSink,
+          {
+            type: "caller.structural_rejected",
+            occurredAt: new Date().toISOString(),
+            route: req.originalUrl,
+            ...(req.callerId !== undefined ? { callerId: req.callerId } : {}),
+            businessTransactionId,
+            reason: error.message,
+          },
+          req,
+          next,
+        );
+
+        if (!recorded) return;
+      }
+
       next(error);
       return;
     }

@@ -1,7 +1,7 @@
 import express from "express";
 import documentationRoutes from "./routes/documentation.js";
 
-import { errorHandler } from "./middleware/error-handler.js";
+import { createErrorHandler } from "./middleware/error-handler.js";
 import { createCallerAuthMiddleware } from "./middleware/caller-auth.js";
 import { createExecuteRateLimiter, createHealthReadyRateLimiter } from "./middleware/rate-limit.js";
 
@@ -300,9 +300,19 @@ app.use(
 /**
  * Error handling
  *
- * Must be registered after all routes.
+ * Must be registered after all routes. Threaded with the same
+ * auditSink every other caller-facing route uses (G-29,
+ * docs/VERIFICATION-GAPS.md) so the one rejection category this file
+ * itself fully handles -- a malformed/oversized request body, rejected
+ * by express.json() before caller-auth middleware or any route handler
+ * ever runs -- gets a best-effort audit record too, not only the
+ * correct HTTP response.
  */
-app.use(errorHandler);
+app.use(
+  createErrorHandler(
+    options.callerAuth !== "disabled" ? options.callerAuth.auditSink : undefined,
+  ),
+);
 
 return app;
 }

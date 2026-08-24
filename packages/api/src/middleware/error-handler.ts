@@ -18,6 +18,8 @@ import {
 
 import { NonceAlreadyConsumedError } from "@parmana/shared";
 
+import type { CallerAuditSink } from "../auth/CallerAuditSink.js";
+
 /**
  * True for the two body-parser (express.json()) failure shapes every
  * route mounted after the global express.json() middleware can hit
@@ -49,14 +51,66 @@ function bodyParserErrorStatus(error: unknown): number | undefined {
 }
 
 /**
- * Centralized API error handler.
+ * Best-effort audit write for a structural rejection that happens
+ * before any route handler -- and therefore before any caller identity
+ * -- exists (G-29, docs/VERIFICATION-GAPS.md): a malformed or oversized
+ * request body, rejected by express.json() itself, ahead of caller-auth
+ * middleware. Deliberately fail-open, not fail-closed like every other
+ * caller-audit write in this codebase (recordCallerAuditEvent.ts, 2.19):
+ * this event has no caller identity to protect the accountability of in
+ * the first place (nobody has been authenticated yet), so the
+ * fail-closed rationale for 2.19 does not transfer here, and the same
+ * reasoning docs/CLAIMS.md 3.11 already applies to RefusalRecord writes
+ * applies just as directly -- a request that should be rejected is
+ * already rejected, correctly, by the time this fires; failing the
+ * response closed on top of that would trade a correct 400/413 for an
+ * opaque 500 with no corresponding security gain. A write failure is
+ * logged loudly, never thrown.
  */
-export function errorHandler(
-  error: unknown,
-  _req: Request,
-  res: Response,
-  _next: NextFunction,
+function auditStructuralRejectionBestEffort(
+  auditSink: CallerAuditSink | undefined,
+  req: Request,
+  reason: string,
 ): void {
+  if (!auditSink) return;
+
+  auditSink
+    .record({
+      type: "caller.structural_rejected",
+      occurredAt: new Date().toISOString(),
+      route: req.originalUrl,
+      reason,
+    })
+    .catch((writeError: unknown) => {
+      console.error({
+        event: "structural_rejection_audit_write_failed",
+        route: req.originalUrl,
+        error:
+          writeError instanceof Error
+            ? writeError.message
+            : String(writeError),
+      });
+    });
+}
+
+/**
+ * Centralized API error handler. Returns the actual Express
+ * error-handling middleware; `auditSink` is threaded through from
+ * createApp so the one rejection path this file itself handles fully
+ * (malformed/oversized body, below) can be audited -- every other
+ * error branch below is reached only via a route handler, which
+ * already owns its own audit call before calling next(error) (see
+ * execute.ts / transactions.ts).
+ */
+export function createErrorHandler(
+  auditSink?: CallerAuditSink,
+) {
+  return function errorHandler(
+    error: unknown,
+    req: Request,
+    res: Response,
+    _next: NextFunction,
+  ): void {
   //
   // Malformed / oversized request body (express.json(), before any
   // route handler runs)
@@ -64,6 +118,14 @@ export function errorHandler(
   const bodyParserStatus = bodyParserErrorStatus(error);
 
   if (bodyParserStatus !== undefined) {
+    auditStructuralRejectionBestEffort(
+      auditSink,
+      req,
+      bodyParserStatus === 413
+        ? "payload too large"
+        : "malformed JSON body",
+    );
+
     res.status(bodyParserStatus).json({
       error:
         bodyParserStatus === 413
@@ -151,4 +213,5 @@ export function errorHandler(
   res.status(500).json({
     error: "Internal Server Error",
   });
+  };
 }

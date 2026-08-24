@@ -17,21 +17,41 @@ export interface CallerAuditEvent {
     | "caller.rejected"
     | "caller.capability_denied"
     | "caller.principal_denied"
-    | "caller.non_human_denied";
+    | "caller.non_human_denied"
+    | "caller.structural_rejected";
   readonly occurredAt: string;
   readonly route: string;
 
   /**
    * Present on "caller.authenticated", "caller.capability_denied", and
-   * "caller.principal_denied".
+   * "caller.principal_denied". Present on "caller.structural_rejected"
+   * only when caller-auth ran first and identified a caller before the
+   * structural check failed (the UUID-format, field-validation, and
+   * duplicate-id checks all run inside a route handler mounted after
+   * caller-auth middleware) — absent for the malformed-JSON/oversized-
+   * body case, which the body parser rejects before caller-auth
+   * middleware, or any route handler, ever runs.
    */
   readonly callerId?: string;
 
   /**
-   * Present on "caller.rejected", "caller.capability_denied", and
-   * "caller.principal_denied". Never the credential itself.
+   * Present on "caller.rejected", "caller.capability_denied",
+   * "caller.principal_denied", and "caller.structural_rejected". Never
+   * the credential itself.
    */
   readonly reason?: string;
+
+  /**
+   * The declared `businessTransactionId` a "caller.structural_rejected"
+   * event concerns (G-29, docs/VERIFICATION-GAPS.md) — present whenever
+   * the rejected request got far enough to have one (a malformed UUID
+   * that still parsed as JSON, a structurally invalid transaction body,
+   * or a duplicate id), absent only for the earliest possible failure
+   * (malformed JSON / oversized body, rejected before any field of the
+   * request body — valid or not — could be read at all). Present only
+   * on "caller.structural_rejected".
+   */
+  readonly businessTransactionId?: string;
 
   /**
    * The capability (Business Transaction intent.action) this event

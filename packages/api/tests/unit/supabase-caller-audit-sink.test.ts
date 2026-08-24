@@ -84,6 +84,7 @@ function toRow(values: readonly unknown[]): Record<string, unknown> {
     capability,
     principal_id,
     severity,
+    business_transaction_id,
     signature_json_raw,
   ] = values;
 
@@ -96,6 +97,7 @@ function toRow(values: readonly unknown[]): Record<string, unknown> {
     capability,
     principal_id,
     severity,
+    business_transaction_id,
     signature_json: JSON.parse(signature_json_raw as string),
   };
 }
@@ -130,6 +132,15 @@ const PRINCIPAL_DENIED_EVENT: CallerAuditEvent = {
   callerId: "caller-1",
   principalId: "someone-else",
   reason: "principal not allowed",
+};
+
+const STRUCTURAL_REJECTED_EVENT: CallerAuditEvent = {
+  type: "caller.structural_rejected",
+  occurredAt: "2026-01-01T00:00:00.000Z",
+  route: "/execute",
+  callerId: "caller-1",
+  businessTransactionId: "11111111-1111-4111-8111-111111111111",
+  reason: "Business Transaction '11111111-1111-4111-8111-111111111111' already exists.",
 };
 
 const NON_HUMAN_DENIED_EVENT: CallerAuditEvent = {
@@ -170,6 +181,7 @@ describe("SupabaseCallerAuditSink", () => {
       capability: null,
       principal_id: null,
       severity: null,
+      business_transaction_id: null,
       signature_json: {
         algorithm: "ed25519",
         keyId: "default",
@@ -201,6 +213,7 @@ describe("SupabaseCallerAuditSink", () => {
       capability: null,
       principal_id: null,
       severity: null,
+      business_transaction_id: null,
       signature_json: {
         algorithm: "ed25519",
         keyId: "default",
@@ -232,6 +245,7 @@ describe("SupabaseCallerAuditSink", () => {
       capability: "razorpay:refund-create",
       principal_id: null,
       severity: null,
+      business_transaction_id: null,
       signature_json: {
         algorithm: "ed25519",
         keyId: "default",
@@ -263,6 +277,7 @@ describe("SupabaseCallerAuditSink", () => {
       capability: null,
       principal_id: "someone-else",
       severity: null,
+      business_transaction_id: null,
       signature_json: {
         algorithm: "ed25519",
         keyId: "default",
@@ -294,6 +309,76 @@ describe("SupabaseCallerAuditSink", () => {
       capability: null,
       principal_id: null,
       severity: "flagged",
+      business_transaction_id: null,
+      signature_json: {
+        algorithm: "ed25519",
+        keyId: "default",
+        value: expect.any(String),
+        signedAt: expect.any(String),
+      },
+    });
+  });
+
+  it("maps a structural_rejected event's businessTransactionId and reason (G-29)", async () => {
+    let capturedRow: Record<string, unknown> | undefined;
+
+    const sink = new SupabaseCallerAuditSink(
+      createFakePool({
+        onInsert: (values) => {
+          capturedRow = toRow(values);
+        },
+      }),
+    );
+
+    await sink.record(STRUCTURAL_REJECTED_EVENT);
+
+    expect(capturedRow).toEqual({
+      type: "caller.structural_rejected",
+      occurred_at: "2026-01-01T00:00:00.000Z",
+      route: "/execute",
+      caller_id: "caller-1",
+      reason: "Business Transaction '11111111-1111-4111-8111-111111111111' already exists.",
+      capability: null,
+      principal_id: null,
+      severity: null,
+      business_transaction_id: "11111111-1111-4111-8111-111111111111",
+      signature_json: {
+        algorithm: "ed25519",
+        keyId: "default",
+        value: expect.any(String),
+        signedAt: expect.any(String),
+      },
+    });
+  });
+
+  it("maps a structural_rejected event with no known caller (malformed body, ahead of caller-auth), nulling caller_id", async () => {
+    let capturedRow: Record<string, unknown> | undefined;
+
+    const sink = new SupabaseCallerAuditSink(
+      createFakePool({
+        onInsert: (values) => {
+          capturedRow = toRow(values);
+        },
+      }),
+    );
+
+    await sink.record({
+      type: "caller.structural_rejected",
+      occurredAt: "2026-01-01T00:00:00.000Z",
+      route: "/execute",
+      reason: "malformed JSON body",
+    });
+
+    expect(capturedRow).toEqual({
+      type: "caller.structural_rejected",
+      occurred_at: "2026-01-01T00:00:00.000Z",
+      route: "/execute",
+      caller_id: null,
+      reason: "malformed JSON body",
+      capability: null,
+      principal_id: null,
+      severity: null,
+      business_transaction_id: null,
       signature_json: {
         algorithm: "ed25519",
         keyId: "default",

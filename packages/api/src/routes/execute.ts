@@ -10,6 +10,10 @@ import { isPrincipalAllowed } from "../auth/isPrincipalAllowed.js";
 import { isCapabilityAllowed } from "../auth/isCapabilityAllowed.js";
 import type { CallerAuditSink } from "../auth/CallerAuditSink.js";
 import { recordCallerAuditEvent } from "../auth/recordCallerAuditEvent.js";
+import {
+  BusinessTransactionValidationError,
+  DuplicateBusinessTransactionError,
+} from "@parmana/runtime";
 import type {
   ExecutionTrustApplication,
 } from "@parmana/runtime";
@@ -44,16 +48,39 @@ export function createExecuteRouter(
       res: Response,
       next: NextFunction,
     ): Promise<void> => {
-      try {
-        const {
-          businessTransactionId,
-        } = req.body;
+      // Declared ahead of the try block, not inside it: `catch` below
+      // needs it too (G-29 audit), and `try`/`catch` are separate block
+      // scopes -- a `const` declared inside `try` is not visible there.
+      const {
+        businessTransactionId,
+      } = req.body;
 
+      try {
         if (
           !isValidBusinessTransactionId(
             businessTransactionId,
           )
         ) {
+          if (auditSink) {
+            const recorded = await recordCallerAuditEvent(
+              auditSink,
+              {
+                type: "caller.structural_rejected",
+                occurredAt: new Date().toISOString(),
+                route: req.originalUrl,
+                ...(req.callerId !== undefined ? { callerId: req.callerId } : {}),
+                ...(typeof businessTransactionId === "string"
+                  ? { businessTransactionId }
+                  : {}),
+                reason: "businessTransactionId must be a valid UUID.",
+              },
+              req,
+              next,
+            );
+
+            if (!recorded) return;
+          }
+
           res.status(400).json({
             error:
               "businessTransactionId must be a valid UUID.",
@@ -178,6 +205,44 @@ export function createExecuteRouter(
         res.json(result);
         return;
       } catch (error) {
+        //
+        // Structural rejection audit trail (G-29,
+        // docs/VERIFICATION-GAPS.md): a Business Transaction that fails
+        // trust-chain/required-field validation, or that reuses an
+        // already-accepted businessTransactionId, is rejected correctly
+        // (400/409, unchanged, below) but previously left no durable
+        // record. Audited the same fail-closed way as the
+        // principal/capability checks above -- before next(error), not
+        // after -- so a write failure surfaces as 503 AUDIT_UNAVAILABLE
+        // rather than silently letting the rejection go unrecorded.
+        // Every other error this route can produce (PolicyNotFoundError,
+        // NonceAlreadyConsumedError, an unexpected 500, ...) is
+        // deliberately not audited here -- out of G-29's scope, which
+        // covers only structural/admission-time rejections, not policy
+        // or execution-layer failures.
+        //
+        if (
+          auditSink &&
+          (error instanceof BusinessTransactionValidationError ||
+            error instanceof DuplicateBusinessTransactionError)
+        ) {
+          const recorded = await recordCallerAuditEvent(
+            auditSink,
+            {
+              type: "caller.structural_rejected",
+              occurredAt: new Date().toISOString(),
+              route: req.originalUrl,
+              ...(req.callerId !== undefined ? { callerId: req.callerId } : {}),
+              businessTransactionId,
+              reason: error.message,
+            },
+            req,
+            next,
+          );
+
+          if (!recorded) return;
+        }
+
         next(error);
         return;
       }

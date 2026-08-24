@@ -1058,3 +1058,32 @@ CREATE POLICY "ci_read_only_select" ON policy_change_approval_records
     FOR SELECT
     TO anon
     USING (true);
+
+
+-- =============================================================================
+-- Source: supabase/migrations/20260824090000_add_structural_rejected_to_caller_audit_events.sql
+-- Structural-validation rejection audit trail (G-29)
+-- =============================================================================
+
+ALTER TABLE caller_audit_events
+DROP CONSTRAINT IF EXISTS caller_audit_events_type_check;
+
+ALTER TABLE caller_audit_events
+ADD CONSTRAINT caller_audit_events_type_check
+CHECK (type IN (
+    'caller.authenticated',
+    'caller.rejected',
+    'caller.capability_denied',
+    'caller.principal_denied',
+    'caller.non_human_denied',
+    'caller.structural_rejected'
+));
+
+ALTER TABLE caller_audit_events
+ADD COLUMN IF NOT EXISTS business_transaction_id TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_caller_audit_events_business_transaction_id
+ON caller_audit_events (
+    business_transaction_id
+)
+WHERE business_transaction_id IS NOT NULL;
