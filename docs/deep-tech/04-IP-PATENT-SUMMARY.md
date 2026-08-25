@@ -55,6 +55,16 @@ Items 1 and 2 are the strongest patent candidates specifically because they were
 real, demonstrated exploit rather than designed defensively in the abstract — that's a concrete
 technical-problem-to-solution narrative, which is what a patent claim needs.
 
+## Update (2026-08-25): draft specifications now exist
+
+Three attorney-review drafts have been written, grounded directly in this repository's real
+source (`docs/patents/DRAFT-01-runtime-credential-isolation.md`,
+`DRAFT-02-signed-execution-audit-trail.md`, `DRAFT-03-policy-change-maker-checker.md`). None have
+been reviewed by a patent attorney, prior-art-searched, or filed — see
+`docs/patents/PATENT_FILING_REGISTER.md` for real status (currently: nothing filed). This
+supersedes an earlier prompt that falsely claimed three complete, ready-to-file specifications
+already existed; they didn't, and these are the real replacements.
+
 ## TODO before this is submission-ready
 
 - [ ] **Get a real answer on patent filing status from Pavan/counsel — do not submit this

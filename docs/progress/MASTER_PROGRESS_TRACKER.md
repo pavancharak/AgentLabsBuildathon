@@ -49,7 +49,7 @@ corrected once already for violating that rule; don't reintroduce the problem.
 | Initiative | Phase | Owner | Status | Next Milestone |
 |-----------|-------|-------|--------|-----------------|
 | **Deep Tech Cert** | Drafting → Fact-filling | Pavan + Claude | 🟡 ON TRACK | Fill remaining TODOs in each drafted doc (patent status, R&D spend, Mastercard/AISI verification) |
-| **Patent Filing** | Not started | Pavan + Claude | 🔴 NOT READY | Real claim extraction from actual source files (below), then attorney engagement |
+| **Patent Filing** | Drafted, unreviewed | Pavan + Claude | 🟡 DRAFTS DONE | Attorney review + prior-art search of `docs/patents/DRAFT-01/02/03-*.md`, then engagement |
 | **A2A Accountability** | Research | Pavan | 🟡 PENDING | Market validation (Aug 26) |
 
 ---
@@ -166,9 +166,9 @@ whichever patent attorney is engaged.
 
 | Step | Deliverable | Owner | Status |
 |------|-------------|-------|--------|
-| 1 | Extract technical claims from source code | Claude | **TODO** — corrected from a false "✅ DONE"; not actually started. Do this against the real files in the table above, not the nonexistent ones from the original draft. |
-| 2 | Write patent spec outline | Claude | TODO |
-| 3 | Identify drawings/diagrams needed | Claude | TODO |
+| 1 | Extract technical claims from source code | Claude | ✅ DONE (2026-08-25) — `docs/patents/DRAFT-01/02/03-*.md`, each grounded in real, read-in-full source files |
+| 2 | Write patent spec outline | Claude | ✅ DONE (2026-08-25) — same three drafts, each with background/summary/detailed description/candidate claims |
+| 3 | Identify drawings/diagrams needed | Claude | PARTIAL — each draft names what drawings would be needed (sequence/state diagrams) but none have been produced |
 | 4 | Do prior-art search (Google Patents) | Pavan/Patent atty | TODO |
 | 5 | Engage patent attorney | Pavan | TODO |
 | 6 | Submit provisional application(s) | Patent atty | TODO |
@@ -187,7 +187,7 @@ whichever patent attorney is engaged.
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Candidates with real claim extraction done | 3 (or 4, pending decision) | 0 |
+| Candidates with real claim extraction done | 3 (or 4, pending decision) | 3 (drafted 2026-08-25, see `docs/patents/`) |
 | Patent attorneys contacted | — | 0 |
 | Provisional apps filed | — | 0 |
 
