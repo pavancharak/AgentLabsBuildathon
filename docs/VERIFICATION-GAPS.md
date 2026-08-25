@@ -287,9 +287,12 @@ narrative below is preserved as-written, unedited, as an accurate historical rec
 what closed G-24 and its TD-23/RFC-0022 residuals for Razorpay *while the connector still
 existed* — but every present-tense claim in it about `RazorpaySignalStateVerifier` etc.
 being "wired into production `POST /execute`" is no longer true of current `main`.
-`hubspot:deal-update`/`hubspot:deal-fetch` are the only capabilities actually reachable in
-production today; `HubSpotSignalStateVerifier` (the hubspot-deal-update closure, further
-below in this same entry) remains live and current, unaffected by the Razorpay removal.
+`hubspot:deal-update`/`hubspot:deal-fetch` and, since 2026-08-19,
+`github:pr-fetch`/`github:pr-merge` (`docs/CLAIMS.md` §3.17) are the capabilities actually
+reachable in production today; `HubSpotSignalStateVerifier` (the hubspot-deal-update
+closure, further below in this same entry) remains live and current, unaffected by the
+Razorpay removal. See G-30 below: the GitHub pair was never added to
+`CANONICAL_CAPABILITY_POLICY_BINDINGS`, unlike HubSpot's.
 
 ---
 
@@ -736,6 +739,52 @@ three branches) is covered by unit tests with no live network dependency:
 `business_transactions` and `execution_trust_records` rows that are never deleted. That
 cleanup gap is a smaller, separate concern from the "silent by default" problem this fix
 closes, and was out of this session's scope.
+
+**G-30. `github:pr-fetch`/`github:pr-merge` were wired into production
+(`createConnectorRegistry.ts`, commit `38658c0`, 2026-08-19) without a matching entry in
+`CANONICAL_CAPABILITY_POLICY_BINDINGS`. Found 2026-08-25, independent of a CLAIMS.md
+audit-fix pass that was looking for something else entirely.** `CapabilityPolicyBinder.
+findViolation(action, declared)` (`packages/policy/src/CapabilityPolicyBinding.ts`) returns
+`undefined` — no violation, by design — for any `action` with no canonical entry in the map;
+this is documented, intentional behavior for genuinely out-of-scope actions (test/tutorial
+fixtures), but `github:pr-fetch`/`github:pr-merge` are not out of scope — they are real,
+production-wired, tested capabilities (`docs/CLAIMS.md` §3.17), reachable through the same
+`POST /execute` route as `hubspot:deal-update`. A caller invoking `github:pr-merge` today can
+declare *any* loadable policy reference — `CapabilityPolicyBinder` will not reject the
+pairing — exactly the "real capability paired with an unrelated, unprotected policy" attack
+shape `docs/CLAIMS.md` §2.22 describes as closed. `github-pr-approval/1.0.0` is the intended
+policy (§3.17), but nothing structurally prevents a different, loadable policy from being
+declared instead and evaluated in its place.
+
+**Why this was missed twice.** `packages/policy/tests/unit/CapabilityPolicyBinder.test.ts`'s
+own `"binds every capability the production connector registry actually registers"` test
+does not actually read `createConnectorRegistry.ts`; it asserts a hardcoded
+`Set(["hubspot:deal-fetch", "hubspot:deal-update"])`, so it passed both before and after
+GitHub was wired in without ever checking the claim its own name makes. The original
+`CLAIMS-MD-AUDIT.md` (audited against commit `822d65f`, 2026-08-24 — five days after GitHub
+was wired in) and the `docs: fix CLAIMS.md stale references and broken citations` pass that
+closed out its findings the same day both re-counted `createConnectorRegistry.ts`'s
+connectors and both still reported two (`test-fixture`, `hubspot`), missing the `github`
+registration entirely — confirmed independently by re-reading the file directly rather than
+trusting either report (it registers three: `test-fixture`, `hubspot`, `github`).
+
+**Severity: blocks-pilot.** This is the same shape of finding as G-24, not G-29: a live,
+reproducible gap in the specific structural protection §2.22 claims covers "every capability
+the production connector registry actually registers." It requires GitHub App credentials to
+be configured to matter in practice (the connector fails closed to unregistered otherwise,
+per §3.17), so it is not exploitable against an unconfigured deployment, but it is real for
+any deployment that has configured GitHub.
+
+**Not yet fixed.** Two options, same shape as D-1/D-2/D-3 above: (A) add
+`github:pr-fetch`/`github:pr-merge` to `CANONICAL_CAPABILITY_POLICY_BINDINGS`, pointing both
+at `github-pr-approval/1.0.0`, mirroring HubSpot's own two-capabilities-one-policy shape
+exactly, and extend `CapabilityPolicyBinder.test.ts`'s coverage test to read
+`createConnectorRegistry.ts`'s actual registrations (or an equivalent single source of
+truth) instead of a hardcoded set, so this cannot silently recur a third time. *Estimated
+size: small — a two-line map addition plus a test fix, under an hour.* (B) if GitHub's own
+policy-selection surface is considered intentionally out of scope for this binder for some
+reason not yet documented, state that explicitly in `docs/CLAIMS.md` §2.22 and §3.17 rather
+than leaving §2.22's "every capability" claim uncorrected.
 
 ### pre-production
 

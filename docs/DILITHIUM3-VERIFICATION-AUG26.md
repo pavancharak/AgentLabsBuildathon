@@ -13,10 +13,11 @@
 
 Before the suite could run fully green, `tests/architecture/terminology-guard.test.ts`
 was failing (1 violation) because `docs/deep-tech/DEEP-TECH-APPLICATION-PROMPT.md`
-used the retired phrase "execution governance" in two places. Fixed by replacing
-both instances with the locked correct term, **"execution authorization"**
-(per `docs/architecture/phase2c-terminology-guard.md` §6). This is a docs-only
-change, unrelated to the crypto work, from the same-day commit `b983f03`.
+used a retired terminology-guard-forbidden phrase in two places (see
+`docs/architecture/phase2c-terminology-guard.md` §6 for the exact phrase and its
+locked replacement). Fixed by replacing both instances with the correct term.
+This is a docs-only change, unrelated to the crypto work, from the same-day
+commit `b983f03`.
 
 ## TEST 1: Dilithium3 test suite
 
