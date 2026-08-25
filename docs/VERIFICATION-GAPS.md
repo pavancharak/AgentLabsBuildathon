@@ -793,6 +793,16 @@ hand-maintained list, remains open follow-on work — not done in this pass, sin
 require `packages/policy` to depend on `packages/api` (or a new shared capability-registry
 package), a dependency-graph decision bigger than this fix's scope.
 
+**Root-cause architecture decision, documented separately (2026-08-26):**
+`G-30-RESOLUTION-ARCHITECTURE.md` and `G-30-ARCHITECTURE-OPTIONS.md` (repo root) lay out the
+follow-on decision — accept the hand-maintained-list debt (Option A), make the coverage test
+read live from `createConnectorRegistry.ts` (Option B, requires the `packages/policy` →
+`packages/api` edge above), or extract a shared `@parmana/capability-registry` package
+(Option C) — with corrected effort estimates and code samples (the options document flags and
+fixes a fabricated `registry.getCapabilityBindings()` API in the prompt it was drafted from;
+no such method exists on `ConnectorRegistry`). Recommendation there: Option A now, revisit B/C
+later. Awaiting Pavan's decision; nothing beyond this entry's own fix has been implemented.
+
 **Verified:** `packages/policy/tests/unit/CapabilityPolicyBinder.test.ts` (11/11, this file),
 `packages/api/tests/integration/github-pr-merge.integration.test.ts` (4/4, confirms the
 already-correct policy pairing still passes unchanged). Full repo `npm run build` (rebuilt
