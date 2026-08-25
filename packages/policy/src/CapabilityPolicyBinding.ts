@@ -34,6 +34,14 @@ export const CANONICAL_CAPABILITY_POLICY_BINDINGS: ReadonlyMap<string, PolicyRef
     "hubspot:deal-update",
     { name: "hubspot-deal-update", version: "1.0.0", schemaVersion: "1.0.0" },
   ],
+  [
+    "github:pr-fetch",
+    { name: "github-pr-approval", version: "1.0.0", schemaVersion: "1.0.0" },
+  ],
+  [
+    "github:pr-merge",
+    { name: "github-pr-approval", version: "1.0.0", schemaVersion: "1.0.0" },
+  ],
 ]);
 
 /**

@@ -743,7 +743,8 @@ closes, and was out of this session's scope.
 **G-30. `github:pr-fetch`/`github:pr-merge` were wired into production
 (`createConnectorRegistry.ts`, commit `38658c0`, 2026-08-19) without a matching entry in
 `CANONICAL_CAPABILITY_POLICY_BINDINGS`. Found 2026-08-25, independent of a CLAIMS.md
-audit-fix pass that was looking for something else entirely.** `CapabilityPolicyBinder.
+audit-fix pass that was looking for something else entirely. RESOLVED same-day
+(2026-08-25).** `CapabilityPolicyBinder.
 findViolation(action, declared)` (`packages/policy/src/CapabilityPolicyBinding.ts`) returns
 `undefined` — no violation, by design — for any `action` with no canonical entry in the map;
 this is documented, intentional behavior for genuinely out-of-scope actions (test/tutorial
@@ -775,16 +776,29 @@ be configured to matter in practice (the connector fails closed to unregistered 
 per §3.17), so it is not exploitable against an unconfigured deployment, but it is real for
 any deployment that has configured GitHub.
 
-**Not yet fixed.** Two options, same shape as D-1/D-2/D-3 above: (A) add
-`github:pr-fetch`/`github:pr-merge` to `CANONICAL_CAPABILITY_POLICY_BINDINGS`, pointing both
-at `github-pr-approval/1.0.0`, mirroring HubSpot's own two-capabilities-one-policy shape
-exactly, and extend `CapabilityPolicyBinder.test.ts`'s coverage test to read
-`createConnectorRegistry.ts`'s actual registrations (or an equivalent single source of
-truth) instead of a hardcoded set, so this cannot silently recur a third time. *Estimated
-size: small — a two-line map addition plus a test fix, under an hour.* (B) if GitHub's own
-policy-selection surface is considered intentionally out of scope for this binder for some
-reason not yet documented, state that explicitly in `docs/CLAIMS.md` §2.22 and §3.17 rather
-than leaving §2.22's "every capability" claim uncorrected.
+**Fixed same-day: Option A, as originally scoped.** `github:pr-fetch`/`github:pr-merge` added
+to `CANONICAL_CAPABILITY_POLICY_BINDINGS`, both pointing at `github-pr-approval/1.0.0` —
+exactly the policy `packages/api/tests/integration/github-pr-merge.integration.test.ts`
+already declares (line 115-117), so no behavior change for the passing case, only a new
+rejection for a caller declaring anything else. `CapabilityPolicyBinder.test.ts`'s "binds
+every capability the production connector registry actually registers" test now includes
+both in its expected set. **Not fully closed, only reduced:** the coverage test's expected
+set is still a hand-maintained literal, not a live read of `createConnectorRegistry.ts` — the
+exact mechanism that let this gap stand undetected for six days is unchanged, only the
+current snapshot is now correct. A fourth connector added without updating this test's
+literal (and without updating `CANONICAL_CAPABILITY_POLICY_BINDINGS` to match) would recur
+silently, precisely as this entry recurred once already. Deriving the expected set from
+`createConnectorRegistry.ts` or an equivalent single source of truth, rather than a
+hand-maintained list, remains open follow-on work — not done in this pass, since it would
+require `packages/policy` to depend on `packages/api` (or a new shared capability-registry
+package), a dependency-graph decision bigger than this fix's scope.
+
+**Verified:** `packages/policy/tests/unit/CapabilityPolicyBinder.test.ts` (11/11, this file),
+`packages/api/tests/integration/github-pr-merge.integration.test.ts` (4/4, confirms the
+already-correct policy pairing still passes unchanged). Full repo `npm run build` (rebuilt
+`@parmana/policy`'s stale `dist/`) and `npm test`: 1274 passed, 37 skipped, 0 failed —
+identical counts to before this fix, since no new `it()` blocks were added, only an existing
+assertion's expected set was extended.
 
 ### pre-production
 

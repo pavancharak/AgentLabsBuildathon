@@ -119,10 +119,24 @@ describe("CapabilityPolicyBinder", () => {
     // CLAIMS.md's historical §3.4-3.9/3.8/3.9). A capability that no
     // connector resolves to has nothing for this binder to protect.
     //
+    // github:pr-fetch / github:pr-merge (packages/api/src/bootstrap/
+    // createConnectorRegistry.ts, wired 2026-08-19) were missing from
+    // this set for six days before this test's own name was checked
+    // against it (docs/VERIFICATION-GAPS.md G-30) -- this asserts a
+    // hardcoded expected set, not a live read of createConnectorRegistry.ts,
+    // so it could not and did not catch that omission on its own. Kept
+    // hardcoded (matching this file's existing style) rather than importing
+    // the registry, but the set itself must now be kept in sync by hand
+    // whenever a connector is registered or removed -- the same
+    // duplicated-list tradeoff terminology-guard.test.ts's own comment
+    // documents for its independent exclusion list.
+    //
     expect(boundActions).toEqual(
       new Set([
         "hubspot:deal-fetch",
         "hubspot:deal-update",
+        "github:pr-fetch",
+        "github:pr-merge",
       ]),
     );
   });
