@@ -480,6 +480,10 @@ Post-quantum signing (ML-DSA-65, FIPS 204, historically referred to in this code
 
 
 
+**Crypto-agility, demonstrated independently of hybrid signing (3.13):** the same canonical record (via `CanonicalSerializer`, the same serialization every Parmana signing path uses) can be signed and verified by Ed25519 and by ML-DSA-65 as two entirely separate, single-algorithm operations — each against its own freshly generated key pair, with no `CRYPTO_MODE` or hybrid envelope involved. This is a standalone runnable proof (`packages/crypto/examples/crypto-agility-proof.ts`, run via `npx tsx packages/crypto/examples/crypto-agility-proof.ts`), not a unit test, written to make the claim directly checkable by hand. Measured 2026-08-25: `dilithium3-signature-provider.test.ts` 4/4 passing (6/6 including the related `dilithium3-cross-instance.test.ts`); full repository suite 1274 passed, 37 skipped, 0 failed. Full run detail in `docs/DILITHIUM3-VERIFICATION-AUG26.md`.
+
+
+
 Evidence
 
 
@@ -493,6 +497,10 @@ Evidence
 * packages/crypto/tests/unit/dilithium3-signature-provider.test.ts
 
 * packages/crypto/tests/unit/dilithium3-cross-instance.test.ts
+
+* packages/crypto/examples/crypto-agility-proof.ts
+
+* docs/DILITHIUM3-VERIFICATION-AUG26.md
 
 
 
