@@ -10,7 +10,6 @@
     { "path": "./packages/policy" },
     { "path": "./packages/receipt" },
     { "path": "./packages/api" },
-    { "path": "./packages/governance-ui" },
     { "path": "./packages/envelope-verifier" },
     { "path": "./packages/execution-system" },
     { "path": "./packages/execution-control" },
