@@ -2,6 +2,7 @@
   "files": [],
   "references": [
     { "path": "./packages/shared" },
+    { "path": "./packages/capability-registry" },
     { "path": "./packages/runtime" },
     { "path": "./packages/crypto" },
     { "path": "./packages/storage" },

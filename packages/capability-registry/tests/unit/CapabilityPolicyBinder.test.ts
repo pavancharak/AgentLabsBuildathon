@@ -17,6 +17,13 @@ import type { PolicyReference } from "@parmana/shared";
  * takes no action parameter and nothing else cross-checks policy
  * identity against capability identity. This is the regression suite
  * proving that gap is now closed.
+ *
+ * Moved here from packages/policy/tests/unit (G-30 architecture follow-up,
+ * Option C: docs/VERIFICATION-GAPS.md G-30, G-30-ARCHITECTURE-OPTIONS.md)
+ * when CapabilityPolicyBinding.ts itself moved into its own package,
+ * @parmana/capability-registry, specifically so a future consumer that
+ * needs to know "is this capability bound, and to what" doesn't have to
+ * depend on all of @parmana/policy to find out.
  */
 describe("CapabilityPolicyBinder", () => {
   it("reports no violation for an action with no canonical binding (every test/tutorial action)", () => {
@@ -124,12 +131,22 @@ describe("CapabilityPolicyBinder", () => {
     // this set for six days before this test's own name was checked
     // against it (docs/VERIFICATION-GAPS.md G-30) -- this asserts a
     // hardcoded expected set, not a live read of createConnectorRegistry.ts,
-    // so it could not and did not catch that omission on its own. Kept
-    // hardcoded (matching this file's existing style) rather than importing
-    // the registry, but the set itself must now be kept in sync by hand
-    // whenever a connector is registered or removed -- the same
+    // so it could not and did not catch that omission on its own. Extracting
+    // this file into its own package (Option C) does not change that: the
+    // set below is still hand-maintained and must still be kept in sync by
+    // hand whenever a connector is registered or removed -- the same
     // duplicated-list tradeoff terminology-guard.test.ts's own comment
-    // documents for its independent exclusion list.
+    // documents for its independent exclusion list. Moving this file into
+    // its own package does not, by itself, reduce how many places these
+    // four capability strings are spelled (still here, in
+    // CapabilityPolicyBinding.ts, and separately in
+    // connector-github/connector-hubspot's own *Capabilities.ts files --
+    // this package deliberately does not depend on either, see
+    // CapabilityPolicyBinding.ts's own comment for why). What the move
+    // removes is the packages/policy -> packages/api coupling Option B
+    // would have required, and gives a future consumer (createConnectorRegistry.ts
+    // itself, eventually) a leaf package to depend on instead of all of
+    // @parmana/policy. This assertion is still not self-updating.
     //
     expect(boundActions).toEqual(
       new Set([

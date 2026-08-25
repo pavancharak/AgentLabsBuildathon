@@ -1,5 +1,5 @@
 {
-  "name": "@parmana/policy",
+  "name": "@parmana/capability-registry",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -20,15 +20,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@parmana/capability-registry": "0.1.0",
-    "@supabase/supabase-js": "^2.108.2",
-    "express": "^5.2.1",
+    "@parmana/shared": "0.1.0",
     "vitest": "^4.1.9"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/express": "^5.0.6",
-    "dotenv": "^17.4.2",
     "eslint": "^10.6.0",
     "eslint-config-prettier": "^10.1.8",
     "tsx": "^4.22.4",

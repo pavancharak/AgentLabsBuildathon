@@ -94,5 +94,14 @@ actual source before being written, not assumed from the originating prompt.
 
 ## Outstanding
 
-Awaiting Pavan's choice of A, B, or C. Nothing in this document or the options document has been
-implemented beyond what commit `92d7aa6` already shipped.
+~~Awaiting Pavan's choice of A, B, or C.~~ **Decided: Option C (2026-08-26).** Implemented as
+scoped in `G-30-ARCHITECTURE-OPTIONS.md`, with one deviation caught and corrected before
+implementing: the new `@parmana/capability-registry` package does **not** depend on
+`@parmana/connector-github`/`@parmana/connector-hubspot` as originally sketched — both already
+depend on `@parmana/policy` (directly, or via `@parmana/connector-sdk`), so importing either
+into the new package would have created a dependency cycle back through the package
+`@parmana/policy` now depends on. The four capability-identifier strings remain hand-typed,
+same as before the move; what the move actually closes is the `packages/policy` →
+`packages/api` backwards edge Option B would have required. Full detail, verification steps,
+and the updated status in `docs/VERIFICATION-GAPS.md`'s G-30 entry (search "Option C
+implemented").

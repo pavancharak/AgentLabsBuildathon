@@ -24,6 +24,21 @@ export interface CapabilityPolicyBindingViolation {
  * `CapabilityPolicyBinder` -- this table is additive, not a replacement
  * for `PolicyRouter`/`PolicyEngine`, and does not change how a policy,
  * once selected, is loaded or evaluated.
+ *
+ * Lives in its own package (`@parmana/capability-registry`), not
+ * `@parmana/policy`, specifically so that a package which needs to know
+ * "is this capability bound, and to what" -- including, eventually,
+ * `packages/api`'s own connector-registration bootstrap -- can depend on
+ * this map without depending on all of `@parmana/policy` (`PolicyEngine`,
+ * `SignalIntentBinder`, etc.), and so `@parmana/policy` itself can depend
+ * on this map without creating a cycle back through any connector package.
+ * `@parmana/connector-hubspot` (directly) and `@parmana/connector-github`
+ * (via `@parmana/connector-sdk`) both already depend on `@parmana/policy`,
+ * so this package deliberately depends on nothing except `@parmana/shared`
+ * -- not on either connector package -- to keep it a true leaf. See
+ * `docs/VERIFICATION-GAPS.md` G-30 and `G-30-ARCHITECTURE-OPTIONS.md`
+ * (repo root) for the full history of why this extraction happened and
+ * what it does and doesn't close.
  */
 export const CANONICAL_CAPABILITY_POLICY_BINDINGS: ReadonlyMap<string, PolicyReference> = new Map([
   [

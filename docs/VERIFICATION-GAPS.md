@@ -810,6 +810,38 @@ already-correct policy pairing still passes unchanged). Full repo `npm run build
 identical counts to before this fix, since no new `it()` blocks were added, only an existing
 assertion's expected set was extended.
 
+**Option C implemented (2026-08-26), per Pavan's decision.**
+`CANONICAL_CAPABILITY_POLICY_BINDINGS`/`CapabilityPolicyBinder` moved from
+`packages/policy/src/CapabilityPolicyBinding.ts` into a new leaf package,
+`packages/capability-registry/src/CapabilityPolicyBinding.ts`, depending only on
+`@parmana/shared`. `packages/policy/src/index.ts` re-exports both symbols from the new package
+unchanged, so all ~10 existing consumers that import via `@parmana/policy` needed zero changes
+(confirmed by grep before and after). The regression test moved with it, to
+`packages/capability-registry/tests/unit/CapabilityPolicyBinder.test.ts`.
+
+**Deviation from the original Option C sketch, found and corrected before implementing, not
+after:** `G-30-ARCHITECTURE-OPTIONS.md`'s Option C proposed the new package also importing
+capability-identifier constants from `@parmana/connector-github`/`@parmana/connector-hubspot`
+to remove identifier-string duplication. Checked first: `@parmana/connector-hubspot` already
+depends on `@parmana/policy` directly, and `@parmana/connector-github` depends on
+`@parmana/connector-sdk`, which also depends on `@parmana/policy` — either import direction
+would have created a dependency cycle back through the exact package this extraction exists to
+be depended on by. Not done. The four capability-identifier strings remain hand-typed in
+`CapabilityPolicyBinding.ts`, exactly as before the move, still separately duplicated in
+`GitHubCapabilities.ts`/`HubSpotCapabilities.ts`. **What this move actually closes:** the
+`packages/policy` → `packages/api` backwards-dependency edge Option B would have required, and
+gives a future consumer (`createConnectorRegistry.ts` itself, if ever restructured to read
+canonical bindings) a leaf package to depend on instead of pulling in all of `@parmana/policy`.
+**What it does not close:** the coverage test's expected set is still a hand-maintained
+literal (see that test's own updated comment) — the exact failure mode that let G-30 itself go
+undetected for six days is structurally unchanged, only relocated to a smaller, more clearly
+purpose-scoped package.
+
+**Verified (Option C):** `npm install` (linked the new workspace package), `npx tsc -b` (clean,
+full workspace including the new project reference in root `tsconfig.json`), `npx eslint
+packages/capability-registry packages/policy --ext .ts` (clean), full `npm test`: 1274 passed,
+37 skipped, 0 failed — identical counts, since the moved test file's assertions are unchanged.
+
 ### pre-production
 
 **G-4. Hybrid/post-quantum signing was dead configuration in production. PARTIALLY

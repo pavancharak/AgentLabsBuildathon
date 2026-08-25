@@ -1,10 +1,12 @@
 # G-30 Architecture Options
 
-**Status:** decision document only — nothing below has been implemented. G-30 itself (the
-missing `github:pr-fetch`/`github:pr-merge` policy bindings) is already fixed and committed
-(`92d7aa6`); what remains open is the *root cause* — a hand-maintained test literal that can
-silently diverge from what's actually registered in production — and which of three ways to
-close that root cause Pavan wants to take.
+**Status: Option C chosen and implemented (2026-08-26).** This document is kept as the
+decision record for all three options, including the ones not taken. G-30 itself (the missing
+`github:pr-fetch`/`github:pr-merge` policy bindings) was fixed and committed (`92d7aa6`)
+before this document existed. Option C's actual implementation deviated from the sketch below
+in one respect, caught before implementing — see `G-30-RESOLUTION-ARCHITECTURE.md`'s
+"Outstanding" section and `docs/VERIFICATION-GAPS.md`'s G-30 entry ("Option C implemented")
+for what was actually built and why the deviation happened.
 
 **Verification note on this document's own content:** the original prompt this document was
 drafted from included a code sample for Option B (`registry.getCapabilityBindings()`,

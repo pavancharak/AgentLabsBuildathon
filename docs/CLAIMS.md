@@ -728,7 +728,7 @@ Evidence
 
 
 
-For every production capability, the policy that governs it is fixed structurally, not selected by the caller. `CapabilityPolicyBinder` checks a request's declared `Intent.action` against `CANONICAL_CAPABILITY_POLICY_BINDINGS`, a single hardcoded map from capability to the one policy reference that authorizes it (`packages/policy/src/CapabilityPolicyBinding.ts`) — covering every capability the production connector registry actually registers. A request pairing a real capability with any policy other than its canonical one is rejected as an ordinary policy denial, with zero rules evaluated, before `PolicyEngine.evaluate` ever runs.
+For every production capability, the policy that governs it is fixed structurally, not selected by the caller. `CapabilityPolicyBinder` checks a request's declared `Intent.action` against `CANONICAL_CAPABILITY_POLICY_BINDINGS`, a single hardcoded map from capability to the one policy reference that authorizes it (`packages/capability-registry/src/CapabilityPolicyBinding.ts`, moved from `packages/policy/src` 2026-08-26; re-exported unchanged from `@parmana/policy`'s public API) — covering every capability the production connector registry actually registers. A request pairing a real capability with any policy other than its canonical one is rejected as an ordinary policy denial, with zero rules evaluated, before `PolicyEngine.evaluate` ever runs.
 
 
 
@@ -740,7 +740,7 @@ Evidence
 
 
 
-* packages/policy/src/CapabilityPolicyBinding.ts (`CANONICAL_CAPABILITY_POLICY_BINDINGS`, `CapabilityPolicyBinder`)
+* packages/capability-registry/src/CapabilityPolicyBinding.ts (`CANONICAL_CAPABILITY_POLICY_BINDINGS`, `CapabilityPolicyBinder`; moved from `packages/policy/src` 2026-08-26, G-30 Option C, re-exported unchanged from `@parmana/policy`'s own public API — see §2.22's own update below)
 
 * packages/runtime/src/RuntimeBuilder.ts (unconditional construction, no configuration flag)
 
@@ -753,6 +753,8 @@ Evidence
 **Update (code-only ground-truth capture pass, follow-up closure):** this section's "covering every capability the production connector registry actually registers" was, until this pass, not quite true — `CANONICAL_CAPABILITY_POLICY_BINDINGS` also carried a stale `payments:execute` entry left behind by G-27's vendor-payment removal (`docs/VERIFICATION-GAPS.md` G-27's own update). Removed; the table now matches the claim exactly. See that G-27 update for the full trace.
 
 **Update (2026-08-25 audit-fix pass, RESOLVED same-day):** "covering every capability the production connector registry actually registers" was, briefly, not true. `createConnectorRegistry.ts` conditionally registers `github:pr-fetch`/`github:pr-merge` (3.17) when GitHub App credentials are configured, wired in on 2026-08-19 — five days *before* the code-only ground-truth pass above — but neither capability had been added to `CANONICAL_CAPABILITY_POLICY_BINDINGS`. Fixed same day: both now map to `github-pr-approval/1.0.0` (the policy §3.17's own connector already evaluates), mirroring HubSpot's own two-capabilities-one-policy shape exactly. `CapabilityPolicyBinder.test.ts`'s "binds every capability the production connector registry actually registers" test — which asserts a hardcoded set rather than reading the registry live, which is why the gap went uncaught for six days — now includes both. Full trace in `docs/VERIFICATION-GAPS.md` G-30 (RESOLVED).
+
+**Update (2026-08-26, G-30 architecture follow-up, Option C implemented):** `CANONICAL_CAPABILITY_POLICY_BINDINGS` and `CapabilityPolicyBinder` moved out of `@parmana/policy` into a new leaf package, `@parmana/capability-registry`, depending only on `@parmana/shared`. `@parmana/policy`'s own public API is unaffected — `packages/policy/src/index.ts` re-exports both symbols from the new package unchanged, so every existing consumer importing from `@parmana/policy` needed no changes; confirmed by grep across the ~10 files that do (`RuntimeEngine.ts`, `RuntimeBuilder.ts`, `execute.ts`, and others). **Deviation from the original Option C sketch, corrected before implementing:** the plan in `G-30-ARCHITECTURE-OPTIONS.md` proposed also importing capability-identifier constants from `@parmana/connector-github`/`@parmana/connector-hubspot` into the new package to remove identifier-string duplication. Checked before doing it: `@parmana/connector-hubspot` already depends on `@parmana/policy` directly, and `@parmana/connector-github` depends on `@parmana/connector-sdk`, which also depends on `@parmana/policy` — either import would have created a direct dependency cycle back through the package this extraction was built to be depended on by. Not done; the four capability-identifier strings remain hand-typed in `CapabilityPolicyBinding.ts`, same as before the move, still duplicated against `GitHubCapabilities.ts`/`HubSpotCapabilities.ts`'s own separate constants. What this move does close: the `packages/policy` → `packages/api` backwards-dependency edge Option B would have required. Full detail in `G-30-ARCHITECTURE-OPTIONS.md` and `G-30-RESOLUTION-ARCHITECTURE.md` (repo root). Verified: full rebuild (`npx tsc -b`, clean) and full suite unchanged at 1274 passed, 37 skipped, 0 failed.
 
 
 
@@ -828,7 +830,7 @@ Evidence
 
 * packages/api/src/auth/StaticKeyAuthenticator.ts (caller-type-agnostic authentication)
 
-* Repo-wide grep confirming zero `authority`/caller-identity references in RuntimeEngine.ts, PolicyEngine.ts, SignalIntentBinder.ts, CapabilityPolicyBinding.ts
+* Repo-wide grep confirming zero `authority`/caller-identity references in RuntimeEngine.ts, PolicyEngine.ts, SignalIntentBinder.ts, CapabilityPolicyBinding.ts (as of this check, 2026-08-09, the last file lived at `packages/policy/src/`; moved to `packages/capability-registry/src/` 2026-08-26 — same file content, unaffected by the move)
 
 
 

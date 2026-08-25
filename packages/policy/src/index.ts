@@ -26,10 +26,10 @@ export { CompositeSignalStateVerifier } from "./CompositeSignalStateVerifier.js"
 export {
   CANONICAL_CAPABILITY_POLICY_BINDINGS,
   CapabilityPolicyBinder,
-} from "./CapabilityPolicyBinding.js";
+} from "@parmana/capability-registry";
 export type {
   CapabilityPolicyBindingViolation,
-} from "./CapabilityPolicyBinding.js";
+} from "@parmana/capability-registry";
 
 // -----------------------------------------------------------------------------
 // Routing & Registry
