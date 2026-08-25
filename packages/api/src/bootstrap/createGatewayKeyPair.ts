@@ -15,6 +15,15 @@ import { loadConfig } from "@parmana/shared";
 
 const DEFAULT_GATEWAY_KEY_ID = "gateway";
 
+/**
+ * keyId becomes a path segment. Matches FileKeyProvider's own
+ * VALID_KEY_ID guard (@parmana/crypto) -- PARMANA_GATEWAY_KEY_ID is
+ * operator-controlled, not attacker-reachable, but this keeps every
+ * keyId-to-path resolution in the codebase equally guarded rather
+ * than relying on that distinction.
+ */
+const VALID_KEY_ID = /^[A-Za-z0-9._-]+$/;
+
 export interface GatewayKeyPair {
   readonly privateKey: KeyObject;
   readonly publicKey: KeyObject;
@@ -41,6 +50,12 @@ export function createGatewayKeyPair(): GatewayKeyPair {
 
   const keyId =
     process.env.PARMANA_GATEWAY_KEY_ID ?? DEFAULT_GATEWAY_KEY_ID;
+
+  if (!VALID_KEY_ID.test(keyId)) {
+    throw new Error(
+      `Invalid PARMANA_GATEWAY_KEY_ID: ${JSON.stringify(keyId)}. Must match ${VALID_KEY_ID}.`,
+    );
+  }
 
   const privateKeyPath = join(
     config.keys.keyDirectory,

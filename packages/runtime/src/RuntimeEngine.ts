@@ -435,6 +435,7 @@ export class RuntimeEngine {
             transaction.policy.name,
           policyVersion:
             transaction.policy.version,
+          policyContentHash,
           executableContent,
         },
         this.authorizationTtlSeconds,

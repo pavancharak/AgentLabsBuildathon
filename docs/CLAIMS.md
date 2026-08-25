@@ -976,6 +976,76 @@ Evidence
 
 
 
+## 2.27 Policy-Freshness Enforcement at Execution Time
+
+
+
+A signed Execution Authorization is bound to the exact policy content it was decided under, not merely the policy's `(name, version)` identifier: `RuntimeEngine.execute()` computes `policyContentHash` — a hash of the policy document actually loaded for that decision, via the same `TrustRecordHasher` other artifact hashes in this codebase use — and includes it inside the signed `ExecutionAuthorizationPayload` (`packages/runtime/src/RuntimeEngine.ts`). This is distinct from 2.26's "Content hash at decision time (G-24)", which stamps a content hash onto the persisted `ExecutionTrustRecord` for audit purposes; this hash is signed into the authorization itself and independently re-checked before execution is allowed to proceed.
+
+
+
+`ExecutionGateway` optionally accepts a `PolicyRepository` (`ExecutionGatewayOptions.policyRepository`). When supplied, and when the authorization being verified carries a `policyContentHash` (older authorizations signed before this check existed do not), the gateway reloads the policy at the authorization's own `(policyName, policyVersion)` and recomputes its current content hash, comparing it against the signed value. A mismatch — whether from the policy's content changing in place or the policy no longer existing at that name/version at all — sets `policyStillCurrent: false`, is reported in `GatewayVerificationResult.policyContentMismatch`, and fails `verify()` before the connector is ever invoked, exactly like the existing `businessTransactionHash` check it sits alongside in the same ordered check sequence (`packages/execution-gateway/src/ExecutionGateway.ts`).
+
+
+
+This check is opt-in and additive, not a behavior change for existing deployments: omitting `policyRepository`, or verifying an authorization signed before `policyContentHash` existed, leaves `policyStillCurrent` absent (not failed) — the same "absent means skipped" convention `hashMismatch` already used — and the pre-existing replay-detection logic (`isSoleFailureNonceReplay`) treats an absent/undefined check as passing, so it does not spuriously reclassify a stale-policy rejection as a nonce replay.
+
+
+
+Evidence
+
+
+
+* `packages/runtime/src/RuntimeEngine.ts` (`policyContentHash` computed and signed into the authorization payload)
+
+* `packages/execution-gateway/src/ExecutionGateway.ts` (`policyRepository` option, `policyStillCurrent` check, `policyContentMismatch` reporting)
+
+* `packages/execution-gateway/src/GatewayVerificationResult.ts` (`policyStillCurrent`, `policyContentMismatch` fields)
+
+* `packages/execution-gateway/tests/unit/policy-freshness.test.ts` (7 cases: unchanged-policy pass, changed-content-since-signing failure with named mismatch, `execute()` throwing with the mismatch named, policy no longer existing at that name/version, check skipped — not failed — when no `policyRepository` is wired, check skipped — not failed — when the authorization carries no `policyContentHash`, a nonce-replay-only failure still correctly classified when the policy check was skipped)
+
+
+
+---
+
+
+
+## 2.28 KeyId-Aware Key Resolution with Expiry/Revocation Checking
+
+
+
+Signature verification can resolve the verifying key per-authorization by `keyId` instead of always using one static configured public key, enabling more than one key to be valid at once (for example, during a rotation window) without a restart. `EnvelopeVerifier` accepts optional `keyProvider` and `keyExpiryStore` options (`packages/envelope-verifier/src/EnvelopeVerifier.ts`); `ExecutionGateway` forwards its own same-named optional options straight through to the `EnvelopeVerifier` it composes (`packages/execution-gateway/src/ExecutionGateway.ts`).
+
+
+
+When `keyProvider` is supplied, each authorization's own `authorization.keyId` is resolved through it (`FileKeyProvider.getPublicKey(keyId)`) instead of the single static `publicKey`; when `keyExpiryStore` is also supplied, the resolved keyId is first checked against it, and a `revoked: true` entry, or an `expiresAt` at or before the verification instant, causes resolution to fail before any key material is even read. Failure at either step — key not found, key unreadable, expired, or revoked — fails closed: `resolveKey()` returns `undefined` rather than throwing or silently falling back to the static `publicKey`, which surfaces as `checks.keyValid: false` and an overall failed verification. A `keyId` with no entry in `keyExpiryStore` at all is treated as always valid (the same "absent means not opted in" convention as 2.27's `policyStillCurrent`). Omitting `keyProvider` entirely preserves the exact prior static-`publicKey` behavior, with `keyValid` staying absent (not `false`) from the result, since key resolution then isn't part of verification's checks at all.
+
+
+
+`FileKeyExpiryStore` (`packages/crypto/src/KeyExpiry.ts`) is the reference `KeyExpiryStore` implementation: it reads one small sidecar JSON file beside the PEM key files `FileKeyProvider` already reads from the same configured key directory (`<keyDirectory>/key-expiry.json`), keyed by `keyId`, with `expiresAt`/`revoked` both optional per entry. A `keyId` absent from the file, or the file itself being absent, means "no expiry, always valid" — the safe default that keeps every deployment that doesn't opt into key expiry behaving exactly as it does today. Malformed JSON, or a value of the wrong shape, throws rather than silently treating the key as unexpiring.
+
+
+
+Evidence
+
+
+
+* `packages/envelope-verifier/src/EnvelopeVerifier.ts` (`keyProvider`, `keyExpiryStore` options; `resolveKey()`; `checks.keyValid`)
+
+* `packages/execution-gateway/src/ExecutionGateway.ts` (forwards `keyProvider`/`keyExpiryStore` to its composed `EnvelopeVerifier`)
+
+* `packages/crypto/src/KeyExpiry.ts` (`KeyExpiryStore` interface, `FileKeyExpiryStore`)
+
+* `packages/envelope-verifier/tests/unit/envelope-verifier.test.ts`: "resolves the public key via keyProvider using the authorization's own keyId", "fails closed when keyProvider has no key for the authorization's keyId", "fails closed when the resolved key is expired per keyExpiryStore", "fails closed when the resolved key is revoked per keyExpiryStore", "a keyId with no keyExpiryStore entry is treated as always valid", "omitting keyProvider preserves today's exact static-publicKey behavior, with keyValid absent"
+
+* `packages/crypto/tests/unit/key-expiry.test.ts` (6 cases: missing file, keyId absent from an existing file, parsed `expiresAt` as a real `Date`, `revoked: true`, malformed JSON throws, non-object JSON throws)
+
+
+
+---
+
+
+
 # 3. Conditional Claims
 
 

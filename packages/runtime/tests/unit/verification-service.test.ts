@@ -14,6 +14,8 @@ import {
   type Verification,
 } from "@parmana/shared";
 
+import { ExecutionChainCrypto } from "@parmana/crypto";
+
 import { BusinessTrustRecordBuilder } from "../../src/BusinessTrustRecordBuilder.js";
 import { VerificationService } from "../../src/services/verification-service.js";
 import type { RuntimeContext } from "../../src/context/RuntimeContext.js";
@@ -149,6 +151,66 @@ async function buildTrustRecord(options: {
       options.authorizationId === undefined
         ? {}
         : { authorizationId: options.authorizationId },
+  };
+
+  const context: RuntimeContext = {
+    transaction,
+    decision: execution.decision,
+    execution,
+  };
+
+  return new BusinessTrustRecordBuilder().build(context);
+}
+
+/**
+ * Builds a trust record whose sole Execution carries real,
+ * signed chain fields (via the real ExecutionChainCrypto — the
+ * same machinery ExecutionService uses), optionally with a
+ * corrupted previousChainHash to exercise the broken-chain path.
+ */
+async function buildChainedTrustRecord(options: {
+  businessTransactionId: string;
+  corruptPreviousChainHash?: boolean;
+}): Promise<ExecutionTrustRecord> {
+  const transaction = createTransaction(
+    options.businessTransactionId,
+  );
+
+  const fixedDate = new Date("2026-01-01T00:00:00Z");
+
+  const draft: Execution = {
+    executionId: `exec-${options.businessTransactionId}`,
+    businessTransactionId: options.businessTransactionId,
+
+    decision: {
+      decisionId: `decision-${options.businessTransactionId}`,
+      intentId: "intent-1",
+      policy: transaction.policy,
+      signals: transaction.signals as Record<string, never>,
+      outcome: DecisionOutcome.APPROVED,
+      evaluatedAt: fixedDate,
+    },
+
+    status: ExecutionStatus.COMPLETED,
+    mode: ExecutionMode.SYNC,
+    startedAt: fixedDate,
+    completedAt: fixedDate,
+
+    metadata: { authorizationId: "authorization-xyz" },
+  };
+
+  const chainFields = await new ExecutionChainCrypto().chain(
+    draft,
+    null,
+  );
+
+  const execution: Execution = {
+    ...draft,
+    ...chainFields,
+
+    ...(options.corruptPreviousChainHash && {
+      previousChainHash: "forged-predecessor-hash",
+    }),
   };
 
   const context: RuntimeContext = {
@@ -331,6 +393,43 @@ describe("VerificationService (live path)", () => {
     expect(verification.message).toContain("Integrity check failed");
     expect(verification.message).toContain(
       "Authorization binding check failed",
+    );
+  });
+
+  it("verifies a record whose Execution carries a real, valid chain", async () => {
+    const trustRecord = await buildChainedTrustRecord({
+      businessTransactionId: "txn-chain-valid",
+    });
+
+    const repository = new InMemoryExecutionTrustRecordRepository();
+    await repository.create(trustRecord);
+
+    const service = new VerificationService(repository);
+
+    const verification = await service.verify("txn-chain-valid");
+
+    expect(verification.status).toBe(VerificationStatus.VERIFIED);
+  });
+
+  it("fails with a named chain-integrity failure when previousChainHash is tampered", async () => {
+    const trustRecord = await buildChainedTrustRecord({
+      businessTransactionId: "txn-chain-tampered",
+      corruptPreviousChainHash: true,
+    });
+
+    const repository = new InMemoryExecutionTrustRecordRepository();
+    await repository.create(trustRecord);
+
+    const service = new VerificationService(repository);
+
+    const verification = await service.verify("txn-chain-tampered");
+
+    expect(verification.status).toBe(VerificationStatus.FAILED);
+    expect(verification.message).toContain(
+      "Execution chain integrity check failed",
+    );
+    expect(verification.message).toContain(
+      trustRecord.executions[0]!.executionId,
     );
   });
 });

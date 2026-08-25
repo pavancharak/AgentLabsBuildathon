@@ -18,6 +18,15 @@ export interface GatewayVerificationResult {
     readonly notExpired: boolean;
     readonly ttlWithinPolicy: boolean;
     readonly businessTransactionHashMatches: boolean;
+
+    /**
+     * Present only when a PolicyRepository was supplied to the
+     * Gateway AND the authorization carries a policyContentHash --
+     * absent (not false) otherwise, meaning the check was skipped
+     * rather than failed. See ExecutionGateway's class doc comment.
+     */
+    readonly policyStillCurrent?: boolean;
+
     readonly nonceUnseen: boolean;
   };
 
@@ -27,6 +36,16 @@ export interface GatewayVerificationResult {
    * diagnosable without re-deriving either value.
    */
   readonly hashMismatch?: {
+    readonly expected: string;
+    readonly actual: string;
+  };
+
+  /**
+   * Present only when policyStillCurrent is false. Names both
+   * hashes so a mismatch is diagnosable without re-deriving either
+   * value.
+   */
+  readonly policyContentMismatch?: {
     readonly expected: string;
     readonly actual: string;
   };

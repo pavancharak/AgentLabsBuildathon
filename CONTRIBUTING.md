@@ -204,6 +204,10 @@ docs/guides/
 
 
 
+Adding a new connector? See \`docs/architecture/CONNECTOR\_ISOLATION.md\` and \`docs/connectors/BUILDING\_A\_CONNECTOR.md\` before opening a PR — every connector must be registered through the standard path so it gets automatic credential isolation; a \`legacyInsecure: true\` registration outside a test is not acceptable.
+
+
+
 \## Philosophy
 
 

@@ -10,7 +10,7 @@ import {
 
 import { VerificationFailedError } from "../errors/VerificationFailedError.js";
 
-import { VerificationCrypto } from "@parmana/crypto";
+import { ExecutionChainCrypto, VerificationCrypto } from "@parmana/crypto";
 
 /**
  * Application service responsible for verifying
@@ -25,6 +25,9 @@ import { VerificationCrypto } from "@parmana/crypto";
 export class VerificationService {
   private readonly crypto =
     new VerificationCrypto();
+
+  private readonly chainCrypto =
+    new ExecutionChainCrypto();
 
   constructor(
     private readonly trustRecords: ExecutionTrustRecordRepository,
@@ -147,6 +150,28 @@ export class VerificationService {
             "authorizationId in its metadata.",
         );
       }
+    }
+
+    //
+    // Chain integrity: every chain-protected Execution's own
+    // chainHash/chainSignature must verify, and previousChainHash
+    // must correctly reference its predecessor's chainHash. An
+    // Execution with no chain fields at all is unprotected legacy
+    // data and does not fail this check.
+    //
+    const chainResult =
+      await this.chainCrypto.verifyChain(
+        trustRecord.executions,
+      );
+
+    if (!chainResult.valid) {
+      failures.push(
+        "Execution chain integrity check failed" +
+          (chainResult.brokenAt
+            ? ` at execution "${chainResult.brokenAt}"`
+            : "") +
+          `: ${chainResult.reason ?? "chain verification failed"}.`,
+      );
     }
 
     return failures;

@@ -20,6 +20,7 @@ export * from "./CanonicalSerializer.js";
 export * from "./TrustRecordHasher.js";
 export * from "./ReceiptHasher.js";
 export * from "./ExecutableContentHasher.js";
+export * from "./ExecutionChainHasher.js";
 
 // -----------------------------------------------------------------------------
 // Signatures
@@ -40,6 +41,7 @@ export * from "./VerificationCrypto.js";
 export * from "./RefusalCrypto.js";
 export * from "./AuditEventCrypto.js";
 export * from "./PolicyChangeCrypto.js";
+export * from "./ExecutionChainCrypto.js";
 
 // -----------------------------------------------------------------------------
 // Bootstrap & Configuration
@@ -51,6 +53,7 @@ export * from "./KeyPair.js";
 export * from "./KeyStore.js";
 export * from "./KeyProvider.js";
 export * from "./providers/key/FileKeyProvider.js";
+export * from "./KeyExpiry.js";
 
 // -----------------------------------------------------------------------------
 // Provider Interfaces

@@ -5,6 +5,10 @@ import { describe, expect, it, vi } from "vitest";
 import {
   AuthorizationSigner,
   CryptoBootstrap,
+  type KeyExpiryEntry,
+  type KeyExpiryStore,
+  type KeyProvider,
+  type KeyMetadata,
 } from "@parmana/crypto";
 
 import type {
@@ -32,6 +36,7 @@ const SAMPLE_EXECUTABLE_CONTENT: ExecutableContent = {
 async function signAuthorization(
   privateKey: ReturnType<typeof generateKeyPair>["privateKey"],
   ttlSeconds = 60,
+  keyId = "key-1",
 ): Promise<SignedExecutionAuthorization> {
   const signer = new AuthorizationSigner(crypto);
 
@@ -44,9 +49,58 @@ async function signAuthorization(
       executableContent: SAMPLE_EXECUTABLE_CONTENT,
     },
     privateKey,
-    "key-1",
+    keyId,
     ttlSeconds,
   );
+}
+
+/**
+ * In-memory KeyProvider test double, keyed by keyId.
+ */
+class MapKeyProvider implements KeyProvider {
+  constructor(
+    private readonly publicKeys: Map<
+      string,
+      ReturnType<typeof generateKeyPair>["publicKey"]
+    >,
+  ) {}
+
+  async getMetadata(keyId: string): Promise<KeyMetadata> {
+    return { keyId, algorithm: "ed25519" };
+  }
+
+  async getPrivateKey(): Promise<never> {
+    throw new Error("not implemented for this test double");
+  }
+
+  async getPublicKey(
+    keyId: string,
+  ): Promise<ReturnType<typeof generateKeyPair>["publicKey"]> {
+    const key = this.publicKeys.get(keyId);
+
+    if (key === undefined) {
+      throw new Error(`Key not found: ${keyId}`);
+    }
+
+    return key;
+  }
+
+  async hasKey(keyId: string): Promise<boolean> {
+    return this.publicKeys.has(keyId);
+  }
+}
+
+/**
+ * In-memory KeyExpiryStore test double, keyed by keyId.
+ */
+class MapKeyExpiryStore implements KeyExpiryStore {
+  constructor(
+    private readonly entries: Map<string, KeyExpiryEntry>,
+  ) {}
+
+  async get(keyId: string): Promise<KeyExpiryEntry | undefined> {
+    return this.entries.get(keyId);
+  }
 }
 
 describe("EnvelopeVerifier", () => {
@@ -291,6 +345,144 @@ describe("EnvelopeVerifier", () => {
     expect(
       await nonceStore.checkAndRecord("live-nonce", future),
     ).toBe(false);
+  });
+});
+
+describe("EnvelopeVerifier keyId-aware verification (Gap 2A)", () => {
+  it("resolves the public key via keyProvider using the authorization's own keyId", async () => {
+    const { privateKey, publicKey } = generateKeyPair();
+    const signed = await signAuthorization(privateKey, 60, "rotated-key");
+
+    const keyProvider = new MapKeyProvider(
+      new Map([["rotated-key", publicKey]]),
+    );
+
+    const verifier = new EnvelopeVerifier({
+      // Deliberately a different (unrelated) key: proves resolution
+      // actually goes through keyProvider, not this fallback.
+      publicKey: generateKeyPair().publicKey,
+      keyProvider,
+      nonceStore: new MemoryNonceStore(),
+    });
+
+    const result = await verifier.verify(signed);
+
+    expect(result.valid).toBe(true);
+    expect(result.checks.keyValid).toBe(true);
+    expect(result.checks.signatureVerified).toBe(true);
+  });
+
+  it("fails closed when keyProvider has no key for the authorization's keyId", async () => {
+    const { privateKey } = generateKeyPair();
+    const signed = await signAuthorization(privateKey, 60, "unknown-key");
+
+    const keyProvider = new MapKeyProvider(new Map());
+
+    const verifier = new EnvelopeVerifier({
+      publicKey: generateKeyPair().publicKey,
+      keyProvider,
+      nonceStore: new MemoryNonceStore(),
+    });
+
+    const result = await verifier.verify(signed);
+
+    expect(result.valid).toBe(false);
+    expect(result.checks.keyValid).toBe(false);
+    expect(result.checks.signatureVerified).toBe(false);
+    expect(result.checks.nonceUnseen).toBe(false);
+  });
+
+  it("fails closed when the resolved key is expired per keyExpiryStore", async () => {
+    const { privateKey, publicKey } = generateKeyPair();
+    const signed = await signAuthorization(privateKey, 60, "expiring-key");
+
+    const keyProvider = new MapKeyProvider(
+      new Map([["expiring-key", publicKey]]),
+    );
+
+    const keyExpiryStore = new MapKeyExpiryStore(
+      new Map([
+        [
+          "expiring-key",
+          { expiresAt: new Date(Date.now() - 1_000) },
+        ],
+      ]),
+    );
+
+    const verifier = new EnvelopeVerifier({
+      publicKey: generateKeyPair().publicKey,
+      keyProvider,
+      keyExpiryStore,
+      nonceStore: new MemoryNonceStore(),
+    });
+
+    const result = await verifier.verify(signed);
+
+    expect(result.valid).toBe(false);
+    expect(result.checks.keyValid).toBe(false);
+  });
+
+  it("fails closed when the resolved key is revoked per keyExpiryStore", async () => {
+    const { privateKey, publicKey } = generateKeyPair();
+    const signed = await signAuthorization(privateKey, 60, "revoked-key");
+
+    const keyProvider = new MapKeyProvider(
+      new Map([["revoked-key", publicKey]]),
+    );
+
+    const keyExpiryStore = new MapKeyExpiryStore(
+      new Map([["revoked-key", { revoked: true }]]),
+    );
+
+    const verifier = new EnvelopeVerifier({
+      publicKey: generateKeyPair().publicKey,
+      keyProvider,
+      keyExpiryStore,
+      nonceStore: new MemoryNonceStore(),
+    });
+
+    const result = await verifier.verify(signed);
+
+    expect(result.valid).toBe(false);
+    expect(result.checks.keyValid).toBe(false);
+  });
+
+  it("a keyId with no keyExpiryStore entry is treated as always valid", async () => {
+    const { privateKey, publicKey } = generateKeyPair();
+    const signed = await signAuthorization(privateKey, 60, "unlisted-key");
+
+    const keyProvider = new MapKeyProvider(
+      new Map([["unlisted-key", publicKey]]),
+    );
+
+    const keyExpiryStore = new MapKeyExpiryStore(new Map());
+
+    const verifier = new EnvelopeVerifier({
+      publicKey: generateKeyPair().publicKey,
+      keyProvider,
+      keyExpiryStore,
+      nonceStore: new MemoryNonceStore(),
+    });
+
+    const result = await verifier.verify(signed);
+
+    expect(result.valid).toBe(true);
+    expect(result.checks.keyValid).toBe(true);
+  });
+
+  it("omitting keyProvider preserves today's exact static-publicKey behavior, with keyValid absent", async () => {
+    const { privateKey, publicKey } = generateKeyPair();
+    const signed = await signAuthorization(privateKey);
+
+    const verifier = new EnvelopeVerifier({
+      publicKey,
+      nonceStore: new MemoryNonceStore(),
+    });
+
+    const result = await verifier.verify(signed);
+
+    expect(result.valid).toBe(true);
+    expect(result.checks.keyValid).toBeUndefined();
   });
 });
 

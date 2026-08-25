@@ -96,6 +96,24 @@ export interface ExecutionAuthorizationPayload {
    * same businessTransactionId.
    */
   readonly businessTransactionHash: string;
+
+  /**
+   * Canonical content hash (G-24) of the exact Policy document that
+   * produced this authorization's Decision -- proves which policy
+   * *content*, not merely which version string, was in force. Policy
+   * governance (see PendingPolicyChange) permits in-place content
+   * edits to an existing version string, so a version-string
+   * comparison alone cannot detect every real policy change; a
+   * receiving gateway with access to the current policy content can
+   * recompute this hash and reject execution if the policy has
+   * changed since authorization.
+   *
+   * Optional so every pre-existing construction site and already-
+   * issued authorization (signed before this field existed) keeps
+   * compiling and verifying unchanged -- an absent value means "not
+   * covered by the policy-freshness check," not "policy is stale."
+   */
+  readonly policyContentHash?: string;
 }
 
 /**

@@ -1,6 +1,14 @@
 import type { KeyObject } from "node:crypto";
 
-import { CryptoBootstrap, ExecutableContentHasher } from "@parmana/crypto";
+import {
+  CryptoBootstrap,
+  ExecutableContentHasher,
+  TrustRecordHasher,
+  type KeyExpiryStore,
+  type KeyProvider,
+} from "@parmana/crypto";
+
+import type { PolicyRepository } from "@parmana/policy";
 
 import { EnvelopeVerifier, type NonceStore } from "@parmana/envelope-verifier";
 
@@ -54,7 +62,38 @@ export interface ExecutionGatewayOptions {
    */
   readonly publicKey: KeyObject;
 
+  /**
+   * Optional keyId-aware key lookup, forwarded to EnvelopeVerifier.
+   * When supplied, each authorization's own `keyId` is resolved
+   * through this provider instead of the single static `publicKey`
+   * above -- enabling verification against a rotated or additional
+   * key without a restart, since a new keyId only needs a new key
+   * file the provider can read. `publicKey` above remains the
+   * fallback when this is omitted, so every caller that doesn't
+   * supply it keeps today's exact behavior.
+   */
+  readonly keyProvider?: KeyProvider;
+
+  /**
+   * Optional key-expiry/revocation check, forwarded to
+   * EnvelopeVerifier. Only consulted when keyProvider is also
+   * supplied; a keyId with no entry (or when this is omitted
+   * entirely) is treated as always valid.
+   */
+  readonly keyExpiryStore?: KeyExpiryStore;
+
   readonly nonceStore: NonceStore;
+
+  /**
+   * Optional policy repository used for the policy-freshness check:
+   * recomputing the current content hash of the policy an
+   * authorization was signed under, and comparing it to the
+   * authorization's own signed `policyContentHash`. When omitted, or
+   * when an authorization carries no `policyContentHash` (signed
+   * before this check existed), the check is skipped rather than
+   * failed -- see ExecutionGateway's class doc comment.
+   */
+  readonly policyRepository?: PolicyRepository;
 
   /**
    * The Connector this Gateway is the sole release
@@ -87,16 +126,22 @@ export interface ExecutionGatewayOptions {
  *
  * Composes @parmana/envelope-verifier's EnvelopeVerifier
  * rather than reimplementing signature/expiry/TTL/nonce
- * checks, and adds exactly one more side-effect-free check:
+ * checks, and adds two more side-effect-free checks:
  * recomputing the ExecutableContent hash and comparing it to
- * the authorization's businessTransactionHash. This closes the
+ * the authorization's businessTransactionHash (closing the
  * gap where a valid envelope could accompany a modified
- * payload carrying the same businessTransactionId.
+ * payload carrying the same businessTransactionId), and --
+ * when a PolicyRepository is supplied -- recomputing the
+ * current content hash of the policy the authorization was
+ * signed under and comparing it to the authorization's own
+ * signed policyContentHash, so a stale-policy authorization
+ * cannot execute after the policy it relied on has changed.
  *
  * Verification order (Session 3's ordering rule: side-effect-
  * free checks first, nonce consumed last and only on success):
  *   version -> signature -> expiry -> TTL policy
  *     -> businessTransactionHash recompute-and-compare
+ *     -> policyStillCurrent recompute-and-compare (when wired)
  *     -> nonce
  *
  * Stateless and deterministic: there is no pause/resume state.
@@ -106,6 +151,8 @@ export interface ExecutionGatewayOptions {
 export class ExecutionGateway implements ExecutionSystem {
   private readonly envelopeVerifier: EnvelopeVerifier;
   private readonly contentHasher: ExecutableContentHasher;
+  private readonly policyContentHasher: TrustRecordHasher;
+  private readonly policyRepository: PolicyRepository | undefined;
   private readonly connector: Connector | undefined;
   private readonly executionControl: ExecutionControlOptions | undefined;
 
@@ -113,6 +160,12 @@ export class ExecutionGateway implements ExecutionSystem {
     this.envelopeVerifier = new EnvelopeVerifier({
       publicKey: options.publicKey,
       nonceStore: options.nonceStore,
+      ...(options.keyProvider === undefined
+        ? {}
+        : { keyProvider: options.keyProvider }),
+      ...(options.keyExpiryStore === undefined
+        ? {}
+        : { keyExpiryStore: options.keyExpiryStore }),
       ...(options.maxTtlSeconds === undefined
         ? {}
         : { maxTtlSeconds: options.maxTtlSeconds }),
@@ -121,6 +174,12 @@ export class ExecutionGateway implements ExecutionSystem {
     this.contentHasher = new ExecutableContentHasher(
       CryptoBootstrap.create(),
     );
+
+    this.policyContentHasher = new TrustRecordHasher(
+      CryptoBootstrap.create(),
+    );
+
+    this.policyRepository = options.policyRepository;
 
     if (options.connector === undefined && options.executionControl === undefined) {
       throw new Error("ExecutionGateway requires a connector or executionControl.");
@@ -174,8 +233,54 @@ export class ExecutionGateway implements ExecutionSystem {
       }
     }
 
+    let policyStillCurrent: boolean | undefined;
+    let policyContentMismatch: GatewayVerificationResult["policyContentMismatch"];
+
+    const { policyName, policyVersion, policyContentHash } =
+      request.authorization.payload;
+
+    if (
+      passed &&
+      businessTransactionHashMatches &&
+      this.policyRepository !== undefined &&
+      policyContentHash !== undefined
+    ) {
+      try {
+        const currentPolicy = await this.policyRepository.load(
+          policyName,
+          policyVersion,
+        );
+
+        const currentHash =
+          await this.policyContentHasher.hash(currentPolicy);
+
+        policyStillCurrent = currentHash === policyContentHash;
+
+        if (!policyStillCurrent) {
+          policyContentMismatch = {
+            expected: policyContentHash,
+            actual: currentHash,
+          };
+        }
+      } catch {
+        //
+        // The policy no longer exists at this name/version (e.g. a
+        // governed change replaced it in place) -- treated the same
+        // as a content mismatch: this authorization's policy is no
+        // longer verifiably current.
+        //
+        policyStillCurrent = false;
+        policyContentMismatch = {
+          expected: policyContentHash,
+          actual: "policy not found",
+        };
+      }
+    }
+
     const priorChecksPassed =
-      passed && businessTransactionHashMatches;
+      passed &&
+      businessTransactionHashMatches &&
+      policyStillCurrent !== false;
 
     //
     // The nonce check is the only check with a side effect,
@@ -195,10 +300,12 @@ export class ExecutionGateway implements ExecutionSystem {
       checks: {
         ...checks,
         businessTransactionHashMatches,
+        ...(policyStillCurrent === undefined ? {} : { policyStillCurrent }),
         nonceUnseen,
       },
 
       ...(hashMismatch ? { hashMismatch } : {}),
+      ...(policyContentMismatch ? { policyContentMismatch } : {}),
     };
 
     return { result, executableContent };
@@ -274,6 +381,11 @@ export class ExecutionGateway implements ExecutionSystem {
    * passes (see verify()'s priorChecksPassed gating above), this is the
    * one unambiguous signal that the request is an isolated replay of an
    * already-executed authorization, not a forged or malformed one.
+   *
+   * policyStillCurrent is optional -- undefined means the check was
+   * skipped (no PolicyRepository wired, or no policyContentHash on the
+   * authorization), not that it failed, so undefined counts as passing
+   * here exactly like an absent check always has.
    */
   private isSoleFailureNonceReplay(
     result: GatewayVerificationResult,
@@ -282,7 +394,9 @@ export class ExecutionGateway implements ExecutionSystem {
 
     return (
       !nonceUnseen &&
-      Object.values(otherChecks).every((checkPassed) => checkPassed === true)
+      Object.values(otherChecks).every(
+        (checkPassed) => checkPassed === true || checkPassed === undefined,
+      )
     );
   }
 
@@ -290,16 +404,20 @@ export class ExecutionGateway implements ExecutionSystem {
     result: GatewayVerificationResult,
   ): string {
     const failedChecks = Object.entries(result.checks)
-      .filter(([, checkPassed]) => !checkPassed)
+      .filter(([, checkPassed]) => checkPassed === false)
       .map(([name]) => name);
 
     const hashDetail = result.hashMismatch
       ? ` businessTransactionHash mismatch: expected ${result.hashMismatch.expected}, got ${result.hashMismatch.actual}.`
       : "";
 
+    const policyDetail = result.policyContentMismatch
+      ? ` policyContentHash mismatch: expected ${result.policyContentMismatch.expected}, got ${result.policyContentMismatch.actual}.`
+      : "";
+
     return (
       `Execution Gateway rejected request: failed checks ` +
-      `[${failedChecks.join(", ")}].${hashDetail}`
+      `[${failedChecks.join(", ")}].${hashDetail}${policyDetail}`
     );
   }
 }

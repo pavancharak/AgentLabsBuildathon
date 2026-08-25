@@ -25,11 +25,26 @@ not indexed here and are not required reading.
   — verifying a Parmana execution authorization independently, without
   trusting Parmana's runtime or database.
 
+## Building a connector
+
+- **[architecture/CONNECTOR_ISOLATION.md](architecture/CONNECTOR_ISOLATION.md)**
+  — how credential isolation actually works: `GatewayConnectorRegistry`
+  wraps every connector in `SessionCredentialSecureConnector` by default,
+  what that wrapper does, and where scope/amount enforcement actually
+  lives (`PolicyEngine`, upstream — not the connector).
+- **[connectors/BUILDING_A_CONNECTOR.md](connectors/BUILDING_A_CONNECTOR.md)**
+  — the concrete steps to add a new connector, using the real HubSpot and
+  GitHub connectors as reference.
+- **[connectors/CODE_REVIEW_CHECKLIST.md](connectors/CODE_REVIEW_CHECKLIST.md)**
+  and **[connectors/CONNECTOR_FAQ.md](connectors/CONNECTOR_FAQ.md)**.
+
 ## Reading order by role
 
 - **Evaluating Parmana**: README.md, then CLAIMS.md.
 - **Deploying it**: DEPLOYMENT.md, then packages/api/README.md.
 - **Integrating a receiving system**: packages/envelope-verifier/README.md.
+- **Building a connector**: architecture/CONNECTOR_ISOLATION.md, then
+  connectors/BUILDING_A_CONNECTOR.md.
 
 ## License and security
 

@@ -42,9 +42,10 @@ Parmana's own runtime or database.
 
 What's actually been demonstrated, not just built:
 
-- **597 automated tests** across the workspace (558 passed, 35 skipped — the skips are
-  Supabase/live-credential-gated suites that skip cleanly with no credentials configured;
-  re-verified 2026-07-29, see [docs/VERIFICATION-GAPS.md](docs/VERIFICATION-GAPS.md) G-24).
+- **1,313 automated tests** across the workspace (1,274 passed, 37 skipped, 2 pending, 0 failed
+  — the skips are Supabase/live-credential-gated suites that skip cleanly with no credentials
+  configured; re-verified 2026-08-24 via a JSON-reporter run, not just the summary line, see
+  [docs/VERIFICATION-GAPS.md](docs/VERIFICATION-GAPS.md) G-24).
 - A live, reproducible execution-authorization bypass was found and fixed the same session:
   policy-evaluation signals are now bound to the executed Intent before any rule evaluates
   (`Policy.boundSignals` + `SignalIntentBinder`), closing the gap where a caller could declare
@@ -137,8 +138,10 @@ Supabase-gated storage suite.
 Assessed at TRL 6 on the evidence in [docs/CLAIMS.md](docs/CLAIMS.md).
 Explicitly not claimed: sustained volume, load-bearing traffic, high
 availability, or multi-tenant production operation. The claims file also
-tracks what has no implementation yet, every connector beyond HubSpot
-among them.
+tracks what has no implementation yet, every connector beyond HubSpot and
+GitHub among them. Adding a new connector is a bootstrap source change
+today, not a runtime configuration option — see
+[docs/connectors/BUILDING_A_CONNECTOR.md](docs/connectors/BUILDING_A_CONNECTOR.md).
 
 We're looking for a small number of design partners to run Parmana
 against a real integration under real constraints. If that's you, or
@@ -161,3 +164,9 @@ separate written agreement with Parmana Systems.
 
 [docs/README.md](docs/README.md) indexes the rest: CLAIMS.md, DEPLOYMENT.md,
 SECURITY.md, and package-level documentation, in reading order.
+
+Adding a connector? Start with
+[docs/architecture/CONNECTOR_ISOLATION.md](docs/architecture/CONNECTOR_ISOLATION.md)
+(how credential isolation actually works) and
+[docs/connectors/BUILDING_A_CONNECTOR.md](docs/connectors/BUILDING_A_CONNECTOR.md)
+(the concrete steps, using the real HubSpot/GitHub connectors as reference).

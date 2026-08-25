@@ -18,6 +18,7 @@
     { "path": "../crypto" },
     { "path": "../envelope-verifier" },
     { "path": "../execution-control" },
+    { "path": "../policy" },
     { "path": "../execution-system" },
     { "path": "../connector-sdk" },
     { "path": "../connector-hubspot" },

@@ -3,6 +3,11 @@ import {
 } from "@parmana/execution-gateway";
 
 import {
+  FileKeyExpiryStore,
+  FileKeyProvider,
+} from "@parmana/crypto";
+
+import {
   GatewayAttestationSigner,
   RandomIdGenerator,
   SystemClock,
@@ -11,6 +16,8 @@ import {
 import type {
   ExecutionSystem,
 } from "@parmana/execution-system";
+
+import { policyRepository } from "../application.js";
 
 import { createExecutionControl } from "./createExecutionControl.js";
 import { createGatewayIdentity } from "./createGatewayIdentity.js";
@@ -21,10 +28,33 @@ import { createConnectorRoute } from "./createConnectorRoute.js";
 
 /**
  * Constructs the production Execution Gateway.
+ *
+ * Wires two additive verification checks beyond the envelope's own
+ * signature/expiry/TTL/nonce checks:
+ *
+ * - keyProvider/keyExpiryStore (Gap 2A): authorizations are verified
+ *   against the specific keyId they were signed with (via the same
+ *   FileKeyProvider FileKeyProvider.getPublicKey already supports
+ *   arbitrary keyId lookup for), not only the one static gateway
+ *   public key -- enabling verification against a rotated or
+ *   additional key without a restart. keyExpiryStore is additive on
+ *   top: a keyId with no key-expiry.json entry is always valid.
+ * - policyRepository (Gap 1B): reuses application.ts's own
+ *   `policyRepository` singleton -- the same FilePolicyRepository
+ *   instance (and therefore the same PARMANA_POLICY_DIR) governance
+ *   writes through -- so ExecutionGateway can recompute the current
+ *   content hash of the policy an authorization was signed under and
+ *   refuse execution if it no longer matches.
  */
 export function createExecutionGateway(): ExecutionSystem {
   const publicKey =
     createGatewayPublicKey();
+
+  const keyProvider =
+    new FileKeyProvider();
+
+  const keyExpiryStore =
+    new FileKeyExpiryStore();
 
   const nonceStore =
     createNonceStore();
@@ -46,7 +76,10 @@ export function createExecutionGateway(): ExecutionSystem {
 
   return new ExecutionGateway({
     publicKey,
+    keyProvider,
+    keyExpiryStore,
     nonceStore,
+    policyRepository,
 
     executionControl: {
       service: executionControl,

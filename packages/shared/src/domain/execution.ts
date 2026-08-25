@@ -1,6 +1,7 @@
 import { Decision } from "./decision.js";
 import { ExecutionEvidence } from "./execution-evidence.js";
 import { ExecutionMetadata } from "./execution-metadata.js";
+import type { Signature } from "./signature.js";
 
 /**
  * Parmana Trust Core
@@ -68,6 +69,38 @@ export interface Execution {
    * Execution-specific metadata.
    */
   readonly metadata?: ExecutionMetadata;
+
+  /**
+   * chainHash of the chain predecessor -- the prior Execution
+   * belonging to the same businessTransactionId -- or null for the
+   * first Execution in that transaction's chain. Fixed once, at this
+   * Execution's first creation; unlike chainHash/chainSignature, it
+   * does not change across this row's own lifecycle transitions
+   * (see ExecutionChainCrypto in @parmana/crypto).
+   *
+   * Optional so every pre-existing construction site and historical
+   * row (written before this field existed) keeps compiling and
+   * verifying unchanged -- an absent value means "not chain-
+   * protected," not "broken chain."
+   */
+  readonly previousChainHash?: string | null;
+
+  /**
+   * Signed hash of this Execution's own canonical content plus
+   * previousChainHash. Recomputed on every legitimate mutation of
+   * this row (attachEvidence/complete/fail), since those change what
+   * this hash covers.
+   */
+  readonly chainHash?: string;
+
+  /**
+   * Digital signature over the same canonical content chainHash was
+   * computed from. Signed with Parmana's own signing key, so an
+   * actor with database write access but not the private key cannot
+   * forge a replacement chainHash/chainSignature pair -- see
+   * ExecutionChainCrypto.
+   */
+  readonly chainSignature?: Signature;
 }
 
 /**

@@ -1,0 +1,150 @@
+================================================================================
+HOW TO USE THE SINGLE PROMPT (One-Pager)
+================================================================================
+
+## WHAT YOU HAVE
+
+One comprehensive prompt file: **PARMANA-MONTHLY-MARKET-RESEARCH-SINGLE-PROMPT.md**
+
+Copy and paste this prompt into Claude each month.
+Takes 3-4 hours to execute.
+Generates: PARMANA-MARKET-ANALYSIS-[MMYYYY].md
+
+================================================================================
+MONTHLY WORKFLOW (Copy-Paste This Every Month)
+================================================================================
+
+STEP 1: Copy the prompt file
+─────────────────────────────
+
+Last Friday of month:
+
+  1. Open: PARMANA-MONTHLY-MARKET-RESEARCH-SINGLE-PROMPT.md
+  2. Copy entire text
+  3. Paste into Claude chat
+  4. Edit only these 3 fields at the top:
+     - [CURRENT_MONTH] = September (or October, etc.)
+     - [CURRENT_YEAR] = 2026
+     - [PREVIOUS_MONTH_REPORT_DATE] = August 24, 2026 (or your previous date)
+  5. Hit Enter/Send
+
+
+STEP 2: Execute (Follow prompt instructions)
+────────────────────────────────────────────
+
+The prompt tells you exactly what to do:
+
+  STEP 1: Run 38 searches (web_search enabled)
+          → Copy-paste search queries from prompt
+          → Run in Claude
+          → Compile findings
+  
+  STEP 2: Organize findings
+          → Create ~15-20 finding blocks
+          → Use template provided in prompt
+  
+  STEP 3: Generate report
+          → Copy report structure from prompt
+          → Fill each section with your findings
+  
+  STEP 4: Check quality
+          → Use checklist in prompt
+          → Do 15-min peer review
+  
+  STEP 5: Publish
+          → Save as: PARMANA-MARKET-ANALYSIS-[MMYYYY].md
+          → File in: /mnt/user-data/outputs/
+          → Notify team
+
+
+STEP 3: Save the output
+───────────────────────
+
+Filename: PARMANA-MARKET-ANALYSIS-[MMYYYY].md
+
+Examples:
+  - PARMANA-MARKET-ANALYSIS-092026.md (September 2026)
+  - PARMANA-MARKET-ANALYSIS-102026.md (October 2026)
+  - PARMANA-MARKET-ANALYSIS-112026.md (November 2026)
+
+Location: /mnt/user-data/outputs/
+
+================================================================================
+TIME ESTIMATE
+================================================================================
+
+First month:  4-5 hours (learning curve)
+After that:   3-3.5 hours per month
+
+  9:00 AM  — Prep + run searches (75 min)
+  10:15 AM — Compile findings (60 min)
+  11:15 AM — Generate report (60 min)
+  12:15 PM — Review & publish (15 min)
+  12:30 PM — Done
+
+================================================================================
+WHAT THE PROMPT INCLUDES
+================================================================================
+
+✅ All 38 pre-built searches (organized by category)
+✅ Complete report structure (all 10 sections + appendix)
+✅ Analysis frameworks and templates
+✅ Competitive matrix template
+✅ Risk/opportunity matrices
+✅ Timeline and urgency assessment structure
+✅ Final quality checklist
+✅ Key metrics dashboard to track
+
+Everything you need is in the one prompt file.
+
+================================================================================
+WHAT TO EDIT EACH MONTH
+================================================================================
+
+Only edit these 3 placeholders at the top:
+
+  [CURRENT_MONTH] = Current month name
+  [CURRENT_YEAR] = Current year
+  [PREVIOUS_MONTH_REPORT_DATE] = Date of last month's report
+
+Everything else is a template you fill in with your research.
+
+================================================================================
+IF YOU GET STUCK
+================================================================================
+
+The prompt includes:
+
+  • 38 search queries (copy-paste directly)
+  • Report structure (fill in each section)
+  • Analysis framework (how to organize findings)
+  • Quality checklist (before publishing)
+  • Bibliography template (for sources)
+
+Just follow the prompt step-by-step. It tells you exactly what to do.
+
+================================================================================
+KEEP IN MIND
+================================================================================
+
+✅ Run searches with web_search enabled (Claude will find current info)
+✅ Compile ~15-20 major findings (don't get every single detail)
+✅ Fill report sections (don't overthink it)
+✅ Use the quality checklist before publishing
+✅ Set calendar reminder for next month
+
+================================================================================
+THAT'S IT
+================================================================================
+
+The prompt is self-contained and reusable.
+
+Every month:
+  1. Copy the prompt file
+  2. Edit 3 dates at top
+  3. Paste into Claude
+  4. Follow the 5 steps
+  5. Save output as PARMANA-MARKET-ANALYSIS-[MMYYYY].md
+
+Done.
+

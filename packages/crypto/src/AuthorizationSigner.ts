@@ -45,6 +45,7 @@ export class AuthorizationSigner {
       readonly businessTransactionId: string;
       readonly policyName: string;
       readonly policyVersion: string;
+      readonly policyContentHash?: string;
       readonly executableContent: ExecutableContent;
     },
     privateKey: KeyObject,
@@ -89,6 +90,10 @@ export class AuthorizationSigner {
       policyName: input.policyName,
 
       policyVersion: input.policyVersion,
+
+      ...(input.policyContentHash !== undefined && {
+        policyContentHash: input.policyContentHash,
+      }),
 
       authorizedAt:
         issuedAt.toISOString(),
