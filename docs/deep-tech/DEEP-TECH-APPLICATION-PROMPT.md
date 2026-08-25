@@ -166,7 +166,7 @@ Parmana builds cryptographic runtime governance for AI-executed transactions in 
 
 **Argument for Deep Tech category:**
 
-1. **Execution governance is nascent:**
+1. **Execution authorization is nascent:**
    - Not a solved problem in industry (no standard, unlike auth/API gateways)
    - Regulatory acceptance not yet established in India/globally
    - Requires ongoing R&D as financial regulation evolves
@@ -212,7 +212,7 @@ Parmana builds cryptographic runtime governance for AI-executed transactions in 
 - [ ] **R&D Spend Statement:** Compile total investment (salary, infra, consultant) Apr 2026 - Aug 2026
 - [ ] **Innovation Narrative (1 page):** "Why Parmana is Deep Tech, Not a Regular Startup"
 - [ ] **Commercialization Roadmap (1 page):** 0-12m, 12-24m, 2-5y milestones with revenue expectations
-- [ ] **Long Gestation Argument (1 page):** Why 20-year recognition is justified for execution governance
+- [ ] **Long Gestation Argument (1 page):** Why 20-year recognition is justified for execution authorization
 - [ ] **IP & Patent Summary (1 page):** Patents filed/pending + proprietary tech inventory
 - [ ] **R&D Evidence Dossier:** Security audits + AISI validation + latency investigation + scoped-identity research gap
 - [ ] **Team & Expertise (0.5 page):** Pavan's background (13+ years, founding, MakeMyTrip/Shaadi PM experience) + co-founder credibility
