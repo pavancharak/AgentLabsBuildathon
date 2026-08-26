@@ -15,6 +15,7 @@ from typing import Any
 
 from .execution_evidence import ExecutionEvidence
 from .policy import PolicyReference
+from .signature import Signature
 
 
 class DecisionOutcome(str, Enum):
@@ -69,3 +70,9 @@ class Execution:
     evidence: ExecutionEvidence | None = None
 
     metadata: dict[str, Any] | None = None
+
+    previous_chain_hash: Any | None = None
+
+    chain_hash: str | None = None
+
+    chain_signature: Signature | None = None

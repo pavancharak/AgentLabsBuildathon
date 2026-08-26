@@ -18,3 +18,5 @@ class PolicyReference:
     version: str
 
     schema_version: str
+
+    content_hash: str | None = None

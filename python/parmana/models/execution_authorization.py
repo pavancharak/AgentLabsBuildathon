@@ -34,6 +34,8 @@ class ExecutionAuthorizationPayload:
 
     business_transaction_hash: str
 
+    policy_content_hash: str | None = None
+
 
 @dataclass(frozen=True)
 class SignedExecutionAuthorization:
