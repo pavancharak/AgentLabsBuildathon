@@ -7,7 +7,7 @@ to decide what becomes real-world execution.**
 [![License](https://img.shields.io/badge/license-proprietary-lightgrey)](./LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D24-brightgreen)](package.json)
 
-> **Proprietary software — evaluation only.** This repository is source-available
+> **Proprietary software evaluation only.** This repository is source-available
 > for evaluation purposes. No license is granted to use, copy, modify, or
 > distribute this software, in whole or in part, without a separate written
 > agreement with Parmana Systems. See [LICENSE](./LICENSE).
@@ -21,7 +21,7 @@ an agent can only do what it was approved to do. Every approved action
 also produces a signed, tamper-evident record, so what happened can be
 proven afterward, not just trusted. Parmana does not decide what the
 agent should do. It decides, and proves, whether the agent was allowed to
-do it — the authorization layer beneath that guarantee, not a
+do it the authorization layer beneath that guarantee, not a
 replacement for it.
 
 ## Proven, not promised
