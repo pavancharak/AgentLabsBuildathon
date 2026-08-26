@@ -52,7 +52,8 @@ COPY tsconfig.json ./
 COPY packages ./packages
 COPY typescript ./typescript
 
-RUN npx tsc -b
+# Compile only parmana-api and its dependencies
+RUN npx tsc --build packages/shared packages/crypto packages/storage packages/replay packages/policy packages/receipt packages/envelope-verifier packages/execution-system packages/execution-control packages/execution-gateway packages/connector-sdk packages/connector-github packages/connector-hubspot packages/approval packages/capability-registry packages/api
 
 ################################################################################
 # Stage 3: prod-deps -- a second, independent `npm ci --omit=dev`. Kept as
