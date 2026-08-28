@@ -89,6 +89,7 @@ export class ExecutionControlService
       authorizationId:
         release.authorization.payload.authorizationId,
       sessionId: session.sessionId,
+      action: release.executableContent.action,
     });
 
     //
@@ -125,6 +126,7 @@ export class ExecutionControlService
         authorizationId:
           release.authorization.payload.authorizationId,
         sessionId: session.sessionId,
+        action: release.executableContent.action,
       });
 
       return result;
@@ -138,6 +140,7 @@ export class ExecutionControlService
         authorizationId:
           release.authorization.payload.authorizationId,
         sessionId: session.sessionId,
+        action: release.executableContent.action,
         reason:
           error instanceof Error
             ? error.message

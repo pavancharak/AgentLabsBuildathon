@@ -96,6 +96,9 @@ export interface ExecutionAuditEvent {
   /** Metadata only — never the credential's secret value. */
   readonly credentialId?: string;
   readonly gatewayId?: string;
+
+  /** ExecutableContent.action this event concerns — the capability granted or rejected. */
+  readonly action?: string;
 }
 
 export interface ExecutionAuditSink {

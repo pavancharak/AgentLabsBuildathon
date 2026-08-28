@@ -39,8 +39,8 @@ export interface SessionCredentialSecureConnectorOptions {
    * Every execute() call records exactly one audit event — "execution.
    * completed" on success, "execution.rejected" (with reason) on any
    * failure — naming the connector, the session credential (id only,
-   * never its value), the Gateway, and the authorization it executed
-   * under.
+   * never its value), the Gateway, the authorization it executed
+   * under, and the capability (ExecutableContent.action) it executed.
    */
   readonly audit: ExecutionAuditSink;
   readonly clock: Clock;
@@ -96,6 +96,7 @@ export class SessionCredentialSecureConnector implements SecureConnector {
         sessionId: request.gatewaySession.sessionId,
         credentialId: sessionCredentialId,
         gatewayId: request.gatewayIdentity.gatewayId,
+        action: request.executableContent.action,
       });
 
       return result;
@@ -108,6 +109,7 @@ export class SessionCredentialSecureConnector implements SecureConnector {
         sessionId: request.gatewaySession.sessionId,
         ...(sessionCredentialId === undefined ? {} : { credentialId: sessionCredentialId }),
         gatewayId: request.gatewayIdentity.gatewayId,
+        action: request.executableContent.action,
         reason: error instanceof Error ? error.message : "Unknown rejection",
       });
       throw error;
