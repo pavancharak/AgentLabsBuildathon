@@ -15,6 +15,7 @@ export interface CallerAuditEvent {
   readonly type:
     | "caller.authenticated"
     | "caller.rejected"
+    | "caller.capability_granted"
     | "caller.capability_denied"
     | "caller.principal_denied"
     | "caller.non_human_denied"
@@ -23,8 +24,9 @@ export interface CallerAuditEvent {
   readonly route: string;
 
   /**
-   * Present on "caller.authenticated", "caller.capability_denied", and
-   * "caller.principal_denied". Present on "caller.structural_rejected"
+   * Present on "caller.authenticated", "caller.capability_granted",
+   * "caller.capability_denied", and "caller.principal_denied". Present
+   * on "caller.structural_rejected"
    * only when caller-auth ran first and identified a caller before the
    * structural check failed (the UUID-format, field-validation, and
    * duplicate-id checks all run inside a route handler mounted after
@@ -55,12 +57,13 @@ export interface CallerAuditEvent {
 
   /**
    * The capability (Business Transaction intent.action) this event
-   * concerns. Present only on "caller.capability_denied" — the
-   * generic "caller.authenticated" event fires at the caller-auth
-   * middleware layer, before any route-specific body is interpreted,
-   * so it deliberately stays capability-agnostic; see
-   * isCapabilityAllowed.ts and its call sites for where the
-   * capability is actually known and checked.
+   * concerns. Present on "caller.capability_granted" and
+   * "caller.capability_denied" — the generic "caller.authenticated"
+   * event fires at the caller-auth middleware layer, before any
+   * route-specific body is interpreted, so it deliberately stays
+   * capability-agnostic; see isCapabilityAllowed.ts and its call
+   * sites in execute.ts for where the capability is actually known,
+   * checked, and (on success) recorded as granted.
    */
   readonly capability?: string;
 

@@ -178,6 +178,31 @@ export function createExecuteRouter(
             });
             return;
           }
+
+          //
+          // Mirrors the "caller.capability_denied" audit write above:
+          // records which capability was actually granted, not just
+          // which ones were refused, so the caller-audit trail alone
+          // (not just execution-control's audit trail, see
+          // ExecutionAuditEvent.action) can answer "what could caller
+          // X invoke, and did they."
+          //
+          if (auditSink) {
+            const recorded = await recordCallerAuditEvent(
+              auditSink,
+              {
+                type: "caller.capability_granted",
+                occurredAt: new Date().toISOString(),
+                route: req.originalUrl,
+                callerId: req.callerId,
+                ...(action !== undefined ? { capability: action } : {}),
+              },
+              req,
+              next,
+            );
+
+            if (!recorded) return;
+          }
         }
 
         //

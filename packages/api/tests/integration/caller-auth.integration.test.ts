@@ -224,7 +224,9 @@ describe("Caller authentication (HTTP boundary)", () => {
 
       await request(app).post("/execute").send(createBusinessTransaction());
 
-      expect(callerAuditSink.events).toHaveLength(2);
+      // caller.authenticated + caller.capability_granted for the
+      // successful call, caller.rejected for the unauthenticated one.
+      expect(callerAuditSink.events).toHaveLength(3);
 
       for (const event of callerAuditSink.events) {
         expect(event.occurredAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
