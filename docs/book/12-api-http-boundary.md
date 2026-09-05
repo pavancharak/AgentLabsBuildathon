@@ -1,4 +1,6 @@
-# Chapter 12 — The API and HTTP Boundary
+[← Book Index](README.md) · [← Previous: Chapter 11, Storage](11-storage.md)
+
+# Chapter 12: The API and HTTP Boundary
 
 `packages/api/src/app.ts`, `routes/`, `middleware/{error-handler,caller-auth,rate-limit}.ts`.
 
@@ -21,9 +23,9 @@ above it.
 `error-handler.ts` is where this codebase's internal error types become the HTTP responses
 Chapter 8's `NonceAlreadyConsumedError` and Chapter 5's `RuntimeError` were designed to
 produce. It handles a short, explicit list, each mapped by `instanceof`, not by inspecting a
-generic `.status` property on anything:
+generic `.status` property on anything.
 
-- `RuntimeError` (and its subclasses, including `AuditUnavailableError` — Chapter 13) reads
+- `RuntimeError` (and its subclasses, including `AuditUnavailableError`, Chapter 13) reads
   `.status`/`.code` dynamically off the error itself.
 - `NonceAlreadyConsumedError` gets its own dedicated branch (`409`).
 - `PolicyNotFoundError`/`PolicyValidationError`/`SignalValidationError`,
@@ -31,34 +33,34 @@ generic `.status` property on anything:
   own specific status.
 - Malformed or oversized bodies are caught even earlier, by a small helper
   (`bodyParserErrorStatus`) that recognizes Express's own body-parser failure shapes
-  (`entity.too.large` → `413`, `entity.parse.failed` → `400`) — these happen *before* any
+  (`entity.too.large` to `413`, `entity.parse.failed` to `400`). These happen *before* any
   route handler runs at all, since `express.json()` itself throws, so this handler exists
   specifically to give them a clean, coded response instead of falling through to the
   generic `500` below.
-- Everything else is a plain, uncoded `500` — and that's deliberate, not an oversight: a
+- Everything else is a plain, uncoded `500`, and that's deliberate, not an oversight: a
   genuinely unexpected failure should look different from every one of the cases above, so a
   caller (or its SDK) can tell "this was a coded, expected rejection" from "something is
   actually broken." Chapter 8 and Chapter 5 both cover the specific coded cases this
-  distinction serves — `403 POLICY_DENIED`, `409 NONCE_ALREADY_CONSUMED`, `503
-  AUDIT_UNAVAILABLE` — and Tutorial 102 (`examples/tutorials/102-distinguishable-http-status`)
+  distinction serves: `403 POLICY_DENIED`, `409 NONCE_ALREADY_CONSUMED`, `503
+  AUDIT_UNAVAILABLE`. Tutorial 102 (`examples/tutorials/102-distinguishable-http-status`)
   demonstrates all three shapes, plus the generic `500`, side by side against a real server.
 
 ## Rate limiting: per-caller, not per-IP, and only when there's a caller to key on
 
 `POST /execute` is rate-limited by authenticated caller identity (`req.callerId`, set by
-caller-auth), not by IP — a design-partner integration commonly calls from a shared backend
+caller-auth), not by IP. A design-partner integration commonly calls from a shared backend
 IP, where an IP-keyed limit would either starve every caller behind it or be loose enough to
 mean nothing. It's mounted only when caller authentication is enabled at all: with no caller
 identity to key off, falling back to IP would silently become the exact IP-keyed control this
 design avoids. `GET /health`/`GET /ready` get a separate, far more permissive limit, since
 both are cheap, unauthenticated, and legitimately polled on a fixed interval by PaaS
 health-check infrastructure. A rate-limited request returns `429` with a `Retry-After` header
-and never reaches policy evaluation or signing — no nonce consumed, nothing signed, for a
+and never reaches policy evaluation or signing: no nonce consumed, nothing signed, for a
 request this middleware rejects on its own.
 
 **Scope, honestly stated:** the limiter's store is `express-rate-limit`'s default, in-memory,
 single-process store. A deployment running multiple machines has each one counting
-independently — the effective ceiling for a given caller is `RATE_LIMIT_EXECUTE_PER_MINUTE ×
+independently. The effective ceiling for a given caller is `RATE_LIMIT_EXECUTE_PER_MINUTE ×
 machineCount`, not a fleet-wide limit enforced once. The same caveat Chapter 7 raised about
 `NonceStore` applies here for the same underlying reason: a single-process data structure is
 only a fleet-wide guarantee if there's exactly one process, and this codebase says so plainly
@@ -67,9 +69,13 @@ rather than letting the claim imply more than it delivers.
 ## The API describes itself
 
 `GET /openapi.yaml` serves a fully-dereferenced OpenAPI 3.1 document with no unresolved
-`$ref`s, unauthenticated — Tutorial 90 exercises this directly. `GET /ready` distinguishes
+`$ref`s, unauthenticated. Tutorial 90 exercises this directly. `GET /ready` distinguishes
 "up but backed by dead storage" from genuinely ready: when storage is Supabase-backed, it
 makes one cheap read against `consumed_nonces` to confirm the connection and credentials
 actually work, returning `503` if not, so an orchestrator can route around a machine that's
-technically running but can't reach its own database — a distinction `GET /health` (pure
+technically running but can't reach its own database, a distinction `GET /health` (pure
 liveness, no external dependency touched at all) deliberately doesn't make.
+
+---
+
+[← Book Index](README.md) · [← Previous: Chapter 11, Storage](11-storage.md) · [Next: Chapter 13, Caller Authentication and Scoping →](13-caller-authentication-and-scoping.md)

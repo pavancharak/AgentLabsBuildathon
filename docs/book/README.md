@@ -1,7 +1,7 @@
 # The Parmana Architecture Book
 
-A complete, current, code-verified explanation of how Parmana is built and why — not what
-it should do, what it *does*, traced to the actual source as of **2026-09-05**.
+A complete, current, code-verified explanation of how Parmana is built and why. Not what
+it should do: what it *does*, traced to the actual source as of **2026-09-05**.
 
 ## Why this exists
 
@@ -13,8 +13,8 @@ full (2026-08-12); HubSpot and GitHub connectors were added; caller authenticati
 principal/capability scoping, and policy governance (maker-checker) were built; and the
 signal-freshness and policy-freshness execution-boundary checks (G-24 through G-31) were
 added. None of that exists in the older documents. They are **superseded by date, not
-deleted** — the same discipline this codebase already applies to removed code (see Chapter
-18) — but they should not be read as current.
+deleted**, the same discipline this codebase already applies to removed code (see Chapter
+18), but they should not be read as current.
 
 This book is the current replacement for "how does this actually work and why." It is not a
 replacement for two other documents, which serve different jobs:
@@ -26,7 +26,7 @@ replacement for two other documents, which serve different jobs:
   when, how severe, and how (or whether) it was closed. Read it for the history of a
   specific gap.
 - **This book** is the narrative in between: how the pieces connect, and the reasoning
-  behind each design choice — the thing neither a ledger nor an incident log is built to
+  behind each design choice, the thing neither a ledger nor an incident log is built to
   hold. Every factual claim here is traced to a file (and usually a line range); where a
   comment is quoted, it's quoted verbatim.
 
@@ -60,9 +60,9 @@ who needs to *build on, audit, or extend* this codebase, not integrate against i
 
 ## A note on honesty
 
-Two packages that look load-bearing from their names — `@parmana/receipt` and
-`@parmana/replay` — are, as of this writing, not imported by `packages/api` at all. They are
+Two packages that look load-bearing from their names, `@parmana/receipt` and
+`@parmana/replay`, are, as of this writing, not imported by `packages/api` at all. They are
 real, tested, tutorial-only code with no production wiring. Chapter 16 explains this
-directly rather than presenting every package as equally central; a "bible" that overstates
+directly rather than presenting every package as equally central. A "bible" that overstates
 its own system is worse than no documentation at all, and this codebase's own citation-
 integrity discipline (Chapter 17) exists precisely to catch that kind of drift.
