@@ -122,8 +122,8 @@ for the complete record, 230 commits as of this page's last update.
 - **`0e3e465`** feat(hubspot): implement Signed Approval Artifact, closing the HubSpot half
   of TD-23, see [HubSpot](/integrations/hubspot).
 - **`d6b3143`** fix(razorpay): derive the daily cumulative refund cap from the repository
-  rather than a hardcoded value, closing the Razorpay half of TD-23, see
-  [Razorpay](/integrations/razorpay).
+  rather than a hardcoded value, closing the Razorpay half of TD-23. (Razorpay was removed
+  from the repository entirely 2026-08-12, see the `e5e0b1c`/`cca3231` entry above.)
 - **`e55c646`**, **`470121b`**, **`56cef07`**, **`17c5554`**, **`d38e775`**, **`a30f24a`**,
   **`ae7c930`**, **`58a3f39`**, **`e44bffc`**, **`5bd4ea6`**, **`4e5f78d`**, **`5470847`** —
   a technical-debt hardening series (TD-1 through TD-23) from an internal architecture
@@ -156,16 +156,16 @@ for the complete record, 230 commits as of this page's last update.
 
 - **`e13dd2a`** feat: production deployment, execution hardening, and live Razorpay
   validation, the live-mode refund validated against a second, live-mode Fly.io deployment,
-  see [Razorpay](/integrations/razorpay) and `docs/CLAIMS.md` §3.9.
+  see `docs/CLAIMS.md` §3.9 (historical; Razorpay removed from the repository entirely
+  2026-08-12).
 - **`731465c`** feat(razorpay): add webhook processing, settlement confirmations, and live
-  integration support, `POST /webhooks/razorpay`, `RazorpaySettlementProcessor`, see
-  [Verify Razorpay webhooks](/guides/verify-razorpay-webhooks) and
-  [Settlement](/concepts/settlement).
+  integration support, `POST /webhooks/razorpay`, `RazorpaySettlementProcessor` (all removed
+  from the repository entirely 2026-08-12, along with the connector).
 
 ## 2026-07-18
 
 - **`5fddced`** feat(api): add Razorpay connector and credential provider, refund creation
-  against real Razorpay, see [Razorpay](/integrations/razorpay).
+  against real Razorpay (removed from the repository entirely 2026-08-12).
 - **`4df5cf6`** Add end-to-end documentation, Swagger UI, authentication improvements, and
   OpenAPI tooling.
 - **`ce02554`** refactor(storage): improve repository initialization and availability

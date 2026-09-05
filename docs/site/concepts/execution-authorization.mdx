@@ -32,8 +32,14 @@ export interface SignedExecutionAuthorization {
 `payload` carries: a format `version` (verifiers reject anything but `1`), a unique
 `authorizationId`, a single-use `nonce`, the `decisionId` and `businessTransactionId` it
 authorizes, the exact `policyName`/`policyVersion` that produced the decision, an
-`authorizedAt`/`expiresAt` bounded window, and `businessTransactionHash`, the content
-binding covered in depth on [The gateway](/concepts/the-gateway).
+`authorizedAt`/`expiresAt` bounded window, `businessTransactionHash`, the content binding
+covered in depth on [The gateway](/concepts/the-gateway), and two further optional hashes
+covering the same "does this still hold at execution time" question for what content
+binding doesn't reach: `policyContentHash` (the exact policy *content*, not just its
+version string, that produced the decision) and `signalsHash` (the runtime `PolicySignals`
+the decision was evaluated against — vendor status, risk exposure, and similar). Both are
+optional so authorizations signed before either field existed keep verifying unchanged; see
+[The gateway](/concepts/the-gateway) for what each closes and its own scope caveats.
 
 ## Why it exists
 
@@ -57,6 +63,12 @@ key and the envelope itself. Every property below exists so that check is meanin
 - **Content bound.** `businessTransactionHash` binds a canonical hash of the executable
   content into the signed payload, not just an ID. This is what closes the
   check-vs-use (TOCTOU) gap: see [The gateway](/concepts/the-gateway) for the mechanism.
+- **Policy- and signal-fresh, when opted in.** `policyContentHash`/`signalsHash` let a
+  receiving gateway recompute and re-verify, at execution time, whether the policy content
+  and the real-world conditions the decision rested on are still what they were at
+  authorization time — the same TOCTOU gap `businessTransactionHash` closes for the payload
+  itself, extended to policy and signals. See [Content Binding &
+  TOCTOU](/concepts/content-binding-toctou) for both.
 - **Algorithm agile.** Ed25519 by default; ML-DSA-65 (FIPS 204) selectable via
   `PRIMARY_SIGNATURE_PROVIDER`. See [Choose a signature provider](/cryptography/overview).
 

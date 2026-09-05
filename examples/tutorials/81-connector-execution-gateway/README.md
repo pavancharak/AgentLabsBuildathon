@@ -2,13 +2,13 @@
 
 ## Objective
 
-Exercise `GatewayConnectorRegistry` directly, via the real production wiring (`createConnectorRegistry`): the layer that resolves a capability string (`razorpay:refund-create`, `test:fixture-execute`) to the connector actually registered to handle it — and fails closed, per capability, when that connector's credentials aren't configured.
+Exercise `GatewayConnectorRegistry` directly, via the real production wiring (`createConnectorRegistry`): the layer that resolves a capability string (`hubspot:deal-update`, `test:fixture-execute`) to the connector actually registered to handle it — and fails closed, per capability, when that connector's credentials aren't configured.
 
 ## What You'll Learn
 
-* `resolveCapability()` scans every registered connector's declared capabilities and returns the first match — under `NODE_ENV=test`, both Razorpay's capabilities and the mock test-fixture connector's resolve
-* Outside test mode with no credentials configured, each connector fails to register **independently** — a missing Razorpay credential doesn't take down `test:fixture-execute`, and vice versa; each capability's `resolveCapability()` call throws its own "No connector registered" error
-* This is the structural layer Tutorials 57–59 demonstrate generically with one hand-built connector, and Tutorials 63/69 exercise concretely for Razorpay/HubSpot — here it's shown directly, with multiple real connectors coexisting in one registry
+* `resolveCapability()` scans every registered connector's declared capabilities and returns the first match — under `NODE_ENV=test`, both HubSpot's capabilities and the mock test-fixture connector's resolve
+* Outside test mode with no credentials configured, each connector fails to register **independently** — a missing HubSpot credential doesn't take down `test:fixture-execute`, and vice versa; each capability's `resolveCapability()` call throws its own "No connector registered" error
+* This is the structural layer Tutorials 57–59 demonstrate generically with one hand-built connector, and Tutorial 69 exercises concretely for HubSpot — here it's shown directly, against the real production registry
 
 ## Running the Tutorial
 

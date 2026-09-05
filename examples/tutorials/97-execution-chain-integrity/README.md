@@ -25,4 +25,4 @@ Both mechanisms exist because a signature alone answers "did Parmana sign this,"
 
 ## Next Tutorial
 
-This is currently the last tutorial in the sequence.
+Continue with **Tutorial 98 – Signal-Freshness Enforcement (G-31)**.

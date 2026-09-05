@@ -23,14 +23,14 @@ current state now, not the slightly-stale wording in those two files.
 **The last sentence of that quote is now partially stale, in a good way.** As of commit
 `651497a` (2026-07-11), the default server wires the gateway unconditionally and routes
 every connector it registers through [credential
-isolation](/concepts/credential-isolation): for `razorpay:refund-create` and
-`hubspot:deal-update` specifically, the calling AI does not hold the execution credential,
-the gateway does, briefly, and only inside its own boundary. (A third connector,
-`vendor-payment`, was the original evidence for this claim; it has since been removed from
-the repository entirely — see `docs/VERIFICATION-GAPS.md` G-27 in the source repository —
-and its replacement evidence, two real connectors making genuine external API calls rather
-than one `MockConnector` returning a scripted success, is materially stronger than what it
-replaced.) Move 2 below is updated accordingly. Move 1 and Move 3 are unaffected.
+isolation](/concepts/credential-isolation): for `hubspot:deal-update` specifically, the
+calling AI does not hold the execution credential, the gateway does, briefly, and only
+inside its own boundary. (Two other connectors were the original/intermediate evidence for
+this claim — `vendor-payment` (a `MockConnector` reference example) and `razorpay` (a real
+connector making genuine external API calls) — both have since been removed from the
+repository entirely; see `docs/VERIFICATION-GAPS.md` G-27 and `docs/CLAIMS.md`'s "Key
+Compromise Notice" section in the source repository.) Move 2 below is updated accordingly.
+Move 1 and Move 3 are unaffected.
 </Note>
 
 ### Move 1: KMS / HSM key custody, [ROADMAP], roughly 1-2 weeks once started
@@ -48,14 +48,14 @@ Ed25519 natively, or does this force a move to `ecdsa-p256` (already declared in
 to Supported once a **live** test against a real KMS key has run, a fake/mock passing
 proves nothing here.
 
-### Move 2: Credential brokering, [PARTIAL], wired for two connectors, full claim is [ROADMAP]
+### Move 2: Credential brokering, [PARTIAL], wired for the registered connector, full claim is [ROADMAP]
 
 **Today, precisely:** `packages/execution-control` is real and tested (11 tests) and, as of
 commit `651497a`, wired into the default server: `ExecutionControlService` authenticates a
 calling gateway, issues a short-lived `InMemoryGatewaySessionStore` session, and only then
 invokes a connector, auditing every step. `InMemorySessionCredentialVault` isolates the
 credential from the caller within that flow. This is real, tested, and running in the
-default server for the two connectors currently registered (`razorpay`, `hubspot`), see
+default server for the one connector this is proven for (`hubspot`), see
 [Credential isolation](/concepts/credential-isolation) for the precise scope note. It is
 still an **in-process, in-memory scaffold**, not a cross-system claim about arbitrary
 connectors, landed 2026-07-05 as a library, wired into the server 2026-07-11.
@@ -102,7 +102,7 @@ claim is never made, see [Security](/security/overview).
 | Structured logging / observability | [ROADMAP] | `LOG_LEVEL` is parsed into config; nothing currently reads it to configure a real logger. Errors go to `console.error`. No metrics, tracing, or dashboards exist. |
 | Nonce store persistence (Redis-backed) | [ROADMAP], partially superseded | `SupabaseNonceStore` (`createNonceStore.ts`) is the default outside `NODE_ENV=test` and is durable across restarts and shared across replicas pointed at the same Supabase project. `MemoryNonceStore` is now the `NODE_ENV=test` / hermetic-example path, not the only implementation. A Redis-backed store, for deployments that want durability without a Postgres dependency, remains unbuilt. |
 | Authority/Intent/Evidence verification checks | [ROADMAP] | Only integrity, signature, and authorization-binding exist in `verification-service.ts` today (CLAIMS.md 2.15/§4). Open question on record: does an Authority check add anything the signature check doesn't, before a key/authority registry exists? |
-| Fetch-verification of unbound policy signals | [ROADMAP] | `Policy.boundSignals` (landed 2026-07-28, see [Security](/security/overview)) only binds the specific signal keys a policy author declares — it does not independently verify that an *unbound* signal (`vendorVerified`, `paymentApproved`, `riskScore`, and similar) is actually true; those remain caller-declared attestations. `razorpay-refund/1.0.0` binds only `requestedRefundAmountPaise`; every other signal that policy evaluates (`paymentStatus`, `paymentCurrency`, the refundable remainder, the daily cumulative cap) is unverified for a request reaching it through the generic `POST /execute` route, see [Razorpay](/integrations/razorpay) for the precise scope. Closing this for real means extending `RazorpaySettlementProcessor`'s fetch-verify pattern to policy signals generally — real, valuable, materially larger than the binding fix, and not scheduled. |
+| Fetch-verification of unbound policy signals | [ROADMAP] | `Policy.boundSignals` (landed 2026-07-28, see [Security](/security/overview)) only binds the specific signal keys a policy author declares — it does not independently verify that an *unbound* signal is actually true; those remain caller-declared attestations unless a capability has its own `SignalStateVerifier` (today, `hubspot-deal-update`'s `currentDealStage` and a few others — see `docs/CLAIMS.md` §2.29/G-31 for the newest, execution-boundary half of this). The connector that originally motivated and best illustrated this gap, Razorpay (`razorpay-refund/1.0.0` bound only `requestedRefundAmountPaise`, leaving several other evaluated signals unverified), was removed from the repository entirely 2026-08-12; no equivalently unverified live example remains today, but the general gap — a policy can still evaluate signals no `SignalStateVerifier` covers — is unchanged. Closing this for real means extending the fetch-verify pattern to policy signals generally, for every capability, not just the ones with a verifier already wired — real, valuable, materially larger than the binding fix, and not scheduled. |
 | API authentication | Shipped, see [Authentication](/api-reference/authentication) | Caller bearer-key authentication is real and fails closed by default (`createCallerAuthenticator.ts`, commit `5c688b4`). What's still [ROADMAP]: a self-service key-management endpoint, issuing and rotating keys is an operator action today, not an API call. |
 | `POST /policies/validate` semantics | Flagged, not scheduled | Validates policy-existence, not a submitted document, naming mismatch. See [core-API findings](https://github.com/pavancharak/parmana-exp/blob/main/docs/audit/CORE-API-FINDINGS-SDK-AUDITS.md). |
 | `POST /transactions` vs `POST /execute` duplication | Flagged, not scheduled | Same core-API findings note. |

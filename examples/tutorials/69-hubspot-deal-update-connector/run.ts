@@ -24,8 +24,8 @@ process.env.HUBSPOT_BASE_URL = mockServer.baseUrl;
 // TEST_MODE_PLACEHOLDER_TOKEN` fallback only triggers on undefined, not
 // "". Without this override the connector would authenticate with an
 // empty-string token and this mock server -- constructed with the real
-// placeholder -- would reject every request. See Tutorial 63's run.ts
-// for the Razorpay equivalent of this same gotcha.
+// placeholder -- would reject every request. The now-removed Razorpay
+// connector had the identical gotcha for its own test token.
 process.env.TEST_HUBSPOT_PRIVATE_APP_TOKEN = TOKEN;
 
 const { createExecutionSystem } = await import(

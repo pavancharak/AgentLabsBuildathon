@@ -11,7 +11,7 @@ demonstrating how Parmana authorizes, executes, verifies, and proves enterprise 
 
 ```
 examples/
-├── tutorials/              97 numbered, single-concept tutorials (see table below)
+├── tutorials/              98 numbered, single-concept tutorials (see table below)
 ├── scenarios/
 │   ├── expense-approval
 │   └── purchase-order
@@ -32,6 +32,12 @@ Razorpay connector was deliberately removed from the codebase (see `docs/CLAIMS.
 "Key Compromise Notice" section and the connector-removal history) — the sequence below is the
 authoritative, current list (also the exact list `npm run examples` executes, in
 `scripts/run-examples.ts`).
+
+Tutorial coverage is not exhaustive: not every `docs/CLAIMS.md`-documented capability has a
+dedicated tutorial (for example, §2.27's `policyStillCurrent` policy-freshness check has none as
+of this writing). New tutorials get added when a capability's own narrative — "here's the
+exact before/after that makes this concrete" — earns the cost of a new numbered entry, not
+automatically alongside every change.
 
 | # | Topic |
 |---|-------|
@@ -124,6 +130,7 @@ authoritative, current list (also the exact list `npm run examples` executes, in
 | 95 | Generic Approval Verifier |
 | 96 | GitHub PR Merge Connector |
 | 97 | Execution Chain Integrity |
+| 98 | Signal-Freshness Enforcement (G-31) |
 
 ---
 

@@ -25,6 +25,7 @@ import { createGatewayKeyPair } from "./createGatewayKeyPair.js";
 import { createGatewayPublicKey } from "./createGatewayPublicKey.js";
 import { createNonceStore } from "./createNonceStore.js";
 import { createConnectorRoute } from "./createConnectorRoute.js";
+import { executionGatewaySignalStateVerifier } from "./executionGatewaySignalStateVerifier.js";
 
 /**
  * Constructs the production Execution Gateway.
@@ -45,6 +46,12 @@ import { createConnectorRoute } from "./createConnectorRoute.js";
  *   writes through -- so ExecutionGateway can recompute the current
  *   content hash of the policy an authorization was signed under and
  *   refuse execution if it no longer matches.
+ * - signalStateVerifier (G-31): wires the shared
+ *   executionGatewaySignalStateVerifier late-binding singleton (see its
+ *   own doc comment for why this is late-bound rather than constructed
+ *   directly here) so the Gateway can independently re-verify, at the
+ *   execution boundary, that the runtime signals an authorization was
+ *   signed under still match real-world state.
  */
 export function createExecutionGateway(): ExecutionSystem {
   const publicKey =
@@ -80,6 +87,7 @@ export function createExecutionGateway(): ExecutionSystem {
     keyExpiryStore,
     nonceStore,
     policyRepository,
+    signalStateVerifier: executionGatewaySignalStateVerifier,
 
     executionControl: {
       service: executionControl,

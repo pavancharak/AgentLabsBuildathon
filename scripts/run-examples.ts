@@ -110,6 +110,7 @@ const examples = [
   "examples/tutorials/95-approval-verifier-generic/run.ts",
   "examples/tutorials/96-github-pr-merge-connector/run.ts",
   "examples/tutorials/97-execution-chain-integrity/run.ts",
+  "examples/tutorials/98-signal-freshness-enforcement/run.ts",
   "examples/scenarios/expense-approval/run.ts",
   "examples/scenarios/purchase-order/run.ts",
 ];

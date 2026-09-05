@@ -75,6 +75,16 @@ export class RuntimeEngine {
   private readonly policyContentHasher =
     new TrustRecordHasher(CryptoBootstrap.create());
 
+  /**
+   * Hashes the runtime PolicySignals evaluated for a decision (G-31,
+   * execution-boundary signal freshness). Same TrustRecordHasher idiom as
+   * policyContentHasher above -- deterministic canonical hash, directly
+   * comparable to the value ExecutionGateway's signalsStillCurrent check
+   * recomputes from the signals carried on the ExecutionRequest.
+   */
+  private readonly signalsHasher =
+    new TrustRecordHasher(CryptoBootstrap.create());
+
   constructor(
     private readonly pipeline: RuntimePipeline,
     private readonly policyRouter: PolicyRouter,
@@ -424,6 +434,9 @@ export class RuntimeEngine {
       policyDecision,
     );
 
+    const signalsHash =
+      await this.signalsHasher.hash(signals);
+
     const authorization =
       await this.authorizationSigner.sign(
         {
@@ -436,6 +449,7 @@ export class RuntimeEngine {
           policyVersion:
             transaction.policy.version,
           policyContentHash,
+          signalsHash,
           executableContent,
         },
         this.authorizationTtlSeconds,

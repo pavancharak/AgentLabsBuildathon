@@ -3,7 +3,7 @@ title: "Tutorials"
 description: "All 94 numbered examples in examples/tutorials/, grouped by what they demonstrate. This page links to them, it does not duplicate their content."
 ---
 
-<Info>**[AVAILABLE]**, 93 run unattended in CI via `npm run examples` (`scripts/run-examples.ts`), confirmed passing this pass; one (09, noted below) needs a live server and runs individually. Numbering has a gap at 61 — retired during a connector refactor, never reused. See [Detect tampering](/guides/detect-tampering) and [Choose a signature provider](/guides/choose-a-signature-provider) for guides built directly on several of these.</Info>
+<Info>**[AVAILABLE]**, 93 run unattended in CI via `npm run examples` (`scripts/run-examples.ts`), confirmed passing this pass; one (09, noted below) needs a live server and runs individually. Numbering has a few intentional gaps (61, 63-68, 85) — retired when the Razorpay connector was deliberately removed from the codebase, never reused, see the note below. See [Detect tampering](/guides/detect-tampering) and [Choose a signature provider](/guides/choose-a-signature-provider) for guides built directly on several of these.</Info>
 
 Run any of them directly: `node_modules/.bin/tsx examples/tutorials/<NN-name>/run.ts`.
 
@@ -110,27 +110,14 @@ None of these four reach `packages/api` or `packages/runtime`. They exercise
 
 ## Signal/Intent binding (62)
 
-<Info>Tutorial 61 does not exist — the number was retired during a connector refactor (an
-earlier, single Razorpay tutorial split into the Razorpay group below) and was never
-reused.</Info>
+<Info>Tutorials 61, 63-68, and 85 don't exist — all retired when the Razorpay connector was
+deliberately removed from the codebase (`docs/CLAIMS.md`'s "Key Compromise Notice" section
+and the connector-removal history), never reused. `examples/README.md` in the source
+repository is the authoritative, current tutorial list.</Info>
 
 | # | Name | Demonstrates |
 |---|---|---|
 | 62 | Signal/Intent Binding | `SignalIntentBinder` rejecting a caller-declared signal that doesn't match `intent`, and the same transaction approved once correctly bound — see [Trust and Claims](/trust-and-claims/claims-discipline) for the live bypass this closed |
-
-## Razorpay: connector, fetch-verification, caps, webhooks, settlement (63-68)
-
-See [Razorpay](/integrations/razorpay) for the connector these exercise and its exact proven
-scope.
-
-| # | Name | Demonstrates |
-|---|---|---|
-| 63 | Razorpay Refund Connector | The full path from a `BusinessTransaction` through policy to a real (mocked) refund call, via the same production composition (`createExecutionSystem` + `createApplication`) `server.ts` itself calls |
-| 64 | Razorpay Policy Denial | A refund exceeding the payment's real refundable remainder rejected, zero refund calls ever reaching the connector |
-| 65 | Razorpay Signal-State Verification | `RazorpaySignalStateVerifier` independently fetching the real payment and rejecting a caller-declared signal that disagrees with it, naming the exact mismatch |
-| 66 | Razorpay Daily Cumulative Cap | Two concurrent refunds racing the daily cap; the atomic `RazorpayDailyRefundLedger` lets exactly one through, never both |
-| 67 | Razorpay Webhook Receipt | HMAC-SHA256 signature verification over the raw body plus atomic `eventId` dedupe, exercised directly against the real functions |
-| 68 | Razorpay Settlement Confirmation | `RazorpaySettlementProcessor` always re-fetching the refund from Razorpay rather than trusting the webhook's own claimed event type |
 
 ## HubSpot: connector, denial, verification, approval artifacts (69-72)
 
@@ -172,7 +159,7 @@ scope.
 | # | Name | Demonstrates |
 |---|---|---|
 | 81 | Connector Execution Gateway | `GatewayConnectorRegistry` resolving a capability string to its registered connector, each connector failing closed independently when its own credentials are absent |
-| 82 | Composite Signal-State Verification | `CompositeSignalStateVerifier` composing the Razorpay and HubSpot verifiers into the one verifier `RuntimeEngine` accepts, with no cross-contamination between them |
+| 82 | Composite Signal-State Verification | `CompositeSignalStateVerifier` composing the real `HubSpotSignalStateVerifier` with a second, illustrative hand-written verifier into the one verifier `RuntimeEngine` accepts, with no cross-contamination between them |
 | 83 | Capability/Policy Binding (TD-22) | `CapabilityPolicyBinder` closing the gap where a real, fund-moving capability could be paired with the wrong, unprotected policy |
 
 ## HTTP surface hardening (84, 88-91)
@@ -185,11 +172,10 @@ scope.
 | 90 | OpenAPI Self-Description | `GET /openapi.yaml` serving a valid, unauthenticated, fully-dereferenced OpenAPI 3.1 document, no unresolved `$ref`s |
 | 91 | Graceful Shutdown | The `SIGTERM`/`SIGINT` handler draining in-flight requests before exit, force-exiting on a hung close after a bounded timeout |
 
-## Real-world fixtures and gateway internals (85-87, 92-93)
+## Real-world fixtures and gateway internals (86-87, 92-93)
 
 | # | Name | Demonstrates |
 |---|---|---|
-| 85 | Razorpay Real Webhook Fixture | The actual `POST /webhooks/razorpay` route replaying a real, PII-redacted Razorpay-delivered payload, not a synthetic one this codebase constructed |
 | 86 | Gateway Attestation | `SignedTokenConnectorAuthenticator`'s full surface: payload tampering, the missing-attestation default, request-bound vs. signature-only checks, the trusted-connector allow-list |
 | 87 | Key Provider Path Traversal | `FileKeyProvider` rejecting a path-traversal `keyId` on every one of its four methods, before ever touching the filesystem |
 | 92 | Public API Boundary | `@parmana/execution-gateway`'s internal implementation classes checked directly against the real compiled export surface, none reachable from outside |

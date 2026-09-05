@@ -3,7 +3,7 @@ title: "Connector Development Guide"
 description: "How to implement a Connector against @parmana/connector-sdk, every example uses MockConnector or HttpConnector, no enterprise-specific example."
 ---
 
-<Info>**[AVAILABLE] as a library**, `packages/connector-sdk`, **[AVAILABLE] wired into the default server for Razorpay and HubSpot specifically**, a code change for anything beyond those two today, see the warning below.</Info>
+<Info>**[AVAILABLE] as a library**, `packages/connector-sdk`, **[AVAILABLE] wired into the default server for HubSpot specifically**, a code change for anything beyond that one today, see the warning below.</Info>
 
 ## Connector responsibilities, and what a Connector must never do
 
@@ -135,13 +135,18 @@ source:
 
 ```typescript
 // packages/api/src/bootstrap/createConnectorRegistry.ts (abridged, real source)
-const razorpayCredentialProvider = createRazorpayCredentialProvider();
-if (razorpayCredentialProvider !== undefined) {
+const hubspotCredentialProvider = createHubSpotCredentialProvider();
+if (hubspotCredentialProvider === undefined) {
+  console.warn({
+    event: "hubspot_connector_unavailable",
+    reason: "HUBSPOT_PRIVATE_APP_TOKEN is not configured.",
+  });
+} else {
   registrations.push({
-    connector: createRazorpayConnector(),
-    metadata: RazorpayMetadata,
-    connectorIdentity: { connectorId: "razorpay", publicIdentity: "spiffe://parmana/connectors/razorpay", authenticationMetadata: {} },
-    credentialProvider: razorpayCredentialProvider,
+    connector: createHubSpotConnector(),
+    metadata: HubSpotMetadata,
+    connectorIdentity: { connectorId: "hubspot", publicIdentity: "spiffe://parmana/connectors/hubspot", authenticationMetadata: {} },
+    credentialProvider: hubspotCredentialProvider,
     policy: new DefaultConnectorPolicy(authenticator, sessions),
     gatewayAuthentication,
     crypto,
@@ -152,35 +157,42 @@ if (razorpayCredentialProvider !== undefined) {
 
 Adding a connector to the running server means editing two files:
 `createConnectorRegistry.ts` (register it, following the shape above — return `undefined`
-in production until a real implementation exists, exactly like `createRazorpayCredentialProvider.ts`/
-`createHubSpotCredentialProvider.ts` already do) and `createConnectorAuthenticator.ts`
+in production until a real implementation exists, exactly like
+`createHubSpotCredentialProvider.ts` already does) and `createConnectorAuthenticator.ts`
 (trust its identity, add an entry to its hardcoded list). **Not** `createConnectorRoute.ts`
 — despite its name, that file's `route()` function is dead code in the current production
 wiring (`createExecutionGateway.ts` always supplies `executionControl.service`, which makes
 the only branch that calls `route()` unreachable); editing it has no effect on which
 connector actually handles a request. There is no dynamic registration path, no environment
-variable that adds a connector, this is a code change today. Razorpay and HubSpot are the
-two connectors actually reachable in the default production server, see
-[Razorpay](/integrations/razorpay) and [HubSpot](/integrations/hubspot) for those connectors
-specifically. See
+variable that adds a connector, this is a code change today. HubSpot is the one connector
+actually reachable in the default production server today (GitHub is also registered, for
+`github:pr-fetch`/`github:pr-merge`), see [HubSpot](/integrations/hubspot) for that
+connector specifically. See
 [the Phase 2A production-connectors report](/../architecture/phase2a-production-connectors.md)
 for the vendor-payment before/after this superseded.
 </Warning>
 
 ## The pattern, proven twice: Razorpay and HubSpot
 
-Both connectors implement everything above, but the two builds themselves are the more
+<Note>
+Razorpay was deliberately removed from the codebase in full, 2026-08-12 (see
+`docs/CLAIMS.md`'s "Key Compromise Notice" section and the connector-removal history in the
+source repository). The lessons below are kept as a historical, worked example — a second
+real connector, built after HubSpot's own lessons already existed to apply — not a claim
+that Razorpay is still registered anywhere in this codebase today.
+</Note>
+
+Both connectors implemented everything above, but the two builds themselves are the more
 useful lesson: Razorpay learned each point below the hard way, on a running connector,
 after the fact. HubSpot applied all of it from its first version instead. Read this before
-starting a third connector.
+starting a new connector.
 
 **Scope to one narrow action first.** Don't build a connector for a whole external API
 surface. Razorpay started with refund creation only, not payouts, not subscriptions, not
 the rest of the payments API. HubSpot started with one property update on one object type,
 a Deal's `dealstage`, optionally alongside `amount`, not Contacts, not Companies, not
-delete. Widen scope in a later milestone, once the first one is fully proven, see each
-connector's own [FUTURE] section on its page ([Razorpay](/integrations/razorpay),
-[HubSpot](/integrations/hubspot)).
+delete. Widen scope in a later milestone, once the first one is fully proven, see
+[HubSpot](/integrations/hubspot)'s own [FUTURE] section on its page.
 
 **Two structural guards belong in a connector's first version, not a follow-up fix.**
 

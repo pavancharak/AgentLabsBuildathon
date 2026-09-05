@@ -216,7 +216,7 @@ Tutorial completed successfully.
 
 
 
-`boundSignals` only closes the *decoupling* between what a policy evaluates and what actually executes, for the specific fields a policy author declares bound. It does not independently verify that an unbound signal is true — a caller-declared `vendorVerified: true` is still taken on faith unless a policy author separately fetch-verifies it (see `RazorpaySettlementProcessor` and Tutorial 61 for what that looks like for one real connector).
+`boundSignals` only closes the *decoupling* between what a policy evaluates and what actually executes, for the specific fields a policy author declares bound. It does not independently verify that an unbound signal is true — a caller-declared `vendorVerified: true` is still taken on faith unless a policy author separately fetch-verifies it (see `HubSpotSignalStateVerifier` and Tutorial 71 for what that looks like for one real connector).
 
 
 

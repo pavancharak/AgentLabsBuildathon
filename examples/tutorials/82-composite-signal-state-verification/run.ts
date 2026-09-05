@@ -165,4 +165,4 @@ if (allPassed) {
 
 console.log();
 console.log("Tutorial Complete");
-console.log("All 82 tutorials available. Run `npm run examples` to execute the full suite.");
+console.log("Next: Tutorial 83 - Capability/Policy Binding (TD-22)");

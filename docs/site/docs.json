@@ -43,8 +43,7 @@
               "concepts/execution-trust-records",
               "concepts/refusal-records",
               "concepts/determinism-and-clocks",
-              "concepts/content-binding-toctou",
-              "concepts/settlement"
+              "concepts/content-binding-toctou"
             ]
           },
           {

@@ -8,7 +8,7 @@ import {
   type KeyProvider,
 } from "@parmana/crypto";
 
-import type { PolicyRepository } from "@parmana/policy";
+import type { PolicyRepository, PolicySignals, SignalStateVerifier } from "@parmana/policy";
 
 import { EnvelopeVerifier, type NonceStore } from "@parmana/envelope-verifier";
 
@@ -96,6 +96,21 @@ export interface ExecutionGatewayOptions {
   readonly policyRepository?: PolicyRepository;
 
   /**
+   * Optional Signal/State Verifier used for the signal-freshness check
+   * (G-31): independently re-deriving, at the execution boundary, the
+   * real-world facts an authorization's signals declared, and rejecting
+   * execution if either the request's signals no longer hash-match the
+   * authorization's own signed `signalsHash`, or the verifier reports
+   * that verified state has since diverged from those signals. When
+   * omitted, or when an authorization carries no `signalsHash` or the
+   * request carries no `signals`, the check is skipped rather than
+   * failed -- see ExecutionGateway's class doc comment. Same port
+   * RuntimeEngine already uses pre-authorization (@parmana/policy);
+   * reused here, not reimplemented.
+   */
+  readonly signalStateVerifier?: SignalStateVerifier;
+
+  /**
    * The Connector this Gateway is the sole release
    * boundary for.
    */
@@ -137,11 +152,21 @@ export interface ExecutionGatewayOptions {
  * signed policyContentHash, so a stale-policy authorization
  * cannot execute after the policy it relied on has changed.
  *
+ * A third additive check (G-31) closes the analogous gap for
+ * runtime signals rather than policy content: when a
+ * SignalStateVerifier is supplied and the request/authorization both
+ * carry signals/signalsHash, the request's signals are hash-checked
+ * against the authorization's signed signalsHash, then independently
+ * re-verified against real-world state -- so an authorization whose
+ * vendor status, risk exposure, or other declared conditions have
+ * since diverged cannot execute either.
+ *
  * Verification order (Session 3's ordering rule: side-effect-
  * free checks first, nonce consumed last and only on success):
  *   version -> signature -> expiry -> TTL policy
  *     -> businessTransactionHash recompute-and-compare
  *     -> policyStillCurrent recompute-and-compare (when wired)
+ *     -> signalsStillCurrent recompute-and-verify (when wired)
  *     -> nonce
  *
  * Stateless and deterministic: there is no pause/resume state.
@@ -152,7 +177,9 @@ export class ExecutionGateway implements ExecutionSystem {
   private readonly envelopeVerifier: EnvelopeVerifier;
   private readonly contentHasher: ExecutableContentHasher;
   private readonly policyContentHasher: TrustRecordHasher;
+  private readonly signalsHasher: TrustRecordHasher;
   private readonly policyRepository: PolicyRepository | undefined;
+  private readonly signalStateVerifier: SignalStateVerifier | undefined;
   private readonly connector: Connector | undefined;
   private readonly executionControl: ExecutionControlOptions | undefined;
 
@@ -179,7 +206,12 @@ export class ExecutionGateway implements ExecutionSystem {
       CryptoBootstrap.create(),
     );
 
+    this.signalsHasher = new TrustRecordHasher(
+      CryptoBootstrap.create(),
+    );
+
     this.policyRepository = options.policyRepository;
+    this.signalStateVerifier = options.signalStateVerifier;
 
     if (options.connector === undefined && options.executionControl === undefined) {
       throw new Error("ExecutionGateway requires a connector or executionControl.");
@@ -277,10 +309,53 @@ export class ExecutionGateway implements ExecutionSystem {
       }
     }
 
+    let signalsStillCurrent: boolean | undefined;
+    let signalsHashMismatch: GatewayVerificationResult["signalsHashMismatch"];
+    let signalDivergence: GatewayVerificationResult["signalDivergence"];
+
+    const { signalsHash } = request.authorization.payload;
+
+    if (
+      passed &&
+      businessTransactionHashMatches &&
+      policyStillCurrent !== false &&
+      this.signalStateVerifier !== undefined &&
+      signalsHash !== undefined &&
+      request.signals !== undefined
+    ) {
+      const currentSignalsHash =
+        await this.signalsHasher.hash(request.signals);
+
+      if (currentSignalsHash !== signalsHash) {
+        signalsStillCurrent = false;
+        signalsHashMismatch = {
+          expected: signalsHash,
+          actual: currentSignalsHash,
+        };
+      } else {
+        const violations =
+          await this.signalStateVerifier.findViolations(
+            {
+              action: executableContent.action,
+              businessTransactionId: executableContent.businessTransactionId,
+              intentParameters: executableContent.parameters,
+            },
+            request.signals as PolicySignals,
+          );
+
+        signalsStillCurrent = violations.length === 0;
+
+        if (violations.length > 0) {
+          signalDivergence = violations;
+        }
+      }
+    }
+
     const priorChecksPassed =
       passed &&
       businessTransactionHashMatches &&
-      policyStillCurrent !== false;
+      policyStillCurrent !== false &&
+      signalsStillCurrent !== false;
 
     //
     // The nonce check is the only check with a side effect,
@@ -301,11 +376,14 @@ export class ExecutionGateway implements ExecutionSystem {
         ...checks,
         businessTransactionHashMatches,
         ...(policyStillCurrent === undefined ? {} : { policyStillCurrent }),
+        ...(signalsStillCurrent === undefined ? {} : { signalsStillCurrent }),
         nonceUnseen,
       },
 
       ...(hashMismatch ? { hashMismatch } : {}),
       ...(policyContentMismatch ? { policyContentMismatch } : {}),
+      ...(signalsHashMismatch ? { signalsHashMismatch } : {}),
+      ...(signalDivergence ? { signalDivergence } : {}),
     };
 
     return { result, executableContent };
@@ -415,9 +493,24 @@ export class ExecutionGateway implements ExecutionSystem {
       ? ` policyContentHash mismatch: expected ${result.policyContentMismatch.expected}, got ${result.policyContentMismatch.actual}.`
       : "";
 
+    const signalsHashDetail = result.signalsHashMismatch
+      ? ` signalsHash mismatch: expected ${result.signalsHashMismatch.expected}, got ${result.signalsHashMismatch.actual}.`
+      : "";
+
+    const signalDivergenceDetail = result.signalDivergence?.length
+      ? ` Signal(s) diverged from verified state: ` +
+        result.signalDivergence
+          .map(
+            (violation) =>
+              `${violation.signalKey}=${JSON.stringify(violation.declaredValue)} != verified ${violation.signalKey}=${JSON.stringify(violation.actualValue)}`,
+          )
+          .join(", ") +
+        "."
+      : "";
+
     return (
       `Execution Gateway rejected request: failed checks ` +
-      `[${failedChecks.join(", ")}].${hashDetail}${policyDetail}`
+      `[${failedChecks.join(", ")}].${hashDetail}${policyDetail}${signalsHashDetail}${signalDivergenceDetail}`
     );
   }
 }

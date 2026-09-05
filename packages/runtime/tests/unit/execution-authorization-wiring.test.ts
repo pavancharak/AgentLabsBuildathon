@@ -30,6 +30,7 @@ import {
   AuthorizationVerifier,
   CryptoBootstrap,
   FileKeyProvider,
+  TrustRecordHasher,
   VerificationCrypto,
 } from "@parmana/crypto";
 
@@ -391,6 +392,25 @@ describe("Execution Authorization Wiring", () => {
     const tamperedHash = await verificationCrypto.hash(tamperedRecord);
 
     expect(tamperedHash).not.toBe(trustRecord.trustRecordHash);
+  });
+
+  it("authorization carries a signalsHash over the transaction's runtime signals, and the ExecutionRequest carries the signals themselves (G-31)", async () => {
+    const { runtime, transactions, executionSystem } =
+      createRuntime(APPROVE_POLICY);
+
+    const transaction = createTransaction("txn-signals-hash-1");
+    await transactions.create(transaction);
+
+    await runtime.execute(transaction);
+
+    const { authorization, signals } = executionSystem.lastRequest!;
+
+    expect(signals).toEqual(transaction.signals);
+
+    const signalsHasher = new TrustRecordHasher(CryptoBootstrap.create());
+    const expectedHash = await signalsHasher.hash(transaction.signals);
+
+    expect(authorization.payload.signalsHash).toBe(expectedHash);
   });
 });
 

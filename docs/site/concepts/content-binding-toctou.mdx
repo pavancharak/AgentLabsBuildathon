@@ -51,6 +51,12 @@ export interface ExecutionAuthorizationPayload {
    * from the exact content it is about to forward and reject any mismatch.
    */
   readonly businessTransactionHash: string;
+
+  /** Optional. Same idea, for the exact policy content the decision rested on. */
+  readonly policyContentHash?: string;
+
+  /** Optional. Same idea, for the runtime signals the decision was evaluated against. */
+  readonly signalsHash?: string;
 }
 ```
 
@@ -72,10 +78,13 @@ if (passed) {
 }
 ```
 
-Verification order, side-effect-free checks first (`ExecutionGateway.ts:86-90`):
+Verification order, side-effect-free checks first (`ExecutionGateway.ts`):
 
 ```
-version → signature → expiry → TTL policy → businessTransactionHash recompute-and-compare → nonce
+version → signature → expiry → TTL policy → businessTransactionHash recompute-and-compare
+  → policyStillCurrent recompute-and-compare (when wired)
+  → signalsStillCurrent recompute-and-verify (when wired)
+  → nonce
 ```
 
 The nonce (single-use) check runs **last**, and only if every prior check, including the
@@ -87,6 +96,52 @@ nonce, or an attacker who observes a nonce in transit could poison it and get th
 system (`packages/crypto/src/ExecutableContentHasher.ts`), the signing side and verifying
 side run identical canonical serialization and hashing, never two parallel
 implementations of the same computation.
+
+## The same gap, one layer out: signal freshness (G-31)
+
+`businessTransactionHash` closes TOCTOU for *what* gets executed. It says nothing about
+*why* it was approved. A decision rests on runtime signals — vendor status, risk exposure,
+market conditions, whatever a policy's `boundSignals`/`SignalStateVerifier` cares about
+(see [Policies and the decision](/concepts/policies-and-the-decision)) — and those are
+independently re-verified against real-world state, but only once, before the authorization
+is signed. Nothing re-checked whether they were *still* true by the time a receiving system
+got around to executing: an authorization is a portable artifact, valid for
+`authorizationTtlSeconds`/`maxTtlSeconds`, and a system that verifies it a while after
+Parmana signed it had no way to tell "the vendor was verified when this was authorized"
+from "the vendor is verified right now."
+
+`RuntimeEngine.execute()` now signs a `signalsHash` — a canonical hash of the runtime
+`PolicySignals` the decision was evaluated against — into the payload, the direct sibling
+of `policyContentHash` above. When a `SignalStateVerifier` is supplied,
+`ExecutionGateway.verify()` recomputes that hash from the signals on the incoming request
+and compares it to the signed value (tamper/mismatch check, same shape as
+`businessTransactionHash`'s own comparison); on a match, it independently re-derives the
+same facts from real-world state and rejects if they've since diverged:
+
+```typescript
+// packages/execution-gateway/src/ExecutionGateway.ts
+if (currentSignalsHash !== signalsHash) {
+  signalsStillCurrent = false;
+  signalsHashMismatch = { expected: signalsHash, actual: currentSignalsHash };
+} else {
+  const violations = await this.signalStateVerifier.findViolations(
+    { action, businessTransactionId, intentParameters },
+    request.signals,
+  );
+
+  signalsStillCurrent = violations.length === 0;
+}
+```
+
+Two receiving systems can hold the exact same authorization, the exact same declared
+signals, and the exact same `signalsHash`, and still disagree — because what differs is
+what each one's own live check finds *right then*. That is the entire point: this is a
+freshness check, not a tamper check. See `examples/tutorials/98-signal-freshness-enforcement`
+for both outcomes run side by side, and `docs/VERIFICATION-GAPS.md` G-31 in the source
+repository for the full scope caveats — most importantly, this only has teeth for a
+capability with a `SignalStateVerifier` actually configured (today, `hubspot-deal-update`),
+and only when decision and execution are genuinely separated in time, which the default
+in-process wiring is not.
 
 ## What this proves, precisely scoped
 

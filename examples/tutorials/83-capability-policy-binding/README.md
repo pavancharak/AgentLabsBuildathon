@@ -7,7 +7,7 @@ Exercise `CapabilityPolicyBinder` directly: the canonical, one-to-one capability
 ## What You'll Learn
 
 * `boundSignals`/`SignalStateVerifier` protections are declared per-*policy* and per-*action* respectively, but nothing else cross-checked that the policy attached to a request was actually the one meant for that capability — `PolicyEngine.evaluate` takes no action parameter at all
-* The exact live-shaped exploit: `razorpay:refund-create` (fund-moving, protected by `razorpay-refund/1.0.0`'s `boundSignals`) paired with `customer-refund/1.0.0` — a real, loadable policy with no `boundSignals` at all, trivially satisfiable by caller-declared signals alone
+* The exact live-shaped exploit: `hubspot:deal-update` (data-mutating, protected by `hubspot-deal-update/1.0.0`'s `boundSignals`) paired with `vendor-payment/2.0.0` — a real, loadable policy with no `boundSignals` for it at all, trivially satisfiable by caller-declared signals alone
 * A matching policy *name* with the wrong *version* is still caught — the binding is exact, not name-only
 
 ## Running the Tutorial

@@ -77,18 +77,17 @@ not an append-only aggregate.
    correct policy rejection into an opaque `500` on a storage hiccup, a real availability
    regression, for no corresponding security gain — the request was already unconditionally
    denied the instant `Decision` was built.
-2. **Only production (Supabase) audit sinks sign.** `SupabaseCallerAuditSink` and
-   `SupabaseRazorpayWebhookAuditSink` sign every event; the in-memory test sinks
-   (`NODE_ENV=test`) do not. Existing rows written before this capability shipped remain
+2. **Only production (Supabase) audit sinks sign.** `SupabaseCallerAuditSink` signs every
+   event; the in-memory test sinks (`NODE_ENV=test`) do not. Existing rows written before this capability shipped remain
    unsigned — `signature_json` is nullable and additive, reflecting that history rather than
    backfilling a signature that was never actually produced.
 </Warning>
 
 ## Related
 
-- **`POST /audit/verify`** closes the analogous gap for caller-authentication and Razorpay-webhook
-  audit trails — one route, verifies either a `CallerAuditEvent` or a
-  `RazorpayWebhookAuditEvent`, also mounted ahead of caller-auth. See [Error
+- **`POST /audit/verify`** closes the analogous gap for caller-authentication audit
+  trails — one route, structurally checks and verifies any signed audit event's signature,
+  also mounted ahead of caller-auth. See [Error
   catalog](/api-reference/error-catalog) for both routes' error shapes.
 - [Execution Trust Records](/concepts/execution-trust-records) — the APPROVE-path counterpart.
 - [Policies and the decision](/concepts/policies-and-the-decision) — how a `Decision` reaches

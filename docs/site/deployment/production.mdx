@@ -3,7 +3,7 @@ title: "Production Deployment"
 description: "Running @parmana/api as a container on Fly.io or any Docker-based platform, validated against a real, permanent deployment."
 ---
 
-<Info>**[AVAILABLE]**, validated this session against a real, permanent Fly.io deployment (`parmana-api`), plus a second deployment on the same platform running live-mode Razorpay credentials. Platform-agnostic by design, built against a bare `docker build` / `docker run`, not a specific PaaS's proprietary build system. Source: `DEPLOYMENT.md` (repo root).</Info>
+<Info>**[AVAILABLE]**, validated against a real, permanent Fly.io deployment (`parmana-api`). Platform-agnostic by design, built against a bare `docker build` / `docker run`, not a specific PaaS's proprietary build system. Source: `DEPLOYMENT.md` (repo root).</Info>
 
 ## Quick start
 
@@ -24,23 +24,9 @@ checks](#health-checks)) are both served once the process is up.
 
 ## What's in the image
 
-One image, two processes, started by `docker/entrypoint.sh`:
-
-1. **The API server** (`node packages/api/dist/server.js`), the primary process. Its exit,
-   for any reason, brings the container down.
-2. **The Razorpay settlement poll loop**
-   (`tsx scripts/process-razorpay-settlements.ts`), reaped independently. It exits `0` and
-   stays exited when Razorpay credentials aren't configured for this deployment, a supported
-   "optional, absent" state, that must never kill a healthy, currently-serving API server. A
-   poller crash (nonzero exit) is logged loudly as a warning instead, settlement
-   confirmations stop processing until the container is redeployed.
-
-This couples the poll loop's liveness to the API server's, a crash in the API brings the
-poller down too, and horizontally scaling the API to N replicas multiplies the poll loop to N
-pollers. The settlement processor's `runOnce()` is idempotent by design, so N concurrent
-pollers draining the same durable event store is safe, just wasteful. Running the poller as
-its own service scaled to exactly one replica is the production-grade shape, that's future
-infrastructure work, not done at this stage.
+One image, one process, started by `docker/entrypoint.sh`: **the API server**
+(`node packages/api/dist/server.js`). `entrypoint.sh` forwards `SIGTERM`/`SIGINT` to it and
+exits with its exit code, a minimal process supervisor, not a multi-process init system.
 
 ## Required configuration
 
@@ -85,14 +71,11 @@ openssl rsa -in default.private.pem -pubout -out default.public.pem
 - `supabase`, requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (or
   `SUPABASE_ANON_KEY`). Validated eagerly at boot, not lazily on first request.
 
-Independent of `PARMANA_STORAGE`: the Execution Gateway's replay-nonce store, the caller
-authentication audit trail, the Razorpay webhook event store, and the settlement poll loop's
-event store are **always** Supabase-backed in production, never falls back to in-memory,
-because a durable store is required for these to behave correctly across process restarts and
-replicas. If Razorpay isn't configured at all, the webhook route is simply never mounted and
-the poller exits `0` cleanly, but the moment any Razorpay credential is present,
-`SUPABASE_URL` / key become required too, and `SUPABASE_URL` / key are required for the nonce
-store and audit trail regardless of `PARMANA_STORAGE`.
+Independent of `PARMANA_STORAGE`: the Execution Gateway's replay-nonce store and the caller
+authentication audit trail are **always** Supabase-backed in production, never falls back to
+in-memory, because a durable store is required for these to behave correctly across process
+restarts and replicas — `SUPABASE_URL` / key are required for both regardless of
+`PARMANA_STORAGE`.
 
 ### Applying the schema (Supabase)
 
@@ -126,19 +109,6 @@ bypasses this (logs a loud warning on every boot), never set this in a real depl
 Already set to `./policies` in the image, the committed `policies/` directory is baked in.
 Override only if a platform needs to mount a different policy set.
 
-### Razorpay (optional)
-
-Unset by default, the connector, the webhook route, and the settlement poller all detect this
-and degrade gracefully rather than failing to boot. To enable:
-
-- `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET`, enables the connector.
-- `RAZORPAY_WEBHOOK_SECRET`, enables `POST /webhooks/razorpay`. Unset in production means the
-  route is never mounted at all.
-- `RAZORPAY_SETTLEMENT_POLL_INTERVAL_MS` (default `15000`), poll interval for the settlement
-  processor.
-
-See [Razorpay](/integrations/razorpay) for the connector itself.
-
 ### Everything else
 
 `PORT` (default `3000`, read dynamically for platforms that inject it at deploy time),
@@ -162,58 +132,29 @@ See [Razorpay](/integrations/razorpay) for the connector itself.
 On `SIGTERM` / `SIGINT`: the API server stops accepting new connections, lets in-flight
 requests finish, then exits, the "drain, don't drop" shape a PaaS orchestrator expects before
 it force-kills the container. `SHUTDOWN_TIMEOUT_MS` (default `10000`) bounds how long a hung
-in-flight request can delay shutdown before the process force-exits on its own terms. The
-settlement poller shuts down independently, it stops scheduling new ticks immediately and
-waits for whichever tick is currently in flight before exiting.
+in-flight request can delay shutdown before the process force-exits on its own terms.
 
 ## Fly.io specifics
 
 Validated against a real `parmana-api` Fly app.
 
-- **Secrets**: `scripts/generate-fly-secrets.mjs` generates `PARMANA_KEY_MATERIAL_JSON`,
-  `PARMANA_API_KEYS` (single `smoke-test` caller), and `RAZORPAY_WEBHOOK_SECRET` locally
-  (never printed), leaving `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` / `RAZORPAY_KEY_ID` /
-  `RAZORPAY_KEY_SECRET` as placeholders to fill in, then `fly secrets import <
-  .flysecrets/secrets.env` to apply. Rotating any secret restarts every machine to pick it up,
-  `fly status` should show a recent "last updated" and passing health checks before treating
-  the new value as live.
+- **Secrets**: `scripts/generate-fly-secrets.mjs` generates `PARMANA_KEY_MATERIAL_JSON` and
+  `PARMANA_API_KEYS` (single `smoke-test` caller) locally (never printed), leaving
+  `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` as placeholders to fill in, then
+  `fly secrets import < .flysecrets/secrets.env` to apply. Rotating any secret restarts every
+  machine to pick it up, `fly status` should show a recent "last updated" and passing health
+  checks before treating the new value as live.
 - **Region**: `fly.toml` declares a primary region, but machine placement is Fly's choice at
   create time, confirm actual placement with `fly status` rather than assuming the configured
   primary region.
-- **Webhook registration**: `POST /webhooks/razorpay` only becomes reachable once
-  `RAZORPAY_WEBHOOK_SECRET` is set and the machines have restarted with it. Register the
-  permanent URL (`https://<app>.fly.dev/webhooks/razorpay`) in the Razorpay Dashboard against
-  **Test Mode** specifically if the credentials are test-mode keys, a Live Mode registration
-  silently receives nothing for test-mode activity.
 - **Smoke test**: `GET /health` and `GET /ready` should both return `200` post-deploy, an
   unauthenticated `POST /execute` should return `401` with a `WWW-Authenticate` header,
   confirming caller auth is actually wired rather than accidentally disabled.
-
-## Live-mode deployment
-
-A second Fly app can run the identical image against a Razorpay **live-mode** credential pair
-instead of test-mode. Operationally it's identical to the test-mode app, the only differences
-are the Razorpay credential pair and the webhook registration mode (register against **Live
-Mode** specifically, a Test Mode registration silently receives nothing for live-mode
-activity).
-
-<Warning>
-**Scope, precisely: one real-money transaction, not sustained operation.** This deployment
-shape has validated exactly one authenticated, policy-gated 100-paise refund against a real,
-card-paid ₹10 Payment Link, through the same production `POST /execute` chain, with a genuine
-`refund.processed` webhook from Razorpay's own infrastructure and a signed `SETTLED`
-settlement confirmation roughly 43 seconds later. It does not validate volume, sustained
-live-mode operation, or failover, running multiple machines is for redundancy, not capacity or
-tested failover behavior. See `docs/CLAIMS.md` §3.9 for the full trace and [Razorpay](/integrations/razorpay#whats-proven-where-precisely).
-</Warning>
 
 ## Next
 
 <CardGroup cols={2}>
   <Card title="Local / self-hosted deployment" icon="laptop" href="/deployment/local">
     The simpler, single-process model for local development.
-  </Card>
-  <Card title="Razorpay" icon="credit-card" href="/integrations/razorpay">
-    The connector this deployment's Razorpay configuration enables.
   </Card>
 </CardGroup>

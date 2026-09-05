@@ -34,8 +34,14 @@ every earlier stage said yes: the last point before a real system state changes.
 it plugs into `RuntimeFactory.create()` exactly like any other execution system, no change
 to `RuntimeEngine` or `RuntimePipeline` is required to use it. It composes
 `@parmana/envelope-verifier`'s checks (version, signature, expiry, TTL, nonce) and adds
-exactly one more: recomputing the executable content hash and comparing it to
-`businessTransactionHash`.
+three more, each optional and additive: recomputing the executable content hash and
+comparing it to `businessTransactionHash` (always attempted); recomputing the *current*
+policy content hash and comparing it to `policyContentHash`, when a `PolicyRepository` is
+supplied (`policyStillCurrent`, CLAIMS.md §2.27); and independently re-verifying the
+authorization's declared runtime signals against real-world state, when a
+`SignalStateVerifier` is supplied (`signalsStillCurrent`, CLAIMS.md §2.29, G-31) — see
+[Content Binding & TOCTOU](/concepts/content-binding-toctou) for the full mechanism of the
+latter two.
 
 ```typescript
 // packages/execution-gateway/src/ExecutionGateway.ts:150-165
@@ -51,10 +57,13 @@ if (passed) {
 }
 ```
 
-Check order, side-effect-free checks first (`ExecutionGateway.ts:86-90`):
+Check order, side-effect-free checks first (`ExecutionGateway.ts`):
 
 ```
-version → signature → expiry → TTL policy → businessTransactionHash recompute-and-compare → nonce
+version → signature → expiry → TTL policy → businessTransactionHash recompute-and-compare
+  → policyStillCurrent recompute-and-compare (when wired)
+  → signalsStillCurrent recompute-and-verify (when wired)
+  → nonce
 ```
 
 The nonce (single-use) check runs **last**, and only if every prior check, including the
@@ -94,10 +103,12 @@ follows this exact shape, using `executionControl` rather than a direct `connect
 
 A `Connector` is what the gateway hands verified, frozen content to after every check
 passes. `HttpConnector` and `MockConnector` are reference implementations in
-`@parmana/connector-sdk`. Two real, production-registered connectors exist:
-[`razorpay`](/integrations/razorpay) (whenever `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET` are
-configured) and [`hubspot`](/integrations/hubspot) (whenever `HUBSPOT_PRIVATE_APP_TOKEN` is
-configured), each making genuine external API calls, not scripted responses. Four
+`@parmana/connector-sdk`. One real, production-registered connector exists today,
+[`hubspot`](/integrations/hubspot) (whenever `HUBSPOT_PRIVATE_APP_TOKEN` is configured),
+making genuine external API calls, not scripted responses (`github` also registers, for
+`github:pr-fetch`/`github:pr-merge`). A second connector, `razorpay`, was previously
+registered here too; it was deliberately removed from the repository entirely, 2026-08-12,
+see `docs/CLAIMS.md`'s "Key Compromise Notice" section in the source repository. Four
 enterprise-named mocks also exist in the codebase
 (`packages/connector-sdk/src/connectors/{sap,oracle,workday,salesforce}/`), each an explicit
 `MockConnector` wrapper, self-documented as *"deterministic, in-memory, used until the real

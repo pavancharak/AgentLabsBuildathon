@@ -95,10 +95,11 @@ declares bound. It does not independently verify that an *unbound* signal is act
 `vendorVerified`, `paymentApproved`, `riskScore`, and similar remain caller-declared
 attestations with no independent verification, exactly as before. Closing that gap for real
 means fetch-verifying those signals from an independent source, the way
-`RazorpaySettlementProcessor` already does for webhook-derived settlement facts — real,
-valuable, and not yet extended to policy signals generally. See
-[Razorpay](/integrations/razorpay) for the one connector where fetch-verification of *some*
-signals is real today, and its exact scope.
+`HubSpotSignalStateVerifier` already does for `currentDealStage` and a few other
+`hubspot-deal-update` signals — real, valuable, and not yet extended to policy signals
+generally. See [HubSpot](/integrations/hubspot) for the one connector where
+fetch-verification of *some* signals is real today, and its exact scope, and
+`docs/CLAIMS.md` §2.29/G-31 for the newer, execution-boundary half of the same idea.
 </Warning>
 
 ## Minimal example

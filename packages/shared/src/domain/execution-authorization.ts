@@ -114,6 +114,25 @@ export interface ExecutionAuthorizationPayload {
    * covered by the policy-freshness check," not "policy is stale."
    */
   readonly policyContentHash?: string;
+
+  /**
+   * Canonical content hash of the runtime PolicySignals evaluated to
+   * produce this authorization's Decision -- proves what real-world
+   * conditions (vendor status, risk exposure, market state, etc.)
+   * justified the decision, distinct from businessTransactionHash
+   * (which covers only action/target/parameters) and policyContentHash
+   * (which covers only the policy rules). A receiving gateway with
+   * access to the exact signals this authorization was signed under,
+   * and a capability-scoped SignalStateVerifier, can recompute this
+   * hash and independently re-derive current signal state, rejecting
+   * execution if either has drifted since authorization.
+   *
+   * Optional so every pre-existing construction site and already-
+   * issued authorization (signed before this field existed) keeps
+   * compiling and verifying unchanged -- an absent value means "not
+   * covered by the signal-freshness check," not "signals are stale."
+   */
+  readonly signalsHash?: string;
 }
 
 /**

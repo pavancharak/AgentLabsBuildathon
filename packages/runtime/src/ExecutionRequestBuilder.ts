@@ -45,6 +45,9 @@ export class ExecutionRequestBuilder {
           transaction.intent.parameters,
       }),
 
+      signals:
+        transaction.signals,
+
       authorization,
     };
   }

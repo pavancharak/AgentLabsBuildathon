@@ -6,7 +6,7 @@ Show that `HubSpotSignalStateVerifier` catches a caller who declares `currentDea
 
 ## What You'll Learn
 
-* `HubSpotSignalStateVerifier` fetches the real deal (`hubspot:deal-fetch`) and compares it against every verified signal key before policy evaluation ever runs — the same G-24 residual closure pattern Tutorial 65 demonstrates for Razorpay
+* `HubSpotSignalStateVerifier` fetches the real deal (`hubspot:deal-fetch`) and compares it against every verified signal key before policy evaluation ever runs — a G-24 residual closure pattern the now-removed Razorpay connector's own `RazorpaySignalStateVerifier` demonstrated identically
 * A single false signal (`currentDealStage`) can cascade: `dealStageTransitionAllowed` is derived from it too, so both come back mismatched in the same rejection
 * The rejection names every mismatched signal, not just the first one found
 

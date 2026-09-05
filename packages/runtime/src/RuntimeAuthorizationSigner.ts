@@ -40,6 +40,7 @@ export class RuntimeAuthorizationSigner {
       readonly policyName: string;
       readonly policyVersion: string;
       readonly policyContentHash?: string;
+      readonly signalsHash?: string;
       readonly executableContent: ExecutableContent;
     },
     ttlSeconds: number,

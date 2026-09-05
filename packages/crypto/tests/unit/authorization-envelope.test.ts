@@ -270,6 +270,88 @@ describe("Execution Authorization Envelope", () => {
     expect(result.checks.signatureVerified).toBe(false);
   });
 
+  it("includes signalsHash in the signed payload when supplied, and verifies unchanged", async () => {
+    const { privateKey, publicKey } = generateKeyPair();
+
+    const signer = new AuthorizationSigner(crypto);
+    const verifier = new AuthorizationVerifier(crypto);
+
+    const signed = await signer.sign(
+      {
+        decisionId: "decision-1",
+        businessTransactionId: "txn-1",
+        policyName: "policy-a",
+        policyVersion: "1.0.0",
+        signalsHash: "signals-hash-fixed",
+        executableContent: SAMPLE_EXECUTABLE_CONTENT,
+      },
+      privateKey,
+      "key-1",
+      60,
+    );
+
+    expect(signed.payload.signalsHash).toBe("signals-hash-fixed");
+
+    const result = await verifier.verify(signed, publicKey);
+
+    expect(result.valid).toBe(true);
+  });
+
+  it("omits signalsHash from the payload when not supplied (backward compatible)", async () => {
+    const { privateKey } = generateKeyPair();
+
+    const signer = new AuthorizationSigner(crypto);
+
+    const signed = await signer.sign(
+      {
+        decisionId: "decision-1",
+        businessTransactionId: "txn-1",
+        policyName: "policy-a",
+        policyVersion: "1.0.0",
+        executableContent: SAMPLE_EXECUTABLE_CONTENT,
+      },
+      privateKey,
+      "key-1",
+      60,
+    );
+
+    expect(signed.payload.signalsHash).toBeUndefined();
+  });
+
+  it("rejects a tampered signalsHash", async () => {
+    const { privateKey, publicKey } = generateKeyPair();
+
+    const signer = new AuthorizationSigner(crypto);
+    const verifier = new AuthorizationVerifier(crypto);
+
+    const signed = await signer.sign(
+      {
+        decisionId: "decision-1",
+        businessTransactionId: "txn-1",
+        policyName: "policy-a",
+        policyVersion: "1.0.0",
+        signalsHash: "signals-hash-fixed",
+        executableContent: SAMPLE_EXECUTABLE_CONTENT,
+      },
+      privateKey,
+      "key-1",
+      60,
+    );
+
+    const tampered: SignedExecutionAuthorization = {
+      ...signed,
+      payload: {
+        ...signed.payload,
+        signalsHash: "signals-hash-tampered",
+      },
+    };
+
+    const result = await verifier.verify(tampered, publicKey);
+
+    expect(result.valid).toBe(false);
+    expect(result.checks.signatureVerified).toBe(false);
+  });
+
   it("rejects non-positive TTL", async () => {
     const { privateKey } = generateKeyPair();
 

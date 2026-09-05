@@ -46,6 +46,7 @@ export class AuthorizationSigner {
       readonly policyName: string;
       readonly policyVersion: string;
       readonly policyContentHash?: string;
+      readonly signalsHash?: string;
       readonly executableContent: ExecutableContent;
     },
     privateKey: KeyObject,
@@ -93,6 +94,10 @@ export class AuthorizationSigner {
 
       ...(input.policyContentHash !== undefined && {
         policyContentHash: input.policyContentHash,
+      }),
+
+      ...(input.signalsHash !== undefined && {
+        signalsHash: input.signalsHash,
       }),
 
       authorizedAt:
