@@ -23,4 +23,4 @@ A `SignedExecutionAuthorization` is a portable artifact by design: `packages/sha
 
 ## Next Tutorial
 
-This is currently the last tutorial in the sequence.
+Continue with **Tutorial 99 – Key/Algorithm Binding Guard**.

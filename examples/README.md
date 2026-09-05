@@ -11,7 +11,7 @@ demonstrating how Parmana authorizes, executes, verifies, and proves enterprise 
 
 ```
 examples/
-├── tutorials/              98 numbered, single-concept tutorials (see table below)
+├── tutorials/              103 numbered, single-concept tutorials (see table below)
 ├── scenarios/
 │   ├── expense-approval
 │   └── purchase-order
@@ -131,6 +131,11 @@ automatically alongside every change.
 | 96 | GitHub PR Merge Connector |
 | 97 | Execution Chain Integrity |
 | 98 | Signal-Freshness Enforcement (G-31) |
+| 99 | Key/Algorithm Binding Guard |
+| 100 | Authorization Is Caller-Type-Agnostic |
+| 101 | Fail-Closed Caller-Authentication Audit Writes |
+| 102 | Distinguishable HTTP Status for Policy Denial and Replay |
+| 103 | Policy Governance (Maker-Checker) |
 
 ---
 

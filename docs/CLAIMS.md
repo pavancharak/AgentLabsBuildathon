@@ -466,6 +466,8 @@ Evidence
 
 * packages/crypto/tests/unit/signature-provider.test.ts
 
+* examples/tutorials/99-key-algorithm-binding-guard/run.ts (runnable narrative: both mismatch directions, plus a correctly matched key still working)
+
 
 
 ---
@@ -644,6 +646,8 @@ Evidence
 
 * packages/api/tests/unit/supabase-caller-audit-sink.test.ts: `SupabaseCallerAuditSink` propagates storage errors rather than swallowing them, which is what makes this guard reachable in production wiring
 
+* examples/tutorials/101-fail-closed-caller-audit-writes/run.ts (runnable narrative, real HTTP server: a rejected credential and an accepted one each independently fail closed at 503 when the audit write itself fails)
+
 
 
 ---
@@ -715,6 +719,8 @@ Evidence
 * packages/api/tests/integration/caller-auth.integration.test.ts: "a well-authenticated caller submitting a policy-rejected transaction is still rejected by policy" (asserts `response.status === 403`, `response.body.code === "POLICY_DENIED"`, through the real `POST /execute` route)
 
 * typescript/src/transport/mapHttpErrorResponse.ts, typescript/test/Errors.test.ts, typescript/test/HttpTransport.test.ts: the TypeScript SDK maps `code: "POLICY_DENIED"` to `ExecutionRejectedError`, checked ahead of the generic `403` → `AuthorizationError` mapping so it does not collide with the unrelated caller-identity-mismatch `403` (`packages/api/src/routes/execute.ts`), which carries no `code` at all
+
+* examples/tutorials/102-distinguishable-http-status/run.ts (runnable narrative: all three failure shapes produced side by side — 403/POLICY_DENIED via a real HTTP server, 409/NONCE_ALREADY_CONSUMED and a plain uncoded 500 via `ExecutionGateway.execute()` called directly)
 
 **Update (2026-08-24 documentation-currency pass):** this section previously also cited `packages/api/tests/integration/razorpay-refund.integration.test.ts`/`razorpay-live.integration.test.ts` as evidence of the same `403`/`POLICY_DENIED` assertion "through the real production bootstrap chain." Both files were deleted along with the rest of the Razorpay connector on 2026-08-12 (see §3.16's own update); that specific production path no longer exists. The claim itself — that a policy `REJECTED` decision surfaces as `403`/`POLICY_DENIED` — remains fully current and is unaffected, demonstrated by the `caller-auth.integration.test.ts` citation immediately above, which exercises the same generic mechanism against `test:fixture-execute` rather than a Razorpay-specific transaction.
 
@@ -831,6 +837,8 @@ Evidence
 * packages/api/src/auth/StaticKeyAuthenticator.ts (caller-type-agnostic authentication)
 
 * Repo-wide grep confirming zero `authority`/caller-identity references in RuntimeEngine.ts, PolicyEngine.ts, SignalIntentBinder.ts, CapabilityPolicyBinding.ts (as of this check, 2026-08-09, the last file lived at `packages/policy/src/`; moved to `packages/capability-registry/src/` 2026-08-26 — same file content, unaffected by the move)
+
+* examples/tutorials/100-authorization-caller-type-agnostic/run.ts (runnable narrative, library-level: `"USER"` vs. `"FULLY_AUTONOMOUS_AI_AGENT_NEVER_SEEN_BEFORE"` produce byte-identical outcomes and reasons on both the APPROVE and REJECT paths)
 
 
 
@@ -985,6 +993,8 @@ Evidence
 
 
 * `packages/governance-ui/tests/unit/apiClient.test.ts`, `tests/integration/app.integration.test.ts` (17 cases: unauthenticated redirect, login/logout, list/diff rendering, no approve/reject controls, XSS-escaping, session invalidation on a revoked key)
+
+* `examples/tutorials/103-policy-governance-maker-checker/run.ts` (runnable narrative, real HTTP server: human-only enforcement, maker ≠ checker, missing-step-up denial, and a distinct checker's valid step-up envelope resulting in both a written `policy.json` and a signed, persisted approval record)
 
 
 

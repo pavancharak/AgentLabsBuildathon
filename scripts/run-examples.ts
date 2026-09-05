@@ -111,6 +111,11 @@ const examples = [
   "examples/tutorials/96-github-pr-merge-connector/run.ts",
   "examples/tutorials/97-execution-chain-integrity/run.ts",
   "examples/tutorials/98-signal-freshness-enforcement/run.ts",
+  "examples/tutorials/99-key-algorithm-binding-guard/run.ts",
+  "examples/tutorials/100-authorization-caller-type-agnostic/run.ts",
+  "examples/tutorials/101-fail-closed-caller-audit-writes/run.ts",
+  "examples/tutorials/102-distinguishable-http-status/run.ts",
+  "examples/tutorials/103-policy-governance-maker-checker/run.ts",
   "examples/scenarios/expense-approval/run.ts",
   "examples/scenarios/purchase-order/run.ts",
 ];

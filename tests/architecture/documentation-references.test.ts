@@ -23,11 +23,17 @@ const docsToCheck = [
   "docs/developer/extending-parmana.md",
   "docs/architecture/execution-pipeline-report.md",
   "docs/architecture/repository-invariants.md",
+  "docs/CLAIMS.md",
 ];
 
-/** Backtick-quoted paths that look like a real repo path (package src/tests, or docs/tests dirs). */
+/**
+ * Backtick-quoted paths that look like a real repo path (package src/tests,
+ * tests/architecture, docs/*.md, policies/, or one of the other path shapes
+ * CLAIMS.md's own Evidence sections actually cite: examples/, scripts/,
+ * supabase/migrations/, and .github/workflows/).
+ */
 const PATH_PATTERN =
-  /`((?:packages\/[\w-]+\/(?:src|tests)\/[\w\-./]+\.tsx?)|(?:tests\/architecture\/[\w\-./]+\.tsx?)|(?:docs\/[\w\-./]+\.md)|(?:policies\/?))`/g;
+  /`((?:packages\/[\w-]+\/(?:src|tests)\/[\w\-./]+\.tsx?)|(?:tests\/architecture\/[\w\-./]+\.tsx?)|(?:docs\/[\w\-./]+\.md)|(?:policies\/?)|(?:examples\/[\w\-./]+\.tsx?)|(?:scripts\/[\w\-./]+\.(?:ts|mjs|sh))|(?:supabase\/migrations\/[\w\-./]+\.sql)|(?:\.github\/workflows\/[\w\-./]+\.ya?ml))`/g;
 
 /**
  * Paths that are deliberately hypothetical, not evidence: either a "Regression
@@ -64,6 +70,16 @@ const HISTORICALLY_REAL_NOW_REMOVED_PATHS = new Set([
   "packages/api/src/webhooks/RazorpaySettlementProcessor.ts",
   "packages/api/src/bootstrap/createRazorpaySignalStateVerifier.ts",
   "packages/connector-sdk/src/connectors/razorpay/RazorpayCapabilities.ts",
+  // Surfaced when docs/CLAIMS.md and a wider PATH_PATTERN were added to
+  // this check (G-31 docs pass) -- each is explicitly self-caveated in
+  // its own doc as a historical citation, not a currently-resolvable path.
+  "packages/api/tests/integration/razorpay-refund.integration.test.ts",
+  "packages/storage/tests/integration/supabase-razorpay-daily-refund-ledger.integration.test.ts",
+  "scripts/process-razorpay-settlements.ts",
+  // "as originally shipped ... see the Phase 1C update below for where
+  // this logic lives today" -- moved/refactored during Phase 1C, not
+  // deleted, but no longer resolvable at this original path.
+  "packages/connector-hubspot/src/HubSpotConnector.ts",
 ]);
 
 function extractReferencedPaths(content: string): string[] {
