@@ -42,6 +42,16 @@ export interface TransactionMetadata {
   readonly submittedBy?: string;
 
   /**
+   * The capability (Business Transaction intent.action) that
+   * isCapabilityAllowed() confirmed submittedBy was permitted to
+   * invoke, server-set the same way submittedBy is -- never trusted
+   * from the client. Present only when caller-auth was enabled for
+   * this request; see ExecutionAuthorizationPayload.grantedCapability,
+   * which this value is signed into.
+   */
+  readonly grantedCapability?: string;
+
+  /**
    * UTC timestamp when the Business Transaction
    * was submitted.
    */

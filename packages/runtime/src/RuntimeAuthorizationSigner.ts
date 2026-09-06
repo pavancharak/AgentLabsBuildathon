@@ -41,6 +41,8 @@ export class RuntimeAuthorizationSigner {
       readonly policyVersion: string;
       readonly policyContentHash?: string;
       readonly signalsHash?: string;
+      readonly submittedBy?: string;
+      readonly grantedCapability?: string;
       readonly executableContent: ExecutableContent;
     },
     ttlSeconds: number,

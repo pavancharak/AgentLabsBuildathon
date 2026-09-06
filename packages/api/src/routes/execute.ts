@@ -212,12 +212,22 @@ export function createExecuteRouter(
         // isOwnedByCaller.ts scopes /trust-records, /verify,
         // /verification, /replay, and /receipt* by.
         //
+        // metadata.grantedCapability carries forward the exact
+        // capability the isCapabilityAllowed() check above just
+        // confirmed for this caller, so RuntimeEngine can sign it
+        // into the authorization (ExecutionAuthorizationPayload.
+        // grantedCapability) instead of discarding the check's result
+        // once the request passes.
+        //
         if (req.callerId !== undefined) {
           transaction = {
             ...transaction,
             metadata: {
               ...transaction.metadata,
               submittedBy: req.callerId,
+              ...(transaction.intent?.action !== undefined && {
+                grantedCapability: transaction.intent.action,
+              }),
             },
           };
         }

@@ -352,6 +352,92 @@ describe("Execution Authorization Envelope", () => {
     expect(result.checks.signatureVerified).toBe(false);
   });
 
+  it("includes submittedBy/grantedCapability in the signed payload when supplied, and verifies unchanged", async () => {
+    const { privateKey, publicKey } = generateKeyPair();
+
+    const signer = new AuthorizationSigner(crypto);
+    const verifier = new AuthorizationVerifier(crypto);
+
+    const signed = await signer.sign(
+      {
+        decisionId: "decision-1",
+        businessTransactionId: "txn-1",
+        policyName: "policy-a",
+        policyVersion: "1.0.0",
+        submittedBy: "caller-alice",
+        grantedCapability: "TransferFunds",
+        executableContent: SAMPLE_EXECUTABLE_CONTENT,
+      },
+      privateKey,
+      "key-1",
+      60,
+    );
+
+    expect(signed.payload.submittedBy).toBe("caller-alice");
+    expect(signed.payload.grantedCapability).toBe("TransferFunds");
+
+    const result = await verifier.verify(signed, publicKey);
+
+    expect(result.valid).toBe(true);
+  });
+
+  it("omits submittedBy/grantedCapability from the payload when not supplied (backward compatible)", async () => {
+    const { privateKey } = generateKeyPair();
+
+    const signer = new AuthorizationSigner(crypto);
+
+    const signed = await signer.sign(
+      {
+        decisionId: "decision-1",
+        businessTransactionId: "txn-1",
+        policyName: "policy-a",
+        policyVersion: "1.0.0",
+        executableContent: SAMPLE_EXECUTABLE_CONTENT,
+      },
+      privateKey,
+      "key-1",
+      60,
+    );
+
+    expect(signed.payload.submittedBy).toBeUndefined();
+    expect(signed.payload.grantedCapability).toBeUndefined();
+  });
+
+  it("rejects a tampered grantedCapability", async () => {
+    const { privateKey, publicKey } = generateKeyPair();
+
+    const signer = new AuthorizationSigner(crypto);
+    const verifier = new AuthorizationVerifier(crypto);
+
+    const signed = await signer.sign(
+      {
+        decisionId: "decision-1",
+        businessTransactionId: "txn-1",
+        policyName: "policy-a",
+        policyVersion: "1.0.0",
+        submittedBy: "caller-alice",
+        grantedCapability: "ReadBalance",
+        executableContent: SAMPLE_EXECUTABLE_CONTENT,
+      },
+      privateKey,
+      "key-1",
+      60,
+    );
+
+    const tampered: SignedExecutionAuthorization = {
+      ...signed,
+      payload: {
+        ...signed.payload,
+        grantedCapability: "TransferFunds",
+      },
+    };
+
+    const result = await verifier.verify(tampered, publicKey);
+
+    expect(result.valid).toBe(false);
+    expect(result.checks.signatureVerified).toBe(false);
+  });
+
   it("rejects non-positive TTL", async () => {
     const { privateKey } = generateKeyPair();
 

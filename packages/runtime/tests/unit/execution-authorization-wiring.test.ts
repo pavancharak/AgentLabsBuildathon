@@ -412,5 +412,42 @@ describe("Execution Authorization Wiring", () => {
 
     expect(authorization.payload.signalsHash).toBe(expectedHash);
   });
+
+  it("authorization carries submittedBy/grantedCapability from transaction.metadata when caller-auth set them", async () => {
+    const { runtime, transactions, executionSystem } =
+      createRuntime(APPROVE_POLICY);
+
+    const transaction: BusinessTransaction = {
+      ...createTransaction("txn-caller-claim-1"),
+      metadata: {
+        businessTransactionId: "txn-caller-claim-1",
+        submittedBy: "caller-alice",
+        grantedCapability: "PAY",
+      },
+    };
+    await transactions.create(transaction);
+
+    await runtime.execute(transaction);
+
+    const { authorization } = executionSystem.lastRequest!;
+
+    expect(authorization.payload.submittedBy).toBe("caller-alice");
+    expect(authorization.payload.grantedCapability).toBe("PAY");
+  });
+
+  it("authorization omits submittedBy/grantedCapability when metadata carries neither (caller-auth disabled)", async () => {
+    const { runtime, transactions, executionSystem } =
+      createRuntime(APPROVE_POLICY);
+
+    const transaction = createTransaction("txn-no-caller-claim-1");
+    await transactions.create(transaction);
+
+    await runtime.execute(transaction);
+
+    const { authorization } = executionSystem.lastRequest!;
+
+    expect(authorization.payload.submittedBy).toBeUndefined();
+    expect(authorization.payload.grantedCapability).toBeUndefined();
+  });
 });
 

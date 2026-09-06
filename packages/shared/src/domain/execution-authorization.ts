@@ -133,6 +133,38 @@ export interface ExecutionAuthorizationPayload {
    * covered by the signal-freshness check," not "signals are stale."
    */
   readonly signalsHash?: string;
+
+  /**
+   * The authenticated caller (the same identity already threaded into
+   * BusinessTransaction.metadata.submittedBy) that this authorization
+   * was issued for, when caller-auth was enabled for the request.
+   *
+   * Optional for the same reason policyContentHash/signalsHash are:
+   * every pre-existing construction site and already-issued
+   * authorization keeps compiling and verifying unchanged. Absent
+   * means "issued with caller-auth disabled or no caller identified,"
+   * not "no caller exists."
+   */
+  readonly submittedBy?: string;
+
+  /**
+   * The capability (Business Transaction intent.action) that
+   * isCapabilityAllowed() confirmed this caller was permitted to
+   * invoke, at the moment it confirmed it -- i.e. what the API-edge
+   * caller-to-capability check actually cleared, carried forward as a
+   * signed fact rather than discarded once the request passes.
+   *
+   * A receiving system with access to this authorization can confirm
+   * this equals the executed content's own action, catching any
+   * divergence between what a caller was cleared to invoke and what
+   * is actually presented for execution, without needing its own
+   * access to the live caller/capability configuration.
+   *
+   * Optional for the same reason submittedBy is: absent means "no
+   * caller-capability check ran for this authorization" (caller-auth
+   * disabled), not "any capability is granted."
+   */
+  readonly grantedCapability?: string;
 }
 
 /**

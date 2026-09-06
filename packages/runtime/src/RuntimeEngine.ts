@@ -466,6 +466,12 @@ export class RuntimeEngine {
             transaction.policy.version,
           policyContentHash,
           signalsHash,
+          ...(transaction.metadata?.submittedBy !== undefined && {
+            submittedBy: transaction.metadata.submittedBy,
+          }),
+          ...(transaction.metadata?.grantedCapability !== undefined && {
+            grantedCapability: transaction.metadata.grantedCapability,
+          }),
           executableContent,
         },
         this.authorizationTtlSeconds,
