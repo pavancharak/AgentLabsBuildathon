@@ -1144,6 +1144,30 @@ Evidence
 
 
 
+## 2.31 Signed Caller-Capability Claim, Checked at the Connector Layer
+
+**What this closes, precisely.** A prior internal audit found that `DefaultConnectorPolicy.assertAllowed()` (`packages/execution-control/src/ConnectorPolicy.ts`) only checked the *connector's* declared capabilities (`connector.capabilities.includes(action)`) and three pre-computed `verifiedTransaction` booleans — it had no way to independently confirm that the *caller* who submitted the request was ever cleared for the specific capability now being executed. That confirmation happened exactly once, at the API edge (`isCapabilityAllowed()` in `packages/api/src/routes/execute.ts`), and its result was then discarded — nothing carried it forward into the signed authorization or to the connector layer.
+
+**What was added.** `ExecutionAuthorizationPayload` (`packages/shared/src/domain/execution-authorization.ts`) gained two optional signed fields, following the exact precedent `policyContentHash`/`signalsHash` set (optional so every pre-existing authorization keeps verifying unchanged): `submittedBy` (the caller id, already threaded into `BusinessTransaction.metadata.submittedBy` but never previously reaching the signed payload) and `grantedCapability` (the capability `isCapabilityAllowed()` confirmed for that caller, at the moment it confirmed it). `execute.ts` now carries `grantedCapability` forward onto `transaction.metadata` alongside the existing `submittedBy` write, server-set and never trusted from the client. `RuntimeEngine.execute()` reads both from `transaction.metadata` and passes them to `RuntimeAuthorizationSigner`/`AuthorizationSigner`, which sign them into the payload exactly like every other field there (`ArtifactSigner` signs the complete canonical payload, not an enumerated subset). `DefaultConnectorPolicy.assertAllowed()` now additionally checks: when the authorization's `grantedCapability` is present, it must equal the action actually being executed (`request.executableContent.action`) — a mismatch is rejected before the connector's own credential is ever resolved.
+
+**What this is, honestly.** This is defense-in-depth, not a fix for a live exploit. `ExecutionGateway.verify()` already independently re-verifies the authorization's cryptographic signature before `ExecutionGateway.execute()` is ever called, and `ExecutionControlService.execute()` (the only production call site reaching `ConnectorPolicy.assertAllowed()`) is only reachable through that path today — a repo-wide search confirms no other code constructs a `GatewayExecutionRequest` and calls it directly. The new check does not re-verify the signature a second time at the connector layer; it checks *internal consistency* of a value that is already inside the same signed payload `verifiedTransaction.authorizationVerified` already vouches for. Its value is specifically against a *future* code path that might reach `ConnectorPolicy.assertAllowed()` without going through today's single, already-verified route (a plugin system, an admin override endpoint, a differently-wired deployment) — in that scenario, the caller-capability claim travels with the authorization itself rather than depending on whatever new code path remembers to set `verifiedTransaction` correctly. It does not, and cannot, defend against an attacker who already has in-process code execution and a reference to internal wiring — that attacker can fabricate `grantedCapability` exactly as easily as they could already fabricate the `verifiedTransaction` booleans, since both arrive over the same trust boundary.
+
+Evidence
+
+* `packages/shared/src/domain/execution-authorization.ts` (`submittedBy`, `grantedCapability` on `ExecutionAuthorizationPayload`)
+* `packages/shared/src/domain/metadata.ts` (`grantedCapability` on `TransactionMetadata`)
+* `packages/api/src/routes/execute.ts` (carries `grantedCapability` onto `transaction.metadata`, server-set, alongside the existing `submittedBy` write)
+* `packages/crypto/src/AuthorizationSigner.ts`, `packages/runtime/src/RuntimeAuthorizationSigner.ts`, `packages/runtime/src/RuntimeEngine.ts` (threading into the signed payload)
+* `packages/execution-control/src/ConnectorPolicy.ts` (`DefaultConnectorPolicy.assertAllowed()`'s new consistency check)
+* `packages/crypto/tests/unit/authorization-envelope.test.ts` (3 new cases: fields included and verify unchanged when supplied, omitted when not supplied, a tampered `grantedCapability` fails signature verification)
+* `packages/runtime/tests/unit/execution-authorization-wiring.test.ts` (2 new cases: both fields threaded through from `transaction.metadata` end-to-end through the real `RuntimeBuilder`/`RuntimeEngine` wiring; both correctly absent when metadata carries neither)
+* `packages/execution-control/tests/unit/connector-policy-granted-capability.test.ts` (3 cases: execution allowed when `grantedCapability` matches the executed action, execution allowed when `grantedCapability` is absent — caller-auth was disabled, execution rejected when `grantedCapability` names a different action than the one executed)
+* Full repo `npx tsc -b`, `npx eslint . --ext .ts`, and `npm test` (`vitest run`) all clean: 1463 passed, 38 pre-existing skips, 0 failed — no regressions
+
+---
+
+
+
 # 3. Conditional Claims
 
 
