@@ -403,6 +403,40 @@ describe("Execution Authorization Envelope", () => {
     expect(signed.payload.grantedCapability).toBeUndefined();
   });
 
+  it("rejects a tampered submittedBy", async () => {
+    const { privateKey, publicKey } = generateKeyPair();
+
+    const signer = new AuthorizationSigner(crypto);
+    const verifier = new AuthorizationVerifier(crypto);
+
+    const signed = await signer.sign(
+      {
+        decisionId: "decision-1",
+        businessTransactionId: "txn-1",
+        policyName: "policy-a",
+        policyVersion: "1.0.0",
+        submittedBy: "caller-alice",
+        executableContent: SAMPLE_EXECUTABLE_CONTENT,
+      },
+      privateKey,
+      "key-1",
+      60,
+    );
+
+    const tampered: SignedExecutionAuthorization = {
+      ...signed,
+      payload: {
+        ...signed.payload,
+        submittedBy: "caller-eve",
+      },
+    };
+
+    const result = await verifier.verify(tampered, publicKey);
+
+    expect(result.valid).toBe(false);
+    expect(result.checks.signatureVerified).toBe(false);
+  });
+
   it("rejects a tampered grantedCapability", async () => {
     const { privateKey, publicKey } = generateKeyPair();
 
