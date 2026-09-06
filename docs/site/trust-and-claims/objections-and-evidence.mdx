@@ -93,7 +93,7 @@ Rows below name which mechanism actually applies.
 | Does the verification key change without notice, breaking old verifications? | **Existing test.** `docs/CLAIMS.md` §2.28, key-id-aware resolution with expiry/revocation checking. |
 | Are verification tools proprietary, or something only Parmana can run? | **Existing, trivially.** `@parmana/envelope-verifier` and `@parmana/crypto` are ordinary packages in the public repository. |
 | Does verification require a live network call to Parmana or anyone else? | **Existing test, same evidence as the offline-verification row above.** `EnvelopeVerifier`/`AuditEventCrypto` make no network calls; verification needs only the artifact, its signature, and a public key file. |
-| If someone deleted a row from the audit table, would anything notice? | **Honest limit, real gap, not yet closed.** `ExecutionTrustRecord` executions chain via `previousChainHash` (`ExecutionChainCrypto`), tested. `CallerAuditEvent` rows carry no sequence number or chain hash — a deleted row in the underlying table is currently undetectable by any mechanism this repo has. Closing this properly means a schema migration (a chain-hash column) and a change to what `AuditEventCrypto` signs, not a same-session patch — flagged here rather than quietly built, the same discipline this whole page follows. |
+| If someone deleted a row from the audit table, would anything notice? | **Closed.** `SupabaseCallerAuditSink.record()` now chains each caller's events to their own immediately-preceding event (`previousChainHash`/`chainHash`, folded into the same object `AuditEventCrypto` already signs — no second signature column), using a Postgres advisory lock scoped per caller rather than a table-wide lock, since `caller_audit_events` is the highest-write-volume table in this system. `CallerAuditChainVerifier` (`packages/crypto/src/CallerAuditChainVerifier.ts`) proves a deleted row breaks the chain, standalone, with no server or database. See `docs/CLAIMS.md` §2.32 for the full design, including its honest limits (an entire caller's history deleted at once, or cross-caller reordering, isn't caught). |
 
 ## Domain 4: Fail-closed behavior
 
@@ -130,11 +130,6 @@ they still don't cover.
 
 - **No test for a claim CLAIMS.md doesn't make.** SOC2, GDPR, ISO 27001, and similar were
   considered and dropped — see the note at the top of this page.
-- **No schema migration for the `CallerAuditEvent` chain-hash gap** (Domain 3's last row).
-  That's a real gap, but closing it changes a production database schema and what a signed
-  artifact covers — the same category of decision [Execution
-  authorization](/concepts/execution-authorization)'s `grantedCapability` field went through
-  deliberately, not something to build silently alongside a documentation pass.
 - **No throughput/load test.** Real load testing needs a decision about target hardware and
   acceptable concurrency, not something this page should assume on your behalf.
 
