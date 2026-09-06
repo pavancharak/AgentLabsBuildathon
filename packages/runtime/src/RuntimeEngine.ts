@@ -162,6 +162,22 @@ export class RuntimeEngine {
       new RuntimeHookRunner(
         hooks,
       );
+
+    //
+    // Observability: which optional protections are wired for this
+    // instance. Construction-time only, not per-request -- the
+    // configuration doesn't change per transaction.
+    //
+    console.log({
+      event: "runtime_engine_constructed",
+      signalStateVerifierConfigured:
+        this.signalStateVerifier !== undefined,
+      capabilityPolicyBinderConfigured:
+        this.capabilityPolicyBinder !== undefined,
+      refusalRecordingConfigured:
+        this.refusalRecordBuilder !== undefined &&
+        this.refusalRecordRepository !== undefined,
+    });
   }
 
   public async execute(
@@ -568,7 +584,7 @@ export class RuntimeEngine {
    * be acceptable. A failure is still loud, not silent: logged via
    * console.error so an operator can find and reconcile the gap,
    * matching this codebase's existing severity-flagging pattern for
-   * evidentiary write failures (RazorpayWebhookAuditEvent.severity).
+   * evidentiary write failures.
    */
   private async writeRefusalRecord(
     transaction: BusinessTransaction,
