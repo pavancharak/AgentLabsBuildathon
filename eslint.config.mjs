@@ -40,6 +40,18 @@ export default [
   ...tseslint.configs.recommended,
 
   {
+    // .cjs scripts are plain CommonJS by extension -- require() is the
+    // only valid way to import here, not an ESM oversight to fix.
+    // tseslint.configs.recommended (above) applies no-require-imports
+    // to these files too; this override, coming after it in config
+    // order, wins.
+    files: ["**/*.cjs", "*.cjs"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
+
+  {
     files: ["packages/**/*.ts", "examples/**/*.ts"],
 
     languageOptions: {

@@ -21,7 +21,7 @@ import {
   type SignedExecutionAuthorization,
 } from "@parmana/shared";
 
-import type { Connector, ConnectorRequest } from "../../src/index.js";
+import type { Connector } from "../../src/index.js";
 import { ExecutionGateway } from "../../src/index.js";
 
 const crypto = CryptoBootstrap.create();
