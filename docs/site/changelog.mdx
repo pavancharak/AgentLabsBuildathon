@@ -33,6 +33,28 @@ added — `git log` for that range directly if you need it.
   [@parmana/execution-control](/reference/execution-control), and `docs/CLAIMS.md` §2.31 for
   the honestly-scoped writeup of what this does and does not close.
 - **`26f1e17`** docs(claims): add §2.31 for the caller-capability claim above.
+- **`66e77f9`** docs(site): add [Objections and
+  Evidence](/trust-and-claims/objections-and-evidence), indexing CLAIMS.md's claims against
+  real tests across 5 domains as objection→evidence, replacing a fabricated 52-scenario plan.
+  Closed 3 real test gaps found in the process: a tampered-`submittedBy` case in
+  `authorization-envelope.test.ts`, a new `AuditEventCrypto` unit test file (previously only
+  indirectly covered), and two new performance tests (`authorization-signing-performance.test.ts`,
+  `execution-pipeline-latency.test.ts`) — zero automated performance measurements existed
+  anywhere in this repo before this commit.
+- **`b752ff1`** feat(api): per-caller tamper-evident chaining for `caller_audit_events`
+  (`SupabaseCallerAuditSink.record()`, a Postgres advisory lock scoped per caller rather than
+  a table-wide lock, since `caller.authenticated` fires on every authenticated request). New
+  `CallerAuditChainVerifier` proves a deleted row breaks the chain, standalone, no server
+  required. See `docs/CLAIMS.md` §2.32.
+- **`1996220`** docs(claims): add §2.32 for the audit chain above, close the corresponding
+  evidence-index gap.
+- **`373402a`** fix: close 2 pre-existing lint issues unrelated to the above (`.cjs` scripts
+  incorrectly flagged for using `require()`; an unused test import).
+- **`c7bba81`** docs(site): add an honest key-compromise row to
+  [Objections and Evidence](/trust-and-claims/objections-and-evidence) — rejected a proposed
+  test claiming signature re-verification catches a stolen signing key (cryptographically
+  incoherent: an attacker holding the real key can sign anything and it verifies as fully
+  legitimate), documented the real, honest answer instead.
 
 ## 2026-08-19
 
