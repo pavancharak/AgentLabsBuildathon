@@ -1120,6 +1120,30 @@ Evidence
 
 
 
+## 2.30 Policy-Authoring and Deployment Observability Warnings
+
+Two additive, non-blocking observability checks close gaps found by an internal audit (`REAL-GAPS-FOUND.md`) where a real protection existed but its absence for a given policy or deployment was silent — no error, no log line, nothing for a policy author or operator to notice.
+
+**boundSignals rule-coverage warning.** `boundSignals` (2.11's `SignalIntentBinder`) only verifies the specific signals a policy author lists — nothing previously checked that every fact a rule actually decides on (e.g. `amount` in `{ fact: "amount", operator: "gt", value: 500 }`) has a corresponding `boundSignals` entry. A policy author could write a rule that approves or rejects on a caller-declared fact while never binding it, silently forfeiting `SignalIntentBinder`'s protection for that fact, with nothing surfacing the omission. `PolicyValidator.findUncoveredFacts(policy)` walks every rule condition (including nested `all`/`any`), collects referenced facts, and returns those absent from `boundSignals`; `PolicyRouter.load()` logs a `policy_boundSignals_coverage_incomplete` warning (never throws) listing the policy id/version and the uncovered facts. Deliberately warn-only: per `boundSignals`' own doc comment, a fact with no genuine Intent-side equivalent (e.g. `vendorVerified`, `riskScore`) is legitimately excluded from `boundSignals` and would otherwise generate constant false-positive noise if this were an error.
+
+**RuntimeEngine optional-protection logging.** `signalStateVerifier` and `capabilityPolicyBinder` (2.22, 2.29) are optional, capability-scoped `RuntimeEngine` dependencies — intentionally omittable, per RFC-0022/TD-22's own design. But omitting either was previously silent at construction time: an operator reading logs had no way to tell which protections a given deployment was actually running with. `RuntimeEngine`'s constructor now logs a single `runtime_engine_constructed` event noting whether `signalStateVerifier`, `capabilityPolicyBinder`, and refusal recording are configured. Construction-time only, not per-request — the configuration doesn't change per transaction, and logging it on every request would be redundant once construction-time visibility exists.
+
+Both checks are purely additive: no existing behavior changes, no policy that previously loaded successfully now fails to load, and no transaction that previously executed now fails to execute.
+
+Evidence
+
+* `packages/policy/src/PolicyValidator.ts` (`findUncoveredFacts`)
+* `packages/policy/src/PolicyRouter.ts` (`policy_boundSignals_coverage_incomplete` warning)
+* `packages/policy/tests/unit/PolicyValidator.test.ts` (4 cases: fully covered, no rule facts, one uncovered fact, uncovered facts nested inside `all`/`any` while a bound fact is correctly excluded)
+* `packages/policy/tests/unit/PolicyRouter-boundSignals-coverage.test.ts` (2 cases: no warning when coverage is complete, warning fired with the exact policy id/version/uncovered-facts payload when it is not)
+* `packages/runtime/src/RuntimeEngine.ts` (`runtime_engine_constructed` log line)
+* `packages/runtime/tests/unit/optional-protections-logging.test.ts` (3 cases: both protections absent, only `signalStateVerifier` configured, only `capabilityPolicyBinder` configured)
+* Full repo `npx tsc -b`, `npx eslint . --ext .ts`, and `npm test` (`vitest run`) all clean: 1451 passed, 37 pre-existing skips, 0 failed — no regressions
+
+---
+
+
+
 # 3. Conditional Claims
 
 
