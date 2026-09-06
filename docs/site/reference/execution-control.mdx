@@ -32,6 +32,19 @@ npm install @parmana/execution-control
 | `MemoryExecutionAuditSink` | [AVAILABLE]. In-memory only, records `session.created` / `execution.completed` / `execution.rejected` events. |
 | `ConnectorRegistry`, `ConnectorAuthenticator`, `CredentialVault`, `GatewaySessionStore`, `ConnectorPolicy`, `SecureConnector` (interfaces) | [AVAILABLE]. The seams `@parmana/connector-sdk` implements. |
 
+<Note>
+**Signed caller-capability check.** `DefaultConnectorPolicy.assertAllowed()` checks the
+connector's own declared capabilities and three pre-verified `verifiedTransaction` booleans,
+then — when the authorization's `grantedCapability` (see [Execution
+authorization](/concepts/execution-authorization)) is present — additionally requires it to
+equal the action actually being executed, before the connector's credential is ever
+resolved. This is defense-in-depth, not a second signature re-verification:
+`ExecutionGateway` already independently re-verifies the authorization's signature before
+the one production call site that reaches this check is ever invoked. Its value is against
+a *future* code path that might reach `assertAllowed()` without going through that
+already-verified route — see `docs/CLAIMS.md` §2.31 for the full, honestly-scoped writeup.
+</Note>
+
 ## A second, separate model in this package: `ExecutionPermit`
 
 <Warning>

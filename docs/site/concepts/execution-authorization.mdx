@@ -33,13 +33,17 @@ export interface SignedExecutionAuthorization {
 `authorizationId`, a single-use `nonce`, the `decisionId` and `businessTransactionId` it
 authorizes, the exact `policyName`/`policyVersion` that produced the decision, an
 `authorizedAt`/`expiresAt` bounded window, `businessTransactionHash`, the content binding
-covered in depth on [The gateway](/concepts/the-gateway), and two further optional hashes
-covering the same "does this still hold at execution time" question for what content
-binding doesn't reach: `policyContentHash` (the exact policy *content*, not just its
-version string, that produced the decision) and `signalsHash` (the runtime `PolicySignals`
-the decision was evaluated against — vendor status, risk exposure, and similar). Both are
-optional so authorizations signed before either field existed keep verifying unchanged; see
-[The gateway](/concepts/the-gateway) for what each closes and its own scope caveats.
+covered in depth on [The gateway](/concepts/the-gateway), and further optional fields
+covering questions content binding alone doesn't reach: `policyContentHash` (the exact
+policy *content*, not just its version string, that produced the decision), `signalsHash`
+(the runtime `PolicySignals` the decision was evaluated against — vendor status, risk
+exposure, and similar), and `submittedBy`/`grantedCapability` (the authenticated caller and
+the capability the API-edge caller-to-capability check confirmed for them, carried forward
+as a signed fact rather than discarded once the request passes — see
+[@parmana/execution-control](/reference/execution-control) for where a receiving system
+checks this against the executed action). All four are optional so authorizations signed
+before any of them existed keep verifying unchanged; see [The gateway](/concepts/the-gateway)
+for what `policyContentHash`/`signalsHash` close and their own scope caveats.
 
 ## Why it exists
 

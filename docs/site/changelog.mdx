@@ -7,8 +7,32 @@ description: "What actually shipped, by commit, newest first. Not a marketing su
 Pulled directly from `git log` on `main` in `pavancharak/parmana-exp`, commit hashes are
 real and checkable. This page covers the commits that changed what a reader of this site can
 actually do or rely on, not every commit in the repository's history, run `git log` yourself
-for the complete record, 230 commits as of this page's last update.
+for the complete record, 279 commits as of this page's last update. **Known gap:** entries
+between 2026-08-19 and 2026-09-06 were not backfilled when the 2026-09-06 entries were
+added — `git log` for that range directly if you need it.
 </Info>
+
+## 2026-09-06
+
+- **`8a81dd8`** fix(policy): `PolicyValidator.findUncoveredFacts()` + a `PolicyRouter.load()`
+  warning when a rule decides on a fact absent from `boundSignals`, see
+  [@parmana/policy](/reference/policy) and `docs/CLAIMS.md` §2.30.
+- **`1f479ff`** fix(runtime): `RuntimeEngine`'s constructor logs which optional protections
+  (`signalStateVerifier`, `capabilityPolicyBinder`, refusal recording) are configured, see
+  [@parmana/runtime](/reference/runtime) and `docs/CLAIMS.md` §2.30.
+- **`cf7909c`** chore: remove stale doc-comment references to the deleted Razorpay
+  connector's classes/files across 13 source files (`RazorpaySignalStateVerifier`,
+  `createRazorpayConnector.ts`, `SupabaseRazorpayWebhookAuditSink`, and similar) — a reader
+  following any of these citations found nothing.
+- **`41e7808`** docs(claims): add §2.30 for the two fixes above.
+- **`806d6aa`** feat(execution-control): sign a `submittedBy`/`grantedCapability` caller-capability
+  claim into `ExecutionAuthorizationPayload` (optional fields, same precedent as
+  `policyContentHash`/`signalsHash`), checked for consistency against the executed action by
+  `DefaultConnectorPolicy.assertAllowed()`. Defense-in-depth, not a fix for a live exploit —
+  see [Execution authorization](/concepts/execution-authorization),
+  [@parmana/execution-control](/reference/execution-control), and `docs/CLAIMS.md` §2.31 for
+  the honestly-scoped writeup of what this does and does not close.
+- **`26f1e17`** docs(claims): add §2.31 for the caller-capability claim above.
 
 ## 2026-08-19
 

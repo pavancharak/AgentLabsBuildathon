@@ -47,9 +47,19 @@ npm install @parmana/policy
 
 | Export | Purpose |
 |---|---|
-| `PolicyValidator` | Checks a loaded policy's identity (`policyId`/`policyVersion`) matches what was requested before evaluation runs |
+| `PolicyValidator` | `.validate(policy)` checks a `Policy` document's structural integrity (`policyId`/`policyVersion`/`schemaVersion` present, `rules` well-formed, `boundSignals` shape, operators supported), invoked by `PolicyRouter.load()`. `.findUncoveredFacts(policy)` returns every fact a rule condition references that has no `boundSignals` entry — advisory, not thrown; see the note below |
 | `SignalValidator` | Validates submitted signals against a policy's `signalsSchema` |
 | `SignalIntentBinder` | `.findViolations(policy, signals, intent)`, checks every `Policy.boundSignals` entry by strict equality against `intent`. Invoked by `RuntimeEngine`, not by `PolicyEngine` itself — see the note above |
+
+<Note>
+**boundSignals coverage warning.** A rule can decide on a fact (e.g. `amount`) that isn't
+declared in `boundSignals`, silently forfeiting `SignalIntentBinder`'s protection for that
+fact. `PolicyRouter.load()` calls `PolicyValidator.findUncoveredFacts(policy)` after
+`.validate()` and logs a `policy_boundSignals_coverage_incomplete` warning (never throws)
+naming the uncovered facts. Deliberately advisory: a fact with no genuine Intent-side
+equivalent (`vendorVerified`, `riskScore`) is legitimately excluded from `boundSignals` and
+would otherwise generate constant false positives. See `docs/CLAIMS.md` §2.30.
+</Note>
 
 ### Types
 
