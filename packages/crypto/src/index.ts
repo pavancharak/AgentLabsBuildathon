@@ -40,6 +40,7 @@ export * from "./ReceiptCrypto.js";
 export * from "./VerificationCrypto.js";
 export * from "./RefusalCrypto.js";
 export * from "./AuditEventCrypto.js";
+export * from "./CallerAuditChainVerifier.js";
 export * from "./PolicyChangeCrypto.js";
 export * from "./ExecutionChainCrypto.js";
 

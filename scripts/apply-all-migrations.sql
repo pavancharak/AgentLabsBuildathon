@@ -1087,3 +1087,25 @@ ON caller_audit_events (
     business_transaction_id
 )
 WHERE business_transaction_id IS NOT NULL;
+
+
+-- =============================================================================
+-- Source: supabase/migrations/20260906120000_add_per_caller_chain_to_caller_audit_events.sql
+-- Per-caller audit chain
+-- =============================================================================
+
+ALTER TABLE caller_audit_events
+ADD COLUMN IF NOT EXISTS chain_hash TEXT;
+
+ALTER TABLE caller_audit_events
+ADD COLUMN IF NOT EXISTS previous_chain_hash TEXT;
+
+ALTER TABLE caller_audit_events
+ADD COLUMN IF NOT EXISTS chain_position BIGINT;
+
+CREATE INDEX IF NOT EXISTS idx_caller_audit_events_caller_chain
+ON caller_audit_events (
+    caller_id,
+    id DESC
+)
+WHERE caller_id IS NOT NULL;

@@ -12,7 +12,7 @@ import { resolveDatabaseGate } from "../helpers/database-availability.js";
 const databaseConfigured = resolveDatabaseGate("Supabase Caller Audit Sink");
 
 const SELECT_CALLER_AUDIT_EVENT_BY_ROUTE_SQL = `
-  SELECT type, route, caller_id, reason, capability, principal_id
+  SELECT type, route, caller_id, reason, capability, principal_id, chain_hash, previous_chain_hash, chain_position
   FROM caller_audit_events
   WHERE route = $1
 `;
@@ -73,6 +73,42 @@ describe.skipIf(!databaseConfigured)("SupabaseCallerAuditSink (live)", () => {
     expect(rows[0].route).toBe(route);
     expect(rows[0].caller_id).toBe("integration-test-caller");
     expect(rows[0].reason).toBeNull();
+    expect(rows[0].chain_hash).not.toBeNull();
+    expect(rows[0].previous_chain_hash).toBeNull();
+    expect(Number(rows[0].chain_position)).toBeGreaterThanOrEqual(1);
+  });
+
+  it("chains a second event from the same caller against a real Postgres advisory lock", async () => {
+    const routeOne = `/test-${crypto.randomUUID()}`;
+    const routeTwo = `/test-${crypto.randomUUID()}`;
+    const callerId = `integration-test-caller-chain-${crypto.randomUUID()}`;
+
+    const sink = new SupabaseCallerAuditSink(PostgresPoolFactory.create());
+
+    await sink.record({
+      type: "caller.authenticated",
+      occurredAt: new Date().toISOString(),
+      route: routeOne,
+      callerId,
+    });
+
+    await sink.record({
+      type: "caller.authenticated",
+      occurredAt: new Date().toISOString(),
+      route: routeTwo,
+      callerId,
+    });
+
+    const readingPool = PostgresPoolFactory.create();
+
+    const first = await readingPool.query(SELECT_CALLER_AUDIT_EVENT_BY_ROUTE_SQL, [routeOne]);
+    const second = await readingPool.query(SELECT_CALLER_AUDIT_EVENT_BY_ROUTE_SQL, [routeTwo]);
+
+    expect(first.rows[0].previous_chain_hash).toBeNull();
+    expect(second.rows[0].previous_chain_hash).toBe(first.rows[0].chain_hash);
+    expect(Number(second.rows[0].chain_position)).toBe(
+      Number(first.rows[0].chain_position) + 1,
+    );
   });
 
   it("records a rejected event with a reason and a null callerId", async () => {
@@ -111,7 +147,7 @@ describe.skipIf(!databaseConfigured)("SupabaseCallerAuditSink (live)", () => {
       occurredAt: new Date().toISOString(),
       route,
       callerId: "integration-test-caller",
-      capability: "razorpay:refund-create",
+      capability: "hubspot:deal-update",
       reason: "capability not allowed",
     };
 
@@ -129,7 +165,7 @@ describe.skipIf(!databaseConfigured)("SupabaseCallerAuditSink (live)", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].type).toBe("caller.capability_denied");
     expect(rows[0].caller_id).toBe("integration-test-caller");
-    expect(rows[0].capability).toBe("razorpay:refund-create");
+    expect(rows[0].capability).toBe("hubspot:deal-update");
     expect(rows[0].reason).toBe("capability not allowed");
   });
 

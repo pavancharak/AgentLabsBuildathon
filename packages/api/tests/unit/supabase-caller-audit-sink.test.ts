@@ -48,30 +48,88 @@ afterEach(() => {
   rmSync(keyDir, { recursive: true, force: true });
 });
 
+interface FakeStoredRow {
+  readonly caller_id: string | null;
+  readonly chain_hash: string | null;
+  readonly chain_position: number | null;
+}
+
+/**
+ * A fake Pool/PoolClient minimally simulating the three statement
+ * shapes SupabaseCallerAuditSink.record() issues: the transaction
+ * control statements (BEGIN/COMMIT/ROLLBACK), the advisory lock, the
+ * last-chain-link lookup (SELECT chain_hash, chain_position ...), and
+ * the INSERT itself. Maintains real in-memory rows so multi-call
+ * tests can observe real chain-position sequencing, not a canned
+ * response.
+ */
 function createFakePool(options?: {
   readonly insertError?: { code?: string; message: string };
   readonly onInsert?: (values: readonly unknown[]) => void;
-}): Pool {
-  const pool = {
-    query(sql: string, values: readonly unknown[]) {
-      expect(sql).toContain("INSERT INTO caller_audit_events");
+}): Pool & { readonly rows: readonly FakeStoredRow[] } {
+  const rows: FakeStoredRow[] = [];
 
-      options?.onInsert?.(values);
+  const client = {
+    query: (sql: string, values?: readonly unknown[]) => {
+      const trimmed = sql.trim();
 
-      if (options?.insertError) {
-        return Promise.reject(options.insertError);
+      if (/^(BEGIN|COMMIT|ROLLBACK)\b/.test(trimmed)) {
+        return Promise.resolve({ rows: [], rowCount: 0 });
       }
 
-      return Promise.resolve({ rows: [], rowCount: 0 });
+      if (trimmed.includes("pg_advisory_xact_lock")) {
+        return Promise.resolve({ rows: [], rowCount: 0 });
+      }
+
+      if (trimmed.startsWith("SELECT chain_hash, chain_position")) {
+        const callerId = values?.[0] as string;
+        const callerRows = rows.filter((row) => row.caller_id === callerId);
+        const last = callerRows[callerRows.length - 1];
+
+        return Promise.resolve({
+          rows: last
+            ? [{ chain_hash: last.chain_hash, chain_position: String(last.chain_position) }]
+            : [],
+        });
+      }
+
+      if (trimmed.startsWith("INSERT INTO caller_audit_events")) {
+        expect(sql).toContain("INSERT INTO caller_audit_events");
+
+        const v = values ?? [];
+
+        options?.onInsert?.(v);
+
+        if (options?.insertError) {
+          return Promise.reject(options.insertError);
+        }
+
+        rows.push({
+          caller_id: (v[3] as string | null) ?? null,
+          chain_hash: (v[10] as string | null) ?? null,
+          chain_position: (v[12] as number | null) ?? null,
+        });
+
+        return Promise.resolve({ rows: [], rowCount: 0 });
+      }
+
+      throw new Error(`unexpected query in fake pool: ${sql}`);
     },
+    release: () => {},
   };
 
-  return pool as unknown as Pool;
+  const pool = {
+    query: (sql: string, values?: readonly unknown[]) => client.query(sql, values),
+    connect: () => Promise.resolve(client),
+    rows,
+  };
+
+  return pool as unknown as Pool & { readonly rows: readonly FakeStoredRow[] };
 }
 
 /**
  * Maps the positional $1.. values SupabaseCallerAuditSink passes to
- * pool.query() back to named columns, in the same order as
+ * the INSERT statement back to named columns, in the same order as
  * INSERT_CALLER_AUDIT_EVENT_SQL, for readable assertions.
  */
 function toRow(values: readonly unknown[]): Record<string, unknown> {
@@ -86,6 +144,9 @@ function toRow(values: readonly unknown[]): Record<string, unknown> {
     severity,
     business_transaction_id,
     signature_json_raw,
+    chain_hash,
+    previous_chain_hash,
+    chain_position,
   ] = values;
 
   return {
@@ -99,6 +160,9 @@ function toRow(values: readonly unknown[]): Record<string, unknown> {
     severity,
     business_transaction_id,
     signature_json: JSON.parse(signature_json_raw as string),
+    chain_hash,
+    previous_chain_hash,
+    chain_position,
   };
 }
 
@@ -121,7 +185,7 @@ const CAPABILITY_DENIED_EVENT: CallerAuditEvent = {
   occurredAt: "2026-01-01T00:00:00.000Z",
   route: "/execute",
   callerId: "caller-1",
-  capability: "razorpay:refund-create",
+  capability: "hubspot:deal-update",
   reason: "capability not allowed",
 };
 
@@ -159,7 +223,7 @@ describe("SupabaseCallerAuditSink", () => {
     await expect(sink.record(AUTHENTICATED_EVENT)).resolves.toBeUndefined();
   });
 
-  it("maps CallerAuditEvent fields to query params, nulling absent optional fields", async () => {
+  it("maps CallerAuditEvent fields to query params, nulling absent optional fields, and starts a new caller's chain at position 1", async () => {
     let capturedRow: Record<string, unknown> | undefined;
 
     const sink = new SupabaseCallerAuditSink(
@@ -188,10 +252,13 @@ describe("SupabaseCallerAuditSink", () => {
         value: expect.any(String),
         signedAt: expect.any(String),
       },
+      chain_hash: expect.any(String),
+      previous_chain_hash: null,
+      chain_position: 1,
     });
   });
 
-  it("maps a rejected event's reason, nulling the absent callerId", async () => {
+  it("maps a rejected event's reason, nulling the absent callerId and every chain field (no caller to chain against)", async () => {
     let capturedRow: Record<string, unknown> | undefined;
 
     const sink = new SupabaseCallerAuditSink(
@@ -220,6 +287,9 @@ describe("SupabaseCallerAuditSink", () => {
         value: expect.any(String),
         signedAt: expect.any(String),
       },
+      chain_hash: null,
+      previous_chain_hash: null,
+      chain_position: null,
     });
   });
 
@@ -242,7 +312,7 @@ describe("SupabaseCallerAuditSink", () => {
       route: "/execute",
       caller_id: "caller-1",
       reason: "capability not allowed",
-      capability: "razorpay:refund-create",
+      capability: "hubspot:deal-update",
       principal_id: null,
       severity: null,
       business_transaction_id: null,
@@ -252,6 +322,9 @@ describe("SupabaseCallerAuditSink", () => {
         value: expect.any(String),
         signedAt: expect.any(String),
       },
+      chain_hash: expect.any(String),
+      previous_chain_hash: null,
+      chain_position: 1,
     });
   });
 
@@ -284,6 +357,9 @@ describe("SupabaseCallerAuditSink", () => {
         value: expect.any(String),
         signedAt: expect.any(String),
       },
+      chain_hash: expect.any(String),
+      previous_chain_hash: null,
+      chain_position: 1,
     });
   });
 
@@ -316,6 +392,9 @@ describe("SupabaseCallerAuditSink", () => {
         value: expect.any(String),
         signedAt: expect.any(String),
       },
+      chain_hash: expect.any(String),
+      previous_chain_hash: null,
+      chain_position: 1,
     });
   });
 
@@ -348,10 +427,13 @@ describe("SupabaseCallerAuditSink", () => {
         value: expect.any(String),
         signedAt: expect.any(String),
       },
+      chain_hash: expect.any(String),
+      previous_chain_hash: null,
+      chain_position: 1,
     });
   });
 
-  it("maps a structural_rejected event with no known caller (malformed body, ahead of caller-auth), nulling caller_id", async () => {
+  it("maps a structural_rejected event with no known caller (malformed body, ahead of caller-auth), nulling caller_id and every chain field", async () => {
     let capturedRow: Record<string, unknown> | undefined;
 
     const sink = new SupabaseCallerAuditSink(
@@ -385,6 +467,9 @@ describe("SupabaseCallerAuditSink", () => {
         value: expect.any(String),
         signedAt: expect.any(String),
       },
+      chain_hash: null,
+      previous_chain_hash: null,
+      chain_position: null,
     });
   });
 
@@ -400,7 +485,7 @@ describe("SupabaseCallerAuditSink", () => {
     });
   });
 
-  it("signs each event so it verifies against its own canonical bytes, and a tampered event fails verification", async () => {
+  it("signs each chained event so it verifies against its own canonical bytes (including the chain link fields), and a tampered event fails verification", async () => {
     let capturedRow: Record<string, unknown> | undefined;
 
     const sink = new SupabaseCallerAuditSink(
@@ -414,29 +499,93 @@ describe("SupabaseCallerAuditSink", () => {
     await sink.record(AUTHENTICATED_EVENT);
 
     const crypto = new AuditEventCrypto();
-    const signature = (capturedRow!.signature_json as {
+    const signature = capturedRow!.signature_json as {
       algorithm: "ed25519";
       keyId: string;
       value: string;
       signedAt: Date;
-    });
+    };
 
-    // Genuine: verifying against the exact event that was signed.
-    await expect(
-      crypto.verify(AUTHENTICATED_EVENT, signature),
-    ).resolves.toBe(true);
+    const signedContent = {
+      ...AUTHENTICATED_EVENT,
+      previousChainHash: capturedRow!.previous_chain_hash,
+      chainPosition: capturedRow!.chain_position,
+    };
+
+    // Genuine: verifying against the exact chained content that was signed.
+    await expect(crypto.verify(signedContent, signature)).resolves.toBe(true);
 
     // Tampered: one field changed after the fact (simulates a
     // database row edited directly, or an operator/attacker with
     // storage access) -- this is the proof signing here is not
     // decorative.
-    const tamperedEvent: CallerAuditEvent = {
-      ...AUTHENTICATED_EVENT,
+    const tamperedContent = {
+      ...signedContent,
       callerId: "attacker-controlled-caller-id",
     };
 
-    await expect(
-      crypto.verify(tamperedEvent, signature),
-    ).resolves.toBe(false);
+    await expect(crypto.verify(tamperedContent, signature)).resolves.toBe(false);
+  });
+
+  it("chains a second event from the same caller to the first, incrementing chain_position", async () => {
+    const capturedRows: Record<string, unknown>[] = [];
+
+    const sink = new SupabaseCallerAuditSink(
+      createFakePool({
+        onInsert: (values) => {
+          capturedRows.push(toRow(values));
+        },
+      }),
+    );
+
+    await sink.record(AUTHENTICATED_EVENT);
+    await sink.record(CAPABILITY_DENIED_EVENT);
+
+    expect(capturedRows[0]!.chain_position).toBe(1);
+    expect(capturedRows[0]!.previous_chain_hash).toBeNull();
+
+    expect(capturedRows[1]!.chain_position).toBe(2);
+    expect(capturedRows[1]!.previous_chain_hash).toBe(capturedRows[0]!.chain_hash);
+    expect(capturedRows[1]!.chain_hash).not.toBe(capturedRows[0]!.chain_hash);
+  });
+
+  it("gives two different callers independent chains, each starting at position 1", async () => {
+    const capturedRows: Record<string, unknown>[] = [];
+
+    const sink = new SupabaseCallerAuditSink(
+      createFakePool({
+        onInsert: (values) => {
+          capturedRows.push(toRow(values));
+        },
+      }),
+    );
+
+    await sink.record(AUTHENTICATED_EVENT);
+    await sink.record({ ...AUTHENTICATED_EVENT, callerId: "caller-2" });
+    await sink.record({ ...CAPABILITY_DENIED_EVENT, callerId: "caller-1" });
+
+    const [aliceEvent1, bobEvent1, aliceEvent2] = capturedRows;
+
+    expect(aliceEvent1!.chain_position).toBe(1);
+    expect(bobEvent1!.chain_position).toBe(1);
+    expect(aliceEvent1!.chain_hash).not.toBe(bobEvent1!.chain_hash);
+
+    expect(aliceEvent2!.chain_position).toBe(2);
+    expect(aliceEvent2!.previous_chain_hash).toBe(aliceEvent1!.chain_hash);
+  });
+
+  it("does not corrupt the pool's connection when an insert fails mid-transaction (client released, no dangling lock)", async () => {
+    const pool = createFakePool({
+      insertError: { code: "08006", message: "connection failure" },
+    });
+
+    const sink = new SupabaseCallerAuditSink(pool);
+
+    await expect(sink.record(AUTHENTICATED_EVENT)).rejects.toMatchObject({
+      code: "08006",
+    });
+
+    // No row was actually persisted.
+    expect(pool.rows).toHaveLength(0);
   });
 });
