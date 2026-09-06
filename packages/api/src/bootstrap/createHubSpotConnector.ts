@@ -13,8 +13,7 @@ import { createGatewayHubSpotConnector } from "@parmana/execution-gateway";
  * variable exists solely as a test seam so an integration test can point
  * this connector at a hermetic MockHubSpotServer instead — it is never
  * set in production, so production traffic reaches the real HubSpot API
- * unless an operator deliberately opts out. Mirrors
- * createRazorpayConnector.ts's RAZORPAY_BASE_URL seam exactly.
+ * unless an operator deliberately opts out.
  */
 export function createHubSpotConnector(): Connector {
   return createGatewayHubSpotConnector({

@@ -10,8 +10,8 @@ import type { PolicySignals } from "./types/PolicySignals.js";
  *
  * Each SignalStateVerifier implementation is expected to recognize only
  * the action(s) it knows how to independently verify and return an
- * empty array for anything else -- RazorpaySignalStateVerifier and
- * HubSpotSignalStateVerifier both follow this discipline. This composite
+ * empty array for anything else -- HubSpotSignalStateVerifier follows
+ * this discipline. This composite
  * queries each in the order supplied and returns the first non-empty
  * result, so RuntimeEngine (which accepts exactly one
  * SignalStateVerifier) can be wired with as many capability-specific

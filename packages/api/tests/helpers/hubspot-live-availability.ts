@@ -2,27 +2,24 @@
  * Whether a real HubSpot test-mode Private App token is configured in
  * the environment.
  *
- * Mirrors razorpay-live-availability.ts: the live-gated HubSpot suite
- * needs a real HubSpot developer/test account to talk to and cannot run
- * hermetically from a bare clone (see packages/api/README.md for the env
- * vars that enable it).
+ * The live-gated HubSpot suite needs a real HubSpot developer/test
+ * account to talk to and cannot run hermetically from a bare clone (see
+ * packages/api/README.md for the env vars that enable it).
  */
 export function hasHubSpotLiveConfig(): boolean {
   return Boolean(process.env.TEST_HUBSPOT_PRIVATE_APP_TOKEN);
 }
 
 /**
- * Resolves whether the live-gated HubSpot suite should run, enforcing
- * the same live-credential opt-in as resolveRazorpayLiveGate: a real
+ * Resolves whether the live-gated HubSpot suite should run: a real
  * TEST_HUBSPOT_PRIVATE_APP_TOKEN being configured is not by itself
  * enough to run against HubSpot's real API. ALLOW_LIVE_HUBSPOT=1 must
  * also be set explicitly, or the suite skips cleanly rather than
  * silently making a real network call — a default `npm test` on a
  * machine with a test token configured stays green and side-effect-free.
  * Explicitly requesting a live run with ALLOW_LIVE_HUBSPOT=1 but no
- * visible token is a hard failure, not a skip, for the same reason
- * resolveRazorpayLiveGate treats it that way: explicit intent must never
- * quietly degrade to a silent skip.
+ * visible token is a hard failure, not a skip: explicit intent must
+ * never quietly degrade to a silent skip.
  *
  * Additionally fail-closed on doubt, specific to this connector: this
  * suite mutates a real HubSpot object (a deal's dealstage/amount), so
@@ -82,9 +79,8 @@ export function resolveHubSpotLiveGate(suiteLabel: string): boolean {
  * this once the caller has already confirmed the base live gate is
  * active; it does not re-check ALLOW_LIVE_HUBSPOT or the token itself.
  *
- * Absence is a clean skip and never a failure, per the same "explicit
- * intent must never quietly degrade, but absence is not intent"
- * reasoning as resolveRazorpayCapturedPaymentGate.
+ * Absence is a clean skip and never a failure: explicit intent must
+ * never quietly degrade, but absence is not intent.
  */
 export function resolveHubSpotTestDealGate(suiteLabel: string): string | undefined {
   const dealId = process.env.TEST_HUBSPOT_DEAL_ID;

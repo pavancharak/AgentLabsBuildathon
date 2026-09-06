@@ -81,10 +81,9 @@ export interface CallerAuditEvent {
   readonly principalId?: string;
 
   /**
-   * Elevated-severity marker, matching this codebase's existing
-   * precedent (RazorpayWebhookAuditEvent.severity): a non-human
-   * credential attempting a governance endpoint is exactly the kind
-   * of outcome that needs a human to look, never silence. Always
+   * Elevated-severity marker: a non-human credential attempting a
+   * governance endpoint is exactly the kind of outcome that needs a
+   * human to look, never silence. Always
    * "flagged" on "caller.non_human_denied" — absent (not merely
    * false) on every other event type, which are routine.
    */

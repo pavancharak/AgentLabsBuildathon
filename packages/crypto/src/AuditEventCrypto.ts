@@ -11,8 +11,8 @@ import { DEFAULT_KEY_ID } from "./KeyProvider.js";
 /**
  * Audit event cryptographic operations.
  *
- * Signs and verifies plain audit-trail events (CallerAuditEvent,
- * RazorpayWebhookAuditEvent) with the exact same signing stack and
+ * Signs and verifies plain audit-trail events (CallerAuditEvent) with
+ * the exact same signing stack and
  * DEFAULT_KEY_ID as ExecutionTrustRecord/RefusalRecord -- one root of
  * trust across every signed artifact this codebase produces, not a
  * third key.

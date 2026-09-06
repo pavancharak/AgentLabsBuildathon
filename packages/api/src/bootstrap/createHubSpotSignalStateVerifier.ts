@@ -12,8 +12,7 @@ import { createApprovalNonceStore } from "./createApprovalNonceStore.js";
 /**
  * Creates the production Signal/State Verifier for the
  * hubspot-deal-update capability (G-24 residual closure, RFC-0022;
- * TD-23 preAuthorizedForAmountChange closure, Phase 3C).
- * Mirrors createRazorpaySignalStateVerifier.ts exactly: signs its own
+ * TD-23 preAuthorizedForAmountChange closure, Phase 3C). Signs its own
  * independent verification fetches with the same signing key and
  * key-loading mechanism RuntimeAuthorizationSigner already uses
  * (FileKeyProvider, keyId "default") -- lazily, on each call -- so
@@ -25,8 +24,6 @@ import { createApprovalNonceStore } from "./createApprovalNonceStore.js";
  * preAuthorizedForAmountChange becomes a structural invariant rather
  * than an optional, caller-declared signal; omitting it is only ever
  * done by tests that construct HubSpotSignalStateVerifier directly.
- * Mirrors createRazorpaySignalStateVerifier.ts's own
- * dailyRefundLedger comment exactly.
  */
 export function createHubSpotSignalStateVerifier(
   executionSystem: ExecutionSystem,

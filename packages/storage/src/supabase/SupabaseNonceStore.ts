@@ -38,8 +38,8 @@ import { isUniqueViolation } from "../errors/PostgresErrorCodes.js";
  * supabase-js/PostgREST — this codebase depended on PostgREST for
  * every Supabase-backed table until a stuck PostgREST schema cache on
  * a different table caused a full authenticated-API outage (see
- * SupabaseCallerAuditSink/SupabaseRazorpayWebhookAuditSink for the
- * original incident). This migration removes that entire class of
+ * SupabaseCallerAuditSink for the original incident). This migration
+ * removes that entire class of
  * failure mode (schema cache, role config, exposed-schema settings)
  * from every remaining Supabase-backed table, not just the two that
  * broke first.

@@ -28,15 +28,14 @@ const DEFAULT_BASE_URL = "https://api.hubapi.com";
  * dealstage/amount for policy evaluation) and deal update (the guarded
  * execution — PATCH dealstage and/or amount only).
  *
- * Not built on the generic HttpConnector for the same reason
- * RazorpayConnector isn't: HubSpot's Private App auth is a single Bearer
- * token (this part IS what HttpConnector already supports), but this
- * connector also needs a deny-by-default property allowlist enforced
- * before any network call, which is business-specific to this milestone
- * and does not belong in a generic HTTP connector. A sibling
- * implementation is used instead, following HttpConnector's and
- * RazorpayConnector's own pattern: fetch-based, AbortController timeout,
- * fail-closed on any non-2xx response or network error.
+ * Not built on the generic HttpConnector: HubSpot's Private App auth is
+ * a single Bearer token (this part IS what HttpConnector already
+ * supports), but this connector also needs a deny-by-default property
+ * allowlist enforced before any network call, which is business-specific
+ * to this milestone and does not belong in a generic HTTP connector. A
+ * sibling implementation is used instead, following HttpConnector's own
+ * pattern: fetch-based, AbortController timeout, fail-closed on any
+ * non-2xx response or network error.
  *
  * Deny-by-default, structurally: HUBSPOT_ALLOWED_DEAL_UPDATE_PROPERTIES
  * is the only set of Deal properties this connector will ever place in a

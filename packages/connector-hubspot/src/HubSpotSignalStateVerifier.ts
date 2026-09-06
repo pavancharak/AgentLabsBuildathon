@@ -54,9 +54,7 @@ export interface HubSpotSignalStateVerifierOptions {
  * HubSpot-reported fact -- HubSpot has no concept of Parmana's own
  * pre-authorization claim; instead, when configured, it is
  * independently derived from a real, externally-issued Approval
- * Artifact (TD-23 closure, Phase 3C). This mirrors exactly how
- * RazorpaySignalStateVerifier handles
- * dailyCumulativeAfterThisRefundPaise via its own reservation ledger.
+ * Artifact (TD-23 closure, Phase 3C).
  */
 const VERIFIED_SIGNAL_KEYS = [
   "currentDealStage",
@@ -77,7 +75,6 @@ const VERIFIED_SIGNAL_KEYS = [
  * -- executeHubSpotCapability against HUBSPOT_DEAL_FETCH_CAPABILITY,
  * buildHubSpotDealUpdateSignals to derive the canonical facts -- so
  * "verified" here means the same thing it already means there.
- * Mirrors RazorpaySignalStateVerifier's structure exactly.
  *
  * Fails closed: a fetch error (network failure, malformed response,
  * deal not found) becomes a violation, not a pass-through -- a
@@ -170,8 +167,7 @@ export class HubSpotSignalStateVerifier implements SignalStateVerifier {
     //
     // Pre-authorization verification (TD-23 closure, Phase 3C).
     //
-    // Skipped entirely when a violation already exists above (mirrors
-    // RazorpaySignalStateVerifier's own reservation short-circuit: a
+    // Skipped entirely when a violation already exists above (a
     // request already going to be rejected on independently-verified
     // grounds needs no approval verification, which would otherwise
     // needlessly burn a single-use Approval Artifact's nonce for a

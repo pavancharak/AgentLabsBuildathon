@@ -51,7 +51,7 @@ export interface ApiKeyEntry {
 
   /**
    * The set of capabilities (Intent.action values, e.g.
-   * "razorpay:refund-create") a Business Transaction authenticated
+   * "hubspot:deal-update") a Business Transaction authenticated
    * with this key is allowed to invoke. Enforced by the caller-auth
    * layer before execution, the same boundary allowedPrincipalIds is
    * enforced at.

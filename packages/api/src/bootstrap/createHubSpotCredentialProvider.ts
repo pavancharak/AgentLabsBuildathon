@@ -72,8 +72,7 @@ class HubSpotEnvironmentCredentialProvider implements CredentialProvider {
  * (ConnectorSdkRegistry.resolveCapability's existing "No connector
  * registered for capability" fail-closed error) — rather than a startup
  * crash that would also take down every other, unrelated capability this
- * process serves. Mirrors createRazorpayCredentialProvider.ts's
- * test/production split exactly.
+ * process serves.
  */
 export function createHubSpotCredentialProvider(): CredentialProvider | undefined {
   if (process.env.NODE_ENV === "test") {

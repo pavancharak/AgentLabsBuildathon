@@ -19,11 +19,10 @@ import {
  *
  * Writes via a direct Postgres connection (PostgresPoolFactory / a
  * caller-supplied pg.Pool), not supabase-js/PostgREST — the same
- * choice made for SupabaseCallerAuditSink and
- * SupabaseRazorpayWebhookAuditSink (see those files), extended here
- * deliberately for a brand-new table rather than introducing a new
- * PostgREST dependency this codebase is already working to reduce.
- * Unlike those two classes, this one was never PostgREST-backed to
+ * choice made for SupabaseCallerAuditSink (see that file), extended
+ * here deliberately for a brand-new table rather than introducing a
+ * new PostgREST dependency this codebase is already working to
+ * reduce. Unlike that class, this one was never PostgREST-backed to
  * begin with, so "Postgres" (not "Supabase") is the accurate name.
  *
  * Known limitation, honestly stated rather than silently assumed
