@@ -318,4 +318,60 @@ throw new PolicyValidationError(
       );
     }
   }
+
+  /**
+   * Returns every fact referenced by a rule condition that is not
+   * declared in the policy's boundSignals. An empty array means every
+   * rule-referenced fact either has a boundSignals entry, or the
+   * policy declares no rules that reference facts at all.
+   *
+   * Not every fact belongs in boundSignals -- per boundSignals' own
+   * doc comment, a fact with no genuine Intent-side equivalent (e.g.
+   * vendorVerified, riskScore) is legitimately excluded. This is
+   * therefore advisory, not an error: callers should warn, not
+   * reject, so that a considered decision to leave a fact unbound
+   * isn't blocked from deploying.
+   */
+  public findUncoveredFacts(
+    policy: Policy,
+  ): string[] {
+
+    const boundKeys =
+      new Set(
+        Object.keys(
+          policy.boundSignals ?? {},
+        ),
+      );
+
+    const referenced =
+      new Set<string>();
+
+    const walk = (
+      condition: PolicyCondition,
+    ): void => {
+
+      if ("fact" in condition) {
+        referenced.add(condition.fact);
+        return;
+      }
+
+      if ("all" in condition) {
+        condition.all.forEach(walk);
+        return;
+      }
+
+      if ("any" in condition) {
+        condition.any.forEach(walk);
+        return;
+      }
+    };
+
+    for (const rule of policy.rules) {
+      walk(rule.condition);
+    }
+
+    return Array.from(referenced).filter(
+      (fact) => !boundKeys.has(fact),
+    );
+  }
 }
