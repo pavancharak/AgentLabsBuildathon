@@ -42,6 +42,7 @@
               "concepts/gateway-attestation",
               "concepts/execution-trust-records",
               "concepts/refusal-records",
+              "concepts/caller-audit-trail",
               "concepts/determinism-and-clocks",
               "concepts/content-binding-toctou"
             ]

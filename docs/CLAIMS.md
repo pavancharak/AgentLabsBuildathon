@@ -1186,6 +1186,7 @@ Evidence
 * `packages/api/tests/unit/supabase-caller-audit-sink.test.ts` (13 cases, including: a new caller starts at `chain_position: 1` with `previous_chain_hash: null`; a second event from the same caller chains to the first with an incremented position; two different callers get independent chains, both starting at position 1; an insert failure mid-transaction rejects the promise with no row persisted; a chained event's signature covers the folded-in `previousChainHash`/`chainPosition`, and a tampered chained event fails verification)
 * `packages/crypto/tests/unit/caller-audit-chain-verifier.test.ts` (5 cases: an unbroken three-event chain verifies; a deleted middle row is caught via the resulting `previousChainHash` mismatch; a modified event is caught via its own signature failing; unchained rows verify on signature alone with no linkage required; an empty chain is valid)
 * `packages/api/tests/integration/supabase-caller-audit-sink.integration.test.ts` (extended: chain fields present and correctly linked against a real Postgres advisory lock, not just the unit-level fake pool)
+* docs/site's "Caller Audit Trail" concept page, for the reader-facing writeup this evidence supports
 * Full repo `npx tsc -b`, `npx eslint . --ext .ts`, and `npm test` (`vitest run`) all clean: 1493 passed, 38 pre-existing skips, 0 failed — no regressions
 
 ---

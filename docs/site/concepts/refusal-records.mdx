@@ -85,10 +85,11 @@ not an append-only aggregate.
 
 ## Related
 
-- **`POST /audit/verify`** closes the analogous gap for caller-authentication audit
-  trails — one route, structurally checks and verifies any signed audit event's signature,
-  also mounted ahead of caller-auth. See [Error
-  catalog](/api-reference/error-catalog) for both routes' error shapes.
+- [Caller Audit Trail](/concepts/caller-audit-trail) closes the analogous gap for
+  caller-authentication events — signed, durable, and, per caller, chained. `POST
+  /audit/verify` mirrors this page's `POST /refusal/verify` exactly: mounted ahead of
+  caller-auth, structurally checks and verifies any signed audit event's signature. See
+  [Error catalog](/api-reference/error-catalog) for both routes' error shapes.
 - [Execution Trust Records](/concepts/execution-trust-records) — the APPROVE-path counterpart.
 - [Policies and the decision](/concepts/policies-and-the-decision) — how a `Decision` reaches
   REJECT in the first place, including `SignalIntentBinder` binding violations.
