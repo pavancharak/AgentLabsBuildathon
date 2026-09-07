@@ -7,10 +7,27 @@ description: "What actually shipped, by commit, newest first. Not a marketing su
 Pulled directly from `git log` on `main` in `pavancharak/parmana-exp`, commit hashes are
 real and checkable. This page covers the commits that changed what a reader of this site can
 actually do or rely on, not every commit in the repository's history, run `git log` yourself
-for the complete record, 279 commits as of this page's last update. **Known gap:** entries
-between 2026-08-19 and 2026-09-06 were not backfilled when the 2026-09-06 entries were
-added — `git log` for that range directly if you need it.
+for the complete record, 298 commits as of this page's last update. **Known gap:** entries
+between 2026-08-19 and 2026-09-06, and several commits landed on 2026-09-07 before the two
+below, were not backfilled — `git log` for those ranges directly if you need them.
 </Info>
+
+## 2026-09-07
+
+- **`437f5ec`** feat(governance): verify `PolicyChangeApprovalRecord` signatures (not just
+  content hashes) in the deploy/startup integrity check, hash-chain each record to the one
+  before it for the same policy (new `previousRecordHash` field, requires a Supabase
+  migration), and re-run the check every 5 minutes for the life of the process instead of
+  only at startup. Also hardens `PolicyValidator`'s `matches` regex against a class of
+  catastrophic-backtracking patterns, surfaces `findUncoveredFacts()` coverage warnings on
+  the pending-change endpoints, and removes unused dead ledger code from `@parmana/policy`.
+  Findings and fixes documented in `docs/CLAIMS.md` §2.34 and `docs/VERIFICATION-GAPS.md`
+  gaps 35–38. See `docs/CLAIMS.md` §2.26 for the maker-checker feature this extends.
+- **`4e1a8e3`** fix(scripts): the same-day `scripts/backfill-legacy-policy-approvals.ts`
+  (new in `437f5ec`) is corrected to never treat a real, already-`PENDING_APPROVAL` policy
+  proposal as "legacy" — it would otherwise have misclassified this repository's own ten
+  real production policies (`docs/CLAIMS.md` §2.26's "Legacy-policy backfill" entry) awaiting
+  a genuine human checker. `docs/VERIFICATION-GAPS.md` gap 39.
 
 ## 2026-09-06
 
