@@ -1152,11 +1152,13 @@ Evidence
 
 **What this is, honestly.** This is defense-in-depth, not a fix for a live exploit. `ExecutionGateway.verify()` already independently re-verifies the authorization's cryptographic signature before `ExecutionGateway.execute()` is ever called, and `ExecutionControlService.execute()` (the only production call site reaching `ConnectorPolicy.assertAllowed()`) is only reachable through that path today — a repo-wide search confirms no other code constructs a `GatewayExecutionRequest` and calls it directly. The new check does not re-verify the signature a second time at the connector layer; it checks *internal consistency* of a value that is already inside the same signed payload `verifiedTransaction.authorizationVerified` already vouches for. Its value is specifically against a *future* code path that might reach `ConnectorPolicy.assertAllowed()` without going through today's single, already-verified route (a plugin system, an admin override endpoint, a differently-wired deployment) — in that scenario, the caller-capability claim travels with the authorization itself rather than depending on whatever new code path remembers to set `verifiedTransaction` correctly. It does not, and cannot, defend against an attacker who already has in-process code execution and a reference to internal wiring — that attacker can fabricate `grantedCapability` exactly as easily as they could already fabricate the `verifiedTransaction` booleans, since both arrive over the same trust boundary.
 
+**Update (Sep 7, 2026, NF-004):** the guarantee this claim describes previously held only for `POST /execute`. `POST /transactions` — a second, independent entry point into the identical `application.execute()` pipeline — performed the same caller-capability admission check (`isCapabilityAllowed()`) but never carried the confirmed capability into `transaction.metadata.grantedCapability`, and only audited denials, never grants. A transaction submitted via `/transactions` therefore signed an authorization missing `grantedCapability` that the equivalent `/execute` submission would have carried. `packages/api/src/routes/transactions.ts` now performs the identical `caller.capability_granted` audit write and `metadata.grantedCapability` assignment `execute.ts` already did, by direct duplication of the existing logic (the surrounding capability-check/audit block was already duplicated between the two routes before this change; a new shared abstraction was deliberately not introduced for a fix this small). New test: `packages/api/tests/integration/caller-auth.integration.test.ts`, `"POST /transactions parity with POST /execute (NF-004)"` — both routes, given the same caller, now produce a response whose `authorization.payload.grantedCapability` equals the executed action, and both emit exactly one `caller.capability_granted` event. Commit `7da8f0d`.
+
 Evidence
 
 * `packages/shared/src/domain/execution-authorization.ts` (`submittedBy`, `grantedCapability` on `ExecutionAuthorizationPayload`)
 * `packages/shared/src/domain/metadata.ts` (`grantedCapability` on `TransactionMetadata`)
-* `packages/api/src/routes/execute.ts` (carries `grantedCapability` onto `transaction.metadata`, server-set, alongside the existing `submittedBy` write)
+* `packages/api/src/routes/execute.ts` and `packages/api/src/routes/transactions.ts` (both carry `grantedCapability` onto `transaction.metadata`, server-set, alongside the existing `submittedBy` write — see Update above)
 * `packages/crypto/src/AuthorizationSigner.ts`, `packages/runtime/src/RuntimeAuthorizationSigner.ts`, `packages/runtime/src/RuntimeEngine.ts` (threading into the signed payload)
 * `packages/execution-control/src/ConnectorPolicy.ts` (`DefaultConnectorPolicy.assertAllowed()`'s new consistency check)
 * `packages/crypto/tests/unit/authorization-envelope.test.ts` (3 new cases: fields included and verify unchanged when supplied, omitted when not supplied, a tampered `grantedCapability` fails signature verification)
@@ -1188,6 +1190,31 @@ Evidence
 * `packages/api/tests/integration/supabase-caller-audit-sink.integration.test.ts` (extended: chain fields present and correctly linked against a real Postgres advisory lock, not just the unit-level fake pool)
 * docs/site's "Caller Audit Trail" concept page, for the reader-facing writeup this evidence supports
 * Full repo `npx tsc -b`, `npx eslint . --ext .ts`, and `npm test` (`vitest run`) all clean: 1493 passed, 38 pre-existing skips, 0 failed — no regressions
+
+---
+
+## 2.33 Authorization Envelope Bound Into the Trust Record's Own Signature
+
+**What this closes.** A full-codebase deep read (Sep 7, 2026) found that `ExecutionTrustRecord` carried no record of the `SignedExecutionAuthorization` the Execution Gateway actually accepted for that transaction. A loaded trust record could prove its own `transaction`/`overrides`/`executions` hadn't been tampered with, but could not independently prove which nonce was consumed, which expiry was checked, or which `businessTransactionHash`/`policyContentHash`/`signalsHash` the authorization itself was signed under — an auditor had to trust that a matching authorization existed somewhere else, not verify it from the trust record alone.
+
+**What was added.** `ExecutionTrustRecord` (`packages/shared/src/domain/execution-trust-record.ts`) gained an optional `authorization?: SignedExecutionAuthorization` field, captured from `RuntimeContext.authorization` by `BusinessTrustRecordBuilder.build()` (`packages/runtime/src/BusinessTrustRecordBuilder.ts`) and included in `VerificationCrypto.canonicalRecord()` (`packages/crypto/src/VerificationCrypto.ts`) alongside `transaction`/`overrides`/`executions` — so it is covered by the same `trustRecordHash`/`signature` (and, under `CRYPTO_MODE=hybrid`, the same `signatures[]`) as everything else already hashed there, not a separate, independently-checked attachment.
+
+**Backward compatibility, and why no special-case verification branch was needed.** `CanonicalSerializer` (`packages/crypto/src/CanonicalSerializer.ts`) normalizes to a plain object and serializes via `JSON.stringify`, which drops any key whose value is `undefined` regardless of whether that key was present during normalization. A trust record built before this field existed — or any record for a transaction that never reached execution, e.g. a policy rejection — has `authorization === undefined`, which therefore serializes byte-identically to a record built with no `authorization` key at all. `VerificationCrypto.hash()`/`.sign()`/`.verify()`/`.verifySignature()` needed no code change beyond `canonicalRecord()` itself: every existing trust record's stored `trustRecordHash`/`signature` verifies unchanged, and a new record with a real `authorization` gets it covered by the hash/signature automatically, with no "if present" branch anywhere in the verification path.
+
+**A related, independently-discovered defect fixed in the same pass.** While verifying the Supabase storage round-trip for this field, found that the hybrid-signature fields (`ExecutionTrustRecord.schemaVersion`/`.signatures`, from an earlier "Hybrid Signature Support" milestone) had never been given a Supabase column at all — a `CRYPTO_MODE=hybrid` trust record silently lost its second signature on every read from Supabase, degrading hybrid verification to single-signature for anything reloaded from durable storage, since the record was constructed. Not previously known or documented. Fixed in the same migration as `authorization_json`: see Evidence.
+
+Evidence
+
+* `packages/shared/src/domain/execution-trust-record.ts` (`authorization?: SignedExecutionAuthorization` field)
+* `packages/runtime/src/BusinessTrustRecordBuilder.ts` (captures `context.authorization` into the draft, conditionally, to satisfy `exactOptionalPropertyTypes`)
+* `packages/crypto/src/VerificationCrypto.ts` (`canonicalRecord()` includes `authorization`)
+* `supabase/migrations/20260907120000_add_authorization_and_hybrid_signatures_to_execution_trust_records.sql` (`authorization_json`, `schema_version`, `signatures_json` columns, all nullable)
+* `packages/storage/src/supabase/SupabaseExecutionTrustRecordRepository.ts` (`create()`/`findByTransactionId()` persist and retrieve all three)
+* `packages/crypto/tests/unit/verification-crypto-authorization.test.ts` (4 cases: verifies with authorization absent; verifies with it present, hash differs from the same record without it; fails closed on a tampered authorization; a record built with the literal pre-fix draft shape hashes identically to one built with `authorization: undefined`)
+* `packages/runtime/tests/unit/business-trust-record-builder.test.ts` (2 cases: captures a present authorization onto the built record; leaves the key genuinely absent, not `undefined`, when RuntimeContext has none)
+* `packages/storage/tests/unit/supabase-execution-trust-record-repository.test.ts` (2 new cases: full round-trip of `authorization`/`schemaVersion`/`signatures` against a fake `pg.Pool`; a legacy row with none of the three persisted returns them as genuinely absent)
+* `python/parmana/models/trust_record.py` regenerated to match (`npm run check:python-models` clean)
+* Full repo `npx tsc -b`, `npx eslint . --ext .ts`, and `npx vitest run` all clean: 1514 passed, 38 pre-existing skips, 0 failed. Commit `6303801`
 
 ---
 

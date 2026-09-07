@@ -69,6 +69,43 @@ in the phase report; nothing in `packages/*/src` was modified.
 
 ---
 
+## Gaps closed in the Sep 7, 2026 session
+
+Scope: a full-codebase deep read (six parallel agents covering every package, the two
+client SDKs, schemas, and every policy file, grounded only in source — no docs trusted)
+surfaced a batch of real, independently-verified defects across the API, execution-gateway,
+crypto/policy, storage, connector, and SDK layers. This section records what was actually
+fixed and committed that session; findings not acted on remain listed in "Remaining gaps, by
+severity" or "Decision required" below, not silently dropped.
+
+| # | Gap | Closed by | Verified |
+|---|---|---|---|
+| 24 | `ExecutionTrustRecord` carried no record of the `SignedExecutionAuthorization` the gateway actually accepted — a loaded trust record could not independently prove the nonce, expiry, `businessTransactionHash`, `policyContentHash`, or `signalsHash` the authorization was signed under, only that the trust record's own top-level fields hadn't been tampered with | New optional `authorization?: SignedExecutionAuthorization` field on `ExecutionTrustRecord` (`packages/shared/src/domain/execution-trust-record.ts`), captured from `RuntimeContext.authorization` in `BusinessTrustRecordBuilder.build()` (`packages/runtime/src/BusinessTrustRecordBuilder.ts`), included in `VerificationCrypto.canonicalRecord()` (`packages/crypto/src/VerificationCrypto.ts`) so it is covered by the same hash/signature as `transaction`/`overrides`/`executions` — no separate "if missing, skip" branch needed: `CanonicalSerializer` already drops `undefined`-valued keys via `JSON.stringify`, so a record with no authorization serializes byte-identically to before this field existed | `packages/crypto/tests/unit/verification-crypto-authorization.test.ts` (4 cases: verifies with no authorization present; verifies with one present and its hash differs from the same record without one; fails closed on a tampered authorization; a record built with the literal pre-fix draft shape — no `authorization` key at all, not merely `undefined` — hashes identically to one built via the helper with `authorization: undefined`), `packages/runtime/tests/unit/business-trust-record-builder.test.ts` (2 cases: captures a present authorization; leaves it entirely unset, not merely `undefined`, when absent from context). Commit `6303801` |
+| 25 | Hybrid-signature fields (`ExecutionTrustRecord.schemaVersion`/`.signatures`, added by an earlier "Hybrid Signature Support" milestone) had no Supabase column at all — a `CRYPTO_MODE=hybrid` trust record silently lost its second signature on every read from Supabase, degrading hybrid verification to single-signature for anything reloaded from durable storage. Found while verifying gap 24's storage round-trip, not previously known | New migration `supabase/migrations/20260907120000_add_authorization_and_hybrid_signatures_to_execution_trust_records.sql` adds `authorization_json`, `schema_version`, `signatures_json` columns; `SupabaseExecutionTrustRecordRepository.create()`/`findByTransactionId()` updated to write/read all three | `packages/storage/tests/unit/supabase-execution-trust-record-repository.test.ts`, two new cases: full round-trip of all three fields against a fake `pg.Pool`, and confirming a legacy row with none of the three persisted returns them as genuinely absent (`undefined`), not `null`. Commit `6303801` |
+| 26 | Python SDK: `POST /transactions` (and the quickstart example) failed with a 500 when submitted via the Python client | `python/parmana/serialization/encoder.py`'s `encode()` used `dataclasses.asdict()`, which eagerly flattens every nested dataclass into a plain dict before `encode()`'s own recursive call ever runs — so an unset `\| None = None` field on a dataclass *nested inside* another dataclass (e.g. the newly-regenerated `BusinessTransactionMetadata.granted_capability`, see gap 24's Python-model regeneration) fell through to the plain-dict branch, which has no `None`-filtering at all, and was serialized as an explicit JSON `null`. Server-side, `DefaultConnectorPolicy.assertAllowed()` (`packages/execution-control/src/ConnectorPolicy.ts`) checks `grantedCapability !== undefined`, and a present-but-`null` value satisfies that check, then fails the subsequent equality check against the executed action. Fixed by recursing on real attribute values via `dataclasses.fields()`/`getattr()` instead of `asdict()`, so a nested dataclass stays a genuine dataclass instance — and therefore still `None`-filtered — at every depth | Reproduced against a live server (manual `curl` with `grantedCapability: null` in the body, isolating the bug from the Python SDK itself) before and after the fix. `python/tests/test_encoder.py`: added assertions that `tenantId`/`grantedCapability` (both `None` in the existing fixture's nested `metadata`) are omitted, not merely `null`. Full Python suite: 63 passing (the 4 failures seen mid-session were the same pre-existing timeout-under-load flakiness confirmed unrelated below, not a regression from this fix — verified by reverting to `main` and reproducing the same 3-4 failures there). No commit hash tag in this doc; part of commit `6303801`'s Python-model regeneration |
+| 27 | TypeScript SDK: `PolicyApi.validate()` sent the entire `Policy` document as the `POST /policies/validate` request body; the real route (`packages/api/src/routes/policies.ts`) and `schemas/requests/policy-validate-request.schema.json` only accept `{policyId, policyVersion}` — any real caller of `ParmanaClient.validatePolicy()` would have received a 400 | `typescript/src/client/PolicyApi.ts`'s `validate()` now takes `(policyId: string, policyVersion: string)` and sends exactly that shape, matching the Python SDK's already-correct `policy_api.py`. `ParmanaClient.validatePolicy()` and the `05-policy-validation.ts` example updated to match | Full `npx tsc -b` clean; no dedicated unit test existed or was added (no test previously covered this method's request body at all) |
+| 28 | Python SDK: `parmana/api/__init__.py`'s imports and `__all__` omitted `AuditApi` and `RefusalApi`, despite both being real modules wired directly into `client.py` — a wildcard import missed two live API classes | Added both to the import list and `__all__` | `python -c "from parmana.api import AuditApi, RefusalApi"` succeeds; full Python suite unaffected |
+| 29 | `packages/execution-gateway/src/connector-execution/GatewayHttpAdapter.ts` had a dead, duplicated, badly-indented `throw error;` in its `catch` block — harmless (the first `throw` always fires) but a landmine for the next edit | Removed the duplicate, fixed indentation | `npx eslint`/`npx tsc -b` clean, no behavior change |
+| 30 | `ConnectorEvidence.ts`'s `buildConnectorEvidence()` redacted credential-shaped keys from `responseSummary.metadata` but not from `requestSummary.parameters` — a caller's own action parameters, if secret-shaped, were hashed and stored in evidence unredacted while the response side was protected | `requestSummary.parameters` now passes through the same `redactSensitiveKeys()` as `responseSummary.metadata` | `npx tsc -b` clean; no dedicated new test (no existing test asserted on `requestSummary` redaction either way) |
+| 31 | `packages/api/src/bootstrap/createConnectorRoute.ts` still mapped `"payments:execute"` → connector id `"vendor-payment"`, a connector that has never been registered since G-27's removal — the mapping itself is unreachable in the current wiring (only consumed by `ExecutionGateway`'s deprecated `executionControl.channel` path, never the `executionControl.service` path this repository actually configures), but was still live, misleading dead code | Removed the mapping; the function now always throws, with a comment explaining why (satisfies `ExecutionControlOptions.route`'s required shape for a path nothing currently exercises). Also deleted the empty, zero-byte, unreferenced `createVendorPaymentSecureConnector.ts` stub | `npx tsc -b` clean; existing `packages/api/tests/unit/bootstrap/create-connector-registry.test.ts` (`"payments:execute has no connector to resolve to in any environment"`) unaffected, since that test exercises `ConnectorRegistry.resolveCapability()`, a different code path from the one this change touched |
+| 32 | `packages/replay/package.json` declared `@parmana/runtime`, `@supabase/supabase-js`, `express` as dependencies — none used anywhere in `src/` or `tests/` — while `@parmana/policy`/`@parmana/shared`, genuinely imported throughout, were undeclared; the package only built by accident, via npm workspace hoisting | Corrected the dependency list; moved `vitest` to `devDependencies` where it belongs | `npx tsc -b` and full `packages/replay` test suite clean after the change |
+| 33 | `POST /transactions` performed caller-capability admission (`isCapabilityAllowed()`) but, unlike `POST /execute`, never carried the confirmed capability into `transaction.metadata.grantedCapability`, and only audited denials, never grants — a transaction submitted via `/transactions` signed an authorization missing `ExecutionAuthorizationPayload.grantedCapability` that the equivalent `/execute` submission would have carried (a consistency gap in the protection §2.31 of `docs/CLAIMS.md` describes, not a new one) | `packages/api/src/routes/transactions.ts` now records `caller.capability_granted` and sets `metadata.grantedCapability` identically to `execute.ts`, by direct duplication of the existing logic rather than a new shared abstraction — the surrounding capability-check/audit block was already duplicated between the two routes before this change | New integration test in `packages/api/tests/integration/caller-auth.integration.test.ts` ("`POST /transactions parity with POST /execute (NF-004)`"): both routes, given the same caller, produce a response whose `authorization.payload.grantedCapability` equals the executed action, and both emit exactly one `caller.capability_granted` event. Commit `7da8f0d` |
+| 34 | `CapabilityPolicyBinder` (see G-30 below) silently does nothing for any capability absent from `CANONICAL_CAPABILITY_POLICY_BINDINGS` — by design for genuinely out-of-scope actions, but nothing previously stopped a *newly-registered* production capability from shipping unbound the same way G-30 itself happened (GitHub wired in 2026-08-19, gap not caught until 2026-08-25). Today's three live capabilities (`hubspot:deal-fetch`, `hubspot:deal-update`, `github:pr-fetch`, `github:pr-merge`) are all already bound, so this gap has no current live exploitable surface — it is a structural guardrail against recurrence, not a fix for a present gap | New fail-closed startup assertion, `assertConnectorCapabilitiesBound()` (`packages/api/src/bootstrap/assertConnectorCapabilitiesBound.ts`), called from `createConnectorRegistry()` after every connector registration is built, before the registry is returned: every registered capability must be in `CANONICAL_CAPABILITY_POLICY_BINDINGS` (imported from `@parmana/policy`, which re-exports it from `@parmana/capability-registry` — the package G-30's own "Root-cause architecture decision" addendum below already documents moving it to, 2026-08-26) or listed, with a reason, in a new allowlist (`packages/api/src/bootstrap/intentionallyUnboundCapabilities.ts`, currently just the test-only `test:fixture-execute`). An unbound, unlisted capability now fails startup with a message naming both remediation paths, instead of shipping silently protected only by omission. This is complementary to, not a replacement for, G-30's still-open follow-on work below (deriving `CapabilityPolicyBinder.test.ts`'s hand-maintained coverage-test literal from `createConnectorRegistry.ts` itself) — this guardrail catches an unbound capability at process startup regardless of whether that unit test's literal was updated, but does not itself fix the test | `packages/api/tests/unit/bootstrap/assert-connector-capabilities-bound.test.ts` (4 cases: bound capabilities pass silently; an allowlisted-but-unbound capability passes with a `console.warn`; an unbound, non-allowlisted capability throws; every allowlist entry has a non-empty reason). Full `packages/api` suite (272 tests) and full repo suite (1514 tests) pass with the assertion wired into real startup. Commit `672aee6` |
+
+Full repo `npx tsc -b`, `npx eslint . --ext .ts`, and `npx vitest run` all clean after every
+item above: 1514 passed, 38 pre-existing skips, 0 failed (up from 1513/1513 passed at the
+session's start — net +1 test overall is misleading in isolation; many new tests were added
+alongside a small number of pre-existing tests that already covered adjacent behavior).
+Python: 63 passing, 4 pre-existing timeout-under-load failures confirmed unrelated (see gap
+26's entry).
+
+**Explicitly not fixed this session, tracked separately:** NF-001 (upstream authorization
+verification, a delegation-layer design question, not a bug — see
+`NF-001-UPSTREAM-AUTHORIZATION-VERIFICATION.md`) and NF-005 (HubSpot approval issuer
+provisioning) — see "Decision required" below for both.
+
+---
+
 ## Gaps closed in the 2026-07-17 audit closeout session
 
 Scope: nine tasks closing findings from the July 16 external audit. Full closing report is
@@ -1810,6 +1847,59 @@ externally triggerable yet, delete the unused service (it's dead code by the sam
 definition applied elsewhere in this audit) or add a CLAIMS.md `[FUTURE]` entry and a
 `reference/runtime.mdx` note that override application is a domain concept modeled in code
 but not yet exposed. *Estimated size: trivial either way.*
+
+---
+
+### D-4. HubSpot approval issuer provisioning (NF-005, Sep 7, 2026)
+
+`TRUSTED_APPROVAL_ISSUERS` (`packages/api/src/bootstrap/createApprovalIssuerRegistry.ts`) is
+an empty array by design — the file's own comment already documents this as "the correct
+fail-closed starting state," not a bug: every `preAuthorizedForAmountChange` claim
+`HubSpotSignalStateVerifier` checks currently fails closed since no real approver key has
+been provisioned.
+
+**Option A: provision a real issuer.** Generate a real approver keypair out-of-band, add an
+entry to `TRUSTED_APPROVAL_ISSUERS`, provision the matching public key file under
+`PARMANA_KEY_DIR/approval-issuers/`, following the exact pattern already established for
+trusted connector identities (`createConnectorAuthenticator.ts`). *Requires an actual
+business approver (risk team, compliance) to hold the private key; not something to
+provision speculatively.*
+
+**Option B: a `NODE_ENV`-gated ephemeral dev/test issuer.** Generate a keypair fresh at
+test-run time (the same way `vitest.setup.ts` already does for the gateway/default signing
+keys — ephemeral, per-run, never committed) and register it only under `NODE_ENV=test`, so
+demos and integration tests can exercise the `preAuthorizedForAmountChange` path without
+waiting on Option A.
+
+**Option C: leave empty, do nothing.** The current state is intentional and fail-closed;
+nothing is broken by leaving it as-is until a real business need for high-value HubSpot
+preauthorization exists.
+
+**A prior version of this session's plan proposed a fourth option — a hardcoded dev private
+key committed to source, used by the real `ApprovalVerifier` path — and it was rejected
+during review**, not implemented: even `NODE_ENV`-gated, a committed private key trusted by
+real verification logic is inconsistent with this repo's own established convention
+(ephemeral, never-committed test keys) and is the kind of thing this document exists to
+flag, not introduce. **Status: undecided.** No option above has been implemented; this is an
+open decision, not a closed one.
+
+### D-5. Upstream authorization verification (NF-001, Sep 7, 2026)
+
+Not a bug: `BusinessTransactionValidator.validate()`
+(`packages/runtime/src/validators/BusinessTransactionValidator.ts`) checks only ID-linkage
+between `authority`/`authorization`/`intent`, never an independent signature/issuer/expiry
+on `Authority`/`Authorization` themselves — by design, since the real authorization boundary
+today is caller identity (API key → `callerId`) plus `isPrincipalAllowed`/
+`isCapabilityAllowed` scoping, not a second credential on the domain objects. This becomes a
+real gap only for a delegation scenario: multi-party approval, an external authorization
+source (OAuth/SAML/risk service), or a regulatory requirement for independent proof of
+approval.
+
+**Full design spec, decision gates, and a reference implementation sketch:**
+`NF-001-UPSTREAM-AUTHORIZATION-VERIFICATION.md` (repo root). **Status: future scope, not
+implemented, no work started.** Triggered by a real customer request or architectural
+decision, not before — see that document's "Decision Gates" section for what would need to
+be true first.
 
 ---
 
