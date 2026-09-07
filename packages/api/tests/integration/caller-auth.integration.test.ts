@@ -238,6 +238,37 @@ describe("Caller authentication (HTTP boundary)", () => {
     });
   });
 
+  describe("POST /transactions parity with POST /execute (NF-004)", () => {
+    it("sets metadata.grantedCapability and records caller.capability_granted, same as /execute", async () => {
+      const { app, callerAuditSink } = buildApp();
+
+      const executeResponse = await request(app)
+        .post("/execute")
+        .set("Authorization", `Bearer ${CALLER_A_KEY}`)
+        .send(createBusinessTransaction());
+
+      expect(executeResponse.status).toBe(200);
+      expect(executeResponse.body.authorization.payload.grantedCapability).toBe(
+        "test:fixture-execute",
+      );
+
+      const transactionsResponse = await request(app)
+        .post("/transactions")
+        .set("Authorization", `Bearer ${CALLER_A_KEY}`)
+        .send(createBusinessTransaction());
+
+      expect(transactionsResponse.status).toBe(201);
+      expect(transactionsResponse.body.authorization.payload.grantedCapability).toBe(
+        "test:fixture-execute",
+      );
+
+      const grantedEvents = callerAuditSink.events.filter(
+        (event) => event.type === "caller.capability_granted",
+      );
+      expect(grantedEvents).toHaveLength(2);
+    });
+  });
+
   describe("principal identity binding", () => {
     it("blocks the exact live exploit: an ordinary caller cannot self-declare an unrelated authority.principalId (e.g. impersonating a CEO)", async () => {
       const { app } = buildApp();

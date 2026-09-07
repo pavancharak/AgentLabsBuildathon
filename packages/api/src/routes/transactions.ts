@@ -253,11 +253,42 @@ router.post(
           return;
         }
 
+        //
+        // Mirrors execute.ts's identical "caller.capability_granted"
+        // audit write and metadata.grantedCapability assignment (NF-004):
+        // this route was recording denials but not grants, and was never
+        // carrying the confirmed capability forward into
+        // metadata.grantedCapability, so a transaction submitted via
+        // /transactions signed an authorization missing
+        // ExecutionAuthorizationPayload.grantedCapability that the
+        // equivalent /execute submission would have carried. See
+        // execute.ts's own comment for the full rationale.
+        //
+        if (auditSink) {
+          const recorded = await recordCallerAuditEvent(
+            auditSink,
+            {
+              type: "caller.capability_granted",
+              occurredAt: new Date().toISOString(),
+              route: req.originalUrl,
+              callerId: req.callerId,
+              ...(action !== undefined ? { capability: action } : {}),
+            },
+            req,
+            next,
+          );
+
+          if (!recorded) return;
+        }
+
         transaction = {
           ...transaction,
           metadata: {
             ...transaction.metadata,
             submittedBy: req.callerId,
+            ...(transaction.intent?.action !== undefined && {
+              grantedCapability: transaction.intent.action,
+            }),
           },
         };
       }
