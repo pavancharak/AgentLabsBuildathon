@@ -173,6 +173,78 @@ be refused at execution time the moment this flag is on.
 | rag-document-access | 1.0.0 | | | | |
 | vendor-payment | 2.0.0 | | | | |
 
+## Part 6.5: Before/after state verification queries
+
+These check the real database state directly, against the real schema
+(`supabase/migrations/20260818120000_add_policy_governance_tables.sql`) — not a
+guessed one. Every result below is a placeholder for you to fill in by actually
+running the query; none of these have been run against real data as part of
+this runbook, and no value should be copied into `CLAIMS.md`/
+`VERIFICATION-GAPS.md` until it has been.
+
+There is no `psql` client in this sandbox; run these from an environment that
+has one, or adapt them to a one-off script using `@parmana/storage`'s
+`StorageFactory` the way this runbook's own Part 1 table was produced (a
+plain `pool.query(...)` against the same tables works too, but the repository
+layer already does the mapping correctly).
+
+**Query 1 — pending-change status, before:**
+
+```sql
+SELECT policy_name, policy_version, status, proposed_by, proposed_at,
+       resolved_by, resolved_at
+FROM pending_policy_changes
+ORDER BY proposed_at ASC;
+```
+
+Result: _______________ (expect 10 rows, all `PENDING_APPROVAL`, `resolved_by`/`resolved_at` null — confirmed live in this session on 2026-09-07)
+
+**Query 2 — approval records, before:**
+
+```sql
+SELECT policy_change_approval_record_id, pending_policy_change_id, policy_name,
+       policy_version, approved_by, approved_at, content_hash_before,
+       content_hash_after
+FROM policy_change_approval_records
+ORDER BY approved_at ASC;
+```
+
+Result: _______________ (expect 0 rows — no policy in this system has ever completed the approval flow, per `docs/CLAIMS.md` §2.26)
+
+**Query 3 — pending-change status, after each approve/reject:**
+
+Same as Query 1. After all 10 are resolved, expect 0 rows with
+`status = 'PENDING_APPROVAL'` and 10 rows with `resolved_at` set (split
+between `APPROVED` and `REJECTED` depending on what the reviewer actually
+decided — not necessarily all 10 approved).
+
+**Query 4 — approval records, after:**
+
+Same as Query 2. Expect one new row per **approved** policy only (a rejection
+creates no `PolicyChangeApprovalRecord` — see that type's own doc comment: a
+rejected change's `rejectionReason` is itself the durable evidence a
+rejection leaves behind). There is no `step_up_signature_valid` column to
+check here — the step-up signature is verified once, at the moment of the
+`POST .../approve` call, and is never stored as a boolean afterward. What
+persists and can be independently re-checked later is the approval record's
+own `signature_json`, via `PolicyChangeCrypto.verify()`.
+
+**Query 5 — content still matches what was approved:**
+
+Don't hand-roll a `sha256sum` comparison — `content_hash_after` is a hash of
+the *canonicalized* JSON (`CanonicalSerializer`, key-sorted), not the raw
+file bytes, so a naive file hash will not reliably match. Use the tool this
+codebase already has for exactly this:
+
+```bash
+npx tsx scripts/verify-policy-changes-approved.ts --full-scan
+```
+
+Result: _______________ (this already runs in CI on every push/PR against
+changed policy files — see `.github/workflows/ci.yml`'s
+`verify-policy-approvals` job; `--full-scan` here checks every policy on
+disk, not only ones changed in a diff)
+
 ## Part 7: After all 10 are genuinely resolved
 
 Come back and ask for `docs/CLAIMS.md` §2.35 and `docs/VERIFICATION-GAPS.md`
