@@ -12,13 +12,24 @@ import type { StorageProvider } from "@parmana/storage";
 
 /**
  * One-time, manually-invoked backfill: every (policyName, policyVersion)
- * with a live policy.json but no PolicyChangeApprovalRecord --
- * i.e. every policy that predates Policy Governance (maker-checker),
- * seeded onto disk before the maker-checker approval flow existed --
- * gets exactly one synthetic PendingPolicyChange (proposed and
- * resolved by a fixed system identity, never a real human) and its
- * corresponding signed PolicyChangeApprovalRecord, content unchanged.
+ * with a live policy.json, no PolicyChangeApprovalRecord, AND no open
+ * (PENDING_APPROVAL) proposal -- i.e. genuinely never touched by Policy
+ * Governance at all -- gets exactly one synthetic PendingPolicyChange
+ * (proposed and resolved by a fixed system identity, never a real
+ * human) and its corresponding signed PolicyChangeApprovalRecord,
+ * content unchanged.
  *
+ * Deliberately excludes any (policyName, policyVersion) that already
+ * has a real PENDING_APPROVAL proposal -- see docs/CLAIMS.md's own
+ * "Legacy-policy backfill" entry: as of 2026-08-19 every one of this
+ * system's real production policies already has a genuine,
+ * human-proposed PendingPolicyChange awaiting a distinct human
+ * checker. Those are reported separately (awaitingRealApproval) and
+ * never synthetically approved -- doing so would fabricate governance
+ * evidence for a decision no human has actually made, for content
+ * that has a real maker-checker workflow already in flight.
+ *
+
  * Why this exists: verifyPolicyGovernanceIntegrityAtStartup.ts and
  * scripts/verify-policy-changes-approved.ts (its own doc comment,
  * "--full-scan will report every policy version that predates Policy
@@ -63,25 +74,52 @@ interface BackfillOutcome extends BackfillPlanItem {
   readonly pendingPolicyChangeId: string;
 }
 
+interface BackfillPlan {
+  /** No approval record AND no open proposal -- safe to backfill. */
+  readonly toBackfill: readonly BackfillPlanItem[];
+  /**
+   * No approval record, but a real PendingPolicyChange is already
+   * PENDING_APPROVAL for this exact (name, version) -- e.g. a human
+   * proposed a real change and is waiting on a distinct human checker.
+   * NEVER touched by this script: creating a synthetic system
+   * approval here would fabricate governance evidence for content a
+   * real maker-checker decision hasn't actually been made on yet, and
+   * calling pendingPolicyChanges.create() for it would fail anyway
+   * (assertNoConflictingPendingChange) since at most one
+   * PENDING_APPROVAL may exist per (name, version).
+   */
+  readonly awaitingRealApproval: readonly BackfillPlanItem[];
+}
+
 async function planBackfill(
   policyRepository: FilePolicyRepository,
   storage: StorageProvider,
-): Promise<readonly BackfillPlanItem[]> {
+): Promise<BackfillPlan> {
   const allVersions = await policyRepository.listAll();
-  const plan: BackfillPlanItem[] = [];
+  const toBackfill: BackfillPlanItem[] = [];
+  const awaitingRealApproval: BackfillPlanItem[] = [];
 
   for (const { name, version } of allVersions) {
-    const existing = await storage.policyChangeApprovalRecords.findMostRecentFor(
+    const existingApproval = await storage.policyChangeApprovalRecords.findMostRecentFor(
       name,
       version,
     );
 
-    if (existing === null) {
-      plan.push({ policyName: name, policyVersion: version });
+    if (existingApproval !== null) {
+      continue;
     }
+
+    const openProposal = await storage.pendingPolicyChanges.findPending(name, version);
+
+    if (openProposal !== null) {
+      awaitingRealApproval.push({ policyName: name, policyVersion: version });
+      continue;
+    }
+
+    toBackfill.push({ policyName: name, policyVersion: version });
   }
 
-  return plan;
+  return { toBackfill, awaitingRealApproval };
 }
 
 async function backfillOne(
@@ -145,18 +183,37 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
   const storage = StorageFactory.createFromEnvironment();
   const policyChangeCrypto = new PolicyChangeCrypto();
 
-  const plan = await planBackfill(policyRepository, storage);
+  const { toBackfill, awaitingRealApproval } = await planBackfill(policyRepository, storage);
 
-  if (plan.length === 0) {
-    console.log("No legacy policies found -- every live policy already has an approval record.");
+  if (awaitingRealApproval.length > 0) {
+    console.log(
+      `${awaitingRealApproval.length} polic${awaitingRealApproval.length === 1 ? "y" : "ies"} ` +
+        "have no approval record but a real PendingPolicyChange is already PENDING_APPROVAL " +
+        "-- NOT touched by this script; these need a real, distinct human checker, not a " +
+        "synthetic system approval:",
+    );
+
+    for (const item of awaitingRealApproval) {
+      console.log(`  - ${item.policyName}@${item.policyVersion} (awaiting a human checker)`);
+    }
+
+    console.log("");
+  }
+
+  if (toBackfill.length === 0) {
+    console.log(
+      "No genuinely legacy policies found -- every live policy either already has an " +
+        "approval record or a real proposal already awaiting human approval.",
+    );
     return;
   }
 
   console.log(
-    `${plan.length} legacy polic${plan.length === 1 ? "y" : "ies"} with no approval record:`,
+    `${toBackfill.length} legacy polic${toBackfill.length === 1 ? "y" : "ies"} with no ` +
+      "approval record and no open proposal:",
   );
 
-  for (const item of plan) {
+  for (const item of toBackfill) {
     console.log(`  - ${item.policyName}@${item.policyVersion}`);
   }
 
@@ -169,7 +226,7 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
     return;
   }
 
-  for (const item of plan) {
+  for (const item of toBackfill) {
     const outcome = await backfillOne(item, policyRepository, storage, policyChangeCrypto);
 
     console.log(
@@ -178,7 +235,7 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
     );
   }
 
-  console.log(`\nDone. ${plan.length} polic${plan.length === 1 ? "y" : "ies"} backfilled.`);
+  console.log(`\nDone. ${toBackfill.length} polic${toBackfill.length === 1 ? "y" : "ies"} backfilled.`);
 }
 
 if (process.env.NODE_ENV !== "test") {
