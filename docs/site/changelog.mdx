@@ -7,13 +7,21 @@ description: "What actually shipped, by commit, newest first. Not a marketing su
 Pulled directly from `git log` on `main` in `pavancharak/parmana-exp`, commit hashes are
 real and checkable. This page covers the commits that changed what a reader of this site can
 actually do or rely on, not every commit in the repository's history, run `git log` yourself
-for the complete record, 298 commits as of this page's last update. **Known gap:** entries
+for the complete record, 301 commits as of this page's last update. **Known gap:** entries
 between 2026-08-19 and 2026-09-06, and several commits landed on 2026-09-07 before the two
 below, were not backfilled — `git log` for those ranges directly if you need them.
 </Info>
 
 ## 2026-09-07
 
+- **`7a1aa37`** feat(runtime): execution-time Policy Governance verification, wired into
+  `RuntimeEngine.execute()` -- a policy with no approval record, a bad approval-record
+  signature, or tampered live content can now be refused before `PolicyEngine` evaluates a
+  single rule, not just flagged minutes later. Feature-flagged
+  (`POLICY_EXECUTION_VERIFICATION_ENFORCED=true`), default off, since every real production
+  policy is currently `PENDING_APPROVAL` (see `docs/CLAIMS.md` §2.26) and an unconditional
+  gate would refuse them all today -- confirmed with the user before building it. See
+  `docs/CLAIMS.md` §2.35 and `docs/VERIFICATION-GAPS.md` gap 40.
 - **`437f5ec`** feat(governance): verify `PolicyChangeApprovalRecord` signatures (not just
   content hashes) in the deploy/startup integrity check, hash-chain each record to the one
   before it for the same policy (new `previousRecordHash` field, requires a Supabase

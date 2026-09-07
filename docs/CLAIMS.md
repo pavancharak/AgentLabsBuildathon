@@ -1251,6 +1251,31 @@ Evidence
 
 ---
 
+## 2.35 Execution-Time Policy Governance Verification (Prevention, Feature-Flagged)
+
+**What this adds.** 2.34 (and 2.26 before it) detect a Policy Governance bypass after the fact — at process startup, or every 5 minutes thereafter. This section adds real prevention on top: a policy with no `PolicyChangeApprovalRecord`, an approval record whose signature does not verify, or live content that no longer matches its approval record's `contentHashAfter` can now be refused *before* `PolicyEngine` ever evaluates a rule in it, not merely flagged up to 5 minutes later.
+
+**Where it actually lives.** A prior implementation runbook assumed the choke point was `packages/api/src/execution-gateway/ExecutionGateway.ts` — that path does not exist. Reading the source directly found the real, single choke point for every policy evaluation to be `RuntimeEngine.execute()` (`packages/runtime/src/RuntimeEngine.ts:210,325` — `policyRouter.load()` then `policyEngine.evaluate()`); `packages/execution-gateway/src/ExecutionGateway.ts` is a separate package that runs *after* authorization, for connector execution, and never calls `PolicyEngine.evaluate()` at all. The new check (`packages/policy/src/types/PolicyExecutionVerifier.ts`, concrete implementation `packages/api/src/governance/PolicyGovernanceExecutionVerifier.ts`) is wired in immediately after the existing G-24 `policyContentHash` computation and before `capabilityPolicyBinder`/`signalIntentBinder` — checking a narrower guarantee against a policy that might itself be illegitimate is meaningless, the same reasoning §2.22/TD-22 already documents for why capability binding runs before signal-intent binding.
+
+**Same optional-dependency idiom as every other pluggable protection in `RuntimeEngine`.** `policyExecutionVerifier` is a new, trailing, optional constructor parameter — the same pattern `signalStateVerifier`/`capabilityPolicyBinder` already use. When omitted, current behavior is unchanged. When supplied and it finds a violation, that becomes an ordinary `PolicyDecision` with `outcome: REJECT` and `matchedRuleId: "policy-execution-verification-violation"` — flowing through the exact same refusal-recording (RFC-0021) and fail-closed `ExecutionGate.enforce()` path every other rejection already uses. No new throw-and-audit-separately mechanism was added; a prior runbook proposed one, and it was deliberately not built, since it would have bypassed the trust/refusal-recording pipeline every other rejection in this codebase goes through.
+
+**Feature-flagged, default OFF — this was a decision, not an oversight.** `createPolicyExecutionVerifier()` (`packages/api/src/bootstrap/createPolicyExecutionVerifier.ts`) returns `undefined` unless `POLICY_EXECUTION_VERIFICATION_ENFORCED=true` is set. This is deliberate: as of this writing, every real production policy in this system is still `PENDING_APPROVAL` with zero rows in `policy_change_approval_records` (2.26's "Legacy-policy backfill" entry, ten policies proposed 2026-08-19). Enabling this gate unconditionally would refuse every execution in the system today, not merely a genuine bypass. Before writing any code, this exact tradeoff was put to the user directly (an always-on gate vs. a warn-only stage vs. a feature flag vs. not building it yet); the user chose the feature-flagged default-off option, specifically to avoid a choice between bricking production and fabricating synthetic approvals for the ten real pending policies to work around it — the latter being exactly what 2.34's backfill-script fix (`4e1a8e3`) already refused to do for a different reason.
+
+**What this does not change.** The CI merge-gate requirement described in 2.26 ("Preventive Git-layer enforcement") is unchanged — still fail-closed in CI, still not a *required* GitHub status check, still blocked by GitHub plan/repository-visibility limits external to this codebase, not attempted again here.
+
+Evidence
+
+* `packages/policy/src/types/PolicyExecutionVerifier.ts` (`PolicyExecutionVerifier`/`PolicyExecutionViolation`, undefined-means-clean)
+* `packages/api/src/governance/PolicyGovernanceExecutionVerifier.ts` (concrete implementation: no-record / bad-signature / content-mismatch checks, in that order)
+* `packages/api/src/bootstrap/createPolicyExecutionVerifier.ts` (env-var gate, documents why default is off)
+* `packages/runtime/src/RuntimeEngine.ts` (constructor param, observability log field, `execute()` wiring before capability/signal-intent binding), `RuntimeBuilder.ts` (`withPolicyExecutionVerifier`), `RuntimeFactory.ts`, `packages/api/src/application.ts`
+* `packages/api/tests/unit/PolicyGovernanceExecutionVerifier.test.ts` (4 cases: no record, bad signature, content mismatch, clean)
+* `packages/api/tests/unit/bootstrap/create-policy-execution-verifier.test.ts` (3 cases: unset, non-`"true"` values, enabled)
+* `packages/runtime/tests/e2e/runtime.e2e.test.ts` (2 new cases: a configured violation rejects before `PolicyEngine` runs; no violation leaves execution unaffected), `packages/runtime/tests/unit/optional-protections-logging.test.ts` (1 new case)
+* Full repo `npx tsc -b` and `npx vitest run` clean: 1544 passed, 38 pre-existing skips, 0 failed. Commit `7a1aa37`
+
+---
+
 
 
 # 3. Conditional Claims

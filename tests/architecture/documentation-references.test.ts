@@ -44,6 +44,12 @@ const PATH_PATTERN =
  * hypotheticals are excluded.
  */
 const HYPOTHETICAL_EXAMPLE_PATHS = new Set([
+  // docs/CLAIMS.md §2.35: a prior implementation runbook assumed this
+  // was the real execution-gateway choke point; it never existed --
+  // the section cites it specifically to record and correct that
+  // mistaken assumption (the real one is RuntimeEngine.execute()),
+  // not as evidence of something built.
+  "packages/api/src/execution-gateway/ExecutionGateway.ts",
   "packages/connector-stripe/src/StripeCapabilities.ts",
   "packages/execution-gateway/src/connector-execution/GatewayStripeAdapter.ts",
   "packages/execution-gateway/src/connector-execution/createGatewayStripeConnector.ts",
