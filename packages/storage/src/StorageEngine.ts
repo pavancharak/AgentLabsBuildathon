@@ -12,6 +12,16 @@ import { CryptoProofRepository } from "./repositories/CryptoProofRepository.js";
  * - Append-only writes
  * - Separation of execution / verification / crypto evidence
  * - Deterministic storage behavior
+ *
+ * NOT part of the live request path: nothing in packages/api,
+ * packages/execution-gateway, or packages/runtime imports this class
+ * (verified 2026-09-07 audit), and its ledger (AppendOnlyLedger) is an
+ * in-memory array with no persistence -- it does not survive a
+ * process restart. Do not mistake this for Parmana's audit trail; the
+ * durable, signed record of a policy-governance decision is
+ * PolicyChangeApprovalRecord (@parmana/shared,
+ * PolicyChangeApprovalRecordRepository), and execution evidence lives
+ * in ExecutionTrustRecord, neither of which route through here.
  */
 export class StorageEngine {
   private readonly ledger: AppendOnlyLedger;

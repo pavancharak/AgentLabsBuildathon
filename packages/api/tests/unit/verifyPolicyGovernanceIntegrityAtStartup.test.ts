@@ -10,10 +10,19 @@ import { MemoryPolicyChangeApprovalRecordRepository } from "@parmana/storage";
 
 import { verifyPolicyGovernanceIntegrityAtStartup } from "../../src/governance/verifyPolicyGovernanceIntegrityAtStartup.js";
 
-function fixtureRecord(
-  overrides: Partial<PolicyChangeApprovalRecord> = {},
-): PolicyChangeApprovalRecord {
-  return {
+/**
+ * Builds a real, correctly-signed PolicyChangeApprovalRecord fixture --
+ * this check now verifies the record's own signature (see
+ * verifyPolicyGovernanceIntegrityAtStartup.ts's "signature-invalid"
+ * mismatch reason), so a fixture with a hand-written placeholder
+ * signature (as this file used before that check existed) would fail
+ * every test, not exercise the intended scenario.
+ */
+async function fixtureRecord(
+  crypto: PolicyChangeCrypto,
+  overrides: Partial<Omit<PolicyChangeApprovalRecord, "signature">> = {},
+): Promise<PolicyChangeApprovalRecord> {
+  const draft: Omit<PolicyChangeApprovalRecord, "signature"> = {
     policyChangeApprovalRecordId: `pcar-${Math.random()}`,
     pendingPolicyChangeId: "ppc-1",
     policyName: "vendor-payment",
@@ -23,14 +32,12 @@ function fixtureRecord(
     proposedAt: new Date("2026-08-01T00:00:00.000Z"),
     approvedAt: new Date("2026-08-01T00:05:00.000Z"),
     contentHashAfter: "sha256-placeholder",
-    signature: {
-      algorithm: "ed25519",
-      keyId: "default",
-      value: "placeholder-not-verified-by-this-check",
-      signedAt: new Date("2026-08-01T00:05:00.000Z"),
-    },
     ...overrides,
   };
+
+  const signature = await crypto.sign(draft as PolicyChangeApprovalRecord);
+
+  return { ...draft, signature };
 }
 
 describe("verifyPolicyGovernanceIntegrityAtStartup", () => {
@@ -79,7 +86,9 @@ describe("verifyPolicyGovernanceIntegrityAtStartup", () => {
     await policyRepository.save("vendor-payment", "1.0.0", content as never);
     const contentHashAfter = await crypto.hashPolicyContent(content);
 
-    await approvalRepository.create(fixtureRecord({ contentHashAfter }));
+    await approvalRepository.create(
+      await fixtureRecord(crypto, { contentHashAfter }),
+    );
 
     const result = await verifyPolicyGovernanceIntegrityAtStartup({
       policyRepository,
@@ -112,7 +121,9 @@ describe("verifyPolicyGovernanceIntegrityAtStartup", () => {
     };
 
     const contentHashAfter = await crypto.hashPolicyContent(approvedContent);
-    await approvalRepository.create(fixtureRecord({ contentHashAfter }));
+    await approvalRepository.create(
+      await fixtureRecord(crypto, { contentHashAfter }),
+    );
 
     // The live file on disk was hand-edited after approval, never
     // going back through the pending-change API.
@@ -153,7 +164,10 @@ describe("verifyPolicyGovernanceIntegrityAtStartup", () => {
     const approvalRepository = new MemoryPolicyChangeApprovalRecordRepository();
 
     await approvalRepository.create(
-      fixtureRecord({ policyName: "never-written", policyVersion: "1.0.0" }),
+      await fixtureRecord(crypto, {
+        policyName: "never-written",
+        policyVersion: "1.0.0",
+      }),
     );
 
     const result = await verifyPolicyGovernanceIntegrityAtStartup({
@@ -174,7 +188,90 @@ describe("verifyPolicyGovernanceIntegrityAtStartup", () => {
     });
   });
 
-  it("checks a re-approved version exactly once, against the MOST RECENT record", async () => {
+  it("flags 'signature-invalid' when the most recent approval record's signature does not verify", async () => {
+    const policyRepository = new FilePolicyRepository(scratchDir);
+    const crypto = new PolicyChangeCrypto();
+    const approvalRepository = new MemoryPolicyChangeApprovalRecordRepository();
+
+    const content = {
+      policyId: "vendor-payment",
+      policyVersion: "1.0.0",
+      schemaVersion: "1.0.0",
+      rules: [],
+    };
+
+    await policyRepository.save("vendor-payment", "1.0.0", content as never);
+    const contentHashAfter = await crypto.hashPolicyContent(content);
+
+    const record = await fixtureRecord(crypto, { contentHashAfter });
+
+    // The record was signed correctly, but its stored approvedBy was
+    // altered after the fact -- exactly the tamper this check exists
+    // to catch, distinct from a content-mismatch on the live file.
+    await approvalRepository.create({ ...record, approvedBy: "someone-else" });
+
+    const result = await verifyPolicyGovernanceIntegrityAtStartup({
+      policyRepository,
+      policyChangeCrypto: crypto,
+      policyChangeApprovalRecordRepository: approvalRepository,
+    });
+
+    expect(result).toEqual({
+      checked: 1,
+      mismatches: [
+        {
+          policyName: "vendor-payment",
+          policyVersion: "1.0.0",
+          reason: "signature-invalid",
+        },
+      ],
+    });
+  });
+
+  it("flags 'chain-broken' when a record's previousRecordHash does not match the record before it", async () => {
+    const policyRepository = new FilePolicyRepository(scratchDir);
+    const crypto = new PolicyChangeCrypto();
+    const approvalRepository = new MemoryPolicyChangeApprovalRecordRepository();
+
+    const content = {
+      policyId: "vendor-payment",
+      policyVersion: "1.0.0",
+      schemaVersion: "1.0.0",
+      rules: [{ id: "v2" }],
+    };
+
+    await policyRepository.save("vendor-payment", "1.0.0", content as never);
+
+    const oldRecord = await fixtureRecord(crypto, {
+      policyChangeApprovalRecordId: "pcar-old",
+      approvedAt: new Date("2026-08-01T00:00:00.000Z"),
+    });
+    await approvalRepository.create(oldRecord);
+
+    // previousRecordHash points at nothing real -- as if the true
+    // prior record had been deleted or substituted in the store.
+    const newRecord = await fixtureRecord(crypto, {
+      policyChangeApprovalRecordId: "pcar-new",
+      approvedAt: new Date("2026-08-02T00:00:00.000Z"),
+      contentHashAfter: await crypto.hashPolicyContent(content),
+      previousRecordHash: "sha256-of-a-record-that-was-never-actually-prior",
+    });
+    await approvalRepository.create(newRecord);
+
+    const result = await verifyPolicyGovernanceIntegrityAtStartup({
+      policyRepository,
+      policyChangeCrypto: crypto,
+      policyChangeApprovalRecordRepository: approvalRepository,
+    });
+
+    expect(result.mismatches).toContainEqual({
+      policyName: "vendor-payment",
+      policyVersion: "1.0.0",
+      reason: "chain-broken",
+    });
+  });
+
+  it("checks a re-approved version exactly once, against the MOST RECENT record, with a correctly chained history", async () => {
     const policyRepository = new FilePolicyRepository(scratchDir);
     const crypto = new PolicyChangeCrypto();
     const approvalRepository = new MemoryPolicyChangeApprovalRecordRepository();
@@ -194,19 +291,19 @@ describe("verifyPolicyGovernanceIntegrityAtStartup", () => {
 
     // An older approval record for the same (name, version), an
     // in-place patch superseded by the second approval below.
-    await approvalRepository.create(
-      fixtureRecord({
-        policyChangeApprovalRecordId: "pcar-old",
-        approvedAt: new Date("2026-08-01T00:00:00.000Z"),
-        contentHashAfter: await crypto.hashPolicyContent(firstContent),
-      }),
-    );
+    const oldRecord = await fixtureRecord(crypto, {
+      policyChangeApprovalRecordId: "pcar-old",
+      approvedAt: new Date("2026-08-01T00:00:00.000Z"),
+      contentHashAfter: await crypto.hashPolicyContent(firstContent),
+    });
+    await approvalRepository.create(oldRecord);
 
     await approvalRepository.create(
-      fixtureRecord({
+      await fixtureRecord(crypto, {
         policyChangeApprovalRecordId: "pcar-new",
         approvedAt: new Date("2026-08-02T00:00:00.000Z"),
         contentHashAfter: await crypto.hashPolicyContent(secondContent),
+        previousRecordHash: await crypto.hashPolicyContent(oldRecord),
       }),
     );
 
@@ -221,7 +318,8 @@ describe("verifyPolicyGovernanceIntegrityAtStartup", () => {
 
     // Exactly one (policyName, policyVersion) pair, checked once, and
     // it passes because the check correctly used the most recent
-    // record's contentHashAfter, not the older superseded one.
+    // record's contentHashAfter, not the older superseded one, and
+    // the chain between the two records is intact.
     expect(result).toEqual({ checked: 1, mismatches: [] });
   });
 
@@ -272,7 +370,7 @@ describe("verifyPolicyGovernanceIntegrityAtStartup", () => {
 
     await policyRepository.save("policy-a", "1.0.0", goodContent as never);
     await approvalRepository.create(
-      fixtureRecord({
+      await fixtureRecord(crypto, {
         policyName: "policy-a",
         policyVersion: "1.0.0",
         contentHashAfter: await crypto.hashPolicyContent(goodContent),
@@ -283,7 +381,7 @@ describe("verifyPolicyGovernanceIntegrityAtStartup", () => {
     // "missing" mismatch that must not stop policy-a from being
     // correctly reported as passing.
     await approvalRepository.create(
-      fixtureRecord({ policyName: "policy-b", policyVersion: "1.0.0" }),
+      await fixtureRecord(crypto, { policyName: "policy-b", policyVersion: "1.0.0" }),
     );
 
     const result = await verifyPolicyGovernanceIntegrityAtStartup({

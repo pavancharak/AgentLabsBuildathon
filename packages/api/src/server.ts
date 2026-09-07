@@ -11,6 +11,7 @@ import { createCallerAuthenticator } from "./bootstrap/createCallerAuthenticator
 import { createPolicyChangeStepUpVerifier } from "./bootstrap/createPolicyChangeStepUpVerifier.js";
 import { createPolicyChangeApprovalService } from "./bootstrap/createPolicyChangeApprovalService.js";
 import { runPolicyGovernanceIntegrityCheckAtStartup } from "./bootstrap/runPolicyGovernanceIntegrityCheckAtStartup.js";
+import { schedulePolicyGovernanceIntegrityCheck } from "./bootstrap/schedulePolicyGovernanceIntegrityCheck.js";
 import { createApp } from "./app.js";
 
 /**
@@ -87,6 +88,13 @@ const server = app.listen(PORT, HOST, () => {
  * this process happens to have caller identity wiring turned on.
  */
 runPolicyGovernanceIntegrityCheckAtStartup();
+
+/**
+ * ...and again on a fixed interval for the rest of this process's
+ * uptime -- see schedulePolicyGovernanceIntegrityCheck.ts for why the
+ * startup-only run above leaves a gap between deploys.
+ */
+schedulePolicyGovernanceIntegrityCheck();
 
 // Graceful shutdown on SIGTERM/SIGINT — see createGracefulShutdown.ts
 // for the full reasoning and what it guards against.

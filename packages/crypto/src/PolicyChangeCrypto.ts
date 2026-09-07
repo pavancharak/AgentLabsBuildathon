@@ -75,6 +75,9 @@ export class PolicyChangeCrypto {
 
       contentHashAfter:
         record.contentHashAfter,
+
+      previousRecordHash:
+        record.previousRecordHash,
     };
   }
 

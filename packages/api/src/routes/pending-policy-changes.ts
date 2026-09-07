@@ -331,6 +331,17 @@ export function createPendingPolicyChangesRouter(
           throw error;
         }
 
+        /**
+         * Advisory, not a rejection -- see PolicyValidator.
+         * findUncoveredFacts' own doc comment: not every rule fact
+         * has a genuine Intent-side equivalent, so an uncovered fact
+         * is a considered decision a proposal can legitimately make,
+         * not an error. Surfaced here, on the proposal itself, so the
+         * checker sees it at approval time instead of only a load
+         * time console.warn nobody reviewing this change would see.
+         */
+        const coverageWarnings = policyValidator.findUncoveredFacts(candidate);
+
         if (req.callerId === undefined) {
           res.status(401).json({
             error: "Caller authentication is required to propose a policy change.",
@@ -353,7 +364,10 @@ export function createPendingPolicyChangesRouter(
 
         const created = await pendingPolicyChangeRepository.create(change);
 
-        res.status(201).json(created);
+        res.status(201).json({
+          ...created,
+          ...(coverageWarnings.length > 0 ? { coverageWarnings } : {}),
+        });
         return;
       } catch (error) {
         if (error instanceof ParmanaError) {
@@ -413,16 +427,23 @@ export function createPendingPolicyChangesRouter(
         );
 
         const withDiff = await Promise.all(
-          changes.map(async (change) => ({
-            ...change,
-            diff: {
-              current: await loadCurrentContent(
-                change.policyName,
-                change.policyVersion,
-              ),
-              proposed: change.proposedContent,
-            },
-          })),
+          changes.map(async (change) => {
+            const coverageWarnings = policyValidator.findUncoveredFacts(
+              change.proposedContent as unknown as Policy,
+            );
+
+            return {
+              ...change,
+              ...(coverageWarnings.length > 0 ? { coverageWarnings } : {}),
+              diff: {
+                current: await loadCurrentContent(
+                  change.policyName,
+                  change.policyVersion,
+                ),
+                proposed: change.proposedContent,
+              },
+            };
+          }),
         );
 
         res.status(200).json({

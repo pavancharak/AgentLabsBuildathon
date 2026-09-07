@@ -1,15 +1,4 @@
-import { PolicyChangeCrypto } from "@parmana/crypto";
-
-import { policyRepository } from "../application.js";
-import { policyChangeApprovalRecordRepository } from "../repositories.js";
-import { verifyPolicyGovernanceIntegrityAtStartup } from "../governance/verifyPolicyGovernanceIntegrityAtStartup.js";
-
-function logUnexpectedFailure(error: unknown): void {
-  console.error({
-    event: "policy_governance_integrity_check_unexpected_failure",
-    error: error instanceof Error ? error.message : String(error),
-  });
-}
+import { runPolicyGovernanceIntegrityCheckOnce } from "./policyGovernanceIntegrityCheckRunner.js";
 
 /**
  * Kicks off the Policy Governance deploy/startup integrity check
@@ -29,15 +18,11 @@ function logUnexpectedFailure(error: unknown): void {
  * hash-provider registry gap) is logged and swallowed the exact same
  * way as an asynchronous failure inside the check itself -- never
  * propagated, never able to block server startup.
+ *
+ * A single one-time run -- see schedulePolicyGovernanceIntegrityCheck.ts
+ * for the periodic re-run that catches drift introduced after startup,
+ * during a long-lived process's uptime.
  */
 export function runPolicyGovernanceIntegrityCheckAtStartup(): void {
-  try {
-    verifyPolicyGovernanceIntegrityAtStartup({
-      policyRepository,
-      policyChangeCrypto: new PolicyChangeCrypto(),
-      policyChangeApprovalRecordRepository,
-    }).catch(logUnexpectedFailure);
-  } catch (error) {
-    logUnexpectedFailure(error);
-  }
+  runPolicyGovernanceIntegrityCheckOnce();
 }

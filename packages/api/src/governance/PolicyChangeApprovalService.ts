@@ -75,6 +75,22 @@ export class PolicyChangeApprovalService {
         ? undefined
         : await this.policyChangeCrypto.hashPolicyContent(before);
 
+    // Chains this record to whatever approval record most recently
+    // preceded it for this same (policyName, writeVersion) -- see
+    // PolicyChangeApprovalRecord's own doc comment on
+    // previousRecordHash for why. Absent only for the first approval
+    // ever recorded for this pair.
+    const priorRecord =
+      await this.policyChangeApprovalRecordRepository.findMostRecentFor(
+        change.policyName,
+        writeVersion,
+      );
+
+    const previousRecordHash =
+      priorRecord === null
+        ? undefined
+        : await this.policyChangeCrypto.hashPolicyContent(priorRecord);
+
     // Sign and durably persist the approval record BEFORE writing the
     // live file, not after: if persisting the record fails, nothing
     // has changed yet -- retry from a clean state. If it were the
@@ -98,6 +114,7 @@ export class PolicyChangeApprovalService {
       approvedAt: new Date(),
       ...(contentHashBefore !== undefined ? { contentHashBefore } : {}),
       contentHashAfter,
+      ...(previousRecordHash !== undefined ? { previousRecordHash } : {}),
     };
 
     const signature = await this.policyChangeCrypto.sign(

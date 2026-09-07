@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import path from "node:path";
-import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 
 import type { Policy } from "./types/Policy.js";
 import type { PolicyRepository } from "./PolicyRepository.js";
@@ -124,5 +124,64 @@ export class FilePolicyRepository
 
       throw error;
     }
+  }
+
+  /**
+   * Walks `<basePath>/<name>/<version>/policy.json`, two directory
+   * levels deep. Missing basePath (no policy has ever been written)
+   * is not an error -- returns an empty list, the same "nothing here
+   * yet" shape load() uses PolicyNotFoundError for at the single-policy
+   * level.
+   */
+  public async listAll(): Promise<
+    ReadonlyArray<{ readonly name: string; readonly version: string }>
+  > {
+    const results: Array<{ name: string; version: string }> = [];
+
+    let nameEntries;
+
+    try {
+      nameEntries = await readdir(this.basePath, { withFileTypes: true });
+    } catch {
+      return results;
+    }
+
+    for (const nameEntry of nameEntries) {
+      if (!nameEntry.isDirectory()) {
+        continue;
+      }
+
+      const name = nameEntry.name;
+      const nameDir = path.join(this.basePath, name);
+
+      let versionEntries;
+
+      try {
+        versionEntries = await readdir(nameDir, { withFileTypes: true });
+      } catch {
+        continue;
+      }
+
+      for (const versionEntry of versionEntries) {
+        if (!versionEntry.isDirectory()) {
+          continue;
+        }
+
+        const version = versionEntry.name;
+
+        try {
+          await readFile(
+            path.join(nameDir, version, "policy.json"),
+            "utf8",
+          );
+
+          results.push({ name, version });
+        } catch {
+          // No policy.json in this version directory -- not a policy.
+        }
+      }
+    }
+
+    return results;
   }
 }

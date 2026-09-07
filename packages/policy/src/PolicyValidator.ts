@@ -303,11 +303,64 @@ throw new PolicyValidationError(
   }
 
   /**
-   * Validates a regular expression.
+   * Maximum length accepted for a 'matches' pattern. Not a
+   * correctness bound -- purely a cap on how much text an attacker
+   * (or a careless policy author) can put in front of the regex
+   * engine at all.
+   */
+  private static readonly MAX_PATTERN_LENGTH = 200;
+
+  /**
+   * One parenthesized group, immediately followed by a quantifier,
+   * captured so its own contents can be inspected for a quantifier of
+   * their own. Deliberately does not match nested parentheses inside
+   * the group ([^()]*) -- this catches the textbook single-level
+   * cases ('(a+)+', '(a*)*', '(a+){2,}'), not every possible
+   * catastrophic pattern. See validateRegex's own doc comment.
+   */
+  private static readonly GROUP_THEN_QUANTIFIER =
+    /\(([^()]*)\)(?:[*+]|\{\d+,?\d*\})/g;
+
+  private static readonly CONTAINS_QUANTIFIER = /[*+]|\{\d+,?\d*\}/;
+
+  /**
+   * Validates a regular expression before it is accepted into a
+   * Policy that will later be evaluated (via the 'matches' operator)
+   * against live, potentially attacker-influenced signal values.
+   *
+   * This is a heuristic, not a proof of linear-time behavior: it
+   * rejects a quantified group whose own contents are themselves
+   * quantified (e.g. '(a+)+', a classic source of catastrophic
+   * backtracking), and caps pattern length outright, but it cannot
+   * detect every pattern capable of exponential-time backtracking --
+   * only a linear-time engine (e.g. RE2) or an execution timeout at
+   * evaluation time closes that gap completely. Flagged here as a
+   * deliberate, bounded improvement over no check at all, not as a
+   * ReDoS-proof guarantee.
    */
   private validateRegex(
     pattern: string,
   ): void {
+
+    if (pattern.length > PolicyValidator.MAX_PATTERN_LENGTH) {
+      throw new PolicyValidationError(
+        `'matches' pattern exceeds the maximum length of ` +
+        `${PolicyValidator.MAX_PATTERN_LENGTH} characters.`,
+      );
+    }
+
+    for (const match of pattern.matchAll(PolicyValidator.GROUP_THEN_QUANTIFIER)) {
+      if (PolicyValidator.CONTAINS_QUANTIFIER.test(match[1] ?? "")) {
+        throw new PolicyValidationError(
+          `'matches' pattern '${pattern}' contains a nested quantifier ` +
+          "(a quantified group whose own contents are themselves " +
+          "quantified, e.g. '(a+)+') -- a common source of catastrophic " +
+          "backtracking (ReDoS) once evaluated against live signal values. " +
+          "Rewrite the pattern to avoid quantifying a group that already " +
+          "contains a quantifier.",
+        );
+      }
+    }
 
     try {
       new RegExp(pattern);

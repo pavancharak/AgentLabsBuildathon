@@ -1,7 +1,10 @@
 import { PolicyNotFoundError } from "@parmana/policy";
 import type { PolicyRepository } from "@parmana/policy";
 import type { PolicyChangeCrypto } from "@parmana/crypto";
-import type { PolicyChangeApprovalRecordRepository } from "@parmana/shared";
+import type {
+  PolicyChangeApprovalRecord,
+  PolicyChangeApprovalRecordRepository,
+} from "@parmana/shared";
 
 export interface PolicyGovernanceIntegrityOptions {
   readonly policyRepository: PolicyRepository;
@@ -24,7 +27,28 @@ export type PolicyGovernanceIntegrityMismatchReason =
    * PolicyChangeApprovalRecordRepository.findMostRecentFor's own doc
    * comment describes this check as existing to catch.
    */
-  | "content-mismatch";
+  | "content-mismatch"
+  /**
+   * The most recent approval record's own signature does not verify.
+   * Distinct from "content-mismatch": that check trusts the record's
+   * contentHashAfter and asks whether the live file matches it; this
+   * check asks whether the record itself is what PolicyChangeCrypto
+   * actually signed at approval time. A record whose signature does
+   * not verify is never trusted for the content-hash comparison below
+   * -- there is nothing trustworthy left to compare the live file
+   * against.
+   */
+  | "signature-invalid"
+  /**
+   * This record's previousRecordHash does not match the hash of the
+   * approval record that preceded it for the same (policyName,
+   * policyVersion) -- see PolicyChangeApprovalService's own doc
+   * comment on why each new record embeds this. Indicates the
+   * approval-record history itself was edited, reordered, or had a
+   * record deleted, outside of PolicyChangeApprovalService ever
+   * having produced that sequence.
+   */
+  | "chain-broken";
 
 export interface PolicyGovernanceIntegrityMismatch {
   readonly policyName: string;
@@ -121,6 +145,13 @@ export async function verifyPolicyGovernanceIntegrityAtStartup(
         continue;
       }
 
+      const signatureValid = await options.policyChangeCrypto.verify(mostRecent);
+
+      if (!signatureValid) {
+        mismatches.push({ policyName, policyVersion, reason: "signature-invalid" });
+        continue;
+      }
+
       if (live === null) {
         mismatches.push({ policyName, policyVersion, reason: "missing" });
         continue;
@@ -143,6 +174,72 @@ export async function verifyPolicyGovernanceIntegrityAtStartup(
         policyVersion,
         error: error instanceof Error ? error.message : String(error),
       });
+    }
+  }
+
+  // Chain integrity: for every (policyName, policyVersion) with more
+  // than one approval record, each record after the first must embed
+  // the hash of the record immediately before it (by approvedAt) --
+  // see PolicyChangeApprovalService's own doc comment. This detects a
+  // deleted, reordered, or substituted record in the approval-record
+  // store itself, a bypass distinct from "content-mismatch" (which
+  // only ever looks at the single most recent record).
+  interface PairGroup {
+    readonly policyName: string;
+    readonly policyVersion: string;
+    readonly records: PolicyChangeApprovalRecord[];
+  }
+
+  const recordsByPair = new Map<string, PairGroup>();
+
+  for (const record of records) {
+    const key = `${record.policyName} ${record.policyVersion}`;
+    const existing = recordsByPair.get(key);
+
+    if (existing) {
+      existing.records.push(record);
+    } else {
+      recordsByPair.set(key, {
+        policyName: record.policyName,
+        policyVersion: record.policyVersion,
+        records: [record],
+      });
+    }
+  }
+
+  for (const { policyName, policyVersion, records: pairRecords } of recordsByPair.values()) {
+    if (pairRecords.length < 2) {
+      continue;
+    }
+
+    const sorted = [...pairRecords].sort(
+      (a, b) => a.approvedAt.getTime() - b.approvedAt.getTime(),
+    );
+
+    for (let i = 1; i < sorted.length; i++) {
+      const previous = sorted[i - 1];
+      const current = sorted[i];
+
+      if (previous === undefined || current === undefined) {
+        continue;
+      }
+
+      try {
+        const expectedHash = await options.policyChangeCrypto.hashPolicyContent(previous);
+
+        if (current.previousRecordHash !== expectedHash) {
+          mismatches.push({ policyName, policyVersion, reason: "chain-broken" });
+          break;
+        }
+      } catch (error) {
+        console.error({
+          event: "policy_governance_integrity_check_failed_for_version",
+          policyName,
+          policyVersion,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        break;
+      }
     }
   }
 

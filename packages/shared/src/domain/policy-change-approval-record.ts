@@ -68,6 +68,22 @@ export interface PolicyChangeApprovalRecord {
   readonly contentHashAfter: string;
 
   /**
+   * sha256 of the canonicalized *prior* approval record for this same
+   * (policyName, policyVersion) -- i.e. of the full record returned
+   * by PolicyChangeApprovalRecordRepository.findMostRecentFor at the
+   * moment this record was created, computed the same way
+   * contentHashAfter is (PolicyChangeCrypto.hashPolicyContent).
+   * Absent only for the first approval ever recorded for this
+   * (policyName, policyVersion) pair. Included in this record's own
+   * signed payload (see PolicyChangeCrypto.canonicalRecord), so a
+   * later attempt to delete, reorder, or substitute a record in the
+   * approval-record store -- as opposed to editing the live
+   * policy.json, which contentHashAfter alone already detects -- is
+   * independently detectable by re-deriving the chain.
+   */
+  readonly previousRecordHash?: string;
+
+  /**
    * Signature over the canonical serialization of this record (every
    * field above, excluding this field itself) -- see
    * PolicyChangeCrypto.

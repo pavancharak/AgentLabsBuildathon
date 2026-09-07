@@ -36,6 +36,7 @@ export class SupabasePolicyChangeApprovalRecordRepository
       record.contentHashBefore ?? null,
       record.contentHashAfter,
       JSON.stringify(record.signature),
+      record.previousRecordHash ?? null,
     ]);
 
     return record;
@@ -84,9 +85,9 @@ const INSERT_APPROVAL_RECORD_SQL = `
   INSERT INTO policy_change_approval_records
     (policy_change_approval_record_id, pending_policy_change_id, policy_name, policy_version,
      proposed_by, approved_by, proposed_at, approved_at, content_hash_before,
-     content_hash_after, signature_json)
+     content_hash_after, signature_json, previous_record_hash)
   VALUES
-    ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb)
+    ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12)
 `;
 
 const SELECT_BY_ID_SQL = `
@@ -116,6 +117,7 @@ interface PolicyChangeApprovalRecordRow {
   readonly content_hash_before: string | null;
   readonly content_hash_after: string;
   readonly signature_json: Signature;
+  readonly previous_record_hash: string | null;
 }
 
 function toPolicyChangeApprovalRecord(
@@ -134,6 +136,11 @@ function toPolicyChangeApprovalRecord(
     ...(row.content_hash_before !== null ? { contentHashBefore: row.content_hash_before } : {}),
 
     contentHashAfter: row.content_hash_after,
+
+    ...(row.previous_record_hash != null
+      ? { previousRecordHash: row.previous_record_hash }
+      : {}),
+
     signature: row.signature_json,
   };
 }
