@@ -3,10 +3,6 @@ import {
   ParmanaClient,
 } from "@parmana/sdk";
 
-import type {
-  Policy,
-} from "@parmana/policy";
-
 const client =
   new ParmanaClient({
     endpoint:
@@ -19,28 +15,10 @@ const client =
       }),
   });
 
-const policy: Policy = {
-  policyId:
-    "vendor-payment",
-
-  policyVersion:
-    "1.0.0",
-
-  schemaVersion:
-    "1.0.0",
-
-  signalsSchema: {
-    amount: "number",
-    vendorVerified: "boolean",
-    paymentApproved: "boolean",
-  },
-
-  rules: [],
-};
-
 const result =
   await client.validatePolicy(
-    policy,
+    "vendor-payment",
+    "2.0.0",
   );
 
 console.log(

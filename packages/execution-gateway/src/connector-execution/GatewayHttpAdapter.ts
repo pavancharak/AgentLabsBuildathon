@@ -102,16 +102,15 @@ export class GatewayHttpAdapter implements Connector {
       };
     } catch (error) {
       if (controller.signal.aborted) {
-  throw new Error(
-    `HttpConnector "${this.connectorId}" request to capability "${request.capability}" ` +
-      `timed out after ${context.timeoutMs}ms.`,
-    {
-      cause: error,
-    },
-  );
-}
+        throw new Error(
+          `HttpConnector "${this.connectorId}" request to capability "${request.capability}" ` +
+            `timed out after ${context.timeoutMs}ms.`,
+          {
+            cause: error,
+          },
+        );
+      }
 
-throw error;
       throw error;
     } finally {
       clearTimeout(timeout);

@@ -17,10 +17,6 @@
  */
 
 import type {
-  Policy,
-} from "@parmana/policy";
-
-import type {
   Transport,
 } from "../config/Transport.js";
 
@@ -48,7 +44,12 @@ export class PolicyApi {
   ) {}
 
   /**
-   * Validates a policy.
+   * Confirms that a policy (name + version) is loadable by the Runtime.
+   *
+   * POST /policies/validate does not accept or check a policy
+   * document body — it only checks that
+   * policyRepository.load(policyId, policyVersion) succeeds
+   * (packages/api/src/routes/policies.ts).
    *
    * POST /policies/validate does not use the shared {error, code?}
    * envelope for 400 or 404: both are {valid, errors}, its own shape,
@@ -60,7 +61,8 @@ export class PolicyApi {
    * /api-reference/error-handling.
    */
   public async validate(
-    policy: Policy,
+    policyId: string,
+    policyVersion: string,
   ): Promise<PolicyValidationResult> {
     const response =
       await this.transport.send<PolicyValidationResult>({
@@ -68,7 +70,10 @@ export class PolicyApi {
 
         method: "POST",
 
-        body: policy,
+        body: {
+          policyId,
+          policyVersion,
+        },
 
         nonThrowingStatuses: [400, 404],
       });

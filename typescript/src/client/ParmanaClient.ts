@@ -42,10 +42,6 @@ import type {
   Transport,
 } from "../config/Transport.js";
 
-import type {
-  Policy,
-} from "@parmana/policy";
-
 import {
   ConfigurationError,
 } from "../errors/ConfigurationError.js";
@@ -339,13 +335,15 @@ export class ParmanaClient {
   }
 
   /**
-   * Validates a policy definition.
+   * Confirms that a policy (name + version) is loadable by the Runtime.
    */
   public validatePolicy(
-    policy: Policy,
+    policyId: string,
+    policyVersion: string,
   ): Promise<PolicyValidationResult> {
     return this.policyApi.validate(
-      policy,
+      policyId,
+      policyVersion,
     );
   }
 

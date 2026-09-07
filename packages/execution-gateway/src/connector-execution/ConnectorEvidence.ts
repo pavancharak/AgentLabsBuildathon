@@ -85,7 +85,7 @@ export async function buildConnectorEvidence(
     businessTransactionId: options.request.businessTransactionId,
     action: options.request.action,
     target: sanitizeEndpoint(options.request.target),
-    parameters: options.request.parameters,
+    parameters: redactSensitiveKeys(options.request.parameters),
   });
 
   const responseSummary = Object.freeze({
