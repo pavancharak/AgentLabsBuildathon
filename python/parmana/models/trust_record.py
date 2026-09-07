@@ -13,6 +13,7 @@ from datetime import datetime
 
 from .business_transaction import BusinessTransaction
 from .execution import Execution
+from .execution_authorization import SignedExecutionAuthorization
 from .override import Override
 from .receipt import Receipt
 from .signature import Signature, SignatureEntry
@@ -42,6 +43,8 @@ class ExecutionTrustRecord:
     created_at: datetime
 
     updated_at: datetime
+
+    authorization: SignedExecutionAuthorization | None = None
 
     schema_version: float | None = None
 

@@ -31,6 +31,8 @@ class BusinessTransactionMetadata:
 
     submitted_by: str | None = None
 
+    granted_capability: str | None = None
+
     submitted_at: datetime | None = None
 
 

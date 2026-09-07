@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import type { Pool } from "pg";
 
+import { SignatureAlgorithms, type SignedExecutionAuthorization } from "@parmana/shared";
+
 import { SupabaseExecutionTrustRecordRepository } from "../../src/supabase/SupabaseExecutionTrustRecordRepository.js";
 
 import {
@@ -50,8 +52,18 @@ function createFakePool() {
   const pool = {
     query(sql: string, values?: readonly unknown[]) {
       if (sql.includes("INSERT INTO execution_trust_records")) {
-        const [trustRecordId, businessTransactionId, transactionJson, hash, signatureJson, createdAt, updatedAt] =
-          values as readonly unknown[];
+        const [
+          trustRecordId,
+          businessTransactionId,
+          transactionJson,
+          hash,
+          signatureJson,
+          createdAt,
+          updatedAt,
+          authorizationJson,
+          schemaVersion,
+          signaturesJson,
+        ] = values as readonly unknown[];
 
         header.row = {
           trust_record_id: trustRecordId,
@@ -61,6 +73,11 @@ function createFakePool() {
           signature_json: JSON.parse(signatureJson as string),
           created_at: createdAt,
           updated_at: updatedAt,
+          authorization_json:
+            authorizationJson != null ? JSON.parse(authorizationJson as string) : null,
+          schema_version: schemaVersion ?? null,
+          signatures_json:
+            signaturesJson != null ? JSON.parse(signaturesJson as string) : null,
         };
 
         return Promise.resolve({ rows: [] });
@@ -303,5 +320,77 @@ describe("SupabaseExecutionTrustRecordRepository", () => {
     expect(
       found!.executions.find((e) => e.executionId === secondExecution!.executionId),
     ).toEqual(JSON.parse(JSON.stringify(secondExecution)));
+  });
+
+  it("persists and retrieves authorization_json, schema_version, and signatures_json (NF-003 + hybrid-signature persistence gap)", async () => {
+    const repository = new SupabaseExecutionTrustRecordRepository(createFakePool());
+    const transaction = buildBusinessTransaction("txn-4");
+
+    const authorization: SignedExecutionAuthorization = {
+      payload: {
+        version: 1,
+        authorizationId: "authorization-1",
+        nonce: "nonce-1",
+        decisionId: "decision-1",
+        businessTransactionId: "txn-4",
+        policyName: "vendor-payment",
+        policyVersion: "1.0.0",
+        authorizedAt: "2026-09-07T00:00:00.000Z",
+        expiresAt: "2026-09-07T00:05:00.000Z",
+        businessTransactionHash: "content-hash",
+      },
+      signature: "authorization-signature",
+      keyId: "default",
+      algorithm: SignatureAlgorithms.ED25519,
+    };
+
+    const signedRecord = await buildSignedMultiExecutionOverrideRecord(
+      transaction,
+      authorization,
+    );
+
+    const withHybridFields = {
+      ...signedRecord,
+      schemaVersion: 2,
+      signatures: [
+        {
+          algorithm: SignatureAlgorithms.ED25519,
+          keyId: "default",
+          value: "primary-signature",
+          signedAt: signedRecord.signature.signedAt,
+        },
+        {
+          algorithm: "dilithium3",
+          keyId: "default-secondary",
+          value: "secondary-signature",
+          signedAt: signedRecord.signature.signedAt,
+        },
+      ],
+    };
+
+    await repository.create(withHybridFields);
+
+    const found = await repository.findByTransactionId("txn-4");
+
+    // Nested Date fields (signatures[].signedAt) round-trip through
+    // JSONB as strings, not Date instances -- same quirk already
+    // documented for execution_json in the replaceExecution test above.
+    expect(found!.authorization).toEqual(authorization);
+    expect(found!.schemaVersion).toBe(2);
+    expect(found!.signatures).toEqual(JSON.parse(JSON.stringify(withHybridFields.signatures)));
+  });
+
+  it("returns no authorization/schemaVersion/signatures fields when none were persisted (legacy row)", async () => {
+    const repository = new SupabaseExecutionTrustRecordRepository(createFakePool());
+    const transaction = buildBusinessTransaction("txn-5");
+    const signedRecord = await buildSignedMultiExecutionOverrideRecord(transaction);
+
+    await repository.create(signedRecord);
+
+    const found = await repository.findByTransactionId("txn-5");
+
+    expect(found!.authorization).toBeUndefined();
+    expect(found!.schemaVersion).toBeUndefined();
+    expect(found!.signatures).toBeUndefined();
   });
 });

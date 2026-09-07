@@ -50,6 +50,10 @@ export class BusinessTrustRecordBuilder {
 
       transaction: context.transaction,
 
+      ...(context.authorization !== undefined
+        ? { authorization: context.authorization }
+        : {}),
+
       overrides:
         context.override
           ? [context.override]

@@ -6,7 +6,8 @@ Encode Parmana domain models into Runtime JSON.
 
 from __future__ import annotations
 
-from dataclasses import asdict, is_dataclass
+from dataclasses import fields as dataclass_fields
+from dataclasses import is_dataclass
 from datetime import datetime, timezone
 from typing import Any
 
@@ -32,8 +33,22 @@ def encode(value: Any) -> Any:
     if is_dataclass(value):
         # `is_dataclass` narrows to `DataclassInstance | type[DataclassInstance]`;
         # `encode()` is only ever called with instances, never a class.
-        fields = asdict(value)  # type: ignore[arg-type]
-
+        #
+        # Recurses via dataclasses.fields()/getattr() rather than
+        # dataclasses.asdict(): asdict() eagerly flattens every nested
+        # dataclass into a plain dict *before* this function ever sees
+        # it, so only the outermost level would still look like a
+        # dataclass to the `is_dataclass(value)` check below -- an
+        # unset `| None = None` field on any NESTED dataclass (e.g.
+        # BusinessTransactionMetadata.granted_capability inside
+        # BusinessTransaction.metadata) would fall through to the
+        # dict branch instead, which has no None-filtering at all, and
+        # get sent as an explicit JSON `null`. Recursing on real
+        # attribute values instead keeps every nested dataclass a
+        # genuine dataclass instance when `encode()` reaches it, so
+        # the None-filtering below applies at every depth, not just
+        # the top one.
+        #
         # Every `| None = None` dataclass field the generator produces
         # comes from a TS *optional* (`foo?:`) property, never a
         # `| null` required one (generate_models.ts has no mapping for
@@ -43,11 +58,15 @@ def encode(value: Any) -> Any:
         # changes what a re-hash (e.g. RefusalApi.verify(), which
         # re-hashes whatever canonical bytes it receives) computes,
         # breaking verification on a serialization difference alone,
-        # not a real integrity problem.
+        # not a real integrity problem -- and, as observed against a
+        # live server, can also trip a strict `!== undefined` check
+        # downstream (e.g. DefaultConnectorPolicy.assertAllowed's
+        # grantedCapability check) that a genuinely absent key would
+        # never reach at all.
         return {
-            _camel(key): encode(item)
-            for key, item in fields.items()
-            if item is not None
+            _camel(field.name): encode(getattr(value, field.name))
+            for field in dataclass_fields(value)
+            if getattr(value, field.name) is not None
         }
 
     #

@@ -15,6 +15,7 @@ import {
   type ExecutionTrustRecord,
   type Override,
   type Receipt,
+  type SignedExecutionAuthorization,
   type Verification,
 } from "@parmana/shared";
 
@@ -181,6 +182,7 @@ function buildReceipt(
  */
 export async function buildSignedMultiExecutionOverrideRecord(
   transaction: BusinessTransaction,
+  authorization?: SignedExecutionAuthorization,
 ): Promise<ExecutionTrustRecord> {
   const businessTransactionId = transaction.businessTransactionId;
 
@@ -218,6 +220,8 @@ export async function buildSignedMultiExecutionOverrideRecord(
     businessTransactionId,
 
     transaction,
+
+    ...(authorization !== undefined ? { authorization } : {}),
 
     overrides,
 

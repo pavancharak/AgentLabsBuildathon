@@ -27,6 +27,15 @@ import type { Pool } from "pg";
  * is a BIGSERIAL populated by Postgres itself on insert
  * (supabase/migrations/20260711120000_add_trust_record_sequence_columns.sql),
  * so this class never assigns it explicitly, only reads it back.
+ *
+ * authorization_json/schema_version/signatures_json (added by
+ * 20260907120000_add_authorization_and_hybrid_signatures_to_execution_trust_records.sql)
+ * are all nullable and written/read alongside the rest of the header --
+ * schema_version/signatures_json close a gap where a CRYPTO_MODE=hybrid
+ * record's second signature was silently dropped on every round trip
+ * through this repository (no column ever existed for it), degrading
+ * hybrid verification to single-signature for anything reloaded from
+ * Supabase.
  */
 export class SupabaseExecutionTrustRecordRepository
   implements ExecutionTrustRecordRepository
@@ -49,6 +58,13 @@ export class SupabaseExecutionTrustRecordRepository
       JSON.stringify(record.signature),
       record.createdAt.toISOString(),
       record.updatedAt.toISOString(),
+      record.authorization !== undefined
+        ? JSON.stringify(record.authorization)
+        : null,
+      record.schemaVersion ?? null,
+      record.signatures !== undefined
+        ? JSON.stringify(record.signatures)
+        : null,
     ]);
 
     return record;
@@ -101,6 +117,15 @@ export class SupabaseExecutionTrustRecordRepository
 
       trustRecordHash: header.trust_record_hash,
       signature: header.signature_json,
+      ...(header.authorization_json != null
+        ? { authorization: header.authorization_json }
+        : {}),
+      ...(header.schema_version != null
+        ? { schemaVersion: header.schema_version }
+        : {}),
+      ...(header.signatures_json != null
+        ? { signatures: header.signatures_json }
+        : {}),
       createdAt: new Date(header.created_at),
       updatedAt: new Date(header.updated_at),
     };
@@ -227,9 +252,10 @@ export class SupabaseExecutionTrustRecordRepository
 const INSERT_TRUST_RECORD_SQL = `
   INSERT INTO execution_trust_records
     (trust_record_id, business_transaction_id, transaction_json,
-     trust_record_hash, signature_json, created_at, updated_at)
+     trust_record_hash, signature_json, created_at, updated_at,
+     authorization_json, schema_version, signatures_json)
   VALUES
-    ($1, $2, $3::jsonb, $4, $5::jsonb, $6, $7)
+    ($1, $2, $3::jsonb, $4, $5::jsonb, $6, $7, $8::jsonb, $9, $10::jsonb)
 `;
 
 const SELECT_HEADER_SQL = `
@@ -306,4 +332,7 @@ interface TrustRecordHeaderRow {
   readonly signature_json: ExecutionTrustRecord["signature"];
   readonly created_at: string | Date;
   readonly updated_at: string | Date;
+  readonly authorization_json?: ExecutionTrustRecord["authorization"] | null;
+  readonly schema_version?: number | null;
+  readonly signatures_json?: ExecutionTrustRecord["signatures"] | null;
 }

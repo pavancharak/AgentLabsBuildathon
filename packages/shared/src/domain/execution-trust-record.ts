@@ -5,6 +5,7 @@ import { Verification } from "./verification.js";
 import { Receipt } from "./receipt.js";
 import { Signature } from "./signature.js";
 import { SignatureEntry } from "./signature-entry.js";
+import { SignedExecutionAuthorization } from "./execution-authorization.js";
 
 /**
  * Parmana Trust Core
@@ -66,6 +67,26 @@ export interface ExecutionTrustRecord {
    * of Execution Trust Record state.
    */
   readonly receipts: readonly Receipt[];
+
+  /**
+   * The Signed Execution Authorization the Execution Gateway accepted
+   * for this transaction -- the exact nonce, expiry, businessTransaction/
+   * policy/signals hashes, and signature ExecutionGateway.verify()
+   * checked before dispatching to a connector.
+   *
+   * Absent for any Trust Record built before this field existed, or
+   * for a transaction that never reached execution (e.g. a policy
+   * rejection, which never produces an authorization at all). Absent
+   * is not a defect: it means "no authorization exists for this
+   * record," not "one exists but wasn't captured." A present value is
+   * included in the canonical hash/signature (see
+   * VerificationCrypto.canonicalRecord()) so a loaded record's
+   * authorization cannot be swapped or stripped without invalidating
+   * trustRecordHash/signature -- verified independently of the
+   * authorization's own embedded signature, which an auditor can also
+   * check on its own terms via AuthorizationVerifier (@parmana/crypto).
+   */
+  readonly authorization?: SignedExecutionAuthorization;
 
   /**
    * Canonical hash of the Execution Trust Record.

@@ -66,6 +66,19 @@ def test_encode_business_transaction():
 
     assert payload["metadata"]["correlationId"] == "corr-001"
 
+    # Regression: encode() previously used dataclasses.asdict(), which
+    # flattens every nested dataclass into a plain dict before this
+    # function's own None-filtering ever runs on it -- so an unset
+    # nested optional field (tenant_id=None here) was sent as an
+    # explicit JSON null instead of being omitted, unlike an unset
+    # *top-level* optional field. Runtime treats "key absent" and "key
+    # present with value null" differently (e.g.
+    # DefaultConnectorPolicy.assertAllowed's grantedCapability check),
+    # so this must stay omitted at every nesting depth, not just the
+    # top one.
+    assert "tenantId" not in payload["metadata"]
+    assert "grantedCapability" not in payload["metadata"]
+
     assert payload["authority"]["authorityId"] == "authority-001"
 
     assert payload["authorization"]["authorizationId"] == "authz-001"

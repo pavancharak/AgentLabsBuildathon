@@ -36,6 +36,12 @@ class ExecutionAuthorizationPayload:
 
     policy_content_hash: str | None = None
 
+    signals_hash: str | None = None
+
+    submitted_by: str | None = None
+
+    granted_capability: str | None = None
+
 
 @dataclass(frozen=True)
 class SignedExecutionAuthorization:
