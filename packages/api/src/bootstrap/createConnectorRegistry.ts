@@ -29,6 +29,7 @@ import { createHubSpotCredentialProvider } from "./createHubSpotCredentialProvid
 import { createGitHubConnector } from "./createGitHubConnector.js";
 import { createGitHubCredentialProvider } from "./createGitHubCredentialProvider.js";
 import { createTestFixtureConnector } from "./createTestFixtureConnector.js";
+import { assertConnectorCapabilitiesBound } from "./assertConnectorCapabilitiesBound.js";
 
 /**
  * Creates the production connector registry.
@@ -38,6 +39,11 @@ import { createTestFixtureConnector } from "./createTestFixtureConnector.js";
  * SessionCredentialSecureConnectorOptions.gatewayAuthentication) — it is
  * NOT request-bound; the request-bound check happens earlier, at
  * SessionCredentialExecutionControl.
+ *
+ * Every registration built here is checked by
+ * assertConnectorCapabilitiesBound before the registry is returned —
+ * see that file's doc comment for why an unbound capability is a
+ * fail-closed startup error, not a runtime surprise.
  */
 export function createConnectorRegistry(
   authenticator: ConnectorAuthenticator,
@@ -150,6 +156,8 @@ export function createConnectorRegistry(
       audit,
     });
   }
+
+  assertConnectorCapabilitiesBound(registrations);
 
   return createGatewayConnectorRegistry(registrations);
 }
