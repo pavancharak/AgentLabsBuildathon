@@ -8,7 +8,6 @@
     { "path": "./packages/storage" },
     { "path": "./packages/replay" },
     { "path": "./packages/policy" },
-    { "path": "./packages/receipt" },
     { "path": "./packages/api" },
     { "path": "./packages/governance-ui" },
     { "path": "./packages/envelope-verifier" },

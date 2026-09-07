@@ -24,7 +24,6 @@
   ],
 
   "references": [
-    { "path": "../storage" },
     { "path": "../policy" }
   ]
 }

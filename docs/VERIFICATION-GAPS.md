@@ -987,6 +987,20 @@ outside `packages/receipt/src` itself, matching this entry's original "disconnec
 code with a public export surface and zero automated proof of correctness — that
 conclusion holds, just for the correct class names.
 
+**Update (2026-09-08): deleted.** `packages/receipt` has been removed from this
+repository entirely (`ReceiptEngine.ts`, `ReceiptBuilder.ts`, its own `package.json`,
+and its project references from the root `tsconfig.json` and `packages/api/tsconfig.json`)
+as part of a dead-code cleanup pass, re-confirming immediately before deletion that
+nothing outside its own directory (and `package-lock.json`, which self-corrects on the
+next `npm install`) referenced it. Real receipt generation was, and remains, entirely
+unaffected — it is `@parmana/crypto`'s `ReceiptCrypto.createReceipt()`, wired into
+`packages/runtime/src/services/receipt-service.ts`, a different class this entry never
+described. This gap is now closed by removal rather than by adding tests to dead code.
+Full repo `npx tsc -b` and `npx vitest run` clean after the deletion: 1,539 passed, 38
+pre-existing skips, 0 failed (down from 1,551 — four now-meaningless test files for
+other dead code removed in the same pass, see the runtime/storage/crypto/shared entries
+in this same cleanup).
+
 **Not to be confused with the real, live receipt mechanism**, which is fully implemented,
 wired, and tested: `ReceiptService.generate()` (`packages/runtime/src/services/
 receipt-service.ts`) — called directly by `ExecutionTrustApplication.execute()` on every

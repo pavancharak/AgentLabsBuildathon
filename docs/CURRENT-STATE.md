@@ -70,20 +70,43 @@ can actually invoke. The other 8 — `access-control`, `connector-capability`,
 connector that can invoke them today. They are reference/example content,
 not live surface.
 
-## Confirmed dead code (zero non-self references, verified by grep)
+## Dead code: deleted (2026-09-08)
+
+Everything below was confirmed to have zero non-self references (rechecked
+fresh immediately before deletion, not assumed from this document's own
+first draft) and has been removed:
 
 - `@parmana/receipt` — the entire package
 - `packages/runtime/src/policy/*` — a second, structurally incompatible
   `PolicyRouter`/`PolicyEngine`/`PolicyValidator` implementation, distinct
-  from the real one in `@parmana/policy`; contains a live bug
-  (`PolicyRegistry.getPolicy()` ignores its own lookup and always
-  constructs a fresh `PolicyEngine`), harmless only because nothing calls it
-- `packages/storage`'s `StorageEngine`/`AppendOnlyLedger`/`LedgerSerializer`
-  subsystem — a second, incompatible, in-memory-only "ledger," unrelated to
-  the real audit trail
-- Several smaller orphaned files in `@parmana/crypto`/`@parmana/shared`
-  (`LocalFileKeyManager.ts`, `GatewayAuthentication*.ts`, a duplicate
-  `KeyProvider` interface, a handful of unexported domain types)
+  from the real one in `@parmana/policy`; had a live bug
+  (`PolicyRegistry.getPolicy()` ignored its own lookup and always
+  constructed a fresh `PolicyEngine`), harmless only because nothing called
+  it — plus its own dedicated test, `tests/unit/policy-router.test.ts`
+- `packages/runtime/src/ports/*`, `services/DecisionService.ts`,
+  `services/override-service.ts`, `RuntimeGatewayAuthenticator.ts` (0 bytes)
+- `packages/storage`'s `StorageEngine`/`StorageBuilder`/`AppendOnlyLedger`/
+  `LedgerEntry`/`LedgerSerializer` subsystem and its three toy in-memory
+  repositories — a second, incompatible, in-memory-only "ledger," unrelated
+  to the real audit trail — plus its three dedicated tests, and
+  `@parmana/replay`'s `ReplayContext.ts` (its only real consumer)
+- Eight orphaned files in `@parmana/crypto` (`LocalFileKeyManager.ts`, the
+  four `GatewayAuthentication*.ts` files, `modules/CryptoModule.ts` +
+  `BuiltinCryptoModule.ts`, a duplicate `KeyProvider` interface)
+- Five dead types in `@parmana/shared` (`types/Verification.ts`,
+  `ExecutionStatus.ts`, `ExecutionProof.ts`, `ExecutionTransaction.ts`,
+  `Metadata.ts` — the last three were exported from the package root despite
+  zero consumers anywhere in this monorepo; their export lines were removed
+  too)
+
+**Two things this document originally flagged turned out not to be dead on
+closer inspection, and were kept:** `packages/runtime/src/components/
+ReceiptComponent.ts` is a deliberately-kept, documented, exported extension
+point (not wired into the default pipeline, but genuinely used/tested), and
+`packages/crypto/scripts/generate-keypair.ts` is actually invoked by
+`examples/04-verified-execution/run.ts` — a real caller this document missed
+the first time. Full repo `npx tsc -b` and `npx vitest run` clean after the
+cleanup: 1,539 passed, 38 pre-existing skips, 0 failed.
 
 ## Explicitly does not exist in this codebase
 

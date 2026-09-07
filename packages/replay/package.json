@@ -23,8 +23,7 @@
   },
   "dependencies": {
     "@parmana/policy": "0.1.0",
-    "@parmana/shared": "0.1.0",
-    "@parmana/storage": "0.1.0"
+    "@parmana/shared": "0.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

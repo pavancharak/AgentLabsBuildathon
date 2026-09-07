@@ -66,7 +66,6 @@ Leaf/standalone packages, not in the above spine:
                             zero @parmana/* runtime deps by design)
   @parmana/replay         (decision replay — re-runs PolicyEngine.evaluate only, not a
                             full execution replay)
-  @parmana/receipt        (fully dead/orphaned — see §3)
   typescript/ (npm "@parmana/sdk"), python/ (pip "parmana")
                            (client SDKs, HTTP wrappers over the API — Python's models are
                             codegenned from packages/shared; TypeScript's are hand-written
@@ -171,8 +170,8 @@ is `limitPerMinute * machineCount`, not fleet-wide.
 ## 3. `packages/runtime` — the orchestrator
 
 `RuntimeEngine.execute()` flow: load policy via `PolicyRouter` (from `@parmana/policy`
-— **not** the orphaned `packages/runtime/src/policy/PolicyRouter.ts`, different,
-incompatible, unreachable class, see dead-code list) -> compute `policyContentHash` ->
+— a second, incompatible `packages/runtime/src/policy/PolicyRouter.ts` existed at one
+point and has since been deleted, see §10 changelog) -> compute `policyContentHash` ->
 `CapabilityPolicyBinder.findViolation()` (short-circuits to REJECT if capability has a
 canonical binding the declared policy doesn't match) -> `SignalIntentBinder.
 findViolations()` (short-circuits to REJECT if policy's `boundSignals` don't match
@@ -208,27 +207,23 @@ not per-transaction.
 (`...(context.authorization !== undefined ? {authorization: context.authorization} : {})`)
 to satisfy `exactOptionalPropertyTypes`.
 
-**Dead/orphaned code, confirmed by repo-wide grep, zero non-self references:**
-- `packages/runtime/src/policy/` — entire subtree (`PolicyRouter.ts`, `PolicyAdapter.ts`,
-  `PolicyRegistry.ts`, `PolicyValidator.ts`, `SignalValidator.ts`, `OverrideVerifier.ts`,
-  `types/RuntimePolicy.ts`, `types/RuntimeTransaction.ts`). **Naming collision hazard**:
-  this `PolicyRouter`'s API (`load(reference: PolicyReference)`, sync `readFileSync`) is
-  completely different from the real one (`@parmana/policy`'s `PolicyRouter`, async
-  `load(name, version)`) — editing "PolicyRouter" without checking the import risks
-  touching the wrong class. `PolicyRegistry.getPolicy()` here has a live bug (looks up
-  `meta`, ignores it, returns `new PolicyEngine()` unconditionally) — harmless only
-  because unreachable. `OverrideVerifier.ts` uses RSA/`createVerify("SHA256")`,
-  structurally unrelated to the Ed25519/hybrid signing used everywhere else.
-- `packages/runtime/src/ports/` (`ExecutionTrustRecordStore.ts`, `TrustRecordHasher.ts`,
-  `VerificationEngine.ts`) — unreferenced; `ExecutionTrustRecordStore`'s shape doesn't
-  even match the real repository interface.
-- `services/DecisionService.ts`, `services/override-service.ts` — not exported, not
-  imported anywhere in `src`/`tests`.
-- `RuntimeGatewayAuthenticator.ts` — 0 bytes.
-- `components/ReceiptComponent.ts` — dead on the production path by its own doc comment
-  (real receipt generation is `ExecutionTrustApplication.execute()`'s direct
-  `this.receipts.generate(...)` call; `RuntimeFactory` only wires
-  `TrustChainValidationComponent` + `ExecutionComponent`).
+**Deleted (2026-09-08 dead-code cleanup — see §10):** `packages/runtime/src/policy/`
+(entire subtree: `PolicyRouter.ts`, `PolicyAdapter.ts`, `PolicyRegistry.ts`,
+`PolicyValidator.ts`, `SignalValidator.ts`, `OverrideVerifier.ts`,
+`types/RuntimePolicy.ts`, `types/RuntimeTransaction.ts`, plus the dedicated test that
+imported it, `tests/unit/policy-router.test.ts`), `packages/runtime/src/ports/`
+(`ExecutionTrustRecordStore.ts`, `TrustRecordHasher.ts`, `VerificationEngine.ts`),
+`services/DecisionService.ts`, `services/override-service.ts`,
+`RuntimeGatewayAuthenticator.ts` (0 bytes). Each was reconfirmed to have zero non-self
+references, including from tests, immediately before deletion.
+
+**Not dead, kept:** `components/ReceiptComponent.ts` is not on the default production
+pipeline by its own doc comment (real receipt generation is
+`ExecutionTrustApplication.execute()`'s direct `this.receipts.generate(...)` call;
+`RuntimeFactory` only wires `TrustChainValidationComponent` + `ExecutionComponent`), but
+it is a genuinely exported, documented, tested extension point (`ReceiptService` is
+real and live) — "not on the default path" and "dead code" are different things, and
+this is the former, not the latter.
 
 **Gotchas:** `ExecutionBuilder.build()` hardcodes `ExecutionMode.SYNC`.
 `VerificationService.runChecks()` treats an `Execution` with no chain fields as
@@ -284,7 +279,7 @@ comment.
 
 ---
 
-## 5. `packages/crypto`, `packages/envelope-verifier`, `packages/policy`, `packages/capability-registry`, `packages/receipt`
+## 5. `packages/crypto`, `packages/envelope-verifier`, `packages/policy`, `packages/capability-registry`
 
 **Crypto**: `CryptoBootstrap.create()`/`.createHybrid()` — process-lifetime cached
 singleton (config changes mid-test need `vi.resetModules()`). Only 2 real signature
@@ -302,11 +297,17 @@ independently verify, no partial pass. `VerificationCrypto.canonicalRecord()` �
 `verifications`/`receipts` (produced after sealing, would be circular).
 `CanonicalSerializer` normalizes via `Object.keys().sort()` + `JSON.stringify` — the
 latter drops `undefined`-valued keys, which is what makes additive optional trust-record
-fields backward-compatible for free. Dead files (confirmed 0-byte or unreferenced):
+fields backward-compatible for free. **Deleted (2026-09-08 cleanup):**
 `LocalFileKeyManager.ts`, `GatewayAuthentication{Builder,Signer,Validator,Verifier}.ts`,
-`modules/CryptoModule.ts`+`BuiltinCryptoModule.ts`, a second incompatible `KeyProvider`
-interface in `providers/key/KeyProvider.ts`, a duplicate `scripts/generate-keypair.ts`
-(the real one consumed by root `package.json` is at repo root `scripts/`).
+`modules/CryptoModule.ts`+`BuiltinCryptoModule.ts`, and a second, incompatible
+`KeyProvider` interface that lived at `providers/key/KeyProvider.ts` (the real one,
+which `FileKeyProvider` actually implements, is `packages/crypto/src/KeyProvider.ts` —
+confirmed by its own import before deleting the duplicate). **Correction to an earlier
+version of this section:** `packages/crypto/scripts/generate-keypair.ts` was previously
+listed here as a dead duplicate of the root `scripts/generate-keypair.ts` — that was
+wrong. It is genuinely invoked at runtime, via `execFileSync`, by
+`examples/04-verified-execution/run.ts` to bootstrap example keys on a fresh clone; the
+two files serve different callers and neither is dead. Not deleted.
 
 **envelope-verifier**: `EnvelopeVerifier.verify()` composes `verifyChecks()` (all
 side-effect-free) then `consumeNonce()` only if checks passed (prevents nonce-poisoning
@@ -329,11 +330,11 @@ the startup guardrail that now catches *future* unbound registrations (does not
 retroactively protect the 8 unused policies, since nothing registers their capabilities
 today).
 
-**receipt** (`@parmana/receipt`): **fully dead/orphaned**, confirmed via repo-wide grep
-(only self-referenced, no `package.json` outside its own declares it as a dependency).
-Real receipt generation is `@parmana/crypto`'s `ReceiptCrypto.createReceipt()`, wired
-into `packages/runtime/src/services/receipt-service.ts`. Docs still reference the dead
-package — a confirmed instance of doc/code drift, not just a theoretical risk.
+**receipt** (`@parmana/receipt`): **deleted (2026-09-08 cleanup)** — it was fully
+dead/orphaned (only self-referenced, no `package.json` outside its own declared it as a
+dependency), reconfirmed immediately before removal. Real receipt generation is, and
+was always, `@parmana/crypto`'s `ReceiptCrypto.createReceipt()`, wired into
+`packages/runtime/src/services/receipt-service.ts` — unaffected by the deletion.
 
 ---
 
@@ -369,14 +370,18 @@ atomicity is two-layered everywhere: application-level check (racy on `memory`, 
 by `Map.has`+`Map.set` in the same synchronous tick) + a real DB constraint on Supabase
 (`23505` unique-violation mapped to `DuplicateBusinessTransactionError`).
 
-**System B (dead toy subsystem, also in this package)**: `StorageEngine`,
-`StorageBuilder`, `AppendOnlyLedger`, `LedgerSerializer` (uses
-`JSON.stringify(entry, Object.keys(entry).sort())` — filters top-level keys only, does
-**not** recursively canonicalize, same non-canonical-hash anti-pattern as the dead
-`@parmana/receipt` package), and three ~18-line in-memory-array repositories
-(`ExecutionRepository`/`VerificationRepository`/`CryptoProofRepository`). Referenced
-only by their own tests and by `@parmana/replay`'s unused `ReplayContext.ts`. Unrelated
-to, and structurally incompatible with, System A.
+**System B (deleted 2026-09-08 — was a dead toy subsystem, also in this package)**:
+`StorageEngine`, `StorageBuilder`, `AppendOnlyLedger`, `LedgerEntry`, `LedgerSerializer`
+(used `JSON.stringify(entry, Object.keys(entry).sort())` — filtered top-level keys
+only, did **not** recursively canonicalize, the same non-canonical-hash anti-pattern the
+deleted `@parmana/receipt` package also had), and three ~18-line in-memory-array
+repositories (`ExecutionRepository`/`VerificationRepository`/`CryptoProofRepository`).
+Was referenced only by their own tests (also deleted:
+`tests/unit/storage-engine.test.ts`, `append-only-ledger.test.ts`,
+`ledger-serializer.test.ts`) and by `@parmana/replay`'s own unused `ReplayContext.ts`
+(also deleted, along with its export from `replay/src/index.ts` and the now-unneeded
+`@parmana/storage` dependency from `replay/package.json`/`tsconfig.json`). Was unrelated
+to, and structurally incompatible with, System A, which is unaffected by this removal.
 
 ---
 
@@ -431,11 +436,17 @@ Currently unreachable in practice since `TRUSTED_APPROVAL_ISSUERS` is empty (§2
 narrow by design (only `PolicyEngine.evaluate` REJECTs and `SignalIntentBinder`
 violations, not every possible rejection — caller-auth failures are a separate,
 unsigned mechanism). `ChallengeRecord` is deliberately **unsigned** (evidence of an
-organizational process, not a runtime transaction). Two dead, unexported-from-root
-types: `types/Verification.ts` (differently-shaped duplicate of the real,
-root-exported `domain/verification.ts` `Verification`), `types/ExecutionProof.ts`,
-`types/ExecutionStatus.ts`, `types/ExecutionTransaction.ts`, `types/Metadata.ts` — zero
-consumers outside `shared` itself.
+organizational process, not a runtime transaction). **Deleted (2026-09-08 cleanup):**
+five dead types with zero consumers outside `shared` itself — `types/Verification.ts`
+(a differently-shaped duplicate of the real, root-exported `domain/verification.ts`
+`Verification`) and `types/ExecutionStatus.ts` were genuinely unexported from the
+package root; `types/ExecutionProof.ts`, `types/ExecutionTransaction.ts`, and
+`types/Metadata.ts` were, contrary to an earlier version of this note, actually
+exported from `packages/shared/src/index.ts` (part of the package's declared public
+surface) despite having no internal consumer anywhere in this monorepo, including the
+SDKs — checked by grepping for each name imported specifically via `@parmana/shared`,
+not just by internal relative path, before deleting. Their export lines were removed
+from `index.ts` in the same pass.
 
 **typescript/ SDK** (`@parmana/sdk`): thin HTTP wrappers, no business logic. As of
 commit `8fdc09c`, `PolicyApi.validate(policyId, policyVersion)` sends the correct
@@ -532,3 +543,57 @@ describes, or update the relevant section directly and note it here.
 This file itself was created in the commit that follows the above (see `git log` for
 the actual hash at read time — this line is intentionally not hash-pinned since it
 describes its own commit).
+
+- `437f5ec` — Policy Governance hardening: `PolicyChangeCrypto.verify()` wired into
+  `verifyPolicyGovernanceIntegrityAtStartup` (new `"signature-invalid"` mismatch
+  reason), `previousRecordHash` chaining on `PolicyChangeApprovalRecord` (new
+  `"chain-broken"` reason, requires a Supabase migration), a 5-minute periodic re-run
+  on top of the startup-only check, `PolicyValidator` regex hardening, coverage
+  warnings surfaced on the pending-change endpoints, and removal of the (already
+  unexported) `policy/src/types/LedgerEntry.ts`/`hashLedger()`. See `docs/CLAIMS.md`
+  §2.34, `docs/VERIFICATION-GAPS.md` gaps 35-38.
+- `4e1a8e3` — fix: `scripts/backfill-legacy-policy-approvals.ts` (new in `437f5ec`)
+  must not treat a real, already-open `PendingPolicyChange` as "legacy" — see
+  `docs/VERIFICATION-GAPS.md` gap 39.
+- `7a1aa37` — execution-time Policy Governance verification:
+  `PolicyGovernanceExecutionVerifier` (new, `packages/api/src/governance/`), wired
+  into `RuntimeEngine.execute()` as a new optional trailing constructor param (same
+  idiom as `signalStateVerifier`/`capabilityPolicyBinder`), before
+  `capabilityPolicyBinder`/`signalIntentBinder`. Feature-flagged
+  (`POLICY_EXECUTION_VERIFICATION_ENFORCED`, default `false` — every real production
+  policy in this system is currently `PENDING_APPROVAL`, so an unconditional gate
+  would refuse all of them). See `docs/CLAIMS.md` §2.35, `docs/VERIFICATION-GAPS.md`
+  gap 40.
+- `ba456e0`, `b86b50d`, `f1de1ad`, `98dfcc1`, `f034fff`, `b6b05fa` — docs only: CLAIMS.md/
+  VERIFICATION-GAPS.md/changelog updates for the above, a real (not fabricated) policy
+  approval runbook (`docs/operations/policy-approval-runbook.md` +
+  `policy-approval-windows-setup.md`), and `docs/CURRENT-STATE.md` — a code-grounded
+  current-state summary distinct from this file, with no dates or version numbers.
+- **2026-09-08 dead-code cleanup** (this file's own §3/§5/§6/§7 sections updated
+  directly rather than only noted here, per this section's own instruction): deleted
+  `packages/receipt` (entire package), `packages/runtime/src/policy/` (entire
+  subtree, plus its dedicated test), `packages/runtime/src/ports/`,
+  `services/DecisionService.ts`, `services/override-service.ts`,
+  `RuntimeGatewayAuthenticator.ts` (0 bytes), `packages/storage`'s System B toy
+  subsystem (`StorageEngine.ts`, `StorageBuilder.ts`, `ledger/AppendOnlyLedger.ts`,
+  `ledger/LedgerEntry.ts`, `ledger/LedgerSerializer.ts`, the three toy repositories,
+  and their three dedicated tests), `packages/replay/src/context/ReplayContext.ts`
+  (its only real consumer), five dead types in `@parmana/shared`
+  (`types/Verification.ts`, `ExecutionStatus.ts`, `ExecutionProof.ts`,
+  `ExecutionTransaction.ts`, `Metadata.ts` — the last three were exported from the
+  package root despite zero consumers, corrected from this file's earlier claim that
+  all five were unexported), and eight orphaned files in `@parmana/crypto`
+  (`LocalFileKeyManager.ts`, the four `GatewayAuthentication*.ts` files,
+  `modules/CryptoModule.ts`+`BuiltinCryptoModule.ts`, the duplicate `KeyProvider`
+  interface at `providers/key/KeyProvider.ts`). Every deletion was reconfirmed with a
+  fresh repo-wide grep immediately beforehand, not assumed from this file's prior
+  claims — two of which turned out to be wrong on re-verification and are corrected
+  in place above: `components/ReceiptComponent.ts` is a deliberately-kept, documented,
+  exported extension point, not dead code (excluded from deletion), and
+  `packages/crypto/scripts/generate-keypair.ts` is genuinely invoked by
+  `examples/04-verified-execution/run.ts` (also excluded, previously miscategorized
+  here as a dead duplicate). Corresponding `index.ts` export lines,
+  `tsconfig.json`/`package.json` project references, and dependency declarations were
+  updated in the same pass. Full repo `npx tsc -b` and `npx vitest run` clean
+  afterward: 1,539 passed, 38 pre-existing skips, 0 failed (down from 1,551 — four
+  test files for now-deleted code removed, not a regression).

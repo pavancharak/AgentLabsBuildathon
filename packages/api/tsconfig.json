@@ -32,7 +32,6 @@
   { "path": "../policy" },
   { "path": "../runtime" },
   { "path": "../replay" },
-  { "path": "../receipt" },
   { "path": "../execution-system" },
   { "path": "../envelope-verifier" },
   { "path": "../execution-control" },
