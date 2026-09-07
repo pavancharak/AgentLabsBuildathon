@@ -209,7 +209,7 @@ try {
 
   console.log();
   console.log("Tutorial Complete");
-  console.log("This is currently the last tutorial in the sequence.");
+  console.log("Next: Tutorial 104 - Policy Governance Execution Verification");
 } finally {
   await new Promise((resolve) => server.close(resolve));
   rmSync(scratchPolicyDir, { recursive: true, force: true });

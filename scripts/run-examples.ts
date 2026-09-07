@@ -116,6 +116,7 @@ const examples = [
   "examples/tutorials/101-fail-closed-caller-audit-writes/run.ts",
   "examples/tutorials/102-distinguishable-http-status/run.ts",
   "examples/tutorials/103-policy-governance-maker-checker/run.ts",
+  "examples/tutorials/104-policy-governance-execution-verification/run.ts",
   "examples/scenarios/expense-approval/run.ts",
   "examples/scenarios/purchase-order/run.ts",
 ];

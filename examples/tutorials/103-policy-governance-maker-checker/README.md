@@ -25,4 +25,4 @@ Before this feature, any caller with write access to `policies/` could change wh
 
 ## Next Tutorial
 
-This is currently the last tutorial in the sequence.
+[Tutorial 104 — Policy Governance Execution Verification](../104-policy-governance-execution-verification/README.md) — what happens once an approved policy exists: execution-time refusal on tampering, independent of the approval flow this tutorial covers.
