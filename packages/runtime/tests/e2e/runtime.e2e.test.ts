@@ -288,6 +288,163 @@ signals: {
   );
 
   it(
+    "refuses execution when the configured PolicyExecutionVerifier finds a violation (2026-09-07 hardening pass), before PolicyEngine ever evaluates a rule",
+    async () => {
+      const policyExecutionVerifier = {
+        verify: async () => ({
+          reason: "has no PolicyChangeApprovalRecord -- test double",
+        }),
+      };
+
+      const runtime = new RuntimeEngine(
+        pipeline,
+        router,
+        policyEngine,
+        signalIntentBinder,
+        new DecisionBuilder(),
+        new ExecutionGate(),
+        new ExecutionBuilder(),
+        trustPipeline,
+        authorizationSigner,
+        120,
+        [],
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        policyExecutionVerifier,
+      );
+
+      // Otherwise a fully valid, approving transaction -- same fixture
+      // as "executes full trust pipeline deterministically" above.
+      const transaction: BusinessTransaction = {
+        businessTransactionId: "tx-governance-violation",
+
+        metadata: {
+          executionMode: "SYNC",
+        } as unknown as TransactionMetadata,
+
+        authority: {} as Authority,
+
+        authorization: {} as Authorization,
+
+        intent: {
+          intentId: "intent-governance-violation",
+          authorizationId: "authorization-governance-violation",
+          action: "payments:execute",
+          target: "vendor://payments",
+          parameters: {
+            amount: 100,
+          },
+          createdAt: new Date(),
+        },
+
+        policy: {
+          name: "vendor-payment",
+          version: "2.0.0",
+          schemaVersion: "1.0.0",
+        },
+
+        signals: {
+          vendorVerified: true,
+          invoiceVerified: true,
+          paymentApproved: true,
+          sufficientFunds: true,
+          paymentAmount: 100,
+          riskScore: 10,
+          vendorId: "vendor://payments",
+        },
+
+        status: BusinessTransactionStatus.RECEIVED,
+
+        createdAt: new Date(),
+      };
+
+      await expect(
+        runtime.execute(transaction),
+      ).rejects.toThrow("has no PolicyChangeApprovalRecord -- test double");
+    },
+  );
+
+  it(
+    "leaves execution unaffected when the configured PolicyExecutionVerifier finds no violation",
+    async () => {
+      const policyExecutionVerifier = {
+        verify: async () => undefined,
+      };
+
+      const runtime = new RuntimeEngine(
+        pipeline,
+        router,
+        policyEngine,
+        signalIntentBinder,
+        new DecisionBuilder(),
+        new ExecutionGate(),
+        new ExecutionBuilder(),
+        trustPipeline,
+        authorizationSigner,
+        120,
+        [],
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        policyExecutionVerifier,
+      );
+
+      const transaction: BusinessTransaction = {
+        businessTransactionId: "tx-governance-clean",
+
+        metadata: {
+          executionMode: "SYNC",
+        } as unknown as TransactionMetadata,
+
+        authority: {} as Authority,
+
+        authorization: {} as Authorization,
+
+        intent: {
+          intentId: "intent-governance-clean",
+          authorizationId: "authorization-governance-clean",
+          action: "payments:execute",
+          target: "vendor://payments",
+          parameters: {
+            amount: 100,
+          },
+          createdAt: new Date(),
+        },
+
+        policy: {
+          name: "vendor-payment",
+          version: "2.0.0",
+          schemaVersion: "1.0.0",
+        },
+
+        signals: {
+          vendorVerified: true,
+          invoiceVerified: true,
+          paymentApproved: true,
+          sufficientFunds: true,
+          paymentAmount: 100,
+          riskScore: 10,
+          vendorId: "vendor://payments",
+        },
+
+        status: BusinessTransactionStatus.RECEIVED,
+
+        createdAt: new Date(),
+      };
+
+      const result = await runtime.execute(transaction);
+
+      expect(result.trustRecord).toBeDefined();
+      expect(result.trustRecord.businessTransactionId).toBe(
+        transaction.businessTransactionId,
+      );
+    },
+  );
+
+  it(
     "fails safely on invalid transaction",
     async () => {
 const runtime = new RuntimeEngine(

@@ -25,6 +25,7 @@ import {
   SignalIntentBinder,
   type CapabilityPolicyBinder,
   type PolicyDecision,
+  type PolicyExecutionVerifier,
   type SignalIntentBindingViolation,
   type SignalStateVerifier,
   type SignalStateViolation,
@@ -133,6 +134,26 @@ export class RuntimeEngine {
      * generated.
      */
     private readonly capabilityPolicyBinder?: CapabilityPolicyBinder,
+    /**
+     * Policy Governance execution-time verification (2026-09-07
+     * hardening pass). Optional and trailing for the same
+     * backward-compatibility reason as capabilityPolicyBinder above:
+     * every pre-existing call site must keep compiling and behaving
+     * identically. When omitted, no policy is checked against Policy
+     * Governance at execution time -- current behavior, unchanged.
+     * When supplied, a policy with no approval record, an approval
+     * record whose signature does not verify, or live content that no
+     * longer matches its approval record is rejected before
+     * PolicyEngine ever evaluates a single rule in it -- an ordinary
+     * policy REJECT, no authorization ever generated. Runs before
+     * capabilityPolicyBinder/signalIntentBinder for the same reason
+     * capabilityPolicyBinder runs before signalIntentBinder: checking
+     * a narrower guarantee against a policy that might itself be
+     * illegitimate is meaningless. Deliberately not wired to run
+     * unconditionally -- see createPolicyExecutionVerifier.ts
+     * (packages/api) for why this defaults to unconfigured.
+     */
+    private readonly policyExecutionVerifier?: PolicyExecutionVerifier,
   ) {
     if (!pipeline) {
       throw new Error("RuntimePipeline is required.");
@@ -174,6 +195,8 @@ export class RuntimeEngine {
         this.signalStateVerifier !== undefined,
       capabilityPolicyBinderConfigured:
         this.capabilityPolicyBinder !== undefined,
+      policyExecutionVerifierConfigured:
+        this.policyExecutionVerifier !== undefined,
       refusalRecordingConfigured:
         this.refusalRecordBuilder !== undefined &&
         this.refusalRecordRepository !== undefined,
@@ -230,6 +253,24 @@ export class RuntimeEngine {
       await this.policyContentHasher.hash(policy);
 
     //
+    // Policy Governance execution-time verification (2026-09-07)
+    //
+    // Runs before capability/signal-intent binding, over the loaded
+    // policy's own declared identity (policy.policyId/policyVersion,
+    // never transaction.policy -- what the caller declared) and the
+    // content hash just computed above, so no extra hash is computed.
+    // See policyExecutionVerifier's own constructor doc comment for
+    // why this defaults to unconfigured.
+    //
+
+    const policyExecutionViolation =
+      await this.policyExecutionVerifier?.verify(
+        policy.policyId,
+        policy.policyVersion,
+        policyContentHash,
+      );
+
+    //
     // Signal/Intent binding
     //
     // Runs before policy evaluation, over the exact signals
@@ -264,13 +305,15 @@ export class RuntimeEngine {
     //
 
     const capabilityBindingViolation =
-      this.capabilityPolicyBinder?.findViolation(
-        transaction.intent.action,
-        transaction.policy,
-      );
+      policyExecutionViolation === undefined
+        ? this.capabilityPolicyBinder?.findViolation(
+            transaction.intent.action,
+            transaction.policy,
+          )
+        : undefined;
 
     const bindingViolations =
-      capabilityBindingViolation === undefined
+      policyExecutionViolation === undefined && capabilityBindingViolation === undefined
         ? this.signalIntentBinder.findViolations(
             policy,
             signals,
@@ -291,7 +334,17 @@ export class RuntimeEngine {
     );
 
     const provisionalDecision: PolicyDecision =
-      capabilityBindingViolation !== undefined
+      policyExecutionViolation !== undefined
+        ? {
+            policyId: policy.policyId,
+            policyVersion: policy.policyVersion,
+            outcome: PolicyOutcome.REJECT,
+            reason: `Rejected: ${policyExecutionViolation.reason}.`,
+            matchedRuleId: "policy-execution-verification-violation",
+            evaluatedRules: 0,
+            matchedPath: [],
+          }
+        : capabilityBindingViolation !== undefined
         ? {
             policyId: policy.policyId,
             policyVersion: policy.policyVersion,

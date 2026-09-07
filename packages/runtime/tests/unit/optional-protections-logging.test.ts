@@ -67,6 +67,7 @@ describe("RuntimeEngine optional-protections logging", () => {
         event: "runtime_engine_constructed",
         signalStateVerifierConfigured: false,
         capabilityPolicyBinderConfigured: false,
+        policyExecutionVerifierConfigured: false,
         refusalRecordingConfigured: false,
       }),
     );
@@ -88,6 +89,7 @@ describe("RuntimeEngine optional-protections logging", () => {
         event: "runtime_engine_constructed",
         signalStateVerifierConfigured: true,
         capabilityPolicyBinderConfigured: false,
+        policyExecutionVerifierConfigured: false,
         refusalRecordingConfigured: false,
       }),
     );
@@ -110,6 +112,31 @@ describe("RuntimeEngine optional-protections logging", () => {
         event: "runtime_engine_constructed",
         signalStateVerifierConfigured: false,
         capabilityPolicyBinderConfigured: true,
+        policyExecutionVerifierConfigured: false,
+        refusalRecordingConfigured: false,
+      }),
+    );
+  });
+
+  it("logs policyExecutionVerifierConfigured true when only that protection is supplied", () => {
+    const policyExecutionVerifier = { verify: async () => undefined };
+
+    new RuntimeEngine(
+      ...buildRequiredArgs(),
+      [],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      policyExecutionVerifier as never,
+    );
+
+    expect(logSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: "runtime_engine_constructed",
+        signalStateVerifierConfigured: false,
+        capabilityPolicyBinderConfigured: false,
+        policyExecutionVerifierConfigured: true,
         refusalRecordingConfigured: false,
       }),
     );

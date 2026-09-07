@@ -23,6 +23,11 @@ export type {
 
 export { CompositeSignalStateVerifier } from "./CompositeSignalStateVerifier.js";
 
+export type {
+  PolicyExecutionVerifier,
+  PolicyExecutionViolation,
+} from "./types/PolicyExecutionVerifier.js";
+
 export {
   CANONICAL_CAPABILITY_POLICY_BINDINGS,
   CapabilityPolicyBinder,

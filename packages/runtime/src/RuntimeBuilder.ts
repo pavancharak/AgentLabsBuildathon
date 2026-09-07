@@ -12,6 +12,7 @@ import {
 } from "@parmana/policy";
 
 import type {
+  PolicyExecutionVerifier,
   PolicyRepository,
   SignalStateVerifier,
 } from "@parmana/policy";
@@ -49,6 +50,8 @@ export class RuntimeBuilder {
 
   private signalStateVerifier?: SignalStateVerifier;
 
+  private policyExecutionVerifier?: PolicyExecutionVerifier;
+
   /**
    * Configure policy directory.
    */
@@ -69,6 +72,20 @@ export class RuntimeBuilder {
     verifier: SignalStateVerifier,
   ): this {
     this.signalStateVerifier = verifier;
+
+    return this;
+  }
+
+  /**
+   * Configure Policy Governance execution-time verification
+   * (2026-09-07 hardening pass). Optional -- omitting this leaves
+   * current behavior unchanged (no policy is checked against Policy
+   * Governance before evaluation).
+   */
+  public withPolicyExecutionVerifier(
+    verifier: PolicyExecutionVerifier,
+  ): this {
+    this.policyExecutionVerifier = verifier;
 
     return this;
   }
@@ -217,6 +234,7 @@ export class RuntimeBuilder {
         refusalRecords,
         this.signalStateVerifier,
         capabilityPolicyBinder,
+        this.policyExecutionVerifier,
       );
 
     //

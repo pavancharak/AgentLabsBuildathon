@@ -1,4 +1,8 @@
-import type { PolicyRepository, SignalStateVerifier } from "@parmana/policy";
+import type {
+  PolicyExecutionVerifier,
+  PolicyRepository,
+  SignalStateVerifier,
+} from "@parmana/policy";
 
 import {
   BusinessTransactionRepository,
@@ -41,6 +45,7 @@ export class RuntimeFactory {
   executionSystem: ExecutionSystem,
   refusalRecords?: RefusalRecordRepository,
   signalStateVerifier?: SignalStateVerifier,
+  policyExecutionVerifier?: PolicyExecutionVerifier,
 ): ExecutionTrustApplication {
     //
     // Application Services
@@ -87,6 +92,12 @@ export class RuntimeFactory {
     if (signalStateVerifier) {
       builder.withSignalStateVerifier(
         signalStateVerifier,
+      );
+    }
+
+    if (policyExecutionVerifier) {
+      builder.withPolicyExecutionVerifier(
+        policyExecutionVerifier,
       );
     }
 

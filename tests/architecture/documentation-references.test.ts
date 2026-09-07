@@ -80,6 +80,9 @@ const HISTORICALLY_REAL_NOW_REMOVED_PATHS = new Set([
   // this logic lives today" -- moved/refactored during Phase 1C, not
   // deleted, but no longer resolvable at this original path.
   "packages/connector-hubspot/src/HubSpotConnector.ts",
+  // docs/CLAIMS.md §2.34: unexported, unimported dead code, deleted as
+  // part of the same fix the section documents (commit 437f5ec).
+  "packages/policy/src/types/LedgerEntry.ts",
 ]);
 
 function extractReferencedPaths(content: string): string[] {
