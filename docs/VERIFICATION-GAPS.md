@@ -1561,6 +1561,112 @@ isolated and confirmed to be Windows filesystem-race flakiness from spawning 90+
 every other full run.) Full `vitest run` suite re-confirmed unaffected: 1564 passed, 38
 skipped, 0 failed.
 
+**G-38. `PolicyOutcome`/`PolicyAction` carried a third value, `REQUIRE_OVERRIDE`, that no real
+policy in this repository ever used, and that `DecisionBuilder.toDecisionOutcome()`
+(`packages/runtime/src/DecisionBuilder.ts`) collapsed straight to `DecisionOutcome.REJECTED`
+in any case — functionally indistinguishable from an ordinary `REJECT` at the point execution
+is actually gated. Found 2026-09-09 in a policy approval/rejection audit. RESOLVED same-day,
+after an explicit trade-off decision — see the correction below.** Removed from both enums
+(`packages/policy/src/types/PolicyAction.ts`, `packages/policy/src/types/PolicyOutcome.ts`)
+and their one real switch-statement branch each (`PolicyEngine.ts`'s `toOutcome()`,
+`DecisionBuilder.ts`'s `toDecisionOutcome()`); both already had an unconditional `default:
+REJECT`/`REJECTED` branch, so removing the explicit case is a no-op for behavior.
+
+**Correction, found during this same investigation, before deleting anything:** the initial
+characterization of `REQUIRE_OVERRIDE` as simple forgotten dead code was itself incomplete.
+Two real tests — `packages/connector-sdk/tests/unit/reference-policy.test.ts` and
+`packages/connector-hubspot/tests/unit/hubspot-deal-update-policy.test.ts` — explicitly
+asserted "never produces a `require_override` outcome," and the former's own comment read
+*"Phase 1's PolicyAction enum (locked) has no approval-workflow outcome, and this policy does
+not use require_override"* — language that reads as a deliberately reserved extension point
+for a future per-transaction approval-workflow feature, not an oversight, with these two tests
+existing specifically to catch a policy author using it before that mechanism is built. Three
+other docs (`POLICY-DATASTRUCTURE.md`, `PARMANA-EXP-ACTUAL-EXECUTION-FLOW.md`,
+`docs/site/reference/policy.mdx`) all listed it as ordinary current state, none flagging it as
+deprecated. This was surfaced and the trade-off made explicit before proceeding: keep it
+(document the reservation) vs. delete it (lose the reserved extension point and force
+reinventing it later if that feature is ever built) — **delete was the explicit choice made**,
+accepting that trade-off. The two guard tests' `require_override`-specific assertions were
+removed (rather than reworked to reference a value that no longer type-checks); their
+surrounding test files' leading comments were updated to match. If a real per-transaction
+approval-workflow state is ever built, it starts from zero design memory of this decision —
+that is the concrete cost of the choice made here, not a residual bug.
+
+**Verified:** repo-wide grep for `REQUIRE_OVERRIDE`/`require_override` confirmed exactly 3 real
+code sites (the two enums, the two switch statements) before deleting, plus the two guard
+tests and 6 documentation files (2 historical audit-log snapshots left untouched, matching
+this document's own "don't silently rewrite history" discipline; 4 current-state docs updated:
+`docs/site/reference/policy.mdx`, `POLICY-DATASTRUCTURE.md`,
+`PARMANA-EXP-ACTUAL-EXECUTION-FLOW.md`, `docs/CONNECTOR-BUILD-GUIDE.md`). Full workspace `npx
+tsc -b` clean. Full repo suite: 1562 passed (2 fewer than before, exactly the two removed
+guard-test assertions — not a coverage loss, since the invariant they checked is now enforced
+by the type system itself for any code respecting `PolicyAction`'s type), 0 failed.
+
+**G-39. No detection existed for two policy rules whose conditions could both be true for the
+same input — first-match-wins means the earlier one always decides silently, with nothing
+surfacing that the later rule is partly or wholly unreachable. Found 2026-09-09 in the same
+audit as G-38. RESOLVED same-day.** New `PolicyValidator.findRuleConflicts(policy)`
+(`packages/policy/src/PolicyValidator.ts`), returning a `RuleConflictWarning[]` — deliberately
+**advisory, never wired into `validate()`'s fail-closed throw** (see the method's own doc
+comment): unlike a missing `boundSignals` entry, which has one unambiguous fix, a flagged
+overlap is a heuristic judgment that might be a real bug or might be an intentional priority
+ordering, and this method does not claim to be bug-free for every condition shape it's asked
+to compare. Wired as advisory `console.warn`s from `PolicyRouter.load()` (event
+`policy_rule_conflict_detected`) and surfaced alongside the existing `coverageWarnings` in
+`packages/api/src/routes/pending-policy-changes.ts`'s proposal-creation and listing endpoints,
+as a new `ruleConflicts` field.
+
+**A materially different, corrected implementation, not the naive version originally
+proposed:** an initial design (checking only exact-equal-threshold pairs like `lte 20` vs
+`gt 20`, and treating any `always: true` condition as unconditionally overlapping with
+everything else) had two real bugs, caught before shipping by running it against every real
+policy in this repo:
+1. **It would have flagged the ordinary trailing `always: true` catch-all as "conflicting"
+   with every other rule in every single policy** — that pattern exists in all 10 real
+   policies by design (the idiomatic fail-closed default), so this would have produced 100%
+   false-positive noise, defeating the feature. Fixed: an `always: true` condition is only
+   ever flagged if it is NOT the last rule (which does mean something real — every rule after
+   it is unreachable); the expected trailing catch-all is never compared against anything.
+2. **It got asymmetric numeric thresholds wrong** — `lte 10` vs `gt 20` (genuinely disjoint:
+   nothing is both ≤10 and >20) would have been incorrectly flagged as `DEFINITE_OVERLAP` by a
+   heuristic that only checked whether two range operators' values were exactly equal. Fixed
+   with real ray-interval overlap math (`raysOverlap`): two same-direction rays (`lt`/`lte` vs
+   `lt`/`lte`, or `gt`/`gte` vs `gt`/`gte`) always overlap; opposite-direction rays overlap
+   only when the upper bound exceeds the lower bound (or is equal with both sides inclusive).
+3. **A third gap, found (not in the original proposal) while verifying against real
+   policies:** every real policy's `approve` rule is a nested `all` conjunction, while its
+   `reject-*` rules are simple single-fact leaves — the naive design would return
+   `NEEDS_REVIEW` for literally every approve/reject pair in every real policy (not a false
+   positive, but still 100% noise). Fixed with a sound generalization: a nested `all` is
+   provably `NO_OVERLAP` with a leaf (or with another `all`) if any one of its conjuncts is
+   itself provably disjoint from the other side — one false conjunct makes the whole
+   conjunction false regardless of the rest, so this never claims `DEFINITE_OVERLAP` for a
+   composite condition (only `NO_OVERLAP`, proven, or `NEEDS_REVIEW`, honestly undetermined).
+
+**Verified against every real and example policy in the repository** (a scratch script, not
+committed): **zero `WARNING`-level results** across all 10 policies in `policies/` and every
+policy under `examples/`. Exactly one `INFO`-level "needs review" result remains
+(`hubspot-deal-update`, between `reject-stage-transition-not-allowed` and
+`reject-amount-exceeds-threshold-without-preauth`) — confirmed to be a genuine, deliberate
+first-match-wins priority ordering between two independent violation reasons that really can
+co-occur, not a bug. `packages/policy/tests/unit/PolicyValidator.test.ts` (11 new cases:
+single-rule no-op, trailing catch-all not flagged, non-trailing `always` flagged as `WARNING`,
+different facts not flagged, exact-threshold disjoint ranges not flagged, asymmetric-threshold
+disjoint ranges not flagged, same-direction overlapping ranges flagged `WARNING`, nested `all`
+vs leaf resolved via a disjoint conjunct, nested `all` vs `all` resolved via a cross-pair
+disjoint conjunct, independent facts correctly reported `INFO` rather than guessed, and
+confirmed `validate()` never throws on a detected conflict). Full workspace `npx tsc -b`
+clean. Full repo suite: 1573 passed, 38 skipped, 0 failed. `npm run examples`: 98/98, exit 0.
+
+**Not addressed by this fix, left open:** this is not a general rule-subsumption or
+boolean-satisfiability solver — it reasons soundly about single-fact leaves, `always`
+placement, and `all` conjunctions where at least one conjunct is comparable, and honestly
+reports `NEEDS_REVIEW` for everything else (any `any` condition, an `all` vs `all` pair with
+no disjoint conjunct across them, or an operator pairing it doesn't model — `between`, `in`,
+`not_in`, `contains*`, `matches`, `exists`, `is_null`, `length_*`, `type_is`). A genuinely
+overlapping pair using only those operators would go unflagged, not misreported — but also not
+caught.
+
 **G-13. `MemoryNonceStore` and `InMemoryCallerAuditSink` both lose all state on process
 restart. RESOLVED in the durable-replay-protection hardening session that followed the
 2026-07-17 audit closeout and its own G-3 fix.** Both now have durable, Supabase-backed
