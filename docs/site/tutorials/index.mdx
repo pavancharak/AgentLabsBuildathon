@@ -205,6 +205,12 @@ the shared default key, and a transaction with no tenantId is unaffected. Newly 
 `scripts/run-examples.ts`'s list (`docs/VERIFICATION-GAPS.md` G-37) — it existed and worked
 standalone since its own commit, but `npm run examples` never exercised it until now.
 
+**106 — API Key Issuance (Writing a New Policy).** A brand-new `policies/api-key-issuance/1.0.0`
+policy and worked example showing how to author a policy correctly under the fail-closed
+`boundSignals` discipline (G-33) and zero-conflict shape (G-39) from the start, rather than
+retrofitting it afterward the way all 10 pre-existing policies needed. Also in
+`scripts/run-examples.ts`'s list from its first commit.
+
 ## Scenarios
 
 Two production-shaped scenarios also live in `examples/scenarios/`, run manually via `npm

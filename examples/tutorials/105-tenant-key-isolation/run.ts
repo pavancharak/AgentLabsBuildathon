@@ -161,7 +161,7 @@ try {
 
   console.log();
   console.log("Tutorial Complete");
-  console.log("This is currently the last tutorial in the sequence.");
+  console.log("Next: Tutorial 106 - API Key Issuance (Writing a New Policy)");
 } finally {
   delete process.env.PARMANA_KEY_DIR;
   rmSync(keyDir, { recursive: true, force: true });

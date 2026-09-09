@@ -59,4 +59,4 @@ across every tenant — not a gap in the same sense, since it holds no key mater
 
 ## Next Tutorial
 
-This is currently the last tutorial in the sequence.
+[Tutorial 106 - API Key Issuance (Writing a New Policy)](../106-api-key-issuance/README.md)
