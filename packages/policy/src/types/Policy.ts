@@ -278,6 +278,31 @@ export interface Policy {
   boundSignals?: Record<string, string>;
 
   /**
+   * Documents, per rule-referenced fact with no boundSignals entry, why
+   * leaving it unbound is a deliberate, reviewed decision rather than an
+   * oversight -- the same "reviewed exemption, not a silent gap" idea as
+   * @parmana/capability-registry's INTENTIONALLY_UNBOUND_CAPABILITIES, but
+   * scoped per-policy rather than centralized, since a fact (unlike a
+   * capability) only ever means something in the context of the one
+   * policy that references it.
+   *
+   * PolicyValidator.validate() fails closed on any rule-referenced fact
+   * that is neither in boundSignals nor here: an uncovered fact must be
+   * either bound or explicitly acknowledged with a reason, never merely
+   * unmentioned. An entry naming a fact that boundSignals already covers
+   * is rejected as contradictory.
+   *
+   * Example:
+   *
+   * {
+   *   "vendorVerified": "Independently attested by upstream vendor
+   *     verification; no Intent-side equivalent field exists to bind
+   *     against."
+   * }
+   */
+  unboundSignalReasons?: Record<string, string>;
+
+  /**
    * Ordered evaluation rules.
    *
    * Rules are evaluated sequentially.

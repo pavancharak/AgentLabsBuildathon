@@ -12,6 +12,14 @@
     "riskScore": "number"
   },
 
+  "unboundSignalReasons": {
+    "repositoryAuthorized": "Result of an independent repository-authorization check; the Intent's target (owner/repo#pullNumber) identifies the PR, not whether the repository is authorized.",
+    "requiredReviewsCompleted": "Attested by GitHub's own review state; not a value the Intent itself declares.",
+    "statusChecksPassed": "Attested by GitHub's own CI/status-check state; not expressible via the Intent's target/parameters.",
+    "branchProtected": "A property of the target branch's GitHub configuration, independently verified; not a field the Intent declares.",
+    "riskScore": "A computed change-risk score, not a value the caller's Intent declares or could be checked against."
+  },
+
   "rules": [
     {
       "id": "approve-pull-request",

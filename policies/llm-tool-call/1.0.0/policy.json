@@ -12,6 +12,14 @@
     "riskScore": "number"
   },
 
+  "unboundSignalReasons": {
+    "toolAllowed": "Result of an independent tool-allowlist check; the Intent's target/parameters describe what is being called, not whether the tool itself is authorized.",
+    "resourceAuthorized": "Result of an independent resource-authorization check; not a value the Intent itself declares.",
+    "humanApproval": "Attested by a separate human-approval step; the Intent carries no approval-status field to bind against.",
+    "executionEnvironment": "A property of the runtime environment the call executes in, not of the call being made -- has no Intent-side equivalent.",
+    "riskScore": "A computed operational-risk score, not a value the caller's Intent declares or could be checked against."
+  },
+
   "rules": [
     {
       "id": "approve-tool-call",

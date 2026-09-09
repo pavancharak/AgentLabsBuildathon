@@ -9,6 +9,14 @@
     "paymentAmount": "number"
   },
 
+  "boundSignals": {
+    "paymentAmount": "parameters.amount"
+  },
+
+  "unboundSignalReasons": {
+    "capability": "The Intent snapshot boundSignals binds against exposes only { target, parameters } (see SignalIntentBinder), not the executed action itself, so the capability selector has no dot-path to bind to -- it is independently enforced by capability-registry's CANONICAL_CAPABILITY_POLICY_BINDINGS / assertConnectorCapabilitiesBound instead."
+  },
+
   "rules": [
     {
       "id": "allow-crm-read",

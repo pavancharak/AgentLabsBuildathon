@@ -12,6 +12,16 @@
     "maximumRefundAmount": "number"
   },
 
+  "boundSignals": {
+    "refundAmount": "parameters.amount"
+  },
+
+  "unboundSignalReasons": {
+    "refundEligible": "Result of an independent eligibility check against the customer/order record; not a value the Intent itself declares.",
+    "managerApproved": "Attested by a separate human-approval step; the Intent carries no approval-status field to bind against.",
+    "fraudCheckPassed": "Result of an independent fraud-assessment system; not something the Intent's target/parameters could express."
+  },
+
   "rules": [
     {
       "id": "approve-refund",

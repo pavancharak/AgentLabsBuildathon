@@ -143,6 +143,49 @@ export class PolicyValidator {
       }
     }
 
+    //
+    // unboundSignalReasons
+    //
+
+    if (policy.unboundSignalReasons !== undefined) {
+
+      if (
+        typeof policy.unboundSignalReasons !== "object" ||
+        policy.unboundSignalReasons === null ||
+        Array.isArray(policy.unboundSignalReasons)
+      ) {
+        throw new PolicyValidationError(
+          "Policy unboundSignalReasons must be an object.",
+        );
+      }
+
+      for (const [fact, reasonText] of Object.entries(policy.unboundSignalReasons)) {
+
+        if (!fact.trim()) {
+          throw new PolicyValidationError(
+            "Policy unboundSignalReasons keys cannot be empty.",
+          );
+        }
+
+        if (typeof reasonText !== "string" || !reasonText.trim()) {
+          throw new PolicyValidationError(
+            `Policy unboundSignalReasons['${fact}'] must be a non-empty reason string.`,
+          );
+        }
+
+        if (
+          policy.boundSignals !== undefined &&
+          Object.prototype.hasOwnProperty.call(policy.boundSignals, fact)
+        ) {
+          throw new PolicyValidationError(
+            `Policy unboundSignalReasons['${fact}'] is contradictory: '${fact}' ` +
+            "already has a boundSignals entry -- a bound fact needs no " +
+            "reason for being unbound.",
+          );
+        }
+      }
+    }
+
     const ruleIds = new Set<string>();
 
     for (const rule of policy.rules) {
@@ -182,6 +225,32 @@ export class PolicyValidator {
           `Policy rule '${rule.id}' is missing an outcome reason.`,
         );
       }
+    }
+
+    //
+    // Fail-closed boundSignals coverage: every rule-referenced fact
+    // must be either bound (boundSignals) or explicitly acknowledged
+    // (unboundSignalReasons) -- see findUncoveredFacts' own doc
+    // comment. Run last, once rules are known to be structurally
+    // valid, so the facts it walks come from conditions already
+    // confirmed well-formed above.
+    //
+
+    const stillUncoveredFacts =
+      this.findUncoveredFacts(
+        policy,
+      );
+
+    if (stillUncoveredFacts.length > 0) {
+      throw new PolicyValidationError(
+        `Policy references fact(s) ${stillUncoveredFacts.map((f) => `'${f}'`).join(", ")} ` +
+        "with no boundSignals entry and no unboundSignalReasons entry. Add " +
+        "one of:\n" +
+        "  1. A boundSignals entry, if the fact has a genuine Intent-side " +
+        "equivalent (e.g. an amount or target identifier).\n" +
+        "  2. An unboundSignalReasons entry with a documented reason, if " +
+        "leaving it unbound is a deliberate decision.",
+      );
     }
   }
 
@@ -373,17 +442,18 @@ throw new PolicyValidationError(
   }
 
   /**
-   * Returns every fact referenced by a rule condition that is not
-   * declared in the policy's boundSignals. An empty array means every
-   * rule-referenced fact either has a boundSignals entry, or the
-   * policy declares no rules that reference facts at all.
+   * Returns every fact referenced by a rule condition that is neither
+   * declared in the policy's boundSignals nor acknowledged in its
+   * unboundSignalReasons. An empty array means every rule-referenced
+   * fact is either bound or has a documented reason for being unbound.
    *
    * Not every fact belongs in boundSignals -- per boundSignals' own
    * doc comment, a fact with no genuine Intent-side equivalent (e.g.
-   * vendorVerified, riskScore) is legitimately excluded. This is
-   * therefore advisory, not an error: callers should warn, not
-   * reject, so that a considered decision to leave a fact unbound
-   * isn't blocked from deploying.
+   * vendorVerified, riskScore) is legitimately excluded, provided it
+   * is acknowledged in unboundSignalReasons instead. validate() treats
+   * a non-empty result from this method as a fail-closed rejection,
+   * not merely a warning -- an uncovered, unacknowledged fact must
+   * never simply go unmentioned.
    */
   public findUncoveredFacts(
     policy: Policy,
@@ -393,6 +463,13 @@ throw new PolicyValidationError(
       new Set(
         Object.keys(
           policy.boundSignals ?? {},
+        ),
+      );
+
+    const acknowledgedKeys =
+      new Set(
+        Object.keys(
+          policy.unboundSignalReasons ?? {},
         ),
       );
 
@@ -424,7 +501,7 @@ throw new PolicyValidationError(
     }
 
     return Array.from(referenced).filter(
-      (fact) => !boundKeys.has(fact),
+      (fact) => !boundKeys.has(fact) && !acknowledgedKeys.has(fact),
     );
   }
 }

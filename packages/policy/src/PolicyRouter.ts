@@ -24,30 +24,16 @@ export class PolicyRouter {
         version,
       );
 
+    //
+    // validate() itself now fails closed on any rule-referenced fact
+    // with neither a boundSignals entry nor an unboundSignalReasons
+    // entry (see PolicyValidator.findUncoveredFacts' own doc comment)
+    // -- an uncovered, unacknowledged fact throws here rather than
+    // merely logging a warning nobody loading this policy would see.
+    //
     this.validator.validate(
       policy,
     );
-
-    const uncoveredFacts =
-      this.validator.findUncoveredFacts(
-        policy,
-      );
-
-    if (uncoveredFacts.length > 0) {
-      console.warn({
-        event: "policy_boundSignals_coverage_incomplete",
-        policyId: policy.policyId,
-        policyVersion: policy.policyVersion,
-        uncoveredFacts,
-        detail:
-          "These rule facts have no boundSignals entry, so " +
-          "SignalIntentBinder will not verify them against the " +
-          "executed Intent. If a fact has a genuine Intent-side " +
-          "equivalent (e.g. an amount or target identifier), add " +
-          "it to boundSignals; otherwise this warning can be " +
-          "ignored.",
-      });
-    }
 
     return policy;
   }

@@ -332,13 +332,12 @@ export function createPendingPolicyChangesRouter(
         }
 
         /**
-         * Advisory, not a rejection -- see PolicyValidator.
-         * findUncoveredFacts' own doc comment: not every rule fact
-         * has a genuine Intent-side equivalent, so an uncovered fact
-         * is a considered decision a proposal can legitimately make,
-         * not an error. Surfaced here, on the proposal itself, so the
-         * checker sees it at approval time instead of only a load
-         * time console.warn nobody reviewing this change would see.
+         * validate() above already fails closed on any rule-referenced
+         * fact with neither a boundSignals nor an unboundSignalReasons
+         * entry, so for a brand-new proposal this is always empty by
+         * the time it's reached -- kept anyway, for symmetry with the
+         * GET listing below, which surfaces this for pending changes
+         * proposed before this fail-closed check existed.
          */
         const coverageWarnings = policyValidator.findUncoveredFacts(candidate);
 

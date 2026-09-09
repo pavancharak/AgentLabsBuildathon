@@ -20,6 +20,13 @@
     "proposedAmount": "parameters.amount"
   },
 
+  "unboundSignalReasons": {
+    "dealStageChangeRequested": "Derived by comparing currentDealStage to proposedDealStage (both bound facts); a computed decision fact, not a raw Intent field to bind independently.",
+    "dealStageTransitionAllowed": "Derived by checking the requested stage transition against an allowed-transitions graph; a computed decision fact with no Intent-side equivalent.",
+    "amountChangeExceedsThreshold": "Derived from amountDeltaAbs versus a configured threshold; a computed decision fact, not a raw Intent field.",
+    "preAuthorizedForAmountChange": "Attested by a separate pre-authorization record; the Intent carries no such approval-status field to bind against."
+  },
+
   "rules": [
     {
       "id": "reject-stage-transition-not-allowed",
