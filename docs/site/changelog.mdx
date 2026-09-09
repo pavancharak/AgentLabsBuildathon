@@ -7,15 +7,32 @@ description: "What actually shipped, by commit, newest first. Not a marketing su
 Pulled directly from `git log` on `main` in `pavancharak/parmana-exp`, commit hashes are
 real and checkable. This page covers the commits that changed what a reader of this site can
 actually do or rely on, not every commit in the repository's history, run `git log` yourself
-for the complete record, 321 commits as of this page's last update. **Known gap:** entries
+for the complete record, 325 commits as of this page's last update. **Known gap:** entries
 between 2026-08-19 and 2026-09-06, several commits landed on 2026-09-07 before the two below,
-and everything on 2026-09-09 other than `25295ee`, `bab0981`, and the six commits below them
+and everything on 2026-09-09 other than `25295ee`, `bab0981`, and the nine commits below them
 (including the changelog and validation-doc commits themselves) were not backfilled — `git
 log` for those ranges directly if you need them.
 </Info>
 
 ## 2026-09-09
 
+- **`a3d19bd`** docs: `docs/VERIFICATION-GAPS.md` G-38/G-39 and `docs/CLAIMS.md` §2.30 updates
+  for the two commits below.
+- **`f82f071`** feat(policy): new `PolicyValidator.findRuleConflicts(policy)` flags pairs of
+  rules whose conditions can be true simultaneously — first-match-wins otherwise lets the
+  earlier one silently decide with no signal the later rule is partly unreachable. Advisory
+  only, never fail-closed. A first design (tested against every real policy before shipping,
+  not assumed correct) had three real bugs — it would have flagged the ordinary trailing
+  `always: true` catch-all as "conflicting" with everything, gotten asymmetric numeric
+  thresholds wrong, and reported noise on every approve/reject pair since every real approve
+  rule is a nested `all` — all three fixed with real interval-overlap math and a sound
+  conjunct-disjointness argument. Verified against all 10 real policies: zero false positives.
+  See `docs/VERIFICATION-GAPS.md` G-39.
+- **`d1107b6`** chore(policy): removed `PolicyOutcome`/`PolicyAction`'s unused third value,
+  `REQUIRE_OVERRIDE` — no real policy used it, and it collapsed to an ordinary `REJECT`
+  anyway. Disclosed rather than glossed over: two tests and three docs had treated it as a
+  deliberately reserved future extension point, not dead code; removed anyway as an explicit,
+  requested trade-off. See `docs/VERIFICATION-GAPS.md` G-38.
 - **`e1c5d04`** fix(examples): the `boundSignals` fail-closed change (`acf248a`/`b53bd4e`
   below) applies to every policy, not just the 10 under `policies/` — broke `npm run examples`
   at Tutorial 14. Fixed `examples/tutorials/14-custom-policy`'s own policy (one genuinely
