@@ -1,3 +1,7 @@
+import { generateKeyPairSync } from "node:crypto";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -448,6 +452,73 @@ describe("Execution Authorization Wiring", () => {
 
     expect(authorization.payload.submittedBy).toBeUndefined();
     expect(authorization.payload.grantedCapability).toBeUndefined();
+  });
+
+  it("signs with a tenant-specific key when one has been provisioned, verifiable only under that tenant's public key (per-tenant key isolation)", async () => {
+    const keyDir = process.env.PARMANA_KEY_DIR!;
+    const tenantKeyId = "tenant.acme-corp";
+
+    const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+
+    writeFileSync(
+      join(keyDir, `${tenantKeyId}.private.pem`),
+      privateKey.export({ format: "pem", type: "pkcs8" }),
+    );
+    writeFileSync(
+      join(keyDir, `${tenantKeyId}.public.pem`),
+      publicKey.export({ format: "pem", type: "spki" }),
+    );
+
+    const { runtime, transactions, executionSystem } =
+      createRuntime(APPROVE_POLICY);
+
+    const transaction: BusinessTransaction = {
+      ...createTransaction("txn-tenant-key-1"),
+      metadata: {
+        businessTransactionId: "txn-tenant-key-1",
+        tenantId: "acme-corp",
+      },
+    };
+    await transactions.create(transaction);
+
+    await runtime.execute(transaction);
+
+    const { authorization } = executionSystem.lastRequest!;
+
+    expect(authorization.keyId).toBe(tenantKeyId);
+
+    const crypto = CryptoBootstrap.create();
+    const verifier = new AuthorizationVerifier(crypto);
+
+    // Verifies under the tenant's own public key.
+    const tenantPublicKey = await new FileKeyProvider().getPublicKey(
+      tenantKeyId,
+    );
+    const tenantResult = await verifier.verify(authorization, tenantPublicKey);
+    expect(tenantResult.valid).toBe(true);
+
+    // Does NOT verify under the shared default public key -- a proof
+    // signed for one tenant cannot be validated as another tenant's
+    // (or the default deployment's) authorization.
+    const defaultPublicKey = await new FileKeyProvider().getPublicKey(
+      "default",
+    );
+    const defaultResult = await verifier.verify(authorization, defaultPublicKey);
+    expect(defaultResult.checks.signatureVerified).toBe(false);
+  });
+
+  it("falls back to the shared default key when transaction.metadata carries no tenantId", async () => {
+    const { runtime, transactions, executionSystem } =
+      createRuntime(APPROVE_POLICY);
+
+    const transaction = createTransaction("txn-no-tenant-1");
+    await transactions.create(transaction);
+
+    await runtime.execute(transaction);
+
+    const { authorization } = executionSystem.lastRequest!;
+
+    expect(authorization.keyId).toBe("default");
   });
 });
 

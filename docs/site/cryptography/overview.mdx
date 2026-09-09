@@ -43,6 +43,25 @@ PARMANA_KEY_DIR=./keys
 implemented key provider. See [Deploy patterns](/guides/deploy-patterns) for the full set of
 keys a running server needs.
 
+## Per-tenant signing keys (opt-in)
+
+A transaction whose `metadata.tenantId` is set signs its Execution Authorization under a
+dedicated `tenant.<tenantId>` key when one has been provisioned (same `FileKeyProvider`
+layout: `scripts/generate-keypair.ts --algorithm ed25519 --key-id tenant.<tenantId>`),
+instead of the single shared `default` key every deployment uses otherwise
+(`TenantKeyResolver`, `packages/runtime/src/TenantKeyResolver.ts`). Verification already
+resolves the right public key per-authorization via its own `keyId` field (the key/algorithm
+binding guard above, and 2.28's `keyProvider`/`keyExpiryStore` options), so a tenant key just
+needs to exist — no verifier-side configuration change.
+
+<Note>
+This is naming-convention key **selection**, not KMS/HSM custody: the tenant's private key
+still lives as a local PEM file, provisioned by hand, one `generate-keypair` run per tenant.
+An unprovisioned or malformed `tenantId` falls back to the shared `default` key rather than
+failing closed — deliberate, so adoption is incremental, but worth knowing before relying on
+it for isolation. CLAIMS.md §2.28 ("Update 2026-09-09"), `docs/VERIFICATION-GAPS.md` G-32.
+</Note>
+
 <Warning>
 `KeyProviders` (`packages/shared/src/config/KeyProviders.ts`) declares `aws-kms`,
 `azure-key-vault`, `gcp-kms`, and `hsm` as valid **config values**, but no provider class

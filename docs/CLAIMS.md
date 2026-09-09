@@ -1068,6 +1068,14 @@ Evidence
 
 
 
+**Update (2026-09-09):** the verification-side machinery above (`keyProvider`, resolved by `authorization.keyId`) had, until this date, never been exercised by anything but the single shared `"default"` keyId — nothing on the signing side ever produced an authorization carrying a different one. `docs/VERIFICATION-GAPS.md` G-32 found and same-day-closed that gap: `RuntimeAuthorizationSigner` (`packages/runtime/src/RuntimeAuthorizationSigner.ts`) now resolves the signing keyId per-transaction via a new `TenantKeyResolver` (`packages/runtime/src/TenantKeyResolver.ts`), signing under a dedicated `tenant.<tenantId>` key when `transaction.metadata.tenantId` is set and that key has been provisioned (same `FileKeyProvider` layout, `scripts/generate-keypair.ts --key-id tenant.<tenantId>`), and falling back to the shared `"default"` key otherwise. This is opt-in per tenant, not a change to the default (single-key) path: a deployment with no tenant-specific keys provisioned behaves exactly as before. See G-32 for the full fix and its own explicitly-stated residual gaps (manual provisioning only, no KMS/HSM/rotation automation, silent fallback on an unprovisioned tenantId).
+
+* `packages/runtime/src/TenantKeyResolver.ts`, `packages/runtime/src/RuntimeAuthorizationSigner.ts`, `packages/runtime/src/RuntimeEngine.ts`
+
+* `packages/runtime/tests/unit/tenant-key-resolver.test.ts` (5 cases), `packages/runtime/tests/unit/execution-authorization-wiring.test.ts` (2 new cases: tenant-keyed authorization verifies under its own tenant's public key and fails under the shared default public key; no-tenantId transaction still signs under `"default"`)
+
+
+
 ---
 
 

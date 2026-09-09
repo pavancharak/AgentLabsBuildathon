@@ -1,7 +1,6 @@
 import {
   AuthorizationSigner,
   CryptoBootstrap,
-  DEFAULT_KEY_ID,
   FileKeyProvider,
 } from "@parmana/crypto";
 
@@ -10,17 +9,24 @@ import type {
   SignedExecutionAuthorization,
 } from "@parmana/shared";
 
+import {
+  FileTenantKeyResolver,
+  type TenantKeyResolver,
+} from "./TenantKeyResolver.js";
+
 /**
  * Runtime Authorization Signer.
  *
  * Signs Execution Authorizations using the same
  * CryptoProvider and key-loading mechanism already
  * used to sign Execution Trust Records and Receipts
- * (CryptoBootstrap + FileKeyProvider, keyId "default").
+ * (CryptoBootstrap + FileKeyProvider). The keyId used
+ * for a given authorization is resolved per-tenant by
+ * TenantKeyResolver, falling back to the shared default
+ * key ("default") when no tenant-specific key has been
+ * provisioned -- see TenantKeyResolver's own doc comment.
  */
 export class RuntimeAuthorizationSigner {
-  private static readonly KEY_ID = DEFAULT_KEY_ID;
-
   private readonly crypto =
     CryptoBootstrap.create();
 
@@ -29,6 +35,13 @@ export class RuntimeAuthorizationSigner {
 
   private readonly signer =
     new AuthorizationSigner(this.crypto);
+
+  private readonly keyResolver: TenantKeyResolver;
+
+  constructor(keyResolver?: TenantKeyResolver) {
+    this.keyResolver =
+      keyResolver ?? new FileTenantKeyResolver(this.keys);
+  }
 
   /**
    * Signs an authorization payload.
@@ -43,19 +56,21 @@ export class RuntimeAuthorizationSigner {
       readonly signalsHash?: string;
       readonly submittedBy?: string;
       readonly grantedCapability?: string;
+      readonly tenantId?: string;
       readonly executableContent: ExecutableContent;
     },
     ttlSeconds: number,
   ): Promise<SignedExecutionAuthorization> {
+    const keyId =
+      await this.keyResolver.resolveKeyId(input.tenantId);
+
     const privateKey =
-      await this.keys.getPrivateKey(
-        RuntimeAuthorizationSigner.KEY_ID,
-      );
+      await this.keys.getPrivateKey(keyId);
 
     return this.signer.sign(
       input,
       privateKey,
-      RuntimeAuthorizationSigner.KEY_ID,
+      keyId,
       ttlSeconds,
     );
   }

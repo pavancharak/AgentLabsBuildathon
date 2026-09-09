@@ -525,6 +525,9 @@ export class RuntimeEngine {
           ...(transaction.metadata?.grantedCapability !== undefined && {
             grantedCapability: transaction.metadata.grantedCapability,
           }),
+          ...(transaction.metadata?.tenantId !== undefined && {
+            tenantId: transaction.metadata.tenantId,
+          }),
           executableContent,
         },
         this.authorizationTtlSeconds,
