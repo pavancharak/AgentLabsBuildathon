@@ -7,10 +7,23 @@ description: "What actually shipped, by commit, newest first. Not a marketing su
 Pulled directly from `git log` on `main` in `pavancharak/parmana-exp`, commit hashes are
 real and checkable. This page covers the commits that changed what a reader of this site can
 actually do or rely on, not every commit in the repository's history, run `git log` yourself
-for the complete record, 301 commits as of this page's last update. **Known gap:** entries
-between 2026-08-19 and 2026-09-06, and several commits landed on 2026-09-07 before the two
-below, were not backfilled — `git log` for those ranges directly if you need them.
+for the complete record, 310 commits as of this page's last update. **Known gap:** entries
+between 2026-08-19 and 2026-09-06, several commits landed on 2026-09-07 before the two below,
+and everything between the 2026-09-07 entries and `25295ee` below (2026-09-09) other than
+`25295ee` itself, were not backfilled — `git log` for those ranges directly if you need them.
 </Info>
+
+## 2026-09-09
+
+- **`25295ee`** fix(runtime): `RuntimeAuthorizationSigner` previously signed every Execution
+  Authorization under the single shared `"default"` key regardless of tenant, even though
+  verification already resolves the public key per-authorization by its own `keyId`
+  ([Cryptography](/cryptography/overview), 2.28). New `TenantKeyResolver`
+  (`packages/runtime/src/TenantKeyResolver.ts`) signs under a dedicated `tenant.<tenantId>`
+  key when one has been provisioned, falling back to `"default"` otherwise — opt-in per
+  tenant, no behavior change for deployments with no tenant keys provisioned. Found during a
+  nono-style architecture audit of the authorization-proof model. See `docs/CLAIMS.md` §2.28
+  ("Update 2026-09-09") and `docs/VERIFICATION-GAPS.md` G-32.
 
 ## 2026-09-07
 
