@@ -1315,6 +1315,209 @@ provisioned degrades silently to the shared default key rather than failing clos
 so adoption can be incremental per tenant, but it means a misspelled or unprovisioned `tenantId`
 produces a valid, unlabeled authorization under the default key with no warning.
 
+**G-33. `boundSignals` coverage on rule-referenced facts was advisory (a `console.warn` at
+`PolicyRouter.load()` nobody reviewing a running system would see), not enforced — a fact
+with no genuine Intent-side equivalent (the common, legitimate case: independently-attested
+booleans/scores like `vendorVerified`, `riskScore`) and a fact that was simply forgotten
+were indistinguishable, both silent. Found 2026-09-09 during a production-readiness audit
+that ran the real `vendor-payment` policy through `RuntimeEngine` and surfaced the warning
+live (Tutorial 105). Checking all 10 real policies in `policies/` at that point showed every
+single one had uncovered facts — none had ever been reviewed or documented. RESOLVED
+same-day.** `Policy.unboundSignalReasons` (`packages/policy/src/types/Policy.ts`) is a new
+optional per-policy field naming, with a reason, every rule-referenced fact deliberately left
+out of `boundSignals` — the same "reviewed exemption, not a silent gap" idea as
+`@parmana/capability-registry`'s `INTENTIONALLY_UNBOUND_CAPABILITIES` (G-30 above), but
+scoped per-policy rather than centralized, since a fact only ever means something in the
+context of the one policy that references it.
+
+`PolicyValidator.validate()` now fails closed: any rule-referenced fact neither in
+`boundSignals` nor `unboundSignalReasons` throws `PolicyValidationError` naming it, instead
+of the old advisory warning. `unboundSignalReasons` is structurally validated the same way
+`boundSignals` already was (must be an object, non-empty string keys, non-empty string
+reasons), plus a new contradiction check: a fact present in both `boundSignals` and
+`unboundSignalReasons` is rejected outright ("a bound fact needs no reason for being
+unbound"). `findUncoveredFacts()` now excludes acknowledged facts from its result, so both
+existing callers benefit without their own code changing: `PolicyRouter.load()` (removed its
+now-redundant `console.warn` block entirely — `validate()` above it already throws for
+anything that would have triggered it) and `packages/api/src/routes/pending-policy-changes.ts`'s
+`coverageWarnings` (kept, now genuinely empty for any newly-created proposal since `validate()`
+already rejects it first, but still meaningful for proposals created before this fix shipped).
+
+**Two real, additional bindings found and fixed in the same pass, not just documented away:**
+`connector-capability/1.0.0` and `customer-refund/1.0.0` each had an amount fact
+(`paymentAmount`, `refundAmount`) with a genuine Intent-side equivalent
+(`parameters.amount`, exactly `vendor-payment`'s own existing pattern) that had simply never
+been bound — a real, live scope-drift gap for those two reference policies, not merely an
+advisory-vs-enforced framing issue. Both now have a real `boundSignals` entry; `connector-capability`'s
+`capability` fact remains acknowledged via `unboundSignalReasons`, not bound, because
+`SignalIntentBinder`'s `IntentSnapshot` (`packages/policy/src/SignalIntentBinder.ts`) only
+exposes `{ target, parameters }`, never `action` — there is no dot-path for a capability/action
+selector to bind to today.
+
+**Every one of the 10 real policies in `policies/` was updated** with either a new
+`boundSignals` entry (the two above) or specific, per-fact `unboundSignalReasons` explaining
+why that fact has no Intent-side equivalent (independently-attested booleans, computed risk
+scores, or — for `hubspot-deal-update`'s four unbound facts — decision facts derived from
+already-bound raw facts, not raw Intent fields themselves). None were generic copy-paste:
+each reason names the actual mechanism (identity provider attestation, fraud/risk assessment,
+maintenance-window clock check, GitHub's own review/status-check state, etc.) that produces
+that specific fact.
+
+**Verified:** `packages/policy/tests/unit/PolicyValidator.test.ts` (7 new cases: acknowledged
+fact excluded from `findUncoveredFacts`, `validate()` passes when acknowledged, fails closed
+naming the fact when neither bound nor acknowledged, passes when bound instead, rejects a
+non-object `unboundSignalReasons`, rejects an empty reason string, rejects a
+bound-and-acknowledged contradiction). `packages/policy/tests/unit/PolicyRouter-boundSignals-coverage.test.ts`
+rewritten from a warn-spy test to a throw/no-throw test (3 cases: loads cleanly when bound,
+loads cleanly when acknowledged, fails closed naming the policy and fact when neither).
+Every real policy in `policies/` independently confirmed to pass `PolicyValidator.validate()`
+directly (all 10, script-verified). Tutorial 105 re-run: the `policy_boundSignals_coverage_incomplete`
+warning that originally surfaced this gap no longer appears; `vendor-payment` loads and
+executes unchanged. Full repo suite: 1560 passed, 38 skipped, 0 failed — no regressions from
+touching all 10 production policy files and the fail-closed validator change.
+
+**Not addressed by this fix, left open:** an `unboundSignalReasons` entry is a documented
+claim, not a proof — nothing verifies that a fact really has no Intent-side equivalent beyond
+a human (or an AI acting as one) asserting it in the reason text, the same trust model
+`INTENTIONALLY_UNBOUND_CAPABILITIES` already has for capabilities. A future new policy with a
+genuinely-bindable fact left unbound would now be caught immediately at load/proposal time
+(fail-closed, not silent) — but a reviewer must still judge whether the *reason given* for an
+acknowledged fact is actually true.
+
+**G-34. `SupabaseClientFactory` (the supabase-js/PostgREST client class) had zero remaining
+production call sites, and its stale doc-comment references across 8 other files still
+described it as the current path. Found 2026-09-09 during the same production-readiness
+audit that produced G-33, cross-checked against Finding 4 of that audit
+(`docs/audit/PRODUCTION-READINESS-AUDIT-2026-09-09.md`): 8 of 9 `Supabase*` storage classes
+had already migrated to `PostgresPoolFactory` (direct Postgres, bypassing PostgREST), leaving
+`SupabaseClientFactory.create()` referenced only in comments describing the *old* path.
+RESOLVED same-day.** Grep-confirmed (the same discipline as the 2026-09-08 dead-code cleanup,
+commit `e6c73f0`) before deleting: zero call sites of `SupabaseClientFactory.create()` outside
+its own file, no dedicated test file, `SupabaseClient` type unused elsewhere. Deleted, along
+with its export from `packages/storage/src/index.ts` and its now-unused `@supabase/supabase-js`
+dependency from `packages/storage/package.json` (`npm install` resynced the lockfile).
+
+**A second, related dead file found in the same pass:** `assertSupabaseConfigured.ts`
+(`packages/api/src/bootstrap/`) — its own doc comment claimed it was "shared by every
+bootstrap factory that requires a durable, Supabase-backed store (createNonceStore.ts,
+createCallerAuditSink.ts)," but both of those factories had already moved to
+`assertDatabaseUrlConfigured.ts` instead (part of the same PostgREST-removal migration).
+Grep-confirmed zero call sites and no test file; deleted.
+
+**Eight stale doc-comment references to `SupabaseClientFactory`** across
+`createCallerAuditSink.ts`, `createNonceStore.ts`, `PostgresPoolFactory.ts`,
+`StorageFactory.ts`, `SupabaseStorageProvider.ts`, and three integration test files were
+rewritten to describe the actual current mechanism (a supabase-js/PostgREST client, generically
+— since the class naming it no longer exists) rather than naming a deleted class.
+`createCallerAuditSink.ts`'s comment specifically also dropped a stale "TEMPORARY... revert
+once SU-437429 is resolved" framing that `docs/CLAIMS.md` §3.11's own update (same date) found
+to be inaccurate — see that update for why this is no longer a single revertible workaround.
+
+**Third, unrelated finding from the same audit, also closed here:** `packages/audit.txt`, a
+committed, tracked UTF-16 binary dump (a garbled Windows `tree`-style folder listing) — the
+same shape of debris `docs/VERIFICATION-GAPS.md`'s own 2026-07-17 audit closeout removed
+once already (`trace.txt`, `claim.md`), just not caught by that pass. `git rm`'d.
+
+**Fourth item from the same audit's dead-code section, resolved by investigation rather than
+deletion:** `@parmana/replay` (`ReplayEngine.ts`/`ReplayBuilder.ts`/`ReplayExecutor.ts`) was
+flagged as needing a follow-up check for a live call site outside its own package. Confirmed:
+none exists in any production package (`api`, `runtime`, `execution-gateway`, etc.) — its only
+consumer outside its own package is `examples/tutorials/06-replay/run.ts`. Not deleted: this
+is the same shape of intentional, tested, documented extension point the 2026-09-08 cleanup
+(`e6c73f0`) explicitly excluded `ReceiptComponent.ts` for — 5 test files in
+`packages/replay/tests`, a dedicated tutorial demonstrating it, not wired into the default
+pipeline by design rather than by oversight.
+
+**Verified:** full workspace `npx tsc -b` clean (confirms zero remaining references anywhere
+a type-checker would catch them). Full repo suite: 1559 passed, 38 skipped, 0 failed — the
+one-test difference from G-33's own count is environment/collection variance (re-run
+confirmed 0 failures both times), not a regression; neither deleted file had a test to lose.
+
+**G-35. `dilithium3` (the internal signature-algorithm identifier) had no way for a new
+deployment to configure post-quantum signing using its accurate NIST/FIPS 204 name
+("ml-dsa-65") — only the historical internal name was ever an accepted config value. Found
+2026-09-09 as the Cryptographic Naming item in the same production-readiness audit as G-33/
+G-34. RESOLVED same-day, as an alias rather than a rename.** The audit's own first-pass
+conclusion (`docs/audit/PRODUCTION-READINESS-AUDIT-2026-09-09.md`) was that renaming
+`dilithium3` itself would be a regression: it would break `PRIMARY_SIGNATURE_PROVIDER=dilithium3`
+for every existing deployment, for zero externally-visible benefit, since `docs/CLAIMS.md` and
+`docs/site/cryptography/overview.mdx` already disclose the naming history to readers. Asked to
+fix the finding anyway, the corrected, non-breaking version is an **alias**, not a rename:
+`parseSignatureAlgorithm` (`packages/shared/src/config/ConfigValidation.ts`) now resolves
+`"ml-dsa-65"` to the canonical `SignatureAlgorithms.DILITHIUM3` ("dilithium3") value before
+validation, so `PRIMARY_SIGNATURE_PROVIDER`/`SECONDARY_SIGNATURE_PROVIDER=ml-dsa-65` and
+`=dilithium3` are now fully equivalent — an existing `dilithium3`-configured deployment is
+completely unaffected, since the canonical identifier itself was never touched. Both
+`generate-keypair.ts` CLIs (`scripts/generate-keypair.ts --algorithm`,
+`packages/crypto/scripts/generate-keypair.ts --algorithm`) accept the same alias, normalizing
+to `dilithium3` before generating a key, for the identical reason and by the same mechanism.
+
+**Verified:** `packages/shared/tests/unit/config-validation.test.ts` (4 new cases: defaults to
+`ed25519` when unset, accepts the canonical `dilithium3` unchanged, accepts `ml-dsa-65` resolving
+to `dilithium3`, throws naming the value for an unrecognized algorithm). Both CLI scripts
+smoke-tested directly with `--algorithm ml-dsa-65` against a scratch key directory: both
+generate a real ML-DSA-65 keypair and log it under the canonical `dilithium3` name. Full
+workspace `npx tsc -b` clean; full repo suite: 1563 passed, 38 skipped, 0 failed.
+
+**Not addressed by this fix, and not needed:** the internal identifier `dilithium3` is
+unchanged everywhere downstream (`SignatureRegistry`, `Ed25519SignatureProvider`'s sibling
+`Dilithium3SignatureProvider`, key-file naming, log output) — this was a config-input
+alias only, exactly the scope the audit's own non-breaking-improvement framing called for.
+
+**G-36. `@supabase/supabase-js` follow-on dependency-hygiene pass (flagged, not required, by
+the same 2026-09-09 audit that produced G-33/G-34/G-35) removed the dependency from 5
+package.json files that had no real usage (`api`, `crypto`, `policy`, `runtime`, `shared`) --
+but the pass's own verification method (grep across `packages/*/src` and `packages/*/tests`
+only) missed two real, legitimate usages outside that scope. RESOLVED same-day, by the same
+session that introduced the regression, before either was committed.** Full workspace `npx
+tsc -b` and the full `vitest run` suite both stayed green throughout, because neither covers
+a standalone script invoked only via its own `npm run <script>` entry
+(`tsx path/to/script.ts`) with no dedicated test file — exactly the blind spot this entry
+documents. `packages/storage/scripts/migrate.ts` (the `npm run migrate` script,
+`createClient(url, key)` for `client.rpc("exec_sql", ...)`) and `scripts/verify-policy-changes-approved.ts`
+(a fail-closed CI/deploy gate, `createClient` again) both import `@supabase/supabase-js`
+directly. The first broke because `packages/storage/package.json`'s `@supabase/supabase-js` line was
+already removed in G-34 (deleting `SupabaseClientFactory` there looked, at the time, like it
+made the dependency fully unused in that package -- `migrate.ts` lives in `packages/storage/scripts/`,
+outside the `src`/`tests` grep G-34's own verification covered, so it was missed). The second
+broke because it was never declared anywhere at all -- a phantom dependency that only ever
+worked because some workspace package's declaration hoisted a copy into the shared root
+`node_modules`, with nothing in `scripts/verify-policy-changes-approved.ts`'s own package.json
+(there is none; it is a root-level script) recording that it needed one.
+
+**Caught by:** running the full test suite one more time after `npm install` resynced the
+lockfile -- `scripts/tests/verify-policy-changes-approved.test.ts` failed immediately with
+`Cannot find package '@supabase/supabase-js'`, not a subtler runtime error. `migrate.ts` has
+no test at all; caught only by directly invoking it (`npx tsx packages/storage/scripts/migrate.ts`)
+to confirm the import itself resolves.
+
+**A genuine, disclosed side effect of that direct invocation:** this repository's own `.env`
+carries live Supabase credentials (see this document's own "Environment note," above), and
+`migrate.ts` reads them unconditionally with no dry-run flag. Running it attempted a real
+`client.rpc("exec_sql", ...)` call against a live project. It failed immediately with
+`PGRST202` ("Could not find the function public.exec_sql(sql) in the schema cache") --
+that live project has no `exec_sql` Postgres function defined, so no SQL from any of the 8
+found migration files ever executed and nothing was changed. Disclosed here for the same
+reason `INC-1`/`INC-2`-style entries exist in this document's history: a script that touches
+live infrastructure was run without first checking what it would do, and the honest
+resolution is "here is exactly what happened and why it was safe," not silence.
+
+**Fix:** `@supabase/supabase-js` restored to `packages/storage/package.json` (`dependencies`,
+matching its pre-existing category) and newly added to the root `package.json`
+(`devDependencies`, matching `dotenv`'s own category there for the same class of
+root-level tooling script) -- not re-added to any of the 5 packages actually confirmed unused.
+
+**Verified:** `npm install` (net delta: -4 packages across the 6 package.json files touched by
+this whole pass, not -6, since 2 were restored). Full workspace `npx tsc -b` clean; full repo
+suite: 1564 passed, 38 skipped, 0 failed, `verify-policy-changes-approved.test.ts` included and
+passing. `migrate.ts` re-invoked once more (see disclosure above) to confirm the import
+resolves; not re-run beyond that.
+
+**Lesson for the next such pass, not yet built:** "grep `packages/*/src` and
+`packages/*/tests`" is not "grep the repo" -- `scripts/`, `packages/*/scripts/`, and any other
+standalone-tool location need the same check, and neither `tsc -b` nor `vitest run` cover a
+script with no dedicated test that isn't part of any package's compiled `tsconfig` sources.
+
 **G-13. `MemoryNonceStore` and `InMemoryCallerAuditSink` both lose all state on process
 restart. RESOLVED in the durable-replay-protection hardening session that followed the
 2026-07-17 audit closeout and its own G-3 fix.** Both now have durable, Supabase-backed
