@@ -143,6 +143,16 @@ From `policies/vendor-payment/2.0.0/policy.json`, a real policy in this repo:
 }
 ```
 
+<Note>
+Trimmed for this example: the real file also has an `unboundSignalReasons` field naming a
+reason for each of `vendorVerified`, `invoiceVerified`, `paymentApproved`, `sufficientFunds`,
+and `riskScore` — `PolicyValidator.validate()` now fails closed on any rule-referenced fact
+that is neither in `boundSignals` nor `unboundSignalReasons` (`docs/VERIFICATION-GAPS.md`
+G-33), so a policy shaped exactly like the excerpt above, with nothing said about those five
+facts, would refuse to load. See [Write your first policy](/guides/write-your-first-policy)
+for a complete, loadable example with both fields.
+</Note>
+
 ## What a Decision records
 
 ```typescript

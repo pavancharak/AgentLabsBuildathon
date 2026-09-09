@@ -188,6 +188,23 @@ scope.
 | 94 | SDK HTTP Transport | The published TypeScript SDK's `HttpTransport`: bearer-key attachment and its full status-code-to-typed-error-class mapping, including `403`/`POLICY_DENIED` |
 | 95 | Generic Approval Verifier | `ApprovalVerifier` exercised directly, connector-agnostic, with its full nine-check breakdown and durable, cross-process replay protection |
 
+## Not yet indexed above (96-105)
+
+<Info>
+This page's own header claims "All 94 numbered examples" and its tables stop at 95 — both
+already stale before this note, since tutorials 96 through 104 exist, run in
+`scripts/run-examples.ts`'s unattended list, and pass, but were never added to this page.
+Not backfilled here (out of scope for the change that added the note below); flagged rather
+than left silent.
+</Info>
+
+**105 — Tenant Key Isolation.** Demonstrates the per-tenant signing-key fix
+(`docs/VERIFICATION-GAPS.md` G-32): a transaction with a provisioned `tenant.<tenantId>`
+key signs and verifies only under that key, an unprovisioned tenantId falls back silently to
+the shared default key, and a transaction with no tenantId is unaffected. Newly added to
+`scripts/run-examples.ts`'s list (`docs/VERIFICATION-GAPS.md` G-37) — it existed and worked
+standalone since its own commit, but `npm run examples` never exercised it until now.
+
 ## Scenarios
 
 Two production-shaped scenarios also live in `examples/scenarios/`, run manually via `npm

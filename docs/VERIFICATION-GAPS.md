@@ -1384,6 +1384,10 @@ genuinely-bindable fact left unbound would now be caught immediately at load/pro
 (fail-closed, not silent) — but a reviewer must still judge whether the *reason given* for an
 acknowledged fact is actually true.
 
+**Correction, found the same day:** "all 10 real policies were updated" above was scoped to
+`policies/` only — it missed two example policies under `examples/` that this fix's own
+fail-closed `validate()` also applies to, which broke `npm run examples`. See G-37.
+
 **G-34. `SupabaseClientFactory` (the supabase-js/PostgREST client class) had zero remaining
 production call sites, and its stale doc-comment references across 8 other files still
 described it as the current path. Found 2026-09-09 during the same production-readiness
@@ -1517,6 +1521,45 @@ resolves; not re-run beyond that.
 `packages/*/tests`" is not "grep the repo" -- `scripts/`, `packages/*/scripts/`, and any other
 standalone-tool location need the same check, and neither `tsc -b` nor `vitest run` cover a
 script with no dedicated test that isn't part of any package's compiled `tsconfig` sources.
+
+**G-37. G-33's fail-closed `boundSignals` change (`PolicyValidator.validate()` now throws for
+an uncovered, unacknowledged fact) broke `npm run examples` at Tutorial 14 -- a second,
+distinct instance of the exact blind spot G-36 just documented: `npm test` does not run
+`npm run examples`, so a real, user-facing entry point went unverified by the full-suite runs
+that accompanied G-33's own commit. RESOLVED same-day, before either regression was
+committed.** `examples/tutorials/14-custom-policy/policies/high-value-payment/1.0.0/policy.json`
+(a standalone example policy, not one of the 10 real ones under `policies/`, that G-33's own
+audit never enumerated) referenced 7 facts with neither a `boundSignals` nor an
+`unboundSignalReasons` entry. `examples/shared/policies/default-policy.json` (the minimal
+demo policy shared across many tutorials) had the same shape of gap for its one fact,
+`approved` -- not yet hit by `npm run examples` at the time this was found, but latent and
+certain to surface. Both fixed the same way as G-33's own fix: `high-value-payment` gained a
+real `boundSignals` entry for its genuinely bindable `paymentAmount` fact (mirroring
+`vendor-payment`'s own pattern) and `unboundSignalReasons` for the rest;
+`default-policy.json` gained a single `unboundSignalReasons` entry for `approved`, explicitly
+noting it is deliberately the simplest possible demo signal, not meant to demonstrate
+`boundSignals` coverage.
+
+**A separate, smaller gap found and fixed in the same pass, unrelated to G-33:**
+`scripts/run-examples.ts`'s hardcoded list never included `examples/tutorials/105-tenant-key-isolation/run.ts`
+(added the same day this Tutorial itself was, in the same broader audit session) -- the
+tutorial existed and worked standalone, but `npm run examples` silently never exercised it.
+Added to the list, immediately after Tutorial 104.
+
+**Verified:** full repo-wide search for every `policy.json` (and any other `.json` file
+containing a `"rules"` array) under `examples/` confirmed only these two needed a fix — the
+others either reference no facts at all (`always`-only conditions, or route to an
+already-covered policy) or are exercised only via direct `PolicyEngine.evaluate()` calls that
+never pass through `PolicyRouter.load()`/`validate()` at all
+(`examples/tutorials/02-policy-evaluation/policy.json`), and `examples/audit/AS-001-approved-vendor-payment/policy.json`
+is not executed by `npm run examples` or any test at all (no `run.ts` references it). `npm
+run examples` re-run twice after the fix: 98/98 tutorials completed, exit code 0, zero
+`PolicyValidationError`s or any other error, both times. (One earlier re-run hit an unrelated,
+non-reproducible `Cannot find module '@parmana/policy'` transient failure at Tutorial 03,
+isolated and confirmed to be Windows filesystem-race flakiness from spawning 90+ sequential
+`tsx` child processes, not a real regression — the same tutorial ran cleanly standalone and on
+every other full run.) Full `vitest run` suite re-confirmed unaffected: 1564 passed, 38
+skipped, 0 failed.
 
 **G-13. `MemoryNonceStore` and `InMemoryCallerAuditSink` both lose all state on process
 restart. RESOLVED in the durable-replay-protection hardening session that followed the

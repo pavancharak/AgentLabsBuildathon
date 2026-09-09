@@ -38,6 +38,17 @@ A Policy is a JSON file at `<policyDir>/<name>/<version>/policy.json`. Create
     "riskScore": "number",
     "financeDirectorApproved": "boolean"
   },
+  "boundSignals": {
+    "paymentAmount": "parameters.amount"
+  },
+  "unboundSignalReasons": {
+    "vendorVerified": "Independently attested by upstream vendor verification; no Intent-side equivalent field exists to bind against.",
+    "invoiceVerified": "Result of an independent invoice-verification check; not a value the Intent itself declares.",
+    "paymentApproved": "Attested by a separate payment-approval step; the Intent carries no approval-status field to bind against.",
+    "sufficientFunds": "Result of an independent funds-availability check against account state; not expressible via the Intent's target/parameters.",
+    "riskScore": "A computed payment-risk score, not a value the caller's Intent declares or could be checked against.",
+    "financeDirectorApproved": "Attested by a separate Finance Director approval step; the Intent carries no approval-status field to bind against."
+  },
   "rules": [
     {
       "id": "approve-high-value-payment",
@@ -79,12 +90,18 @@ but writing it explicitly documents the reject-by-default behavior for anyone re
 policy file itself.
 
 <Note>
-This policy declares no `boundSignals`, and that's fine here — `high-value-payment` is a
-tutorial policy with no `target`/`parameters`-shaped signal to bind. If a signal in your
-own policy is supposed to describe a fact about `intent` (an amount, a target account, a
-vendor id), declare it in `boundSignals` so `SignalIntentBinder` checks it before
-evaluation runs, rather than trusting a caller's declaration unchecked — see [Policies and
-the decision](/concepts/policies-and-the-decision) for the mechanism and why it exists.
+`PolicyValidator.validate()` fails closed on any rule-referenced fact that is neither in
+`boundSignals` nor `unboundSignalReasons` — an uncovered, unacknowledged fact throws
+`PolicyValidationError` and the policy never loads at all, it does not merely warn. This
+policy has one fact with a genuine Intent-side equivalent, `paymentAmount` (an amount, bound
+to `parameters.amount` above), so it belongs in `boundSignals`, where `SignalIntentBinder`
+checks it before evaluation runs rather than trusting a caller's declaration unchecked. Every
+other fact here — `vendorVerified`, `invoiceVerified`, `paymentApproved`, `sufficientFunds`,
+`riskScore`, `financeDirectorApproved` — is an independently-attested boolean or score with
+no Intent-side equivalent, so each needs its own `unboundSignalReasons` entry explaining why,
+not silence. See [Policies and the decision](/concepts/policies-and-the-decision) for the
+mechanism and why it exists, and `docs/VERIFICATION-GAPS.md` G-33 for why this became
+fail-closed rather than an easily-missed load-time warning.
 </Note>
 
 ### 2. Reference it from a Business Transaction

@@ -117,6 +117,7 @@ const examples = [
   "examples/tutorials/102-distinguishable-http-status/run.ts",
   "examples/tutorials/103-policy-governance-maker-checker/run.ts",
   "examples/tutorials/104-policy-governance-execution-verification/run.ts",
+  "examples/tutorials/105-tenant-key-isolation/run.ts",
   "examples/scenarios/expense-approval/run.ts",
   "examples/scenarios/purchase-order/run.ts",
 ];
