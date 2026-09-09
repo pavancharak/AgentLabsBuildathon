@@ -7,15 +7,38 @@ description: "What actually shipped, by commit, newest first. Not a marketing su
 Pulled directly from `git log` on `main` in `pavancharak/parmana-exp`, commit hashes are
 real and checkable. This page covers the commits that changed what a reader of this site can
 actually do or rely on, not every commit in the repository's history, run `git log` yourself
-for the complete record, 313 commits as of this page's last update. **Known gap:** entries
+for the complete record, 319 commits as of this page's last update. **Known gap:** entries
 between 2026-08-19 and 2026-09-06, several commits landed on 2026-09-07 before the two below,
-and everything on 2026-09-09 other than `25295ee` and `bab0981` below (including the
-changelog and validation-doc commits themselves) were not backfilled — `git log` for those
-ranges directly if you need them.
+and everything on 2026-09-09 other than `25295ee`, `bab0981`, and the five commits below them
+(including the changelog and validation-doc commits themselves) were not backfilled — `git
+log` for those ranges directly if you need them.
 </Info>
 
 ## 2026-09-09
 
+- **`1899f6e`** docs: adds `docs/audit/PRODUCTION-READINESS-AUDIT-2026-09-09.md` (5 critical
+  claims, 4 known findings, and a structural dead-code/naming audit, verified against actual
+  code — correcting several stale assumptions along the way) and updates `docs/CLAIMS.md`
+  §2.14/§2.30/§3.11 to match the four fixes below.
+- **`acf248a`** chore(deps): removes the unused `@supabase/supabase-js` dependency from 5
+  packages (`api`, `crypto`, `policy`, `runtime`, `shared`) — confirmed zero real usage by
+  grep. Self-caught regression in the same pass, documented in full rather than glossed over:
+  the grep missed two real usages outside `src`/`tests` (`packages/storage/scripts/migrate.ts`,
+  `scripts/verify-policy-changes-approved.ts`), neither covered by `tsc -b` or `vitest`. Both
+  restored. See `docs/VERIFICATION-GAPS.md` G-36.
+- **`5cd88e2`** feat(crypto): `PRIMARY_SIGNATURE_PROVIDER`/`SECONDARY_SIGNATURE_PROVIDER` now
+  accept `ml-dsa-65` as an alias for the internal `dilithium3` identifier — additive only, no
+  rename, so an existing `dilithium3`-configured deployment is unaffected. See `docs/VERIFICATION-GAPS.md`
+  G-35 and [Cryptography](/cryptography/overview).
+- **`5e291ab`** chore: removes dead `SupabaseClientFactory` and `assertSupabaseConfigured.ts`
+  (zero remaining call sites, no tests) and rewrites 8 stale doc-comment references that still
+  described `SupabaseClientFactory` as current. See `docs/VERIFICATION-GAPS.md` G-34.
+- **`b53bd4e`** fix(policy): `PolicyValidator.validate()` now fails closed on any
+  rule-referenced fact with neither a `boundSignals` nor a new `unboundSignalReasons` entry,
+  replacing a load-time `console.warn` nobody reviewing a running system would see. All 10
+  real policies updated — two (`connector-capability`, `customer-refund`) had a genuinely
+  bindable amount fact that had simply never been bound, a real scope-drift gap now closed.
+  See `docs/VERIFICATION-GAPS.md` G-33.
 - **`bab0981`** docs(examples): Tutorial 105 demonstrates the `25295ee` fix below
   end-to-end — a transaction with a provisioned `tenant.acme-corp` key signs and verifies
   only under that key (and fails verification under the shared default key), an
