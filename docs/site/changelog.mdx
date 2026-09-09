@@ -7,15 +7,25 @@ description: "What actually shipped, by commit, newest first. Not a marketing su
 Pulled directly from `git log` on `main` in `pavancharak/parmana-exp`, commit hashes are
 real and checkable. This page covers the commits that changed what a reader of this site can
 actually do or rely on, not every commit in the repository's history, run `git log` yourself
-for the complete record, 319 commits as of this page's last update. **Known gap:** entries
+for the complete record, 321 commits as of this page's last update. **Known gap:** entries
 between 2026-08-19 and 2026-09-06, several commits landed on 2026-09-07 before the two below,
-and everything on 2026-09-09 other than `25295ee`, `bab0981`, and the five commits below them
+and everything on 2026-09-09 other than `25295ee`, `bab0981`, and the six commits below them
 (including the changelog and validation-doc commits themselves) were not backfilled — `git
 log` for those ranges directly if you need them.
 </Info>
 
 ## 2026-09-09
 
+- **`e1c5d04`** fix(examples): the `boundSignals` fail-closed change (`acf248a`/`b53bd4e`
+  below) applies to every policy, not just the 10 under `policies/` — broke `npm run examples`
+  at Tutorial 14. Fixed `examples/tutorials/14-custom-policy`'s own policy (one genuinely
+  bindable fact, `paymentAmount`, now really bound) and the widely-shared
+  `examples/shared/policies/default-policy.json`. Also wired Tutorial 105 into
+  `scripts/run-examples.ts`'s list for the first time, and corrected two doc-site pages whose
+  own inline policy examples had gone stale relative to the fail-closed behavior they
+  demonstrate ([Write your first policy](/guides/write-your-first-policy),
+  [Policies and the decision](/concepts/policies-and-the-decision)). `npm run examples`:
+  98/98, exit 0. See `docs/VERIFICATION-GAPS.md` G-37.
 - **`1899f6e`** docs: adds `docs/audit/PRODUCTION-READINESS-AUDIT-2026-09-09.md` (5 critical
   claims, 4 known findings, and a structural dead-code/naming audit, verified against actual
   code — correcting several stale assumptions along the way) and updates `docs/CLAIMS.md`
