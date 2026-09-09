@@ -7,15 +7,21 @@ description: "What actually shipped, by commit, newest first. Not a marketing su
 Pulled directly from `git log` on `main` in `pavancharak/parmana-exp`, commit hashes are
 real and checkable. This page covers the commits that changed what a reader of this site can
 actually do or rely on, not every commit in the repository's history, run `git log` yourself
-for the complete record, 325 commits as of this page's last update. **Known gap:** entries
+for the complete record, 327 commits as of this page's last update. **Known gap:** entries
 between 2026-08-19 and 2026-09-06, several commits landed on 2026-09-07 before the two below,
-and everything on 2026-09-09 other than `25295ee`, `bab0981`, and the nine commits below them
+and everything on 2026-09-09 other than `25295ee`, `bab0981`, and the ten commits below them
 (including the changelog and validation-doc commits themselves) were not backfilled — `git
 log` for those ranges directly if you need them.
 </Info>
 
 ## 2026-09-09
 
+- **`3023399`** docs(examples): new `policies/api-key-issuance/1.0.0` policy and Tutorial 106,
+  written correctly under the fail-closed `boundSignals` discipline (G-33) and zero-conflict
+  shape (G-39) from the start — a worked template for authoring a new policy, rather than
+  another retrofit. Demonstrates the approve path, a `boundSignals` mismatch caught by
+  `SignalIntentBinder`, a specific rejection reason, and zero `findRuleConflicts()` warnings.
+  `npm run examples`: 99/99, exit 0.
 - **`a3d19bd`** docs: `docs/VERIFICATION-GAPS.md` G-38/G-39 and `docs/CLAIMS.md` §2.30 updates
   for the two commits below.
 - **`f82f071`** feat(policy): new `PolicyValidator.findRuleConflicts(policy)` flags pairs of
