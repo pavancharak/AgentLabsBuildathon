@@ -7,14 +7,20 @@ description: "What actually shipped, by commit, newest first. Not a marketing su
 Pulled directly from `git log` on `main` in `pavancharak/parmana-exp`, commit hashes are
 real and checkable. This page covers the commits that changed what a reader of this site can
 actually do or rely on, not every commit in the repository's history, run `git log` yourself
-for the complete record, 310 commits as of this page's last update. **Known gap:** entries
+for the complete record, 313 commits as of this page's last update. **Known gap:** entries
 between 2026-08-19 and 2026-09-06, several commits landed on 2026-09-07 before the two below,
-and everything between the 2026-09-07 entries and `25295ee` below (2026-09-09) other than
-`25295ee` itself, were not backfilled — `git log` for those ranges directly if you need them.
+and everything on 2026-09-09 other than `25295ee` and `bab0981` below (including the
+changelog and validation-doc commits themselves) were not backfilled — `git log` for those
+ranges directly if you need them.
 </Info>
 
 ## 2026-09-09
 
+- **`bab0981`** docs(examples): Tutorial 105 demonstrates the `25295ee` fix below
+  end-to-end — a transaction with a provisioned `tenant.acme-corp` key signs and verifies
+  only under that key (and fails verification under the shared default key), an
+  unprovisioned tenantId falls back silently to `"default"`, and a transaction with no
+  tenantId is unaffected. `examples/tutorials/105-tenant-key-isolation/`.
 - **`25295ee`** fix(runtime): `RuntimeAuthorizationSigner` previously signed every Execution
   Authorization under the single shared `"default"` key regardless of tenant, even though
   verification already resolves the public key per-authorization by its own `keyId`
