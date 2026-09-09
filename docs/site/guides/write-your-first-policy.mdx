@@ -164,6 +164,45 @@ not a bug in the tutorial, a caller that wants to handle rejection gracefully ne
 what matched, confirmed by the message, first-match-wins doing its job on different signals,
 same policy document, no code change.
 
+## Why explicit rejection rules? (Auditability over simplicity)
+
+Parmana policies mix approval and rejection rules in one ordered array, exactly like
+`high-value-payment` above. That's a deliberate choice, not an oversight — some architectures
+prefer "approval-only + implicit default-reject" instead, and it's worth being explicit about
+why this codebase doesn't.
+
+**The engine is fail-closed by default, independent of how you write your policy.**
+`PolicyEngine.evaluate()`'s outcome-mapping switch (`PolicyEngine.ts`) treats any unmatched or
+unrecognized action as `REJECT` — this is the engine's own default branch, not something a
+policy author opts into. You don't have to remember a catch-all rule for the engine to fail
+closed; it already does.
+
+**So why write explicit rejection rules at all?** Because the audit trail records a specific,
+human-readable reason for every rejection — *"the vendor has not been verified"*, not a
+generic *"no rule matched."* For a system whose refusals are independently, cryptographically
+verifiable (see [Refusal records](/concepts/refusal-records)), a specific reason is the whole
+point: compliance, debugging, and customer communication all need to know *why*, not just
+*that*.
+
+**First-match-wins means rule order matters.** `PolicyEngine.findFirstMatch()` evaluates rules
+in the order they appear in the JSON file and returns on the first one whose condition is
+true — there is no priority system beyond array order. This is a real source of bugs if two
+rules' conditions can both be true for the same input: whichever is listed first silently
+wins, with nothing surfacing that the second rule is partly or wholly shadowed.
+
+<Note>
+`PolicyValidator.findRuleConflicts(policy)` checks for exactly this — pairs of rules whose
+conditions can be true simultaneously — and `PolicyRouter.load()` logs a
+`policy_rule_conflict_detected` warning naming them. It is **advisory, not fail-closed**
+(unlike `boundSignals` coverage): a flagged pair might be a genuine bug, or might be an
+intentional priority ordering between two violation reasons that can legitimately co-occur
+(this repo's own `hubspot-deal-update` policy has exactly one such case). It also only proves
+`NO_OVERLAP` for condition shapes it can fully reason about (same-fact `eq`/`neq`/numeric
+comparisons, and `all` conjunctions where at least one conjunct is provably disjoint from the
+other side) — anything more complex is reported as `NEEDS_REVIEW`, an honest "can't tell,"
+never a guessed answer. See `docs/VERIFICATION-GAPS.md` G-38 and G-39.
+</Note>
+
 ## Troubleshoot
 
 - **Decision comes back `REJECTED` with `"reason": "One or more required policy conditions were not satisfied."`, not the reason you expected.** Your transaction's signals matched no earlier rule, only the trailing default. Check `signalsSchema` against what you actually sent, a typo'd signal name is silently `undefined`, which fails every `eq`/`gt`/`lte` condition.

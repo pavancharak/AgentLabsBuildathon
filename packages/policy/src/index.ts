@@ -48,6 +48,7 @@ export { PolicyRouter } from "./PolicyRouter.js";
 // -----------------------------------------------------------------------------
 
 export { PolicyValidator } from "./PolicyValidator.js";
+export type { RuleConflictWarning } from "./PolicyValidator.js";
 export { SignalValidator } from "./SignalValidator.js";
 
 // -----------------------------------------------------------------------------

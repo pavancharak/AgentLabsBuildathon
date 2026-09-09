@@ -197,3 +197,277 @@ describe("PolicyValidator.validate -- unboundSignalReasons", () => {
     ).toThrow(/contradictory/);
   });
 });
+
+/**
+ * Audit finding (2026-09-09, policy approval/rejection audit): overlapping
+ * rule conditions fail silently under first-match-wins -- two rules could
+ * both match a given input with no signal that the earlier one always
+ * wins. findRuleConflicts() is advisory only (see its own doc comment for
+ * why it is never wired into validate()'s fail-closed throw): a heuristic
+ * judgment call, not a structural guarantee like boundSignals coverage.
+ *
+ * Every real policy in policies/ was checked against this method directly
+ * (a scratch script, not committed) once implemented: zero WARNING-level
+ * results across all 10 -- the one case (hubspot-deal-update) that gets an
+ * INFO-level "needs review" result is a genuine, deliberate first-match-wins
+ * priority ordering between two independent violation reasons that really
+ * can co-occur, not a bug.
+ */
+describe("PolicyValidator.findRuleConflicts", () => {
+  const validator = new PolicyValidator();
+
+  const basePolicy: Policy = {
+    policyId: "test-policy",
+    policyVersion: "1.0.0",
+    schemaVersion: "1.0.0",
+    rules: [],
+  };
+
+  it("returns nothing for a policy with a single rule", () => {
+    const policy: Policy = {
+      ...basePolicy,
+      rules: [
+        {
+          id: "reject-default",
+          condition: { always: true },
+          outcome: { action: "reject" as never, reason: "no other rule matched" },
+        },
+      ],
+    };
+    expect(validator.findRuleConflicts(policy)).toEqual([]);
+  });
+
+  it("does not flag the idiomatic trailing 'always: true' catch-all", () => {
+    const policy: Policy = {
+      ...basePolicy,
+      rules: [
+        {
+          id: "reject-blocked",
+          condition: { fact: "merchant", operator: "eq", value: "BLOCKED" },
+          outcome: { action: "reject" as never, reason: "blocked merchant" },
+        },
+        {
+          id: "reject-default",
+          condition: { always: true },
+          outcome: { action: "reject" as never, reason: "no other rule matched" },
+        },
+      ],
+    };
+    expect(validator.findRuleConflicts(policy)).toEqual([]);
+  });
+
+  it("flags an 'always: true' rule that is NOT last as a hard WARNING (everything after it is unreachable)", () => {
+    const policy: Policy = {
+      ...basePolicy,
+      rules: [
+        {
+          id: "catch-all-too-early",
+          condition: { always: true },
+          outcome: { action: "reject" as never, reason: "..." },
+        },
+        {
+          id: "unreachable-rule",
+          condition: { fact: "merchant", operator: "eq", value: "BLOCKED" },
+          outcome: { action: "reject" as never, reason: "..." },
+        },
+      ],
+    };
+    const conflicts = validator.findRuleConflicts(policy);
+    expect(conflicts).toContainEqual(
+      expect.objectContaining({
+        level: "WARNING",
+        ruleId: "catch-all-too-early",
+        conflictingRuleId: "unreachable-rule",
+      }),
+    );
+  });
+
+  it("does not flag conditions on different facts", () => {
+    const policy: Policy = {
+      ...basePolicy,
+      rules: [
+        {
+          id: "rule1",
+          condition: { fact: "riskScore", operator: "lte", value: 20 },
+          outcome: { action: "approve" as never, reason: "..." },
+        },
+        {
+          id: "rule2",
+          condition: { fact: "vendorVerified", operator: "eq", value: false },
+          outcome: { action: "reject" as never, reason: "..." },
+        },
+      ],
+    };
+    expect(validator.findRuleConflicts(policy)).toEqual([]);
+  });
+
+  it("does not flag mutually exclusive conditions at the exact same threshold (lte 20 vs gt 20)", () => {
+    const policy: Policy = {
+      ...basePolicy,
+      rules: [
+        {
+          id: "approve",
+          condition: { fact: "riskScore", operator: "lte", value: 20 },
+          outcome: { action: "approve" as never, reason: "..." },
+        },
+        {
+          id: "reject-high-risk",
+          condition: { fact: "riskScore", operator: "gt", value: 20 },
+          outcome: { action: "reject" as never, reason: "..." },
+        },
+      ],
+    };
+    expect(validator.findRuleConflicts(policy)).toEqual([]);
+  });
+
+  it("does not flag disjoint ranges at DIFFERENT thresholds (lte 10 vs gt 20) -- the naive 'check only equal thresholds' heuristic gets this wrong", () => {
+    const policy: Policy = {
+      ...basePolicy,
+      rules: [
+        {
+          id: "rule1",
+          condition: { fact: "riskScore", operator: "lte", value: 10 },
+          outcome: { action: "approve" as never, reason: "..." },
+        },
+        {
+          id: "rule2",
+          condition: { fact: "riskScore", operator: "gt", value: 20 },
+          outcome: { action: "reject" as never, reason: "..." },
+        },
+      ],
+    };
+    expect(validator.findRuleConflicts(policy)).toEqual([]);
+  });
+
+  it("flags genuinely overlapping ranges pointing the same direction (lte 30 and lte 50 both true for, say, riskScore=10)", () => {
+    const policy: Policy = {
+      ...basePolicy,
+      rules: [
+        {
+          id: "rule1",
+          condition: { fact: "riskScore", operator: "lte", value: 30 },
+          outcome: { action: "approve" as never, reason: "..." },
+        },
+        {
+          id: "rule2",
+          condition: { fact: "riskScore", operator: "lte", value: 50 },
+          outcome: { action: "reject" as never, reason: "..." },
+        },
+      ],
+    };
+    const conflicts = validator.findRuleConflicts(policy);
+    expect(conflicts).toContainEqual(
+      expect.objectContaining({ level: "WARNING", ruleId: "rule1", conflictingRuleId: "rule2" }),
+    );
+  });
+
+  it("resolves a nested 'all' against a leaf on the same fact to NO_OVERLAP when one conjunct is disjoint -- the real shape every policy in this repo uses (approve requires riskScore<=20 among other ANDed facts; a separate reject-high-risk rule requires riskScore>20)", () => {
+    const policy: Policy = {
+      ...basePolicy,
+      rules: [
+        {
+          id: "approve-payment",
+          condition: {
+            all: [
+              { fact: "vendorVerified", operator: "eq", value: true },
+              { fact: "riskScore", operator: "lte", value: 20 },
+            ],
+          },
+          outcome: { action: "approve" as never, reason: "..." },
+        },
+        {
+          id: "reject-high-risk",
+          condition: { fact: "riskScore", operator: "gt", value: 20 },
+          outcome: { action: "reject" as never, reason: "..." },
+        },
+      ],
+    };
+    expect(validator.findRuleConflicts(policy)).toEqual([]);
+  });
+
+  it("resolves two nested 'all' conditions to NO_OVERLAP when any cross-pair of conjuncts is disjoint", () => {
+    const policy: Policy = {
+      ...basePolicy,
+      rules: [
+        {
+          id: "allow-refund-within-threshold",
+          condition: {
+            all: [
+              { fact: "capability", operator: "eq", value: "payments:refund" },
+              { fact: "paymentAmount", operator: "lte", value: 5000 },
+            ],
+          },
+          outcome: { action: "approve" as never, reason: "..." },
+        },
+        {
+          id: "block-refund-above-threshold",
+          condition: {
+            all: [
+              { fact: "capability", operator: "eq", value: "payments:refund" },
+              { fact: "paymentAmount", operator: "gt", value: 5000 },
+            ],
+          },
+          outcome: { action: "reject" as never, reason: "..." },
+        },
+      ],
+    };
+    expect(validator.findRuleConflicts(policy)).toEqual([]);
+  });
+
+  it("reports NEEDS_REVIEW (INFO), not a guessed answer, for facts that are genuinely independent and could plausibly co-occur", () => {
+    const policy: Policy = {
+      ...basePolicy,
+      rules: [
+        {
+          id: "reject-stage-not-allowed",
+          condition: {
+            all: [
+              { fact: "dealStageChangeRequested", operator: "eq", value: true },
+              { fact: "dealStageTransitionAllowed", operator: "eq", value: false },
+            ],
+          },
+          outcome: { action: "reject" as never, reason: "..." },
+        },
+        {
+          id: "reject-amount-exceeds-threshold",
+          condition: {
+            all: [
+              { fact: "amountChangeExceedsThreshold", operator: "eq", value: true },
+              { fact: "preAuthorizedForAmountChange", operator: "eq", value: false },
+            ],
+          },
+          outcome: { action: "reject" as never, reason: "..." },
+        },
+      ],
+    };
+    const conflicts = validator.findRuleConflicts(policy);
+    expect(conflicts).toContainEqual(
+      expect.objectContaining({
+        level: "INFO",
+        ruleId: "reject-stage-not-allowed",
+        conflictingRuleId: "reject-amount-exceeds-threshold",
+      }),
+    );
+  });
+
+  it("is not wired into validate() -- a policy with a genuine conflict still loads without throwing", () => {
+    const policy: Policy = {
+      ...basePolicy,
+      rules: [
+        {
+          id: "rule1",
+          condition: { fact: "riskScore", operator: "lte", value: 30 },
+          outcome: { action: "approve" as never, reason: "..." },
+        },
+        {
+          id: "rule2",
+          condition: { fact: "riskScore", operator: "lte", value: 50 },
+          outcome: { action: "reject" as never, reason: "..." },
+        },
+      ],
+      unboundSignalReasons: { riskScore: "test fixture" },
+    };
+    expect(() => validator.validate(policy)).not.toThrow();
+    expect(validator.findRuleConflicts(policy).length).toBeGreaterThan(0);
+  });
+});

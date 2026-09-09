@@ -341,6 +341,15 @@ export function createPendingPolicyChangesRouter(
          */
         const coverageWarnings = policyValidator.findUncoveredFacts(candidate);
 
+        /**
+         * Unlike coverageWarnings above, findRuleConflicts is never
+         * checked by validate() -- it's advisory by design (see its own
+         * doc comment), so this can genuinely be non-empty for a
+         * perfectly legitimate proposal. Surfaced here so the checker
+         * sees it at approval time, same reasoning as coverageWarnings.
+         */
+        const ruleConflicts = policyValidator.findRuleConflicts(candidate);
+
         if (req.callerId === undefined) {
           res.status(401).json({
             error: "Caller authentication is required to propose a policy change.",
@@ -366,6 +375,7 @@ export function createPendingPolicyChangesRouter(
         res.status(201).json({
           ...created,
           ...(coverageWarnings.length > 0 ? { coverageWarnings } : {}),
+          ...(ruleConflicts.length > 0 ? { ruleConflicts } : {}),
         });
         return;
       } catch (error) {
@@ -431,9 +441,14 @@ export function createPendingPolicyChangesRouter(
               change.proposedContent as unknown as Policy,
             );
 
+            const ruleConflicts = policyValidator.findRuleConflicts(
+              change.proposedContent as unknown as Policy,
+            );
+
             return {
               ...change,
               ...(coverageWarnings.length > 0 ? { coverageWarnings } : {}),
+              ...(ruleConflicts.length > 0 ? { ruleConflicts } : {}),
               diff: {
                 current: await loadCurrentContent(
                   change.policyName,

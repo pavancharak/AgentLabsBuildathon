@@ -35,6 +35,27 @@ export class PolicyRouter {
       policy,
     );
 
+    //
+    // Rule-conflict detection is advisory, not fail-closed -- see
+    // PolicyValidator.findRuleConflicts' own doc comment for why.
+    //
+    const conflicts =
+      this.validator.findRuleConflicts(
+        policy,
+      );
+
+    for (const conflict of conflicts) {
+      console.warn({
+        event: "policy_rule_conflict_detected",
+        policyId: policy.policyId,
+        policyVersion: policy.policyVersion,
+        level: conflict.level,
+        ruleId: conflict.ruleId,
+        conflictingRuleId: conflict.conflictingRuleId,
+        detail: conflict.message,
+      });
+    }
+
     return policy;
   }
 }
