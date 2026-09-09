@@ -43,6 +43,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@redocly/cli": "^2.39.0",
+    "@supabase/supabase-js": "^2.108.2",
     "@types/node": "^24.0.0",
     "@types/swagger-ui-express": "^4.1.8",
     "@vitest/coverage-v8": "^4.1.9",
