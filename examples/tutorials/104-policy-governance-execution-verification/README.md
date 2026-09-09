@@ -27,4 +27,4 @@ Writes to a scratch temp directory (`mkdtempSync`), never the real `policies/` t
 
 ## Next Tutorial
 
-This is currently the last tutorial in the sequence.
+[Tutorial 105 - Tenant Key Isolation](../105-tenant-key-isolation/README.md)

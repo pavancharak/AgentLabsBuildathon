@@ -207,7 +207,7 @@ try {
 
   console.log();
   console.log("Tutorial Complete");
-  console.log("This is currently the last tutorial in the sequence.");
+  console.log("Next: Tutorial 105 - Tenant Key Isolation");
 } finally {
   rmSync(scratchPolicyDir, { recursive: true, force: true });
 }
