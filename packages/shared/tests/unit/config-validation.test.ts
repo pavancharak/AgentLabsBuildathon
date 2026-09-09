@@ -2,7 +2,27 @@ import { generateKeyPairSync } from "node:crypto";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { parseApiKeys, parseCryptoMode, parseStorageProvider } from "../../src/config/ConfigValidation.js";
+import { parseApiKeys, parseCryptoMode, parseSignatureAlgorithm, parseStorageProvider } from "../../src/config/ConfigValidation.js";
+
+describe("parseSignatureAlgorithm", () => {
+  it("defaults to ed25519 when unset", () => {
+    expect(parseSignatureAlgorithm(undefined)).toBe("ed25519");
+  });
+
+  it("accepts the canonical 'dilithium3' identifier unchanged", () => {
+    expect(parseSignatureAlgorithm("dilithium3")).toBe("dilithium3");
+  });
+
+  it("accepts 'ml-dsa-65' as an alias resolving to the canonical 'dilithium3' identifier", () => {
+    expect(parseSignatureAlgorithm("ml-dsa-65")).toBe("dilithium3");
+  });
+
+  it("throws naming the invalid value for an unrecognized algorithm", () => {
+    expect(() => parseSignatureAlgorithm("rsa")).toThrow(
+      "Invalid SIGNATURE_PROVIDER: rsa",
+    );
+  });
+});
 
 describe("parseCryptoMode", () => {
   it("selects the mode named by CRYPTO_MODE", () => {

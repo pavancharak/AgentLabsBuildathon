@@ -10,7 +10,7 @@ description: "Ed25519 default, ML-DSA-65 (post-quantum) configurable. Local PEM 
 | Algorithm | Status | Notes |
 |---|---|---|
 | Ed25519 | [AVAILABLE], default | Deterministic signatures. `Ed25519SignatureProvider`. |
-| ML-DSA-65 (FIPS 204, historically called "dilithium3" in this codebase) | [AVAILABLE], opt-in | Selectable via `PRIMARY_SIGNATURE_PROVIDER=dilithium3`. Requires **Node ≥ 24** for native `node:crypto` ml-dsa-65 support. **Signatures are randomized, not deterministic**, signing the same message twice produces two different, both-valid signatures. Only verification is deterministic (CLAIMS.md §5). |
+| ML-DSA-65 (FIPS 204, historically called "dilithium3" in this codebase) | [AVAILABLE], opt-in | Selectable via `PRIMARY_SIGNATURE_PROVIDER=dilithium3` **or** the equivalent, accepted alias `PRIMARY_SIGNATURE_PROVIDER=ml-dsa-65` (either resolves to the same provider; the internal identifier itself is `dilithium3` and stays that way for backward compatibility). Requires **Node ≥ 24** for native `node:crypto` ml-dsa-65 support. **Signatures are randomized, not deterministic**, signing the same message twice produces two different, both-valid signatures. Only verification is deterministic (CLAIMS.md §5). |
 | ECDSA P-256 | Declared in `SignatureAlgorithms` enum | No dedicated provider class confirmed in this audit, treat as unimplemented until checked. |
 
 CLAIMS.md 2.13/2.14. Evidence: `packages/crypto/test/SignatureProvider.test.ts`,

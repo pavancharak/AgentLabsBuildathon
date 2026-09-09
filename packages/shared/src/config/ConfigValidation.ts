@@ -49,9 +49,25 @@ export const parseCryptoMode = (value?: string): CryptoMode =>
 export const parseHashAlgorithm = (value?: string): HashAlgorithm =>
   parse(value, HashAlgorithms, "HASH_PROVIDER", HashAlgorithms.SHA256);
 
+/**
+ * Accepted input aliases for a SignatureAlgorithm config value, resolved
+ * to the canonical internal identifier before validation. Additive only:
+ * the canonical identifiers themselves (SignatureAlgorithms' own values,
+ * e.g. "dilithium3") are never renamed, so an existing
+ * PRIMARY_SIGNATURE_PROVIDER=dilithium3 deployment is unaffected. Lets a
+ * new deployment use "ml-dsa-65" (the NIST/FIPS 204 standard name this
+ * codebase's own docs already use when describing "dilithium3" to
+ * readers) without a breaking rename of the internal identifier itself.
+ */
+const SIGNATURE_ALGORITHM_ALIASES: Record<string, SignatureAlgorithm> = {
+  "ml-dsa-65": SignatureAlgorithms.DILITHIUM3,
+};
+
 export const parseSignatureAlgorithm = (value?: string): SignatureAlgorithm =>
   parse(
-    value,
+    value !== undefined
+      ? (SIGNATURE_ALGORITHM_ALIASES[value] ?? value)
+      : value,
     SignatureAlgorithms,
     "SIGNATURE_PROVIDER",
     SignatureAlgorithms.ED25519,

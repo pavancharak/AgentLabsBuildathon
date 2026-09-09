@@ -43,10 +43,18 @@ if (!existsSync(keyDirectory)) {
   });
 }
 
+//
+// "ml-dsa-65" (the NIST/FIPS 204 standard name) is accepted as an
+// input alias for "dilithium3" (this codebase's internal identifier,
+// unchanged for backward compatibility with existing
+// SIGNATURE_PROVIDER=dilithium3 deployments) -- see
+// ConfigValidation.ts's parseSignatureAlgorithm for the same alias on
+// the config-parsing side.
+//
 const nodeAlgorithm =
   algorithm === "ed25519"
     ? "ed25519"
-    : algorithm === "dilithium3"
+    : algorithm === "dilithium3" || algorithm === "ml-dsa-65"
       ? "ml-dsa-65"
       : undefined;
 

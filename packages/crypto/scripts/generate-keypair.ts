@@ -18,6 +18,18 @@ const NODE_KEY_TYPES = {
 
 type SupportedAlgorithm = keyof typeof NODE_KEY_TYPES;
 
+/**
+ * "ml-dsa-65" (the NIST/FIPS 204 standard name) is accepted as an
+ * input alias for "dilithium3" (this codebase's internal identifier,
+ * unchanged for backward compatibility with existing
+ * SIGNATURE_PROVIDER=dilithium3 deployments) -- see
+ * ConfigValidation.ts's parseSignatureAlgorithm for the same alias on
+ * the config-parsing side.
+ */
+const ALGORITHM_ALIASES: Record<string, SupportedAlgorithm> = {
+  "ml-dsa-65": "dilithium3",
+};
+
 function isSupportedAlgorithm(
   value: string,
 ): value is SupportedAlgorithm {
@@ -46,11 +58,14 @@ function parseArgs(argv: string[]): {
   return { algorithm, force };
 }
 
-const { algorithm, force } = parseArgs(process.argv.slice(2));
+const { algorithm: rawAlgorithm, force } = parseArgs(process.argv.slice(2));
+
+const algorithm = ALGORITHM_ALIASES[rawAlgorithm] ?? rawAlgorithm;
 
 if (!isSupportedAlgorithm(algorithm)) {
   throw new Error(
-    `Unknown --algorithm "${algorithm}". Supported: ${Object.keys(NODE_KEY_TYPES).join(", ")}`,
+    `Unknown --algorithm "${rawAlgorithm}". Supported: ` +
+      `${[...Object.keys(NODE_KEY_TYPES), ...Object.keys(ALGORITHM_ALIASES)].join(", ")}`,
   );
 }
 
