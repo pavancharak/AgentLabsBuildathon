@@ -297,9 +297,11 @@ capability):
 1. [ ] **Hermetic first** — the full authorize → verify → execute → confirm chain against the
        connector's own `Mock<Name>Server`, zero real network calls. Lives in
        `packages/connector-<name>/tests/unit/`:
-   - `<name>-<action>-policy.test.ts` — schema validation + every rule branch, including asserting
-     no rule ever produces an unintended outcome (e.g. `require_override` when only
-     approve/reject are expected). Reference: `hubspot-deal-update-policy.test.ts`.
+   - `<name>-<action>-policy.test.ts` — schema validation + every rule branch, and (since G-33,
+     `docs/VERIFICATION-GAPS.md`) confirming the policy loads at all under `PolicyValidator`'s
+     fail-closed `boundSignals`/`unboundSignalReasons` coverage check. `PolicyAction` has only
+     `approve`/`reject` (`REQUIRE_OVERRIDE` was removed as dead code, G-38) — no unintended-outcome
+     check is needed beyond that. Reference: `hubspot-deal-update-policy.test.ts`.
    - `<name>-<action>-signals.test.ts` — every branch of the pure signal-building/allowlist logic
      (forward/backward/terminal/unrecognized-state cases, delta/threshold arithmetic, boundSignals-
      safe omission of absent fields). Reference: `hubspot-deal-update-signals.test.ts`.

@@ -7,9 +7,9 @@ import { describe, expect, it } from "vitest";
 /**
  * Reference policy demonstrating capability-based authorization for
  * Connector SDK connectors (Deliverable: REFERENCE POLICY). Outcomes are
- * strictly "approve" (ALLOW) or "reject" (BLOCK) — Phase 1's PolicyAction
- * enum (locked) has no approval-workflow outcome, and this policy does not
- * use require_override.
+ * strictly "approve" (ALLOW) or "reject" (BLOCK) -- PolicyAction has only
+ * those two values (REQUIRE_OVERRIDE, a reserved-but-unused third value,
+ * was removed as dead code; see docs/VERIFICATION-GAPS.md G-38).
  */
 const policy = JSON.parse(
   readFileSync(
@@ -54,11 +54,5 @@ describe("connector-capability reference policy", () => {
     const decision = engine.evaluate(policy, { capability: "sap:write", paymentAmount: 0 });
     expect(decision.outcome).toBe(PolicyOutcome.REJECT);
     expect(decision.matchedRuleId).toBe("reject-default");
-  });
-
-  it("never produces an approval-workflow outcome", () => {
-    for (const rule of policy.rules) {
-      expect(rule.outcome.action).not.toBe("require_override");
-    }
   });
 });

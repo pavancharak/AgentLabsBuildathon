@@ -118,10 +118,4 @@ describe("hubspot-deal-update policy", () => {
     expect(decision.outcome).toBe(PolicyOutcome.REJECT);
     expect(decision.matchedRuleId).toBe("reject-stage-transition-not-allowed");
   });
-
-  it("never produces a require_override outcome", () => {
-    for (const rule of policy.rules) {
-      expect(rule.outcome.action).not.toBe("require_override");
-    }
-  });
 });

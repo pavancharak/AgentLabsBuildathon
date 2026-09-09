@@ -197,9 +197,6 @@ export class PolicyEngine {
       case PolicyAction.APPROVE:
         return PolicyOutcome.APPROVE;
 
-      case PolicyAction.REQUIRE_OVERRIDE:
-        return PolicyOutcome.REQUIRE_OVERRIDE;
-
       case PolicyAction.REJECT:
       default:
         return PolicyOutcome.REJECT;

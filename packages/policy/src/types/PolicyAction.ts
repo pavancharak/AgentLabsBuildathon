@@ -9,6 +9,4 @@ export enum PolicyAction {
   APPROVE = "approve",
 
   REJECT = "reject",
-
-  REQUIRE_OVERRIDE = "require_override",
 }

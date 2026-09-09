@@ -8,6 +8,4 @@ export enum PolicyOutcome {
   APPROVE = "APPROVE",
 
   REJECT = "REJECT",
-
-  REQUIRE_OVERRIDE = "REQUIRE_OVERRIDE",
 }

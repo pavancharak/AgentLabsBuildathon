@@ -79,7 +79,6 @@ export class DecisionBuilder {
         return DecisionOutcome.APPROVED;
 
       case PolicyOutcome.REJECT:
-      case PolicyOutcome.REQUIRE_OVERRIDE:
         return DecisionOutcome.REJECTED;
 
       default:
