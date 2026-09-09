@@ -19,11 +19,11 @@ import { assertDatabaseUrlConfigured } from "./assertDatabaseUrlConfigured.js";
  * since that would silently narrow replay protection to a single
  * process's uptime with no signal that it happened.
  *
- * Wired to PostgresPoolFactory (DATABASE_URL), not SupabaseClientFactory
- * (SUPABASE_URL) — SupabaseNonceStore now writes via a direct Postgres
- * connection, removing PostgREST from this store's failure modes
- * entirely (see SupabaseNonceStore for the incident this generalizes
- * from).
+ * Wired to PostgresPoolFactory (DATABASE_URL), not a supabase-js/
+ * PostgREST client (SUPABASE_URL) — SupabaseNonceStore now writes via
+ * a direct Postgres connection, removing PostgREST from this store's
+ * failure modes entirely (see SupabaseNonceStore for the incident
+ * this generalizes from).
  */
 export function createNonceStore(): NonceStore {
   if (process.env.NODE_ENV === "test") {

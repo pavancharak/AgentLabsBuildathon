@@ -17,8 +17,8 @@ const databaseConfigured = resolveDatabaseGate("Supabase Nonce Store");
  * from supabase/migrations/20260718090000_add_nonce_and_caller_audit_
  * tables.sql to have been applied to the target project.
  *
- * Writes via PostgresPoolFactory (DATABASE_URL) now, not
- * SupabaseClientFactory — see SupabaseNonceStore for why.
+ * Writes via PostgresPoolFactory (DATABASE_URL) now, not a
+ * supabase-js/PostgREST client — see SupabaseNonceStore for why.
  */
 describe.skipIf(!databaseConfigured)("SupabaseNonceStore (live)", () => {
   it("consumes a nonce and rejects a second attempt against the same backing", async () => {

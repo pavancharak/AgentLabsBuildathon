@@ -34,8 +34,8 @@ const databaseConfigured = resolveDatabaseGate(
  * 20260711120000_add_trust_record_sequence_columns.sql) to have been
  * applied to the target project.
  *
- * Writes via PostgresPoolFactory (DATABASE_URL) now, not
- * SupabaseClientFactory — see SupabaseExecutionTrustRecordRepository
+ * Writes via PostgresPoolFactory (DATABASE_URL) now, not a
+ * supabase-js/PostgREST client — see SupabaseExecutionTrustRecordRepository
  * for why.
  */
 describe.skipIf(!databaseConfigured)(

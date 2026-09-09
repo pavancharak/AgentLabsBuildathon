@@ -26,8 +26,8 @@ const databaseConfigured = resolveDatabaseGate(
  * this suite proves the 23505 it produces is now mapped to
  * DuplicateBusinessTransactionError rather than a raw Postgres error.
  *
- * Writes via PostgresPoolFactory (DATABASE_URL) now, not
- * SupabaseClientFactory — see SupabaseBusinessTransactionRepository
+ * Writes via PostgresPoolFactory (DATABASE_URL) now, not a
+ * supabase-js/PostgREST client — see SupabaseBusinessTransactionRepository
  * for why.
  */
 describe.skipIf(!databaseConfigured)(

@@ -11,10 +11,10 @@ import type { StorageConfiguration } from "./StorageConfiguration.js";
 /**
  * Whether a direct Postgres connection string is configured.
  * SupabaseStorageProvider's three repositories now write via
- * PostgresPoolFactory (DATABASE_URL), not SupabaseClientFactory
- * (SUPABASE_URL) — see SupabaseExecutionTrustRecordRepository for why
- * (removing PostgREST from every Supabase-backed table's failure
- * modes, not just the audit sinks that broke first).
+ * PostgresPoolFactory (DATABASE_URL), not a supabase-js/PostgREST
+ * client (SUPABASE_URL) — see SupabaseExecutionTrustRecordRepository
+ * for why (removing PostgREST from every Supabase-backed table's
+ * failure modes, not just the audit sinks that broke first).
  */
 function hasDatabaseUrlConfig(): boolean {
   return Boolean(process.env.DATABASE_URL);

@@ -24,8 +24,8 @@ import { SupabasePolicyChangeApprovalRecordRepository } from "./SupabasePolicyCh
  * Supabase Storage Provider.
  *
  * Wires all three repositories to a single, shared PostgresPoolFactory
- * pool (DATABASE_URL) — a direct Postgres connection, not
- * SupabaseClientFactory/PostgREST. This removes PostgREST from the
+ * pool (DATABASE_URL) — a direct Postgres connection, not a
+ * supabase-js/PostgREST client. This removes PostgREST from the
  * failure modes of every table this provider touches (business
  * transactions, execution trust records and their sub-collections,
  * refusal records), not just the audit sinks that broke first (see

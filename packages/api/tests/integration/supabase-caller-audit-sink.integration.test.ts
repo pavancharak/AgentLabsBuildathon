@@ -28,8 +28,8 @@ const SELECT_CALLER_AUDIT_EVENT_BY_ROUTE_SQL = `
  * supabase/migrations/20260718090000_add_nonce_and_caller_audit_
  * tables.sql to have been applied to the target project.
  *
- * Reads via PostgresPoolFactory (DATABASE_URL) now, not
- * SupabaseClientFactory (SUPABASE_URL) — see SupabaseCallerAuditSink
+ * Reads via PostgresPoolFactory (DATABASE_URL) now, not a
+ * supabase-js/PostgREST client (SUPABASE_URL) — see SupabaseCallerAuditSink
  * for why the writer moved off supabase-js (PostgREST schema-cache
  * workaround, Supabase ticket SU-437429).
  *
