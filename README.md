@@ -133,6 +133,15 @@ gates): `ALLOW_LIVE_HUBSPOT`, `TEST_HUBSPOT_PRIVATE_APP_TOKEN`,
 `TEST_HUBSPOT_DEAL_ID`, and separately `ALLOW_LIVE_SUPABASE` for the
 Supabase-gated storage suite.
 
+To measure request throughput/latency for `POST /execute` (real policy
+evaluation, Ed25519 signing, and connector execution, run at
+configurable concurrency against an in-memory, caller-auth-disabled
+instance — see the script's own header comment for exact scope):
+
+```bash
+npm run loadtest -- --connections 20 --duration 15
+```
+
 ## Status and scope
 
 Assessed at TRL 6 on the evidence in [docs/CLAIMS.md](docs/CLAIMS.md).
