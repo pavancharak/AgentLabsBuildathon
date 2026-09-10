@@ -4,15 +4,18 @@
   "name": "Parmana",
   "description": "Execution Trust Infrastructure: verifiable trust between business authorization, policy evaluation, runtime execution, and execution evidence.",
   "colors": {
-    "primary": "#6FE3C4",
-    "light": "#6FE3C4",
-    "dark": "#2E9B7D"
+    "primary": "#6366F1",
+    "light": "#6366F1",
+    "dark": "#4338CA"
   },
   "background": {
     "color": {
       "light": "#FFFFFF",
-      "dark": "#0A0D10"
+      "dark": "#1A1A1A"
     }
+  },
+  "fonts": {
+    "family": "Inter"
   },
   "logo": {
     "light": "/logo/logo-light.svg",
