@@ -44,7 +44,16 @@ Two key pairs are required in `PARMANA_KEY_DIR` (default `./keys`, already set i
   deliberately separate (`PARMANA_GATEWAY_KEY_ID` overrides the `gateway` id if you need a
   different one).
 
-Neither is generated automatically. Two ways to provide them:
+`KEY_PROVIDER` (optional, defaults to `local`) fails startup loudly if set to
+`aws-kms`/`azure-key-vault`/`gcp-kms`/`hsm` — none of those custody models are implemented
+yet, and this is a real config value with no working provider behind it today.
+
+`PARMANA_GATEWAY_ID` (optional, defaults to `parmana-gateway`) is this process's logical
+Gateway identity — distinct from `PARMANA_GATEWAY_KEY_ID` above, which is a key file prefix.
+Set a distinct value per environment or tenant if running more than one logically distinct
+gateway against the same audit trail.
+
+Neither key file is generated automatically. Two ways to provide them:
 
 1. **Mount a volume or platform secret file** at `/app/keys` containing all four `.pem`
    files, the image's `keys/` starts empty on purpose, key material must never be baked into
@@ -118,6 +127,12 @@ Override only if a platform needs to mount a different policy set.
 `packages/shared/src/config/Config.ts` for the authoritative list, it's the only place
 `process.env` is read for application config.
 
+`RATE_LIMIT_EXECUTE_PER_MINUTE`/`RATE_LIMIT_HEALTH_PER_MINUTE` (defaults `30`/`300`): when
+`DATABASE_URL` is configured, both limiters share counts fleet-wide via a durable
+Postgres-backed store; without it, each machine counts independently, so a horizontally
+scaled deployment's effective ceiling is `limitPerMinute × machineCount`. See
+[Authentication](/api-reference/authentication#rate-limiting).
+
 ## Health checks
 
 - **`GET /health`**, pure liveness, no external dependency touched.
@@ -125,7 +140,9 @@ Override only if a platform needs to mount a different policy set.
   `consumed_nonces` to confirm the connection and credentials actually work, returning `503`
   if not, so an orchestrator can tell "up but backed by dead storage" apart from "genuinely
   ready" and route around it. When storage is `memory`, there's no external dependency to
-  probe, it reports ready unconditionally.
+  probe, it reports ready unconditionally. Also carries `authDisabled` (plus a `warning`
+  string when true) — set up a synthetic check on this field, since `PARMANA_AUTH_DISABLED`
+  should never be set in a real deployment.
 
 ## Graceful shutdown
 

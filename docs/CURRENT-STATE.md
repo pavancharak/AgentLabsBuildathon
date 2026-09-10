@@ -133,10 +133,21 @@ handed to this session, and none of them are:
 
 ## Known structural limitations, read directly from the implementation
 
-- Rate limiting is per-process, in-memory (`express-rate-limit`) — a fleet
-  of N machines has N independent limits, not one shared limit.
-- Session/credential state (`InMemoryGatewaySessionStore`) is in-memory,
-  single-process — no distributed session story.
+- Rate limiting (`express-rate-limit`) is per-process, in-memory by
+  default — a fleet of N machines has N independent limits, not one
+  shared limit — **unless `DATABASE_URL` is configured**, in which case
+  both the `/execute` and `/health`,`/ready` limiters share a durable
+  Postgres-backed count fleet-wide (`PostgresRateLimitStore`, added
+  2026-09-10, `docs/VERIFICATION-GAPS.md` G-41).
+- Session/credential state (`InMemoryGatewaySessionStore`,
+  `InMemorySessionCredentialVault`) is in-memory, single-process — not a
+  limitation in practice: both are strictly intra-request objects,
+  created and consumed within one synchronous `POST /execute` call, with
+  no HTTP response or second endpoint that could ever hand one back to
+  this process later. Investigated directly 2026-09-10 (traced every
+  caller) after an external audit framed this as needing persistence;
+  confirmed it does not. See `docs/VERIFICATION-GAPS.md`'s "Gaps checked
+  and found not applicable" section.
 - `HttpExecutionSystem`'s `timeout` option is declared
   (`ExecutionSystemClientOptions.ts`) but never referenced anywhere in the
   implementation — confirmed by grep: not enforced.

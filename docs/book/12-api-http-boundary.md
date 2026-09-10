@@ -58,13 +58,23 @@ health-check infrastructure. A rate-limited request returns `429` with a `Retry-
 and never reaches policy evaluation or signing: no nonce consumed, nothing signed, for a
 request this middleware rejects on its own.
 
-**Scope, honestly stated:** the limiter's store is `express-rate-limit`'s default, in-memory,
-single-process store. A deployment running multiple machines has each one counting
-independently. The effective ceiling for a given caller is `RATE_LIMIT_EXECUTE_PER_MINUTE ×
-machineCount`, not a fleet-wide limit enforced once. The same caveat Chapter 7 raised about
-`NonceStore` applies here for the same underlying reason: a single-process data structure is
-only a fleet-wide guarantee if there's exactly one process, and this codebase says so plainly
-rather than letting the claim imply more than it delivers.
+**Scope, honestly stated:** by default the limiter's store is `express-rate-limit`'s
+in-memory, single-process store. A deployment running multiple machines has each one
+counting independently, an effective ceiling of `RATE_LIMIT_EXECUTE_PER_MINUTE ×
+machineCount`, not a fleet-wide limit enforced once — the same caveat Chapter 7 raised
+about `NonceStore`, for the same underlying reason: a single-process data structure is
+only a fleet-wide guarantee if there's exactly one process.
+
+**Update, 2026-09-10:** unlike `NonceStore` (correctly and deliberately always
+Supabase-backed, never in-memory, in a real deployment), the rate limiter's durability is
+now conditional: when `DATABASE_URL` is configured, both limiters share counts fleet-wide
+via `PostgresRateLimitStore`, an atomic `INSERT ... ON CONFLICT` upsert against a
+`rate_limit_counters` table. Without `DATABASE_URL`, the in-process fallback above still
+applies, now with a startup warning naming the gap rather than silence. Deliberately not
+fail-closed like `NonceStore` — a looser-than-configured rate ceiling degrades a capacity
+control, it doesn't remove a security check, so refusing to start over a missing database
+would break every correctly-working single-instance deployment. See
+`docs/VERIFICATION-GAPS.md` G-41.
 
 ## The API describes itself
 

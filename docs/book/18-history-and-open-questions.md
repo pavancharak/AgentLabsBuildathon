@@ -86,7 +86,10 @@ nobody's code.
 **Single-process scope on nonce stores and rate limiting** (Chapters 7, 11, 12). Both are
 explicit about this rather than silent: an in-memory `NonceStore` loses all state on restart;
 `express-rate-limit`'s default store means a fleet of N machines enforces N times the stated
-per-caller limit, not one fleet-wide limit. Both are documented as known, not fixed.
+per-caller limit, not one fleet-wide limit. **Update, 2026-09-10:** the rate-limiting half is
+now closable — `PostgresRateLimitStore` shares counts fleet-wide whenever `DATABASE_URL` is
+configured, in-process otherwise (see Chapter 12's own update). The nonce-store scope note
+above remains as originally written.
 
 **Whether `@parmana/replay`/`@parmana/receipt` should be wired in or retired** (Chapter 16).
 Real, tested code with no production consumer. Nobody has decided to finish wiring them in or
