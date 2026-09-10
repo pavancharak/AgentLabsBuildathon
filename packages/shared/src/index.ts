@@ -10,5 +10,6 @@ export * from "./config/index.js";
 export * from "./errors/index.js";
 export * from "./gateway/index.js";
 export * from "./types/Json.js";
+export * from "./logging/Logger.js";
 
 export { normalizePolicy } from "./utils/normalize-policy.js";
