@@ -7,7 +7,7 @@ description: "What actually shipped, by commit, newest first. Not a marketing su
 Pulled directly from `git log` on `main` in `pavancharak/parmana-exp`, commit hashes are
 real and checkable. This page covers the commits that changed what a reader of this site can
 actually do or rely on, not every commit in the repository's history, run `git log` yourself
-for the complete record, 348 commits as of this page's last update. **Known gap:** entries
+for the complete record, 350 commits as of this page's last update. **Known gap:** entries
 between 2026-08-19 and 2026-09-06, several commits landed on 2026-09-07 before the two below,
 and everything on 2026-09-09 other than `25295ee`, `bab0981`, and the ten commits below them
 (including the changelog and validation-doc commits themselves) were not backfilled — `git
@@ -90,6 +90,9 @@ new §3.21.
   additions (neither said anything false, they predated these capabilities);
   `docs/00X-*.md` needed no change — confirmed by grep, that series operates above the
   level of detail this session's fixes touch.
+- **`0e0534b`** docs: `README.md`'s test count (1,313, last verified 2026-08-24) was stale
+  from ordinary suite growth since then, not from this session's changes — updated to
+  1,671 (1,631 passed, 38 skipped, 0 failed), re-verified via a JSON-reporter run.
 
 ## 2026-09-09
 
