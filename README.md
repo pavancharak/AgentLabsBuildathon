@@ -42,10 +42,11 @@ Parmana's own runtime or database.
 
 What's actually been demonstrated, not just built:
 
-- **1,313 automated tests** across the workspace (1,274 passed, 37 skipped, 2 pending, 0 failed
-  — the skips are Supabase/live-credential-gated suites that skip cleanly with no credentials
-  configured; re-verified 2026-08-24 via a JSON-reporter run, not just the summary line, see
-  [docs/VERIFICATION-GAPS.md](docs/VERIFICATION-GAPS.md) G-24).
+- **1,671 automated tests** across the workspace (1,631 passed, 38 skipped, 0 failed — the
+  skips are Supabase/live-credential-gated suites that skip cleanly with no credentials
+  configured; re-verified 2026-09-10 via a JSON-reporter run, not just the summary line, see
+  [docs/VERIFICATION-GAPS.md](docs/VERIFICATION-GAPS.md) G-24 and the 2026-09-10 session's
+  own gap-closure table).
 - A live, reproducible execution-authorization bypass was found and fixed the same session:
   policy-evaluation signals are now bound to the executed Intent before any rule evaluates
   (`Policy.boundSignals` + `SignalIntentBinder`), closing the gap where a caller could declare
