@@ -23,12 +23,43 @@ import { PostgresPoolFactory } from "@parmana/storage";
  * PostgREST-layer outage (the exact incident class this migration
  * removes) could make the readiness probe itself unreliable.
  */
-export function createReadyRouter(): Router {
+export interface CreateReadyRouterOptions {
+  /**
+   * True when this process was started with PARMANA_AUTH_DISABLED=true
+   * (see createCallerAuthenticator.ts). Surfaced here, not just as a
+   * startup console.warn, because a log line is easy to miss in a
+   * log-aggregation tool after the fact -- a field on the readiness
+   * probe every PaaS orchestrator already polls every 30s is something
+   * an operator's own monitoring/synthetic checks can assert on and
+   * alert on directly, catching a "copied .env.example without reading
+   * every line" misconfiguration before it becomes an incident rather
+   * than after.
+   */
+  readonly authDisabled: boolean;
+}
+
+export function createReadyRouter(options: CreateReadyRouterOptions): Router {
   const router = Router();
 
   router.get("/", async (_req, res) => {
-    if (process.env.NODE_ENV === "test" || process.env.PARMANA_STORAGE !== "supabase") {
-      res.json({ status: "READY", storage: "not-supabase-backed" });
+    const authWarning = options.authDisabled
+      ? {
+          authDisabled: true,
+          warning:
+            "PARMANA_AUTH_DISABLED=true -- this deployment is accepting requests with no " +
+            "caller authentication. Must never be set in a real deployment.",
+        }
+      : { authDisabled: false };
+
+    if (
+      process.env.NODE_ENV === "test" ||
+      process.env.PARMANA_STORAGE !== "supabase"
+    ) {
+      res.json({
+        status: "READY",
+        storage: "not-supabase-backed",
+        ...authWarning,
+      });
       return;
     }
 
@@ -36,11 +67,13 @@ export function createReadyRouter(): Router {
       const pool = PostgresPoolFactory.create();
       await pool.query("SELECT 1");
 
-      res.json({ status: "READY" });
+      res.json({ status: "READY", ...authWarning });
     } catch (error) {
       res.status(503).json({
         status: "NOT_READY",
-        reason: error instanceof Error ? error.message : "unknown storage error",
+        reason:
+          error instanceof Error ? error.message : "unknown storage error",
+        ...authWarning,
       });
     }
   });

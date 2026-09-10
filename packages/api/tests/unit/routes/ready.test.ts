@@ -7,14 +7,18 @@ import { createExecutionSystem } from "../../../src/bootstrap/createExecutionSys
 
 const ENV_KEYS = ["NODE_ENV", "PARMANA_STORAGE", "DATABASE_URL"] as const;
 
-function buildApp() {
+function buildApp(
+  callerAuth: Parameters<typeof createApp>[1]["callerAuth"] = "disabled",
+) {
   const executionSystem = createExecutionSystem();
   const application = createApplication(executionSystem);
-  return createApp(application, { callerAuth: "disabled" });
+  return createApp(application, { callerAuth });
 }
 
 describe("GET /ready", () => {
-  const original = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
+  const original = Object.fromEntries(
+    ENV_KEYS.map((key) => [key, process.env[key]]),
+  );
 
   afterEach(() => {
     for (const key of ENV_KEYS) {
@@ -32,6 +36,25 @@ describe("GET /ready", () => {
     expect(response.status).toBe(200);
     expect(response.body.status).toBe("READY");
     expect(response.body.storage).toBe("not-supabase-backed");
+  });
+
+  it("surfaces authDisabled:true and a warning when callerAuth is disabled", async () => {
+    const response = await request(buildApp("disabled")).get("/ready");
+
+    expect(response.body.authDisabled).toBe(true);
+    expect(typeof response.body.warning).toBe("string");
+  });
+
+  it("surfaces authDisabled:false when caller auth is enabled", async () => {
+    const app = buildApp({
+      authenticator: { authenticate: () => undefined },
+      auditSink: { record: async () => {} },
+    });
+
+    const response = await request(app).get("/ready");
+
+    expect(response.body.authDisabled).toBe(false);
+    expect(response.body.warning).toBeUndefined();
   });
 
   it("reports READY without touching Supabase when storage is memory-backed outside test", async () => {
@@ -62,7 +85,8 @@ describe("GET /ready", () => {
 
     process.env.NODE_ENV = "production";
     process.env.PARMANA_STORAGE = "supabase";
-    process.env.DATABASE_URL = "postgresql://unreachable:unreachable@127.0.0.1:1/postgres";
+    process.env.DATABASE_URL =
+      "postgresql://unreachable:unreachable@127.0.0.1:1/postgres";
 
     const response = await request(app).get("/ready");
 
