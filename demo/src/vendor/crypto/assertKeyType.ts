@@ -10,10 +10,10 @@ import { CryptoError } from './CryptoError';
  *
  * node:crypto's sign()/verify() dispatch on the key's
  * own asymmetricKeyType, not on which SignatureProvider
- * happens to be configured. Without this check, a
- * differently-configured process holding the wrong key
- * material on disk would silently sign with the wrong
- * algorithm while labeling the envelope otherwise.
+ * happens to be configured. Without this check, a process
+ * holding the wrong key material on disk would silently
+ * sign with the wrong algorithm while labeling the
+ * envelope otherwise.
  */
 export function assertKeyType(
   key: KeyObject,

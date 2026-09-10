@@ -1,8 +1,8 @@
 /**
  * Vendored verbatim (logic unchanged) from packages/policy/src/PolicyEngine.ts
  * for standalone deployment in the buildathon demo. This is the real,
- * production Parmana policy engine: deterministic, side-effect free,
- * first-match-wins rule evaluation.
+ * production Parmana policy engine. It is deterministic, has no side
+ * effects, and evaluates rules in order, first match wins.
  */
 import { OperatorEvaluator } from './OperatorEvaluator';
 import type {

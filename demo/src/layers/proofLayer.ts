@@ -1,11 +1,11 @@
 /**
- * Layer 4 — Cryptographic Proof (real, vendored from packages/crypto).
+ * Layer 4: Cryptographic Proof (real, vendored from packages/crypto).
  *
  * Signs every validation decision with Ed25519 using the actual
- * production CanonicalSerializer + Ed25519SignatureProvider. A fresh
- * keypair is generated per server instance (demo-appropriate; production
- * keys are managed by @parmana/crypto's KeyProvider/KeyStore, not
- * regenerated on boot).
+ * production CanonicalSerializer and Ed25519SignatureProvider. A fresh
+ * keypair is generated per server instance. This is fine for a demo;
+ * production keys are managed by @parmana/crypto's KeyProvider and
+ * KeyStore, not regenerated at boot.
  */
 import { generateKeyPairSync, randomUUID, type KeyObject } from 'node:crypto';
 import { CanonicalSerializer } from '../vendor/crypto/CanonicalSerializer';

@@ -1,5 +1,5 @@
 /**
- * Layer 1 — Policy (real, vendored from packages/policy).
+ * Layer 1: Policy (real, vendored from packages/policy).
  *
  * Builds a real Policy document (amount limit, vendor allowlist, velocity)
  * and evaluates it with the actual production PolicyEngine.

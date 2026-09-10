@@ -1,17 +1,17 @@
-# Parmana Execution-Authority Validation Stack Demo
+# Parmana Execution Authority Validation Stack Demo
 
-Four independent validation layers (Policy + Fraud + Scope + Proof) converging at the execution boundary — this is what **RBI** requires on **Jan 1, 2027**, for autonomous agent payments.
+Four independent validation layers (Policy plus Fraud plus Scope plus Proof) converge at the execution boundary. This is what **RBI** requires on **Jan 1, 2027**, for autonomous agent payments.
 
 **Live:** https://parmana-exp-demo.vercel.app
 
-> This document is intentionally specific about what's real production code and what's demo-tier. See [Section 3](#four-layer-architecture) and [Section 13](#license--attribution) for the exact provenance of every line.
+> This document is specific about what is real production code and what is demo tier. See [Four Layer Architecture](#four-layer-architecture) and [License and Attribution](#license-and-attribution) for the exact provenance of every line.
 
 ---
 
 ## Table of Contents
 
 1. [Quick Start](#quick-start-live-demo)
-2. [Four-Layer Architecture](#four-layer-architecture)
+2. [Four Layer Architecture](#four-layer-architecture)
 3. [Endpoints Reference](#endpoints-reference)
 4. [Test Scenarios](#test-scenarios)
 5. [Local Development](#local-development)
@@ -21,13 +21,13 @@ Four independent validation layers (Policy + Fraud + Scope + Proof) converging a
 9. [Technical Details](#technical-details)
 10. [Troubleshooting](#troubleshooting)
 11. [Future Work](#future-work)
-12. [License & Attribution](#license--attribution)
+12. [License and Attribution](#license-and-attribution)
 
 ---
 
 ## Quick Start (Live Demo)
 
-Three commands. All hit the live deployment — no setup required.
+Three commands. All hit the live deployment. No setup required.
 
 **1. Approved payment** ($50 against a $100 limit):
 
@@ -53,20 +53,20 @@ curl https://parmana-exp-demo.vercel.app/proofs
 
 ---
 
-## Four-Layer Architecture
+## Four Layer Architecture
 
-An agent payment request passes through four gates before anything executes:
+An agent payment request passes through four gates before anything executes.
 
 | Layer | Purpose | Source | Status in Demo |
 |---|---|---|---|
-| **Policy** (M6) | Deterministic rule evaluation — amount limit, vendor allowlist, velocity | Real production code | ✅ Real |
-| **Fraud** (M5) | Scores amount-vs-limit ratio, request velocity, deviation from the agent's own history | Purpose-built heuristic | ⚡ Demo-tier |
-| **Credential Scope** (M4) | Time-bounded credential scoped to `maxAmount` + `authorizedVendors` | Purpose-built heuristic | ⚡ Demo-tier |
-| **Proof** (M7) | **Ed25519**-signs the decision over its canonical byte serialization | Real production code | ✅ Real |
+| **Policy** (M6) | Deterministic rule evaluation covering amount limit, vendor allowlist, and velocity | Real production code | Real |
+| **Fraud** (M5) | Scores the ratio between amount and limit, request velocity, and deviation from the agent's own history | Heuristic built for this demo | Demo tier |
+| **Credential Scope** (M4) | Time bounded credential scoped to `maxAmount` plus `authorizedVendors` | Heuristic built for this demo | Demo tier |
+| **Proof** (M7) | Signs the decision with **Ed25519** over its canonical byte serialization | Real production code | Real |
 
-**Any one layer can block execution. All layers must pass for approval. Every decision — approved or denied — is cryptographically signed.**
+**Any one layer can block execution. All layers must pass for approval. Every decision, approved or denied, is cryptographically signed.**
 
-Policy catches rule violations. Fraud catches anomalies. Scope catches capability creep. Proof means none of it can be denied happened later.
+Policy catches rule violations. Fraud catches anomalies. Scope catches capability creep. Proof means none of these decisions can be denied later.
 
 ---
 
@@ -74,7 +74,7 @@ Policy catches rule violations. Fraud catches anomalies. Scope catches capabilit
 
 ### `POST /demo/payment`
 
-The headline endpoint. An agent attempts to pay a vendor; all four layers evaluate the request.
+The headline endpoint. An agent attempts to pay a vendor, and all four layers evaluate the request.
 
 **Request:**
 
@@ -82,7 +82,7 @@ The headline endpoint. An agent attempts to pay a vendor; all four layers evalua
 {"agentId":"agent-1","vendorId":"vendor-9","amount":50,"limit":100}
 ```
 
-**Response** (approved — real, captured from the live deployment):
+**Response** (approved, real output captured from the live deployment):
 
 ```json
 {
@@ -117,7 +117,7 @@ The headline endpoint. An agent attempts to pay a vendor; all four layers evalua
     "signature": "vQ9vp55llAquavOIER0rM54sa8Zx9jsdoEqr44mhCL0iuWGN4LiAIF5GtmIAQuhwLlVhpPGSRujT+9OXHlNQDg==",
     "payload": { "agentId": "agent-1", "vendorId": "vendor-9", "amount": 50, "limit": 100, "approved": true }
   },
-  "message": "Agent agent-1 paid vendor vendor-9 $50 — passed policy, fraud, and credential-scope checks."
+  "message": "Agent agent-1 paid vendor vendor-9 $50. Passed policy, fraud, and credential scope checks."
 }
 ```
 
@@ -148,17 +148,17 @@ Independently re-verifies a proof's **Ed25519** signature against its own canoni
 }
 ```
 
-**Response** (real, captured from the live deployment):
+**Response** (real output captured from the live deployment):
 
 ```json
 { "valid": true, "keyId": "demo-key-97574514-...", "algorithm": "ed25519" }
 ```
 
-Change one byte in `payload` and re-send it — `valid` flips to `false`. That's the point: the signature covers the exact decision, not a label attached to it later.
+Change one byte in `payload` and resend it. `valid` flips to `false`. That is the point: the signature covers the exact decision, not a label attached to it later.
 
 ### `GET /proofs`
 
-Audit trail, newest first. Default `limit=100`; override with `?limit=N`.
+Audit trail, newest first. Default `limit=100`, override with `?limit=N`.
 
 ```bash
 curl "https://parmana-exp-demo.vercel.app/proofs?limit=10"
@@ -202,7 +202,7 @@ Returns the four layers (as in the table above) plus:
 
 ## Test Scenarios
 
-### Scenario 1: Approved ($50 ≤ $100)
+### Scenario 1: Approved ($50 is at or under $100)
 
 ```bash
 curl -X POST https://parmana-exp-demo.vercel.app/demo/payment \
@@ -212,14 +212,14 @@ curl -X POST https://parmana-exp-demo.vercel.app/demo/payment \
 
 All four layers pass:
 
-- **Policy:** ✅ evaluates 4 rules, matches `defaultApprove`
-- **Fraud:** ✅ score `0`, `low` risk
-- **Credential:** ✅ `inScope: true`
-- **Proof:** ✅ **Ed25519**-signed
+- **Policy:** passes, evaluates 4 rules, matches `defaultApprove`
+- **Fraud:** passes, score `0`, `low` risk
+- **Credential:** passes, `inScope: true`
+- **Proof:** signed with **Ed25519**
 
-**Real-world meaning:** the agent has authority to make this payment, and there's a signed record saying so.
+**Real world meaning:** the agent has authority to make this payment, and there is a signed record saying so.
 
-### Scenario 2: Denied ($500 > $100)
+### Scenario 2: Denied ($500 is over $100)
 
 ```bash
 curl -X POST https://parmana-exp-demo.vercel.app/demo/payment \
@@ -229,12 +229,12 @@ curl -X POST https://parmana-exp-demo.vercel.app/demo/payment \
 
 All four layers block:
 
-- **Policy:** ❌ `amountRule` fails
-- **Fraud:** ❌ score `0.775`, `high` risk (5x the credential limit, flagged as a spike)
-- **Credential:** ❌ exceeds `maxAmount`
-- **Proof:** ✅ still signed — the denial is on the record just as permanently as an approval would be
+- **Policy:** fails, `amountRule` fails
+- **Fraud:** fails, score `0.775`, `high` risk (five times the credential limit, flagged as a spike)
+- **Credential:** fails, exceeds `maxAmount`
+- **Proof:** still signed. The denial is on the record just as permanently as an approval would be
 
-**Real-world meaning:** the agent exceeded its bounds, execution never happened, and the decision is on the ledger either way.
+**Real world meaning:** the agent exceeded its bounds, execution never happened, and the decision is on the ledger either way.
 
 ### Scenario 3: Audit Trail
 
@@ -242,15 +242,15 @@ All four layers block:
 curl https://parmana-exp-demo.vercel.app/proofs
 ```
 
-Both decisions above are visible here — the approval and the denial, both signed. Nothing is filtered out because it was a rejection.
+Both decisions above are visible here: the approval and the denial, both signed. Nothing is filtered out because it was a rejection.
 
-**Real-world meaning:** a regulator can audit every decision an agent's credential ever made; a merchant can prove, after the fact, exactly what was and wasn't authorized.
+**Real world meaning:** a regulator can audit every decision an agent's credential ever made. A merchant can prove, after the fact, exactly what was and was not authorized.
 
 ---
 
 ## Local Development
 
-**Prerequisites:** Node 18+, npm 9+ (developed and tested on Node 22 / npm 11).
+**Prerequisites:** Node 18 or newer, npm 9 or newer (developed and tested on Node 22 and npm 11).
 
 ```bash
 cd demo
@@ -271,17 +271,17 @@ curl -X POST http://localhost:3000/demo/payment \
 Build for production:
 
 ```bash
-npm run build       # tsc -> dist/
+npm run build       # tsc, outputs to dist/
 npm start           # node dist/index.js
 ```
 
-**Environment variables:** none are required. The Ed25519 keypair is generated in-process at boot (see [Troubleshooting](#troubleshooting) for what that means for signature verification across restarts).
+**Environment variables:** none are required. The Ed25519 keypair is generated when the server process starts. See [Troubleshooting](#troubleshooting) for what that means for verifying signatures across restarts.
 
 ---
 
 ## Deployment
 
-**Current status:** deployed to Vercel, production, at https://parmana-exp-demo.vercel.app (serverless — `api/index.ts` wraps the Express app for `@vercel/node`, `vercel.json` rewrites every path to it).
+**Current status:** deployed to Vercel in production at https://parmana-exp-demo.vercel.app. It runs as a serverless function: `api/index.ts` wraps the Express app for `@vercel/node`, and `vercel.json` rewrites every path to it.
 
 **Redeploy:**
 
@@ -290,28 +290,28 @@ cd demo
 vercel deploy --prod
 ```
 
-**Docker alternative** — `demo/Dockerfile.fly` is a working multi-stage build (`node:22-alpine`, `npm run build`, `node dist/index.js`, healthcheck on `/health`) if you'd rather run this as a long-lived container instead of serverless functions:
+**Docker alternative:** `demo/Dockerfile.fly` is a working build with separate build and runtime stages (`node:22-alpine`, `npm run build`, `node dist/index.js`, health check on `/health`), if you would rather run this as a persistent container instead of serverless functions.
 
 ```bash
 docker build -f Dockerfile.fly -t parmana-exp-demo .
 docker run -p 3000:3000 parmana-exp-demo
 ```
 
-**Fly.io reference** — `demo/fly.toml` and `demo/Dockerfile.fly` are present and were validated locally, but this demo is **not currently deployed to Fly** (Fly blocked app creation on this account pending a payment method; Vercel was used instead for the live URL above). They're kept in the repo in case that changes.
+**Fly.io reference:** `demo/fly.toml` and `demo/Dockerfile.fly` are present and were validated locally, but this demo is **not currently deployed to Fly** (Fly blocked app creation on this account pending a payment method, so Vercel was used instead for the live URL above). They are kept in the repo in case that changes.
 
 ---
 
 ## Demo Script for Judges
 
-### Part 1: Show Architecture (30 sec)
+### Part 1: Show Architecture (30 seconds)
 
 ```bash
 curl -s https://parmana-exp-demo.vercel.app/architecture | jq
 ```
 
-**Say:** "This endpoint shows what's real production code and what's purpose-built for this demo — Policy and Proof are vendored straight from our production packages, Fraud and Credential Scope are demo-tier. I'm not going to pretend all four are production-hardened. Two are. Two aren't yet."
+**Say:** "This endpoint shows what is real production code and what is purpose built for this demo. Policy and Proof are vendored straight from our production packages. Fraud and Credential Scope are demo tier. I am not going to pretend all four are production hardened. Two are. Two are not yet."
 
-### Part 2: Approved Payment (1 min)
+### Part 2: Approved Payment (1 minute)
 
 ```bash
 curl -s -X POST https://parmana-exp-demo.vercel.app/demo/payment \
@@ -319,9 +319,9 @@ curl -s -X POST https://parmana-exp-demo.vercel.app/demo/payment \
   -d '{"agentId":"agent-1","vendorId":"vendor-9","amount":50,"limit":100}' | jq
 ```
 
-**Say:** "An agent tries to pay $50 to a vendor, with a $100 credential limit. Watch what happens: Policy evaluates four rules and approves. Fraud scores it — zero, low risk, nothing anomalous. Credential Scope checks it's within `maxAmount` and the vendor's on the allowlist — in scope. Then Proof signs the whole decision with **Ed25519**. Four gates, all green, one signature."
+**Say:** "An agent tries to pay $50 to a vendor, with a $100 credential limit. Watch what happens. Policy evaluates four rules and approves. Fraud scores it: zero, low risk, nothing anomalous. Credential Scope checks it is within `maxAmount` and the vendor is on the allowlist: in scope. Then Proof signs the whole decision with **Ed25519**. Four gates, all green, one signature."
 
-### Part 3: Denied Payment (1 min)
+### Part 3: Denied Payment (1 minute)
 
 ```bash
 curl -s -X POST https://parmana-exp-demo.vercel.app/demo/payment \
@@ -329,135 +329,135 @@ curl -s -X POST https://parmana-exp-demo.vercel.app/demo/payment \
   -d '{"agentId":"agent-1","vendorId":"vendor-9","amount":500,"limit":100}' | jq
 ```
 
-**Say:** "Same agent, same vendor, different amount — $500 against the same $100 limit. Policy rejects on `amountRule` immediately. Fraud independently flags it too — score jumps to 0.775, high risk, because it's a 5x spike over the credential bound. Credential Scope also says no — it's outside `maxAmount`. Three independent layers reach the same conclusion without coordinating, and the denial gets signed exactly like the approval did."
+**Say:** "Same agent, same vendor, different amount: $500 against the same $100 limit. Policy rejects on `amountRule` immediately. Fraud independently flags it too: score jumps to 0.775, high risk, because it is a five times spike over the credential bound. Credential Scope also says no, it is outside `maxAmount`. Three independent layers reach the same conclusion without coordinating, and the denial gets signed exactly like the approval did."
 
-### Part 4: Show Audit Trail (1 min)
+### Part 4: Show Audit Trail (1 minute)
 
 ```bash
 curl -s https://parmana-exp-demo.vercel.app/proofs | jq
 ```
 
-**Say:** "Every decision is cryptographically signed and lands here — the $50 approval and the $500 denial, both on the record. This is what an auditor pulls up six months later to check whether an agent ever exceeded its authority. Nothing gets to quietly disappear because it was a rejection."
+**Say:** "Every decision is cryptographically signed and lands here: the $50 approval and the $500 denial, both on the record. This is what an auditor pulls up six months later to check whether an agent ever exceeded its authority. Nothing gets to quietly disappear because it was a rejection."
 
-### Part 5: Closing Pitch (1-2 min)
+### Part 5: Closing Pitch (1 to 2 minutes)
 
-**Say:** "Here's why this matters: RBI's liability framework for autonomous agent transactions takes effect Jan 1, 2027. Right now, if an agent pays the wrong vendor or the wrong amount, there's no standard way to prove — after the fact — what it was authorized to do and whether it stayed inside those bounds. Parmana sits between the policy decision and the actual execution, so every agent action gets checked against a scoped credential and produces a signed proof, before money moves, not after.
+**Say:** "Here is why this matters. RBI's liability framework for autonomous agent transactions takes effect Jan 1, 2027. Right now, if an agent pays the wrong vendor or the wrong amount, there is no standard way to prove, after the fact, what it was authorized to do and whether it stayed inside those bounds. Parmana sits between the policy decision and the actual execution, so every agent action gets checked against a scoped credential and produces a signed proof, before money moves, not after.
 
-For Track 2: this is what a merchant needs to go live with agent-initiated payments — bounded credentials, an audit trail a regulator can actually read, and a decision that's provably tied to a signature instead of a log line someone could edit.
+For Track 2, this is what a merchant needs to go live with agent initiated payments: bounded credentials, an audit trail a regulator can actually read, and a decision that is provably tied to a signature instead of a log line someone could edit.
 
-For a merchant like Paytm, integrating an autonomous agent into a payment flow means someone eventually asks 'how do you know the agent didn't overspend, and how do you prove it?' This is that answer — not a promise, a signed record."
+For a merchant like Paytm, integrating an autonomous agent into a payment flow means someone eventually asks how you know the agent did not overspend, and how you prove it. This is that answer. Not a promise, a signed record."
 
-### Follow-Up Q&A
+### Follow Up Questions and Answers
 
 **"Why do you need four layers?"**
-Because they catch different failure modes and none of them substitutes for another. Policy catches rule violations you wrote down in advance. Fraud catches anomalies you didn't think to write a rule for. Scope catches an agent trying to act outside what it was ever issued authority to do, even if policy and fraud both miss it. If any one layer is buggy or bypassed, the other two are still standing between the agent and execution.
+Because they catch different failure modes and none of them substitutes for another. Policy catches rule violations you wrote down in advance. Fraud catches anomalies you did not think to write a rule for. Scope catches an agent trying to act outside what it was ever issued authority to do, even if policy and fraud both miss it. If any one layer is buggy or bypassed, the other two are still standing between the agent and execution.
 
 **"Can an agent bypass this?"**
-Not without controlling the process that issues its credential and holds the signing key — the checks happen before the payment executes, not as a log written after. In this demo, credential issuance and signing both happen server-side in the same request; the agent never sees or touches key material.
+Not without controlling the process that issues its credential and holds the signing key. The checks happen before the payment executes, not as a log written afterward. In this demo, credential issuance and signing both happen on the server within the same request. The agent never sees or touches key material.
 
 **"What if the policy is wrong?"**
-Then it fails the way a wrong policy should: transparently and correctably. `/architecture` publishes exactly which policy version evaluated the request, `matchedRuleId` tells you which rule fired, and because the engine is deterministic, replaying the same signals against a fixed policy always gives the same answer — you can diff policy versions and know precisely what changed, rather than debugging opaque model behavior.
+Then it fails the way a wrong policy should: transparently and correctably. `/architecture` publishes exactly which policy version evaluated the request, `matchedRuleId` tells you which rule fired, and because the engine is deterministic, replaying the same signals against a fixed policy always gives the same answer. You can diff policy versions and know precisely what changed, rather than debugging opaque model behavior.
 
 **"Does this work with NPCI AtOM?"**
-NPCI AtOM (announced Sep 8, 2026) is about authenticating an agent's identity and transaction rails. Parmana is about authorizing what that agent is allowed to do once it's authenticated — a different layer. NPCI handles authentication. We handle authorization. They sit in different layers, and they're complementary, not competing.
+NPCI AtOM (announced Sep 8, 2026) is about authenticating an agent's identity and transaction rails. Parmana is about authorizing what that agent is allowed to do once it is authenticated: a different layer. NPCI handles authentication. We handle authorization. They sit in different layers, and they are complementary, not competing.
 
 ---
 
 ## Why This Matters
 
-**The market problem:** RBI's liability framework for autonomous agent payments takes effect **Jan 1, 2027**. NPCI announced AtOM on **Sep 8, 2026** — that leaves **115 days** for merchants and platforms to have a real authorization layer in place, not just an authentication one.
+**The market problem:** RBI's liability framework for autonomous agent payments takes effect **Jan 1, 2027**. NPCI announced AtOM on **Sep 8, 2026**, which leaves **115 days** for merchants and platforms to have a real authorization layer in place, not just an authentication one.
 
-**The solution:** Parmana sits between policy decisions and execution. An agent doesn't get a blank credential — it gets one scoped to a specific amount, a specific set of vendors, a specific time window, and a specific velocity limit. Every decision, in or out of bounds, produces a signed proof.
+**The solution:** Parmana sits between policy decisions and execution. An agent does not get a blank credential. It gets one scoped to a specific amount, a specific set of vendors, a specific time window, and a specific velocity limit. Every decision, in or out of bounds, produces a signed proof.
 
 **What it enables:**
-- Scoped credentials (amount + vendor bounds, not blanket access)
+- Scoped credentials (amount and vendor bounds, not blanket access)
 - Time windows and expiry on every credential
 - Velocity limits that catch runaway agent loops
 - A signed proof for every decision, not just the approvals
 - An audit trail regulators and merchants can both read
 
-**For merchants (Track 2):** proof of authorization, an audit trail that survives a dispute, and a path to being regulator-ready before Jan 1 — without hand-rolling this yourselves.
+**For merchants (Track 2):** proof of authorization, an audit trail that survives a dispute, and a path to being ready for regulators before Jan 1, without building this yourselves from scratch.
 
-**For judges:** multiple independent gates, a verifiable signature instead of a trust-me log line, and an honest architecture that tells you which parts are production-hardened and which parts were built for this weekend.
+**For judges:** multiple independent gates, a verifiable signature instead of a log line you just have to trust, and an honest architecture that tells you which parts are production hardened and which parts were built for this weekend.
 
 ---
 
 ## Technical Details
 
-**Code structure** (everything below lives in `demo/`, self-contained):
+**Code structure** (everything below lives in `demo/`, fully self contained):
 
 ```
 demo/
 ├── src/
-│   ├── index.ts              # bootstraps app.listen() for local/Docker
+│   ├── index.ts              # bootstraps app.listen() for local and Docker use
 │   ├── server.ts             # Express app, all routes
 │   ├── layers/
 │   │   ├── policyLayer.ts        # builds the payment Policy, calls PolicyEngine
-│   │   ├── fraudLayer.ts         # demo-tier fraud heuristic
-│   │   ├── credentialLayer.ts    # demo-tier scoped payment credential
-│   │   ├── activityTracker.ts    # shared in-memory velocity/history store
-│   │   └── proofLayer.ts         # Ed25519 signing + verification
+│   │   ├── fraudLayer.ts         # demo tier fraud heuristic
+│   │   ├── credentialLayer.ts    # demo tier scoped payment credential
+│   │   ├── activityTracker.ts    # shared in memory velocity and history store
+│   │   └── proofLayer.ts         # Ed25519 signing and verification
 │   └── vendor/
 │       ├── policy/                # PolicyEngine, OperatorEvaluator, types
-│       │                          #   — vendored from packages/policy/src/
+│       │                          #   vendored from packages/policy/src/
 │       └── crypto/                # CanonicalSerializer, Ed25519SignatureProvider
-│                                   #   — vendored from packages/crypto/src/
+│                                   #   vendored from packages/crypto/src/
 ├── api/index.ts               # Vercel serverless entry (wraps the Express app)
 ├── vercel.json
-├── fly.toml / Dockerfile.fly  # present, not currently the deployment target
+├── fly.toml and Dockerfile.fly   # present, not currently the deployment target
 └── package.json
 ```
 
 **Layer implementation, one sentence each:**
-- **Policy** — deterministic first-match-wins rule evaluation over `amountExceedsLimit`, `vendorBlocked`, and `velocityExceeded` signals.
-- **Fraud** — scores amount-to-limit ratio, requests-per-minute, and deviation from the agent's own historical spend.
-- **Credential Scope** — issues a 5-minute-lived credential bound to `maxAmount` + `authorizedVendors`, then checks the request against it.
-- **Proof** — canonically serializes the decision and signs it with **Ed25519**, using Node's built-in `crypto`.
+- **Policy:** deterministic rule evaluation, first match wins, over `amountExceedsLimit`, `vendorBlocked`, and `velocityExceeded` signals.
+- **Fraud:** scores the ratio between amount and limit, requests per minute, and deviation from the agent's own historical spend.
+- **Credential Scope:** issues a credential that lives for five minutes, bound to `maxAmount` and `authorizedVendors`, then checks the request against it.
+- **Proof:** canonically serializes the decision and signs it with **Ed25519**, using Node's built in `crypto` module.
 
-**Dependencies:** `express` is the only runtime npm dependency. Everything cryptographic and policy-related uses `node:crypto` (built-in) plus the vendored code above — **zero external dependencies for the four validation layers themselves.** The vendored files have no import back into the rest of the monorepo; `demo/` deploys as a fully standalone unit.
+**Dependencies:** `express` is the only runtime npm dependency. Everything cryptographic and policy related uses `node:crypto` (built in) plus the vendored code above. **There are zero external dependencies for the four validation layers themselves.** The vendored files do not import anything from the rest of the monorepo, so `demo/` deploys as a fully standalone unit.
 
 ---
 
 ## Troubleshooting
 
 **`POST /demo/payment` returns `403`**
-Expected behavior when a request is denied — check the `message` and `validation` fields in the response body for which layer(s) blocked it.
+Expected behavior when a request is denied. Check the `message` and `validation` fields in the response body for which layer or layers blocked it.
 
 **`/proofs` looks empty right after deploying, or right after another call succeeded**
-Expected. The audit trail is in-memory per serverless instance. Immediately after a deploy, or under concurrent load, requests can land on different warm instances that don't share memory — a proof written on one instance won't show up when `/proofs` is served by another. This is demo-grade storage, not a production audit log (see [Future Work](#future-work)).
+Expected. The audit trail lives in memory, per serverless instance. Immediately after a deploy, or under concurrent load, requests can land on different warm instances that do not share memory, so a proof written on one instance will not show up when `/proofs` is served by another. This is demo grade storage, not a production audit log; see [Future Work](#future-work).
 
-**A signature doesn't verify**
-Fetch `/architecture` and confirm you're checking against the `publicKey` and `keyId` it currently reports. The keypair is generated fresh per running instance — if the proof was signed by a different instance (see above), its `keyId` won't match the key `/architecture` is currently showing.
+**A signature does not verify**
+Fetch `/architecture` and confirm you are checking against the `publicKey` and `keyId` it currently reports. The keypair is generated fresh per running instance. If the proof was signed by a different instance (see above), its `keyId` will not match the key `/architecture` is currently showing.
 
 **Local tests work, live tests fail**
-Check you're using `https://`, not `http://`; check for a trailing slash or typo in the path (`/demo/payment`, not `/demo/payments`); confirm you're sending `Content-Type: application/json` with a JSON body on the `POST` requests.
+Check you are using `https://`, not `http://`. Check for a trailing slash or typo in the path (`/demo/payment`, not `/demo/payments`). Confirm you are sending `Content-Type: application/json` with a JSON body on the `POST` requests.
 
 ---
 
 ## Future Work
 
-This demo is intentionally minimal — four layers, honest framing, production-ready by Sep 10, 2026. What's next:
+This demo is intentionally minimal: four layers, honest framing, ready for production by Sep 10, 2026. What comes next:
 
-- Integrate a real payment connector (e.g. Razorpay) so `/demo/payment` moves real (sandboxed) money
-- A policy editor UI, instead of hand-editing the `Policy` object in `policyLayer.ts`
-- Replace the demo-tier fraud heuristic with a real, trained fraud module
-- Database-backed audit trail (durable, shared across instances — not in-memory)
+- Integrate a real payment connector (for example Razorpay) so `/demo/payment` moves real, sandboxed money
+- A policy editor UI, instead of hand editing the `Policy` object in `policyLayer.ts`
+- Replace the demo tier fraud heuristic with a real, trained fraud module
+- A database backed audit trail (durable, shared across instances, not held only in memory)
 - Public key rotation and a key registry, instead of one keypair per running instance
 - Policy version history and diffing
-- Multi-tenant support (per-merchant policies, credentials, and audit trails)
+- Support for multiple tenants (policies, credentials, and audit trails scoped per merchant)
 
 ---
 
-## License & Attribution
+## License and Attribution
 
 **License:** MIT
 
 **Attribution for real code:**
-- Policy Engine (M6) — real code from this repository's `packages/policy/src/` (PolicyEngine, OperatorEvaluator), vendored into `demo/src/vendor/policy/` unmodified except for removing the monorepo-internal type import.
-- Cryptographic Proof (M7) — real code from this repository's `packages/crypto/src/` (CanonicalSerializer, Ed25519SignatureProvider), vendored into `demo/src/vendor/crypto/` unmodified except for the same import fix.
+- Policy Engine (M6): real code from this repository's `packages/policy/src/` (PolicyEngine, OperatorEvaluator), vendored into `demo/src/vendor/policy/` unmodified except for removing the internal monorepo type import.
+- Cryptographic Proof (M7): real code from this repository's `packages/crypto/src/` (CanonicalSerializer, Ed25519SignatureProvider), vendored into `demo/src/vendor/crypto/` unmodified except for the same import fix.
 
-**Attribution for demo-tier code:**
-- Fraud Detection, Credential Scope — purpose-built for this demo scenario. No equivalent module exists elsewhere in this repository.
+**Attribution for demo tier code:**
+- Fraud Detection and Credential Scope: purpose built for this demo scenario. No equivalent module exists elsewhere in this repository.
 
 **Contact:** founder@parmanasystems.com
 

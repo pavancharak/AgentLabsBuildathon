@@ -13,18 +13,19 @@ import {
 } from './layers/proofLayer';
 
 /**
- * Parmana Exp Demo Server — Agent Labs Buildathon
+ * Parmana Exp Demo Server, built for the Agent Labs Buildathon.
  *
  * Shows four validation layers converging at the execution boundary for
  * an agent payment:
  *
- *   1. Policy       — real, vendored from packages/policy (PolicyEngine)
- *   2. Fraud        — demo-tier heuristic (no such module exists in-repo)
- *   3. Credential   — demo-tier scoped credential (maxAmount + vendors)
- *   4. Proof        — real, vendored from packages/crypto (Ed25519)
+ *   1. Policy       real, vendored from packages/policy (PolicyEngine)
+ *   2. Fraud        demo tier heuristic (no such module exists in this repo)
+ *   3. Credential   demo tier scoped credential (maxAmount plus vendors)
+ *   4. Proof        real, vendored from packages/crypto (Ed25519)
  *
- * See /architecture for a summary judges can read directly, and README
- * comments on each ./layers/*.ts file for what's vendored vs. purpose-built.
+ * See /architecture for a summary judges can read directly, and the
+ * comment at the top of each ./layers/*.ts file for what is vendored
+ * versus purpose built.
  */
 
 const VELOCITY_LIMIT = 5; // attempts per 60s window, see activityTracker
@@ -74,34 +75,34 @@ export function createApp() {
    */
   app.get('/architecture', (_req: Request, res: Response) => {
     res.json({
-      name: 'Parmana execution-authority validation stack (demo)',
+      name: 'Parmana execution authority validation stack (demo)',
       layers: [
         {
           id: 'M6',
           name: 'Policy Engine',
-          provenance: 'real — vendored unmodified from packages/policy/src/PolicyEngine.ts',
-          does: 'Deterministic first-match-wins rule evaluation over amount, vendor, and velocity signals.',
+          provenance: 'real, vendored unmodified from packages/policy/src/PolicyEngine.ts',
+          does: 'Deterministic rule evaluation, first match wins, over amount, vendor, and velocity signals.',
           policyId: PAYMENT_POLICY.policyId,
           policyVersion: PAYMENT_POLICY.policyVersion,
         },
         {
           id: 'M5',
           name: 'Fraud Detection',
-          provenance: 'demo-tier — purpose-built for this demo; no fraud-detection module exists elsewhere in this repo',
-          does: 'Scores amount-vs-limit ratio, request velocity, and deviation from the agent\'s own history.',
+          provenance: 'demo tier, purpose built for this demo. No fraud detection module exists elsewhere in this repo.',
+          does: 'Scores the ratio between amount and limit, request velocity, and deviation from the agent\'s own history.',
         },
         {
           id: 'M4',
           name: 'Credential Scope',
           provenance:
-            'demo-tier — purpose-built for the payment scenario; the repo\'s real credential vault (packages/execution-control) scopes opaque connector secrets, not payment amount/vendor bounds',
-          does: 'Issues a time-bounded credential scoped to maxAmount + authorizedVendors and checks the request against it.',
+            'demo tier, purpose built for the payment scenario. The repo\'s real credential vault (packages/execution-control) scopes opaque connector secrets, not payment amount or vendor bounds.',
+          does: 'Issues a time bounded credential scoped to maxAmount and authorizedVendors, and checks the request against it.',
         },
         {
           id: 'M7',
           name: 'Cryptographic Proof',
-          provenance: 'real — vendored unmodified from packages/crypto (CanonicalSerializer + Ed25519SignatureProvider)',
-          does: 'Ed25519-signs every decision over its canonical byte serialization; independently verifiable.',
+          provenance: 'real, vendored unmodified from packages/crypto (CanonicalSerializer and Ed25519SignatureProvider)',
+          does: 'Signs every decision with Ed25519 over its canonical byte serialization. Independently verifiable.',
           keyId: PROOF_KEY_ID,
           publicKey: PROOF_PUBLIC_KEY_PEM,
         },
@@ -111,8 +112,9 @@ export function createApp() {
 
   /**
    * POST /execute
-   * Generic scoped-action execution check (not payment-specific). Kept for
-   * agents that want to pre-flight an arbitrary action against a scope.
+   * Generic scoped action execution check, not specific to payments. Kept
+   * for agents that want to check an arbitrary action against a scope
+   * before running it.
    *
    * Body: { agentId, action, amount?, scope: string[], maxAmount? }
    */
@@ -165,7 +167,7 @@ export function createApp() {
   /**
    * POST /verify-scope
    * Checks whether an action is within scope, without executing or signing
-   * anything. Useful for agents to pre-flight a call.
+   * anything. Useful for agents that want to check a call before making it.
    *
    * Body: { credential: { scope: string[], maxAmount? }, action, amount? }
    */
@@ -196,7 +198,7 @@ export function createApp() {
   /**
    * POST /demo/payment
    * The headline demo: an agent tries to pay a vendor. Four layers gate the
-   * decision — Policy, Fraud, Credential Scope, then a signed Proof either
+   * decision (Policy, Fraud, Credential Scope), then a signed Proof either
    * way.
    *
    * Body: { agentId, vendorId, amount, limit }
@@ -243,7 +245,7 @@ export function createApp() {
       else denialReason = `fraud risk level is "${fraudResult.riskLevel}"`;
     }
 
-    // Layer 4: Proof — signs the full decision, approved or not.
+    // Layer 4: Proof. Signs the full decision, approved or not.
     const proof: Proof = await signDecision({
       agentId,
       vendorId,
@@ -272,8 +274,8 @@ export function createApp() {
     });
 
     const message = approved
-      ? `Agent ${agentId} paid vendor ${vendorId} $${numericAmount} — passed policy, fraud, and credential-scope checks.`
-      : `Agent ${agentId} was BLOCKED from paying vendor ${vendorId} $${numericAmount} — ${denialReason}.`;
+      ? `Agent ${agentId} paid vendor ${vendorId} $${numericAmount}. Passed policy, fraud, and credential scope checks.`
+      : `Agent ${agentId} was blocked from paying vendor ${vendorId} $${numericAmount}. Reason: ${denialReason}.`;
 
     res.status(approved ? 200 : 403).json({
       approved,
@@ -314,8 +316,8 @@ export function createApp() {
 
   /**
    * POST /verify-proof
-   * Independently re-verifies a proof's Ed25519 signature over its own
-   * canonical payload. Body: { proof: <a proof object as returned by
+   * Independently verifies a proof's Ed25519 signature again, over its
+   * own canonical payload. Body: { proof: <a proof object as returned by
    * /demo/payment, /execute, or /proofs> }.
    */
   app.post('/verify-proof', async (req: Request, res: Response) => {

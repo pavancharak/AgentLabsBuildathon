@@ -1,6 +1,6 @@
 /**
  * Vendored verbatim from packages/crypto/src/CanonicalSerializer.ts.
- * Zero dependencies in the original — copied unmodified.
+ * The original has zero dependencies and is copied unmodified here.
  */
 
 /**

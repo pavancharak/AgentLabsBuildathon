@@ -1,13 +1,13 @@
 /**
- * Layer 3 — Credential Scope (demo-tier, purpose-built for this demo).
+ * Layer 3: Credential Scope (demo tier, purpose built for this demo).
  *
  * The real execution-control package's credential concept
- * (SessionCredentialVault / CredentialVault) scopes opaque connector
- * secrets, not payment amount/vendor bounds — there is no production
- * "maxAmount + authorizedVendors" credential in this repo. This is a
- * small, real bounds-checking module written for the payment scenario,
- * following the same shape (issue a time-bounded, scoped credential;
- * check a request against it before anything executes).
+ * (SessionCredentialVault and CredentialVault) scopes opaque connector
+ * secrets, not payment amount or vendor bounds. There is no production
+ * "maxAmount plus authorizedVendors" credential in this repo. This is a
+ * small, real bounds checking module written for the payment scenario,
+ * following the same shape: issue a time bounded, scoped credential,
+ * then check a request against it before anything executes.
  */
 import { randomUUID } from 'crypto';
 

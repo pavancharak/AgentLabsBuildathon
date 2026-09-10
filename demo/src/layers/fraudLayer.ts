@@ -1,11 +1,12 @@
 /**
- * Layer 2 — Fraud Detection (demo-tier, purpose-built for this demo).
+ * Layer 2: Fraud Detection (demo tier, purpose built for this demo).
  *
- * No fraud-detection module exists anywhere in this repository, so unlike
+ * No fraud detection module exists anywhere in this repository, so unlike
  * the Policy and Proof layers this one is not vendored from production
- * code — it is a small, real (not hardcoded-pass) heuristic scorer written
- * for the buildathon: it actually varies its output with amount-vs-limit
- * ratio, request velocity, and deviation from the agent's own history.
+ * code. It is a small, real (not hardcoded pass) heuristic scorer written
+ * for the buildathon: it actually varies its output with the ratio between
+ * amount and limit, request velocity, and deviation from the agent's own
+ * history.
  */
 import { priorAmounts, recentAttemptCount } from './activityTracker';
 

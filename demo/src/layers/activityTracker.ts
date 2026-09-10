@@ -1,8 +1,8 @@
 /**
- * Shared in-memory activity history, used by the fraud and policy layers
- * to compute velocity and amount-deviation signals per agent. Demo-tier
- * storage only (resets on cold start) — a real deployment would back this
- * with a durable store.
+ * Shared activity history held in memory, used by the fraud and policy
+ * layers to compute velocity and amount deviation signals per agent.
+ * This is demo tier storage only and resets on cold start. A real
+ * deployment would back this with a durable store.
  */
 
 interface Attempt {
@@ -31,7 +31,7 @@ export function recentAttemptCount(agentId: string, windowMs = VELOCITY_WINDOW_M
   return attempts.filter((a) => now - a.timestamp <= windowMs).length;
 }
 
-/** Prior amounts only (excludes the current in-flight attempt). */
+/** Prior amounts only. Excludes the attempt currently in progress. */
 export function priorAmounts(agentId: string): number[] {
   return (history.get(agentId) ?? []).map((a) => a.amount);
 }
