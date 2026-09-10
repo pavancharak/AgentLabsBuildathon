@@ -7,7 +7,7 @@ description: "What actually shipped, by commit, newest first. Not a marketing su
 Pulled directly from `git log` on `main` in `pavancharak/parmana-exp`, commit hashes are
 real and checkable. This page covers the commits that changed what a reader of this site can
 actually do or rely on, not every commit in the repository's history, run `git log` yourself
-for the complete record, 352 commits as of this page's last update. **Known gap:** entries
+for the complete record, 354 commits as of this page's last update. **Known gap:** entries
 between 2026-08-19 and 2026-09-06, several commits landed on 2026-09-07 before the two below,
 and everything on 2026-09-09 other than `25295ee`, `bab0981`, and the ten commits below them
 (including the changelog and validation-doc commits themselves) were not backfilled — `git
@@ -99,6 +99,11 @@ new §3.21.
   corrected, original text struck through and kept for historical accuracy. Five other
   files with hits are dated audit/snapshot reports tied to a specific commit or
   submission event and were deliberately left untouched.
+- **`07f44d4`** docs(site): expanded `roadmap.mdx`'s KMS/HSM custody section (Move 1) with
+  what's pending, why it's still pending (this repo's own live-test evidence bar, and no
+  real cloud credentials exist in this environment to meet it), and the concrete build
+  order once someone does — asked for directly rather than having a `KeyProvider`
+  implemented blind against a mocked SDK.
 
 ## 2026-09-09
 
