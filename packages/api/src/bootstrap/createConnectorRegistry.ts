@@ -1,15 +1,11 @@
-import {
-  CryptoBootstrap,
-} from "@parmana/crypto";
+import { CryptoBootstrap } from "@parmana/crypto";
 
 import {
   createGatewayConnectorRegistry,
   type GatewayConnectorRegistration,
 } from "@parmana/execution-gateway";
 
-import {
-  StaticCredentialProvider,
-} from "@parmana/connector-sdk";
+import { StaticCredentialProvider } from "@parmana/connector-sdk";
 
 import type {
   ConnectorRegistry,
@@ -30,6 +26,7 @@ import { createGitHubConnector } from "./createGitHubConnector.js";
 import { createGitHubCredentialProvider } from "./createGitHubCredentialProvider.js";
 import { createTestFixtureConnector } from "./createTestFixtureConnector.js";
 import { assertConnectorCapabilitiesBound } from "./assertConnectorCapabilitiesBound.js";
+import { warnIfHubSpotTokenStale } from "./warnIfHubSpotTokenStale.js";
 
 /**
  * Creates the production connector registry.
@@ -95,6 +92,8 @@ export function createConnectorRegistry(
     });
   }
 
+  warnIfHubSpotTokenStale();
+
   const hubspotCredentialProvider = createHubSpotCredentialProvider();
 
   if (hubspotCredentialProvider === undefined) {
@@ -131,7 +130,8 @@ export function createConnectorRegistry(
   if (gitHubCredentialProvider === undefined) {
     console.warn({
       event: "github_connector_unavailable",
-      reason: "GITHUB_APP_ID, GITHUB_INSTALLATION_ID, or GITHUB_APP_PRIVATE_KEY is not configured.",
+      reason:
+        "GITHUB_APP_ID, GITHUB_INSTALLATION_ID, or GITHUB_APP_PRIVATE_KEY is not configured.",
     });
   } else {
     registrations.push({
