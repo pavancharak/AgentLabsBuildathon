@@ -30,7 +30,11 @@ const PENDING_CHANGE = {
   reason: "raise the approval threshold",
   diff: {
     current: { policyId: "vendor-payment", policyVersion: "2.0.0", rules: [] },
-    proposed: { policyId: "vendor-payment", policyVersion: "2.0.0", rules: ["new"] },
+    proposed: {
+      policyId: "vendor-payment",
+      policyVersion: "2.0.0",
+      rules: ["new"],
+    },
   },
 };
 
@@ -114,6 +118,24 @@ describe("governance-ui app", () => {
     expect(listResponse.headers.location).toBe("/login");
   });
 
+  it("rate-limits repeated POST /login attempts (brute-force protection)", async () => {
+    const app = buildApp();
+    stubApi({ identity: jsonResponse(401, { error: "Invalid API key." }) });
+
+    const agent = request.agent(app);
+
+    let lastStatus = 0;
+    for (let attempt = 0; attempt < 11; attempt++) {
+      const response = await agent
+        .post("/login")
+        .type("form")
+        .send({ apiKey: `bad-key-${attempt}` });
+      lastStatus = response.status;
+    }
+
+    expect(lastStatus).toBe(429);
+  });
+
   it("logs in with a valid key, then lists pending changes", async () => {
     const app = buildApp();
     stubApi({});
@@ -151,7 +173,9 @@ describe("governance-ui app", () => {
     expect(response.text).toContain("Proposed");
     expect(response.text).toContain("sign-policy-change-step-up.ts");
     expect(response.text).toContain("--pending-policy-change-id ppc-1");
-    expect(response.text).toContain(`${API_BASE_URL}/policies/pending-changes/ppc-1/approve`);
+    expect(response.text).toContain(
+      `${API_BASE_URL}/policies/pending-changes/ppc-1/approve`,
+    );
 
     // The whole point of this page: no approve/reject controls -- the
     // page's only <form> is the shared layout's logout button, which
@@ -165,7 +189,14 @@ describe("governance-ui app", () => {
     const app = buildApp();
     stubApi({
       changes: jsonResponse(200, {
-        changes: [{ ...PENDING_CHANGE, status: "APPROVED", resolvedBy: "human-checker-1", resolvedAt: "2026-08-02T00:00:00.000Z" }],
+        changes: [
+          {
+            ...PENDING_CHANGE,
+            status: "APPROVED",
+            resolvedBy: "human-checker-1",
+            resolvedAt: "2026-08-02T00:00:00.000Z",
+          },
+        ],
       }),
     });
 
@@ -197,8 +228,8 @@ describe("governance-ui app", () => {
         changes: [
           {
             ...PENDING_CHANGE,
-            reason: '<script>alert(1)</script>',
-            proposedBy: '<img src=x onerror=alert(1)>',
+            reason: "<script>alert(1)</script>",
+            proposedBy: "<img src=x onerror=alert(1)>",
           },
         ],
       }),
