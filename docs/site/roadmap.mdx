@@ -37,16 +37,59 @@ Move 1 and Move 3 are unaffected.
 
 **Today:** `FileKeyProvider` reads a PEM file from disk (`KEY_PROVIDER=local`, the only
 implemented provider). `KeyProviders` declares `aws-kms`/`azure-key-vault`/`gcp-kms`/`hsm`
-as config values with **zero implementing classes**. This is the exact exposure class that
-produced the committed-key incident on [Security](/security/overview).
+as config values with **zero implementing classes** behind any of them. This is the exact
+exposure class that produced the committed-key incident on [Security](/security/overview).
+**Update, 2026-09-10:** setting `KEY_PROVIDER` to one of these four now fails startup
+loudly (`KeyBootstrap.create()` throws, naming the configured value) instead of the prior
+behavior — silently constructing `FileKeyProvider` anyway, as if `local` had been chosen.
+That silent-fallback bug is fixed (`docs/VERIFICATION-GAPS.md` G-40); the underlying
+absence of a real KMS/HSM provider is unchanged.
 
 **Unlocks:** *"Parmana's signing key cannot be exfiltrated from the application process."*
 
-**Open design questions** (from the strategy doc, not yet resolved): does AWS KMS support
-Ed25519 natively, or does this force a move to `ecdsa-p256` (already declared in
-`SignatureAlgorithms`)? ML-DSA in KMS is not yet broadly available. The claim only promotes
-to Supported once a **live** test against a real KMS key has run, a fake/mock passing
-proves nothing here.
+**What's pending, precisely:** a real `KeyProvider` implementation (`getPrivateKey`,
+`getPublicKey`, `hasKey`, `getMetadata` — see `packages/crypto/src/KeyProvider.ts`) for at
+least one of `aws-kms`/`azure-key-vault`/`gcp-kms`/`hsm`, registered in `KeyBootstrap.ts`
+in place of today's fail-closed throw for that value.
+
+**Why it's still pending, not just unscheduled:** this repo's own evidence bar for a
+Supported claim is a **live** test against a real key in a real account — "a fake/mock
+passing proves nothing here" is not a rhetorical flourish, it's the same standard
+`PostgresRateLimitStore` (the durable rate limiter, `docs/CLAIMS.md` 3.14) was held to
+before being marked working. A `KeyProvider` implementation can be written and unit-tested
+against a stubbed cloud SDK client entirely offline — that proves the code is
+*structurally* correct, not that it actually works against the real service (correct IAM
+permission scoping, correct key ARN/resource-id format, the signature actually verifying
+against the returned public key, etc.). None of that can be verified without a real
+AWS/Azure/GCP account and credentials, which this development environment does not have
+and a code-writing session cannot manufacture for itself.
+
+**What building it actually needs, in order:**
+1. **Resolve the algorithm question below first** — it changes what the provider signs,
+   not just how it fetches the key.
+2. **Pick one provider to start with** (AWS KMS is the most likely first target — broadest
+   existing tooling, most common in this codebase's target deployments).
+3. **A real account + credentials** with a KMS key already provisioned, scoped to exactly
+   the sign/verify operations this provider class needs — not broader IAM permissions than
+   required.
+4. **Implement the `KeyProvider` interface** against that SDK, following
+   `FileKeyProvider.ts`'s existing shape (including its `assertValidKeyId` path-safety
+   discipline, translated to whatever the cloud SDK's own key-identifier validation needs
+   to be).
+5. **Wire it into `KeyBootstrap.create()`**, replacing the current throw for that one
+   `KEY_PROVIDER` value only — the other three stay fail-closed until each gets the same
+   treatment.
+6. **Run a live sign/verify round trip against the real key** before claiming this as
+   Supported anywhere in `docs/CLAIMS.md` — a passing unit test against a mock does not
+   satisfy this repo's own bar, stated above.
+
+**Open design questions** (from the strategy doc, not yet resolved, and blocking step 4
+above until answered): does AWS KMS support Ed25519 natively, or does this force a move to
+`ecdsa-p256` (already declared in `SignatureAlgorithms`, unused today) for KMS-backed keys
+specifically? ML-DSA-65 (this codebase's post-quantum signer) is not yet broadly available
+in any major cloud KMS — a KMS-backed deployment may need to run classical-only, or hybrid
+mode with the PQ half still file-based, an inconsistency worth deciding on deliberately
+rather than discovering mid-implementation.
 
 ### Move 2: Credential brokering, [PARTIAL], wired for the registered connector, full claim is [ROADMAP]
 
