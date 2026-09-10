@@ -1338,6 +1338,67 @@ paths:
                   summary: Real captured response
                   value:
                     error: Execution Trust Record not found.
+  /trust-records:
+    get:
+      tags:
+        - Trust Records
+      summary: Bulk-export Execution Trust Records (compliance/audit)
+      operationId: listTrustRecords
+      description: >
+        Returns the full, signed Execution Trust Record (transaction,
+        executions, verifications, receipts, authorization) for every
+        transaction on the requested page -- the periodic full-export capability
+        for external audit/compliance review, distinct from GET
+        /trust-records/{businessTransactionId} (single-record lookup) and GET
+        /transactions (raw Business Transaction only, no
+        execution/verification/receipt history). Scoping and pagination mirror
+        GET /transactions exactly: an authenticated caller sees only
+        transactions they submitted, page/pageSize page over the same
+        storage-provider listing GET /transactions uses, and the response is a
+        bare array with no pagination metadata. since/until (ISO 8601)
+        additionally filter by transaction.createdAt for a bounded date-range
+        export.
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 25
+        - name: since
+          in: query
+          required: false
+          description: Only include records whose transaction.createdAt is on or after
+            this ISO 8601 timestamp.
+          schema:
+            type: string
+            format: date-time
+        - name: until
+          in: query
+          required: false
+          description: Only include records whose transaction.createdAt is on or before
+            this ISO 8601 timestamp.
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Every Execution Trust Record on the requested page (after ownership
+            and date-range filtering).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/trust-records-list-response.schema"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /trust-records/{businessTransactionId}:
     get:
       tags:
@@ -2779,6 +2840,16 @@ components:
             the request fails with a 409.
       examples:
         - businessTransactionId: eed2a972-1bf5-4166-8472-761f76fbf1b2
+    trust-records-list-response.schema:
+      title: Trust Records List Response
+      description: Response returned by GET /trust-records (bulk/compliance export). A
+        bare array, no pagination envelope (no page/pageSize/totalItems
+        metadata) -- the same shape convention as GET /transactions. Each item
+        is a full Execution Trust Record, the same shape GET
+        /trust-records/{businessTransactionId} returns for one.
+      type: array
+      items:
+        $ref: "#/components/schemas/execution-trust-record.schema"
     replay-request.schema:
       title: Replay Request
       description: Request payload for POST /replay. businessTransactionId is required

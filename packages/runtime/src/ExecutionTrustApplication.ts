@@ -33,11 +33,9 @@ import { VerificationService } from "./services/verification-service.js";
  * Replay
  */
 export class ExecutionTrustApplication {
-  private readonly crypto =
-    new VerificationCrypto();
+  private readonly crypto = new VerificationCrypto();
 
-  private readonly refusalCrypto =
-    new RefusalCrypto();
+  private readonly refusalCrypto = new RefusalCrypto();
 
   constructor(
     private readonly transactions: BusinessTransactionService,
@@ -64,47 +62,35 @@ export class ExecutionTrustApplication {
   async execute(
     transaction: BusinessTransaction,
   ): Promise<ExecutionTrustRecord> {
-
     //
     // Accept Business Transaction
     //
-    await this.transactions.accept(
-      transaction,
-    );
+    await this.transactions.accept(transaction);
 
     //
     // Execute Runtime
     //
-    await this.runtime.execute(
-      transaction,
-    );
+    await this.runtime.execute(transaction);
 
     //
     // Verification
     //
-    await this.verification.verify(
-      transaction.businessTransactionId,
-    );
+    await this.verification.verify(transaction.businessTransactionId);
 
     //
     // Receipt
     //
-    await this.receipts.generate(
-      transaction.businessTransactionId,
-    );
+    await this.receipts.generate(transaction.businessTransactionId);
 
     //
     // Load completed Trust Record
     //
-    const trustRecord =
-      await this.trustRecords.findByTransactionId(
-        transaction.businessTransactionId,
-      );
+    const trustRecord = await this.trustRecords.findByTransactionId(
+      transaction.businessTransactionId,
+    );
 
     if (!trustRecord) {
-      throw new Error(
-        "Execution Trust Record not found.",
-      );
+      throw new Error("Execution Trust Record not found.");
     }
 
     return trustRecord;
@@ -113,55 +99,38 @@ export class ExecutionTrustApplication {
   /**
    * Verify an Execution Trust Record.
    */
-  async verify(
-    businessTransactionId: string,
-  ): Promise<Verification> {
-    return this.verification.verify(
-      businessTransactionId,
-    );
+  async verify(businessTransactionId: string): Promise<Verification> {
+    return this.verification.verify(businessTransactionId);
   }
 
   /**
    * Generate a Receipt.
    */
-  async generateReceipt(
-    businessTransactionId: string,
-  ): Promise<Receipt> {
-    return this.receipts.generate(
-      businessTransactionId,
-    );
+  async generateReceipt(businessTransactionId: string): Promise<Receipt> {
+    return this.receipts.generate(businessTransactionId);
   }
 
   /**
    * Replay execution deterministically.
    */
-  async replay(
-    businessTransactionId: string,
-  ): Promise<{
+  async replay(businessTransactionId: string): Promise<{
     businessTransactionId: string;
     trustRecordHash: string;
     verified: boolean;
   }> {
-    const trustRecord =
-      await this.trustRecords.findByTransactionId(
-        businessTransactionId,
-      );
+    const trustRecord = await this.trustRecords.findByTransactionId(
+      businessTransactionId,
+    );
 
     if (!trustRecord) {
-      throw new VerificationFailedError(
-        "Execution Trust Record not found.",
-      );
+      throw new VerificationFailedError("Execution Trust Record not found.");
     }
 
-    const verified =
-      await this.crypto.verify(
-        trustRecord,
-      );
+    const verified = await this.crypto.verify(trustRecord);
 
     return {
       businessTransactionId,
-      trustRecordHash:
-        trustRecord.trustRecordHash,
+      trustRecordHash: trustRecord.trustRecordHash,
       verified,
     };
   }
@@ -172,8 +141,44 @@ export class ExecutionTrustApplication {
   async getTrustRecord(
     businessTransactionId: string,
   ): Promise<ExecutionTrustRecord | null> {
-    return this.trustRecords.findByTransactionId(
-      businessTransactionId,
+    return this.trustRecords.findByTransactionId(businessTransactionId);
+  }
+
+  /**
+   * List Execution Trust Records — the bulk/compliance-export
+   * counterpart to getTrustRecord()/listTransactions(). Paginates over
+   * this.transactions (BusinessTransactionService.list(), the same
+   * source listTransactions() above already uses) and resolves each
+   * page entry to its full signed Execution Trust Record, rather than
+   * adding a parallel pagination path directly against
+   * ExecutionTrustRecordRepository — every Business Transaction that
+   * exists has exactly one Trust Record (see Runtime.execute()), so
+   * paginating the transactions and joining is equivalent to
+   * paginating the trust records directly, without requiring every
+   * ExecutionTrustRecordRepository implementation (in-memory, Supabase,
+   * and any future one) to grow its own list() method.
+   *
+   * A transaction with no resolvable Trust Record yet (execution still
+   * in flight) is silently skipped rather than surfaced as null/error —
+   * this endpoint's purpose is exporting settled, signed evidence, not
+   * reporting in-flight state.
+   */
+  async listTrustRecords(
+    page = 1,
+    pageSize = 25,
+  ): Promise<readonly ExecutionTrustRecord[]> {
+    const transactions = await this.transactions.list(page, pageSize);
+
+    const records = await Promise.all(
+      transactions.map((transaction) =>
+        this.trustRecords.findByTransactionId(
+          transaction.businessTransactionId,
+        ),
+      ),
+    );
+
+    return records.filter(
+      (record): record is ExecutionTrustRecord => record !== null,
     );
   }
 
@@ -192,9 +197,7 @@ export class ExecutionTrustApplication {
       return null;
     }
 
-    return this.refusalRecords.findByTransactionId(
-      businessTransactionId,
-    );
+    return this.refusalRecords.findByTransactionId(businessTransactionId);
   }
 
   /**
@@ -206,9 +209,7 @@ export class ExecutionTrustApplication {
    * holding a RefusalRecord (e.g. the caller who was refused) can
    * check it themselves against Parmana's public key alone.
    */
-  async verifyRefusalRecord(
-    refusalRecord: RefusalRecord,
-  ): Promise<boolean> {
+  async verifyRefusalRecord(refusalRecord: RefusalRecord): Promise<boolean> {
     return this.refusalCrypto.verify(refusalRecord);
   }
 
@@ -218,9 +219,7 @@ export class ExecutionTrustApplication {
   async getTransaction(
     businessTransactionId: string,
   ): Promise<BusinessTransaction | null> {
-    return this.transactions.get(
-      businessTransactionId,
-    );
+    return this.transactions.get(businessTransactionId);
   }
 
   /**
@@ -229,12 +228,7 @@ export class ExecutionTrustApplication {
   async listTransactions(
     page = 1,
     pageSize = 25,
-  ): Promise<
-    readonly BusinessTransaction[]
-  > {
-    return this.transactions.list(
-      page,
-      pageSize,
-    );
+  ): Promise<readonly BusinessTransaction[]> {
+    return this.transactions.list(page, pageSize);
   }
 }

@@ -1,9 +1,5 @@
 import { Router } from "express";
-import type {
-  NextFunction,
-  Request,
-  Response,
-} from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import type { ExecutionTrustApplication } from "@parmana/runtime";
 import { isOwnedByCaller } from "../auth/isOwnedByCaller.js";
@@ -16,6 +12,75 @@ export function createTrustRecordsRouter(
   application: ExecutionTrustApplication,
 ): Router {
   const router = Router();
+
+  /**
+   * GET /trust-records
+   *
+   * Bulk export of Execution Trust Records — the periodic full-export
+   * capability for external audit/compliance review that GET
+   * /trust-records/:businessTransactionId (single-record lookup) and
+   * GET /receipt/latest (per-transaction) don't cover on their own.
+   * Returns the complete signed record (transaction, executions,
+   * verifications, receipts, authorization) for every transaction on
+   * the requested page, not just the raw Business Transaction GET
+   * /transactions returns.
+   *
+   * Scoping and pagination deliberately mirror GET /transactions
+   * exactly (page/pageSize query params, same post-fetch
+   * submittedBy filter, same "never over-discloses, may under-fill a
+   * page" trade-off) -- see that route's own comment for why. since/
+   * until (ISO 8601) additionally filter by transaction.createdAt,
+   * applied after the ownership filter, for a bounded date-range
+   * export rather than requiring a caller to page through their
+   * entire history.
+   */
+  router.get(
+    "/",
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      try {
+        const page = Number(req.query.page ?? 1);
+        const pageSize = Number(req.query.pageSize ?? 25);
+
+        const records = await application.listTrustRecords(page, pageSize);
+
+        const scoped =
+          req.callerId === undefined
+            ? records
+            : records.filter(
+                (record) =>
+                  record.transaction.metadata?.submittedBy === req.callerId,
+              );
+
+        const since =
+          typeof req.query.since === "string"
+            ? Date.parse(req.query.since)
+            : undefined;
+        const until =
+          typeof req.query.until === "string"
+            ? Date.parse(req.query.until)
+            : undefined;
+
+        const filtered = scoped.filter((record) => {
+          // Declared as Date on BusinessTransaction, but a durable-
+          // storage round trip (Supabase's JSONB column) can hand back
+          // a plain ISO string despite the compile-time type — new
+          // Date(...) accepts either.
+          const createdAt = new Date(record.transaction.createdAt).getTime();
+
+          if (since !== undefined && !Number.isNaN(since) && createdAt < since)
+            return false;
+          if (until !== undefined && !Number.isNaN(until) && createdAt > until)
+            return false;
+
+          return true;
+        });
+
+        res.json(filtered);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
 
   /**
    * GET /trust-records/:businessTransactionId
