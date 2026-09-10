@@ -27,7 +27,7 @@
     "@parmana/policy": "0.1.0",
     "@parmana/shared": "0.1.0",
     "express": "^5.2.1",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.11"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

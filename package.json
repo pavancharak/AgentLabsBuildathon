@@ -33,6 +33,7 @@
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "examples": "tsx scripts/run-examples.ts",
+    "loadtest": "tsx scripts/load-test.ts",
     "generate:python-models": "tsx python/scripts/generate_models.ts",
     "check:python-models": "tsx python/scripts/generate_models.ts --check",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run check:python-models && npm run test && npm run build"
@@ -44,22 +45,34 @@
     "@eslint/js": "^10.0.1",
     "@redocly/cli": "^2.39.0",
     "@supabase/supabase-js": "^2.108.2",
+    "@types/autocannon": "^7.12.7",
     "@types/node": "^24.0.0",
     "@types/swagger-ui-express": "^4.1.8",
-    "@vitest/coverage-v8": "^4.1.9",
+    "@vitest/coverage-v8": "^4.1.11",
+    "autocannon": "^8.0.0",
     "dependency-cruiser": "^18.0.0",
     "dotenv": "^17.4.2",
     "eslint": "^10.6.0",
     "eslint-config-prettier": "^10.1.8",
+    "get-port": "^7.2.0",
     "prettier": "^3.8.4",
     "tsx": "^4.22.4",
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.62.0",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.11"
   },
   "dependencies": {
     "swagger-ui-express": "^5.0.1",
     "yaml": "^2.9.0"
+  },
+  "overrides": {
+    "qs": "^6.16.0",
+    "express": {
+      "qs": "^6.16.0"
+    },
+    "body-parser": {
+      "qs": "^6.16.0"
+    }
   },
   "license": "SEE LICENSE IN LICENSE"
 }
