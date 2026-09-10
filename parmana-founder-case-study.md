@@ -72,7 +72,7 @@ Everything below is present tense because it is backed by code, tests, and recor
 - Credential isolation: the requesting AI never holds the credentials that perform actions, so a compromised agent has nothing to spend.
 - Signed, append-only, tamper-evident records for every action, with support for both classical and post-quantum signatures so evidence remains verifiable across the regulatory transition timelines now being set for financial systems.
 - Exactly-once execution and replay protection as properties of the storage design, not as heuristics.
-- Over five hundred automated tests, an independent adversarial audit on record, and a claims file where every capability maps to its evidence.
+- Over five hundred automated tests at the time of this demonstration, an independent adversarial audit on record, and a claims file where every capability maps to its evidence. *(The suite has grown substantially since — 1,671 tests as of the most recent production-readiness pass, 2026-09-10 — as the platform's scope expanded well beyond the Razorpay chain this account describes.)*
 
 ## What we do not claim
 
