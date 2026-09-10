@@ -7,7 +7,7 @@ description: "What actually shipped, by commit, newest first. Not a marketing su
 Pulled directly from `git log` on `main` in `pavancharak/parmana-exp`, commit hashes are
 real and checkable. This page covers the commits that changed what a reader of this site can
 actually do or rely on, not every commit in the repository's history, run `git log` yourself
-for the complete record, 350 commits as of this page's last update. **Known gap:** entries
+for the complete record, 352 commits as of this page's last update. **Known gap:** entries
 between 2026-08-19 and 2026-09-06, several commits landed on 2026-09-07 before the two below,
 and everything on 2026-09-09 other than `25295ee`, `bab0981`, and the ten commits below them
 (including the changelog and validation-doc commits themselves) were not backfilled — `git
@@ -93,6 +93,12 @@ new §3.21.
 - **`0e0534b`** docs: `README.md`'s test count (1,313, last verified 2026-08-24) was stale
   from ordinary suite growth since then, not from this session's changes — updated to
   1,671 (1,631 passed, 38 skipped, 0 failed), re-verified via a JSON-reporter run.
+- **`9114285`** docs: swept all 37 tracked root `.md` files; `CODEBASE-REFERENCE.md`
+  (built 2026-09-07, three days pre-session) had the same gatewayId/session-token
+  placeholder and unconditional in-memory rate-limiter claims this session fixed —
+  corrected, original text struck through and kept for historical accuracy. Five other
+  files with hits are dated audit/snapshot reports tied to a specific commit or
+  submission event and were deliberately left untouched.
 
 ## 2026-09-09
 
