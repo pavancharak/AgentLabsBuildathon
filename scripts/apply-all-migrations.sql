@@ -1109,3 +1109,93 @@ ON caller_audit_events (
     id DESC
 )
 WHERE caller_id IS NOT NULL;
+
+
+-- =============================================================================
+-- Source: supabase/migrations/20260907120000_add_authorization_and_hybrid_signatures_to_execution_trust_records.sql
+-- Persist Signed Execution Authorization + Hybrid Signatures on
+-- execution_trust_records
+--
+-- authorization_json: the SignedExecutionAuthorization ExecutionGateway
+-- accepted for this transaction (ExecutionTrustRecord.authorization).
+-- Nullable: absent for records built before this column existed, or for
+-- a transaction that never reached execution (e.g. a policy rejection).
+--
+-- schema_version / signatures_json: ExecutionTrustRecord.schemaVersion /
+-- .signatures, added by the Hybrid Signature Support milestone
+-- (20260702183000_add_signature_to_execution_trust_records.sql added
+-- signature_json for the legacy single signature, but schemaVersion/
+-- signatures were never given columns here -- a CRYPTO_MODE=hybrid
+-- record round-tripped through Supabase silently lost its second
+-- signature on read, degrading hybrid verification to single-signature
+-- for anything reloaded from durable storage). Both nullable for the
+-- same reason: absent means schema v1 (see execution-trust-record.ts's
+-- own doc comment on schemaVersion), not "hybrid signing failed."
+-- =============================================================================
+
+ALTER TABLE execution_trust_records
+ADD COLUMN IF NOT EXISTS authorization_json JSONB;
+
+ALTER TABLE execution_trust_records
+ADD COLUMN IF NOT EXISTS schema_version INTEGER;
+
+ALTER TABLE execution_trust_records
+ADD COLUMN IF NOT EXISTS signatures_json JSONB;
+
+CREATE INDEX IF NOT EXISTS idx_execution_trust_records_authorization
+ON execution_trust_records
+USING GIN (authorization_json);
+
+
+-- =============================================================================
+-- Source: supabase/migrations/20260907130000_add_previous_record_hash_to_policy_change_approval_records.sql
+-- Policy Change Approval Record chaining
+--
+-- Adds previous_record_hash: the sha256 (via the same
+-- PolicyChangeCrypto.hashPolicyContent every other hash in this table
+-- uses) of the approval record that immediately preceded this one for
+-- the same (policy_name, policy_version), computed and embedded in
+-- this record's own signed payload at approval time
+-- (PolicyChangeApprovalService). Absent only for the first approval
+-- ever recorded for a given (policy_name, policy_version) pair.
+--
+-- content_hash_after (existing) proves the live policy.json matches
+-- what the most recent approval covered. This column additionally
+-- proves the approval-record history itself has not been edited,
+-- reordered, or had a record deleted -- a bypass of the audit trail
+-- distinct from a bypass of the live file. Same naming convention as
+-- caller_audit_events' own chain_hash/previous_chain_hash
+-- (20260906120000_add_per_caller_chain_to_caller_audit_events.sql).
+-- =============================================================================
+
+ALTER TABLE policy_change_approval_records
+ADD COLUMN IF NOT EXISTS previous_record_hash TEXT;
+
+
+-- =============================================================================
+-- Source: supabase/migrations/20260910120000_add_rate_limit_counters.sql
+-- Fleet-wide POST /execute and /health,/ready rate limiting.
+--
+-- Backs PostgresRateLimitStore (packages/storage/src/postgres/
+-- PostgresRateLimitStore.ts), the durable counterpart to
+-- express-rate-limit's default in-process MemoryStore.
+--
+-- One row per rate-limit key (an authenticated caller id for
+-- /execute, a client IP for /health and /ready). count and reset_time
+-- are read and written together, atomically, by
+-- PostgresRateLimitStore's single upsert statement.
+--
+-- Not RLS-covered: unlike the other tables in this schema, rows here
+-- carry no business or trust-record data, only ephemeral counters
+-- that this codebase's own application logic is the sole reader/
+-- writer of.
+-- =============================================================================
+
+create table if not exists rate_limit_counters (
+  key text primary key,
+  count integer not null,
+  reset_time timestamptz not null
+);
+
+create index if not exists rate_limit_counters_reset_time_idx
+  on rate_limit_counters (reset_time);
