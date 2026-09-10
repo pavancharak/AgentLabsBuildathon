@@ -79,7 +79,10 @@ the entire check. If the API accepts the key, the UI trusts it; if not, the UI h
 further to say. The session holds only the caller's own API key, server-side, in an
 `express-session` cookie (`httpOnly`, `secure` in production, 8-hour expiry). The key never
 reaches the browser except as that opaque cookie, and is attached as `Authorization: Bearer`
-on every proxied call to the real API.
+on every proxied call to the real API. `POST /login` — this codebase's only unauthenticated
+route that validates a submitted credential against the real API in a "try a key and see"
+pattern — is rate-limited (10 attempts/minute, IP-keyed, added 2026-09-10) against
+credential-stuffing; the real API itself has no equivalent endpoint to protect.
 
 This isn't an unfinished feature; it's a structural choice, stated directly: a checker's
 step-up private key must never leave their own machine, since the entire security guarantee
