@@ -7,7 +7,7 @@ description: "What actually shipped, by commit, newest first. Not a marketing su
 Pulled directly from `git log` on `main` in `pavancharak/parmana-exp`, commit hashes are
 real and checkable. This page covers the commits that changed what a reader of this site can
 actually do or rely on, not every commit in the repository's history, run `git log` yourself
-for the complete record, 343 commits as of this page's last update. **Known gap:** entries
+for the complete record, 346 commits as of this page's last update. **Known gap:** entries
 between 2026-08-19 and 2026-09-06, several commits landed on 2026-09-07 before the two below,
 and everything on 2026-09-09 other than `25295ee`, `bab0981`, and the ten commits below them
 (including the changelog and validation-doc commits themselves) were not backfilled — `git
@@ -73,6 +73,18 @@ new §3.21.
   correction, and a new D-6 entry for the CI branch-protection blocker; `docs/CLAIMS.md`
   §2.16/§2.18/§2.26/§3.14 updates and new §3.21; `DEPLOYMENT.md` updates for the commits
   above.
+- **`aa1e1eb`** docs: adds `RELEASE-NOTES-2026-09-10.md`, replacing an earlier draft that
+  cited fabricated commit hashes and nonexistent features (Redis-backed rate limiting,
+  governance-ui bulk/CSV export, syslog streaming) with content verified against this same
+  commit range.
+- **`d2f2a42`** docs: a full sweep of `docs/`, `docs/site/`, and `docs/book/` found several
+  pages explicitly asserting this session's pre-fix behavior as current fact (three pages
+  said `KEY_PROVIDER=aws-kms`/etc. "does nothing"; four described the rate limiter as
+  unconditionally in-memory with no shared-store path; two said `LOG_LEVEL` was read but
+  consumed by nothing) — all corrected. `docs/site/deployment/production.mdx` also gained
+  the `KEY_PROVIDER`/`PARMANA_GATEWAY_ID`/rate-limiter/`GET /ready` notes `DEPLOYMENT.md`
+  already had. Dated point-in-time audit/certification snapshots were deliberately left
+  untouched, per this repo's own historical-record convention.
 
 ## 2026-09-09
 
