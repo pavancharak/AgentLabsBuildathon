@@ -287,6 +287,75 @@ certification's adversarial review (§10 of that document).
   storage layer as well, not only the HTTP/connector-dispatch layer that document's own
   bypass search (Phase 3D §5.2) already covered.
 
+- **`SessionCredentialVault`/`InMemoryGatewaySessionStore` not surviving a restart or
+  scaling past one instance** (2026-09-10 production-readiness session). An external audit
+  framed this as a gap alongside the `/execute` rate limiter (see G-41 below, which *is*
+  real). Traced both objects' actual lifecycle before accepting that framing:
+  `InMemorySessionCredentialVault.issue()`/`.consume()`/`.revoke()` all run inside one
+  `try`/`finally` in `SessionCredentialSecureConnector.execute()`
+  (`packages/execution-control/src/SessionCredentialSecureConnector.ts`), and
+  `InMemoryGatewaySessionStore.create()`/`.consume()` both run inside one synchronous call
+  chain in `ExecutionControlService.execute()` and `DefaultConnectorPolicy.assertAllowed()`.
+  Confirmed directly: `sessionCredentialId` and `GatewaySession.sessionId` are never
+  returned in any `POST /execute` response body (`packages/api/src/routes/execute.ts` has
+  no reference to either), and there is no second HTTP endpoint that could later present one
+  back to this process -- `POST /execute` is the only route that ever touches either store.
+  A process restart mid-request fails that one in-flight request the same way any in-flight
+  computation would, database-backed or not; there is no scenario where a session/credential
+  created by one instance is ever consumed by a different request, process, or instance.
+  Persisting either to Postgres would add a database round trip inside the hot `/execute`
+  path for no correctness benefit, and would introduce a new failure mode (a database
+  hiccup now blocks every execution that previously succeeded purely in-memory). This
+  independently confirms -- via direct code tracing, not by citing it -- the Phase 3D
+  certification's own §12.6 conclusion above ("this layer is downstream of the already-
+  durable, load-bearing nonce check"): correctly in-memory by design, not an unaddressed
+  gap. Not fixed; nothing to fix. See G-41 for the one genuinely real durability gap this
+  same external audit correctly identified (the rate limiter).
+
+---
+
+## Gaps closed in the 2026-09-10 production-readiness session
+
+Scope: an external code-derived production-readiness audit (`PARMANA-EXP-GAPS-FOR-
+PRODUCTION.md`, gitignored per this repo's `PARMANA-*.md`/`GAP-*.md` convention for scratch
+audit deliverables) named 13 items, none critical, across HIGH/MEDIUM/LOW priority. Every
+item was independently re-verified against current source before being acted on (not taken
+on the audit's word) -- see the "found not applicable" entry directly above for the one
+item this re-verification overturned.
+
+| # | Gap | Closed by | Verified |
+|---|---|---|---|
+| 40 | `KEY_PROVIDER` accepted `aws-kms`/`azure-key-vault`/`gcp-kms`/`hsm` as valid config values (`packages/shared/src/config/KeyProviders.ts`), but `KeyBootstrap.create()` (`packages/crypto/src/KeyBootstrap.ts`) always constructed `FileKeyProvider` regardless -- an operator setting `KEY_PROVIDER=aws-kms` expecting real KMS custody got private-key-on-disk instead, with no error | `KeyBootstrap.create()` now throws for any value other than `"local"`, naming the value and stating that only `FileKeyProvider` is implemented. Commit `624adf7` | `packages/crypto/tests/unit/key-bootstrap.test.ts` (7 cases: defaults to local when unset; local explicit; each of the 4 unimplemented values throws naming both the value and "not implemented"; an unrecognized value is rejected earlier, at config-parse time, before `KeyBootstrap` is even reached) |
+| 41 | `POST /execute` and `GET /health`/`GET /ready`'s rate limiters used `express-rate-limit`'s default in-process `MemoryStore` -- each machine in a horizontally-scaled deployment counts independently, so the effective ceiling for a caller is `limitPerMinute * machineCount`, not the fleet-wide limit `docs/CLAIMS.md` 3.14 already documented as the scope caveat. Safe only because `fly.toml` pins `min_machines_running = 1` today | New `PostgresRateLimitStore` (`packages/storage/src/postgres/PostgresRateLimitStore.ts`), a real `express-rate-limit` `Store` backed by an atomic `INSERT ... ON CONFLICT` upsert (new migration `supabase/migrations/20260910120000_add_rate_limit_counters.sql`). Wired via `createRateLimitStore.ts`: used when `DATABASE_URL` is configured; falls back to the in-process default with a loud startup warning otherwise (deliberately not fail-closed like the NonceStore -- a missing shared rate-limit store loosens a capacity control, it does not remove a security check, so refusing to start over it would break every single-instance/local deployment that works correctly today). Commit `2d643ca` | `packages/storage/tests/unit/postgres-rate-limit-store.test.ts` (7 cases, including window-rollover and independent-keys behavior against a fake `pg.Pool` that implements the real upsert semantics in JS), `packages/api/tests/unit/bootstrap/create-rate-limit-store.test.ts` (3 cases: test/production-without-DATABASE_URL/production-with-DATABASE_URL branches), existing `packages/api/tests/integration/rate-limit.integration.test.ts` (8 cases) unaffected |
+| 42 | No load testing existed anywhere in the repo -- the system had never been proven to hold up under concurrent `/execute` load, and `.env.example`'s own rate-limit defaults are labeled "sized for a design-partner evaluation deployment, not high-volume production traffic" | New `npm run loadtest` (`scripts/load-test.ts`, `autocannon`-based): boots the real server (`NODE_ENV=test`, in-memory storage, caller-auth disabled) and benchmarks `GET /health`, `GET /ready`, and `POST /execute` (real policy evaluation against `policies/vendor-payment`, real Ed25519 signing, real connector execution) at configurable concurrency/duration. Commit `c32a861` | Actually run (10 connections, 5s): `POST /execute` sustained ~51 req/s, p50 188ms / p99 444ms, zero errors, zero non-2xx. Scope stated in the script's own header comment: measures policy/signing/connector overhead under concurrency, not the caller-auth or rate-limiter middleware layers (both disabled for this run) or a durable-storage-backed deployment -- this does not change `README.md`'s existing "sustained volume, load-bearing traffic... not claimed" scope statement, one run is not a volume proof |
+| 43 | `.env.example` shipped `PARMANA_AUTH_DISABLED=true` uncommented -- a first-time operator who copies it to `.env` without reading every line deploys with caller authentication off. The existing startup `console.warn` (`createCallerAuthenticator.ts`) is easy to miss in a log-aggregation tool after the fact | `.env.example`'s `PARMANA_AUTH_DISABLED` line commented out (defaults to the safe `"false"` the code already falls back to). `GET /ready`'s JSON response now carries `authDisabled` (plus a `warning` string when true) -- a field an operator's own monitoring/synthetic checks (already polling this endpoint every 30s per `fly.toml`) can assert and alert on, not just a log line. Commit `263387b` | `packages/api/tests/unit/routes/ready.test.ts`, 2 new cases (`authDisabled: true` with a warning string when caller-auth is disabled; `authDisabled: false` with no `warning` key when enabled) |
+| 44 | `createGatewayIdentity.ts` hardcoded `gatewayId`/`publicIdentity` to the literal `"parmana-gateway"` with a `TODO: Replace these placeholder values`, blocking more than one logically distinct gateway identity against the same audit trail. `createSessionStore.ts`'s same-process `gatewaySessionIssuanceAuthentication` capability token was a bare `Object.freeze({})` with a `TODO: Replace with the production authentication mechanism` comment | `gatewayId`/`publicIdentity` now configurable via `PARMANA_GATEWAY_ID` (mirrors the existing `PARMANA_GATEWAY_KEY_ID` pattern), validated against the same safe character set `FileKeyProvider`'s `keyId` guard uses, defaulting to the same literal. `gatewaySessionIssuanceAuthentication` is now `Object.freeze({ token: randomUUID() })`; reference identity (not the value's contents) was always the actual mechanism, so this closes the "unaddressed TODO" appearance rather than a real gap -- the comment now says so plainly instead of carrying a stale TODO. Commit `2761548` | `packages/api/tests/unit/bootstrap/create-gateway-identity.test.ts` (3 cases: default value, `PARMANA_GATEWAY_ID` override, rejects an unsafe value) |
+| 45 | HubSpot's Private App token (`HUBSPOT_PRIVATE_APP_TOKEN`) is a long-lived static credential with no built-in expiry, unlike GitHub's ephemeral per-execution token -- an architectural property, not a bug, but nothing enforced or reminded anyone to rotate it | New `warnIfHubSpotTokenStale()` (`packages/api/src/bootstrap/warnIfHubSpotTokenStale.ts`), called once at startup from `createConnectorRegistry.ts`: warns if the token is configured but `HUBSPOT_PRIVATE_APP_TOKEN_ROTATED_AT` is unset (age untrackable), and separately if the recorded rotation date is more than 90 days old. Reminder, not enforcement -- this process cannot itself revoke or replace a HubSpot-side token; only a human with HubSpot admin access can. Commit `33d96b3` | `packages/api/tests/unit/bootstrap/warn-if-hubspot-token-stale.test.ts` (5 cases: not configured, unset rotation date, unparseable rotation date, recent rotation silent, stale rotation warns with the actual age) |
+| 46 | No dedicated compliance/bulk-audit-export endpoint existed. `GET /trust-records/:id` (single-record) and `GET /transactions` (raw `BusinessTransaction`, no execution/verification/receipt history) were the closest things, neither sufficient for periodic external audit review | New `GET /trust-records`: returns the complete signed Execution Trust Record (transaction, executions, verifications, receipts, authorization) for every transaction on the requested page. Scoping/pagination deliberately mirror `GET /transactions` exactly (same `page`/`pageSize` params, same post-fetch `submittedBy` ownership filter, same bare-array response shape); adds `since`/`until` (ISO 8601) to filter by `transaction.createdAt`. `ExecutionTrustApplication.listTrustRecords()` implements this by paginating the existing `BusinessTransactionService.list()` and resolving each entry via the existing `findByTransactionId()` -- deliberately not a new repository-level `list()` method, since every transaction has exactly one Trust Record and this avoids requiring every `ExecutionTrustRecordRepository` implementation to grow new query surface. Documented in `openapi/openapi.yaml` (`operationId: listTrustRecords`). Commit `2aa585f` | `packages/api/tests/unit/trust-record-api.test.ts`, 3 new cases (empty before any execution; returns the full record after one, matching the `/execute` response's own `trustRecordId`; `since`/`until` filtering). `npm run lint:openapi` clean |
+| 47 | `packages/governance-ui`'s `POST /login` -- this codebase's only unauthenticated route that validates a submitted credential against the real API -- had no rate limiting at all, a credential-stuffing/brute-force vector the real API itself doesn't have (no "try a key and see" endpoint exists there) | Added `express-rate-limit` (10 attempts/minute, IP-keyed -- no caller identity exists yet at this point), constructed per-router rather than at module scope so each app instance gets its own counter. Reviewed the rest of `governance-ui`'s security posture in the same pass and found it already solid: session-fixation hardening (regenerate on login), `httpOnly`/`secure`/`sameSite` cookies, and XSS-safe rendering of attacker-controlled `reason`/`proposedBy` fields were all already correct (this package was not in scope for the original Phase 3D/2026-07 audits, which focused on `packages/api`). Commit `373a020` | `packages/governance-ui/tests/integration/app.integration.test.ts`, 1 new case: 11 sequential `POST /login` attempts, the 11th returns 429 |
+| 48 | `LOG_LEVEL` was read into config (`Config.ts`) but nothing in the codebase gated any output on it -- every `console.*` call site (17 source files) fired unconditionally regardless of its value, with ad hoc log shape (a bare string here, a structured object there) | New `createLogger(level)`/`getLogger()` (`packages/shared/src/logging/Logger.ts`): debug/info/warn/error methods, each a no-op below the configured minimum level, emitting one JSON line per call. `getLogger()` is a lazy, process-wide singleton built from `loadConfig().logging.level`, the same shape `KeyBootstrap.create()`/`CryptoBootstrap.create()` already use. Commit `147a366` | `packages/shared/tests/unit/logger.test.ts` (5 cases: level gating, stdout/stderr routing, unrecognized-level fallback, structured-field round-trip, singleton identity) |
+| 49 | `npm audit` found 12 vulnerabilities (3 high, 9 moderate) across the dependency tree, none previously reviewed as a batch | `qs` (moderate, array-limit bypass + DoS): `express@4.22.2` pinned it to `~6.15.1` (still vulnerable at 6.15.3), unresolvable by `npm audit fix` alone -- added a root `"overrides"` entry forcing `qs@^6.16.0` everywhere, then `npm dedupe`. `vitest`/`@vitest/coverage-v8` (moderate, path traversal via `@vitest/mocker`): bumped `^4.1.9` -> `^4.1.11` across the root and all 17 workspace `package.json` files (non-breaking patch). `express`, `body-parser`, `js-yaml`, `nanoid`, `brace-expansion` resolved as a side effect via `npm audit fix`. Commit `669b198` | `npm audit` after: 3 moderate remain (`autocannon` -> `hyperid` -> `uuid`), entirely from this same session's new `loadtest` devDependency (gap 42) -- no non-breaking fix exists upstream, and confirmed dev-only, never installed in the production image (`Dockerfile`'s `prod-deps` stage runs `npm ci --omit=dev`). Full workspace `npx tsc -b --force`, `npm run typecheck`, `npm run lint`, `npm run format:check` (for every file this session touched) all clean; `npx vitest run`: 1613 passed, 38 pre-existing gated skips, 0 failed |
+
+Full session verification: every commit above was individually rebuilt (`npx tsc -b`) and
+tested before the next change began; a final full-workspace `npx tsc -b --force` plus
+`npx vitest run` after all nine commits landed reports 1613 passed, 38 skipped, 0 failed
+(two isolated re-runs of the three tests that failed under full-suite parallel resource
+contention -- `execution-pipeline-latency.test.ts`'s p99 bound and two `typescript/test/
+integration/*` server-startup hooks -- both passed cleanly standalone, confirmed
+pre-existing environmental flakiness unrelated to this session's changes, not a
+regression).
+
+**Explicitly not closed this session, tracked separately:**
+- **CI's `verify-policy-approvals` maker-checker gate remains advisory only**, not a
+  required GitHub branch-protection status check. Attempted directly, not assumed: `gh api
+  repos/{owner}/{repo}/branches/main/protection` returned a live 403 -- "Upgrade to GitHub
+  Pro or make this repository public to enable this feature." This is a real external
+  platform/billing constraint, not a configuration oversight this session could resolve --
+  see D-6 below.
+- Key-rotation tooling automation and splitting the settlement poll loop into its own
+  container (the original external audit's own LOW-priority items 10 and 13) were left
+  deferred, matching that audit's own framing of both as "nice to have"/"not urgent."
+
 ---
 
 ## Remaining gaps, by severity
@@ -2334,6 +2403,38 @@ approval.
 implemented, no work started.** Triggered by a real customer request or architectural
 decision, not before — see that document's "Decision Gates" section for what would need to
 be true first.
+
+---
+
+### D-6. CI's `verify-policy-approvals` gate is advisory only, not a required branch-protection check (2026-09-10)
+
+Not a code gap: `.github/workflows/ci.yml` already runs the maker-checker verification job
+on every push/PR, and its own inline comment already states plainly that it is advisory
+only today. The fail-closed guarantee this job provides only holds if a human notices a red
+X on the PR — nothing in this repository's committed configuration currently forces GitHub
+to block a merge when it fails.
+
+**Attempted directly, not assumed to be a simple checkbox:** `gh api
+repos/{owner}/{repo}/branches/main/protection` against this actual repository (a private
+repo on GitHub's free plan) returned a live 403: *"Upgrade to GitHub Pro or make this
+repository public to enable this feature."* Required-status-check branch protection is a
+real, external platform/billing constraint on this account today, not a configuration
+change a code session can make.
+
+**Status: blocked, not resolved.** Two options, both requiring the repository owner's
+decision (billing or visibility, neither a call this document or a code change can make):
+
+- **Option A: upgrade to GitHub Pro** (or an org plan that includes branch protection on
+  private repos), then enable a required status check for `verify-policy-approvals` on
+  `main` in GitHub's own branch-protection settings — a five-minute action once the plan
+  supports it.
+- **Option B: make the repository public.** Branch protection is available on public repos
+  regardless of plan. Has implications well beyond this one CI gate (source visibility,
+  the exposed-key incident already documented above) — not a decision to make solely to
+  unblock this gate.
+- **Option C: leave advisory-only.** The gate still runs and still reports on every PR;
+  the residual risk is a human merging past a red X, not a gate that fails silently or
+  doesn't run at all.
 
 ---
 

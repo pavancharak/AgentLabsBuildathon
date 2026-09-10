@@ -546,6 +546,13 @@ Every route except `/health`, `/ready`, `/openapi.yaml`, `/documentation`, `POST
 
 **Precise scope of `PARMANA_AUTH_DISABLED=true` (docs/VERIFICATION-GAPS.md G-28):** this flag, when explicitly opted into, removes *caller identity and accountability only* — `RuntimeEngine`, `PolicyEngine`, `CapabilityPolicyBinder`, `SignalIntentBinder`, and every `SignalStateVerifier` never read the caller-auth middleware's output at all (confirmed by direct grep: zero references to caller identity anywhere in those files), so *action-level authorization* (whether a specific `razorpay:refund-create`/`hubspot:deal-update` request is itself authorized) remains fully enforced regardless of this flag. It does not disable the authorization boundary this document's other claims describe; it disables knowing who asked.
 
+**Update (2026-09-10):** `.env.example` shipped `PARMANA_AUTH_DISABLED=true` uncommented, so a first-time operator copying it to `.env` without reading every line would deploy with caller authentication off, discoverable only via the startup `console.warn` — easy to miss in a log-aggregation tool after the fact. The example file's line is now commented out (the code's own default remains `"false"`, unchanged). `GET /ready`'s JSON response now also carries `authDisabled: true` (plus a `warning` string) whenever this flag is set, alongside the existing log line — a field an operator's own monitoring/synthetic checks, already polling this endpoint every 30s per `fly.toml`, can assert and alert on directly. See `docs/VERIFICATION-GAPS.md` G-43.
+
+Evidence (update)
+
+* `.env.example`, `packages/api/src/routes/ready.ts`
+* `packages/api/tests/unit/routes/ready.test.ts`: 2 new cases (`authDisabled: true` with a warning when caller-auth is disabled; `authDisabled: false`, no `warning` key, when enabled)
+
 
 
 Evidence
@@ -620,7 +627,12 @@ Evidence
 
 * packages/crypto/tests/unit/file-key-provider.test.ts: rejects a path-traversal keyId in getPrivateKey, getPublicKey, hasKey, and getMetadata
 
+**Update (2026-09-10):** a separate, previously-unclosed gap in the same area: `KEY_PROVIDER` accepted `aws-kms`, `azure-key-vault`, `gcp-kms`, and `hsm` as valid config values (`packages/shared/src/config/KeyProviders.ts`), each parsed and validated cleanly, but `KeyBootstrap.create()` (`packages/crypto/src/KeyBootstrap.ts`) always constructed `FileKeyProvider` regardless of the configured value -- an operator setting `KEY_PROVIDER=aws-kms`, expecting real KMS custody, got private-key-on-disk instead, with no error at any point. `docs/VERIFICATION-GAPS.md` G-40 closed this: `KeyBootstrap.create()` now throws at startup for any value other than `"local"`, naming the configured value and stating plainly that only `FileKeyProvider` is implemented -- turning the misconfiguration from a silent, false sense of custody into an immediate, actionable startup error. No real cloud KMS/HSM provider exists yet; this closes the silent-fallback failure mode, not the absence of those providers themselves.
 
+Evidence (update)
+
+* `packages/crypto/src/KeyBootstrap.ts`
+* `packages/crypto/tests/unit/key-bootstrap.test.ts`: 7 cases, including one per unimplemented `KEY_PROVIDER` value
 
 ---
 
@@ -921,6 +933,13 @@ Policy content changes now go through a human-only, maker-checker approval flow 
 
 
 **`governance-ui`: a read-only internal tool, by design.** `packages/governance-ui` is a small standalone Express package (server-rendered templates, no client-side JS or build step) covering propose/list/diff-review only. It has exactly five routes — `GET`/`POST /login`, `POST /logout`, `GET /` (list), `GET /pending-changes/:id` (diff) — and no route, form, or template anywhere targets `/approve` or `/reject`; the diff page's instructions tell a checker to run `scripts/sign-policy-change-step-up.ts` locally and submit the result themselves, with their own bearer token, outside this UI entirely. A submitted API key is validated once against `GET /callers/me`, then held only in an in-memory, server-side `express-session` — it is attached as the outbound `Authorization` header on every call this UI makes to `packages/api` and never appears in any rendered response; a live check against a real running API, performed during the 2026-08-18 session that added this section, confirmed the raw key string is absent from every page produced. `packages/governance-ui/tests/integration/app.integration.test.ts`'s `"escapes attacker-controlled content (reason, proposer) rather than rendering it raw"` proves a maker-supplied `reason`/`proposedBy` containing a `<script>` tag renders escaped, not executable, in the checker's browser.
+
+**Update (2026-09-10):** this package was outside the original scope of the audits that produced the claims above, which focused on `packages/api`. A follow-up review covered it directly and found one real gap: `POST /login` — this tool's only unauthenticated route, and the only place in this entire codebase that validates a submitted credential against the real API in a "try a key and see" pattern (the API itself has no equivalent endpoint) — had no rate limiting at all. Now rate-limited (`express-rate-limit`, 10 attempts/minute, IP-keyed, constructed per app instance). Everything else reviewed in the same pass — session-fixation hardening, cookie flags, XSS-safe rendering — was already correct, as described above. See `docs/VERIFICATION-GAPS.md` G-47.
+
+Evidence (update)
+
+* `packages/governance-ui/src/routes/login.ts`
+* `packages/governance-ui/tests/integration/app.integration.test.ts`: 11 sequential `POST /login` attempts, the 11th returns 429
 
 
 
@@ -1695,6 +1714,13 @@ Evidence
 * `packages/shared/src/config/Config.ts` (`RateLimitConfig`, `RATE_LIMIT_EXECUTE_PER_MINUTE` / `RATE_LIMIT_HEALTH_PER_MINUTE`, defaults 30/300)
 * `packages/api/tests/integration/rate-limit.integration.test.ts`: normal traffic under the limit passes unaffected; traffic over the limit gets a clean 429 with `Retry-After` and zero new execution-audit events; a rate-limited caller does not block a different caller's traffic (per-key, not global); the health/ready limiter is shared across both routes; rate limiting is skipped entirely when `callerAuth` is `"disabled"`; an omitted `rateLimit` option falls back to the documented defaults
 
+**Update (2026-09-10):** the fleet-wide scope gap this claim's own "Scope, precisely" paragraph named above is now closable. New `PostgresRateLimitStore` (`packages/storage/src/postgres/PostgresRateLimitStore.ts`), a real `express-rate-limit` `Store` backed by an atomic `INSERT ... ON CONFLICT` upsert against a new `rate_limit_counters` table (`supabase/migrations/20260910120000_add_rate_limit_counters.sql`). `createRateLimitStore.ts` wires it in when `DATABASE_URL` is configured -- both limiters then share counts fleet-wide, closing the `limitPerMinute * machineCount` gap for any deployment that scales past one machine. Deliberately not fail-closed the way `NonceStore`'s `DATABASE_URL` requirement is: without a configured database, both limiters fall back to the in-process default with a loud startup warning rather than refusing to start, since a looser-than-configured capacity ceiling is not the same class of gap as a missing security check. See `docs/VERIFICATION-GAPS.md` G-41. This deployment's current shape (`fly.toml`'s `min_machines_running = 1`) means the gap this update closes was not yet live-exploitable here, but the fix removes the blocker to scaling out.
+
+Evidence (update)
+
+* `packages/storage/src/postgres/PostgresRateLimitStore.ts`, `packages/api/src/bootstrap/createRateLimitStore.ts`
+* `packages/storage/tests/unit/postgres-rate-limit-store.test.ts` (7 cases), `packages/api/tests/unit/bootstrap/create-rate-limit-store.test.ts` (3 cases: test / production-without-DATABASE_URL / production-with-DATABASE_URL)
+
 ---
 
 
@@ -1852,6 +1878,23 @@ Evidence
 * `packages/api/tests/integration/structural-validation-audit.integration.test.ts` (new, 9 tests): malformed `businessTransactionId` audited with the declared value and `callerId`, both `POST /execute` and `POST /transactions`; a non-string `businessTransactionId` leaves the field absent, not a garbage value; a mismatched `metadata.businessTransactionId` (`BusinessTransactionValidationError`) audited with its reason; a resubmitted `businessTransactionId` (`DuplicateBusinessTransactionError`) audited on the second call only, not the first, successful one; malformed JSON and an oversized body each audited with no `callerId` and no `businessTransactionId`; malformed JSON with caller-auth disabled still returns a correct `400` with nothing to assert on the audit side (no sink exists to write to); the valid path records no `caller.structural_rejected` event at all
 * `packages/api/tests/unit/supabase-caller-audit-sink.test.ts` (extended, 2 new cases: the new column maps correctly with and without a known caller/businessTransactionId)
 * Full repo `npx tsc -b`, `npx eslint . --ext .ts`, and `npm test` (`vitest run`) all clean: 1243 passed, 37 pre-existing skips, 0 failed — no regressions
+
+---
+
+## 3.21 Bulk/Compliance Export of Execution Trust Records (Scoped)
+
+Closes `docs/VERIFICATION-GAPS.md` G-46: before this capability, no dedicated periodic full-export existed for external audit/compliance review. `GET /trust-records/:id` returns one signed record at a time by ID; `GET /transactions` lists raw `BusinessTransaction`s (no execution/verification/receipt/authorization history) — neither is a reviewer-facing export path.
+
+New `GET /trust-records` returns the complete signed Execution Trust Record — transaction, executions, verifications, receipts, and the signed execution authorization — for every transaction on the requested page, not just the raw transaction `GET /transactions` returns. Scoping and pagination deliberately mirror `GET /transactions`'s own established shape exactly: `page`/`pageSize` query params over the same underlying `BusinessTransactionService.list()`, the same post-fetch `submittedBy` ownership filter (an authenticated caller sees only their own transactions), and the same bare-array, no-pagination-envelope response shape. Adds `since`/`until` (ISO 8601) to filter by `transaction.createdAt`, for a bounded date-range export rather than requiring a caller to page through their entire history.
+
+**Scope, precisely:** this is a request/response export over HTTP, not a scheduled/automated export job, a CSV or regulator-specific report format, or an admin-only bulk-dump distinct from the ownership scoping every other route in this codebase already applies. A caller sees exactly the Trust Records they would already be entitled to fetch one at a time via `GET /trust-records/:id` — this capability makes fetching many of them at once practical, it does not widen who can see what.
+
+Evidence
+
+* `packages/api/src/routes/trust-records.ts` (`GET /trust-records`)
+* `packages/runtime/src/ExecutionTrustApplication.ts` (`listTrustRecords()`) — paginates the existing `BusinessTransactionService.list()` and resolves each page entry via the existing `ExecutionTrustRecordRepository.findByTransactionId()`, deliberately not a new repository-level `list()` method, since every transaction has exactly one Trust Record and this avoids requiring every repository implementation (in-memory, Supabase, and any future one) to grow new query surface
+* `openapi/openapi.yaml` (`operationId: listTrustRecords`), `schemas/responses/trust-records-list-response.schema.json`
+* `packages/api/tests/unit/trust-record-api.test.ts`: 3 new cases (empty before any execution; the full record matches the `/execute` response's own `trustRecordId` after one; `since`/`until` date-range filtering)
 
 ---
 

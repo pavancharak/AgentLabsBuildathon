@@ -54,6 +54,18 @@ confirmation is signed. Two key pairs are required in `PARMANA_KEY_DIR`
   attestation-signing key, deliberately separate (`PARMANA_GATEWAY_KEY_ID`
   overrides the `gateway` id if you need a different one).
 
+`KEY_PROVIDER` (optional, defaults to `local`/`FileKeyProvider`, the only
+provider actually implemented) fails startup loudly if set to
+`aws-kms`/`azure-key-vault`/`gcp-kms`/`hsm` — those are reserved,
+forward-compatible config values with no real implementation yet, not a
+choice you can make today.
+
+`PARMANA_GATEWAY_ID` (optional, defaults to `parmana-gateway`) is this
+process's logical Gateway identity, distinct from `PARMANA_GATEWAY_KEY_ID`
+above (that's a key file prefix). Set a distinct value per environment or
+tenant if you run more than one logically distinct gateway against the
+same audit trail.
+
 Neither is generated automatically. Two ways to provide them:
 
 1. **Mount a volume or platform secret file** at `/app/keys` containing all
@@ -138,7 +150,21 @@ Unset by default — the connector simply isn't registered, and the API boots
 normally without it. To enable:
 
 - `HUBSPOT_PRIVATE_APP_TOKEN` — enables the connector
-  (`hubspot:deal-update`, etc.).
+  (`hubspot:deal-update`, etc.). A long-lived, static credential with no
+  built-in expiry — rotate it periodically (recommended: every 90 days,
+  or immediately on suspected exposure) via HubSpot's app settings, and
+  set `HUBSPOT_PRIVATE_APP_TOKEN_ROTATED_AT` (ISO 8601) every time you do.
+  Without it, or once it's over 90 days old, startup logs a warning
+  naming the actual age.
+
+### Rate limiting (`RATE_LIMIT_EXECUTE_PER_MINUTE`, `RATE_LIMIT_HEALTH_PER_MINUTE`)
+
+Both optional (defaults `30`/`300`). When `DATABASE_URL` is configured,
+both limiters share counts fleet-wide via a durable Postgres-backed
+store; without it, each machine counts independently, so a horizontally
+scaled deployment's effective ceiling is `limitPerMinute * machineCount`,
+not the configured value. Set `DATABASE_URL` before scaling past one
+machine if you need the configured limit to actually be the limit.
 
 ### Everything else
 
@@ -160,6 +186,9 @@ application config.
   orchestrator can tell "up but backed by dead storage" apart from
   "genuinely ready" and route around it. When storage is `memory`, there's
   no external dependency to probe, so it reports ready unconditionally.
+  Also carries `authDisabled` (plus a `warning` string when true) in every
+  response — set up a synthetic check on this field if `PARMANA_AUTH_DISABLED`
+  is ever set in a real deployment; it should never be.
 
 ## Graceful shutdown
 
