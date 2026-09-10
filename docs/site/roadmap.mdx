@@ -41,23 +41,23 @@ as config values with **zero implementing classes** behind any of them. This is 
 exposure class that produced the committed-key incident on [Security](/security/overview).
 **Update, 2026-09-10:** setting `KEY_PROVIDER` to one of these four now fails startup
 loudly (`KeyBootstrap.create()` throws, naming the configured value) instead of the prior
-behavior — silently constructing `FileKeyProvider` anyway, as if `local` had been chosen.
-That silent-fallback bug is fixed (`docs/VERIFICATION-GAPS.md` G-40); the underlying
-absence of a real KMS/HSM provider is unchanged.
+behavior, which silently constructed `FileKeyProvider` anyway, as if `local` had been
+chosen. That silent-fallback bug is fixed (`docs/VERIFICATION-GAPS.md` G-40); the
+underlying absence of a real KMS/HSM provider is unchanged.
 
 **Unlocks:** *"Parmana's signing key cannot be exfiltrated from the application process."*
 
 **What's pending, precisely:** a real `KeyProvider` implementation (`getPrivateKey`,
-`getPublicKey`, `hasKey`, `getMetadata` — see `packages/crypto/src/KeyProvider.ts`) for at
+`getPublicKey`, `hasKey`, `getMetadata`; see `packages/crypto/src/KeyProvider.ts`) for at
 least one of `aws-kms`/`azure-key-vault`/`gcp-kms`/`hsm`, registered in `KeyBootstrap.ts`
 in place of today's fail-closed throw for that value.
 
 **Why it's still pending, not just unscheduled:** this repo's own evidence bar for a
-Supported claim is a **live** test against a real key in a real account — "a fake/mock
+Supported claim is a **live** test against a real key in a real account. "A fake/mock
 passing proves nothing here" is not a rhetorical flourish, it's the same standard
 `PostgresRateLimitStore` (the durable rate limiter, `docs/CLAIMS.md` 3.14) was held to
 before being marked working. A `KeyProvider` implementation can be written and unit-tested
-against a stubbed cloud SDK client entirely offline — that proves the code is
+against a stubbed cloud SDK client entirely offline, which proves the code is
 *structurally* correct, not that it actually works against the real service (correct IAM
 permission scoping, correct key ARN/resource-id format, the signature actually verifying
 against the returned public key, etc.). None of that can be verified without a real
@@ -65,29 +65,29 @@ AWS/Azure/GCP account and credentials, which this development environment does n
 and a code-writing session cannot manufacture for itself.
 
 **What building it actually needs, in order:**
-1. **Resolve the algorithm question below first** — it changes what the provider signs,
+1. **Resolve the algorithm question below first.** It changes what the provider signs,
    not just how it fetches the key.
-2. **Pick one provider to start with** (AWS KMS is the most likely first target — broadest
+2. **Pick one provider to start with** (AWS KMS is the most likely first target: broadest
    existing tooling, most common in this codebase's target deployments).
 3. **A real account + credentials** with a KMS key already provisioned, scoped to exactly
-   the sign/verify operations this provider class needs — not broader IAM permissions than
+   the sign/verify operations this provider class needs, not broader IAM permissions than
    required.
 4. **Implement the `KeyProvider` interface** against that SDK, following
    `FileKeyProvider.ts`'s existing shape (including its `assertValidKeyId` path-safety
    discipline, translated to whatever the cloud SDK's own key-identifier validation needs
    to be).
 5. **Wire it into `KeyBootstrap.create()`**, replacing the current throw for that one
-   `KEY_PROVIDER` value only — the other three stay fail-closed until each gets the same
+   `KEY_PROVIDER` value only. The other three stay fail-closed until each gets the same
    treatment.
 6. **Run a live sign/verify round trip against the real key** before claiming this as
-   Supported anywhere in `docs/CLAIMS.md` — a passing unit test against a mock does not
+   Supported anywhere in `docs/CLAIMS.md`. A passing unit test against a mock does not
    satisfy this repo's own bar, stated above.
 
 **Open design questions** (from the strategy doc, not yet resolved, and blocking step 4
 above until answered): does AWS KMS support Ed25519 natively, or does this force a move to
 `ecdsa-p256` (already declared in `SignatureAlgorithms`, unused today) for KMS-backed keys
 specifically? ML-DSA-65 (this codebase's post-quantum signer) is not yet broadly available
-in any major cloud KMS — a KMS-backed deployment may need to run classical-only, or hybrid
+in any major cloud KMS. A KMS-backed deployment may need to run classical-only, or hybrid
 mode with the PQ half still file-based, an inconsistency worth deciding on deliberately
 rather than discovering mid-implementation.
 
@@ -142,7 +142,7 @@ claim is never made, see [Security](/security/overview).
 | `postgres` / `sqlite` storage providers | [ROADMAP] | Declared in the type union, throw "not implemented" at construction. See [Storage](/storage/overview). |
 | Replay semantic verification of the full record | [ROADMAP] | `POST /replay` is a signature recheck only. `packages/replay`'s `ReplayEngine` does genuinely re-evaluate the recorded policy decision, real, tested, verified live, but scoped to one execution and disconnected from the API. CLAIMS.md §4's broader "every trust artifact" claim remains unbuilt. See [Replay](/replay/overview). |
 | Algorithm migration (re-key Ed25519 → ML-DSA-65, verify old records) | [ROADMAP] | `AuthorizationVerifier` supports exactly one configured `PRIMARY_SIGNATURE_PROVIDER` at a time. |
-| Structured logging / observability | [ROADMAP], partially superseded | `createLogger`/`getLogger` (`@parmana/shared`, added 2026-09-10) is a real, tested, `LOG_LEVEL`-gated structured logger — the gating infrastructure this row originally asked for. Not yet adopted: the ~17 existing `console.*` call sites across the codebase still log unconditionally, unmigrated. No metrics, tracing, or dashboards exist. |
+| Structured logging / observability | [ROADMAP], partially superseded | `createLogger`/`getLogger` (`@parmana/shared`, added 2026-09-10) is a real, tested, `LOG_LEVEL`-gated structured logger: the gating infrastructure this row originally asked for. Not yet adopted: the ~17 existing `console.*` call sites across the codebase still log unconditionally, unmigrated. No metrics, tracing, or dashboards exist. |
 | Nonce store persistence (Redis-backed) | [ROADMAP], partially superseded | `SupabaseNonceStore` (`createNonceStore.ts`) is the default outside `NODE_ENV=test` and is durable across restarts and shared across replicas pointed at the same Supabase project. `MemoryNonceStore` is now the `NODE_ENV=test` / hermetic-example path, not the only implementation. A Redis-backed store, for deployments that want durability without a Postgres dependency, remains unbuilt. |
 | Authority/Intent/Evidence verification checks | [ROADMAP] | Only integrity, signature, and authorization-binding exist in `verification-service.ts` today (CLAIMS.md 2.15/§4). Open question on record: does an Authority check add anything the signature check doesn't, before a key/authority registry exists? |
 | Fetch-verification of unbound policy signals | [ROADMAP] | `Policy.boundSignals` (landed 2026-07-28, see [Security](/security/overview)) only binds the specific signal keys a policy author declares — it does not independently verify that an *unbound* signal is actually true; those remain caller-declared attestations unless a capability has its own `SignalStateVerifier` (today, `hubspot-deal-update`'s `currentDealStage` and a few others — see `docs/CLAIMS.md` §2.29/G-31 for the newest, execution-boundary half of this). The connector that originally motivated and best illustrated this gap, Razorpay (`razorpay-refund/1.0.0` bound only `requestedRefundAmountPaise`, leaving several other evaluated signals unverified), was removed from the repository entirely 2026-08-12; no equivalently unverified live example remains today, but the general gap — a policy can still evaluate signals no `SignalStateVerifier` covers — is unchanged. Closing this for real means extending the fetch-verify pattern to policy signals generally, for every capability, not just the ones with a verifier already wired — real, valuable, materially larger than the binding fix, and not scheduled. |

@@ -61,8 +61,8 @@ request this middleware rejects on its own.
 **Scope, honestly stated:** by default the limiter's store is `express-rate-limit`'s
 in-memory, single-process store. A deployment running multiple machines has each one
 counting independently, an effective ceiling of `RATE_LIMIT_EXECUTE_PER_MINUTE ×
-machineCount`, not a fleet-wide limit enforced once — the same caveat Chapter 7 raised
-about `NonceStore`, for the same underlying reason: a single-process data structure is
+machineCount`, not a fleet-wide limit enforced once. This is the same caveat Chapter 7
+raised about `NonceStore`, for the same underlying reason: a single-process data structure is
 only a fleet-wide guarantee if there's exactly one process.
 
 **Update, 2026-09-10:** unlike `NonceStore` (correctly and deliberately always
@@ -71,7 +71,7 @@ now conditional: when `DATABASE_URL` is configured, both limiters share counts f
 via `PostgresRateLimitStore`, an atomic `INSERT ... ON CONFLICT` upsert against a
 `rate_limit_counters` table. Without `DATABASE_URL`, the in-process fallback above still
 applies, now with a startup warning naming the gap rather than silence. Deliberately not
-fail-closed like `NonceStore` — a looser-than-configured rate ceiling degrades a capacity
+fail-closed like `NonceStore`: a looser-than-configured rate ceiling degrades a capacity
 control, it doesn't remove a security check, so refusing to start over a missing database
 would break every correctly-working single-instance deployment. See
 `docs/VERIFICATION-GAPS.md` G-41.

@@ -145,7 +145,7 @@ startup), detects live-file-vs-approval-record drift.
 - **Update 2026-09-10:** `createGatewayIdentity.ts`'s `gatewayId` is now configurable via
   `PARMANA_GATEWAY_ID` (defaults to the same `"parmana-gateway"` literal), and
   `createSessionStore.ts`'s session-issuance token is `Object.freeze({ token: randomUUID() })`
-  instead of a bare `{}` — both `TODO` comments are gone, replaced with an explanation of why
+  instead of a bare `{}`. Both `TODO` comments are gone, replaced with an explanation of why
   each is a deliberate design rather than an unaddressed placeholder. The line below is the
   pre-fix state, kept for this document's own historical accuracy at its 2026-09-07 build
   date:
@@ -169,7 +169,7 @@ startup), detects live-file-vs-approval-record drift.
   window between Gateway construction and `application.ts` binding where signal-freshness
   checking is silently permissive (`[]`, same-process startup only).
 
-**Rate limiting** is per-process (in-memory `express-rate-limit` store) by default — fleet
+**Rate limiting** is per-process (in-memory `express-rate-limit` store) by default. Fleet
 ceiling is `limitPerMinute * machineCount`, not fleet-wide. **Update 2026-09-10:** when
 `DATABASE_URL` is configured, `PostgresRateLimitStore`
 (`packages/storage/src/postgres/PostgresRateLimitStore.ts`) shares counts fleet-wide

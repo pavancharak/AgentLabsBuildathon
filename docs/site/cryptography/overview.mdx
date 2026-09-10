@@ -65,10 +65,10 @@ it for isolation. CLAIMS.md §2.28 ("Update 2026-09-09"), `docs/VERIFICATION-GAP
 <Warning>
 `KeyProviders` (`packages/shared/src/config/KeyProviders.ts`) declares `aws-kms`,
 `azure-key-vault`, `gcp-kms`, and `hsm` as valid **config values**, but no provider class
-implements any of them yet — it's a declared config surface for planned work, not a
+implements any of them yet, a declared config surface for planned work, not a
 working integration. Setting `KEY_PROVIDER` to one of these now **fails startup loudly**
 (`KeyBootstrap.create()` throws, naming the value) rather than silently falling back to
-`FileKeyProvider` — before 2026-09-10 it did the latter, a real gap since fixed
+`FileKeyProvider`. Before 2026-09-10 it did the latter, a real gap since fixed
 (`docs/VERIFICATION-GAPS.md` G-40). See [Roadmap](/roadmap) for the KMS custody plan.
 </Warning>
 

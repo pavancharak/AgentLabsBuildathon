@@ -2411,7 +2411,7 @@ be true first.
 Not a code gap: `.github/workflows/ci.yml` already runs the maker-checker verification job
 on every push/PR, and its own inline comment already states plainly that it is advisory
 only today. The fail-closed guarantee this job provides only holds if a human notices a red
-X on the PR — nothing in this repository's committed configuration currently forces GitHub
+X on the PR. Nothing in this repository's committed configuration currently forces GitHub
 to block a merge when it fails.
 
 **Attempted directly, not assumed to be a simple checkbox:** `gh api
@@ -2426,11 +2426,11 @@ decision (billing or visibility, neither a call this document or a code change c
 
 - **Option A: upgrade to GitHub Pro** (or an org plan that includes branch protection on
   private repos), then enable a required status check for `verify-policy-approvals` on
-  `main` in GitHub's own branch-protection settings — a five-minute action once the plan
+  `main` in GitHub's own branch-protection settings, a five-minute action once the plan
   supports it.
 - **Option B: make the repository public.** Branch protection is available on public repos
   regardless of plan. Has implications well beyond this one CI gate (source visibility,
-  the exposed-key incident already documented above) — not a decision to make solely to
+  the exposed-key incident already documented above); not a decision to make solely to
   unblock this gate.
 - **Option C: leave advisory-only.** The gate still runs and still reports on every PR;
   the residual risk is a human merging past a red X, not a gate that fails silently or

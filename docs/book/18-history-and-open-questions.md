@@ -87,7 +87,7 @@ nobody's code.
 explicit about this rather than silent: an in-memory `NonceStore` loses all state on restart;
 `express-rate-limit`'s default store means a fleet of N machines enforces N times the stated
 per-caller limit, not one fleet-wide limit. **Update, 2026-09-10:** the rate-limiting half is
-now closable — `PostgresRateLimitStore` shares counts fleet-wide whenever `DATABASE_URL` is
+now closable. `PostgresRateLimitStore` shares counts fleet-wide whenever `DATABASE_URL` is
 configured, in-process otherwise (see Chapter 12's own update). The nonce-store scope note
 above remains as originally written.
 

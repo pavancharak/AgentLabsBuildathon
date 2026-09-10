@@ -18,7 +18,7 @@ log` for those ranges directly if you need them.
 
 Production-readiness pass against an external code-derived audit (13 items, none critical).
 Every item was independently re-verified from source before being acted on, not taken on
-the audit's word — one item (persistent storage for the session-credential vault/gateway-
+the audit's word. One item (persistent storage for the session-credential vault/gateway-
 session store) was overturned by that re-verification: both are strictly intra-request,
 single-process objects with no restart-survival requirement at all, confirmed by tracing
 every caller. Full detail: `docs/VERIFICATION-GAPS.md` (new "Gaps closed in the 2026-09-10
@@ -26,11 +26,11 @@ production-readiness session" table, gaps 40–49), `docs/CLAIMS.md` §2.16/§2.
 new §3.21.
 
 - **`624adf7`** fix(crypto): `KEY_PROVIDER=aws-kms`/`azure-key-vault`/`gcp-kms`/`hsm` now
-  fails closed at startup instead of silently constructing `FileKeyProvider` — an operator
+  fails closed at startup instead of silently constructing `FileKeyProvider`. An operator
   configuring real KMS custody was getting private-key-on-disk instead, with no error.
 - **`2d643ca`** feat(storage,api): new `PostgresRateLimitStore` closes the fleet-wide half
   of `/execute`/`/health`/`/ready` rate limiting (`docs/CLAIMS.md` 3.14's own documented
-  scope gap) — durable when `DATABASE_URL` is configured, falls back to the in-process
+  scope gap). Durable when `DATABASE_URL` is configured, falls back to the in-process
   default with a loud warning otherwise. Correction to the source audit in the same commit:
   the session-credential vault and gateway-session store it also flagged are not actually a
   gap (see above).
@@ -43,15 +43,15 @@ new §3.21.
 - **`33d96b3`** feat(api): warns at startup when `HUBSPOT_PRIVATE_APP_TOKEN` (a long-lived
   static credential) hasn't been rotated in 90 days, or has no recorded rotation date at
   all.
-- **`2aa585f`** feat(api,runtime): new `GET /trust-records` — bulk export of full signed
+- **`2aa585f`** feat(api,runtime): new `GET /trust-records`, a bulk export of full signed
   Execution Trust Records (not just raw transactions), caller-scoped and paginated exactly
   like `GET /transactions`, with `since`/`until` date-range filtering. See `docs/CLAIMS.md`
   §3.21.
-- **`373a020`** fix(governance-ui): `POST /login` — this tool's only unauthenticated route —
+- **`373a020`** fix(governance-ui): `POST /login`, this tool's only unauthenticated route,
   is now rate-limited (10/minute, IP-keyed). Reviewed the rest of `governance-ui`'s security
   posture in the same pass (session-fixation hardening, cookie flags, XSS escaping) and
   found it already correct.
-- **`147a366`** feat(shared): new `createLogger`/`getLogger` (`@parmana/shared`) — a
+- **`147a366`** feat(shared): new `createLogger`/`getLogger` (`@parmana/shared`), a
   structured, level-gated logger. `LOG_LEVEL` was already read into config but nothing
   gated output on it; this is the tested gating infrastructure, not yet threaded through the
   ~17 existing `console.*` call sites.
@@ -60,13 +60,13 @@ new §3.21.
   couldn't reach without one) and a `vitest`/`@vitest/coverage-v8` patch bump
   (`^4.1.9` → `^4.1.11`). Residual 3 are entirely in this session's own new load-test
   devDependency (next entry) and never ship in the production image.
-- **`c32a861`** feat: new `npm run loadtest` (`scripts/load-test.ts`) — no load testing
+- **`c32a861`** feat: new `npm run loadtest` (`scripts/load-test.ts`). No load testing
   existed anywhere in the repo before this. Boots the real server and benchmarks
   `POST /execute` (real policy evaluation, signing, connector execution) at configurable
   concurrency. Actually run: ~51 req/s sustained, p50 188ms/p99 444ms at 10 connections.
 - **`b6671f7`** chore: gitignore the root `tsconfig.tsbuildinfo` build artifact.
 - **`1361f52`** fix: `scripts/apply-all-migrations.sql` (the Dashboard-only Supabase apply
-  path) was three migrations behind `supabase/migrations/` — two predating this session,
+  path) was three migrations behind `supabase/migrations/`, two predating this session,
   found while adding the third (`2d643ca`'s `rate_limit_counters`). A Dashboard-only
   deployment following `DEPLOYMENT.md`'s own steps would have gotten an incomplete schema.
 - **`d5b2c28`** docs: `docs/VERIFICATION-GAPS.md` gaps 40–49, the session-credential-vault
@@ -81,28 +81,28 @@ new §3.21.
   pages explicitly asserting this session's pre-fix behavior as current fact (three pages
   said `KEY_PROVIDER=aws-kms`/etc. "does nothing"; four described the rate limiter as
   unconditionally in-memory with no shared-store path; two said `LOG_LEVEL` was read but
-  consumed by nothing) — all corrected. `docs/site/deployment/production.mdx` also gained
+  consumed by nothing); all corrected. `docs/site/deployment/production.mdx` also gained
   the `KEY_PROVIDER`/`PARMANA_GATEWAY_ID`/rate-limiter/`GET /ready` notes `DEPLOYMENT.md`
   already had. Dated point-in-time audit/certification snapshots were deliberately left
   untouched, per this repo's own historical-record convention.
 - **`417829e`** docs(book): full re-check of `docs/book/`'s remaining chapters and
   `docs/00X-*.md` against this session's changes. Completed Chapters 10/14 with accurate
-  additions (neither said anything false, they predated these capabilities);
-  `docs/00X-*.md` needed no change — confirmed by grep, that series operates above the
+  additions (neither said anything false, they predated these capabilities).
+  `docs/00X-*.md` needed no change, confirmed by grep: that series operates above the
   level of detail this session's fixes touch.
 - **`0e0534b`** docs: `README.md`'s test count (1,313, last verified 2026-08-24) was stale
-  from ordinary suite growth since then, not from this session's changes — updated to
+  from ordinary suite growth since then, not from this session's changes. Updated to
   1,671 (1,631 passed, 38 skipped, 0 failed), re-verified via a JSON-reporter run.
 - **`9114285`** docs: swept all 37 tracked root `.md` files; `CODEBASE-REFERENCE.md`
   (built 2026-09-07, three days pre-session) had the same gatewayId/session-token
-  placeholder and unconditional in-memory rate-limiter claims this session fixed —
-  corrected, original text struck through and kept for historical accuracy. Five other
+  placeholder and unconditional in-memory rate-limiter claims this session fixed.
+  Corrected, original text struck through and kept for historical accuracy. Five other
   files with hits are dated audit/snapshot reports tied to a specific commit or
   submission event and were deliberately left untouched.
 - **`07f44d4`** docs(site): expanded `roadmap.mdx`'s KMS/HSM custody section (Move 1) with
   what's pending, why it's still pending (this repo's own live-test evidence bar, and no
   real cloud credentials exist in this environment to meet it), and the concrete build
-  order once someone does — asked for directly rather than having a `KeyProvider`
+  order once someone does. Asked for directly rather than having a `KeyProvider`
   implemented blind against a mocked SDK.
 
 ## 2026-09-09

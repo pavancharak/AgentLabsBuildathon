@@ -42,7 +42,7 @@ Parmana's own runtime or database.
 
 What's actually been demonstrated, not just built:
 
-- **1,671 automated tests** across the workspace (1,631 passed, 38 skipped, 0 failed — the
+- **1,671 automated tests** across the workspace (1,631 passed, 38 skipped, 0 failed; the
   skips are Supabase/live-credential-gated suites that skip cleanly with no credentials
   configured; re-verified 2026-09-10 via a JSON-reporter run, not just the summary line, see
   [docs/VERIFICATION-GAPS.md](docs/VERIFICATION-GAPS.md) G-24 and the 2026-09-10 session's
@@ -137,7 +137,7 @@ Supabase-gated storage suite.
 To measure request throughput/latency for `POST /execute` (real policy
 evaluation, Ed25519 signing, and connector execution, run at
 configurable concurrency against an in-memory, caller-auth-disabled
-instance — see the script's own header comment for exact scope):
+instance (see the script's own header comment for exact scope):
 
 ```bash
 npm run loadtest -- --connections 20 --duration 15

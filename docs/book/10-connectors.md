@@ -46,7 +46,7 @@ and 3 (its `boundSignals` and `HubSpotSignalStateVerifier`) and Chapter 14 (its 
 `hubspot-deal-update/1.0.0`, canonically bound per Chapter 4). Registers only when
 `HUBSPOT_PRIVATE_APP_TOKEN` is configured; fails closed to "not registered" otherwise, never
 a partially-configured connector. That token is a long-lived static credential, unlike
-GitHub's ephemeral per-execution token below — `warnIfHubSpotTokenStale()` (added
+GitHub's ephemeral per-execution token below. `warnIfHubSpotTokenStale()` (added
 2026-09-10) logs a startup reminder once it's over 90 days old, or if
 `HUBSPOT_PRIVATE_APP_TOKEN_ROTATED_AT` was never set at all. A reminder, not enforcement:
 this process has no way to revoke or replace a HubSpot-side token itself.

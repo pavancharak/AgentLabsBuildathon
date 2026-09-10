@@ -91,8 +91,8 @@ default, and a self-service key rotation endpoint (rotation is a manual operator
 
 Both signing keys, `default.*.pem` and `gateway.*.pem`, are files on disk read by
 `FileKeyProvider`, the only implemented `KeyProvider`. `aws-kms`, `azure-key-vault`,
-`gcp-kms`, and `hsm` are declared as valid config values with zero implementing classes —
-setting `KEY_PROVIDER` to one of these now fails startup loudly rather than silently doing
+`gcp-kms`, and `hsm` are declared as valid config values with zero implementing classes.
+Setting `KEY_PROVIDER` to one of these now fails startup loudly rather than silently doing
 nothing (`docs/VERIFICATION-GAPS.md` G-40). See [Deploy patterns](/guides/deploy-patterns)
 and the key-compromise incident on [Security](/security/overview).
 

@@ -77,11 +77,11 @@ production traffic, and are independently configurable per deployment via
 
 <Warning>
 **Scope, precisely.** By default the limiter's store is `express-rate-limit`'s in-memory,
-single-process store — a multi-machine deployment counts independently per machine, an
+single-process store. A multi-machine deployment counts independently per machine, an
 effective ceiling of the configured per-minute limit **times** the number of machines
 serving traffic, not a fleet-wide limit enforced once. **When `DATABASE_URL` is
 configured**, both the `/execute` and `/health`/`/ready` limiters instead share counts
-fleet-wide via a durable Postgres-backed store (`PostgresRateLimitStore`) — set it before
+fleet-wide via a durable Postgres-backed store (`PostgresRateLimitStore`). Set it before
 scaling past one machine if the configured limit needs to actually be the limit. See
 `docs/VERIFICATION-GAPS.md` G-41.
 </Warning>

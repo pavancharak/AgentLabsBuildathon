@@ -45,11 +45,11 @@ Two key pairs are required in `PARMANA_KEY_DIR` (default `./keys`, already set i
   different one).
 
 `KEY_PROVIDER` (optional, defaults to `local`) fails startup loudly if set to
-`aws-kms`/`azure-key-vault`/`gcp-kms`/`hsm` — none of those custody models are implemented
+`aws-kms`/`azure-key-vault`/`gcp-kms`/`hsm`. None of those custody models are implemented
 yet, and this is a real config value with no working provider behind it today.
 
 `PARMANA_GATEWAY_ID` (optional, defaults to `parmana-gateway`) is this process's logical
-Gateway identity — distinct from `PARMANA_GATEWAY_KEY_ID` above, which is a key file prefix.
+Gateway identity, distinct from `PARMANA_GATEWAY_KEY_ID` above, which is a key file prefix.
 Set a distinct value per environment or tenant if running more than one logically distinct
 gateway against the same audit trail.
 
@@ -141,7 +141,7 @@ scaled deployment's effective ceiling is `limitPerMinute × machineCount`. See
   if not, so an orchestrator can tell "up but backed by dead storage" apart from "genuinely
   ready" and route around it. When storage is `memory`, there's no external dependency to
   probe, it reports ready unconditionally. Also carries `authDisabled` (plus a `warning`
-  string when true) — set up a synthetic check on this field, since `PARMANA_AUTH_DISABLED`
+  string when true). Set up a synthetic check on this field, since `PARMANA_AUTH_DISABLED`
   should never be set in a real deployment.
 
 ## Graceful shutdown

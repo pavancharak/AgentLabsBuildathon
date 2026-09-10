@@ -134,13 +134,13 @@ handed to this session, and none of them are:
 ## Known structural limitations, read directly from the implementation
 
 - Rate limiting (`express-rate-limit`) is per-process, in-memory by
-  default — a fleet of N machines has N independent limits, not one
-  shared limit — **unless `DATABASE_URL` is configured**, in which case
+  default: a fleet of N machines has N independent limits, not one
+  shared limit, **unless `DATABASE_URL` is configured**, in which case
   both the `/execute` and `/health`,`/ready` limiters share a durable
   Postgres-backed count fleet-wide (`PostgresRateLimitStore`, added
   2026-09-10, `docs/VERIFICATION-GAPS.md` G-41).
 - Session/credential state (`InMemoryGatewaySessionStore`,
-  `InMemorySessionCredentialVault`) is in-memory, single-process — not a
+  `InMemorySessionCredentialVault`) is in-memory, single-process. Not a
   limitation in practice: both are strictly intra-request objects,
   created and consumed within one synchronous `POST /execute` call, with
   no HTTP response or second endpoint that could ever hand one back to
