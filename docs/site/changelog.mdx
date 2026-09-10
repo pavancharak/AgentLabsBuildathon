@@ -7,7 +7,7 @@ description: "What actually shipped, by commit, newest first. Not a marketing su
 Pulled directly from `git log` on `main` in `pavancharak/parmana-exp`, commit hashes are
 real and checkable. This page covers the commits that changed what a reader of this site can
 actually do or rely on, not every commit in the repository's history, run `git log` yourself
-for the complete record, 354 commits as of this page's last update. **Known gap:** entries
+for the complete record, 358 commits as of this page's last update. **Known gap:** entries
 between 2026-08-19 and 2026-09-06, several commits landed on 2026-09-07 before the two below,
 and everything on 2026-09-09 other than `25295ee`, `bab0981`, and the ten commits below them
 (including the changelog and validation-doc commits themselves) were not backfilled — `git
@@ -104,6 +104,11 @@ new §3.21.
   real cloud credentials exist in this environment to meet it), and the concrete build
   order once someone does. Asked for directly rather than having a `KeyProvider`
   implemented blind against a mocked SDK.
+- **`ead566a`** docs: removed em-dashes from every prose file this session's
+  production-readiness pass touched (81 occurrences, 18 files), rewritten with periods,
+  commas, colons, or parentheses. Meaning unchanged throughout. Requested directly, not
+  applied to `parmana-founder-case-study.md`'s own prose (the founder's writing, not
+  this session's).
 
 ## 2026-09-09
 
