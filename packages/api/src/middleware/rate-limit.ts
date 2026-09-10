@@ -1,4 +1,5 @@
 import rateLimit from "express-rate-limit";
+import type { Store } from "express-rate-limit";
 import type { Request, Response, NextFunction } from "express";
 
 const WINDOW_MS = 60_000;
@@ -25,8 +26,13 @@ interface RequestWithRateLimitInfo {
  * regardless of `express-rate-limit`'s own header-emission behavior
  * changing across versions.
  */
-function rateLimitHandler(req: Request, res: Response, _next: NextFunction): void {
-  const resetTime = (req as unknown as RequestWithRateLimitInfo).rateLimit?.resetTime;
+function rateLimitHandler(
+  req: Request,
+  res: Response,
+  _next: NextFunction,
+): void {
+  const resetTime = (req as unknown as RequestWithRateLimitInfo).rateLimit
+    ?.resetTime;
   const retryAfterSeconds = resetTime
     ? Math.max(1, Math.ceil((resetTime.getTime() - Date.now()) / 1000))
     : Math.ceil(WINDOW_MS / 1000);
@@ -62,7 +68,10 @@ function rateLimitHandler(req: Request, res: Response, _next: NextFunction): voi
  * `limitPerMinute * machineCount`, not fleet-wide. See CLAIMS.md
  * for this scope caveat stated as a claim, not just a comment.
  */
-export function createExecuteRateLimiter(limitPerMinute: number) {
+export function createExecuteRateLimiter(
+  limitPerMinute: number,
+  store?: Store,
+) {
   return rateLimit({
     windowMs: WINDOW_MS,
     limit: limitPerMinute,
@@ -76,6 +85,7 @@ export function createExecuteRateLimiter(limitPerMinute: number) {
     // validator for any keyGenerator that references req.ip at all).
     keyGenerator: (req: Request): string => req.callerId ?? "unknown",
     handler: rateLimitHandler,
+    ...(store !== undefined ? { store } : {}),
   });
 }
 
@@ -90,12 +100,16 @@ export function createExecuteRateLimiter(limitPerMinute: number) {
  * 30s per machine; this limiter must never be tight enough to throttle
  * that).
  */
-export function createHealthReadyRateLimiter(limitPerMinute: number) {
+export function createHealthReadyRateLimiter(
+  limitPerMinute: number,
+  store?: Store,
+) {
   return rateLimit({
     windowMs: WINDOW_MS,
     limit: limitPerMinute,
     standardHeaders: true,
     legacyHeaders: false,
     handler: rateLimitHandler,
+    ...(store !== undefined ? { store } : {}),
   });
 }

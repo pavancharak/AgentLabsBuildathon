@@ -3,7 +3,11 @@ import documentationRoutes from "./routes/documentation.js";
 
 import { createErrorHandler } from "./middleware/error-handler.js";
 import { createCallerAuthMiddleware } from "./middleware/caller-auth.js";
-import { createExecuteRateLimiter, createHealthReadyRateLimiter } from "./middleware/rate-limit.js";
+import {
+  createExecuteRateLimiter,
+  createHealthReadyRateLimiter,
+} from "./middleware/rate-limit.js";
+import type { Store } from "express-rate-limit";
 
 import policyRoutes from "./routes/policies.js";
 import { createPendingPolicyChangesRouter } from "./routes/pending-policy-changes.js";
@@ -63,6 +67,15 @@ export type CallerAuthOption =
 export interface RateLimitOption {
   readonly executePerMinute: number;
   readonly healthPerMinute: number;
+
+  /**
+   * Shared Store backing both limiters below (see
+   * createRateLimitStore.ts). Optional: omitted, each limiter falls
+   * back to express-rate-limit's own in-process MemoryStore, exactly
+   * the behavior every existing call site had before this field
+   * existed.
+   */
+  readonly store?: Store;
 }
 
 const DEFAULT_EXECUTE_PER_MINUTE = 30;
@@ -111,208 +124,194 @@ export function createApp(
 ) {
   const app = express();
 
-/**
- * Trust exactly one proxy hop: Fly.io's edge (fly.toml sets
- * force_https there), the only reverse proxy in front of this app.
- * Without this, Express ignores X-Forwarded-For and ignores
- * X-Forwarded-Proto, so req.ip and req.protocol/req.secure both
- * reflect the proxy's own connection to this process rather than the
- * original client's.
- */
-app.set("trust proxy", 1);
+  /**
+   * Trust exactly one proxy hop: Fly.io's edge (fly.toml sets
+   * force_https there), the only reverse proxy in front of this app.
+   * Without this, Express ignores X-Forwarded-For and ignores
+   * X-Forwarded-Proto, so req.ip and req.protocol/req.secure both
+   * reflect the proxy's own connection to this process rather than the
+   * original client's.
+   */
+  app.set("trust proxy", 1);
 
-const executePerMinute = options.rateLimit?.executePerMinute ?? DEFAULT_EXECUTE_PER_MINUTE;
-const healthPerMinute = options.rateLimit?.healthPerMinute ?? DEFAULT_HEALTH_PER_MINUTE;
+  const executePerMinute =
+    options.rateLimit?.executePerMinute ?? DEFAULT_EXECUTE_PER_MINUTE;
+  const healthPerMinute =
+    options.rateLimit?.healthPerMinute ?? DEFAULT_HEALTH_PER_MINUTE;
 
-app.use(express.json());
+  app.use(express.json());
 
-/**
- * System
- *
- * /health, /ready, and /openapi.yaml are the routes exempt from
- * caller authentication: liveness/readiness probes and API
- * documentation consumers must be able to reach them with no
- * credential (a caller cannot discover how to get a key from a spec it
- * is not allowed to read, and a PaaS orchestrator has no API key at
- * all). Everything below this line, including "/" and "/version",
- * sits behind the middleware when it is provided.
- */
-const healthReadyRateLimiter = createHealthReadyRateLimiter(healthPerMinute);
+  /**
+   * System
+   *
+   * /health, /ready, and /openapi.yaml are the routes exempt from
+   * caller authentication: liveness/readiness probes and API
+   * documentation consumers must be able to reach them with no
+   * credential (a caller cannot discover how to get a key from a spec it
+   * is not allowed to read, and a PaaS orchestrator has no API key at
+   * all). Everything below this line, including "/" and "/version",
+   * sits behind the middleware when it is provided.
+   */
+  const healthReadyRateLimiter = createHealthReadyRateLimiter(
+    healthPerMinute,
+    options.rateLimit?.store,
+  );
 
-app.use("/health", healthReadyRateLimiter, healthRoutes);
-app.use("/ready", healthReadyRateLimiter, createReadyRouter());
-app.use("/openapi.yaml", openapiRoutes);
-app.use("/documentation", documentationRoutes);
-
-/**
- * RFC-0021: deliberately exempt from caller-auth, alongside the
- * system routes above -- this is the unauthenticated, third-party
- * signature-verification capability, not a data-access route. Its
- * ownership-scoped counterpart, GET /refusal/:businessTransactionId,
- * is mounted below the middleware with everything else.
- */
-app.use(
-  "/refusal/verify",
-  createRefusalVerifyRouter(application),
-);
-
-/**
- * Audit-sink signing milestone: the same unauthenticated,
- * third-party-verifiable capability as POST /refusal/verify above,
- * over the durable caller_audit_events audit trail instead of Refusal
- * Records. No ExecutionTrustApplication dependency -- verification
- * here is pure signature-over-bytes, with no database lookup
- * involved.
- */
-app.use(
-  "/audit/verify",
-  createAuditVerifyRouter(),
-);
-
-if (options.callerAuth !== "disabled") {
+  app.use("/health", healthReadyRateLimiter, healthRoutes);
   app.use(
-    createCallerAuthMiddleware(
-      options.callerAuth.authenticator,
-      options.callerAuth.auditSink,
+    "/ready",
+    healthReadyRateLimiter,
+    createReadyRouter({ authDisabled: options.callerAuth === "disabled" }),
+  );
+  app.use("/openapi.yaml", openapiRoutes);
+  app.use("/documentation", documentationRoutes);
+
+  /**
+   * RFC-0021: deliberately exempt from caller-auth, alongside the
+   * system routes above -- this is the unauthenticated, third-party
+   * signature-verification capability, not a data-access route. Its
+   * ownership-scoped counterpart, GET /refusal/:businessTransactionId,
+   * is mounted below the middleware with everything else.
+   */
+  app.use("/refusal/verify", createRefusalVerifyRouter(application));
+
+  /**
+   * Audit-sink signing milestone: the same unauthenticated,
+   * third-party-verifiable capability as POST /refusal/verify above,
+   * over the durable caller_audit_events audit trail instead of Refusal
+   * Records. No ExecutionTrustApplication dependency -- verification
+   * here is pure signature-over-bytes, with no database lookup
+   * involved.
+   */
+  app.use("/audit/verify", createAuditVerifyRouter());
+
+  if (options.callerAuth !== "disabled") {
+    app.use(
+      createCallerAuthMiddleware(
+        options.callerAuth.authenticator,
+        options.callerAuth.auditSink,
+      ),
+    );
+  }
+  app.get("/", (_req, res) => {
+    res.json({
+      name: "Parmana",
+      status: "UP",
+    });
+  });
+
+  app.use("/version", versionRoutes);
+
+  /**
+   * Caller identity/scope self-lookup ("show me this agent's identity
+   * and exactly what it's authorized to do").
+   */
+  app.use("/callers/me", createCallersMeRouter());
+
+  /**
+   * Rate limiting on /execute is keyed by authenticated caller identity
+   * (req.callerId), so it is only meaningful -- and only mounted -- when
+   * caller-auth itself is enabled. When callerAuth is "disabled" (local
+   * development/tutorials only, never a real deployment), there is no
+   * caller identity to key off, so this is skipped entirely rather than
+   * silently falling back to an IP-keyed limit that would defeat the
+   * whole point of keying by caller in the first place.
+   */
+  app.use(
+    "/execute",
+    ...(options.callerAuth !== "disabled"
+      ? [createExecuteRateLimiter(executePerMinute, options.rateLimit?.store)]
+      : []),
+    createExecuteRouter(
+      application,
+      options.callerAuth !== "disabled"
+        ? options.callerAuth.auditSink
+        : undefined,
     ),
   );
-}
-app.get("/", (_req, res) => {
-  res.json({
-    name: "Parmana",
-    status: "UP",
-  });
-});
 
-app.use("/version", versionRoutes);
+  /**
+   * Verification
+   */
+  app.use("/verify", createVerifyRouter(application));
 
-/**
- * Caller identity/scope self-lookup ("show me this agent's identity
- * and exactly what it's authorized to do").
- */
-app.use(
-  "/callers/me",
-  createCallersMeRouter(),
-);
+  app.use("/verification", createVerifyGetRouter(application));
 
-/**
- * Rate limiting on /execute is keyed by authenticated caller identity
- * (req.callerId), so it is only meaningful -- and only mounted -- when
- * caller-auth itself is enabled. When callerAuth is "disabled" (local
- * development/tutorials only, never a real deployment), there is no
- * caller identity to key off, so this is skipped entirely rather than
- * silently falling back to an IP-keyed limit that would defeat the
- * whole point of keying by caller in the first place.
- */
-app.use(
-  "/execute",
-  ...(options.callerAuth !== "disabled" ? [createExecuteRateLimiter(executePerMinute)] : []),
-  createExecuteRouter(
-    application,
-    options.callerAuth !== "disabled" ? options.callerAuth.auditSink : undefined,
-  ),
-);
+  /**
+   * Refusal Records (RFC-0021)
+   *
+   * Ownership-scoped lookup by ID -- the unauthenticated verification
+   * route (POST /refusal/verify) is mounted above, before caller-auth.
+   */
+  app.use("/refusal", createRefusalGetRouter(application));
+  /**
+   * Receipts
+   */
+  app.use("/receipt", createReceiptRouter(application));
+  app.use("/receipt/latest", createReceiptGetRouter(application));
 
-/**
- * Verification
- */
-app.use(
-  "/verify",
-  createVerifyRouter(application),
-);
+  /**
+   * Business Transactions
+   */
+  app.use(
+    "/transactions",
+    createTransactionsRouter(
+      application,
+      options.callerAuth !== "disabled"
+        ? options.callerAuth.auditSink
+        : undefined,
+    ),
+  );
 
-app.use(
-  "/verification",
-  createVerifyGetRouter(application),
-);
+  /**
+   * Policies
+   */
+  app.use("/policies", policyRoutes);
 
-/**
- * Refusal Records (RFC-0021)
- *
- * Ownership-scoped lookup by ID -- the unauthenticated verification
- * route (POST /refusal/verify) is mounted above, before caller-auth.
- */
-app.use(
-  "/refusal",
-  createRefusalGetRouter(application),
-);
-/**
- * Receipts
- */
-app.use(
-  "/receipt",
-  createReceiptRouter(application),
-);
-app.use(
-  "/receipt/latest",
-  createReceiptGetRouter(application),
-);
+  /**
+   * Policy Governance (maker-checker). Mounted at the same /policies
+   * prefix as the router above -- path shapes don't collide (see
+   * pending-policy-changes.ts's own routes).
+   */
+  app.use(
+    "/policies",
+    createPendingPolicyChangesRouter(
+      options.callerAuth !== "disabled"
+        ? options.callerAuth.auditSink
+        : undefined,
+      options.stepUpVerifier,
+      options.policyChangeApprovalService,
+    ),
+  );
 
-/**
- * Business Transactions
- */
-app.use(
-  "/transactions",
-  createTransactionsRouter(
-    application,
-    options.callerAuth !== "disabled" ? options.callerAuth.auditSink : undefined,
-  ),
-);
+  /**
+   * Execution Trust Records
+   */
+  app.use("/trust-records", createTrustRecordsRouter(application));
 
-/**
- * Policies
- */
-app.use(
-  "/policies",
-  policyRoutes,
-);
+  /**
+   * Replay
+   */
+  app.use("/replay", createReplayRouter(application));
 
-/**
- * Policy Governance (maker-checker). Mounted at the same /policies
- * prefix as the router above -- path shapes don't collide (see
- * pending-policy-changes.ts's own routes).
- */
-app.use(
-  "/policies",
-  createPendingPolicyChangesRouter(
-    options.callerAuth !== "disabled" ? options.callerAuth.auditSink : undefined,
-    options.stepUpVerifier,
-    options.policyChangeApprovalService,
-  ),
-);
+  /**
+   * Error handling
+   *
+   * Must be registered after all routes. Threaded with the same
+   * auditSink every other caller-facing route uses (G-29,
+   * docs/VERIFICATION-GAPS.md) so the one rejection category this file
+   * itself fully handles -- a malformed/oversized request body, rejected
+   * by express.json() before caller-auth middleware or any route handler
+   * ever runs -- gets a best-effort audit record too, not only the
+   * correct HTTP response.
+   */
+  app.use(
+    createErrorHandler(
+      options.callerAuth !== "disabled"
+        ? options.callerAuth.auditSink
+        : undefined,
+    ),
+  );
 
-/**
- * Execution Trust Records
- */
-app.use(
-  "/trust-records",
-  createTrustRecordsRouter(application),
-);
-
-/**
- * Replay
- */
-app.use(
-  "/replay",
-  createReplayRouter(application),
-);
-
-/**
- * Error handling
- *
- * Must be registered after all routes. Threaded with the same
- * auditSink every other caller-facing route uses (G-29,
- * docs/VERIFICATION-GAPS.md) so the one rejection category this file
- * itself fully handles -- a malformed/oversized request body, rejected
- * by express.json() before caller-auth middleware or any route handler
- * ever runs -- gets a best-effort audit record too, not only the
- * correct HTTP response.
- */
-app.use(
-  createErrorHandler(
-    options.callerAuth !== "disabled" ? options.callerAuth.auditSink : undefined,
-  ),
-);
-
-return app;
+  return app;
 }

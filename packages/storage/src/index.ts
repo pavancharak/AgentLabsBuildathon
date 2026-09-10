@@ -49,3 +49,4 @@ export * from "./supabase/SupabasePolicyChangeStepUpNonceStore.js";
 
 export * from "./postgres/PostgresPoolFactory.js";
 export * from "./postgres/PostgresChallengeRecordRepository.js";
+export * from "./postgres/PostgresRateLimitStore.js";

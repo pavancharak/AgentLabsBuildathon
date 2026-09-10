@@ -12,6 +12,7 @@ import { createPolicyChangeStepUpVerifier } from "./bootstrap/createPolicyChange
 import { createPolicyChangeApprovalService } from "./bootstrap/createPolicyChangeApprovalService.js";
 import { runPolicyGovernanceIntegrityCheckAtStartup } from "./bootstrap/runPolicyGovernanceIntegrityCheckAtStartup.js";
 import { schedulePolicyGovernanceIntegrityCheck } from "./bootstrap/schedulePolicyGovernanceIntegrityCheck.js";
+import { createRateLimitStore } from "./bootstrap/createRateLimitStore.js";
 import { createApp } from "./app.js";
 
 /**
@@ -32,36 +33,32 @@ import { createApp } from "./app.js";
 assertStorageConfigured();
 assertSigningKeyMaterialConfigured();
 
-const executionSystem =
-  createExecutionSystem();
+const executionSystem = createExecutionSystem();
 
-const application =
-  createApplication(
-    executionSystem,
-  );
+const application = createApplication(executionSystem);
 
-const callerAuth =
-  createCallerAuthenticator();
+const callerAuth = createCallerAuthenticator();
 
-const app =
-  createApp(
-    application,
-    {
-      callerAuth: callerAuth.disabled
-        ? "disabled"
-        : {
-            authenticator: callerAuth.authenticator,
-            auditSink: callerAuth.auditSink,
-          },
-      rateLimit: loadConfig().rateLimit,
-      ...(callerAuth.disabled
-        ? {}
-        : {
-            stepUpVerifier: createPolicyChangeStepUpVerifier(),
-            policyChangeApprovalService: createPolicyChangeApprovalService(),
-          }),
-    },
-  );
+const rateLimitStore = createRateLimitStore();
+
+const app = createApp(application, {
+  callerAuth: callerAuth.disabled
+    ? "disabled"
+    : {
+        authenticator: callerAuth.authenticator,
+        auditSink: callerAuth.auditSink,
+      },
+  rateLimit: {
+    ...loadConfig().rateLimit,
+    ...(rateLimitStore ? { store: rateLimitStore } : {}),
+  },
+  ...(callerAuth.disabled
+    ? {}
+    : {
+        stepUpVerifier: createPolicyChangeStepUpVerifier(),
+        policyChangeApprovalService: createPolicyChangeApprovalService(),
+      }),
+});
 
 // PaaS platforms (Railway, Render, Fly, etc.) commonly inject PORT
 // dynamically at deploy time and expect the process to bind to
@@ -99,7 +96,10 @@ schedulePolicyGovernanceIntegrityCheck();
 // Graceful shutdown on SIGTERM/SIGINT — see createGracefulShutdown.ts
 // for the full reasoning and what it guards against.
 const SHUTDOWN_TIMEOUT_MS = Number(process.env.SHUTDOWN_TIMEOUT_MS ?? 10_000);
-const shutdown = createGracefulShutdown({ server, timeoutMs: SHUTDOWN_TIMEOUT_MS });
+const shutdown = createGracefulShutdown({
+  server,
+  timeoutMs: SHUTDOWN_TIMEOUT_MS,
+});
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
