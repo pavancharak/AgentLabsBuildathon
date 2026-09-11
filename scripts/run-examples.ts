@@ -119,6 +119,10 @@ const examples = [
   "examples/tutorials/104-policy-governance-execution-verification/run.ts",
   "examples/tutorials/105-tenant-key-isolation/run.ts",
   "examples/tutorials/106-api-key-issuance/run.ts",
+  "examples/tutorials/107-offline-verification/run.ts",
+  "examples/tutorials/108-public-key-discovery/run.ts",
+  "examples/tutorials/109-durable-evidence-key-rotation/run.ts",
+  "examples/tutorials/110-hybrid-signature-downgrade-protection/run.ts",
   "examples/scenarios/expense-approval/run.ts",
   "examples/scenarios/purchase-order/run.ts",
 ];

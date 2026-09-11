@@ -38,6 +38,8 @@ export * from "./PolicyChangeStepUpAuthorizationCrypto.js";
 
 export * from "./ReceiptCrypto.js";
 export * from "./VerificationCrypto.js";
+export * from "./ExecutionTrustRecordCanonicalView.js";
+export * from "./OfflineVerifier.js";
 export * from "./RefusalCrypto.js";
 export * from "./AuditEventCrypto.js";
 export * from "./CallerAuditChainVerifier.js";

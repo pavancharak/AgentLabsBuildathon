@@ -9,9 +9,11 @@ import {
   readFileSync,
 } from "node:fs";
 
+import { readdir } from "node:fs/promises";
+
 import { join } from "node:path";
 
-import { loadConfig } from "@parmana/shared";
+import { loadConfig, SignatureAlgorithms, type SignatureAlgorithm } from "@parmana/shared";
 
 import type {
   KeyMetadata,
@@ -19,6 +21,30 @@ import type {
 } from "../../KeyProvider.js";
 
 import { CryptoError } from "../../errors/CryptoError.js";
+
+/**
+ * Maps a node:crypto KeyObject's own `asymmetricKeyType` back to this
+ * codebase's SignatureAlgorithm identifiers -- the same "ml-dsa-65"
+ * internal-name alias Dilithium3SignatureProvider.ts and
+ * scripts/generate-keypair.ts already use. Unrecognized key types
+ * (a key file this codebase has no SignatureProvider for) throw
+ * rather than silently mislabeling the key's algorithm.
+ */
+function algorithmFromKeyType(
+  keyType: string | undefined,
+): SignatureAlgorithm {
+  if (keyType === "ed25519") {
+    return SignatureAlgorithms.ED25519;
+  }
+
+  if (keyType === "ml-dsa-65") {
+    return SignatureAlgorithms.DILITHIUM3;
+  }
+
+  throw new CryptoError(
+    `Key material has unrecognized asymmetricKeyType: ${JSON.stringify(keyType)}.`,
+  );
+}
 
 /**
  * keyId becomes a path segment (`<keyId>.private.pem`); anything outside
@@ -89,6 +115,22 @@ export class FileKeyProvider
   /**
    * Returns key metadata.
    *
+   * PQC audit RED-2 (docs/VERIFICATION-GAPS.md) fix: algorithm is
+   * derived from the actual public key material's own
+   * `asymmetricKeyType`, not from `config.crypto.primarySignatureProvider`
+   * as this method previously did. That global config value describes
+   * only the *current* primary signing algorithm -- it is wrong for
+   * every other keyId this provider can load (the `gateway` key, any
+   * rotated `verification-*` keyId from
+   * scripts/rotate-verification-key.ts, or a `default` key kept
+   * verifiable after a rotation moved new signing elsewhere). This
+   * previously went unnoticed because getMetadata() was never
+   * consulted on the hot sign/verify path (assertKeyType.ts's own doc
+   * comment already covers that path's real defense); it is
+   * consulted now, by the /keys and /.well-known/jwks.json routes
+   * (packages/api/src/routes/keys.ts), which need the truth for every
+   * keyId, not only whichever one happens to match today's config.
+   *
    * Future implementations may load this from a
    * manifest or key registry.
    */
@@ -101,11 +143,11 @@ export class FileKeyProvider
       );
     }
 
+    const publicKey = await this.getPublicKey(keyId);
+
     return {
       keyId,
-      algorithm:
-        this.config.crypto
-          .primarySignatureProvider,
+      algorithm: algorithmFromKeyType(publicKey.asymmetricKeyType),
     };
   }
 
@@ -147,6 +189,24 @@ export class FileKeyProvider
     return createPublicKey(
       readFileSync(path),
     );
+  }
+
+  /**
+   * Lists every keyId with a readable `<keyId>.public.pem` in this
+   * provider's key directory (PQC audit RED-2). A keyId with only a
+   * private key file (should not occur in practice, since every key
+   * this codebase generates writes both halves together) is not
+   * listed -- discovery is about what a third party can verify
+   * against, which needs the public half specifically.
+   */
+  async listKeys(): Promise<string[]> {
+    const directory = this.getKeyDirectory();
+
+    const entries = await readdir(directory);
+
+    return entries
+      .filter((entry) => entry.endsWith(".public.pem"))
+      .map((entry) => entry.slice(0, -".public.pem".length));
   }
 
   /**

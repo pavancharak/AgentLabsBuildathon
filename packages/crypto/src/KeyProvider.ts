@@ -23,6 +23,51 @@ export const DEFAULT_KEY_ID = "default";
 export const DEFAULT_SECONDARY_KEY_ID = "default-secondary";
 
 /**
+ * Resolves the keyId that VerificationCrypto/RefusalCrypto/
+ * AuditEventCrypto -- the durable-evidence signers (Trust Records,
+ * Refusal Records, Audit Events) -- use for NEW signatures (PQC audit
+ * RED-3, docs/VERIFICATION-GAPS.md). Every one of these three signers
+ * previously hardcoded DEFAULT_KEY_ID directly, so the only way to
+ * "rotate" was to overwrite default.private.pem/default.public.pem in
+ * place -- which silently invalidates every record ever signed under
+ * that keyId, since verification always resolves the public key by
+ * the *stored* record's own keyId (already true, and unaffected by
+ * this function).
+ *
+ * Read fresh on every call (mirrors
+ * packages/api/src/bootstrap/createGatewayKeyPair.ts's own
+ * PARMANA_GATEWAY_KEY_ID pattern), not cached, so a rotation takes
+ * effect on redeploy without any other code change: generate a new
+ * keyId's key pair (scripts/generate-keypair.ts already supports an
+ * arbitrary --key-id and refuses to overwrite an existing one without
+ * --force), point PARMANA_VERIFICATION_KEY_ID at it, and every
+ * already-issued record -- still referencing the old keyId -- keeps
+ * verifying as long as its key file is not deleted. Unset (the
+ * default) behaves exactly as before this function existed.
+ *
+ * FileKeyProvider's own assertValidKeyId() rejects an unsafe value
+ * the moment this is used to look up a key file, so no separate
+ * validation is duplicated here.
+ */
+export function currentVerificationKeyId(): string {
+  return (
+    process.env.PARMANA_VERIFICATION_KEY_ID ??
+    DEFAULT_KEY_ID
+  );
+}
+
+/**
+ * Same rotation mechanism as currentVerificationKeyId(), for the
+ * hybrid-mode secondary signing key.
+ */
+export function currentVerificationSecondaryKeyId(): string {
+  return (
+    process.env.PARMANA_VERIFICATION_SECONDARY_KEY_ID ??
+    DEFAULT_SECONDARY_KEY_ID
+  );
+}
+
+/**
  * Signing key metadata.
  */
 export interface KeyMetadata {
@@ -62,4 +107,21 @@ export interface KeyProvider {
   hasKey(
     keyId: string,
   ): Promise<boolean>;
+
+  /**
+   * Lists every keyId this provider can currently load a public key
+   * for (PQC audit RED-2, docs/VERIFICATION-GAPS.md) -- used by the
+   * key-discovery endpoints (packages/api/src/routes/keys.ts) to
+   * enumerate every key an auditor might need, not only whichever one
+   * happens to be "current."
+   *
+   * Optional: every pre-existing test fake implementing this
+   * interface (several across packages/crypto, packages/envelope-
+   * verifier, packages/runtime, packages/connector-hubspot) keeps
+   * compiling unchanged without adding it, the same "add capability
+   * without breaking existing implementers" precedent
+   * ExecutionTrustRecordRepository.sumSuccessfulExecutionAmounts?
+   * already set.
+   */
+  listKeys?(): Promise<string[]>;
 }

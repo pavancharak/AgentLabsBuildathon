@@ -156,6 +156,111 @@ paths:
                     api: v1
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /keys/{keyId}:
+    get:
+      tags:
+        - System
+      summary: Fetch a public signing key for independent, offline verification
+      operationId: getKey
+      description: >
+        Deliberately unauthenticated, like GET /audit/verify and GET
+        /refusal/verify — a third party (regulator, auditor, customer tool)
+        fetching the key it needs to independently verify a signature cannot be
+        required to already hold a Parmana credential to reach it. Returns the
+        current or any still-retained historical key's public half; a keyId
+        whose private key was rotated away from is still resolvable here as long
+        as its files were not deleted (PQC audit RED-3,
+        docs/VERIFICATION-GAPS.md). See packages/crypto/src/OfflineVerifier.ts
+        (and its Python counterpart, python/parmana/crypto/ offline_verifier.py)
+        for a reference verifier that consumes exactly this response's `pem`
+        field with zero further network calls.
+      parameters:
+        - name: keyId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The requested public key.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - keyId
+                  - algorithm
+                  - use
+                  - pem
+                properties:
+                  keyId:
+                    type: string
+                  algorithm:
+                    type: string
+                    description: >
+                      The key's actual algorithm, derived from the key material
+                      itself (asymmetricKeyType), not a global config value.
+                  use:
+                    type: string
+                    enum:
+                      - sig
+                  pem:
+                    type: string
+                    description: PEM-encoded SPKI public key (RFC 7468).
+                  jwk:
+                    type: object
+                    description: >
+                      Node's native JWK export for this key's algorithm, when
+                      available. Ed25519 exports as kty "OKP"; ML-DSA-65 exports
+                      as kty "AKP" (the IETF JOSE/COSE key type for ML-DSA — not
+                      an identifier this codebase invented). Omitted, not null,
+                      when unavailable.
+        "404":
+          description: No key exists for the given keyId.
+  /.well-known/jwks.json:
+    get:
+      tags:
+        - System
+      summary: List every public signing key this deployment can currently produce
+      operationId: getJwks
+      description: >
+        Same unauthenticated, third-party-verification purpose as GET
+        /keys/{keyId} — this is the enumeration form. Not a standards-pure RFC
+        7517 JWK Set (not every entry necessarily has a `jwk` field), but a
+        superset any consumer that only wants `.jwk` per entry can filter down
+        to.
+      responses:
+        "200":
+          description: Every key this deployment can currently produce a public key for.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - keys
+                properties:
+                  keys:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - keyId
+                        - algorithm
+                        - use
+                        - pem
+                      properties:
+                        keyId:
+                          type: string
+                        algorithm:
+                          type: string
+                        use:
+                          type: string
+                          enum:
+                            - sig
+                        pem:
+                          type: string
+                        jwk:
+                          type: object
   /callers/me:
     get:
       tags:

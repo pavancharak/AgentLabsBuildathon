@@ -1,7 +1,13 @@
+import { existsSync, writeFileSync } from "node:fs";
+import { generateKeyPairSync } from "node:crypto";
+import { join } from "node:path";
+
 import {
   CryptoBootstrap,
   FileKeyProvider,
   HybridSignatureProvider,
+  isMlDsa65Supported,
+  ML_DSA_65_SKIP_REASON,
 } from "@parmana/crypto";
 
 async function main(): Promise<void> {
@@ -37,15 +43,33 @@ async function main(): Promise<void> {
   //
   process.env.SECONDARY_SIGNATURE_PROVIDER = "dilithium3";
 
-  const crypto =
-    CryptoBootstrap.createHybrid();
+  if (!isMlDsa65Supported()) {
+    console.log(`Skipping Tutorial 52: ${ML_DSA_65_SKIP_REASON}`);
+    return;
+  }
 
   //
   // Load signing keys. "default-secondary" is the real,
   // current convention for the secondary key -- see
   // `npm run generate:hybrid-secondary-key` -- living alongside
   // the "default" Ed25519 key under the same PARMANA_KEY_DIR.
+  // Self-provisioned here if this checkout hasn't generated one
+  // yet, so this tutorial runs on a fresh clone.
   //
+  const keyDir = process.env.PARMANA_KEY_DIR ?? "./keys";
+  const secondaryPrivatePath = join(keyDir, "default-secondary.private.pem");
+  const secondaryPublicPath = join(keyDir, "default-secondary.public.pem");
+
+  if (!existsSync(secondaryPrivatePath)) {
+    const { privateKey, publicKey } = generateKeyPairSync("ml-dsa-65");
+
+    writeFileSync(secondaryPrivatePath, privateKey.export({ format: "pem", type: "pkcs8" }));
+    writeFileSync(secondaryPublicPath, publicKey.export({ format: "pem", type: "spki" }));
+  }
+
+  const crypto =
+    CryptoBootstrap.createHybrid();
+
   const keyProvider =
     new FileKeyProvider();
 

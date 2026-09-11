@@ -29,6 +29,7 @@ import { createRefusalVerifyRouter } from "./routes/refusal-verify.js";
 import { createRefusalGetRouter } from "./routes/refusal-get.js";
 import { createAuditVerifyRouter } from "./routes/audit-verify.js";
 import { createReadyRouter } from "./routes/ready.js";
+import { createKeysRouter } from "./routes/keys.js";
 
 import versionRoutes from "./routes/version.js";
 
@@ -184,6 +185,18 @@ export function createApp(
    * involved.
    */
   app.use("/audit/verify", createAuditVerifyRouter());
+
+  /**
+   * PQC audit RED-2 (docs/VERIFICATION-GAPS.md): public-key discovery,
+   * the same unauthenticated-by-necessity category as
+   * /refusal/verify and /audit/verify above -- a third party fetching
+   * the key it needs to independently verify a signature cannot be
+   * required to already hold a Parmana credential to reach it.
+   * Defines its own full paths (/keys/:keyId and
+   * /.well-known/jwks.json) rather than being mounted at a prefix; see
+   * keys.ts's own comment for why.
+   */
+  app.use(createKeysRouter());
 
   if (options.callerAuth !== "disabled") {
     app.use(

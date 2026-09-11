@@ -6,7 +6,7 @@ import { CryptoBootstrap } from "./CryptoBootstrap.js";
 import { ArtifactSigner } from "./ArtifactSigner.js";
 import { SignatureVerifier } from "./SignatureVerifier.js";
 import { FileKeyProvider } from "./providers/key/FileKeyProvider.js";
-import { DEFAULT_KEY_ID } from "./KeyProvider.js";
+import { currentVerificationKeyId } from "./KeyProvider.js";
 
 /**
  * Audit event cryptographic operations.
@@ -47,7 +47,7 @@ export class AuditEventCrypto {
   async sign(
     event: unknown,
   ): Promise<Signature> {
-    const keyId = DEFAULT_KEY_ID;
+    const keyId = currentVerificationKeyId();
 
     const privateKey =
       await this.keys.getPrivateKey(keyId);

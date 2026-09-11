@@ -6,12 +6,19 @@ import type {
 } from "@parmana/shared";
 
 import { CryptoBootstrap } from "./CryptoBootstrap.js";
+import {
+  canonicalExecutionTrustRecord,
+  hybridCanonicalExecutionTrustRecord,
+} from "./ExecutionTrustRecordCanonicalView.js";
 import { HybridSignatureProvider } from "./HybridSignatureProvider.js";
 import { TrustRecordHasher } from "./TrustRecordHasher.js";
 import { ArtifactSigner } from "./ArtifactSigner.js";
 import { SignatureVerifier } from "./SignatureVerifier.js";
 import { FileKeyProvider } from "./providers/key/FileKeyProvider.js";
-import { DEFAULT_KEY_ID, DEFAULT_SECONDARY_KEY_ID } from "./KeyProvider.js";
+import {
+  currentVerificationKeyId,
+  currentVerificationSecondaryKeyId,
+} from "./KeyProvider.js";
 
 /**
  * Schema version stamped on `signatures`-bearing records produced by
@@ -51,67 +58,36 @@ export class VerificationCrypto {
     new SignatureVerifier(this.crypto);
 
   /**
-   * Creates the canonical immutable view of an
-   * Execution Trust Record used for hashing and
-   * signing.
+   * Creates the canonical immutable view of an Execution Trust Record
+   * used for hashing and signing.
    *
-   * Mutable lifecycle artifacts are intentionally
-   * excluded so the signed content remains stable.
-   *
-   * `authorization` is included: unlike verifications/receipts (which
-   * are produced from this record after it is sealed, and would be
-   * circular to sign), the authorization is already known by the time
-   * BusinessTrustRecordBuilder builds this record, so it can safely be
-   * covered by the same hash/signature as transaction/overrides/
-   * executions. For a record with no authorization (built before this
-   * field existed, or for a transaction that never reached execution),
-   * `trustRecord.authorization` is `undefined`, and CanonicalSerializer
-   * (via JSON.stringify) drops an undefined-valued key entirely -- so
-   * this produces byte-identical output to before this field existed,
-   * and every pre-existing hash/signature keeps verifying unchanged.
+   * Delegates to canonicalExecutionTrustRecord() (own file, PQC audit
+   * RED-1) -- the same mapping OfflineVerifier.ts uses -- rather than
+   * duplicating the field list here, so there is exactly one place
+   * that defines "which fields participate in the signature."
+   * Unchanged behavior; see that function's own doc comment for the
+   * full field-by-field reasoning (authorization inclusion,
+   * CanonicalSerializer's undefined-key-dropping compatibility, etc.).
    */
   private canonicalRecord(
     trustRecord: ExecutionTrustRecord,
   ) {
-    return {
-      trustRecordId:
-        trustRecord.trustRecordId,
-
-      businessTransactionId:
-        trustRecord.businessTransactionId,
-
-      transaction:
-        trustRecord.transaction,
-
-      authorization:
-        trustRecord.authorization,
-
-      overrides:
-        trustRecord.overrides,
-
-      executions:
-        trustRecord.executions,
-
-      createdAt:
-        trustRecord.createdAt,
-    };
+    return canonicalExecutionTrustRecord(trustRecord);
   }
 
   /**
-   * Canonical view signed/verified by the hybrid `signatures` array:
-   * the same content as canonicalRecord(), plus schemaVersion. Kept
-   * separate from canonicalRecord() itself so the legacy `signature`
-   * field's signed content -- and therefore its verifiability by
-   * pre-milestone verifiers, including @parmana/sign -- never changes.
+   * Canonical view signed/verified by the hybrid `signatures` array.
+   * Delegates to hybridCanonicalExecutionTrustRecord() for the same
+   * single-source-of-truth reason as canonicalRecord() above.
    */
   private hybridCanonicalRecord(
     trustRecord: ExecutionTrustRecord,
     schemaVersion: number,
   ) {
-    return {
-      ...this.canonicalRecord(trustRecord),
+    return hybridCanonicalExecutionTrustRecord(
+      trustRecord,
       schemaVersion,
-    };
+    );
   }
 
   private hybridSignatureProvider(): HybridSignatureProvider {
@@ -143,7 +119,7 @@ export class VerificationCrypto {
   async sign(
     trustRecord: ExecutionTrustRecord,
   ): Promise<Signature> {
-    const keyId = DEFAULT_KEY_ID;
+    const keyId = currentVerificationKeyId();
 
     const privateKey =
       await this.keys.getPrivateKey(keyId);
@@ -192,8 +168,8 @@ export class VerificationCrypto {
         trustRecord,
         HYBRID_SCHEMA_VERSION,
       ),
-      DEFAULT_KEY_ID,
-      DEFAULT_SECONDARY_KEY_ID,
+      currentVerificationKeyId(),
+      currentVerificationSecondaryKeyId(),
     );
   }
 
@@ -207,6 +183,22 @@ export class VerificationCrypto {
    * `signatures`-bearing record with a missing or malformed entry
    * fails here even if the legacy `signature` alone is valid: never a
    * silent downgrade to single-signature verification.
+   *
+   * PQC audit RED-4 (docs/VERIFICATION-GAPS.md): by itself, the
+   * paragraph above only protects a record that still *carries* its
+   * `signatures` array -- nothing stopped `signatures` from being
+   * stripped entirely, at which point this method fell back to
+   * `legacyVerified` alone and reported a fully hybrid-signed record
+   * as valid via its now-lone classical signature. That silently
+   * defeats hybrid mode's entire purpose (a future break of the
+   * classical algorithm no longer has a surviving PQ signature to
+   * fall back on), and required no key material to pull off -- only
+   * write/storage access to a copy of the record. `requireHybridSignature`
+   * closes this for any deployment that opts in: when set, a missing
+   * or empty `signatures` array is a rejection, not a silent
+   * single-signature pass. Off by default, so enabling CRYPTO_MODE=
+   * hybrid never retroactively invalidates a record issued before a
+   * deployment decided every future record must be hybrid-signed.
    *
    * Reuses the same canonical view and verifier as verify(), so
    * callers that need to report integrity and signature failures
@@ -231,6 +223,10 @@ export class VerificationCrypto {
       trustRecord.signatures === undefined ||
       trustRecord.signatures.length === 0
     ) {
+      if (this.config.crypto.requireHybridSignature) {
+        return false;
+      }
+
       return legacyVerified;
     }
 

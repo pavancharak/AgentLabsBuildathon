@@ -23,6 +23,7 @@
     "generate:gateway-keys": "tsx scripts/generate-keypair.ts --algorithm ed25519 --key-id gateway",
     "generate:hybrid-secondary-key": "tsx scripts/generate-keypair.ts --algorithm dilithium3 --key-id default-secondary",
     "generate:api-key": "tsx scripts/generate-api-key.ts",
+    "rotate:verification-key": "tsx scripts/rotate-verification-key.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",

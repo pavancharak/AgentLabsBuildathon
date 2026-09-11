@@ -205,6 +205,22 @@ export interface CryptoConfig {
    */
   readonly secondarySignatureProvider?:
     SignatureAlgorithm;
+
+  /**
+   * When true, verification of a hybrid-schema-capable artifact
+   * (an ExecutionTrustRecord) MUST find a valid `signatures` array
+   * covering every configured algorithm -- a record with `signatures`
+   * absent, empty, or partial is rejected outright, never silently
+   * verified via the legacy single signature alone.
+   *
+   * Off by default so no already-issued record (hybrid or not) is
+   * affected by turning CRYPTO_MODE=hybrid on: a deployment opts into
+   * this once it is confident every record going forward is genuinely
+   * hybrid-signed. See VerificationCrypto.verifySignature()'s own
+   * comment for the exact downgrade this closes.
+   */
+  readonly requireHybridSignature:
+    boolean;
 }
 /**
  * Key management.
@@ -352,6 +368,11 @@ export function loadConfig():
           )
         : undefined,
   ),
+
+  requireHybridSignature:
+    process.env
+      .HYBRID_SIGNATURE_REQUIRED ===
+      "true",
 }),
 
     keys: Object.freeze({

@@ -270,5 +270,55 @@ describe.skipIf(!isMlDsa65Supported())(
       expect(verification.status).toBe(VerificationStatus.FAILED);
       expect(verification.message).toContain("Signature check failed");
     });
+
+    describe("HYBRID_SIGNATURE_REQUIRED=true (PQC audit RED-4)", () => {
+      it("rejects a record with the entire signatures array stripped -- the downgrade the default policy above does not catch", async () => {
+        const trustRecord = await buildTrustRecord("txn-hybrid-fully-stripped");
+
+        // Same tampering as "still verifies a legacy-shaped record" above:
+        // both schemaVersion and signatures removed entirely, leaving only
+        // the always-present legacy signature. That test proves this is
+        // ACCEPTED under the default (off) policy -- additive, not
+        // breaking. This test proves a deployment that opts in via
+        // HYBRID_SIGNATURE_REQUIRED correctly REJECTS the identical input.
+        const { schemaVersion: _schemaVersion, signatures: _signatures, ...fullyStripped } =
+          trustRecord;
+
+        const repository = new InMemoryExecutionTrustRecordRepository();
+        await repository.create(fullyStripped as ExecutionTrustRecord);
+
+        process.env.HYBRID_SIGNATURE_REQUIRED = "true";
+
+        try {
+          const verification = await new VerificationService(repository).verify(
+            "txn-hybrid-fully-stripped",
+          );
+
+          expect(verification.status).toBe(VerificationStatus.FAILED);
+          expect(verification.message).toContain("Signature check failed");
+        } finally {
+          delete process.env.HYBRID_SIGNATURE_REQUIRED;
+        }
+      });
+
+      it("still verifies a genuinely complete hybrid record", async () => {
+        const trustRecord = await buildTrustRecord("txn-hybrid-required-valid");
+
+        const repository = new InMemoryExecutionTrustRecordRepository();
+        await repository.create(trustRecord);
+
+        process.env.HYBRID_SIGNATURE_REQUIRED = "true";
+
+        try {
+          const verification = await new VerificationService(repository).verify(
+            "txn-hybrid-required-valid",
+          );
+
+          expect(verification.status).toBe(VerificationStatus.VERIFIED);
+        } finally {
+          delete process.env.HYBRID_SIGNATURE_REQUIRED;
+        }
+      });
+    });
   },
 );

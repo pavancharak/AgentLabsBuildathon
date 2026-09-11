@@ -1,5 +1,11 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { generateKeyPairSync } from "node:crypto";
 import path from "node:path";
+
+import {
+  isMlDsa65Supported,
+  ML_DSA_65_SKIP_REASON,
+} from "@parmana/crypto";
 
 import {
   FilePolicyRepository,
@@ -35,6 +41,27 @@ import type {
 
 process.env.CRYPTO_MODE = "hybrid";
 process.env.SECONDARY_SIGNATURE_PROVIDER = "dilithium3";
+
+if (!isMlDsa65Supported()) {
+  console.log(`Skipping Tutorial 54: ${ML_DSA_65_SKIP_REASON}`);
+  process.exit(0);
+}
+
+//
+// Self-provision the hybrid secondary key if this checkout hasn't
+// generated one yet (npm run generate:hybrid-secondary-key), so this
+// tutorial runs on a fresh clone without a manual setup step.
+//
+const keyDir = process.env.PARMANA_KEY_DIR ?? "./keys";
+const secondaryPrivatePath = path.join(keyDir, "default-secondary.private.pem");
+const secondaryPublicPath = path.join(keyDir, "default-secondary.public.pem");
+
+if (!existsSync(secondaryPrivatePath)) {
+  const { privateKey, publicKey } = generateKeyPairSync("ml-dsa-65");
+
+  writeFileSync(secondaryPrivatePath, privateKey.export({ format: "pem", type: "pkcs8" }));
+  writeFileSync(secondaryPublicPath, publicKey.export({ format: "pem", type: "spki" }));
+}
 
 const root = path.resolve(import.meta.dirname);
 

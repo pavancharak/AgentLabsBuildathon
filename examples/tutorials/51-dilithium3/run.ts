@@ -1,7 +1,13 @@
+import { existsSync, writeFileSync } from "node:fs";
+import { generateKeyPairSync } from "node:crypto";
+import { join } from "node:path";
+
 import {
   ArtifactSigner,
   CryptoBootstrap,
   FileKeyProvider,
+  isMlDsa65Supported,
+  ML_DSA_65_SKIP_REASON,
   SignatureVerifier,
 } from "@parmana/crypto";
 
@@ -39,12 +45,30 @@ async function main(): Promise<void> {
   //
   process.env.PRIMARY_SIGNATURE_PROVIDER = "dilithium3";
 
+  if (!isMlDsa65Supported()) {
+    console.log(`Skipping Tutorial 51: ${ML_DSA_65_SKIP_REASON}`);
+    return;
+  }
+
   const crypto =
     CryptoBootstrap.create();
 
   //
-  // Load signing keys.
+  // Load signing keys. Self-provisions the "pq" key pair if this
+  // checkout doesn't already have one, so this tutorial runs on a
+  // fresh clone without a manual setup step.
   //
+  const keyDir = process.env.PARMANA_KEY_DIR ?? "./keys";
+  const pqPrivatePath = join(keyDir, "pq.private.pem");
+  const pqPublicPath = join(keyDir, "pq.public.pem");
+
+  if (!existsSync(pqPrivatePath)) {
+    const { privateKey, publicKey } = generateKeyPairSync("ml-dsa-65");
+
+    writeFileSync(pqPrivatePath, privateKey.export({ format: "pem", type: "pkcs8" }));
+    writeFileSync(pqPublicPath, publicKey.export({ format: "pem", type: "spki" }));
+  }
+
   const keyProvider =
     new FileKeyProvider();
 
