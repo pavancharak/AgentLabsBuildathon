@@ -10,6 +10,51 @@ its own entry rather than silently extending an earlier claim. The real HubSpot 
 used in the 2026-08-11 entry below is redacted to `[redacted-deal-id]` in this public copy;
 every other detail (requests, responses, database cross-checks) is reported unchanged.</Info>
 
+## 2026-09-11 — Live end-to-end verification, `agent-vendor-payment` policy, `parmana-api-real.vercel.app` (new deployment)
+
+### Scope
+
+This session added a new policy, `agent-vendor-payment` (an autonomous agent paying a
+vendor, bounded by credential limit, vendor allowlist, and velocity — see
+`docs/VERIFICATION-GAPS.md`'s "Gaps closed in the 2026-09-11 real-deployment verification
+session" for its full design rationale), and verified it end-to-end against a **new**
+deployment of the real API — `parmana-api-real.vercel.app`, not the standalone buildathon
+demo, and not the existing `parmana-api.fly.dev` deployment the 2026-08-11 entry above
+covers — backed by the real `parmana-sandbox` Supabase project, with caller authentication
+actually enabled (`PARMANA_AUTH_DISABLED=false`). This specific combination — a real
+Postgres-backed audit sink plus caller-auth enabled plus a public deployment — had not been
+exercised before, which is what surfaced the bug in the second row below.
+
+### What was verified
+
+A full live chain against the deployed instance, not a local or mocked process: caller
+authentication, capability admission and its audit trail, Policy Engine evaluation, Ed25519
+signing, and Supabase persistence — cross-checked by reading results back through the API's
+own `GET /transactions` and `GET /trust-records/:id` routes against the same live database.
+
+### Steps and results
+
+| Step | Request | Result | Cross-check |
+|---|---|---|---|
+| Authenticated approved-amount request, before the audit-constraint fix | `POST /execute`, signed with a real API key scoped to `agent-vendor-payment`, `$50` against a `$100`-equivalent credential limit | `503` `{"error":"Caller authentication audit trail is unavailable; refusing to proceed without an audit record.","code":"AUDIT_UNAVAILABLE"}` | Live logs showed the underlying cause: `new row for relation "caller_audit_events" violates check constraint "caller_audit_events_type_check"` — the request never reached Policy Engine at all |
+| Same request, after applying `20260911090000_add_capability_granted_to_caller_audit_events.sql` | Identical request replayed | `500`, `Error: No connector registered for capability 'agent-vendor-payment'` | Confirmed this is the *dispatch* stage, not policy: caller auth succeeded (no more 503), Policy Engine ran and approved, `RuntimeAuthorizationSigner` signed the decision — and only then did `GatewayConnectorRegistry.resolveCapability` throw, since no connector is registered for this deliberately-unwired capability (G-27 parity, see below) |
+| No orphaned record left behind | `GET /trust-records/:businessTransactionId` for the transaction above | `404` `{"error":"Execution Trust Record not found."}` | Confirms the pipeline is atomic with respect to the Trust Record store: a dispatch failure after policy approval leaves no partial/orphaned signed record in Supabase |
+| Denied request (over credential limit) | `POST /execute`, `$500` against the same policy, `withinCredentialLimit: false` | `403` `{"error":"Execution rejected: Agent payment rejected because the payment amount exceeds the agent's credential limit.","code":"POLICY_DENIED"}` | Completes cleanly — a policy `REJECT` never reaches the connector-dispatch stage, so it is unaffected by the no-connector limitation above |
+| Persistence and retrieval | `GET /transactions?pageSize=5` (same caller) | `200`, both the approved-but-undispatched and the denied transaction present | Both rows matched the original request's `signals`, `intent`, and `metadata.grantedCapability: "agent-vendor-payment"` field for field; `metadata.submittedBy` correctly scoped to the authenticated caller |
+
+**No discrepancy was found** between what the API claimed and what was actually persisted,
+once the audit-constraint bug above was fixed.
+
+### One structural note, stated plainly
+
+The "approved but never dispatched" result in row two is not a defect being worked around —
+it is the same deliberate posture `vendor-payment` already has (see G-27 in
+`docs/VERIFICATION-GAPS.md`): `agent-vendor-payment`'s signals are unverified caller
+attestations with no independent verifier behind them, so this policy is intentionally not
+wired to any connector. A real payment connector for this capability would need the same
+kind of independent `SignalStateVerifier` closure Razorpay and HubSpot already received
+before it could be enabled without contradicting this project's own authorization claims.
+
 ## 2026-08-11 — Live end-to-end verification, HubSpot connector, `parmana-api.fly.dev`
 
 ### Scope

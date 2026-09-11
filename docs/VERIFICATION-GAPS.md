@@ -358,6 +358,26 @@ regression).
 
 ---
 
+## Gaps closed in the 2026-09-11 real-deployment verification session
+
+Scope: adding and exercising a new authorization-only policy (`agent-vendor-payment`)
+end-to-end against a real, live environment -- a new Vercel deployment of the real API
+(`parmana-api-real`, not the standalone buildathon demo), the real `parmana-sandbox`
+Supabase project, and real caller authentication -- rather than the in-memory/mocked
+paths the existing test suite exercises by default. This is the first time this specific
+combination (real Postgres-backed `CallerAuditSink`, `PARMANA_AUTH_DISABLED=false`, a
+public deployment) has been exercised, which is what surfaced gap 50 below.
+
+| # | Gap | Closed by | Verified |
+|---|---|---|---|
+| 50 | `caller_audit_events.type` CHECK constraint (last widened by `20260824090000_add_structural_rejected_to_caller_audit_events.sql`, gap 21's own predecessor chain: 20260812120000, 20260816120000, 20260818130000) never included `'caller.capability_granted'`, even though `packages/api/src/routes/execute.ts` and `transactions.ts` (gap 33 / `docs/CLAIMS.md` NF-004) both write that exact event type unconditionally on every successful, authenticated capability check. Combined with `docs/CLAIMS.md` 2.19's fail-closed audit-write guarantee, this meant every successful, authenticated `POST /execute` or `POST /transactions` call, against a real Postgres-backed audit sink, failed closed with `503 AUDIT_UNAVAILABLE` before Policy Engine evaluation ever ran -- the entire capability-granted happy path was unreachable in that configuration. Invisible in the existing test suite because Supabase-backed integration tests are opt-in (`ALLOW_LIVE_SUPABASE=1`); `InMemoryCallerAuditSink` has no such constraint | New migration `supabase/migrations/20260911090000_add_capability_granted_to_caller_audit_events.sql`, widening the constraint the same way each of its four prior widenings did, adding `'caller.capability_granted'` to the allowed list. Applied directly to `parmana-sandbox` via `supabase db push`. Commit `1eb8881` | Reproduced live: an authenticated `POST /execute` against the real deployed API (`https://parmana-api-real.vercel.app`, real `parmana-sandbox` project, `PARMANA_AUTH_DISABLED=false`) returned `503 AUDIT_UNAVAILABLE` with `error: 'new row for relation "caller_audit_events" violates check constraint "caller_audit_events_type_check"'` before the fix. After applying the migration, the identical request reached Policy Engine and produced a real signed decision -- confirmed both for an approved-amount request (reaches the connector-dispatch stage, see below) and a denied one (clean `403 POLICY_DENIED`, persisted, retrievable via `GET /transactions`) |
+
+**New policy, deliberately authorization-only (G-27 parity).** `policies/agent-vendor-payment/1.0.0/policy.json` was added and exercised end-to-end (real `PolicyEngine`, real Ed25519 signing, real Supabase-backed `ExecutionTrustRecordRepository`/`BusinessTransactionRepository`, both locally and against the live deployment above) as part of this same pass. Its signals (`vendorAllowed`, `withinCredentialLimit`, `withinVelocityLimit`) are unbound, caller-declared attestations with no independent verifier -- structurally the same shape G-27 (below) found in `vendor-payment` and closed by removing its connector from production entirely. This policy was deliberately left the same way: `GatewayConnectorRegistry` has no registration for `agent-vendor-payment`, so a request that reaches Policy Engine APPROVAL still correctly fails at the execution/dispatch stage (`No connector registered for capability 'agent-vendor-payment'`) rather than completing, both locally and on the live deployment. Confirmed no partial Execution Trust Record is left behind when this happens: `GET /trust-records/:businessTransactionId` on the live deployment returned `404` for the approved-but-undispatched transaction. This is authorization-only by design, not an oversight -- see G-27's own "What would need to be true before this capability could be enabled" section for what independent signal verification would require before any real connector could be wired for a payment-shaped capability.
+
+**Also found and fixed in this same session, local-environment/deployment configuration only (not codebase gaps):** the checkout's `.env` had `PARMANA_POLICY_DIR` pointing at a sibling checkout (`D:/last/parmana-exp/policies`) rather than this repository's own `policies/` directory -- corrected to `./policies`. Separately, Supabase's direct-connection host (`db.<ref>.supabase.co:5432`) is IPv6-only and unreachable from Vercel's serverless network (`ENOTFOUND`); the new deployment's `DATABASE_URL` uses the Supavisor connection pooler host (`aws-0-<region>.pooler.supabase.com:6543`, `postgres.<ref>` as the username) instead. Neither is a defect in `parmana-exp` itself.
+
+---
+
 ## Remaining gaps, by severity
 
 **Status note, updated in the adversarial-testing hardening session that added G-24:**
