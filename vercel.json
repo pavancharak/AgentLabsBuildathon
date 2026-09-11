@@ -1,0 +1,10 @@
+{
+  "buildCommand": "npm run openapi && ./node_modules/.bin/tsc -b",
+  "installCommand": "npm install --include=dev",
+  "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "{openapi/**,policies/**}"
+    }
+  }
+}
