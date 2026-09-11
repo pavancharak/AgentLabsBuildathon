@@ -4,6 +4,7 @@ import {
   MockPaytmConnectorServer,
   PAYTM_CONNECTOR_TEST_MODE_PLACEHOLDER_SECRET,
   PAYTM_REFUND_CAPABILITY,
+  deriveDeterministicPaytmRefId,
   redactPaytmConnectorSecret,
 } from "@parmana/connector-paytm";
 import {
@@ -76,13 +77,12 @@ describe("GatewayPaytmAdapter", () => {
     const result = await connector().execute(refundRequest(), context());
 
     expect(result.success).toBe(true);
-    expect(result.metadata?.status).toBe("completed");
     expect(typeof result.metadata?.refId).toBe("string");
     expect(server.calls).toHaveLength(1);
     expect(server.paytmInvocationCount).toBe(1);
   });
 
-  it("sends exactly the authorized parameters, nothing more", async () => {
+  it("sends the real wire contract: {transaction, authorization} envelope with txnId/refId/hyphenated action, not the flattened ConnectorRequest", async () => {
     await connector().execute(
       refundRequest({
         orderId: "order-42",
@@ -93,11 +93,12 @@ describe("GatewayPaytmAdapter", () => {
     );
 
     expect(server.calls[0]?.businessTransactionId).toBe("btx-1");
-    expect(server.calls[0]?.capability).toBe(PAYTM_REFUND_CAPABILITY);
+    expect(server.calls[0]?.action).toBe("paytm-refund");
     expect(server.calls[0]?.parameters).toEqual({
       orderId: "order-42",
-      transactionId: "txn-42",
-      amount: 750,
+      txnId: "txn-42",
+      refId: deriveDeterministicPaytmRefId("order-42", "txn-42"),
+      amount: "750.00",
     });
   });
 
@@ -200,46 +201,47 @@ describe("GatewayPaytmAdapter", () => {
   });
 
   it.each([
-    ["orderId", { orderId: "some-other-order" }],
-    ["transactionId", { transactionId: "some-other-txn" }],
     ["businessTransactionId", { businessTransactionId: "some-other-btx" }],
-    ["capability", { capability: "paytm:refund-v2" }],
+    ["action", { action: "paytm-refund-v2" }],
   ])(
-    "binding validation: rejects a connector-service response with a mismatched %s",
+    "binding validation: rejects a connector-service response with a mismatched top-level %s",
     async (field, override) => {
       server.setResponseFieldOverride(override);
 
       await expect(
         connector().execute(refundRequest(), context()),
       ).rejects.toThrow(new RegExp(field));
-      // The mismatched response must never be trusted as a completed refund.
-      expect(server.paytmInvocationCount).toBe(1); // the mock still "completed" internally...
-      // ...but GatewayPaytmAdapter must have thrown rather than reporting success.
     },
   );
 
-  it("returns a non-throwing, non-success result for an ambiguous Paytm execution status, without retrying", async () => {
-    server.setForcedStatus("ambiguous");
+  it.each([
+    ["orderId", { orderId: "some-other-order" }],
+    ["txnId", { txnId: "some-other-txn" }],
+  ])(
+    "binding validation: rejects a connector-service response with a mismatched parameters.%s",
+    async (field, override) => {
+      server.setResponseFieldOverride({ parameters: override });
+
+      await expect(
+        connector().execute(refundRequest(), context()),
+      ).rejects.toThrow(new RegExp(field));
+      // The mismatched response must never be trusted, even though the
+      // mock's own internal "Paytm call" already happened.
+      expect(server.paytmInvocationCount).toBe(1);
+    },
+  );
+
+  it("returns a non-throwing, non-success result when Paytm declines the refund, with the raw result code surfaced", async () => {
+    server.setForcedResultStatus("TXN_FAILURE");
 
     const result = await connector().execute(refundRequest(), context());
 
     expect(result.success).toBe(false);
-    expect(result.metadata?.status).toBe("ambiguous");
-    expect(result.metadata?.requiresReconciliation).toBe(true);
-    // Exactly one attempt was made -- no internal retry loop.
-    expect(server.calls).toHaveLength(1);
+    expect(result.metadata?.resultStatus).toBe("TXN_FAILURE");
+    expect(server.paytmInvocationCount).toBe(0);
   });
 
-  it("returns a non-throwing, non-success result when Paytm declines the refund (status: failed)", async () => {
-    server.setForcedStatus("failed");
-
-    const result = await connector().execute(refundRequest(), context());
-
-    expect(result.success).toBe(false);
-    expect(result.metadata?.status).toBe("failed");
-  });
-
-  it("idempotency: a retried request for the same logical refund (orderId, transactionId) receives the same refId", async () => {
+  it("idempotency: a retried request for the same logical refund (orderId, transactionId) sends the same refId, regardless of businessTransactionId", async () => {
     const first = await connector().execute(
       refundRequest({ businessTransactionId: "btx-attempt-1" }),
       context(),
@@ -250,6 +252,9 @@ describe("GatewayPaytmAdapter", () => {
     );
 
     expect(first.metadata?.refId).toBe(second.metadata?.refId);
+    expect(first.metadata?.refId).toBe(
+      deriveDeterministicPaytmRefId("order-1", "txn-1"),
+    );
   });
 
   it("never places the shared secret or any substring of it in connector response metadata, only a one-way fingerprint", async () => {

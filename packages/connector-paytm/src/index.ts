@@ -12,6 +12,7 @@
 
 export {
   PAYTM_REFUND_CAPABILITY,
+  PAYTM_AGENT_WIRE_ACTION,
   type PaytmConnectorOptions,
   type PaytmRefundParameters,
 } from "./PaytmCapabilities.js";
@@ -26,11 +27,11 @@ export {
 export {
   PAYTM_ALLOWED_REFUND_PARAMETERS,
   PAYTM_CONNECTOR_TEST_MODE_PLACEHOLDER_SECRET,
+  deriveDeterministicPaytmRefId,
   isPaytmConnectorCredentialValue,
-  isPaytmRefundExecutionResult,
+  isPaytmAgentRefundExecutionResult,
   redactPaytmConnectorSecret,
   type PaytmAllowedRefundParameter,
   type PaytmConnectorCredentialValue,
-  type PaytmRefundExecutionResult,
-  type PaytmRefundExecutionStatus,
+  type PaytmAgentRefundExecutionResult,
 } from "./PaytmTypes.js";

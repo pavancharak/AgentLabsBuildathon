@@ -79,62 +79,87 @@ export function redactPaytmConnectorSecret(secret: string): string {
 }
 
 /**
- * The three Paytm-execution outcomes the connector service reports.
- * "ambiguous" is not an error -- it means Paytm's own execution status
- * could not be determined (e.g. a timeout on the connector-service ->
- * Paytm leg, or a checksum mismatch on Paytm's response). It must never
- * be treated as either success or a transient failure safe to retry --
- * see GatewayPaytmAdapter.execute and docs/connectors/PAYTM_CONNECTOR.md.
+ * Deterministic refId derivation, keyed on the logical refund --
+ * (orderId, transactionId), the Paytm order/transaction actually being
+ * refunded -- never on Parmana's own businessTransactionId, which
+ * differs across distinct authorization attempts for the same logical
+ * refund (e.g. a legitimate retry after an earlier attempt's outcome
+ * was unclear).
+ *
+ * The real parmana-paytm-agent connector service requires the CALLER
+ * to supply refId; it has no server-side idempotency derivation of its
+ * own (its RefundIdempotencyStore exists but is not wired into
+ * POST /connector/paytm-refund). GatewayPaytmAdapter is therefore the
+ * only thing standing between "a retry" and "a second, differently-
+ * refId'd refund" -- this function is a pure, deterministic hash with
+ * no Date.now()/Math.random(), so calling it twice for the same
+ * (orderId, transactionId) always produces the same refId, and Paytm's
+ * own refId-based idempotency on /refund/apply is what ultimately
+ * prevents a duplicate refund even if the connector service's own call
+ * to Paytm is retried independently.
  */
-export type PaytmRefundExecutionStatus = "completed" | "ambiguous" | "failed";
+export function deriveDeterministicPaytmRefId(
+  orderId: string,
+  transactionId: string,
+): string {
+  const digest = createHash("sha256")
+    .update(`${orderId}:${transactionId}`)
+    .digest("hex");
+  return `refid_${digest.slice(0, 24)}`;
+}
 
 /**
- * The response body the trusted Paytm connector service returns from
- * POST /connector/paytm-refund. Every identifying field here is
- * expected to echo the exact request this connector sent -- see
- * PAYTM_RESPONSE_ECHOED_FIELDS and GatewayPaytmAdapter's response
- * validation, which fails closed on any mismatch instead of trusting
- * the response as proof it corresponds to this request.
+ * The exact response body shape the real parmana-paytm-agent connector
+ * service returns from POST /connector/paytm-refund (see that
+ * repository's src/server/index.ts, executeAuthorizedConnectorRequest).
+ * There is no separate "status" enum -- only a boolean `success`, plus
+ * whatever raw Paytm result code/status the connector service chooses
+ * to surface in `metadata`. Every identifying field here is expected
+ * to echo the exact request this connector sent -- see
+ * GatewayPaytmAdapter's response validation, which fails closed on any
+ * mismatch instead of trusting the response as proof it corresponds to
+ * this request.
  */
-export interface PaytmRefundExecutionResult {
-  readonly success: boolean;
-  readonly status: PaytmRefundExecutionStatus;
-  /**
-   * Paytm's refId for this logical refund. Deterministically derived by
-   * the connector service from (orderId, transactionId) -- a retry of
-   * the same logical refund must receive the SAME refId back, never a
-   * newly minted one. This connector never generates a refId itself.
-   */
-  readonly refId: string;
+export interface PaytmAgentRefundExecutionResult {
   readonly businessTransactionId: string;
-  readonly capability: string;
-  readonly orderId: string;
-  readonly transactionId: string;
+  readonly action: string;
+  readonly target: string;
+  readonly parameters: {
+    readonly orderId: string;
+    readonly txnId: string;
+    readonly refId: string;
+    readonly amount: string;
+  };
+  readonly success: boolean;
+  readonly executedAt: string;
   readonly metadata?: Readonly<Record<string, unknown>>;
 }
 
-const REFUND_EXECUTION_STATUSES: readonly PaytmRefundExecutionStatus[] = [
-  "completed",
-  "ambiguous",
-  "failed",
-];
-
-export function isPaytmRefundExecutionResult(
+function isPaytmAgentRefundParameters(
   value: unknown,
-): value is PaytmRefundExecutionResult {
+): value is PaytmAgentRefundExecutionResult["parameters"] {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Record<string, unknown>;
   return (
-    typeof candidate.success === "boolean" &&
-    typeof candidate.status === "string" &&
-    REFUND_EXECUTION_STATUSES.includes(
-      candidate.status as PaytmRefundExecutionStatus,
-    ) &&
+    typeof candidate.orderId === "string" &&
+    typeof candidate.txnId === "string" &&
     typeof candidate.refId === "string" &&
     candidate.refId.length > 0 &&
+    typeof candidate.amount === "string"
+  );
+}
+
+export function isPaytmAgentRefundExecutionResult(
+  value: unknown,
+): value is PaytmAgentRefundExecutionResult {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return (
     typeof candidate.businessTransactionId === "string" &&
-    typeof candidate.capability === "string" &&
-    typeof candidate.orderId === "string" &&
-    typeof candidate.transactionId === "string"
+    typeof candidate.action === "string" &&
+    typeof candidate.target === "string" &&
+    isPaytmAgentRefundParameters(candidate.parameters) &&
+    typeof candidate.success === "boolean" &&
+    typeof candidate.executedAt === "string"
   );
 }

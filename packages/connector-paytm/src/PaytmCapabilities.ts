@@ -15,6 +15,19 @@ import type { ConnectorCapabilities } from "@parmana/connector-sdk";
  */
 export const PAYTM_REFUND_CAPABILITY = "paytm:refund";
 
+/**
+ * The action string the real parmana-paytm-agent connector service's
+ * POST /connector/paytm-refund handler expects in the outbound wire
+ * request (transaction.intent.action / authorization.payload.
+ * grantedCapability) -- a hyphenated literal, not Parmana's own
+ * namespaced capability id above. This is purely a transport-boundary
+ * translation performed by GatewayPaytmAdapter: Parmana's internal
+ * capability identity stays "paytm:refund" everywhere else (policy
+ * binding, connector registration, capability declaration) and is
+ * never renamed to satisfy one remote service's own wire convention.
+ */
+export const PAYTM_AGENT_WIRE_ACTION = "paytm-refund";
+
 export interface PaytmConnectorOptions {
   readonly connectorId: string;
   readonly capabilities: ConnectorCapabilities;

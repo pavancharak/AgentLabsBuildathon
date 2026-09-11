@@ -74,17 +74,50 @@ that lets an agent or caller reach the Paytm connector service directly.
    registered "paytm" connector (GatewayPaytmAdapter).
 
 6. GatewayPaytmAdapter validates the request shape (deny-by-default
-   parameter allowlist), resolves the connector shared secret, and sends
-   exactly { businessTransactionId, capability, action, target, parameters }
-   as JSON to PAYTM_CONNECTOR_URL/connector/paytm-refund, authenticated
-   with PAYTM_CONNECTOR_SHARED_SECRET as a Bearer token.
+   parameter allowlist), deterministically derives refId from
+   (orderId, transactionId), resolves the connector shared secret, and
+   sends the REAL parmana-paytm-agent wire contract as JSON to
+   PAYTM_CONNECTOR_URL/connector/paytm-refund, authenticated with
+   PAYTM_CONNECTOR_SHARED_SECRET as a Bearer token:
+
+     {
+       "transaction": {
+         "businessTransactionId": "...",
+         "intent": {
+           "action": "paytm-refund",
+           "target": "...",
+           "parameters": { "orderId", "txnId", "refId", "amount" }
+         }
+       },
+       "authorization": {
+         "payload": { "businessTransactionId": "...", "grantedCapability": "paytm-refund" }
+       }
+     }
+
+   Note this is NOT the generic flattened ConnectorRequest shape other
+   Gateway adapters (HubSpot, GitHub) send -- it matches the real,
+   already-implemented parmana-paytm-agent service's own
+   POST /connector/paytm-refund contract exactly (verified against that
+   repository's source), including its field names (txnId, not
+   transactionId) and its hyphenated action string. Parmana's own
+   internal capability id stays "paytm:refund" (namespaced, used
+   everywhere else -- policy binding, connector registration); only
+   this one outbound HTTP body uses the wire-specific "paytm-refund"
+   string, via PAYTM_AGENT_WIRE_ACTION.
 
 7. The connector service processes the refund against Paytm's real API
-   (out of this codebase's scope) and returns a PaytmRefundExecutionResult.
+   (out of this codebase's scope) and returns:
+
+     {
+       "businessTransactionId": "...", "action": "paytm-refund", "target": "...",
+       "parameters": { "orderId", "txnId", "refId", "amount" },
+       "success": true, "executedAt": "...",
+       "metadata": { "provider": "paytm", "resultStatus": "S", "resultCode": "00" }
+     }
 
 8. GatewayPaytmAdapter validates every identifying field in the response
-   echoes the request exactly (businessTransactionId, capability, orderId,
-   transactionId) before trusting it. status: "completed" -> success.
+   echoes the request exactly (businessTransactionId, action, orderId,
+   txnId) before trusting it. success: true -> ConnectorResponse.success: true.
 ```
 
 ## Denied flow
@@ -180,38 +213,45 @@ Paytm order and transaction actually being refunded, not by Parmana's `businessT
 is unique per authorization attempt and therefore differs across two distinct Parmana authorizations
 for the same logical refund, e.g. a legitimate retry after a prior attempt's outcome was unclear).
 
-The connector service's contract — exercised hermetically in this repository by
-`MockPaytmConnectorServer`'s deterministic `refIdFor(orderId, transactionId)`, and expected of the
-real `parmana-paytm-agent` service — is: **a retried request for the same `(orderId, transactionId)`
-must receive the same `refId` back, never a newly minted one.** `GatewayPaytmAdapter` never generates
-a `refId` itself; it only forwards the request and validates what comes back.
+**Corrected against the real `parmana-paytm-agent` source** (its `POST /connector/paytm-refund`
+handler, `src/server/index.ts`): that service does **not** derive `refId` itself — it requires the
+*caller* (`GatewayPaytmAdapter`) to supply one, and has no server-side idempotency store wired into
+this route at all (a `RefundIdempotencyStore` exists in that codebase but is currently unused there).
+`GatewayPaytmAdapter` closes that gap on the Parmana side: `deriveDeterministicPaytmRefId(orderId,
+transactionId)` is a pure SHA-256-based hash with no `Date.now()`/`Math.random()`, so **a retried
+request for the same `(orderId, transactionId)` always derives and sends the same `refId`**,
+regardless of Parmana's own `businessTransactionId` (which differs across distinct authorization
+attempts for the same logical refund). Paytm's own `/refund/apply` is documented as idempotent per
+`refId`, so this is what ultimately prevents a duplicate refund even if the connector service's own
+call to Paytm were retried independently.
 
-## Ambiguous Paytm execution status
+## Paytm execution outcome
 
-The connector service reports one of three statuses:
+Unlike an earlier draft of this document, the real connector service's response has **no separate
+"ambiguous" status enum** — only a boolean `success`, plus whatever raw Paytm `resultStatus`/
+`resultCode` the connector service chooses to surface in `metadata`:
 
-- **`completed`** — `GatewayPaytmAdapter` returns `ConnectorResponse.success: true`.
-- **`failed`** — Paytm itself declined the refund. Returned as `success: false` (a clean, recorded
-  execution result — never an exception).
-- **`ambiguous`** — the connector service could not determine Paytm's actual outcome (e.g. a timeout
-  or checksum failure on its own leg to Paytm). Returned as `success: false` with
-  `metadata.requiresReconciliation: true`.
+- **`success: true`** — `GatewayPaytmAdapter` returns `ConnectorResponse.success: true`, with
+  `metadata.refId`/`resultStatus`/`resultCode` from the connector service's response.
+- **`success: false`** — covers both a definite Paytm decline (e.g. `resultStatus: "TXN_FAILURE"`) and
+  any less-certain outcome the connector service was only able to report as "not a confirmed success."
+  Returned as `ConnectorResponse.success: false` (a clean, recorded execution result — never an
+  exception), with the raw `resultStatus`/`resultCode` preserved in `metadata` so a human or downstream
+  process can distinguish a hard decline from something needing reconciliation.
 
-**`ambiguous` is deliberately never thrown as an error.** Throwing would look, to anything upstream
-that retries on exception, like a transient infrastructure failure — exactly the behavior that could
-cause a second refund attempt for a refund whose actual outcome was never confirmed. Instead it is
-recorded as ordinary execution evidence, and:
+**Never thrown as an error, either way.** Throwing on a non-success outcome would look, to anything
+upstream that retries on exception, like a transient infrastructure failure — exactly the behavior
+that could cause a second refund attempt for a refund whose actual outcome was never confirmed.
 
 ```
 DO NOT:
-  - generate a new refId
-  - issue another refund automatically
+  - derive a new refId for a retry of the same (orderId, transactionId)
+  - treat a non-2xx/timeout/malformed-response error as "safe to just try again with a new refId"
 
 INSTEAD:
-  - reconcile the existing refund's real status (the connector service's own
-    responsibility, using Paytm's documented reconciliation/status-query
-    semantics -- out of this codebase's scope)
-  - only retry once that reconciliation confirms it is safe to do so
+  - a genuine retry naturally reuses the same deterministic refId (no caller action needed)
+  - reconciling a non-success outcome against Paytm's real status is the connector service's own
+    responsibility, using Paytm's documented status-query semantics -- out of this codebase's scope
 ```
 
 `GatewayPaytmAdapter` itself contains no internal retry loop of any kind — every `execute()` call

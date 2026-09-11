@@ -7,6 +7,7 @@ import type {
 } from "@parmana/connector-sdk";
 
 import {
+  PAYTM_AGENT_WIRE_ACTION,
   PAYTM_REFUND_CAPABILITY,
   type PaytmConnectorOptions,
 } from "@parmana/connector-paytm";
@@ -14,8 +15,9 @@ import {
 import {
   PAYTM_ALLOWED_REFUND_PARAMETERS,
   PAYTM_CONNECTOR_TEST_MODE_PLACEHOLDER_SECRET,
+  deriveDeterministicPaytmRefId,
+  isPaytmAgentRefundExecutionResult,
   isPaytmConnectorCredentialValue,
-  isPaytmRefundExecutionResult,
   redactPaytmConnectorSecret,
 } from "@parmana/connector-paytm";
 
@@ -30,7 +32,7 @@ const PAYTM_REFUND_PATH = "/connector/paytm-refund";
  * This is a REMOTE connector, unlike GatewayHubSpotAdapter/
  * GatewayGitHubAdapter which call the vendor's real API in-process:
  *
- *   Parmana Execution Gateway -> RemotePaytmConnector (this class)
+ *   Parmana Execution Gateway -> GatewayPaytmAdapter (this class)
  *     -> HTTPS -> PAYTM_CONNECTOR_URL/connector/paytm-refund
  *     -> (a separate, trusted service) -> Paytm /refund/apply
  *
@@ -44,14 +46,33 @@ const PAYTM_REFUND_PATH = "/connector/paytm-refund";
  * substitute for Parmana's policy authorization and not Paytm
  * authentication itself. See docs/connectors/PAYTM_CONNECTOR.md.
  *
+ * Wire format: matches the REAL parmana-paytm-agent connector service's
+ * POST /connector/paytm-refund contract, verified against that
+ * repository's own source (src/server/index.ts,
+ * executeAuthorizedConnectorRequest) -- NOT the generic flattened
+ * ConnectorRequest shape other Gateway adapters send. That contract
+ * expects a {transaction, authorization} envelope, "txnId" rather than
+ * "transactionId", a caller-supplied "refId" (the connector service has
+ * no server-side idempotency derivation of its own), and the hyphenated
+ * action string PAYTM_AGENT_WIRE_ACTION rather than Parmana's own
+ * namespaced "paytm:refund" capability id. Parmana's internal capability
+ * identity is never renamed to satisfy this -- only the one outbound
+ * HTTP body this class builds uses the wire action string.
+ *
  * Deny-by-default, structurally: PAYTM_ALLOWED_REFUND_PARAMETERS is the
  * only set of parameter names this connector will ever forward. A
  * request naming any other parameter is refused before any network
  * call, not silently dropped.
  *
+ * Idempotency: refId is deterministically derived from (orderId,
+ * transactionId) -- never Math.random()/Date.now() -- so a retried
+ * request for the same logical refund always carries the same refId.
+ * See deriveDeterministicPaytmRefId's own doc comment for why this
+ * matters given the connector service's own idempotency gap.
+ *
  * Response-validation, structurally: the connector service's response
- * must echo back businessTransactionId, capability, orderId, and
- * transactionId exactly as sent. Any mismatch is refused -- this
+ * must echo back businessTransactionId, action, and the orderId/txnId
+ * parameters exactly as sent. Any mismatch is refused -- this
  * connector never accepts a response at face value as proof it
  * corresponds to the request that produced it (defends against a
  * misrouted, replayed, or malicious response).
@@ -142,11 +163,16 @@ export class GatewayPaytmAdapter implements Connector {
       request.parameters.orderId,
       "parameters.orderId",
     );
-    const transactionId = requireString(
+    const txnId = requireString(
       request.parameters.transactionId,
       "parameters.transactionId",
     );
-    requireNumber(request.parameters.amount, "parameters.amount");
+    const amount = requireNumber(
+      request.parameters.amount,
+      "parameters.amount",
+    );
+    const amountString = amount.toFixed(2);
+    const refId = deriveDeterministicPaytmRefId(orderId, txnId);
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), context.timeoutMs);
@@ -160,11 +186,20 @@ export class GatewayPaytmAdapter implements Connector {
           Authorization: `Bearer ${sharedSecret}`,
         },
         body: JSON.stringify({
-          businessTransactionId: request.businessTransactionId,
-          capability: request.capability,
-          action: request.action,
-          target: request.target,
-          parameters: request.parameters,
+          transaction: {
+            businessTransactionId: request.businessTransactionId,
+            intent: {
+              action: PAYTM_AGENT_WIRE_ACTION,
+              target: request.target,
+              parameters: { orderId, txnId, refId, amount: amountString },
+            },
+          },
+          authorization: {
+            payload: {
+              businessTransactionId: request.businessTransactionId,
+              grantedCapability: PAYTM_AGENT_WIRE_ACTION,
+            },
+          },
         }),
       });
 
@@ -176,7 +211,7 @@ export class GatewayPaytmAdapter implements Connector {
 
       const body: unknown = await response.json().catch(() => undefined);
 
-      if (!isPaytmRefundExecutionResult(body)) {
+      if (!isPaytmAgentRefundExecutionResult(body)) {
         throw new Error(
           `PaytmConnector "${this.connectorId}" received a malformed response from the Paytm connector ` +
             "service -- missing or invalid required fields.",
@@ -189,10 +224,9 @@ export class GatewayPaytmAdapter implements Connector {
       const mismatches: string[] = [];
       if (body.businessTransactionId !== request.businessTransactionId)
         mismatches.push("businessTransactionId");
-      if (body.capability !== request.capability) mismatches.push("capability");
-      if (body.orderId !== orderId) mismatches.push("orderId");
-      if (body.transactionId !== transactionId)
-        mismatches.push("transactionId");
+      if (body.action !== PAYTM_AGENT_WIRE_ACTION) mismatches.push("action");
+      if (body.parameters.orderId !== orderId) mismatches.push("orderId");
+      if (body.parameters.txnId !== txnId) mismatches.push("txnId");
 
       if (mismatches.length > 0) {
         throw new Error(
@@ -201,40 +235,15 @@ export class GatewayPaytmAdapter implements Connector {
         );
       }
 
-      const sharedSecretRedacted = redactPaytmConnectorSecret(sharedSecret);
-
-      if (body.status === "completed" && body.success) {
-        return {
-          success: true,
-          metadata: {
-            refId: body.refId,
-            status: body.status,
-            orderId: body.orderId,
-            transactionId: body.transactionId,
-            sharedSecretRedacted,
-          },
-        };
-      }
-
-      // "ambiguous": Paytm's own execution outcome could not be
-      // determined by the connector service. This is deliberately NOT
-      // thrown -- throwing here would look like a transient
-      // infrastructure error to anything upstream that retries on
-      // exception, which is exactly the dangerous behavior that could
-      // mint a second refId for the same logical refund. Returned as a
-      // clean, non-throwing ConnectorResponse instead, so it is
-      // recorded as execution evidence and requires deliberate
-      // reconciliation rather than an automatic retry. See
-      // docs/connectors/PAYTM_CONNECTOR.md.
       return {
-        success: false,
+        success: body.success,
         metadata: {
-          refId: body.refId,
-          status: body.status,
-          orderId: body.orderId,
-          transactionId: body.transactionId,
-          requiresReconciliation: body.status === "ambiguous",
-          sharedSecretRedacted,
+          refId: body.parameters.refId,
+          orderId: body.parameters.orderId,
+          txnId: body.parameters.txnId,
+          executedAt: body.executedAt,
+          ...body.metadata,
+          sharedSecretRedacted: redactPaytmConnectorSecret(sharedSecret),
         },
       };
     } catch (error) {

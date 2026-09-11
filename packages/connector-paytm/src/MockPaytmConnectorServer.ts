@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import {
   createServer,
   type IncomingMessage,
@@ -7,7 +6,7 @@ import {
 } from "node:http";
 import type { AddressInfo } from "node:net";
 
-import type { PaytmRefundExecutionStatus } from "./PaytmTypes.js";
+import { PAYTM_AGENT_WIRE_ACTION } from "./PaytmCapabilities.js";
 
 export interface MockPaytmConnectorServerOptions {
   readonly sharedSecret: string;
@@ -15,41 +14,54 @@ export interface MockPaytmConnectorServerOptions {
 
 interface ReceivedRequest {
   readonly businessTransactionId: unknown;
-  readonly capability: unknown;
   readonly action: unknown;
   readonly target: unknown;
   readonly parameters: Record<string, unknown>;
 }
 
 /**
- * Local, in-memory stand-in for the trusted, out-of-process Paytm
- * connector service (parmana-paytm-agent)'s POST /connector/paytm-refund
- * endpoint. Hermetic and deterministic -- never makes or receives real
- * network traffic beyond localhost, and never talks to Paytm's real
- * /refund/apply endpoint. GatewayPaytmAdapter.test.ts and the
+ * Local, in-memory stand-in for the REAL parmana-paytm-agent connector
+ * service's POST /connector/paytm-refund endpoint (see that repository's
+ * src/server/index.ts, executeAuthorizedConnectorRequest -- this mock's
+ * request parsing/validation deliberately mirrors that function's exact
+ * logic and error messages, verified against the real source, not
+ * invented independently).
+ *
+ * Hermetic and deterministic -- never makes or receives real network
+ * traffic beyond localhost, and never talks to Paytm's real
+ * /refund/apply endpoint. GatewayPaytmAdapter's own tests and the
  * paytm-refund integration suite point PAYTM_CONNECTOR_URL at this
  * server instead of a real deployment.
  *
- * Deliberately models only the contract Parmana's side of the
- * integration depends on: shared-secret authentication, echoing the
- * identifying request fields back in the response (so
- * GatewayPaytmAdapter's response-validation guard has something real to
- * check), and deterministic refId derivation from (orderId,
- * transactionId) -- proving that a retried request for the same logical
- * refund gets back the same refId rather than a newly minted one. This
- * mock does not implement Paytm's own checksum scheme or wire format;
- * that lives entirely inside parmana-paytm-agent, a separate repository
- * this codebase does not have access to.
+ * Real wire contract (NOT the flattened ConnectorRequest -- see
+ * docs/connectors/PAYTM_CONNECTOR.md for why):
+ *
+ *   POST /connector/paytm-refund
+ *   Authorization: Bearer <PAYTM_CONNECTOR_SHARED_SECRET>
+ *   {
+ *     "transaction": {
+ *       "businessTransactionId": "...",
+ *       "intent": {
+ *         "action": "paytm-refund",
+ *         "target": "...",
+ *         "parameters": { "orderId", "txnId", "refId", "amount" }
+ *       }
+ *     },
+ *     "authorization": { "payload": { "businessTransactionId": "...", "grantedCapability"?: "paytm-refund" } }
+ *   }
+ *
+ * Response: { businessTransactionId, action, target, parameters, success, executedAt, metadata }
+ * -- no "status" enum; only a boolean `success` plus whatever raw
+ * result code/status is placed in `metadata`.
  */
 export class MockPaytmConnectorServer {
   private server: Server | undefined;
   private baseUrlValue = "";
   private responseDelayMs = 0;
-  private forcedStatus: PaytmRefundExecutionStatus | undefined;
+  private forcedResultStatus: string | undefined;
   private forcedHttpStatus: number | undefined;
   private malformed = false;
   private responseFieldOverride: Readonly<Record<string, unknown>> = {};
-  private readonly refIdsByLogicalRefund = new Map<string, string>();
   private readonly receivedRequests: ReceivedRequest[] = [];
   private paytmInvocations = 0;
 
@@ -59,7 +71,7 @@ export class MockPaytmConnectorServer {
     return this.baseUrlValue;
   }
 
-  /** Number of times this mock would have forwarded a refund on to Paytm's real API. */
+  /** Number of times this mock would have forwarded a refund on to Paytm's real API (a resultStatus of S/SUCCESS). */
   get paytmInvocationCount(): number {
     return this.paytmInvocations;
   }
@@ -73,9 +85,9 @@ export class MockPaytmConnectorServer {
     this.responseDelayMs = delayMs;
   }
 
-  /** Forces the next (and subsequent) responses to report this Paytm execution status. */
-  setForcedStatus(status: PaytmRefundExecutionStatus | undefined): void {
-    this.forcedStatus = status;
+  /** Forces the next (and subsequent) responses to report this raw Paytm resultStatus. Defaults to "S" (success). */
+  setForcedResultStatus(resultStatus: string | undefined): void {
+    this.forcedResultStatus = resultStatus;
   }
 
   /** Forces a non-2xx HTTP response, simulating a connector-service-side failure. */
@@ -83,16 +95,16 @@ export class MockPaytmConnectorServer {
     this.forcedHttpStatus = status;
   }
 
-  /** Returns a response body that fails PaytmRefundExecutionResult's shape entirely. */
+  /** Returns a response body that fails PaytmAgentRefundExecutionResult's shape entirely. */
   setMalformedResponse(malformed: boolean): void {
     this.malformed = malformed;
   }
 
   /**
-   * Overrides one or more identifying fields in the next response
-   * (orderId, transactionId, businessTransactionId, capability) so a
-   * test can simulate a connector-service response that does not
-   * correspond to the request it was sent for.
+   * Overrides one or more fields in the next well-formed response
+   * (businessTransactionId, action, target, or nested parameters.*) so
+   * a test can simulate a response that does not correspond to the
+   * request it was sent for.
    */
   setResponseFieldOverride(override: Readonly<Record<string, unknown>>): void {
     this.responseFieldOverride = override;
@@ -101,12 +113,9 @@ export class MockPaytmConnectorServer {
   async listen(): Promise<void> {
     this.server = createServer((req, res) => {
       this.handle(req, res).catch((error: unknown) => {
-        res.writeHead(500, { "Content-Type": "application/json" });
-        res.end(
-          JSON.stringify({
-            message: error instanceof Error ? error.message : "unknown error",
-          }),
-        );
+        this.respond(res, 500, {
+          error: error instanceof Error ? error.message : "request failed",
+        });
       });
     });
     await new Promise<void>((resolve) =>
@@ -126,9 +135,7 @@ export class MockPaytmConnectorServer {
     res: ServerResponse,
   ): Promise<void> {
     if (!this.authenticates(req)) {
-      this.respond(res, 401, {
-        message: "invalid or missing connector shared secret",
-      });
+      this.respond(res, 401, { error: "unauthorized" });
       return;
     }
 
@@ -137,15 +144,12 @@ export class MockPaytmConnectorServer {
     const path = url.split("?")[0] ?? url;
 
     if (method !== "POST" || path !== "/connector/paytm-refund") {
-      this.respond(res, 404, { message: "not found" });
+      this.respond(res, 404, { error: "not_found" });
       return;
     }
 
-    const body = await this.readJsonBody(req);
-    this.receivedRequests.push(body as unknown as ReceivedRequest);
-
     if (this.forcedHttpStatus !== undefined) {
-      this.respond(res, this.forcedHttpStatus, { message: "forced failure" });
+      this.respond(res, this.forcedHttpStatus, { error: "forced failure" });
       return;
     }
 
@@ -154,45 +158,94 @@ export class MockPaytmConnectorServer {
       return;
     }
 
-    const parameters =
-      (body.parameters as Record<string, unknown> | undefined) ?? {};
-    const orderId = String(parameters.orderId ?? "");
-    const transactionId = String(parameters.transactionId ?? "");
-    const status: PaytmRefundExecutionStatus = this.forcedStatus ?? "completed";
+    const body = await this.readJsonBody(req);
 
-    const refId = this.refIdFor(orderId, transactionId);
+    // Mirrors executeAuthorizedConnectorRequest's exact parse/validation
+    // order and error messages (parmana-paytm-agent/src/server/index.ts).
+    let transactionId: string;
+    let action: string;
+    let target: string;
+    let orderId: string;
+    let txnId: string;
+    let refId: string;
+    let amount: string;
 
-    if (status === "completed") {
-      this.paytmInvocations += 1;
+    try {
+      const transaction = asRecord(body.transaction, "transaction");
+      const intent = asRecord(transaction.intent, "transaction.intent");
+      const authorization = asRecord(body.authorization, "authorization");
+      const payload = asRecord(authorization.payload, "authorization.payload");
+      const parameters = asRecord(
+        intent.parameters,
+        "transaction.intent.parameters",
+      );
+
+      action = String(intent.action ?? "");
+      if (action !== PAYTM_AGENT_WIRE_ACTION)
+        throw new Error("unsupported connector action");
+
+      transactionId = String(transaction.businessTransactionId ?? "");
+      if (!transactionId || payload.businessTransactionId !== transactionId) {
+        throw new Error(
+          "authorization is not bound to the business transaction",
+        );
+      }
+      if (
+        payload.grantedCapability !== undefined &&
+        payload.grantedCapability !== action
+      ) {
+        throw new Error(
+          "authorization capability does not match connector action",
+        );
+      }
+
+      target = String(intent.target ?? "");
+      orderId = requireParameter(parameters, "orderId");
+      txnId = requireParameter(parameters, "txnId");
+      refId = requireParameter(parameters, "refId");
+      amount = requireParameter(parameters, "amount");
+    } catch (error) {
+      this.respond(res, 500, {
+        error: error instanceof Error ? error.message : "request failed",
+      });
+      return;
     }
 
-    this.respond(res, 200, {
-      success: status === "completed",
-      status,
-      refId,
-      businessTransactionId: body.businessTransactionId,
-      capability: body.capability,
-      orderId,
-      transactionId,
-      ...this.responseFieldOverride,
+    this.receivedRequests.push({
+      businessTransactionId: transactionId,
+      action,
+      target,
+      parameters: { orderId, txnId, refId, amount },
     });
-  }
 
-  /**
-   * Deterministic refId derivation, keyed on the logical refund
-   * (orderId, transactionId) -- not on businessTransactionId, which
-   * changes across distinct Parmana authorization attempts for the
-   * same logical refund. A second call for the same (orderId,
-   * transactionId) always returns the same refId, simulating the
-   * idempotency contract the real connector service must implement.
-   */
-  private refIdFor(orderId: string, transactionId: string): string {
-    const key = `${orderId}:${transactionId}`;
-    const existing = this.refIdsByLogicalRefund.get(key);
-    if (existing !== undefined) return existing;
-    const refId = `refid_${createHash("sha256").update(key).digest("hex").slice(0, 16)}`;
-    this.refIdsByLogicalRefund.set(key, refId);
-    return refId;
+    const resultStatus = (this.forcedResultStatus ?? "S").toUpperCase();
+    const success = resultStatus === "S" || resultStatus === "SUCCESS";
+
+    if (success) this.paytmInvocations += 1;
+
+    // Nested `parameters` overrides are merged (not replaced), so a
+    // test can force a single mismatched field (e.g. orderId) without
+    // having to restate every other real field.
+    const { parameters: parametersOverride, ...topLevelOverride } = this
+      .responseFieldOverride as {
+      parameters?: Readonly<Record<string, unknown>>;
+      [key: string]: unknown;
+    };
+
+    this.respond(res, 200, {
+      businessTransactionId: transactionId,
+      action,
+      target,
+      parameters: { orderId, txnId, refId, amount, ...parametersOverride },
+      success,
+      executedAt: new Date().toISOString(),
+      metadata: {
+        provider: "paytm",
+        resultStatus: resultStatus || "UNKNOWN",
+        resultCode: success ? "00" : "01",
+      },
+      ...topLevelOverride,
+    });
   }
 
   private authenticates(req: IncomingMessage): boolean {
@@ -217,4 +270,20 @@ export class MockPaytmConnectorServer {
       res.end(JSON.stringify(body));
     }, this.responseDelayMs);
   }
+}
+
+function asRecord(value: unknown, field: string): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new Error(`${field} must be an object`);
+  return value as Record<string, unknown>;
+}
+
+function requireParameter(
+  parameters: Record<string, unknown>,
+  field: string,
+): string {
+  const value = parameters[field];
+  if (value === undefined || value === null || String(value).trim() === "")
+    throw new Error(`${field} is required`);
+  return String(value);
 }
