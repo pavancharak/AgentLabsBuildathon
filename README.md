@@ -153,8 +153,8 @@ npm run loadtest -- --connections 20 --duration 15
 Assessed at TRL 6 on the evidence in [docs/CLAIMS.md](docs/CLAIMS.md).
 Explicitly not claimed: sustained volume, load-bearing traffic, high
 availability, or multi-tenant production operation. The claims file also
-tracks what has no implementation yet, every connector beyond HubSpot and
-GitHub among them. Adding a new connector is a bootstrap source change
+tracks what has no implementation yet, every connector beyond HubSpot,
+GitHub, and Paytm among them. Adding a new connector is a bootstrap source change
 today, not a runtime configuration option — see
 [docs/connectors/BUILDING_A_CONNECTOR.md](docs/connectors/BUILDING_A_CONNECTOR.md).
 

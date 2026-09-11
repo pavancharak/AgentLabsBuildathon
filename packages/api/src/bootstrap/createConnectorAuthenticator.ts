@@ -45,6 +45,12 @@ export function createConnectorAuthenticator(): RequestBoundConnectorAuthenticat
           "spiffe://parmana/connectors/github",
         authenticationMetadata: {},
       },
+      {
+        connectorId: "paytm",
+        publicIdentity:
+          "spiffe://parmana/connectors/paytm-refund",
+        authenticationMetadata: {},
+      },
     ],
   );
 }

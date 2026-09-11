@@ -92,6 +92,15 @@ describe("execution boundary — exactly one production execution pipeline", () 
       // bootstrap (no policy file, no createGitHubConnector.ts
       // registration) — scaffold and hermetic tests only.
       "packages/execution-gateway/src/connector-execution/GatewayGitHubAdapter.ts",
+      // Paytm refund connector: a REMOTE connector (forwards an
+      // already-authorized paytm:refund ConnectorRequest to a separate,
+      // trusted, out-of-process Paytm connector service over HTTPS,
+      // never calling Paytm's own API in-process) — see
+      // docs/connectors/PAYTM_CONNECTOR.md and docs/CLAIMS.md §3.22.
+      // Same Phase 1C shape as HubSpot/GitHub: capability
+      // identifiers/DTOs live in @parmana/connector-paytm, only the
+      // executable class lives here.
+      "packages/execution-gateway/src/connector-execution/GatewayPaytmAdapter.ts",
       // Explicit, intentional test double — never executes a real vendor
       // call. Constructed by production bootstrap (createVendorPaymentConnector.ts,
       // via createConnectorRegistry.ts) ONLY when NODE_ENV=test; outside test
@@ -329,6 +338,7 @@ describe("execution boundary — exactly one production execution pipeline", () 
       "createGatewayHubSpotConnector",
       "createGatewayGitHubConnector",
       "createGatewayGitHubCredentialProvider",
+      "createGatewayPaytmConnector",
     ]);
 
     it("both barrel files exist and were scanned", () => {

@@ -38,6 +38,7 @@
   { "path": "../execution-gateway" },
   { "path": "../connector-sdk" },
   { "path": "../connector-hubspot" },
+  { "path": "../connector-paytm" },
   { "path": "../approval" }
 ]
 }

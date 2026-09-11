@@ -57,6 +57,10 @@ export const CANONICAL_CAPABILITY_POLICY_BINDINGS: ReadonlyMap<string, PolicyRef
     "github:pr-merge",
     { name: "github-pr-approval", version: "1.0.0", schemaVersion: "1.0.0" },
   ],
+  [
+    "paytm:refund",
+    { name: "customer-refund", version: "1.0.0", schemaVersion: "1.0.0" },
+  ],
 ]);
 
 /**

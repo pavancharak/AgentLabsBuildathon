@@ -23,6 +23,7 @@ describe("execution-gateway public API boundary", () => {
     "CredentialVaultAdapter",
     "GatewayHubSpotAdapter",
     "GatewayHttpAdapter",
+    "GatewayPaytmAdapter",
     "buildConnectorEvidence",
     "redactSensitiveKeys",
     "sanitizeEndpoint",

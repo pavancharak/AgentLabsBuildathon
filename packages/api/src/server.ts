@@ -4,6 +4,7 @@ import { loadConfig } from "@parmana/shared";
 
 import { assertStorageConfigured } from "./bootstrap/assertStorageConfigured.js";
 import { assertSigningKeyMaterialConfigured } from "./bootstrap/assertSigningKeyMaterialConfigured.js";
+import { assertPaytmConnectorConfigured } from "./bootstrap/assertPaytmConnectorConfigured.js";
 import { createGracefulShutdown } from "./bootstrap/createGracefulShutdown.js";
 import { createExecutionSystem } from "./bootstrap/createExecutionSystem.js";
 import { createApplication } from "./application.js";
@@ -27,11 +28,20 @@ import { createApp } from "./app.js";
  * client — see assertStorageConfigured.ts), and signing key material
  * is normally validated lazily too (FileKeyProvider, only on the first
  * sign/verify call — see assertSigningKeyMaterialConfigured.ts).
+ * assertPaytmConnectorConfigured() closes a narrower gap: not "is the
+ * Paytm connector configured at all" (it's optional, like HubSpot/
+ * GitHub — createConnectorRegistry.ts simply doesn't register it when
+ * unset), but "is it configured consistently" — refusing to start with
+ * only one of PAYTM_CONNECTOR_URL/PAYTM_CONNECTOR_SHARED_SECRET set,
+ * which would otherwise surface later as a connector that "registered"
+ * but can never authenticate to or reach the remote Paytm connector
+ * service.
  * Without these, a misconfigured process could bind the port, pass
  * /health, and only fail on its first real request.
  */
 assertStorageConfigured();
 assertSigningKeyMaterialConfigured();
+assertPaytmConnectorConfigured();
 
 const executionSystem = createExecutionSystem();
 

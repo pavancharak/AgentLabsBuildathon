@@ -43,3 +43,4 @@ export { createGatewayGitHubConnector } from "./connector-execution/createGatewa
 export {
   createGatewayGitHubCredentialProvider,
 } from "./connector-execution/createGatewayGitHubCredentialProvider.js";
+export { createGatewayPaytmConnector } from "./connector-execution/createGatewayPaytmConnector.js";

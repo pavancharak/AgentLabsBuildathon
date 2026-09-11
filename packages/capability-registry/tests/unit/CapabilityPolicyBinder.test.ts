@@ -148,12 +148,18 @@ describe("CapabilityPolicyBinder", () => {
     // itself, eventually) a leaf package to depend on instead of all of
     // @parmana/policy. This assertion is still not self-updating.
     //
+    // paytm:refund (packages/api/src/bootstrap/createConnectorRegistry.ts,
+    // wired alongside the remote Paytm connector) is bound to
+    // customer-refund/1.0.0 -- the same policy customer-refund's own
+    // unit/reference-policy tests already exercise directly (see
+    // packages/policy/tests/unit/ReferencePolicies*.test.ts).
     expect(boundActions).toEqual(
       new Set([
         "hubspot:deal-fetch",
         "hubspot:deal-update",
         "github:pr-fetch",
         "github:pr-merge",
+        "paytm:refund",
       ]),
     );
   });
