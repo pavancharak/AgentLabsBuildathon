@@ -1,0 +1,191 @@
+---
+title: "Live API and Demos"
+description: "Call the real, deployed Parmana API directly: authentication, the request shape, every deployed policy, how to author and deploy a new one, and independent offline verification."
+---
+
+<Info>**[AVAILABLE]**. Every endpoint, error, and worked example below was run against the
+live deployment while writing this page, not written from the spec alone. Base URL:
+`https://parmana-api-real.vercel.app`. Repo copy of this guide: `LIVE-API-GUIDE.md`
+(repo root) — this page and that file are kept in sync.</Info>
+
+## Goal
+
+Build a demo by calling a real, running Parmana deployment directly — no local setup, no
+mocked responses. This is the real, production `@parmana/api` code, not a sandbox or a
+simplified illustration.
+
+## What this deployment is — and isn't
+
+**Is:** a real authorization engine. Submit a Business Transaction, it evaluates the named
+policy against your declared signals, produces a real, deterministic, Ed25519-signed
+decision (approve/reject), and persists it durably. Rejections complete end to end —
+signed, durable, retrievable. Genuinely useful for demoing policy authoring, signal
+binding, guardrails correctly declining a request, cryptographic proof of a decision,
+independent offline verification, and audit trails.
+
+**Isn't:** a live payment/CRM/deployment system. **No connector is registered on this
+deployment** — no HubSpot token, no GitHub App credentials configured, and it isn't running
+in test mode either. This is deliberate: it mirrors a real, documented finding in this
+codebase (see [What Parmana does not claim](/trust-and-claims/what-we-dont-claim) and the
+`vendor-payment` policy's own history) that a capability should not be wired to a connector
+until its signals are independently verified, not merely caller-declared.
+
+Concretely: an **approved** decision reaches Policy Engine and gets signed — then fails
+with a `500` (`No connector registered for capability '<name>'`) at the dispatch stage, for
+every capability, including the ones with real connector code (HubSpot, GitHub), since
+their credentials aren't configured on this deployment. A **denied** decision never reaches
+that stage (policy rejection happens before dispatch), so it always completes cleanly. Plan
+demos around that: "the system correctly declines" is a complete, real demo on this
+deployment; "money actually moves" is not, unless you add real connector credentials.
+
+## Authentication
+
+Bearer token in the `Authorization` header. Two keys are currently provisioned:
+
+| Caller | Capabilities | Use for |
+|---|---|---|
+| `demo` | `["*"]` — any policy | Building new demos. Use this by default. |
+| `agent-vendor-payment-demo` | `["agent-vendor-payment"]` only | Kept for continuity from an earlier session; not needed for new demos. |
+
+Raw key values are shown once in a terminal and never committed to the repo — only their
+salted hashes live in the deployment's environment configuration. To mint your own:
+
+```bash
+npx tsx scripts/generate-api-key.ts \
+  --caller-id my-new-demo \
+  --allowed-capabilities "*" \
+  --credential-holder-type SERVICE
+```
+
+This prints the raw key once and a config entry to add to the deployment's caller-key list,
+then requires a redeploy to take effect. See [Authentication](/api-reference/authentication)
+for the full caller-auth model, and `LIVE-API-GUIDE.md` (repo root) for the exact commands.
+
+**Principal scoping is a separate check from capability scoping**: a key with no explicit
+principal grant may only assert `authority.principalId` equal to its own caller id.
+Simplest path — set `authority.principalId` to `"demo"` in every transaction you submit
+with the `demo` key.
+
+## The shape of a request
+
+```json
+{
+  "businessTransactionId": "<a real UUID v4>",
+  "metadata": { "businessTransactionId": "<same UUID>" },
+  "authority": {
+    "authorityId": "authority-demo",
+    "authorityType": "SERVICE",
+    "principalId": "demo",
+    "issuedAt": "2026-01-01T00:00:00Z"
+  },
+  "authorization": {
+    "authorizationId": "auth-demo",
+    "authorityId": "authority-demo",
+    "purpose": "human-readable reason",
+    "issuedAt": "2026-01-01T00:00:00Z"
+  },
+  "intent": {
+    "intentId": "intent-demo",
+    "authorizationId": "auth-demo",
+    "action": "customer-refund",
+    "target": "order-123",
+    "parameters": { "amount": 50 },
+    "createdAt": "2026-01-01T00:00:00Z"
+  },
+  "policy": { "name": "customer-refund", "version": "1.0.0", "schemaVersion": "1.0.0" },
+  "signals": { "refundEligible": true, "managerApproved": true, "fraudCheckPassed": true, "refundAmount": 50 },
+  "status": "RECEIVED",
+  "createdAt": "2026-01-01T00:00:00Z"
+}
+```
+
+Hard requirements, all fail-closed with a clear `400`/`403` if wrong:
+
+- `businessTransactionId` **must be a real UUID** — not a slug.
+- `authority.authorityType` must be one of `USER`, `ROLE`, `SERVICE`, `ORGANIZATION`. An
+  autonomous agent maps to `SERVICE` (`"AGENT"` is not a valid value — a real mistake made
+  and caught while building this deployment).
+- `policy.name`/`policy.version` must match a real, deployed policy — the caller names the
+  policy explicitly, it is not inferred from `intent.action`.
+- Every fact a policy's rules reference must appear in `signals`. A fact declared as
+  `boundSignals` is additionally cross-checked against the real `intent` field it's bound
+  to, or the whole request is rejected before Policy Engine ever runs.
+
+## Available policies
+
+| Policy | What it authorizes | Bound to `intent` |
+|---|---|---|
+| `access-control@1.0.0` | Access via auth/MFA/device-trust/session-risk | — |
+| `agent-vendor-payment@1.0.0` | An autonomous agent paying a vendor, within limits | `paymentAmount`→`parameters.amount`, `vendorId`→`target` |
+| `api-key-issuance@1.0.0` | Issuing a new API key | `keyLifetimeDays`→`parameters.lifetimeDays` |
+| `connector-capability@1.0.0` | Capability-based connector authorization (reference) | `paymentAmount`→`parameters.amount` |
+| `customer-refund@1.0.0` | Customer refunds, bounded by eligibility/amount | `refundAmount`→`parameters.amount` |
+| `database-change@3.0.0` | Production DB changes | — |
+| `expense-reimbursement@1.0.0` | Employee expense reimbursement — the worked example below | `expenseAmount`→`parameters.amount` |
+| `github-pr-approval@1.0.0` | PR approval via reviews/status checks | — |
+| `hubspot-deal-update@1.0.0` | HubSpot deal stage/amount updates | `proposedDealStage`→`parameters.dealstage`, `proposedAmount`→`parameters.amount` |
+| `llm-tool-call@1.0.0` | AI-initiated tool execution | — |
+| `production-deployment@1.0.0` | Production deployments | — |
+| `rag-document-access@1.0.0` | Enterprise document retrieval | — |
+| `vendor-payment@2.0.0` | Vendor payments (real production policy) | `paymentAmount`→`parameters.amount`, `vendorId`→`target` |
+
+Full signal schemas for every policy: `LIVE-API-GUIDE.md` (repo root).
+
+## Writing a new policy
+
+A policy is one JSON file: `policies/<policyId>/<version>/policy.json`. Four condition
+shapes (leaf comparison, `all`, `any`, `always`), a fixed operator set (`eq`, `neq`, `gt`,
+`gte`, `lt`, `lte`, `between`, `in`, `not_in`, `contains`, `not_contains`, `contains_all`,
+`contains_any`, `starts_with`, `ends_with`, `matches`, `exists`, `not_exists`, `is_true`,
+`is_false`, `is_null`, `is_not_null`, `length_eq`, `length_gt`, `length_gte`, `length_lt`,
+`length_lte`, `type_is`), and one rule that's easy to miss: **every fact your rules
+reference must appear in either `boundSignals` or `unboundSignalReasons`**, or the policy
+fails to load at all — no silent, unacknowledged gaps allowed.
+
+The `expense-reimbursement@1.0.0` policy above is a real, worked example of this — full
+schema, the exact validation rule that would reject a badly-formed policy, and how to
+deploy a new one (`git add` + `vercel deploy --prod`, since policies are baked into the
+build) are all in `LIVE-API-GUIDE.md` (repo root), tested live while writing it: write,
+validate, deploy, call, get a signed decision, independently verify.
+
+## Endpoints
+
+| Method & path | Auth | What it does |
+|---|---|---|
+| `GET /health` / `GET /ready` | none | Liveness / readiness |
+| `POST /execute` | required | Submit a Business Transaction, get the decision |
+| `GET /transactions` | required | List your own submitted transactions |
+| `GET /refusal/:id` | required | The signed Refusal Record for a rejected transaction |
+| `POST /refusal/verify` | none | Independently verify a Refusal Record's signature |
+| `POST /audit/verify` | none | Verify a signed caller-audit event |
+| `GET /keys/:keyId` | none | Fetch a public signing key (PEM + JWK where supported) |
+| `GET /.well-known/jwks.json` | none | Every public key this deployment currently holds |
+| `GET /trust-records/:id` | required | The full signed Execution Trust Record (only populated once a real connector is wired — see above) |
+
+Full table, every route, and copy-pasteable `curl` examples: `LIVE-API-GUIDE.md` (repo
+root). Machine-readable spec: `GET /openapi.yaml` or [the REST API
+reference](/api-reference/introduction).
+
+## Verifying a result independently
+
+`GET /trust-records/:id` only returns a record for a capability with a registered
+connector — none on this deployment. For a real, fetchable, signed artifact today, use the
+**Refusal Record**: fetch it via `GET /refusal/:id`, then verify with zero further server
+calls using `verifyExecutionTrustRecordOffline` from `@parmana/crypto` for an
+`ExecutionTrustRecord`, or `POST /refusal/verify` (server-side, but still genuinely
+cryptographic and unauthenticated) for a `RefusalRecord`. See [Verify a trust record
+independently](/guides/verify-independently) for the fully offline path, and
+`examples/tutorials/107-offline-verification/` through `110-hybrid-signature-downgrade-protection/`
+for runnable, tested demonstrations of every scenario, including a hybrid (Ed25519 +
+ML-DSA-65) record and a downgrade-attack proof.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Write your first policy" icon="file-pen" href="/guides/write-your-first-policy">
+    A slower, more conceptual walkthrough of policy authoring than the reference above.
+  </Card>
+  <Card title="Verify a trust record independently" icon="check-double" href="/guides/verify-independently">
+    The fully offline verification path, in depth.
+  </Card>
+</CardGroup>
