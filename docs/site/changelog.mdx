@@ -14,6 +14,39 @@ and everything on 2026-09-09 other than `25295ee`, `bab0981`, and the ten commit
 log` for those ranges directly if you need them.
 </Info>
 
+## 2026-09-11 (later same day)
+
+Same-day PQC production-readiness audit (scope: is Parmana's cryptographic execution
+evidence independently verifiable by third parties?) found four real gaps and closed all
+four. Full detail: `docs/VERIFICATION-GAPS.md` ("Gaps closed in the 2026-09-11 PQC
+production-readiness audit remediation", gaps 51-54), `docs/CLAIMS.md` 2.14/2.28/3.12
+updates. Commit `1f4b292`.
+
+- No standalone offline verifier existed anywhere in this repository — every
+  verification path was a call into Parmana's own server. New
+  `packages/crypto/src/OfflineVerifier.ts` (zero network/disk/env-var access) and a
+  Python counterpart, `python/parmana/crypto/offline_verifier.py`; cross-language
+  determinism proven by spawning the real TypeScript signer as a subprocess and
+  verifying its output independently in Python. (Correction to the audit's own first
+  pass: an external, independently maintained package, `@parmana/sign`
+  (`github.com/pavancharak/parmana-sign`, verified real via `gh api`), already
+  provides offline verification of the classical signature, but not the hybrid
+  envelope or this system's specific canonical field mapping.)
+- No public-key discovery endpoint existed. New `GET /keys/:keyId` and
+  `GET /.well-known/jwks.json` (`packages/api/src/routes/keys.ts`), unauthenticated
+  like `/refusal/verify` and `/audit/verify`. Found and fixed alongside it:
+  `FileKeyProvider.getMetadata()` reported the wrong algorithm for any keyId other
+  than whichever one happened to match global config.
+- `VerificationCrypto`/`RefusalCrypto`/`AuditEventCrypto` (Trust Records, Refusal
+  Records, Audit Events) hardcoded keyId `"default"` with no rotation mechanism —
+  reproduced empirically (sign, regenerate the key in place, re-verify: fails). New
+  `PARMANA_VERIFICATION_KEY_ID`/`PARMANA_VERIFICATION_SECONDARY_KEY_ID`, mirroring the
+  existing `PARMANA_GATEWAY_KEY_ID` pattern, plus `scripts/rotate-verification-key.ts`.
+- A genuinely hybrid-signed Trust Record's ML-DSA-65 signature could be silently
+  stripped with no detection (proven by this codebase's own pre-existing test). New
+  opt-in `HYBRID_SIGNATURE_REQUIRED` policy flag closes it for any deployment that
+  enables it, with zero effect on any already-issued signature.
+
 ## 2026-09-11
 
 Real-deployment verification session: deployed the real API (not the standalone buildathon

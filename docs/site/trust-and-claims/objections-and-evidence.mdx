@@ -45,7 +45,7 @@ failed, as of this page's last update.
 | Is an authorization's expiry actually checked, or just recorded? | **Existing test.** `authorization-envelope.test.ts`, "rejects an expired authorization with a valid signature." |
 | Does every connector get the same caller-capability check, or could one connector implement a weaker version? | **Existing test.** `packages/api/src/bootstrap/createConnectorRegistry.ts` wires `DefaultConnectorPolicy` identically for every registered connector (HubSpot, GitHub, and the test fixture) — one class, no per-connector override to weaken. |
 | Is signature re-verification real cryptography, or just a boolean flag being checked? | **Existing test.** `@parmana/envelope-verifier` and `AuthorizationVerifier` perform real Ed25519 (or ML-DSA-65, see [Choose a signature provider](/cryptography/overview)) signature verification — "rejects a signature from a different key" only passes because the actual cryptographic check runs. |
-| What if the signing key itself is stolen? Does re-verification catch a forged authorization signed with the real key? | **Honest limit — no test claims this, and none could.** If an attacker holds the actual private key, anything they sign (including a fabricated `grantedCapability`) verifies as a fully legitimate signature, because it is one — this is what "key compromise" means for every signature scheme, not a gap specific to this codebase. Signature re-verification can only catch a payload that was *not* signed by the legitimate key, or altered *after* legitimate signing; it cannot distinguish the real key holder from a thief holding the same key. This repo's actual posture: `docs/CLAIMS.md` §2.28 (key-id-aware resolution with expiry/revocation) limits exposure *after* a compromise is discovered and the key is revoked — a mitigation, not a prevention. There is currently no automated key rotation and no HSM/KMS-backed `KeyProvider` (`aws-kms`/`azure-key-vault`/`gcp-kms`/`hsm` are declared config values with zero implementing classes — see [What Parmana does not claim](/trust-and-claims/what-we-dont-claim)): keys are plain files on disk, and protecting them is entirely an operational, not a code-level, control today. |
+| What if the signing key itself is stolen? Does re-verification catch a forged authorization signed with the real key? | **Honest limit — no test claims this, and none could.** If an attacker holds the actual private key, anything they sign (including a fabricated `grantedCapability`) verifies as a fully legitimate signature, because it is one — this is what "key compromise" means for every signature scheme, not a gap specific to this codebase. Signature re-verification can only catch a payload that was *not* signed by the legitimate key, or altered *after* legitimate signing; it cannot distinguish the real key holder from a thief holding the same key. This repo's actual posture: `docs/CLAIMS.md` §2.28 (key-id-aware resolution with expiry/revocation, Authorization/Gateway envelope) limits exposure *after* a compromise is discovered and the key is revoked — a mitigation, not a prevention. As of 2026-09-11, the durable evidence signers (Trust Records, Refusal Records, Audit Events) have the equivalent: a compromised key can be replaced by a new keyId without breaking any already-issued record (`PARMANA_VERIFICATION_KEY_ID`, `docs/CLAIMS.md` §2.28's update, `docs/VERIFICATION-GAPS.md` gap 53) — still not automated, still a manual operator procedure. There is no automated key rotation and no HSM/KMS-backed `KeyProvider` (`aws-kms`/`azure-key-vault`/`gcp-kms`/`hsm` are declared config values with zero implementing classes — see [What Parmana does not claim](/trust-and-claims/what-we-dont-claim)): keys are plain files on disk, and protecting them is entirely an operational, not a code-level, control today. |
 
 ## Domain 2: Credential management
 
@@ -95,6 +95,25 @@ Rows below name which mechanism actually applies.
 | Are verification tools proprietary, or something only Parmana can run? | **Existing, trivially.** `@parmana/envelope-verifier` and `@parmana/crypto` are ordinary packages in the public repository. |
 | Does verification require a live network call to Parmana or anyone else? | **Existing test, same evidence as the offline-verification row above.** `EnvelopeVerifier`/`AuditEventCrypto` make no network calls; verification needs only the artifact, its signature, and a public key file. |
 | If someone deleted a row from the audit table, would anything notice? | **Closed.** `SupabaseCallerAuditSink.record()` now chains each caller's events to their own immediately-preceding event (`previousChainHash`/`chainHash`, folded into the same object `AuditEventCrypto` already signs — no second signature column), using a Postgres advisory lock scoped per caller rather than a table-wide lock, since `caller_audit_events` is the highest-write-volume table in this system. `CallerAuditChainVerifier` (`packages/crypto/src/CallerAuditChainVerifier.ts`) proves a deleted row breaks the chain, standalone, with no server or database. See `docs/CLAIMS.md` §2.32 for the full design, including its honest limits (an entire caller's history deleted at once, or cross-caller reordering, isn't caught). |
+
+**Update (2026-09-11), sharpening rows 93 and 95 above.** A same-day audit drew a
+distinction this page's rows didn't quite make explicit: "no live network call" and
+"can a genuine third party with no access to this machine's filesystem verify it" are
+different claims. `VerificationCrypto` (what row 93/96's evidence rests on) needs no
+network call, but it does still read a local PEM file via `PARMANA_KEY_DIR` — fine for
+"the server is stopped but I'm on the same box," not yet proof for "I am a regulator who
+has never touched this deployment." Two things closed that gap for real: a genuinely
+standalone `verifyExecutionTrustRecordOffline` (`packages/crypto/src/OfflineVerifier.ts`,
+zero disk/network/env-var dependency, takes the public key as a plain string) and, for
+actually obtaining that string with no prior relationship to the deployment,
+`GET /keys/:keyId` / `GET /.well-known/jwks.json` (unauthenticated). Also relevant to row
+95 ("are verification tools proprietary"): the Python SDK had no offline verification
+path at all before this — only an HTTP call to `POST /verify` — closed with
+`python/parmana/crypto/offline_verifier.py`, independently reimplemented, not a wrapper;
+`python/tests/test_offline_verifier.py` proves it verifies a record signed by the real
+TypeScript signer. See `docs/VERIFICATION-GAPS.md` gaps 51-52 for full detail. This does
+not touch rows 94/97 (key-id-aware resolution, hash-chain deletion detection) — both
+unaffected and still accurate as written.
 
 ## Domain 4: Fail-closed behavior
 

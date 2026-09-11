@@ -211,6 +211,25 @@ policy and worked example showing how to author a policy correctly under the fai
 retrofitting it afterward the way all 10 pre-existing policies needed. Also in
 `scripts/run-examples.ts`'s list from its first commit.
 
+**107 — Offline Verification.** `verifyExecutionTrustRecordOffline` (PQC audit RED-1,
+`docs/VERIFICATION-GAPS.md`) verifying a genuine record, a tampered one, and a wrong-key
+attempt, with zero disk/network/env-var access — one level stronger than [Verify a trust
+record independently](/guides/verify-independently)'s "server process stopped" proof.
+
+**108 — Public-Key Discovery.** `GET /keys/:keyId` and `GET /.well-known/jwks.json` (PQC
+audit RED-2), unauthenticated, plus the full chain: a key fetched over real HTTP verifies a
+real record fully offline via Tutorial 107's function, with zero further server calls.
+
+**109 — Durable-Evidence Key Rotation.** `PARMANA_VERIFICATION_KEY_ID` (PQC audit RED-3)
+rotating the Trust Record/Refusal Record/Audit Event signing key to a freshly generated
+keyId without invalidating any already-issued signature — the property that was previously
+false (the only prior "rotation" was overwriting the key file in place).
+
+**110 — Hybrid-Signature Downgrade Protection.** The opt-in `HYBRID_SIGNATURE_REQUIRED`
+flag (PQC audit RED-4) closing the gap where a hybrid-signed record's ML-DSA-65 signature
+could be silently stripped with no cryptographic trace, while leaving every already-issued
+record (default policy, unaffected) exactly as verifiable as before.
+
 ## Scenarios
 
 Two production-shaped scenarios also live in `examples/scenarios/`, run manually via `npm

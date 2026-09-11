@@ -9,7 +9,13 @@ description: "How to authenticate API requests: the bearer key model, what gets 
 
 Every route requires `Authorization: Bearer <key>` except `GET /health`, `GET /ready`,
 `GET /openapi.yaml`, and `GET /documentation` (liveness/readiness probes and API
-documentation, `packages/api/src/app.ts`).
+documentation), `POST /refusal/verify` and `POST /audit/verify` (unauthenticated,
+independently third-party-verifiable signature checks — a credential-gated route
+cannot be how a party with no Parmana credential verifies a signature), and, added
+2026-09-11 for the same reason, `GET /keys/:keyId` and `GET /.well-known/jwks.json`
+(public-key discovery — see [Verify a trust record
+independently](/guides/verify-independently)). All mounted ahead of the caller-auth
+middleware in `packages/api/src/app.ts`; every other route sits behind it.
 
 ```bash
 curl http://localhost:3000/version \

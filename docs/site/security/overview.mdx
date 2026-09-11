@@ -41,7 +41,22 @@ environment signs Ed25519 alone.
 **Caveat:** `@parmana/sign`, the public verification SDK, does not yet recognize the
 hybrid envelope shape; a third party verifying a hybrid-signed record through it today
 checks the legacy Ed25519 signature only — a genuine but partial verification, not the
-full hybrid guarantee.
+full hybrid guarantee. This repository's own `packages/crypto/src/OfflineVerifier.ts`
+(TypeScript) and `python/parmana/crypto/offline_verifier.py` (Python, Ed25519 only)
+do recognize the hybrid envelope and check both signatures independently, offline,
+with zero network access — use these for a full hybrid check today, not `@parmana/sign`,
+until that separate, external package is updated.
+
+**Hybrid-signature downgrade resistance, opt-in (PQC audit, 2026-09-11).** A same-day
+audit found that a genuinely hybrid-signed record's `signatures` array (the ML-DSA-65
+half) could be stripped entirely with no cryptographic trace — `schemaVersion` and
+`signatures` are outside the hashed content by design (so the legacy Ed25519 signature
+keeps verifying pre-hybrid-era records unchanged), and verification silently fell back
+to the classical signature alone whenever the array was absent. Fixed with an opt-in
+`HYBRID_SIGNATURE_REQUIRED` flag: when set, a record missing its `signatures` array is
+rejected outright, no fallback. Off by default, so this closes the gap only for a
+deployment that turns it on once every record it issues going forward is genuinely
+hybrid-signed — see `docs/VERIFICATION-GAPS.md` gap 54.
 
 ## Claims Parmana intentionally does not make
 

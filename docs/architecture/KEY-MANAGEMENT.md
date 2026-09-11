@@ -262,6 +262,10 @@ Output
 
 
 
+\*\*Status note (2026-09-11, docs/VERIFICATION-GAPS.md gap 53):\*\* the unified `generate/load/save/export/import/rotate/list/delete` API this whole "Public API" section describes has never been implemented as such. The real `FileKeyProvider` (`packages/crypto/src/providers/key/FileKeyProvider.ts`) implements only `hasKey`, `getMetadata`, `getPrivateKey`, `getPublicKey`, and (added 2026-09-11) `listKeys()` — a flat enumeration of `*.public.pem` files, not the richer `list()` this section describes. Key generation is a separate script (`scripts/generate-keypair.ts`), not a `KeyProvider` method. There is no `save()`, `export()`, `import()`, or `delete()` anywhere in this codebase. Real key-directory layout is `<keyId>.private.pem` / `<keyId>.public.pem` (no algorithm prefix), not the `ed25519.default.private.pem` shape the "Storage Layout" section below describes.
+
+Real rotation, as it actually exists today: `scripts/rotate-verification-key.ts` generates a new keyId's key pair (never touching or deleting an existing one), and an operator points `PARMANA_VERIFICATION_KEY_ID` (or `PARMANA_VERIFICATION_SECONDARY_KEY_ID` for the hybrid-mode secondary) at it for future signing — mirroring `PARMANA_GATEWAY_KEY_ID`'s existing precedent for the Gateway's own key. Every already-issued Trust Record, Refusal Record, or Audit Event keeps verifying unaffected, since verification always resolves the public key by the record's own stored `keyId`, never a hardcoded "current" one.
+
 Creates a replacement key pair while preserving historical keys.
 
 

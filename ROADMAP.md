@@ -235,7 +235,10 @@ and was retired in Session 5 — see docs/CLAIMS.md.
 
 
 
-\*\*Status:\*\* Planned
+\*\*Status:\*\* Partially complete (updated 2026-09-11 — this phase was still marked
+"Planned" here despite being the most heavily built and audited part of the system;
+see docs/VERIFICATION-GAPS.md and docs/CLAIMS.md 2.13/2.14/2.28/3.12 for the real,
+current, evidence-backed state)
 
 
 
@@ -255,29 +258,69 @@ Provide pluggable cryptographic services.
 
 
 
-\### Deliverables
+\### Delivered
 
 
 
-\* HashProvider
+\* HashProvider / SignatureProvider / Provider Registry
 
-\* SignatureProvider
+\* SHA-256 Provider (SHA-3/BLAKE3 declared as valid config values, no real
 
-\* Provider Registry
+  implementation exists — see docs/CODEBASE-REFERENCE.md)
 
-\* SHA-256 Provider
+\* Ed25519 Provider (deterministic, RFC 8032)
 
-\* SHA-3 Provider
+\* Post-Quantum Provider: ML-DSA-65 / FIPS 204 (Dilithium3), native via Node
 
-\* Ed25519 Provider
+  \>=24 / OpenSSL \>=3.5 `node:crypto` (ECDSA-P256, Dilithium5, SPHINCS+ remain
+
+  declared config values with no implementation)
+
+\* Hybrid signing (CRYPTO\_MODE=hybrid): classical + post-quantum signed together,
+
+  both required for verification, fail-closed on a missing/corrupted/duplicated entry
+
+\* KeyId-aware key resolution with expiry/revocation (EnvelopeVerifier /
+
+  ExecutionGateway path)
+
+\* Standalone offline verification (packages/crypto/src/OfflineVerifier.ts and a
+
+  Python counterpart) — zero network/disk/env-var dependency, added 2026-09-11
+
+  after a same-day audit found no such capability existed in this repository
+
+\* Public-key discovery (GET /keys/:keyId, GET /.well-known/jwks.json), added
+
+  2026-09-11 for the same reason
+
+\* Durable-evidence (Trust Record / Refusal Record / Audit Event) signing-key
+
+  rotation via PARMANA\_VERIFICATION\_KEY\_ID, added 2026-09-11 — previously only
+
+  the ephemeral Authorization/Gateway envelope had this
+
+\* Opt-in hybrid-signature-downgrade protection (HYBRID\_SIGNATURE\_REQUIRED),
+
+  added 2026-09-11
 
 
 
-\### Future
+\### Remaining
 
 
 
-\* Post-Quantum Providers
+\* KMS/HSM custody — KEY\_PROVIDER correctly fails closed for aws-kms/azure-key-vault/
+
+  gcp-kms/hsm rather than silently falling back to file-based keys, but no real
+
+  implementation of any of them exists yet
+
+\* @parmana/sign (the external, independently published, open-core primitives
+
+  package) does not yet recognize the hybrid `signatures`/`schemaVersion` envelope —
+
+  separate, external work, not something this repository's own build performs
 
 
 

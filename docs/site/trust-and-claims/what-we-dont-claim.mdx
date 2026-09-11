@@ -96,6 +96,15 @@ Setting `KEY_PROVIDER` to one of these now fails startup loudly rather than sile
 nothing (`docs/VERIFICATION-GAPS.md` G-40). See [Deploy patterns](/guides/deploy-patterns)
 and the key-compromise incident on [Security](/security/overview).
 
+**Update (2026-09-11):** same-algorithm key rotation without breaking previously-issued
+signatures is now a real, tested capability (`PARMANA_VERIFICATION_KEY_ID`,
+`scripts/rotate-verification-key.ts` — see [Cryptography](/cryptography/overview)). This
+does not change anything above: it is still a manual operator procedure (generate a key,
+set an env var, redeploy), not automated, and the keys themselves are still plain PEM
+files on disk, not KMS/HSM-custodied. What it closes is narrower and specific: before
+this, the *only* way to rotate at all was to overwrite the existing key file in place,
+which silently invalidated every signature ever issued under it.
+
 ## Error handling: one gap closed, two still open
 
 One of three previously-tracked gaps is now closed: malformed JSON and oversized request

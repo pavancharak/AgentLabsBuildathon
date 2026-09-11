@@ -79,9 +79,27 @@ before 2026-07-05 was publicly exposed and is permanently compromised; it was ro
 exposure KMS/HSM custody is designed to prevent, see [Roadmap](/roadmap), Move 1.
 </Note>
 
+## Key rotation, same algorithm (added 2026-09-11)
+
+Distinct from the algorithm-migration gap below: rotating to a *new key pair under the
+same algorithm* — because a key may be compromised, or on a routine schedule — is built
+and tested for every durable evidence signer (Trust Records, Refusal Records, Audit
+Events), mirroring the pattern the Authorization/Gateway envelope already had via
+`keyProvider`/`keyExpiryStore` (2.28). `PARMANA_VERIFICATION_KEY_ID` /
+`PARMANA_VERIFICATION_SECONDARY_KEY_ID` point new signing at a freshly generated keyId
+(`scripts/rotate-verification-key.ts`); every already-issued record keeps verifying
+unaffected, since verification always resolves the public key by the record's own stored
+`keyId`, never a hardcoded "current" one. `FileKeyProvider.listKeys()` enumerates every
+key a deployment currently holds, and `GET /keys/:keyId` / `GET /.well-known/jwks.json`
+make them fetchable by a third party. See `docs/VERIFICATION-GAPS.md` gap 53.
+
 ## No algorithm migration path yet
 
 `AuthorizationVerifier` does not dispatch verification based on the envelope's `algorithm`
 field, a verifying process supports exactly one configured `PRIMARY_SIGNATURE_PROVIDER` at a
 time. Re-keying from Ed25519 to ML-DSA-65 while retaining the ability to verify
-previously-signed records is an explicit Future Claim, not yet built (CLAIMS.md §4).
+previously-signed records is an explicit Future Claim, not yet built (CLAIMS.md §4). The
+key rotation above is same-algorithm only (a new Ed25519 key replacing an old Ed25519 key,
+for example) — it does not close this gap, which is specifically about *changing which
+algorithm* a verifying process trusts while old records under the previous algorithm
+remain verifiable.

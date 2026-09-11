@@ -127,6 +127,11 @@ For a real deployment, see [DEPLOYMENT.md](DEPLOYMENT.md). It covers
 required configuration, fail-closed startup validation, and what was
 verified against two real Fly.io deployments (test mode and live mode).
 
+To call a live, running instance directly — authentication, the full
+request shape, every deployed policy's signal schema, how to author and
+deploy a new policy, and independent offline verification with zero
+network access — see [LIVE-API-GUIDE.md](LIVE-API-GUIDE.md).
+
 A further tier of integration tests exercises HubSpot's real API and is
 opt-in, skipped by default so `npm test` never needs live credentials.
 The env vars involved (names only, see the test files for what each

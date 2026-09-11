@@ -508,6 +508,10 @@ Evidence
 
 
 
+**Update (2026-09-11, PQC production-readiness audit remediation):** a same-day audit scoped specifically to whether this cryptographic evidence is independently verifiable by third parties (regulators, auditors) found and closed four real gaps, none of which change anything described above -- this claim's own content is unaffected. Summarized here; full detail in `docs/VERIFICATION-GAPS.md`'s "Gaps closed in the 2026-09-11 PQC production-readiness audit remediation" table (gaps 51-54): (1) no standalone offline verifier existed anywhere in this repository -- new `packages/crypto/src/OfflineVerifier.ts` and a Python counterpart, cross-language determinism proven by spawning the real TypeScript signer and verifying its output independently in Python; (2) no public-key discovery endpoint existed -- new `GET /keys/:keyId` and `GET /.well-known/jwks.json`; (3) `VerificationCrypto`/`RefusalCrypto`/`AuditEventCrypto` had no way to rotate their signing keyId without breaking every previously-issued signature -- new `PARMANA_VERIFICATION_KEY_ID`/`PARMANA_VERIFICATION_SECONDARY_KEY_ID`, mirroring the existing `PARMANA_GATEWAY_KEY_ID` precedent; (4) a genuinely hybrid-signed record's ML-DSA-65 signature could be silently stripped with no detection -- new opt-in `HYBRID_SIGNATURE_REQUIRED` policy flag. All four fixes are additive; not one already-issued signature is affected by any of them.
+
+
+
 ---
 
 
@@ -1085,6 +1089,8 @@ Evidence
 
 * `packages/envelope-verifier/tests/unit/envelope-verifier.test.ts`: "resolves the public key via keyProvider using the authorization's own keyId", "fails closed when keyProvider has no key for the authorization's keyId", "fails closed when the resolved key is expired per keyExpiryStore", "fails closed when the resolved key is revoked per keyExpiryStore", "a keyId with no keyExpiryStore entry is treated as always valid", "omitting keyProvider preserves today's exact static-publicKey behavior, with keyValid absent"
 
+**Scope, precisely — this claim covers the ExecutionAuthorization/Gateway envelope only.** `docs/VERIFICATION-GAPS.md` gap 53 (2026-09-11 PQC audit) found the durable evidence artifacts this system actually keeps long-term — Trust Records, Refusal Records, Audit Events — had none of this: all three signers hardcoded the literal keyId `"default"` for new signatures, with no way to rotate without overwriting that key in place and breaking every prior signature. Closed the same day with `PARMANA_VERIFICATION_KEY_ID`/`PARMANA_VERIFICATION_SECONDARY_KEY_ID`, mirroring this section's own `PARMANA_GATEWAY_KEY_ID` precedent — see that gap entry for full detail.
+
 * `packages/crypto/tests/unit/key-expiry.test.ts` (6 cases: missing file, keyId absent from an existing file, parsed `expiresAt` as a real `Date`, `revoked: true`, malformed JSON throws, non-object JSON throws)
 
 
@@ -1646,6 +1652,8 @@ The signing/verification/canonical-hashing primitives this document's cryptograp
 Independently checkable at the time of this writing: the repository carries an OpenSSF Best Practices passing badge (project #13926) and a weekly/on-push OpenSSF Scorecard, and its README states tagged releases carry SLSA Build Level 3 provenance and are signed keylessly with `cosign` via GitHub's OIDC identity.
 
 **Scope, precisely:** this claim is about the existence, license, and stated security posture of an external repository, verified by fetching it directly — not something this repository's own `npm test` run proves, and not something re-verified on every audit pass of this document. Verifying it currently required an external fetch outside the citation discipline the rest of this document uses (a file, a line, or a specific test in *this* repo); treat this claim as weaker evidentiary footing than every other claim above for that reason. `@parmana/sign`'s `SignatureVerifier` does **not** yet recognize the `signatures`/`schemaVersion` hybrid envelope shape (`docs/VERIFICATION-GAPS.md` G-4's update) — a third-party verifier using this package today checks the legacy single-signature field only, which is by design (that field is still computed identically for hybrid-signed records) but is not a full hybrid-signature check.
+
+**Update (2026-09-11):** independently re-verified via `gh api repos/pavancharak/parmana-sign` as part of that day's PQC production-readiness audit (`docs/VERIFICATION-GAPS.md` gap 51) -- still real, public, Apache-2.0, actively pushed to. Its own README confirms this section's description exactly (canonical serialization, `Dilithium3SignatureProvider`, no key management, no policy logic). The hybrid-envelope gap above still holds: a third party wanting to fully verify a hybrid-signed Execution Trust Record today should use this repository's own `packages/crypto/src/OfflineVerifier.ts` (or its Python counterpart, `python/parmana/crypto/offline_verifier.py`), not `@parmana/sign`, until that external package is separately updated to recognize the `signatures` array -- work this repository's own build cannot perform.
 
 Evidence
 
