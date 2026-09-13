@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * SecretsProviderBootstrap.create() caches its result in a private
- * static field, so each test needs its own module instance -- same
- * pattern as packages/crypto's signer-bootstrap.test.ts.
+ * vi.resetModules() + a fresh dynamic import isn't strictly required
+ * (SecretsProviderBootstrap.create() is deliberately NOT memoized --
+ * see its own doc comment), but keeps this file's structure consistent
+ * with packages/crypto's signer-bootstrap.test.ts.
  * AwsSecretsManagerProvider.create() is mocked so the
  * aws-secrets-manager branch never makes a real network call;
  * aws-secrets-manager-provider.test.ts already covers its own
@@ -60,7 +61,7 @@ describe("SecretsProviderBootstrap", () => {
     expect(awsProviderCreateMock).toHaveBeenCalledTimes(1);
   });
 
-  it("caches the resolved provider across repeated calls", async () => {
+  it("constructs a fresh provider on every call, rather than caching (so a per-test env change always takes effect)", async () => {
     process.env.PARMANA_SECRETS_PROVIDER = "aws-secrets-manager";
     awsProviderCreateMock.mockResolvedValue({ marker: "fake" });
 
@@ -69,7 +70,7 @@ describe("SecretsProviderBootstrap", () => {
     await SecretsProviderBootstrap.create();
     await SecretsProviderBootstrap.create();
 
-    expect(awsProviderCreateMock).toHaveBeenCalledTimes(1);
+    expect(awsProviderCreateMock).toHaveBeenCalledTimes(2);
   });
 
   it("rejects an unrecognized PARMANA_SECRETS_PROVIDER value at config-parse time", async () => {
