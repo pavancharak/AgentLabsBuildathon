@@ -11,7 +11,7 @@ demonstrating how Parmana authorizes, executes, verifies, and proves enterprise 
 
 ```
 examples/
-├── tutorials/              103 numbered, single-concept tutorials (see table below)
+├── tutorials/              104 numbered, single-concept tutorials (see table below)
 ├── scenarios/
 │   ├── expense-approval
 │   └── purchase-order
@@ -136,6 +136,15 @@ automatically alongside every change.
 | 101 | Fail-Closed Caller-Authentication Audit Writes |
 | 102 | Distinguishable HTTP Status for Policy Denial and Replay |
 | 103 | Policy Governance (Maker-Checker) |
+| 104 | Policy Governance Execution Verification |
+| 105 | Tenant Key Isolation |
+| 106 | API Key Issuance (writing a new policy) |
+| 107 | Offline Verification |
+| 108 | Public-Key Discovery |
+| 109 | Durable-Evidence Key Rotation |
+| 110 | Hybrid-Signature Downgrade Protection |
+| 111 | Connect an Agent to Parmana |
+| 112 | Slack Connector |
 
 ---
 
