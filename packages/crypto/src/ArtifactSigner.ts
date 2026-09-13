@@ -5,6 +5,7 @@ import {
 import { CanonicalSerializer } from "./CanonicalSerializer.js";
 
 import type { CryptoProvider } from "./providers/CryptoProvider.js";
+import type { Signer } from "./Signer.js";
 
 /**
  * Artifact Signer.
@@ -33,5 +34,23 @@ export class ArtifactSigner {
 
 
     return signature;
+  }
+
+  /**
+   * Signs via a Signer (ADR-0009) instead of a raw private KeyObject
+   * -- the path that works against a sign-without-release backend
+   * (AWS KMS, HSM) as well as LocalFileSigner. Produces the exact same
+   * base64 signature format as sign() above; callers verify identically
+   * regardless of which method produced the signature.
+   */
+  async signWithSigner(
+    artifact: unknown,
+    keyId: string,
+    signer: Signer,
+  ): Promise<string> {
+    const bytes =
+      this.serializer.serialize(artifact);
+
+    return signer.sign(keyId, bytes);
   }
 }

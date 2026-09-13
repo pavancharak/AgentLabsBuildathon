@@ -11,6 +11,19 @@ import { ArtifactSigner } from "./ArtifactSigner.js";
 import { ExecutableContentHasher } from "./ExecutableContentHasher.js";
 
 import type { CryptoProvider } from "./providers/CryptoProvider.js";
+import type { Signer } from "./Signer.js";
+
+type AuthorizationInput = {
+  readonly decisionId: string;
+  readonly businessTransactionId: string;
+  readonly policyName: string;
+  readonly policyVersion: string;
+  readonly policyContentHash?: string;
+  readonly signalsHash?: string;
+  readonly submittedBy?: string;
+  readonly grantedCapability?: string;
+  readonly executableContent: ExecutableContent;
+};
 
 /**
  * Authorization Signer.
@@ -40,24 +53,67 @@ export class AuthorizationSigner {
    * expiry, then signs.
    */
   async sign(
-    input: {
-      readonly decisionId: string;
-      readonly businessTransactionId: string;
-      readonly policyName: string;
-      readonly policyVersion: string;
-      readonly policyContentHash?: string;
-      readonly signalsHash?: string;
-      readonly submittedBy?: string;
-      readonly grantedCapability?: string;
-      readonly executableContent: ExecutableContent;
-    },
+    input: AuthorizationInput,
     privateKey: KeyObject,
     keyId: string,
     ttlSeconds: number,
   ): Promise<SignedExecutionAuthorization> {
-    //
-    // Validate TTL before computing expiry.
-    //
+    const payload = await this.buildPayload(input, ttlSeconds);
+
+    const signature =
+      await this.signer.sign(
+        payload,
+        privateKey,
+      );
+
+    return {
+      payload,
+      signature,
+      keyId,
+      algorithm:
+        this.crypto.signature.algorithm,
+    };
+  }
+
+  /**
+   * Signs via a Signer (ADR-0009) instead of a raw private KeyObject
+   * -- the path that works against a sign-without-release backend
+   * (AWS KMS, HSM) as well as LocalFileSigner. Same payload
+   * construction as sign() above; only the signing step differs.
+   */
+  async signWithSigner(
+    input: AuthorizationInput,
+    keyId: string,
+    signer: Signer,
+    ttlSeconds: number,
+  ): Promise<SignedExecutionAuthorization> {
+    const payload = await this.buildPayload(input, ttlSeconds);
+
+    const signature =
+      await this.signer.signWithSigner(
+        payload,
+        keyId,
+        signer,
+      );
+
+    return {
+      payload,
+      signature,
+      keyId,
+      algorithm:
+        this.crypto.signature.algorithm,
+    };
+  }
+
+  /**
+   * Builds the unsigned authorization payload -- identical for both
+   * sign() and signWithSigner(); only how the resulting payload gets
+   * signed differs between them.
+   */
+  private async buildPayload(
+    input: AuthorizationInput,
+    ttlSeconds: number,
+  ): Promise<ExecutionAuthorizationPayload> {
     if (
       !Number.isFinite(ttlSeconds) ||
       ttlSeconds <= 0
@@ -78,7 +134,7 @@ export class AuthorizationSigner {
         input.executableContent,
       );
 
-    const payload: ExecutionAuthorizationPayload = {
+    return {
       version: 1,
 
       authorizationId: randomUUID(),
@@ -117,20 +173,6 @@ export class AuthorizationSigner {
         expiresAt.toISOString(),
 
       businessTransactionHash,
-    };
-
-    const signature =
-      await this.signer.sign(
-        payload,
-        privateKey,
-      );
-
-    return {
-      payload,
-      signature,
-      keyId,
-      algorithm:
-        this.crypto.signature.algorithm,
     };
   }
 }
