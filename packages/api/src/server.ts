@@ -3,7 +3,10 @@ import "dotenv/config";
 import { loadConfig } from "@parmana/shared";
 
 import { assertStorageConfigured } from "./bootstrap/assertStorageConfigured.js";
-import { assertSigningKeyMaterialConfigured } from "./bootstrap/assertSigningKeyMaterialConfigured.js";
+import {
+  assertKmsSigningKeyReachable,
+  assertSigningKeyMaterialConfigured,
+} from "./bootstrap/assertSigningKeyMaterialConfigured.js";
 import { assertPaytmConnectorConfigured } from "./bootstrap/assertPaytmConnectorConfigured.js";
 import { createGracefulShutdown } from "./bootstrap/createGracefulShutdown.js";
 import { createExecutionSystem } from "./bootstrap/createExecutionSystem.js";
@@ -41,6 +44,7 @@ import { createApp } from "./app.js";
  */
 assertStorageConfigured();
 assertSigningKeyMaterialConfigured();
+await assertKmsSigningKeyReachable();
 assertPaytmConnectorConfigured();
 
 const executionSystem = createExecutionSystem();

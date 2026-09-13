@@ -14,6 +14,7 @@ import { HybridSignatureProvider } from "./HybridSignatureProvider.js";
 import { TrustRecordHasher } from "./TrustRecordHasher.js";
 import { ArtifactSigner } from "./ArtifactSigner.js";
 import { SignatureVerifier } from "./SignatureVerifier.js";
+import { SignerBootstrap } from "./SignerBootstrap.js";
 import { FileKeyProvider } from "./providers/key/FileKeyProvider.js";
 import {
   currentVerificationKeyId,
@@ -43,9 +44,24 @@ export class VerificationCrypto {
     loadConfig();
 
   /**
-   * File-based key provider.
+   * Signer (ADR-0009) -- LocalFileSigner or KmsSigner depending on
+   * KEY_PROVIDER. Used for both signing (sign()) and verification
+   * (verifySignature()/verify()), since Signer's read operations
+   * (getPublicKey/getMetadata/hasKey) are identical to KeyProvider's.
    */
-  private readonly keys =
+  private readonly signerPromise =
+    SignerBootstrap.create();
+
+  /**
+   * Hybrid mode's secondary signature is out of scope for the Signer
+   * migration (ADR-0009): it always requires a second, independent
+   * key/algorithm pair, and KmsSigner today only supports Ed25519.
+   * HybridSignatureProvider keeps using FileKeyProvider directly, so
+   * CRYPTO_MODE=hybrid's secondary key remains local-file-backed
+   * regardless of KEY_PROVIDER. CRYPTO_MODE defaults to "single", so
+   * this does not affect a deployment that hasn't opted into hybrid.
+   */
+  private readonly hybridKeys =
     new FileKeyProvider();
 
   private readonly hasher =
@@ -93,7 +109,7 @@ export class VerificationCrypto {
   private hybridSignatureProvider(): HybridSignatureProvider {
     return new HybridSignatureProvider(
       CryptoBootstrap.createHybrid(),
-      this.keys,
+      this.hybridKeys,
     );
   }
 
@@ -121,13 +137,13 @@ export class VerificationCrypto {
   ): Promise<Signature> {
     const keyId = currentVerificationKeyId();
 
-    const privateKey =
-      await this.keys.getPrivateKey(keyId);
+    const signer = await this.signerPromise;
 
     const value =
-      await this.signer.sign(
+      await this.signer.signWithSigner(
         this.canonicalRecord(trustRecord),
-        privateKey,
+        keyId,
+        signer,
       );
 
     return {
@@ -207,8 +223,10 @@ export class VerificationCrypto {
   async verifySignature(
     trustRecord: ExecutionTrustRecord,
   ): Promise<boolean> {
+    const signer = await this.signerPromise;
+
     const publicKey =
-      await this.keys.getPublicKey(
+      await signer.getPublicKey(
         trustRecord.signature.keyId,
       );
 

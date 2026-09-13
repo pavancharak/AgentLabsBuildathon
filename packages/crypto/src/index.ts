@@ -57,6 +57,10 @@ export * from "./KeyStore.js";
 export * from "./KeyProvider.js";
 export * from "./providers/key/FileKeyProvider.js";
 export * from "./KeyExpiry.js";
+export * from "./Signer.js";
+export * from "./SignerBootstrap.js";
+export * from "./providers/signer/LocalFileSigner.js";
+export * from "./providers/signer/KmsSigner.js";
 
 // -----------------------------------------------------------------------------
 // Provider Interfaces

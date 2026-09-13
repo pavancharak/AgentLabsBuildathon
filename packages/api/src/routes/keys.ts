@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { NextFunction, Request, Response } from "express";
 
-import { FileKeyProvider } from "@parmana/crypto";
+import { SignerBootstrap } from "@parmana/crypto";
 
 /**
  * Public-key discovery (PQC audit RED-2, docs/VERIFICATION-GAPS.md).
@@ -25,7 +25,6 @@ import { FileKeyProvider } from "@parmana/crypto";
  */
 export function createKeysRouter(): Router {
   const router = Router();
-  const keys = new FileKeyProvider();
 
   async function respondWithKey(
     keyId: string,
@@ -33,6 +32,8 @@ export function createKeysRouter(): Router {
     next: NextFunction,
   ): Promise<void> {
     try {
+      const keys = await SignerBootstrap.create();
+
       if (!(await keys.hasKey(keyId))) {
         res.status(404).json({ error: `Key not found: ${keyId}` });
         return;
@@ -105,6 +106,8 @@ export function createKeysRouter(): Router {
     "/.well-known/jwks.json",
     async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
+        const keys = await SignerBootstrap.create();
+
         if (!keys.listKeys) {
           res.status(501).json({
             error: "This KeyProvider does not support listing keys.",

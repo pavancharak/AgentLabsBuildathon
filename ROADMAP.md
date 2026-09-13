@@ -310,11 +310,15 @@ Provide pluggable cryptographic services.
 
 
 
-\* KMS/HSM custody — KEY\_PROVIDER correctly fails closed for aws-kms/azure-key-vault/
+\* KMS/HSM custody — KEY\_PROVIDER=aws-kms now has a real, sign-without-release
 
-  gcp-kms/hsm rather than silently falling back to file-based keys, but no real
+  implementation (packages/crypto/src/providers/signer/KmsSigner.ts, via the new
 
-  implementation of any of them exists yet
+  Signer/SignerBootstrap abstraction — see ADR-0009). azure-key-vault/gcp-kms/hsm
+
+  still correctly fail closed rather than silently falling back to file-based keys,
+
+  with no implementation yet
 
 \* @parmana/sign (the external, independently published, open-core primitives
 
