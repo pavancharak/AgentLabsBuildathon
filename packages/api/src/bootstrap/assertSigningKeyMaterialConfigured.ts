@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { loadConfig } from "@parmana/shared";
-import { DEFAULT_KEY_ID } from "@parmana/crypto";
+import { KeyProviders, loadConfig } from "@parmana/shared";
+import { DEFAULT_KEY_ID, SignerBootstrap } from "@parmana/crypto";
 
 /**
  * Materializes signing key material from a mounted-secret env var if the
@@ -32,6 +32,14 @@ export function assertSigningKeyMaterialConfigured(): void {
   if (process.env.NODE_ENV === "test") return;
 
   const config = loadConfig();
+
+  // ADR-0009: KEY_PROVIDER=aws-kms has no local key directory to
+  // materialize or validate -- see assertKmsSigningKeyReachable()
+  // below, called separately (it's async; this function stays
+  // synchronous so its existing fail-closed contract and every test
+  // asserting a synchronous throw are unaffected).
+  if (config.keys.provider === KeyProviders.AWS_KMS) return;
+
   const keyDirectory = config.keys.keyDirectory;
 
   // Config.ts types keyDirectory as a required string but actually
@@ -64,6 +72,34 @@ export function assertSigningKeyMaterialConfigured(): void {
         "or platform secret file, or set PARMANA_KEY_MATERIAL_JSON.",
     );
   }
+}
+
+/**
+ * Async counterpart to assertSigningKeyMaterialConfigured(), for
+ * KEY_PROVIDER=aws-kms only (ADR-0009) -- confirms the configured KMS
+ * key is reachable and has the expected key spec, before the port is
+ * bound, the same "fail fast at startup, not on the first request"
+ * goal as the synchronous local-file checks above. A no-op for every
+ * other KEY_PROVIDER value.
+ */
+export async function assertKmsSigningKeyReachable(): Promise<void> {
+  if (process.env.NODE_ENV === "test") return;
+
+  const config = loadConfig();
+  if (config.keys.provider !== KeyProviders.AWS_KMS) return;
+
+  const signer = await SignerBootstrap.create();
+
+  if (!(await signer.hasKey(DEFAULT_KEY_ID))) {
+    throw new Error(
+      `KEY_PROVIDER=aws-kms is configured, but no KMS key named "${DEFAULT_KEY_ID}" ` +
+        "is reachable. Refusing to start: every execution authorization, receipt, " +
+        "verification, and settlement confirmation this process signs requires this " +
+        "key. Verify AWS_REGION/AWS_ROLE_ARN and the key's existence/permissions.",
+    );
+  }
+
+  await signer.getMetadata(DEFAULT_KEY_ID);
 }
 
 function materializeFromEnvIfConfigured(keyDirectory: string): void {

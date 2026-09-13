@@ -1,5 +1,4 @@
 import { DEFAULT_KEY_ID } from "@parmana/crypto";
-import type { KeyProvider } from "@parmana/crypto";
 
 /**
  * Resolves which signing keyId an Execution Authorization for a given
@@ -10,6 +9,17 @@ export interface TenantKeyResolver {
 }
 
 const TENANT_KEY_PREFIX = "tenant.";
+
+/**
+ * The only capability FileTenantKeyResolver needs -- deliberately
+ * narrower than KeyProvider so both KeyProvider (getPrivateKey +
+ * friends) and Signer (ADR-0009's sign-without-release sibling, no
+ * getPrivateKey) satisfy it structurally without either depending on
+ * the other's full interface.
+ */
+interface KeyExistenceCheck {
+  hasKey(keyId: string): Promise<boolean>;
+}
 
 /**
  * Looks for a dedicated key named "tenant.<tenantId>" in the same
@@ -27,7 +37,7 @@ const TENANT_KEY_PREFIX = "tenant.";
  * without a coordinated rollout.
  */
 export class FileTenantKeyResolver implements TenantKeyResolver {
-  constructor(private readonly keys: KeyProvider) {}
+  constructor(private readonly keys: KeyExistenceCheck) {}
 
   async resolveKeyId(tenantId: string | undefined): Promise<string> {
     if (tenantId === undefined) {

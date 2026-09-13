@@ -1,7 +1,7 @@
 import {
   AuthorizationSigner,
   CryptoBootstrap,
-  FileKeyProvider,
+  SignerBootstrap,
 } from "@parmana/crypto";
 
 import type {
@@ -17,30 +17,32 @@ import {
 /**
  * Runtime Authorization Signer.
  *
- * Signs Execution Authorizations using the same
- * CryptoProvider and key-loading mechanism already
- * used to sign Execution Trust Records and Receipts
- * (CryptoBootstrap + FileKeyProvider). The keyId used
- * for a given authorization is resolved per-tenant by
- * TenantKeyResolver, falling back to the shared default
- * key ("default") when no tenant-specific key has been
- * provisioned -- see TenantKeyResolver's own doc comment.
+ * Signs Execution Authorizations via Signer (ADR-0009) -- LocalFileSigner
+ * or KmsSigner depending on KEY_PROVIDER, resolved once through
+ * SignerBootstrap, the same composition root every other signed
+ * artifact in this codebase now uses. The keyId used for a given
+ * authorization is resolved per-tenant by TenantKeyResolver, falling
+ * back to the shared default key ("default") when no tenant-specific
+ * key has been provisioned -- see TenantKeyResolver's own doc comment.
  */
 export class RuntimeAuthorizationSigner {
   private readonly crypto =
     CryptoBootstrap.create();
 
-  private readonly keys =
-    new FileKeyProvider();
+  private readonly signerPromise =
+    SignerBootstrap.create();
 
-  private readonly signer =
+  private readonly authorizationSigner =
     new AuthorizationSigner(this.crypto);
 
-  private readonly keyResolver: TenantKeyResolver;
+  private readonly keyResolverPromise: Promise<TenantKeyResolver>;
 
   constructor(keyResolver?: TenantKeyResolver) {
-    this.keyResolver =
-      keyResolver ?? new FileTenantKeyResolver(this.keys);
+    this.keyResolverPromise = keyResolver
+      ? Promise.resolve(keyResolver)
+      : this.signerPromise.then(
+          (signer) => new FileTenantKeyResolver(signer),
+        );
   }
 
   /**
@@ -61,16 +63,18 @@ export class RuntimeAuthorizationSigner {
     },
     ttlSeconds: number,
   ): Promise<SignedExecutionAuthorization> {
+    const [keyResolver, signer] = await Promise.all([
+      this.keyResolverPromise,
+      this.signerPromise,
+    ]);
+
     const keyId =
-      await this.keyResolver.resolveKeyId(input.tenantId);
+      await keyResolver.resolveKeyId(input.tenantId);
 
-    const privateKey =
-      await this.keys.getPrivateKey(keyId);
-
-    return this.signer.sign(
+    return this.authorizationSigner.signWithSigner(
       input,
-      privateKey,
       keyId,
+      signer,
       ttlSeconds,
     );
   }

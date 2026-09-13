@@ -58,6 +58,13 @@ regexes = [
   # appears after "Authorization: Bearer" in example curl commands, the
   # same reasoning as the "my-secret-api-key" entry above.
   '''YOUR_API_KEY''',
+
+  # AWS KMS's own public KeySpec identifier for an Ed25519 asymmetric
+  # key (packages/crypto/src/providers/signer/KmsSigner.ts, ADR-0009) --
+  # a fixed, documented AWS enum value, not a secret. Flagged by the
+  # generic-api-key entropy heuristic purely because of its
+  # uppercase-with-underscores shape.
+  '''ECC_NIST_EDWARDS25519''',
 ]
 
 paths = [
