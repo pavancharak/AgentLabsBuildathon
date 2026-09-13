@@ -11,6 +11,8 @@ import { StorageProviders, type StorageProvider } from "./StorageProviders.js";
 
 import { KeyProviders, type KeyProvider } from "./KeyProviders.js";
 
+import { SecretsProviders, type SecretsProvider } from "./SecretsProviders.js";
+
 import { TrustProfiles, type TrustProfile } from "./TrustProfiles.js";
 
 import { createPublicKey } from "node:crypto";
@@ -75,6 +77,9 @@ export const parseSignatureAlgorithm = (value?: string): SignatureAlgorithm =>
 
 export const parseKeyProvider = (value?: string): KeyProvider =>
   parse(value, KeyProviders, "KEY_PROVIDER", KeyProviders.LOCAL);
+
+export const parseSecretsProvider = (value?: string): SecretsProvider =>
+  parse(value, SecretsProviders, "PARMANA_SECRETS_PROVIDER", SecretsProviders.ENV);
 
 export const parseTrustProfile = (value?: string): TrustProfile =>
   parse(value, TrustProfiles, "TRUST_PROFILE", TrustProfiles.V1);

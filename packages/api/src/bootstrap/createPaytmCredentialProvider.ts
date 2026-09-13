@@ -6,6 +6,8 @@ import {
   type CredentialProvider,
 } from "@parmana/connector-sdk";
 
+import { SecretsProviderBootstrap } from "./secrets/SecretsProviderBootstrap.js";
+
 const PAYTM_CONNECTOR_ID = "paytm";
 
 /**
@@ -15,11 +17,14 @@ const PAYTM_CONNECTOR_ID = "paytm";
  * authentication between Parmana and its own connector service — never
  * Paytm's own merchant key, which this codebase never holds.
  *
- * sharedSecret is read from process.env only inside resolve(), held
- * only in the returned CredentialHandle's value, and never placed
- * anywhere else — not logged, not embedded in a thrown error (only the
- * variable name PAYTM_CONNECTOR_SHARED_SECRET ever appears in
- * messages).
+ * PAYTM_CONNECTOR_SHARED_SECRET's presence still decides whether this
+ * connector is registered at all (unchanged, synchronous, see
+ * assertPaytmConnectorConfigured.ts). Its *value* is resolved through
+ * SecretsProvider (ADR-0009) only inside resolve() -- see the
+ * identical comment in createHubSpotCredentialProvider.ts for the
+ * env-mode-vs-aws-secrets-manager-mode distinction. Never logged,
+ * never embedded in a thrown error (only the variable name
+ * PAYTM_CONNECTOR_SHARED_SECRET ever appears in messages).
  */
 class PaytmEnvironmentCredentialProvider implements CredentialProvider {
   readonly providerId = "environment";
@@ -31,13 +36,16 @@ class PaytmEnvironmentCredentialProvider implements CredentialProvider {
       );
     }
 
-    const sharedSecret = process.env.PAYTM_CONNECTOR_SHARED_SECRET;
+    const reference = process.env.PAYTM_CONNECTOR_SHARED_SECRET;
 
-    if (sharedSecret === undefined) {
+    if (reference === undefined) {
       throw new Error(
         `Environment variable PAYTM_CONNECTOR_SHARED_SECRET for connector "${PAYTM_CONNECTOR_ID}" is not set.`,
       );
     }
+
+    const secrets = await SecretsProviderBootstrap.create();
+    const sharedSecret = await secrets.getSecret(reference);
 
     return brandCredentialHandle({
       providerId: this.providerId,

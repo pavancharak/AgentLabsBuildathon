@@ -2,6 +2,15 @@
 PARMANA-*.md
 *test-keys*
 *secret*
+# Un-ignore legitimate source/test files whose path only contains the
+# word "secret(s)" because they implement or test secrets management
+# itself (ADR-0009) -- never actual secret material. Without this, an
+# entire feature directory silently vanishes from git the moment its
+# name matches *secret*, which already happened once
+# (docs/adr/ADR-0009-...) before this negation was added.
+!packages/*/src/**/*[Ss]ecret*
+!packages/*/tests/**/*[Ss]ecret*
+!docs/**/*[Ss]ecret*
 # Environment / secrets
 .env
 .env.*
