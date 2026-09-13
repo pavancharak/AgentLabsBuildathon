@@ -39,6 +39,7 @@
   { "path": "../connector-sdk" },
   { "path": "../connector-hubspot" },
   { "path": "../connector-paytm" },
+  { "path": "../connector-slack" },
   { "path": "../approval" }
 ]
 }

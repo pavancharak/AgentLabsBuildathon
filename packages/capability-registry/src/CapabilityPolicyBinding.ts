@@ -61,6 +61,10 @@ export const CANONICAL_CAPABILITY_POLICY_BINDINGS: ReadonlyMap<string, PolicyRef
     "paytm:refund",
     { name: "customer-refund", version: "1.0.0", schemaVersion: "1.0.0" },
   ],
+  [
+    "slack:post-message",
+    { name: "slack-post-message", version: "1.0.0", schemaVersion: "1.0.0" },
+  ],
 ]);
 
 /**

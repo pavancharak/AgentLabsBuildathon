@@ -51,6 +51,12 @@ export function createConnectorAuthenticator(): RequestBoundConnectorAuthenticat
           "spiffe://parmana/connectors/paytm-refund",
         authenticationMetadata: {},
       },
+      {
+        connectorId: "slack",
+        publicIdentity:
+          "spiffe://parmana/connectors/slack",
+        authenticationMetadata: {},
+      },
     ],
   );
 }

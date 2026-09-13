@@ -101,6 +101,12 @@ describe("execution boundary — exactly one production execution pipeline", () 
       // identifiers/DTOs live in @parmana/connector-paytm, only the
       // executable class lives here.
       "packages/execution-gateway/src/connector-execution/GatewayPaytmAdapter.ts",
+      // Slack connector: posts a message via Slack's real chat.postMessage
+      // Web API, in-process (like HubSpot/GitHub, not a remote-proxy
+      // pattern like Paytm). Same Phase 1C shape: capability
+      // identifiers/DTOs live in @parmana/connector-slack, only the
+      // executable class lives here.
+      "packages/execution-gateway/src/connector-execution/GatewaySlackAdapter.ts",
       // Explicit, intentional test double — never executes a real vendor
       // call. Constructed by production bootstrap (createVendorPaymentConnector.ts,
       // via createConnectorRegistry.ts) ONLY when NODE_ENV=test; outside test
@@ -339,6 +345,7 @@ describe("execution boundary — exactly one production execution pipeline", () 
       "createGatewayGitHubConnector",
       "createGatewayGitHubCredentialProvider",
       "createGatewayPaytmConnector",
+      "createGatewaySlackConnector",
     ]);
 
     it("both barrel files exist and were scanned", () => {

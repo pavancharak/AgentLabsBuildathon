@@ -153,6 +153,10 @@ describe("CapabilityPolicyBinder", () => {
     // customer-refund/1.0.0 -- the same policy customer-refund's own
     // unit/reference-policy tests already exercise directly (see
     // packages/policy/tests/unit/ReferencePolicies*.test.ts).
+    //
+    // slack:post-message (createConnectorRegistry.ts, wired alongside
+    // the in-process Slack connector) is bound to
+    // slack-post-message/1.0.0.
     expect(boundActions).toEqual(
       new Set([
         "hubspot:deal-fetch",
@@ -160,6 +164,7 @@ describe("CapabilityPolicyBinder", () => {
         "github:pr-fetch",
         "github:pr-merge",
         "paytm:refund",
+        "slack:post-message",
       ]),
     );
   });

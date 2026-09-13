@@ -175,6 +175,12 @@ amount allowed" from scratch is not your layer's job.
 - **GitHub** — `packages/execution-gateway/src/connector-execution/GatewayGitHubAdapter.ts`,
   bootstrap in `packages/api/src/bootstrap/createGitHubConnector.ts` /
   `createGitHubCredentialProvider.ts`, domain types/capabilities in `packages/connector-github/src/`.
+- **Slack** — a from-scratch worked example (not a production capability), built exactly following
+  this guide: `packages/execution-gateway/src/connector-execution/GatewaySlackAdapter.ts`, bootstrap
+  in `packages/api/src/bootstrap/createSlackConnector.ts` / `createSlackCredentialProvider.ts`,
+  domain types/capabilities in `packages/connector-slack/src/`. See
+  `docs/connectors/SLACK_CONNECTOR.md` and tutorials 111/112 for the full walkthrough, including a
+  real-API correctness detail (Slack always answers HTTP 200; failure is only in the JSON body).
 
-Both follow the identical pattern described above; read them side by side before starting a new
+All follow the identical pattern described above; read them side by side before starting a new
 connector.

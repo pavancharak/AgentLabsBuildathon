@@ -43,6 +43,9 @@ not indexed here and are not required reading.
 - **[connectors/BUILDING_A_CONNECTOR.md](connectors/BUILDING_A_CONNECTOR.md)**
   — the concrete steps to add a new connector, using the real HubSpot and
   GitHub connectors as reference.
+- **[connectors/SLACK_CONNECTOR.md](connectors/SLACK_CONNECTOR.md)** — a from-scratch worked
+  example built exactly following that guide, with a runnable tutorial (112) demonstrating it end
+  to end against a real (non-mock) implementation.
 - **[connectors/CODE_REVIEW_CHECKLIST.md](connectors/CODE_REVIEW_CHECKLIST.md)**
   and **[connectors/CONNECTOR_FAQ.md](connectors/CONNECTOR_FAQ.md)**.
 
