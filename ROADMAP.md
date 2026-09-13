@@ -314,7 +314,11 @@ Provide pluggable cryptographic services.
 
   gcp-kms/hsm rather than silently falling back to file-based keys, but no real
 
-  implementation of any of them exists yet
+  implementation of any of them exists yet. Accepted target design for the
+
+  aws-kms case: ADR-0009 (docs/adr/ADR-0009-KMS-Secrets-And-Connector-Signature-Hardening.md),
+
+  see also "Secrets, Signing-Key Custody & Connector Signature Hardening" below
 
 \* @parmana/sign (the external, independently published, open-core primitives
 
@@ -624,5 +628,30 @@ Candidate future work for the maker-checker Policy Governance feature (see `docs
 
 ### Open question this future work depends on: Parmana-internal vs. external policy authoring
 Several items above (three-role flow, tiered approval, WORM storage for approval records specifically) only make sense to build if Parmana's own maker-checker system remains the system of record for policy approval. The alternative — policies authored and approved in an external system, with Parmana staying read-only/enforcement-only for policy content — would make some of this work unnecessary and reshape the rest (verifying an external approval's provenance, rather than producing one). This is a genuinely open design question (see `docs/CLAIMS.md` §2.26) that should be resolved before investing further in any of the above.
+
+---
+
+## Secrets, Signing-Key Custody & Connector Signature Hardening — Future Work (Not Yet Built)
+
+Found by a 2026-09-13 code-level audit (reading `process.env` call sites and the actual connector wire protocol across both this repo and the separate `parmana-paytm-agent` repo, not documentation). Full accepted design in `docs/adr/ADR-0009-KMS-Secrets-And-Connector-Signature-Hardening.md`. Nothing below is committed, scheduled, or in progress — this section records the accepted target design, not a plan with dates.
+
+### Gateway signing key → AWS KMS (sign-without-release)
+**Problem it would solve:** `PARMANA_KEY_MATERIAL_JSON` / `./keys/*.private.pem` put the Ed25519 private key that signs every Execution Authorization, Trust Record, Refusal Record, and Attestation directly on disk or in the environment. Anything with the process's filesystem access can read it and forge records for actions Parmana's policy engine never approved.
+**Why not built:** requires a real refactor, not a config change — AWS KMS never exports private key material, so the seven call sites that currently do `KeyProvider.getPrivateKey()` + local `crypto.sign()` (`packages/crypto/src/VerificationCrypto.ts`, `RefusalCrypto.ts`, `AuditEventCrypto.ts`, `ReceiptCrypto.ts`, `PolicyChangeCrypto.ts`, `ExecutionChainCrypto.ts`, `packages/runtime/src/RuntimeAuthorizationSigner.ts`) need a new `sign(keyId, data)` abstraction instead of a `KeyObject`. AWS KMS added Ed25519 support in November 2025, so this needs no signature-algorithm migration once built.
+
+### Opaque connector secrets → AWS Secrets Manager
+**Problem it would solve:** `HUBSPOT_PRIVATE_APP_TOKEN`, `PAYTM_CONNECTOR_SHARED_SECRET`, `SUPABASE_SERVICE_ROLE_KEY` are static, unrotated `process.env` reads with no managed lifecycle.
+**Why not built:** needs a new `SecretsProvider` abstraction (`packages/shared/src/config/SecretsProvider.ts`, not yet created) and AWS access wired via Vercel's OIDC federation (`@vercel/oidc-aws-credentials-provider`, confirmed first-party) rather than static AWS keys — not yet provisioned.
+
+### GitHub App credential → eliminated via Vercel Connect
+**Problem it would solve:** `GITHUB_APP_PRIVATE_KEY` is a static master key in `.env`; only the installation token it mints is actually ephemeral.
+**Why not built:** requires registering a Vercel Connect GitHub connector (an interactive, browser-based install/consent step) and replacing `createGitHubCredentialProvider.ts`'s production branch — not yet done.
+
+### Paytm connector wire protocol → add signature verification
+**Problem it would solve:** traced `GatewayPaytmAdapter.ts` against `parmana-paytm-agent`'s `executeAuthorizedConnectorRequest` (`src/server/handler.ts`) and found the `authorization.payload` sent over the wire is unsigned JSON — the receiving service only checks a bearer shared secret and string-matches `businessTransactionId`. Whoever holds `PAYTM_CONNECTOR_SHARED_SECRET` can call `POST /connector/paytm-refund` directly with self-chosen parameters, skipping Parmana's policy engine entirely.
+**Why not built:** this is the deepest item — it requires a coordinated change across two independently deployed repositories (Parmana signs a canonical payload with the gateway key; `parmana-paytm-agent` fetches Parmana's public key via the existing `GET /keys/:keyId` and verifies it before executing), not yet scheduled.
+
+### Open question this future work depends on
+Which secrets backend to provision first is a real cost/vendor decision (AWS KMS + Secrets Manager vs. an alternative), not yet made by whoever owns the AWS account this would run under. See ADR-0009's "Open Decisions" for the full list (branch strategy across the two repos, AWS region, whether `parmana-paytm-agent` separately adopts managed secrets for its own credentials).
 
 
