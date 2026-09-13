@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   PAYTM_ALLOWED_REFUND_PARAMETERS,
+  PAYTM_AUTHORIZATION_SIGNATURE_TTL_MS,
   PAYTM_CONNECTOR_TEST_MODE_PLACEHOLDER_SECRET,
+  canonicalPaytmAuthorizationString,
   deriveDeterministicPaytmRefId,
   isPaytmAgentRefundExecutionResult,
   isPaytmConnectorCredentialValue,
@@ -170,5 +172,58 @@ describe("PAYTM_CONNECTOR_TEST_MODE_PLACEHOLDER_SECRET", () => {
     expect(PAYTM_CONNECTOR_TEST_MODE_PLACEHOLDER_SECRET).toContain(
       "placeholder",
     );
+  });
+});
+
+/**
+ * canonicalPaytmAuthorizationString is a cross-repo contract (ADR-0009
+ * Phase 2B): GatewayPaytmAdapter (this repo) and parmana-paytm-agent
+ * (a separate repository) must each build byte-for-byte the same
+ * string from the same inputs, or every signature this codebase
+ * produces fails verification on the receiving side. These are
+ * regression tests against silent format drift, not behavior this
+ * codebase is free to change without a coordinated update on the
+ * other side.
+ */
+describe("canonicalPaytmAuthorizationString", () => {
+  const BASE_INPUT = {
+    businessTransactionId: "btx-1",
+    action: "paytm-refund",
+    orderId: "order-1",
+    txnId: "txn-1",
+    amount: "500.00",
+    expiresAt: 1_700_000_000_000,
+  };
+
+  it("produces a fixed, pipe-delimited format in a fixed field order", () => {
+    expect(canonicalPaytmAuthorizationString(BASE_INPUT)).toBe(
+      "btx-1|paytm-refund|order-1|txn-1|500.00|1700000000000",
+    );
+  });
+
+  it("is a pure function: identical input always produces identical output", () => {
+    expect(canonicalPaytmAuthorizationString(BASE_INPUT)).toBe(
+      canonicalPaytmAuthorizationString({ ...BASE_INPUT }),
+    );
+  });
+
+  it("changing any single field changes the resulting string (no field is ignored)", () => {
+    const base = canonicalPaytmAuthorizationString(BASE_INPUT);
+
+    for (const key of Object.keys(BASE_INPUT) as (keyof typeof BASE_INPUT)[]) {
+      const mutated =
+        key === "expiresAt"
+          ? { ...BASE_INPUT, [key]: BASE_INPUT.expiresAt + 1 }
+          : { ...BASE_INPUT, [key]: `${BASE_INPUT[key]}-different` };
+
+      expect(canonicalPaytmAuthorizationString(mutated)).not.toBe(base);
+    }
+  });
+});
+
+describe("PAYTM_AUTHORIZATION_SIGNATURE_TTL_MS", () => {
+  it("is a short, positive TTL (bounds replay of a captured signed request)", () => {
+    expect(PAYTM_AUTHORIZATION_SIGNATURE_TTL_MS).toBeGreaterThan(0);
+    expect(PAYTM_AUTHORIZATION_SIGNATURE_TTL_MS).toBeLessThanOrEqual(5 * 60_000);
   });
 });

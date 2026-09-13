@@ -79,6 +79,57 @@ export function redactPaytmConnectorSecret(secret: string): string {
 }
 
 /**
+ * TTL, in milliseconds, applied to the authorization signature
+ * GatewayPaytmAdapter attaches to each outbound request (ADR-0009
+ * Phase 2B / "Paytm wire-protocol signature verification"). Short
+ * deliberately: this bounds how long a captured, replayed request
+ * would remain acceptable to parmana-paytm-agent if the shared secret
+ * were ever also compromised alongside a captured signed request.
+ */
+export const PAYTM_AUTHORIZATION_SIGNATURE_TTL_MS = 60_000;
+
+/**
+ * Builds the exact byte sequence GatewayPaytmAdapter signs and
+ * parmana-paytm-agent independently rebuilds and verifies (ADR-0009
+ * Phase 2B). Pipe-delimited, not JSON: this string crosses a repo
+ * boundary maintained by two independently-evolving codebases, and a
+ * JSON object's key ordering is not a contract either side can rely on
+ * staying identical -- a fixed-order, fixed-field delimited string
+ * has no such ambiguity.
+ *
+ * Every field here is one already present, verbatim, in the outbound
+ * request body's own `transaction`/`intent`/`parameters` -- this
+ * function does not introduce any value the receiving side can't
+ * independently recompute from the rest of the request it already
+ * parsed. `expiresAt` (epoch milliseconds, not an ISO string, for the
+ * same cross-repo-ambiguity reason) is the one value that exists only
+ * inside `authorization.payload`, carried there for exactly this
+ * purpose.
+ *
+ * If you change this function, parmana-paytm-agent's own copy
+ * (referenced there as canonicalPaytmAuthorizationString) must change
+ * identically, or every request this codebase signs will fail
+ * verification on the receiving side.
+ */
+export function canonicalPaytmAuthorizationString(input: {
+  readonly businessTransactionId: string;
+  readonly action: string;
+  readonly orderId: string;
+  readonly txnId: string;
+  readonly amount: string;
+  readonly expiresAt: number;
+}): string {
+  return [
+    input.businessTransactionId,
+    input.action,
+    input.orderId,
+    input.txnId,
+    input.amount,
+    String(input.expiresAt),
+  ].join("|");
+}
+
+/**
  * Deterministic refId derivation, keyed on the logical refund --
  * (orderId, transactionId), the Paytm order/transaction actually being
  * refunded -- never on Parmana's own businessTransactionId, which
