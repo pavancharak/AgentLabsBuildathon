@@ -6,6 +6,8 @@ import {
   type CredentialProvider,
 } from "@parmana/connector-sdk";
 
+import { SecretsProviderBootstrap } from "./secrets/SecretsProviderBootstrap.js";
+
 const HUBSPOT_CONNECTOR_ID = "hubspot";
 
 /**
@@ -17,10 +19,15 @@ const HUBSPOT_CONNECTOR_ID = "hubspot";
  * HubSpotConnector's own HubSpotCredentialValue shape exactly, and so
  * error messages can name HUBSPOT_PRIVATE_APP_TOKEN specifically.
  *
- * privateAppToken is read from process.env only inside resolve(), held
- * only in the returned CredentialHandle's value, and never placed
- * anywhere else — not logged, not embedded in a thrown error (only the
- * variable name HUBSPOT_PRIVATE_APP_TOKEN ever appears in messages).
+ * HUBSPOT_PRIVATE_APP_TOKEN's presence is still what decides whether
+ * this connector is registered at all (unchanged, synchronous). Its
+ * *value* is resolved through SecretsProvider (ADR-0009) only inside
+ * resolve(): in the default "env" mode that's an identity pass-through
+ * (the value already is the token, same as before this existed); in
+ * "aws-secrets-manager" mode, the env var instead holds the Secrets
+ * Manager secret name/ARN to fetch the real token from. Never logged,
+ * never embedded in a thrown error (only the variable name
+ * HUBSPOT_PRIVATE_APP_TOKEN ever appears in messages).
  */
 class HubSpotEnvironmentCredentialProvider implements CredentialProvider {
   readonly providerId = "environment";
@@ -32,13 +39,16 @@ class HubSpotEnvironmentCredentialProvider implements CredentialProvider {
       );
     }
 
-    const privateAppToken = process.env.HUBSPOT_PRIVATE_APP_TOKEN;
+    const reference = process.env.HUBSPOT_PRIVATE_APP_TOKEN;
 
-    if (privateAppToken === undefined) {
+    if (reference === undefined) {
       throw new Error(
         `Environment variable HUBSPOT_PRIVATE_APP_TOKEN for connector "${HUBSPOT_CONNECTOR_ID}" is not set.`,
       );
     }
+
+    const secrets = await SecretsProviderBootstrap.create();
+    const privateAppToken = await secrets.getSecret(reference);
 
     return brandCredentialHandle({
       providerId: this.providerId,

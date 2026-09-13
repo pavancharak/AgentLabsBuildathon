@@ -8,6 +8,7 @@ import { ReceiptHasher } from "./ReceiptHasher.js";
 import { ArtifactSigner } from "./ArtifactSigner.js";
 import { TrustRecordHasher } from "./TrustRecordHasher.js";
 
+import { SignerBootstrap } from "./SignerBootstrap.js";
 import { FileKeyProvider } from "./providers/key/FileKeyProvider.js";
 import { DEFAULT_KEY_ID, DEFAULT_SECONDARY_KEY_ID } from "./KeyProvider.js";
 
@@ -29,12 +30,16 @@ export class ReceiptCrypto {
   private readonly config = loadConfig();
 
   /**
-   * Temporary filesystem key provider.
-   *
-   * Will later be supplied by the crypto
-   * composition root.
+   * Signer (ADR-0009) -- LocalFileSigner or KmsSigner depending on
+   * KEY_PROVIDER.
    */
-  private readonly keys = new FileKeyProvider();
+  private readonly signerPromise = SignerBootstrap.create();
+
+  /**
+   * Hybrid mode's secondary signature stays local-file-backed; see
+   * the identical comment in VerificationCrypto.
+   */
+  private readonly hybridKeys = new FileKeyProvider();
 
   private readonly trustRecordHasher =
     new TrustRecordHasher(this.crypto);
@@ -62,15 +67,12 @@ export class ReceiptCrypto {
   async sign(
     value: unknown,
   ): Promise<string> {
-    //
-    // Temporary development key.
-    //
-    const privateKey =
-      await this.keys.getPrivateKey(DEFAULT_KEY_ID);
+    const signer = await this.signerPromise;
 
-    return this.signer.sign(
+    return this.signer.signWithSigner(
       value,
-      privateKey,
+      DEFAULT_KEY_ID,
+      signer,
     );
   }
 
@@ -111,7 +113,7 @@ export class ReceiptCrypto {
     const signatures =
       await new HybridSignatureProvider(
         CryptoBootstrap.createHybrid(),
-        this.keys,
+        this.hybridKeys,
       ).sign(
         {
           ...unsignedReceipt,

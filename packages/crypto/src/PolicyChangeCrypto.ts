@@ -7,7 +7,7 @@ import { CryptoBootstrap } from "./CryptoBootstrap.js";
 import { TrustRecordHasher } from "./TrustRecordHasher.js";
 import { ArtifactSigner } from "./ArtifactSigner.js";
 import { SignatureVerifier } from "./SignatureVerifier.js";
-import { FileKeyProvider } from "./providers/key/FileKeyProvider.js";
+import { SignerBootstrap } from "./SignerBootstrap.js";
 import { DEFAULT_KEY_ID } from "./KeyProvider.js";
 
 /**
@@ -25,8 +25,8 @@ export class PolicyChangeCrypto {
   private readonly crypto =
     CryptoBootstrap.create();
 
-  private readonly keys =
-    new FileKeyProvider();
+  private readonly signerPromise =
+    SignerBootstrap.create();
 
   private readonly hasher =
     new TrustRecordHasher(this.crypto);
@@ -104,13 +104,13 @@ export class PolicyChangeCrypto {
   ): Promise<Signature> {
     const keyId = DEFAULT_KEY_ID;
 
-    const privateKey =
-      await this.keys.getPrivateKey(keyId);
+    const signer = await this.signerPromise;
 
     const value =
-      await this.signer.sign(
+      await this.signer.signWithSigner(
         this.canonicalRecord(record),
-        privateKey,
+        keyId,
+        signer,
       );
 
     return {
@@ -131,8 +131,10 @@ export class PolicyChangeCrypto {
   async verify(
     record: PolicyChangeApprovalRecord,
   ): Promise<boolean> {
+    const signer = await this.signerPromise;
+
     const publicKey =
-      await this.keys.getPublicKey(
+      await signer.getPublicKey(
         record.signature.keyId,
       );
 

@@ -5,7 +5,7 @@ import type {
 import { CryptoBootstrap } from "./CryptoBootstrap.js";
 import { ArtifactSigner } from "./ArtifactSigner.js";
 import { SignatureVerifier } from "./SignatureVerifier.js";
-import { FileKeyProvider } from "./providers/key/FileKeyProvider.js";
+import { SignerBootstrap } from "./SignerBootstrap.js";
 import { currentVerificationKeyId } from "./KeyProvider.js";
 
 /**
@@ -28,8 +28,8 @@ export class AuditEventCrypto {
   private readonly crypto =
     CryptoBootstrap.create();
 
-  private readonly keys =
-    new FileKeyProvider();
+  private readonly signerPromise =
+    SignerBootstrap.create();
 
   private readonly signer =
     new ArtifactSigner(this.crypto);
@@ -49,13 +49,13 @@ export class AuditEventCrypto {
   ): Promise<Signature> {
     const keyId = currentVerificationKeyId();
 
-    const privateKey =
-      await this.keys.getPrivateKey(keyId);
+    const signer = await this.signerPromise;
 
     const value =
-      await this.signer.sign(
+      await this.signer.signWithSigner(
         event,
-        privateKey,
+        keyId,
+        signer,
       );
 
     return {
@@ -80,8 +80,10 @@ export class AuditEventCrypto {
     event: unknown,
     signature: Signature,
   ): Promise<boolean> {
+    const signer = await this.signerPromise;
+
     const publicKey =
-      await this.keys.getPublicKey(
+      await signer.getPublicKey(
         signature.keyId,
       );
 

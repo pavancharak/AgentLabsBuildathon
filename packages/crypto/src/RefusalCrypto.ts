@@ -7,7 +7,7 @@ import { CryptoBootstrap } from "./CryptoBootstrap.js";
 import { TrustRecordHasher } from "./TrustRecordHasher.js";
 import { ArtifactSigner } from "./ArtifactSigner.js";
 import { SignatureVerifier } from "./SignatureVerifier.js";
-import { FileKeyProvider } from "./providers/key/FileKeyProvider.js";
+import { SignerBootstrap } from "./SignerBootstrap.js";
 import { currentVerificationKeyId } from "./KeyProvider.js";
 
 /**
@@ -23,8 +23,8 @@ export class RefusalCrypto {
   private readonly crypto =
     CryptoBootstrap.create();
 
-  private readonly keys =
-    new FileKeyProvider();
+  private readonly signerPromise =
+    SignerBootstrap.create();
 
   private readonly hasher =
     new TrustRecordHasher(this.crypto);
@@ -85,13 +85,13 @@ export class RefusalCrypto {
   ): Promise<Signature> {
     const keyId = currentVerificationKeyId();
 
-    const privateKey =
-      await this.keys.getPrivateKey(keyId);
+    const signer = await this.signerPromise;
 
     const value =
-      await this.signer.sign(
+      await this.signer.signWithSigner(
         this.canonicalRecord(refusalRecord),
-        privateKey,
+        keyId,
+        signer,
       );
 
     return {
@@ -122,8 +122,10 @@ export class RefusalCrypto {
       return false;
     }
 
+    const signer = await this.signerPromise;
+
     const publicKey =
-      await this.keys.getPublicKey(
+      await signer.getPublicKey(
         refusalRecord.signature.keyId,
       );
 

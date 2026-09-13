@@ -8,7 +8,7 @@ import { TrustRecordHasher } from "./TrustRecordHasher.js";
 import { ExecutionChainHasher } from "./ExecutionChainHasher.js";
 import { ArtifactSigner } from "./ArtifactSigner.js";
 import { SignatureVerifier } from "./SignatureVerifier.js";
-import { FileKeyProvider } from "./providers/key/FileKeyProvider.js";
+import { SignerBootstrap } from "./SignerBootstrap.js";
 import { DEFAULT_KEY_ID } from "./KeyProvider.js";
 
 /**
@@ -49,8 +49,8 @@ export class ExecutionChainCrypto {
   private readonly crypto =
     CryptoBootstrap.create();
 
-  private readonly keys =
-    new FileKeyProvider();
+  private readonly signerPromise =
+    SignerBootstrap.create();
 
   private readonly chainHasher =
     new ExecutionChainHasher(
@@ -132,13 +132,13 @@ export class ExecutionChainCrypto {
 
     const keyId = DEFAULT_KEY_ID;
 
-    const privateKey =
-      await this.keys.getPrivateKey(keyId);
+    const signer = await this.signerPromise;
 
     const value =
-      await this.signer.sign(
+      await this.signer.signWithSigner(
         entry,
-        privateKey,
+        keyId,
+        signer,
       );
 
     const chainSignature: Signature = {
@@ -190,8 +190,10 @@ export class ExecutionChainCrypto {
       return false;
     }
 
+    const signer = await this.signerPromise;
+
     const publicKey =
-      await this.keys.getPublicKey(
+      await signer.getPublicKey(
         execution.chainSignature.keyId,
       );
 
