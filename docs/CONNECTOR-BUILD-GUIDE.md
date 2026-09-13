@@ -143,6 +143,15 @@ The package above is deliberately **passive** — it defines what a capability *
 (Phase 1C convention: "connector packages retain only capability definitions, schemas, metadata,
 and interfaces; this is where those get wired into a real, running execution path").
 
+**This section assumes the standard, in-process pattern** — the adapter itself calls the vendor's
+real API directly (HubSpot, GitHub). **If your connector needs to isolate a vendor credential in a
+separate, out-of-process service** (for example, because the credential is a payment merchant key
+that must never be reachable from Parmana's own process even under full compromise), read
+`docs/connectors/PAYTM_CONNECTOR.md` instead — Paytm is that second pattern, and its adapter
+(`GatewayPaytmAdapter`) forwards to a trusted remote service rather than calling a vendor API
+in-process. That document also carries the one hardening lesson this pattern specifically needs —
+see §10's third rule below before designing a remote connector's wire protocol.
+
 - [ ] **`Gateway<Name>Adapter.ts`** — implements the `Connector` interface from `@parmana/connector-sdk`
       (`connectorId`, `capabilities`, `async execute(request, context)`). Constructed with the
       `<Name>ConnectorOptions` type imported back from `@parmana/connector-<name>`. Must implement,
@@ -190,10 +199,15 @@ and interfaces; this is where those get wired into a real, running execution pat
       only so an integration test can point the connector at a mock server).
       Reference: `packages/api/src/bootstrap/createHubSpotConnector.ts`.
 - [ ] **`create<Name>SignalStateVerifier.ts`** (only if §2's `<Name>SignalStateVerifier.ts` was
-      built) — constructs it with `FileKeyProvider`/`DEFAULT_KEY_ID` (the same signing key
-      `RuntimeAuthorizationSigner` already uses), the policy name/version, and — if pre-authorization
-      gating applies (§5) — a real `ApprovalVerifier`, supplied **unconditionally**, never optional
-      in production wiring. Reference: `packages/api/src/bootstrap/createHubSpotSignalStateVerifier.ts`.
+      built) — constructs it with `SignerBootstrap.create()`/`DEFAULT_KEY_ID` (`@parmana/crypto`,
+      ADR-0009 — the same composition root `RuntimeAuthorizationSigner` and every other signed
+      artifact in this codebase now goes through), **not** `new FileKeyProvider()` directly. A
+      connector wired to `FileKeyProvider` directly bypasses `KEY_PROVIDER`'s provider selection
+      entirely — it would keep signing with the local file key even once `KEY_PROVIDER=aws-kms` is
+      configured, the same bug class `packages/api/src/routes/keys.ts` had before ADR-0009's fix.
+      Also, if pre-authorization gating applies (§5), a real `ApprovalVerifier`, supplied
+      **unconditionally**, never optional in production wiring.
+      Reference: `packages/api/src/bootstrap/createHubSpotSignalStateVerifier.ts`.
 - [ ] **`createConnectorRegistry.ts`** — add a block: resolve the credential provider; if
       `undefined`, `console.warn({ event: "<name>_connector_unavailable", reason: "..." })` and skip;
       else `registrations.push({ connector: create<Name>Connector(), metadata: <Name>Metadata,
@@ -395,13 +409,28 @@ precedents.
 
 ---
 
-## 10. Two hardening rules that apply regardless of everything above
+## 10. Three hardening rules that apply regardless of everything above
 
-Both were real incidents on Razorpay, discovered and fixed after the fact. Every new connector
-builds them in from its first version:
+The first two were real incidents on Razorpay, discovered and fixed after the fact. The third was
+found by a code-level audit of the Paytm connector (ADR-0009 Phase 2B, 2026-09-13) before it was
+ever exploited, not after. Every new connector builds all three in from its first version:
 
 - **Placeholder-credential guard** (§3, step 3) — never rely on the vendor happening to reject a
   test-mode placeholder sent to its real API.
 - **No bridge/alias env variables** (§4) — read the documented test-credential variable name
   directly, exactly as `.env.example` documents it, with no intermediate variable that can drift
   out of sync with what's actually read.
+- **A remote connector's wire protocol must not trust a shared secret alone.** If your connector
+  forwards to a separate, out-of-process service the way Paytm does (§3's callout above), a bearer
+  shared secret only proves the *caller* is Parmana's gateway — it proves nothing about *which*
+  parameters were actually approved. Before Phase 2B, Paytm's remote service accepted any
+  `orderId`/`txnId`/`amount` bearing the correct secret, because that service is necessarily a
+  public HTTPS endpoint (reachable directly by anyone who obtains the secret, not only by
+  `GatewayPaytmAdapter`) — the shared secret alone was, in practice, sufficient to forge a
+  transaction. The fix: sign a canonical string of the exact executed parameters with the gateway's
+  own key (`SignerBootstrap`, per the corrected §4 above) and have the remote service verify it
+  against Parmana's public key (`GET /keys/:keyId`) before executing anything, in addition to the
+  shared secret. See `packages/connector-paytm/src/PaytmTypes.ts`'s
+  `canonicalPaytmAuthorizationString`/`PAYTM_AUTHORIZATION_SIGNATURE_TTL_MS` and
+  `docs/connectors/PAYTM_CONNECTOR.md`'s "Three authentication layers" section for the concrete
+  pattern to copy.
