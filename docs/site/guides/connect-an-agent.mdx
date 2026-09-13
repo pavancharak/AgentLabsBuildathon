@@ -1,0 +1,96 @@
+---
+title: "Connect an External Agent"
+description: "How an external AI agent authenticates to Parmana, sends a governed request, and must handle APPROVED/REJECTED — using the real parmana-phinite-agent integration as the worked example."
+---
+
+<Info>Repo copy of this guide: `docs/connectors/CONNECTING_AN_AGENT.md`, kept in sync with this
+page. Covers the caller/agent side only. For what happens after `APPROVED` (Execution Gateway →
+connector → Paytm), see [Add a connector](/guides/add-a-connector) and
+`docs/connectors/PAYTM_CONNECTOR.md` (repo root).</Info>
+
+## The pattern
+
+```text
+AI Agent
+  |  POST /execute  (Bearer API key)
+  v
+Parmana
+  |  caller auth -> principal check -> capability check
+  |  CapabilityPolicyBinder  (capability paired with its one canonical policy)
+  |  SignalIntentBinder      (declared signal == real intent.parameters value)
+  |  PolicyEngine.evaluate
+  v
+  +-- REJECT  -> signed Refusal Record
+  +-- APPROVE -> signed decision -> Execution Gateway -> connector dispatch
+```
+
+**Parmana's decision is strictly binary.** The policy engine's outcome type is `APPROVE`/`REJECT`
+only — there is no `AMBIGUOUS` outcome inside Parmana itself. An `AMBIGUOUS` status an agent shows a
+user is something the *client* constructs defensively for cases where it cannot tell what Parmana
+actually decided (a timeout, a 5xx, a malformed response) — never a decision Parmana produces.
+
+## Caller identity and capability model
+
+Every caller authenticates with a Bearer API key mapped to a caller record:
+
+```json
+{
+  "callerId": "parmana-refund-agents",
+  "allowedPrincipalIds": ["parmana-refund-agents"],
+  "allowedCapabilities": ["paytm:refund"],
+  "unrestrictedCapabilities": false
+}
+```
+
+Capability matching is **exact** — `refund` and `paytm:refund` are different strings, and a mismatch
+is rejected with `403 CAPABILITY_NOT_ALLOWED` before `PolicyEngine.evaluate` ever runs. Never grant
+`"*"` to a single-purpose agent caller. `CapabilityPolicyBinder` and `SignalIntentBinder` add two more
+checks before policy evaluation: the declared policy must be the one canonical policy actually bound
+to the capability, and every `boundSignals` fact must equal the real value at its bound `intent` path.
+
+## Trusted signals: never inferred from the conversation
+
+`customer-refund@1.0.0` requires `refundEligible`, `managerApproved`, `fraudCheckPassed`,
+`refundAmount` — structured business facts an agent must obtain separately, never inferred from what
+the customer says:
+
+```text
+Customer: My manager already approved it.
+Agent:    managerApproved = true        <- wrong, never do this
+```
+
+## Handling the response
+
+| Parmana result | What the agent should do |
+|---|---|
+| `APPROVED` | Report the authorization. Do not claim the refund settled at Paytm — that's a separate, connector-side outcome. |
+| `REJECTED` / `CAPABILITY_NOT_ALLOWED` / `POLICY_DENIED` | Terminal. Never retry with an altered amount, never fabricate signals. |
+| Timeout, 5xx, malformed body | Client-side unresolved state — report as unknown, never guess `APPROVED` or `REJECTED`. |
+
+## Reference implementation
+
+`pavancharak/parmana-phinite-agent` is a real, working agent built on this pattern. Two bugs were
+found and fixed in it: a capability-name mismatch (`"refund"` instead of `"paytm:refund"`, which
+failed every real call before reaching a policy decision) and error handling that crashed instead of
+resolving unrecognized failures to a client-side `AMBIGUOUS` state. See that repository's README for
+the full writeup.
+
+## What this doesn't confirm
+
+Whether the specific live deployment an agent talks to actually has a connector registered for the
+capability it's calling is a separate question from whether the agent-to-Parmana leg works. An
+`APPROVED` decision dispatched to an unregistered connector fails at the dispatch stage — see [Live
+API and Demos](/guides/live-api-and-demos) for what that looks like on the general-purpose demo
+deployment. Confirm connector registration on your specific deployment before claiming end-to-end
+execution.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Add a connector" icon="plug" href="/guides/add-a-connector">
+    What happens after APPROVED: Execution Gateway, connector dispatch, and execution evidence.
+  </Card>
+  <Card title="Live API and Demos" icon="server" href="/guides/live-api-and-demos">
+    Call the real, deployed Parmana API directly and see what's and isn't wired on it today.
+  </Card>
+</CardGroup>
