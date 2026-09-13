@@ -23,6 +23,8 @@ import { optionalProperty } from "./ConfigUtils.js";
 
 import type { KeyProvider } from "./KeyProviders.js";
 
+import type { SecretsProvider } from "./SecretsProviders.js";
+
 import type { TrustProfile } from "./TrustProfiles.js";
 
 import type { ApiKeyEntry } from "./ApiKeyEntry.js";
@@ -33,6 +35,7 @@ import {
   parseHashAlgorithm,
   parseSignatureAlgorithm,
   parseKeyProvider,
+  parseSecretsProvider,
   parseTrustProfile,
   parseApiKeys,
 } from "./ConfigValidation.js";
@@ -137,6 +140,9 @@ export interface Config {
   readonly keys:
     KeyConfig;
 
+  readonly secrets:
+    SecretsConfig;
+
   readonly authorization:
     AuthorizationConfig;
 
@@ -235,6 +241,20 @@ export interface KeyConfig {
   readonly keyDirectory:
     string;
 }
+/**
+ * Secrets backend configuration (ADR-0009). Selects where connector
+ * credentials that are opaque bearer values -- not signing keys, see
+ * KeyConfig/Signer for those -- are resolved from at request time.
+ * "env" (default) is an identity pass-through: the value each
+ * connector's own env var already holds IS the secret. In
+ * "aws-secrets-manager" mode, that same env var's value is instead
+ * treated as the Secrets Manager secret's name/ARN to fetch.
+ */
+export interface SecretsConfig {
+  readonly provider:
+    SecretsProvider;
+}
+
 /**
  * Execution authorization configuration.
  */
@@ -384,6 +404,13 @@ export function loadConfig():
   keyDirectory:
     process.env.PARMANA_KEY_DIR!,
 }),
+
+    secrets: Object.freeze({
+      provider:
+        parseSecretsProvider(
+          process.env.PARMANA_SECRETS_PROVIDER,
+        ),
+    }),
 
     authorization: Object.freeze({
       ttlSeconds: Number(
