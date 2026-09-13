@@ -2,11 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   MockPaytmConnectorServer,
+  PAYTM_AGENT_WIRE_ACTION,
   PAYTM_CONNECTOR_TEST_MODE_PLACEHOLDER_SECRET,
   PAYTM_REFUND_CAPABILITY,
+  canonicalPaytmAuthorizationString,
   deriveDeterministicPaytmRefId,
   redactPaytmConnectorSecret,
 } from "@parmana/connector-paytm";
+import { SignerBootstrap } from "@parmana/crypto";
 import {
   brandCredentialHandle,
   connectorCapabilities,
@@ -304,6 +307,190 @@ describe("GatewayPaytmAdapter", () => {
     ).rejects.toThrow(/refuses to send/);
     expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
+  });
+
+  it("ADR-0009 Phase 2B: signs the authorization -- attaches a signature/keyId/expiresAt the receiving service can independently verify", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+    await connector().execute(
+      refundRequest({ orderId: "order-sig", transactionId: "txn-sig", amount: 250 }),
+      context(),
+    );
+
+    const [, init] = fetchSpy.mock.calls[0]!;
+    const sentBody = JSON.parse((init as RequestInit).body as string);
+
+    expect(typeof sentBody.authorization.signature).toBe("string");
+    expect(sentBody.authorization.signature.length).toBeGreaterThan(0);
+    expect(typeof sentBody.authorization.keyId).toBe("string");
+    expect(typeof sentBody.authorization.payload.expiresAt).toBe("number");
+    expect(sentBody.authorization.payload.expiresAt).toBeGreaterThan(Date.now());
+
+    // Independently verify -- proves this isn't just "some string", it's a
+    // real signature over the exact canonical content a receiving service
+    // (parmana-paytm-agent) would rebuild from the rest of this same body.
+    const signer = await SignerBootstrap.create();
+    const publicKey = await signer.getPublicKey(sentBody.authorization.keyId);
+    const canonical = canonicalPaytmAuthorizationString({
+      businessTransactionId: sentBody.transaction.businessTransactionId,
+      action: sentBody.transaction.intent.action,
+      orderId: sentBody.transaction.intent.parameters.orderId,
+      txnId: sentBody.transaction.intent.parameters.txnId,
+      amount: sentBody.transaction.intent.parameters.amount,
+      expiresAt: sentBody.authorization.payload.expiresAt,
+    });
+    const { verify } = await import("node:crypto");
+    expect(
+      verify(
+        null,
+        Buffer.from(canonical, "utf8"),
+        publicKey,
+        Buffer.from(sentBody.authorization.signature, "base64"),
+      ),
+    ).toBe(true);
+
+    fetchSpy.mockRestore();
+  });
+
+  it("ADR-0009 Phase 2B: the receiving service (mocked here) rejects a request with a valid shared secret but no signature at all", async () => {
+    const response = await fetch(`${server.baseUrl}/connector/paytm-refund`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SECRET}`,
+      },
+      body: JSON.stringify({
+        transaction: {
+          businessTransactionId: "btx-forged",
+          intent: {
+            action: PAYTM_AGENT_WIRE_ACTION,
+            target: "paytm://orders/order-1",
+            parameters: {
+              orderId: "order-1",
+              txnId: "txn-1",
+              refId: "refid_forged",
+              amount: "999999.00",
+            },
+          },
+        },
+        authorization: {
+          payload: {
+            businessTransactionId: "btx-forged",
+            expiresAt: Date.now() + 60_000,
+          },
+          // signature and keyId deliberately omitted.
+        },
+      }),
+    });
+
+    expect(response.status).toBe(500);
+    const body = await response.json();
+    expect(body.error).toMatch(/authorization\.signature is required/);
+  });
+
+  it("ADR-0009 Phase 2B: rejects a well-formed but expired signature, even though it was genuinely signed by the real key", async () => {
+    const signer = await SignerBootstrap.create();
+    const expiresAt = Date.now() - 1_000; // already expired
+
+    const canonical = canonicalPaytmAuthorizationString({
+      businessTransactionId: "btx-expired",
+      action: PAYTM_AGENT_WIRE_ACTION,
+      orderId: "order-1",
+      txnId: "txn-1",
+      amount: "500.00",
+      expiresAt,
+    });
+    const signature = await signer.sign(
+      (await import("@parmana/crypto")).DEFAULT_KEY_ID,
+      Buffer.from(canonical, "utf8"),
+    );
+
+    const response = await fetch(`${server.baseUrl}/connector/paytm-refund`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SECRET}`,
+      },
+      body: JSON.stringify({
+        transaction: {
+          businessTransactionId: "btx-expired",
+          intent: {
+            action: PAYTM_AGENT_WIRE_ACTION,
+            target: "paytm://orders/order-1",
+            parameters: {
+              orderId: "order-1",
+              txnId: "txn-1",
+              refId: "refid_expired",
+              amount: "500.00",
+            },
+          },
+        },
+        authorization: {
+          payload: { businessTransactionId: "btx-expired", expiresAt },
+          signature,
+          keyId: (await import("@parmana/crypto")).DEFAULT_KEY_ID,
+        },
+      }),
+    });
+
+    expect(response.status).toBe(401);
+    const body = await response.json();
+    expect(body.error).toMatch(/expired/);
+  });
+
+  it("ADR-0009 Phase 2B: rejects a request where the signature doesn't match the claimed content -- proves the shared secret alone is no longer sufficient to forge a refund", async () => {
+    const { DEFAULT_KEY_ID } = await import("@parmana/crypto");
+    const signer = await SignerBootstrap.create();
+    const expiresAt = Date.now() + 60_000;
+
+    // Sign one amount, then send a request claiming a different, much
+    // larger amount -- exactly the attack this fix closes: previously,
+    // anyone holding PAYTM_CONNECTOR_SHARED_SECRET alone could send any
+    // self-chosen amount and it would be honored.
+    const canonicalForSmallAmount = canonicalPaytmAuthorizationString({
+      businessTransactionId: "btx-tamper",
+      action: PAYTM_AGENT_WIRE_ACTION,
+      orderId: "order-1",
+      txnId: "txn-1",
+      amount: "1.00",
+      expiresAt,
+    });
+    const signature = await signer.sign(
+      DEFAULT_KEY_ID,
+      Buffer.from(canonicalForSmallAmount, "utf8"),
+    );
+
+    const response = await fetch(`${server.baseUrl}/connector/paytm-refund`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SECRET}`,
+      },
+      body: JSON.stringify({
+        transaction: {
+          businessTransactionId: "btx-tamper",
+          intent: {
+            action: PAYTM_AGENT_WIRE_ACTION,
+            target: "paytm://orders/order-1",
+            parameters: {
+              orderId: "order-1",
+              txnId: "txn-1",
+              refId: "refid_tamper",
+              amount: "999999.00", // tampered -- signature was over "1.00"
+            },
+          },
+        },
+        authorization: {
+          payload: { businessTransactionId: "btx-tamper", expiresAt },
+          signature,
+          keyId: DEFAULT_KEY_ID,
+        },
+      }),
+    });
+
+    expect(response.status).toBe(401);
+    const body = await response.json();
+    expect(body.error).toMatch(/signature is invalid/);
   });
 
   it("requires HTTPS outside NODE_ENV=test", () => {

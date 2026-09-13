@@ -1,3 +1,4 @@
+import { verify } from "node:crypto";
 import {
   createServer,
   type IncomingMessage,
@@ -6,7 +7,10 @@ import {
 } from "node:http";
 import type { AddressInfo } from "node:net";
 
+import { SignerBootstrap } from "@parmana/crypto";
+
 import { PAYTM_AGENT_WIRE_ACTION } from "./PaytmCapabilities.js";
+import { canonicalPaytmAuthorizationString } from "./PaytmTypes.js";
 
 export interface MockPaytmConnectorServerOptions {
   readonly sharedSecret: string;
@@ -169,6 +173,9 @@ export class MockPaytmConnectorServer {
     let txnId: string;
     let refId: string;
     let amount: string;
+    let expiresAt: number;
+    let signatureB64: string;
+    let keyId: string;
 
     try {
       const transaction = asRecord(body.transaction, "transaction");
@@ -204,10 +211,57 @@ export class MockPaytmConnectorServer {
       txnId = requireParameter(parameters, "txnId");
       refId = requireParameter(parameters, "refId");
       amount = requireParameter(parameters, "amount");
+
+      // ADR-0009 Phase 2B: signature fields, mirroring the real
+      // parmana-paytm-agent's own verification (added at the same
+      // time as GatewayPaytmAdapter started sending them).
+      expiresAt = Number(payload.expiresAt);
+      if (!Number.isFinite(expiresAt)) {
+        throw new Error("authorization.payload.expiresAt is required");
+      }
+
+      signatureB64 = String(authorization.signature ?? "");
+      if (!signatureB64) {
+        throw new Error("authorization.signature is required");
+      }
+
+      keyId = String(authorization.keyId ?? "");
+      if (!keyId) {
+        throw new Error("authorization.keyId is required");
+      }
     } catch (error) {
       this.respond(res, 500, {
         error: error instanceof Error ? error.message : "request failed",
       });
+      return;
+    }
+
+    if (Date.now() > expiresAt) {
+      this.respond(res, 401, { error: "authorization signature has expired" });
+      return;
+    }
+
+    const canonical = canonicalPaytmAuthorizationString({
+      businessTransactionId: transactionId,
+      action,
+      orderId,
+      txnId,
+      amount,
+      expiresAt,
+    });
+
+    const signer = await SignerBootstrap.create();
+    const publicKey = await signer.getPublicKey(keyId);
+
+    const signatureValid = verify(
+      null,
+      Buffer.from(canonical, "utf8"),
+      publicKey,
+      Buffer.from(signatureB64, "base64"),
+    );
+
+    if (!signatureValid) {
+      this.respond(res, 401, { error: "authorization signature is invalid" });
       return;
     }
 

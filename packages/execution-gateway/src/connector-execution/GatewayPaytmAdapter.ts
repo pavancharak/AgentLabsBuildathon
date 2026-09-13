@@ -14,12 +14,16 @@ import {
 
 import {
   PAYTM_ALLOWED_REFUND_PARAMETERS,
+  PAYTM_AUTHORIZATION_SIGNATURE_TTL_MS,
   PAYTM_CONNECTOR_TEST_MODE_PLACEHOLDER_SECRET,
+  canonicalPaytmAuthorizationString,
   deriveDeterministicPaytmRefId,
   isPaytmAgentRefundExecutionResult,
   isPaytmConnectorCredentialValue,
   redactPaytmConnectorSecret,
 } from "@parmana/connector-paytm";
+
+import { DEFAULT_KEY_ID, SignerBootstrap } from "@parmana/crypto";
 
 const PAYTM_REFUND_PATH = "/connector/paytm-refund";
 
@@ -174,6 +178,29 @@ export class GatewayPaytmAdapter implements Connector {
     const amountString = amount.toFixed(2);
     const refId = deriveDeterministicPaytmRefId(orderId, txnId);
 
+    // ADR-0009 Phase 2B: sign the authorization so parmana-paytm-agent
+    // can cryptographically verify this request was actually approved
+    // by Parmana's policy engine, not merely sent by someone who knows
+    // the shared secret alone (that secret is transport authentication
+    // between Parmana and its own connector service -- see this file's
+    // class doc comment -- never a substitute for policy authorization).
+    const expiresAt = Date.now() + PAYTM_AUTHORIZATION_SIGNATURE_TTL_MS;
+
+    const canonicalAuthorization = canonicalPaytmAuthorizationString({
+      businessTransactionId: request.businessTransactionId,
+      action: PAYTM_AGENT_WIRE_ACTION,
+      orderId,
+      txnId,
+      amount: amountString,
+      expiresAt,
+    });
+
+    const signer = await SignerBootstrap.create();
+    const signature = await signer.sign(
+      DEFAULT_KEY_ID,
+      Buffer.from(canonicalAuthorization, "utf8"),
+    );
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), context.timeoutMs);
 
@@ -198,7 +225,10 @@ export class GatewayPaytmAdapter implements Connector {
             payload: {
               businessTransactionId: request.businessTransactionId,
               grantedCapability: PAYTM_AGENT_WIRE_ACTION,
+              expiresAt,
             },
+            signature,
+            keyId: DEFAULT_KEY_ID,
           },
         }),
       });

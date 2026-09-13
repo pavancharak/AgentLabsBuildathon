@@ -26,7 +26,9 @@ export {
 
 export {
   PAYTM_ALLOWED_REFUND_PARAMETERS,
+  PAYTM_AUTHORIZATION_SIGNATURE_TTL_MS,
   PAYTM_CONNECTOR_TEST_MODE_PLACEHOLDER_SECRET,
+  canonicalPaytmAuthorizationString,
   deriveDeterministicPaytmRefId,
   isPaytmConnectorCredentialValue,
   isPaytmAgentRefundExecutionResult,
