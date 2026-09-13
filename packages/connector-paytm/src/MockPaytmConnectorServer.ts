@@ -236,32 +236,44 @@ export class MockPaytmConnectorServer {
       return;
     }
 
-    if (Date.now() > expiresAt) {
-      this.respond(res, 401, { error: "authorization signature has expired" });
-      return;
-    }
+    // Everything from here on is also part of the "mirrors
+    // executeAuthorizedConnectorRequest's exact parse/validation order"
+    // contract this class documents: the real handler throws a plain
+    // Error for every validation failure, uniformly surfaced as HTTP
+    // 500 by its outer request handler -- signature failures are not
+    // special-cased to a different status there, so this mock doesn't
+    // invent one either.
+    try {
+      if (Date.now() > expiresAt) {
+        throw new Error("authorization signature has expired");
+      }
 
-    const canonical = canonicalPaytmAuthorizationString({
-      businessTransactionId: transactionId,
-      action,
-      orderId,
-      txnId,
-      amount,
-      expiresAt,
-    });
+      const canonical = canonicalPaytmAuthorizationString({
+        businessTransactionId: transactionId,
+        action,
+        orderId,
+        txnId,
+        amount,
+        expiresAt,
+      });
 
-    const signer = await SignerBootstrap.create();
-    const publicKey = await signer.getPublicKey(keyId);
+      const signer = await SignerBootstrap.create();
+      const publicKey = await signer.getPublicKey(keyId);
 
-    const signatureValid = verify(
-      null,
-      Buffer.from(canonical, "utf8"),
-      publicKey,
-      Buffer.from(signatureB64, "base64"),
-    );
+      const signatureValid = verify(
+        null,
+        Buffer.from(canonical, "utf8"),
+        publicKey,
+        Buffer.from(signatureB64, "base64"),
+      );
 
-    if (!signatureValid) {
-      this.respond(res, 401, { error: "authorization signature is invalid" });
+      if (!signatureValid) {
+        throw new Error("authorization signature is invalid");
+      }
+    } catch (error) {
+      this.respond(res, 500, {
+        error: error instanceof Error ? error.message : "request failed",
+      });
       return;
     }
 

@@ -433,7 +433,7 @@ describe("GatewayPaytmAdapter", () => {
       }),
     });
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(500);
     const body = await response.json();
     expect(body.error).toMatch(/expired/);
   });
@@ -488,7 +488,7 @@ describe("GatewayPaytmAdapter", () => {
       }),
     });
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(500);
     const body = await response.json();
     expect(body.error).toMatch(/signature is invalid/);
   });
