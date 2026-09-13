@@ -12,6 +12,14 @@ that adds a connector, this is a code change today."*
 
 ## Anatomy of a connector
 
+**This guide covers the in-process pattern** — the connector calls the vendor's real API directly.
+Paytm is a real, working exception: it forwards to a separate, out-of-process service instead,
+because isolating its merchant credential from Parmana's own process mattered enough to warrant a
+second pattern. If that's your situation too, read `docs/connectors/PAYTM_CONNECTOR.md` instead —
+in particular its "Three authentication layers" section, which documents a real gap this codebase
+had and fixed: a remote connector's wire protocol must not trust a shared secret alone, or anyone
+who obtains it can call the remote service directly with self-chosen parameters.
+
 A connector is three things, all following the HubSpot/GitHub pattern:
 
 1. A class implementing the SDK's `Connector` interface (`packages/connector-sdk/src/ConnectorTypes.ts`) —
