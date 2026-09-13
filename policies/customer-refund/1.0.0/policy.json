@@ -8,8 +8,7 @@
     "refundEligible": "boolean",
     "managerApproved": "boolean",
     "fraudCheckPassed": "boolean",
-    "refundAmount": "number",
-    "maximumRefundAmount": "number"
+    "refundAmount": "number"
   },
 
   "boundSignals": {
