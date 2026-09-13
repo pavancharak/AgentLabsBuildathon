@@ -1,12 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * SignerBootstrap.create() caches its result in a private static
- * field, so each test needs its own module instance -- same pattern
- * as key-bootstrap.test.ts. @aws-sdk/client-kms's KmsSigner.create()
- * is mocked so the aws-kms branch never makes a real network call;
- * kms-signer.test.ts already covers KmsSigner's own behavior in
- * isolation.
+ * vi.resetModules() + a fresh dynamic import isn't strictly required
+ * here (SignerBootstrap.create() is deliberately NOT memoized -- see
+ * its own doc comment for why a static cache broke per-test
+ * PARMANA_KEY_DIR isolation elsewhere in this codebase), but keeps
+ * this file's structure consistent with key-bootstrap.test.ts's
+ * pattern. @aws-sdk/client-kms's KmsSigner.create() is mocked so the
+ * aws-kms branch never makes a real network call; kms-signer.test.ts
+ * already covers KmsSigner's own behavior in isolation.
  */
 const kmsSignerCreateMock = vi.fn();
 
@@ -68,7 +70,7 @@ describe("SignerBootstrap", () => {
     expect(kmsSignerCreateMock).toHaveBeenCalledTimes(1);
   });
 
-  it("caches the resolved signer across repeated calls (does not re-invoke KmsSigner.create())", async () => {
+  it("constructs a fresh signer on every call, rather than caching (so a per-test PARMANA_KEY_DIR change always takes effect)", async () => {
     process.env.KEY_PROVIDER = "aws-kms";
     kmsSignerCreateMock.mockResolvedValue({ marker: "fake" });
 
@@ -77,7 +79,27 @@ describe("SignerBootstrap", () => {
     await SignerBootstrap.create();
     await SignerBootstrap.create();
 
-    expect(kmsSignerCreateMock).toHaveBeenCalledTimes(1);
+    expect(kmsSignerCreateMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("a LocalFileSigner picks up a changed PARMANA_KEY_DIR on the very next call, with no leftover state from a prior call", async () => {
+    process.env.KEY_PROVIDER = "local";
+    // PARMANA_KEY_DIR is left as whatever the global vitest.setup.ts
+    // already configured (a real temp directory with a generated
+    // "default" keypair) -- same assumption file-key-provider.test.ts
+    // documents.
+
+    const SignerBootstrap = await freshSignerBootstrap();
+
+    const first = await SignerBootstrap.create();
+    expect(await first.hasKey("default")).toBe(true);
+
+    process.env.PARMANA_KEY_DIR = "./this-directory-does-not-exist";
+
+    const second = await SignerBootstrap.create();
+    await expect(second.hasKey("default")).rejects.toThrow(
+      /Key directory does not exist/,
+    );
   });
 
   it.each(["azure-key-vault", "gcp-kms", "hsm"])(
