@@ -34,22 +34,34 @@ need to. It is the only thing that ever holds a real Paytm merchant key, and the
 speaks Paytm's own checksum-authenticated wire protocol. Everything this codebase implements stops at
 one HTTPS call to that service's `POST /connector/paytm-refund` endpoint.
 
-## Two authentication layers — do not conflate them
+## Three authentication layers — do not conflate them
 
 This is the single most important distinction to keep straight, and the milestone that built this
-connector was explicitly required not to blur it:
+connector was explicitly required not to blur it. A third layer (cryptographic authorization
+signing) was added by ADR-0009 Phase 2B (2026-09-13) after a code-level audit found the original
+two-layer design left a real gap — see the correction below the table.
 
 | Layer | What it proves | Where it lives | What it is NOT |
 |---|---|---|---|
 | **Parmana authorization** | This specific refund (this amount, this order, this transaction) was actually approved by policy, for a reason Parmana can show. | `customer-refund@1.0.0` policy, `SignalIntentBinder`, `CapabilityPolicyBinder`, `SignedTokenConnectorAuthenticator`, `ExecutionControlService` — all pre-existing, all unmodified by this connector. | Not something Paytm's API has any concept of. |
-| **Connector transport authentication** | This HTTPS request actually came from Parmana's gateway, not an arbitrary caller. | `PAYTM_CONNECTOR_SHARED_SECRET`, sent as a Bearer token on the one call `GatewayPaytmAdapter` makes. | Not Paytm's merchant key/checksum. Does not decide whether the refund is *allowed* — only whether the *caller* is Parmana. |
-| **Paytm's own authentication/checksum** | Paytm's API believes the connector service is a legitimate Paytm merchant integration. | Entirely inside `parmana-paytm-agent`. This codebase never sees it, never holds `PAYTM_MERCHANT_KEY`, and never constructs a Paytm checksum. | Not a substitute for Parmana authorization. A request that passes Paytm's checksum but was never approved by Parmana policy can never reach Paytm at all, because the connector service only ever receives requests `GatewayPaytmAdapter` forwards, which only happen after (1) above already passed. |
+| **Authorization signature** *(added Phase 2B)* | This exact `businessTransactionId`/`orderId`/`txnId`/`amount` combination is the one Parmana's policy engine actually approved — not merely that *some* refund was approved at some point. | `GatewayPaytmAdapter` signs `canonicalPaytmAuthorizationString(...)` (`packages/connector-paytm/src/PaytmTypes.ts`) with the gateway's own key (`SignerBootstrap`/`DEFAULT_KEY_ID`) and attaches `signature`/`keyId`/`expiresAt` (60s TTL, `PAYTM_AUTHORIZATION_SIGNATURE_TTL_MS`) to the outbound `authorization` object. `parmana-paytm-agent` fetches the matching public key via `GET /keys/:keyId` and verifies before executing. | Not yet backed by AWS KMS — the signing key is currently the local file key (`KEY_PROVIDER=local`, the default); see ADR-0009 and the 2026-09-13 ship log for the AWS-provisioning status. |
+| **Connector transport authentication** | This HTTPS request actually came from Parmana's gateway, not an arbitrary caller. | `PAYTM_CONNECTOR_SHARED_SECRET`, sent as a Bearer token on the one call `GatewayPaytmAdapter` makes. | Not Paytm's merchant key/checksum. On its own (before Phase 2B), this was the *only* thing standing between an arbitrary caller and a real refund — see below. |
+| **Paytm's own authentication/checksum** | Paytm's API believes the connector service is a legitimate Paytm merchant integration. | Entirely inside `parmana-paytm-agent`. This codebase never sees it, never holds `PAYTM_MERCHANT_KEY`, and never constructs a Paytm checksum. | Not a substitute for Parmana authorization. |
 
-A caller who somehow obtained a valid `PAYTM_CONNECTOR_SHARED_SECRET` still cannot invoke Paytm: the
-only thing that secret authenticates is Parmana's own gateway calling its own connector service, and
-the only caller of that HTTPS request is `GatewayPaytmAdapter.execute()`, which only ever runs after
-`POST /execute` -> policy -> `APPROVED`. There is no route, endpoint, or code path in this codebase
-that lets an agent or caller reach the Paytm connector service directly.
+**Correction to an earlier version of this document.** This section used to claim "a caller who
+somehow obtained a valid `PAYTM_CONNECTOR_SHARED_SECRET` still cannot invoke Paytm... there is no
+route, endpoint, or code path in this codebase that lets an agent or caller reach the Paytm connector
+service directly." That claim was true only about *this codebase's own routes* — it did not account
+for `parmana-paytm-agent`'s `POST /connector/paytm-refund` being a public HTTPS endpoint in its own
+right (per the `PAYTM_CONNECTOR_URL` contract, it has to be reachable over the internet). Before Phase
+2B, anyone holding the shared secret — leaked from either side, or from a compromised host with
+filesystem access to either process — could `curl` that endpoint directly with a self-chosen
+`orderId`/`txnId`/`amount`, entirely bypassing `POST /execute`, the policy engine, and every binding
+check this document describes above. `GatewayPaytmAdapter` never had a code path for this because it
+didn't need one — the vulnerability was that the *receiving* service accepted the shared secret alone
+as sufficient proof. The authorization-signature layer added in Phase 2B closes this: the connector
+service now also requires a signature it cannot verify without Parmana's public key, and cannot forge
+without Parmana's private key, regardless of how the shared secret was obtained.
 
 ## Approved flow
 
@@ -90,7 +102,13 @@ that lets an agent or caller reach the Paytm connector service directly.
          }
        },
        "authorization": {
-         "payload": { "businessTransactionId": "...", "grantedCapability": "paytm-refund" }
+         "payload": {
+           "businessTransactionId": "...",
+           "grantedCapability": "paytm-refund",
+           "expiresAt": 1789300000000
+         },
+         "signature": "<base64, over businessTransactionId|action|orderId|txnId|amount|expiresAt>",
+         "keyId": "default"
        }
      }
 
@@ -104,6 +122,14 @@ that lets an agent or caller reach the Paytm connector service directly.
    everywhere else -- policy binding, connector registration); only
    this one outbound HTTP body uses the wire-specific "paytm-refund"
    string, via PAYTM_AGENT_WIRE_ACTION.
+
+   `expiresAt`/`signature`/`keyId` were added by ADR-0009 Phase 2B (see
+   "Three authentication layers" above) -- `expiresAt` is epoch
+   milliseconds, `signature` is base64 over a pipe-delimited string
+   built by `canonicalPaytmAuthorizationString()`
+   (`packages/connector-paytm/src/PaytmTypes.ts`), never JSON, to avoid
+   any key-ordering ambiguity between this repo and
+   `parmana-paytm-agent`.
 
 7. The connector service processes the refund against Paytm's real API
    (out of this codebase's scope) and returns:
@@ -186,6 +212,12 @@ TEST_PAYTM_CONNECTOR_SHARED_SECRET=     # Test-mode secret (NODE_ENV=test), read
                                          # no bridge variable, mirroring every other connector's
                                          # test-credential convention.
 ```
+
+No new environment variable was introduced for the Phase 2B authorization signature -- it reuses
+whichever signing key `KEY_PROVIDER` already resolves to (`KeyBootstrap`/`SignerBootstrap`,
+`packages/crypto`), the same key that signs Trust Records and every other signed artifact this
+process produces. `parmana-paytm-agent` needs no corresponding new secret either: it fetches the
+matching public key live over HTTP (`GET /keys/:keyId`) rather than being configured with one.
 
 `PAYTM_CONNECTOR_URL` and `PAYTM_CONNECTOR_SHARED_SECRET` are optional as a *pair*, but never
 independently:
@@ -271,6 +303,10 @@ makes exactly one HTTPS request.
    startup logs).
 6. Exercise the flow with a real, small-amount, staging-safe refund through `POST /execute` before
    relying on it for real traffic.
+7. Confirm `parmana-paytm-agent` can actually reach this deployment's `GET /keys/:keyId` (used to
+   verify the Phase 2B authorization signature) -- a network/firewall configuration that lets the
+   connector service reach `PARMANA_API_URL` for `/execute` calls but not this unauthenticated
+   discovery route would silently break every refund with a signature-verification failure.
 
 There is no gated live-integration suite in this repository for this connector (unlike HubSpot's
 `ALLOW_LIVE_HUBSPOT`/GitHub's `ALLOW_LIVE_GITHUB`), because this milestone has no reachable
