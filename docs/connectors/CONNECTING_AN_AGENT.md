@@ -1,94 +1,153 @@
-# Connecting an External AI Agent to Parmana
+# Connecting an External Agent to Parmana — Complete Guide
 
-**Status:** the agent-to-Parmana leg described here is real and verified — tested against a live
-`parmana-phinite-agent` integration, with two real bugs found and fixed in that client during that
-verification (see "Reference implementation" below). The Parmana-side policy (`customer-refund@1.0.0`)
-and connector (`connector-paytm`, see `docs/connectors/PAYTM_CONNECTOR.md`) are both real and built.
-**What is not verified: whether the live deployment an agent actually talks to has the Paytm connector
-registered** (see "What this does not confirm" at the end). Treat "the agent received an APPROVED,
-signed decision" and "the refund executed against Paytm" as two separate claims.
+Everything a new developer needs to connect an external AI agent (or any external caller) to
+Parmana: what's required, why each requirement exists, exactly how to do it, and how to
+troubleshoot every failure mode. Grounded in this codebase's actual source — every status code and
+error shape below is cited to the file that produces it, not guessed.
 
-This document covers the caller/agent side of the flow — what an external AI agent (or any external
-caller) sends to Parmana and how it must handle the response. For what happens after `APPROVED`
-(Execution Gateway → connector → Paytm), see `docs/connectors/PAYTM_CONNECTOR.md`. For building a new
-connector, see `docs/connectors/BUILDING_A_CONNECTOR.md`. This page only covers the caller side.
+**Scope:** this document covers the caller/agent side — the leg from your agent to Parmana's
+`POST /execute`. What happens after Parmana approves (Execution Gateway → connector → the real
+business system) is a separate document: `docs/connectors/PAYTM_CONNECTOR.md` for the worked Paytm
+example, `docs/connectors/BUILDING_A_CONNECTOR.md` to build a new one.
 
-## The pattern
+## The mental model
 
 ```text
-AI Agent
-  |  POST /execute  (Bearer API key)
-  v
-Parmana
-  |  caller auth -> principal check -> capability check
-  |  CapabilityPolicyBinder  (capability paired with its one canonical policy)
-  |  SignalIntentBinder      (declared signal == real intent.parameters value)
-  |  PolicyEngine.evaluate   (customer-refund@1.0.0's rules)
-  v
-  +-- REJECT  -> signed Refusal Record, HTTP 403/200 depending on which check failed
-  |
-  +-- APPROVE -> signed decision -> Execution Gateway -> connector dispatch
-                                       (see PAYTM_CONNECTOR.md for this leg)
+AI Agent  --------------------------------------------------->  Parmana
+   |  understands the request, extracts an intent                  |
+   |  never decides whether the action is authorized                |
+   |  never holds the downstream system's credentials                |
+   v                                                                v
+"I want to refund order X for ₹500"                    caller auth -> capability check
+                                                         -> CapabilityPolicyBinder
+                                                         -> SignalIntentBinder
+                                                         -> PolicyEngine.evaluate
+                                                         -> APPROVE or REJECT (binary, signed)
 ```
 
-**Parmana's own decision is strictly binary.** `PolicyEngine`'s outcome type is `APPROVE`/`REJECT`
-only — there is no `AMBIGUOUS` outcome anywhere in the policy engine itself. No matching rule, a
-missing signal, or an unsupported operator all resolve to `REJECT`, never to an undefined state (see
-`packages/policy/src/PolicyEngine.ts`). An `AMBIGUOUS` status an agent sees is something the *client*
-tool constructs defensively, for cases where the client cannot tell what Parmana actually decided (a
-timeout, a 5xx, a malformed response) — it is never a decision Parmana itself produces. Keep this
-distinction in any agent-side error handling: "we don't know what happened" is a client-side state,
-not a policy outcome.
+**The one rule everything below enforces:** the agent proposes an intent; Parmana decides whether
+it's authorized; only Parmana's decision can unlock execution. If your integration ever lets the
+agent (or the customer, via the agent) directly set a value that determines the outcome — an
+approval flag, a fraud-check result, a policy name — you have broken this model, even if the code
+still technically "works."
 
-## Caller identity and capability model
+## Part 1 — What you need, and why
 
-Every caller authenticates with a Bearer API key mapped, server-side, to a caller record:
+| # | You need | Why |
+|---|---|---|
+| 1 | A reachable Parmana deployment (a base URL for `POST /execute`) | There's nothing to connect to without one. Could be a self-hosted `packages/api` instance or an existing live deployment. |
+| 2 | A capability name your agent will invoke (e.g. `paytm:refund`) | Parmana authorizes *capabilities*, not free-form actions. The capability string is what gets bound to a policy and to a caller's permissions — pick it before writing any code. |
+| 3 | A deployed policy bound to that capability (e.g. `customer-refund@1.0.0`) | The policy is what actually decides APPROVE/REJECT. If it doesn't exist on the target deployment yet, your first call fails with `404` (`PolicyNotFoundError`) — see Troubleshooting. |
+| 4 | The policy's exact `signalsSchema` and `boundSignals` | You must send every signal the policy's rules reference, and any `boundSignals` entry must equal the corresponding `intent.parameters` value exactly, or the request is rejected before the policy engine ever runs. Read the policy's `.json` file directly — don't guess field names. |
+| 5 | An API key, scoped to exactly that capability | This is your agent's identity. See Step 3 below for how to mint one. |
+| 6 | A source of trusted business signals that is *not* the conversation | The signals a policy evaluates (e.g. `managerApproved`, `fraudCheckPassed`) must come from an independent business system. An LLM inferring `managerApproved = true` because the customer said so is exactly the failure mode this whole architecture exists to prevent. |
+| 7 | UUID generation for `businessTransactionId` / `authorityId` / `authorizationId` / `intentId` | `businessTransactionId` is validated against a UUID-shaped regex (versions 1–5, `packages/api/src/routes/execute.ts`); a slug or short string is rejected with `400` before anything else runs. |
+| 8 | (Only if you need real downstream execution) confirmation that a connector is registered for your capability on this specific deployment | An `APPROVED` decision with no registered connector fails at dispatch — see Step 8 below. This is a separate question from whether your agent-to-Parmana integration is correct. |
+
+## Part 2 — Step by step
+
+### Step 1: Confirm the deployment and the policy exist
+
+Read the policy file directly — don't rely on a description of it:
+
+```bash
+cat policies/customer-refund/1.0.0/policy.json
+```
+
+Note its `signalsSchema` (every field you must send in `signals`) and `boundSignals` (every field
+that must also equal a specific `intent.parameters` value). If you're pointing at someone else's
+deployment, ask them for the deployed policy's exact name/version/schemaVersion, or fetch it if the
+deployment exposes a policy-listing endpoint.
+
+**Why this step first:** everything downstream — the API key you mint, the request shape you build
+— depends on knowing the exact capability name and exact signal names. Guessing them wastes every
+subsequent step.
+
+### Step 2: Decide the capability name
+
+Use the capability the policy is actually bound to (check
+`packages/capability-registry/src/CapabilityPolicyBinding.ts`'s
+`CANONICAL_CAPABILITY_POLICY_BINDINGS` if you're unsure which policy a capability maps to). For the
+worked refund example, this is `paytm:refund`.
+
+**Why exact spelling matters:** Parmana does exact string matching, not fuzzy matching or
+normalization. `refund` and `paytm:refund` are different strings. This is not a minor detail — it is
+the single most common integration failure (see Troubleshooting: `CAPABILITY_NOT_ALLOWED`).
+
+### Step 3: Mint an API key scoped to exactly that capability
+
+```bash
+npx tsx scripts/generate-api-key.ts \
+  --caller-id my-refund-agent \
+  --allowed-capabilities "paytm:refund" \
+  --credential-holder-type SERVICE
+```
+
+This prints the raw key **once** (never written to disk, never recoverable after the terminal
+closes) and a JSON entry to append to the deployment's `PARMANA_API_KEYS` environment variable (a
+JSON array of caller records). Adding it requires redeploying/restarting the API process.
+
+**Why `--credential-holder-type SERVICE`, not `USER`:** an autonomous agent is not a human operator.
+`AuthorityType` accepts `USER`, `ROLE`, `SERVICE`, `ORGANIZATION` — `"AGENT"` is **not** a valid
+value (a documented, real mistake made while building the live demo deployment). Map an agent to
+`SERVICE`.
+
+**Why scope `--allowed-capabilities` narrowly:** never grant `"*"` to a single-purpose agent. Least
+privilege here is not a formality — `unrestrictedCapabilities` in `/callers/me`'s response is
+literally derived as `allowedCapabilities.includes("*")` (`packages/api/src/routes/callers-me.ts`), so
+a wildcard caller can invoke *any* capability on the deployment, not just the one your agent needs.
+
+### Step 4: Verify the key works before writing any agent code
+
+```bash
+curl -i "https://<your-deployment>/callers/me" \
+  -H "Authorization: Bearer <your-key>" \
+  -H "Accept: application/json"
+```
+
+Expect:
 
 ```json
 {
-  "callerId": "parmana-refund-agents",
-  "allowedPrincipalIds": ["parmana-refund-agents"],
+  "callerId": "my-refund-agent",
+  "allowedPrincipalIds": ["my-refund-agent"],
   "allowedCapabilities": ["paytm:refund"],
   "unrestrictedCapabilities": false
 }
 ```
 
-- **Capability matching is exact.** `refund` and `paytm:refund` are different strings; the caller's
-  `allowedCapabilities` must contain the literal value the transaction's `intent.action` uses, or the
-  request is rejected with `403 CAPABILITY_NOT_ALLOWED` before `PolicyEngine.evaluate` ever runs
-  (`packages/api/src/routes/execute.ts`). Never grant `"*"` to a refund-only agent caller.
-- **Principal scoping is a separate check from capability scoping.** A caller with no explicit
-  principal grant may only assert `authority.principalId` equal to its own caller id.
-- **`CapabilityPolicyBinder` additionally confirms** the transaction's declared `policy` reference is
-  the one canonical policy actually bound to that capability (`customer-refund@1.0.0` for
-  `paytm:refund`), not a caller-substituted one.
-- **`SignalIntentBinder` additionally confirms** every `boundSignals`-declared signal equals the real
-  value at its bound path in `intent` — for this policy, `signals.refundAmount ===
-  intent.parameters.amount`. The "authorized amount" and the amount that would actually execute can
-  never diverge and still reach `PolicyEngine.evaluate`.
+**Why this step matters:** it isolates "is my key/deployment configuration correct" from "is my
+agent's request shape correct." If this call fails, nothing about your agent's code is relevant yet
+— fix authentication first (see Troubleshooting).
 
-## Trusted signals: never inferred from the conversation
+### Step 5: Wire up your trusted-signal source
 
-`customer-refund@1.0.0` requires four signals: `refundEligible`, `managerApproved`,
-`fraudCheckPassed`, `refundAmount`. These must come from structured business context the agent
-obtains separately — never from the customer's own words. This is unsafe:
+Identify, for real, where each signal in the policy's `signalsSchema` comes from in your business
+systems (an eligibility service, a manager-approval workflow, a fraud engine — whatever your
+organization actually has). Do not fabricate a source "for now" and plan to fix it later — the
+non-negotiable rule is that these values are never inferred from the agent's conversation with the
+end user, full stop, from day one.
 
-```text
-Customer: My manager already approved it.
-Agent:    managerApproved = true        <- WRONG. Never do this.
-```
+### Step 6: Build the request
 
-The agent's job is to understand and extract the *intent* (order id, transaction id, amount, reason).
-Whether the refund is eligible, approved, and fraud-clear are facts an independent business system
-must supply.
-
-## The request contract
+Generate real UUIDs (any RFC 4122 generator works — the server-side check is regex-shaped and
+accepts version nibbles 1–5, not a v4-only parser):
 
 ```json
 {
-  "businessTransactionId": "<uuid v4>",
-  "authority": { "authorityId": "<uuid>", "authorityType": "SERVICE", "principalId": "parmana-refund-agents", "issuedAt": "<iso8601>" },
-  "authorization": { "authorizationId": "<uuid>", "authorityId": "<uuid>", "purpose": "Authorize Paytm customer refund", "issuedAt": "<iso8601>" },
+  "businessTransactionId": "<uuid>",
+  "authority": {
+    "authorityId": "<uuid>",
+    "authorityType": "SERVICE",
+    "principalId": "my-refund-agent",
+    "issuedAt": "<iso8601>"
+  },
+  "authorization": {
+    "authorizationId": "<uuid>",
+    "authorityId": "<uuid>",
+    "purpose": "Authorize Paytm customer refund",
+    "issuedAt": "<iso8601>"
+  },
   "intent": {
     "intentId": "<uuid>",
     "authorizationId": "<uuid>",
@@ -103,45 +162,117 @@ must supply.
 }
 ```
 
-`authority.authorityType` must be `USER`, `ROLE`, `SERVICE`, or `ORGANIZATION` — an autonomous agent
-maps to `SERVICE` (`"AGENT"` is not a valid value).
+Field-by-field notes that matter:
 
-## Handling the response
+- **`intent.action` must equal your caller's exact `allowedCapabilities` entry.** Not a prefix, not
+  a related string.
+- **`policy.name`/`policy.version` must match a real, deployed policy exactly.** It is *not* inferred
+  from `intent.action` — you name it explicitly, and a caller could otherwise pair a real capability
+  with an unrelated policy if `CapabilityPolicyBinder` didn't independently confirm this pairing.
+- **Every `boundSignals` entry must equal its bound `intent.parameters` path.** Here,
+  `signals.refundAmount` must equal `intent.parameters.amount` exactly, or the request is rejected
+  before policy evaluation — this is what prevents "authorize 500, execute 50000."
+- **`authority.principalId` must be one your caller is permitted to assert** — with no explicit
+  `allowedPrincipalIds` grant, that's your own `callerId` only.
 
-| Parmana result | What the agent should do |
-|---|---|
-| `APPROVED` (signed decision) | Report the authorization to the customer. Do **not** claim the refund settled at Paytm — that is a separate, connector-side outcome. See PAYTM_CONNECTOR.md. |
-| `REJECTED` / `403 CAPABILITY_NOT_ALLOWED` / `403 POLICY_DENIED` | Terminal for this attempt. Never retry with an altered amount, never fabricate signals, never bypass Parmana. |
-| Timeout, 5xx, malformed response, unrecognized error shape | Client-side unresolved state. Report as unknown/needs-verification, not as approved or denied — never guess a specific outcome from an ambiguous transport failure. |
+### Step 7: Send the request and handle the response
 
-## Reference implementation: `parmana-phinite-agent`
+```bash
+curl -i "https://<your-deployment>/execute" \
+  -H "Authorization: Bearer <your-key>" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  --data-binary @transaction.json
+```
 
-The Phinite-based agent in `pavancharak/parmana-phinite-agent` (`phinite/parmana_refund_tool.py`) is a
-real, working implementation of this pattern: it builds the request above, calls the live Parmana API,
-and interprets the response. Two real bugs were found and fixed in it (2026-09-13):
+See Part 3 for the complete, exhaustive response reference — don't guess at response handling from
+this example alone.
 
-1. It sent `intent.action = "refund"` instead of `"paytm:refund"` — a capability mismatch that would
-   fail every real call before reaching a policy decision.
-2. Its error handling only recognized a `DENIED` decision for one exact `403` response shape, and
-   crashed (unhandled exception) on any other `403`, on a network failure, or on a `200` response
-   carrying an embedded `DENIED`/`AMBIGUOUS` decision it didn't expect. Unrecognized failures now
-   resolve to a client-side `AMBIGUOUS` state instead of crashing or being guessed as `DENIED`.
+### Step 8 (only if you need real downstream execution): confirm a connector is registered
 
-Both fixes are documented in that repository's README (§16, §21, §23, Failure 5) and are a good worked
-example of the response-handling table above.
+`APPROVED` from Parmana means *authorization* succeeded. It does not by itself mean a downstream
+system (Paytm, HubSpot, GitHub, whatever your capability's connector talks to) actually executed
+anything. Before claiming end-to-end execution:
 
-## What this does not confirm
+- Check the specific deployment's startup logs for a `paytm_connector_unavailable`-style warning (or
+  the equivalent for your capability's connector).
+- If you can, deliberately submit a transaction you expect to approve and inspect whether execution
+  actually completes rather than failing at dispatch (see "500 Internal Server Error" in
+  Troubleshooting — this is the most common way to discover a missing connector registration).
 
-- **Whether the Paytm connector is actually registered on the specific live deployment an agent talks
-  to.** `docs/site/guides/live-api-and-demos.mdx` documents that the general-purpose live demo
-  deployment (`parmana-api-real.vercel.app`) historically had *no* connector registered for *any*
-  capability. Dispatching an `APPROVED` decision to an unregistered connector throws a plain `Error`
-  (`packages/execution-gateway/src/connector-execution/GatewayConnectorRegistry.ts`), which is not one
-  of the typed errors `packages/api/src/routes/execute.ts` handles specially — it falls through to a
-  generic error response. Whether `PAYTM_CONNECTOR_URL`/`PAYTM_CONNECTOR_SHARED_SECRET` have since been
-  configured on that deployment to point at a real `parmana-paytm-agent` instance was not checked as
-  part of writing this document. Confirm this directly (or check deployment logs for
-  `paytm_connector_unavailable`) before claiming a refund executes end-to-end on a specific deployment.
-- **`parmana-paytm-agent`'s own `/agent/refunds` endpoint is a second, separate integration pattern**
-  (an agent calls that service directly, which itself calls Parmana) — not covered here. This document
-  only covers the direct-to-Parmana pattern Phinite uses.
+**Why this is a separate step, not an assumption:** the general-purpose live demo deployment
+documented in `docs/site/guides/live-api-and-demos.mdx` historically had **no connector registered
+at all**, for any capability. "The agent got an APPROVED decision" and "the refund executed" are two
+different, independently-verifiable claims. Never conflate them in what you tell a user or a
+stakeholder.
+
+### Step 9: Verify independently
+
+- `GET /refusal/:id` returns a signed Refusal Record for a rejected transaction; verify its signature
+  with `POST /refusal/verify` (unauthenticated, purely cryptographic) with zero trust in the server's
+  own "yes it's valid" claim.
+- `GET /trust-records/:id` returns the full signed Execution Trust Record, but only once a connector
+  is actually wired for that capability.
+- For fully offline verification with no server calls at all, use
+  `verifyExecutionTrustRecordOffline` from `@parmana/crypto`.
+
+## Part 3 — Complete response and error reference
+
+Every row below is cited to the exact source that produces it — this is not a paraphrase.
+
+| HTTP status | `code` | Where it comes from | What it actually means | What to do |
+|---|---|---|---|---|
+| `200` | — | `execute.ts`, decision outcome `APPROVE` | Parmana approved the transaction; a signed decision was produced. Execution dispatch (if any) happens after this. | Report the authorization. Do not claim downstream execution unless separately confirmed (Step 8). |
+| `400` | — | `execute.ts` (`businessTransactionId` not a valid UUID) | Structural rejection before any auth/policy logic runs. | Fix the UUID; this is a bug in your request construction, not a policy decision. |
+| `400` | — | `error-handler.ts` (`BusinessTransactionValidationError` / `PolicyValidationError` / `SignalValidationError`) | The transaction shape, or the policy/signal shape, failed structural validation. | Read `error.message` — it names the specific field. |
+| `400` | — | `error-handler.ts` (`entity.parse.failed`, from Express body parsing) | Malformed JSON body. | Fix request serialization; this happens before any Parmana logic runs at all. |
+| `403` | (none) | `execute.ts` — `authority.principalId` not permitted | Caller authenticated, but tried to assert a `principalId` it isn't allowed to use. | Set `principalId` to your own `callerId`, or request a broader `allowedPrincipalIds` grant. |
+| `403` | `CAPABILITY_NOT_ALLOWED` | `execute.ts` — `intent.action` not in caller's `allowedCapabilities` | **The single most common integration bug.** Your capability string doesn't exactly match what your API key is scoped to. | `GET /callers/me` and compare its exact `allowedCapabilities` strings against your `intent.action` string, character for character. |
+| `403` | `POLICY_DENIED` | `ExecutionGate.enforce` (`packages/runtime/src/ExecutionGate.ts`) — **uniform for every policy rejection, regardless of which rule caused it** | The policy evaluated your signals and rejected the transaction. `error.message` is `"Execution rejected: <the matched rule's reason>"` — read it, it names the actual cause (excessive amount, failed fraud check, not manager-approved, or the policy's default fallback). | This is a real, correct decision, not a bug. Do not retry with altered parameters; do not treat it as a client error to route around. |
+| `404` | — | `error-handler.ts` (`PolicyNotFoundError`) | `policy.name`/`policy.version` in your request doesn't match any policy deployed on this instance. | Check spelling/version exactly, and confirm the policy is actually deployed on *this* deployment (policies are baked into the build per deployment). |
+| `409` | — | `error-handler.ts` (`DuplicateBusinessTransactionError`) | You reused a `businessTransactionId` that was already accepted. | Generate a fresh UUID per attempt. If retrying a specific logical operation, that's a separate idempotency concern your integration must design for explicitly — Parmana's own uniqueness check is not an idempotency mechanism you should rely on for that. |
+| `413` | — | `error-handler.ts` (Express body-parser, oversized body) | Request body too large. | Trim the payload; this is a transport-level limit, unrelated to policy. |
+| `500` | — | `error-handler.ts`'s generic fallback — **catches every error that isn't one of the typed ones above**, including a plain `Error` thrown by `GatewayConnectorRegistry.resolveCapability` (`"No connector registered for capability '<name>'."`) | Ambiguous by design of the error handler — could be a genuine bug, **or** (very commonly) an `APPROVED` decision whose capability has no connector registered on this deployment. | Check server logs for the exact error message. If it says "No connector registered," this is Step 8's issue, not a bug in your agent. Anything else genuinely is unexpected and worth reporting upstream. |
+| (no HTTP response at all) | — | network/timeout | The request may or may not have reached Parmana at all. | Treat as an unresolved, client-side state — never assume either APPROVED or REJECTED from a timeout. |
+
+## Part 4 — Common mistakes checklist
+
+- [ ] Capability string in `intent.action` does not exactly match an entry in your API key's
+  `allowedCapabilities` (the #1 real-world cause of "why is this always rejected").
+- [ ] `authority.authorityType` set to `"AGENT"` — not a valid value; use `"SERVICE"`.
+- [ ] A signal value inferred from what the customer said, instead of from an independent business
+  system.
+- [ ] `businessTransactionId` reused across retries where each retry should be its own attempt (or
+  the opposite — a fresh ID generated for what should logically be the same idempotent retry).
+- [ ] Treating a `403 POLICY_DENIED` as a bug to work around rather than a correct decision to
+  respect and report.
+- [ ] Claiming a refund/action "executed" based on an `APPROVED` response alone, without confirming
+  the connector for that capability is actually registered on that specific deployment.
+- [ ] Granting `"*"` in `allowedCapabilities` "just to get it working," and never narrowing it
+  afterward.
+- [ ] Guessing at signal field names instead of reading the policy's `signalsSchema` directly.
+
+## Reference implementation
+
+`pavancharak/parmana-phinite-agent` (`phinite/parmana_refund_tool.py`) is a real, working
+implementation of every step above. Two real bugs were found and fixed in it (2026-09-13):
+
+1. It sent `intent.action = "refund"` instead of `"paytm:refund"` — exactly the `CAPABILITY_NOT_ALLOWED`
+   failure mode described in Part 3, and the single most common integration mistake.
+2. Its error handling only recognized a `DENIED` decision for one exact `403` response shape and
+   crashed (unhandled exception) on any other `403`, a network failure, or a `200` response carrying
+   an unexpected embedded decision. It now resolves every unrecognized failure to a client-side
+   "unresolved" state instead of crashing or guessing at `DENIED`.
+
+Read that repository's README (§16, §21, §23, Failure 5) for the full writeup — it's a good worked
+example of Part 3's table in practice, including the mistakes to avoid.
+
+## What this guide does not cover
+
+- **Building a new connector** (the execution side, after `APPROVED`) — see
+  `docs/connectors/BUILDING_A_CONNECTOR.md`.
+- **The Paytm connector specifically** — see `docs/connectors/PAYTM_CONNECTOR.md`.
+- **`parmana-paytm-agent`'s own `/agent/refunds` endpoint** — a second, separate integration shape
+  (an agent calls that service, which itself calls Parmana) — not the pattern documented here.
+- **Policy authoring** — see `docs/site/guides/write-your-first-policy.mdx` and
+  `LIVE-API-GUIDE.md` (repo root) for the exact condition/operator language.
