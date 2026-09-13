@@ -180,6 +180,11 @@ separate written agreement with Parmana Systems.
 [docs/README.md](docs/README.md) indexes the rest: CLAIMS.md, DEPLOYMENT.md,
 SECURITY.md, and package-level documentation, in reading order.
 
+Connecting an external agent? Start with
+[docs/connectors/CONNECTING_AN_AGENT.md](docs/connectors/CONNECTING_AN_AGENT.md)
+(what's required and why, a step-by-step walkthrough, and every response/error
+cited to source).
+
 Adding a connector? Start with
 [docs/architecture/CONNECTOR_ISOLATION.md](docs/architecture/CONNECTOR_ISOLATION.md)
 (how credential isolation actually works) and

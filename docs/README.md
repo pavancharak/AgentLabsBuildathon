@@ -25,6 +25,14 @@ not indexed here and are not required reading.
   — verifying a Parmana execution authorization independently, without
   trusting Parmana's runtime or database.
 
+## Connecting an agent
+
+- **[connectors/CONNECTING_AN_AGENT.md](connectors/CONNECTING_AN_AGENT.md)** — the complete guide
+  for a new developer connecting an external AI agent (or any external caller) to Parmana: what's
+  required and why, a step-by-step walkthrough, and an exhaustive response/error reference cited to
+  the actual source. Covers the caller side only — see "Building a connector" below for what happens
+  after `APPROVED`.
+
 ## Building a connector
 
 - **[architecture/CONNECTOR_ISOLATION.md](architecture/CONNECTOR_ISOLATION.md)**
@@ -43,6 +51,8 @@ not indexed here and are not required reading.
 - **Evaluating Parmana**: README.md, then CLAIMS.md.
 - **Deploying it**: DEPLOYMENT.md, then packages/api/README.md.
 - **Integrating a receiving system**: packages/envelope-verifier/README.md.
+- **Connecting an external agent**: connectors/CONNECTING_AN_AGENT.md, then
+  connectors/PAYTM_CONNECTOR.md if you also need the execution side.
 - **Building a connector**: architecture/CONNECTOR_ISOLATION.md, then
   connectors/BUILDING_A_CONNECTOR.md.
 
