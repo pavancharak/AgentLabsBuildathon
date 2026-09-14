@@ -76,9 +76,20 @@ placeholder to fix later — from day one.
 
 **6. Build the request:**
 
+<Warning>
+  **This example was missing `metadata` until 2026-09-14** — found while running
+  [End-to-end: agent → Parmana → Paytm](/guides/end-to-end-paytm-flow) against a real
+  deployment. Omitting it fails with
+  `{"error":"metadata.businessTransactionId must match businessTransactionId."}` (400),
+  before policy is ever evaluated. It's now included below.
+</Warning>
+
 ```json
 {
   "businessTransactionId": "<uuid v4>",
+  "metadata": {
+    "businessTransactionId": "<same uuid v4 as above>"
+  },
   "authority": {
     "authorityId": "<uuid>",
     "authorityType": "SERVICE",

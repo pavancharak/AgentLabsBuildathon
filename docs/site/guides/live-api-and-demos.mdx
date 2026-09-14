@@ -26,20 +26,29 @@ signed, durable, retrievable. Genuinely useful for demoing policy authoring, sig
 binding, guardrails correctly declining a request, cryptographic proof of a decision,
 independent offline verification, and audit trails.
 
-**Isn't:** a live payment/CRM/deployment system. **No connector is registered on this
-deployment**, no HubSpot token, no GitHub App credentials configured, and it isn't running
-in test mode either. This is deliberate: it mirrors a real, documented finding in this
-codebase (see [What Parmana does not claim](/trust-and-claims/what-we-dont-claim) and the
-`vendor-payment` policy's own history) that a capability should not be wired to a connector
-until its signals are independently verified, not merely caller-declared.
+**Correction (2026-09-14):** `paytm:refund` is now a real, wired connector on this
+deployment — `PAYTM_CONNECTOR_URL`/`PAYTM_CONNECTOR_SHARED_SECRET` point at a real,
+separately deployed `parmana-paytm-agent` service, which itself calls Paytm's staging API.
+An approved `paytm:refund` request now reaches Paytm's real staging API and returns a real
+result, proven live end to end including a full cross-service audit trail correlated by
+`businessTransactionId`. Full runbook: [End-to-end: agent → Parmana →
+Paytm](/guides/end-to-end-paytm-flow).
 
-Concretely: an **approved** decision reaches Policy Engine and gets signed, then fails
-with a `500` (`No connector registered for capability '<name>'`) at the dispatch stage, for
-every capability, including the ones with real connector code (HubSpot, GitHub), since
-their credentials aren't configured on this deployment. A **denied** decision never reaches
-that stage (policy rejection happens before dispatch), so it always completes cleanly. Plan
-demos around that: "the system correctly declines" is a complete, real demo on this
-deployment; "money actually moves" is not, unless you add real connector credentials.
+**Isn't (still true for HubSpot/GitHub):** no HubSpot token, no GitHub App credentials
+configured, and it isn't running in test mode either. This mirrors a real, documented
+finding in this codebase (see [What Parmana does not claim](/trust-and-claims/what-we-dont-claim)
+and the `vendor-payment` policy's own history) that a capability should not be wired to a
+connector until its signals are independently verified, not merely caller-declared.
+
+Concretely: an **approved** decision for `hubspot-deal-update`/`github-pr-approval`/etc.
+reaches Policy Engine and gets signed, then fails with a `500`
+(`No connector registered for capability '<name>'`) at the dispatch stage, since their
+credentials aren't configured on this deployment. A **denied** decision never reaches that
+stage (policy rejection happens before dispatch), so it always completes cleanly regardless
+of capability. Plan demos around that: "the system correctly declines" is a complete, real
+demo for any capability; "money/data actually moves" is real and demonstrable specifically
+for `paytm:refund` as of this correction, not yet for HubSpot/GitHub without adding real
+credentials.
 
 ## Authentication
 

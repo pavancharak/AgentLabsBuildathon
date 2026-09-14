@@ -52,20 +52,31 @@ signed, durable, retrievable. This is genuinely useful for demoing: policy autho
 signal binding, guardrails correctly declining a request, cryptographic proof of a
 decision, independent offline verification, audit trails.
 
-**Isn't:** a live payment/CRM/deployment system. **No connector is registered on this
-deployment**, no `HUBSPOT_PRIVATE_APP_TOKEN`, no GitHub App credentials, and
-`NODE_ENV` isn't `test` (so the test-fixture connector isn't registered either). This is
-deliberate, not a bug: it mirrors this codebase's own G-27 finding (`docs/VERIFICATION-GAPS.md`)
-that a capability should not be wired to a connector until its signals are independently
-verified, not merely caller-declared. Concretely: an **APPROVED** decision reaches Policy
-Engine, gets signed, and then fails with `500`/`No connector registered for capability
-'<name>'` at the dispatch stage, for every capability, including the ones with real
-connector code (HubSpot, GitHub) since their credentials aren't configured here either. A
-**DENIED** decision never reaches that stage (policy rejection happens before dispatch), so
-it always completes cleanly. Plan demos around that: "show the system correctly declining"
-is a complete, real demo; "show money actually moving" is not, on this deployment.
+**Correction (2026-09-14): `paytm:refund` is now a real, wired connector on this
+deployment, and this section's blanket "no connector is registered" claim is no longer
+accurate for it.** `PAYTM_CONNECTOR_URL`/`PAYTM_CONNECTOR_SHARED_SECRET` are configured on
+this deployment, pointing at a real, separately deployed `parmana-paytm-agent` service,
+which itself talks to Paytm's staging API. A `paytm:refund` request that policy approves
+now reaches Paytm's real staging API and returns a real (non-success, for a synthetic
+order) result — proven live, end to end, including a full cross-service, correlated audit
+trail (`execution_audit_events`, joined by `businessTransactionId` across both services).
+Full runbook, every command, every error hit while wiring this up and how each was fixed:
+`END-TO-END-FLOW.md` (repo root) / [End-to-end: agent → Parmana → Paytm](/guides/end-to-end-paytm-flow).
 
-If you need a real connector to fire, either add real `HUBSPOT_PRIVATE_APP_TOKEN` /
+**Everything else below about HubSpot/GitHub still holds**, and mirrors this codebase's own
+G-27 finding (`docs/VERIFICATION-GAPS.md`): a capability should not be wired to a connector
+until its signals are independently verified, not merely caller-declared. `HUBSPOT_PRIVATE_APP_TOKEN`
+and GitHub App credentials are still not configured on this deployment, and `NODE_ENV` isn't
+`test` (so the test-fixture connector isn't registered either). An **APPROVED** decision for
+`hubspot-deal-update`/`github-pr-approval`/etc. still reaches Policy Engine, gets signed, and
+then fails with `500`/`No connector registered for capability '<name>'` at the dispatch
+stage. A **DENIED** decision never reaches that stage (policy rejection happens before
+dispatch), so it always completes cleanly regardless of capability. Plan demos accordingly:
+"show the system correctly declining" is a complete, real demo for any capability; "show
+money/data actually moving" is real and demonstrable specifically for `paytm:refund` as of
+this correction, and not yet for HubSpot/GitHub.
+
+If you need HubSpot/GitHub to fire too, add real `HUBSPOT_PRIVATE_APP_TOKEN` /
 `GITHUB_APP_ID`+`GITHUB_INSTALLATION_ID`+`GITHUB_APP_PRIVATE_KEY` to this deployment's
 Vercel env vars and redeploy, or build a fully self-contained, connector-free
 demonstration the way the (now removed) standalone buildathon demo did.

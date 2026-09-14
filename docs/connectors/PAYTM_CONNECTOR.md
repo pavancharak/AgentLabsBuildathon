@@ -322,6 +322,13 @@ unlike everything else in this document, the fix on `parmana-paytm-agent`'s side
 directly in that repository, not inferred from its wire contract alone — see that repository's
 own `src/parmana/audit.ts` and its test suite.
 
+**For the complete, no-ambiguity runbook** for wiring this connector between two real Vercel
+deployments and actually firing a real refund end to end -- every environment variable,
+every real error message hit along the way (including the Supabase connection-string trap
+that cost the most time), and how to verify the resulting cross-service audit trail directly
+-- see `END-TO-END-FLOW.md` (repo root), kept in sync with
+`docs/site/guides/end-to-end-paytm-flow.mdx` (published docs).
+
 ## Staging -> production setup
 
 1. Deploy `parmana-paytm-agent` (a separate repository) with a real `PAYTM_MERCHANT_KEY` and Paytm

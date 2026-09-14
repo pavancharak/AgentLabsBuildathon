@@ -58,7 +58,8 @@
               "guides/detect-tampering",
               "guides/choose-a-signature-provider",
               "guides/deploy-patterns",
-              "guides/live-api-and-demos"
+              "guides/live-api-and-demos",
+              "guides/end-to-end-paytm-flow"
             ]
           },
           {

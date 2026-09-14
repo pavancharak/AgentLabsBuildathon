@@ -133,9 +133,17 @@ end user, full stop, from day one.
 Generate real UUIDs (any RFC 4122 generator works — the server-side check is regex-shaped and
 accepts version nibbles 1–5, not a v4-only parser):
 
+**This example was missing `metadata` until 2026-09-14** — found while running the full
+end-to-end flow against a real deployment (`END-TO-END-FLOW.md`, repo root). Omitting it
+fails with `{"error":"metadata.businessTransactionId must match businessTransactionId."}`
+(400), before policy is ever evaluated. It's included below.
+
 ```json
 {
   "businessTransactionId": "<uuid>",
+  "metadata": {
+    "businessTransactionId": "<same uuid as above>"
+  },
   "authority": {
     "authorityId": "<uuid>",
     "authorityType": "SERVICE",
