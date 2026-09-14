@@ -81,13 +81,17 @@ echo ""
 cd "$REPO_ROOT"
 
 if npm run preflight; then
-  exit 0
+  preflight_status=0
+else
+  preflight_status=$?
 fi
 
-preflight_status=$?
+if [ "$preflight_status" -ne 0 ]; then
+  echo ""
+  echo "pre-commit: preflight failed (see output above). Commit blocked."
+  echo "Fix the failure and retry, or --no-verify only with a specific, understood reason."
+  echo ""
+  exit "$preflight_status"
+fi
 
-echo ""
-echo "pre-commit: preflight failed (see output above). Commit blocked."
-echo "Fix the failure and retry, or --no-verify only with a specific, understood reason."
-echo ""
-exit "$preflight_status"
+exit 0
