@@ -1,50 +1,26 @@
 \# Cryptography
 
-
-
 \*\*Document:\*\* `docs/02-architecture/CRYPTOGRAPHY.md`
-
-
 
 \## Purpose
 
-
-
 This document defines the cryptographic architecture of Parmana.
-
-
 
 Cryptography provides \*\*integrity\*\*, \*\*authenticity\*\*, and \*\*tamper detection\*\* for authorization artifacts produced by the Parmana Runtime.
 
-
-
 Cryptography protects the trust established through Authority Verification. It does \*\*not\*\* establish execution authority.
-
-
 
 This document specifies the architectural requirements and the reference implementation used by Parmana.
 
-
-
 This document is normative.
-
-
 
 \---
 
-
-
 \# Overview
-
-
 
 Parmana authorizes business operations based on organizational policy and verified evidence.
 
-
-
 Once an Authorization Decision has been produced, the resulting authorization artifacts must be protected against:
-
-
 
 \* Modification
 
@@ -56,31 +32,17 @@ Once an Authorization Decision has been produced, the resulting authorization ar
 
 \* Integrity loss
 
-
-
 The Cryptography Layer provides these guarantees.
-
-
 
 \---
 
-
-
 \# Core Principle
-
-
 
 Cryptography protects evidence.
 
-
-
 Cryptography does \*\*not\*\* determine whether execution is authorized.
 
-
-
 Authorization is established through:
-
-
 
 \* Human Authority
 
@@ -88,91 +50,47 @@ Authorization is established through:
 
 \* Authority Verification
 
-
-
 Cryptography ensures that the resulting authorization artifacts remain trustworthy after they have been created.
 
-
-
 \---
-
-
 
 \# Security Objectives
 
-
-
 The Cryptography Layer provides the following guarantees.
-
-
 
 \## Integrity
 
-
-
 Detect unauthorized modification of authorization artifacts.
 
-
-
 \---
-
-
 
 \## Authenticity
 
-
-
 Allow verifiers to confirm that an authorization artifact originated from Parmana.
 
-
-
 \---
-
-
 
 \## Tamper Detection
 
-
-
 Detect any unauthorized change to persisted records or receipts.
 
-
-
 \---
-
-
 
 \## Independent Verification
 
-
-
 Enable third parties to verify authorization artifacts without trusting the original Runtime instance.
 
-
-
 \---
-
-
 
 \## Replay Support
 
-
-
 Ensure replay operates on cryptographically protected authorization evidence.
-
-
 
 \---
 
-
-
 \# Protected Artifacts
 
-
-
 Cryptographic protection applies to:
-
-
 
 \* Execution Trust Records
 
@@ -182,69 +100,39 @@ Cryptographic protection applies to:
 
 \* Replay artifacts (where applicable)
 
-
-
 Business Transactions and Execution Requests are protected indirectly through the Execution Trust Record.
 
-
-
 \---
-
-
 
 \# Reference Algorithms
 
-
-
 The current Parmana reference implementation uses the following algorithms.
 
-
-
-| Purpose            | Algorithm |
+| Purpose | Algorithm |
 
 | ------------------ | --------- |
 
-| Hashing            | SHA-256   |
+| Hashing | SHA-256 |
 
-| Digital Signatures | Ed25519   |
-
-
+| Digital Signatures | Ed25519 |
 
 Future implementations may introduce additional algorithms while preserving compatibility and verification guarantees.
 
-
-
 \---
-
-
 
 \# Hashing
 
-
-
 \## Purpose
-
-
 
 Hashing produces a deterministic digest representing the contents of an authorization artifact.
 
-
-
 The hash enables detection of unauthorized modification.
-
-
 
 \---
 
-
-
 \## Algorithm
 
-
-
 Reference implementation:
-
-
 
 ```text
 
@@ -252,19 +140,11 @@ SHA-256
 
 ```
 
-
-
 \---
-
-
 
 \## Properties
 
-
-
 The hash must be:
-
-
 
 \* Deterministic
 
@@ -274,27 +154,15 @@ The hash must be:
 
 \* Independent of storage implementation
 
-
-
 Equivalent authorization artifacts produce identical hashes.
-
-
 
 \---
 
-
-
 \# Canonical Serialization
-
-
 
 Before hashing, authorization artifacts MUST be serialized into a canonical representation.
 
-
-
 Canonical serialization ensures that:
-
-
 
 \* equivalent records produce identical hashes,
 
@@ -302,23 +170,13 @@ Canonical serialization ensures that:
 
 \* replay remains deterministic.
 
-
-
 The reference implementation uses canonical JSON serialization compliant with \*\*RFC 8785 (JSON Canonicalization Scheme)\*\*.
-
-
 
 \---
 
-
-
 \# Hash Generation
 
-
-
 Conceptually:
-
-
 
 ```text
 
@@ -344,43 +202,23 @@ Record Hash
 
 ```
 
-
-
 The generated hash becomes part of the authorization evidence.
 
-
-
 \---
-
-
 
 \# Digital Signatures
 
-
-
 \## Purpose
-
-
 
 Digital signatures provide authenticity.
 
-
-
 They enable verifiers to determine whether an authorization artifact was issued by Parmana.
-
-
 
 \---
 
-
-
 \## Algorithm
 
-
-
 Reference implementation:
-
-
 
 ```text
 
@@ -388,19 +226,11 @@ Ed25519
 
 ```
 
-
-
 \---
-
-
 
 \## Signature Process
 
-
-
 Conceptually:
-
-
 
 ```text
 
@@ -420,27 +250,15 @@ Digital Signature
 
 ```
 
-
-
 The resulting signature accompanies the protected artifact.
-
-
 
 \---
 
-
-
 \# Signature Verification
-
-
 
 Verification uses the corresponding public key.
 
-
-
 Conceptually:
-
-
 
 ```text
 
@@ -472,11 +290,7 @@ Valid / Invalid
 
 ```
 
-
-
 Successful verification confirms:
-
-
 
 \* integrity,
 
@@ -484,37 +298,21 @@ Successful verification confirms:
 
 \* absence of unauthorized modification.
 
-
-
 \---
-
-
 
 \# Key Management
 
-
-
 Cryptographic keys are managed separately from authorization logic.
 
-
-
 The Runtime requires:
-
-
 
 \* private keys for signing,
 
 \* public keys for verification.
 
-
-
 Key storage mechanisms are deployment-specific.
 
-
-
 Examples include:
-
-
 
 \* Hardware Security Modules (HSMs)
 
@@ -522,23 +320,13 @@ Examples include:
 
 \* Secure software key stores
 
-
-
 The Runtime should never embed private keys within application source code.
-
-
 
 \---
 
-
-
 \# Cryptographic Workflow
 
-
-
 The Runtime performs cryptographic operations after successful Authority Verification.
-
-
 
 ```text
 
@@ -582,27 +370,15 @@ Execution Receipt
 
 ```
 
-
-
 Cryptography protects completed authorization artifacts.
-
-
 
 \---
 
-
-
 \# Replay Protection
-
-
 
 Replay relies on cryptographic integrity.
 
-
-
 During replay:
-
-
 
 \* the stored artifact is retrieved,
 
@@ -614,23 +390,13 @@ During replay:
 
 \* authorization evidence is validated.
 
-
-
 Replay fails if integrity verification fails.
-
-
 
 \---
 
-
-
 \# Cryptographic Metadata
 
-
-
 Protected artifacts may contain metadata including:
-
-
 
 \* Hash algorithm
 
@@ -642,27 +408,15 @@ Protected artifacts may contain metadata including:
 
 \* Integrity version
 
-
-
 Metadata supports future algorithm evolution.
-
-
 
 \---
 
-
-
 \# Algorithm Agility
-
-
 
 Parmana is designed to support future cryptographic algorithms.
 
-
-
 Implementations should identify:
-
-
 
 \* hash algorithm,
 
@@ -670,23 +424,13 @@ Implementations should identify:
 
 \* key version.
 
-
-
 This enables algorithm upgrades without invalidating historical authorization artifacts.
-
-
 
 \---
 
-
-
 \# Failure Conditions
 
-
-
 Cryptographic verification fails when:
-
-
 
 \* hashes differ,
 
@@ -698,23 +442,13 @@ Cryptographic verification fails when:
 
 \* canonical serialization fails.
 
-
-
 Cryptographic failure prevents successful verification.
-
-
 
 \---
 
-
-
 \# Security Considerations
 
-
-
 Private keys should be protected against:
-
-
 
 \* unauthorized access,
 
@@ -724,27 +458,15 @@ Private keys should be protected against:
 
 \* accidental deletion.
 
-
-
 Public verification keys should be distributed securely to authorized verifiers.
-
-
 
 Key rotation policies are deployment-specific.
 
-
-
 \---
-
-
 
 \# Design Principles
 
-
-
 The Cryptography Layer follows these principles:
-
-
 
 \* Deterministic hashing.
 
@@ -762,19 +484,11 @@ The Cryptography Layer follows these principles:
 
 \* Future algorithm agility.
 
-
-
 \---
-
-
 
 \# What Cryptography Is Not
 
-
-
 The Cryptography Layer is \*\*not\*\*:
-
-
 
 \* an authorization engine,
 
@@ -786,23 +500,13 @@ The Cryptography Layer is \*\*not\*\*:
 
 \* a trust model.
 
-
-
 It protects authorization artifacts after they have been produced.
-
-
 
 \---
 
-
-
 \# Guarantees
 
-
-
 The Cryptography Layer guarantees:
-
-
 
 \* Unauthorized modification is detectable.
 
@@ -818,23 +522,13 @@ The Cryptography Layer guarantees:
 
 \* Historical authorization artifacts remain verifiable across supported algorithm versions.
 
-
-
 \---
-
-
 
 \# Relationship to Other Documents
 
-
-
 This document specifies cryptographic protection.
 
-
-
 Related specifications include:
-
-
 
 \* `REPOSITORY.md`
 
@@ -844,67 +538,40 @@ Related specifications include:
 
 \* `REPLAY.md`
 
-
-
 Conceptual definitions include:
-
-
 
 \* `01-concepts/EXECUTION\_TRUST\_RECORD.md`
 
 \* `01-concepts/EXECUTION\_RECEIPT.md`
 
-
-
 \---
-
-
 
 \# Current Reference Implementation
 
-
-
 The current Parmana reference implementation uses:
 
-
-
-| Component                   | Implementation                          |
+| Component | Implementation |
 
 | --------------------------- | --------------------------------------- |
 
-| Canonical Serialization     | RFC 8785 (JSON Canonicalization Scheme) |
+| Canonical Serialization | RFC 8785 (JSON Canonicalization Scheme) |
 
-| Hash Algorithm              | SHA-256                                 |
+| Hash Algorithm | SHA-256 |
 
-| Digital Signature Algorithm | Ed25519                                 |
+| Digital Signature Algorithm | Ed25519 |
 
-| Hash Target                 | Execution Trust Record                  |
+| Hash Target | Execution Trust Record |
 
-| Signature Target            | Canonical Execution Receipt             |
-
-
+| Signature Target | Canonical Execution Receipt |
 
 These implementation choices define the reference implementation and may evolve provided future implementations preserve the architectural guarantees defined in this specification.
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 The Cryptography Layer protects the integrity and authenticity of Parmana authorization artifacts.
-
-
 
 By combining canonical serialization, SHA-256 hashing, and Ed25519 digital signatures, Parmana enables Execution Trust Records and Execution Receipts to remain tamper-evident, independently verifiable, and suitable for replay, audit, and long-term compliance.
 
-
-
 Cryptography does not authorize execution. It preserves the integrity of the authorization evidence produced by the Parmana Runtime.
-
-
-

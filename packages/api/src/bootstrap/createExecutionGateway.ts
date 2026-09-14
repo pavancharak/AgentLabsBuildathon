@@ -1,11 +1,6 @@
-import {
-  ExecutionGateway,
-} from "@parmana/execution-gateway";
+import { ExecutionGateway } from "@parmana/execution-gateway";
 
-import {
-  FileKeyExpiryStore,
-  FileKeyProvider,
-} from "@parmana/crypto";
+import { FileKeyExpiryStore, FileKeyProvider } from "@parmana/crypto";
 
 import {
   GatewayAttestationSigner,
@@ -13,9 +8,7 @@ import {
   SystemClock,
 } from "@parmana/execution-control";
 
-import type {
-  ExecutionSystem,
-} from "@parmana/execution-system";
+import type { ExecutionSystem } from "@parmana/execution-system";
 
 import { policyRepository } from "../application.js";
 
@@ -54,32 +47,26 @@ import { executionGatewaySignalStateVerifier } from "./executionGatewaySignalSta
  *   signed under still match real-world state.
  */
 export function createExecutionGateway(): ExecutionSystem {
-  const publicKey =
-    createGatewayPublicKey();
+  const publicKey = createGatewayPublicKey();
 
-  const keyProvider =
-    new FileKeyProvider();
+  const keyProvider = new FileKeyProvider();
 
-  const keyExpiryStore =
-    new FileKeyExpiryStore();
+  const keyExpiryStore = new FileKeyExpiryStore();
 
-  const nonceStore =
-    createNonceStore();
+  const nonceStore = createNonceStore();
 
-  const executionControl =
-    createExecutionControl();
+  const executionControl = createExecutionControl();
 
-  const route =
-    createConnectorRoute();
+  const route = createConnectorRoute();
 
-  const gatewayIdentity =
-    createGatewayIdentity();
+  const gatewayIdentity = createGatewayIdentity();
 
-  const { privateKey: gatewayPrivateKey } =
-    createGatewayKeyPair();
+  const { privateKey: gatewayPrivateKey } = createGatewayKeyPair();
 
-  const attestationSigner =
-    new GatewayAttestationSigner(new SystemClock(), new RandomIdGenerator());
+  const attestationSigner = new GatewayAttestationSigner(
+    new SystemClock(),
+    new RandomIdGenerator(),
+  );
 
   return new ExecutionGateway({
     publicKey,

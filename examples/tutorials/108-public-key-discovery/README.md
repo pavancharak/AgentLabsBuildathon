@@ -11,12 +11,12 @@ party with no Parmana credential gets the credential-free key it needs.
 
 ## What You'll Learn
 
-* `GET /keys/default` returns the real key as PEM (and, where Node's own JWK export
+- `GET /keys/default` returns the real key as PEM (and, where Node's own JWK export
   supports the algorithm, a `jwk` field too), with no `Authorization` header (Scenario 1)
-* `GET /.well-known/jwks.json` enumerates every key this deployment currently holds
+- `GET /.well-known/jwks.json` enumerates every key this deployment currently holds
   (Scenario 2)
-* An unknown keyId returns a real `404`, not an empty or ambiguous response (Scenario 3)
-* The full chain, combining RED-1 and RED-2: a key fetched over HTTP verifies a real signed
+- An unknown keyId returns a real `404`, not an empty or ambiguous response (Scenario 3)
+- The full chain, combining RED-1 and RED-2: a key fetched over HTTP verifies a real signed
   record using `verifyExecutionTrustRecordOffline`, with zero further server calls
   (Scenario 4)
 

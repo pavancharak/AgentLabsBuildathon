@@ -37,11 +37,9 @@ const HYBRID_SCHEMA_VERSION = 2;
  * services for Execution Trust Records.
  */
 export class VerificationCrypto {
-  private readonly crypto =
-    CryptoBootstrap.create();
+  private readonly crypto = CryptoBootstrap.create();
 
-  private readonly config =
-    loadConfig();
+  private readonly config = loadConfig();
 
   /**
    * Signer (ADR-0009) -- LocalFileSigner or KmsSigner depending on
@@ -49,8 +47,7 @@ export class VerificationCrypto {
    * (verifySignature()/verify()), since Signer's read operations
    * (getPublicKey/getMetadata/hasKey) are identical to KeyProvider's.
    */
-  private readonly signerPromise =
-    SignerBootstrap.create();
+  private readonly signerPromise = SignerBootstrap.create();
 
   /**
    * Hybrid mode's secondary signature is out of scope for the Signer
@@ -61,17 +58,13 @@ export class VerificationCrypto {
    * regardless of KEY_PROVIDER. CRYPTO_MODE defaults to "single", so
    * this does not affect a deployment that hasn't opted into hybrid.
    */
-  private readonly hybridKeys =
-    new FileKeyProvider();
+  private readonly hybridKeys = new FileKeyProvider();
 
-  private readonly hasher =
-    new TrustRecordHasher(this.crypto);
+  private readonly hasher = new TrustRecordHasher(this.crypto);
 
-  private readonly signer =
-    new ArtifactSigner(this.crypto);
+  private readonly signer = new ArtifactSigner(this.crypto);
 
-  private readonly verifier =
-    new SignatureVerifier(this.crypto);
+  private readonly verifier = new SignatureVerifier(this.crypto);
 
   /**
    * Creates the canonical immutable view of an Execution Trust Record
@@ -85,9 +78,7 @@ export class VerificationCrypto {
    * full field-by-field reasoning (authorization inclusion,
    * CanonicalSerializer's undefined-key-dropping compatibility, etc.).
    */
-  private canonicalRecord(
-    trustRecord: ExecutionTrustRecord,
-  ) {
+  private canonicalRecord(trustRecord: ExecutionTrustRecord) {
     return canonicalExecutionTrustRecord(trustRecord);
   }
 
@@ -100,10 +91,7 @@ export class VerificationCrypto {
     trustRecord: ExecutionTrustRecord,
     schemaVersion: number,
   ) {
-    return hybridCanonicalExecutionTrustRecord(
-      trustRecord,
-      schemaVersion,
-    );
+    return hybridCanonicalExecutionTrustRecord(trustRecord, schemaVersion);
   }
 
   private hybridSignatureProvider(): HybridSignatureProvider {
@@ -116,12 +104,8 @@ export class VerificationCrypto {
   /**
    * Computes the canonical Trust Record hash.
    */
-  async hash(
-    trustRecord: ExecutionTrustRecord,
-  ): Promise<string> {
-    return this.hasher.hash(
-      this.canonicalRecord(trustRecord),
-    );
+  async hash(trustRecord: ExecutionTrustRecord): Promise<string> {
+    return this.hasher.hash(this.canonicalRecord(trustRecord));
   }
 
   /**
@@ -132,23 +116,19 @@ export class VerificationCrypto {
    * over exactly the same content as before this milestone. See
    * signHybrid() for the additive second signature.
    */
-  async sign(
-    trustRecord: ExecutionTrustRecord,
-  ): Promise<Signature> {
+  async sign(trustRecord: ExecutionTrustRecord): Promise<Signature> {
     const keyId = currentVerificationKeyId();
 
     const signer = await this.signerPromise;
 
-    const value =
-      await this.signer.signWithSigner(
-        this.canonicalRecord(trustRecord),
-        keyId,
-        signer,
-      );
+    const value = await this.signer.signWithSigner(
+      this.canonicalRecord(trustRecord),
+      keyId,
+      signer,
+    );
 
     return {
-      algorithm:
-        this.crypto.signature.algorithm,
+      algorithm: this.crypto.signature.algorithm,
 
       keyId,
 
@@ -180,10 +160,7 @@ export class VerificationCrypto {
     }
 
     return this.hybridSignatureProvider().sign(
-      this.hybridCanonicalRecord(
-        trustRecord,
-        HYBRID_SCHEMA_VERSION,
-      ),
+      this.hybridCanonicalRecord(trustRecord, HYBRID_SCHEMA_VERSION),
       currentVerificationKeyId(),
       currentVerificationSecondaryKeyId(),
     );
@@ -220,22 +197,16 @@ export class VerificationCrypto {
    * callers that need to report integrity and signature failures
    * independently don't have to reimplement canonicalization.
    */
-  async verifySignature(
-    trustRecord: ExecutionTrustRecord,
-  ): Promise<boolean> {
+  async verifySignature(trustRecord: ExecutionTrustRecord): Promise<boolean> {
     const signer = await this.signerPromise;
 
-    const publicKey =
-      await signer.getPublicKey(
-        trustRecord.signature.keyId,
-      );
+    const publicKey = await signer.getPublicKey(trustRecord.signature.keyId);
 
-    const legacyVerified =
-      await this.verifier.verify(
-        this.canonicalRecord(trustRecord),
-        trustRecord.signature.value,
-        publicKey,
-      );
+    const legacyVerified = await this.verifier.verify(
+      this.canonicalRecord(trustRecord),
+      trustRecord.signature.value,
+      publicKey,
+    );
 
     if (
       trustRecord.signatures === undefined ||
@@ -248,14 +219,13 @@ export class VerificationCrypto {
       return legacyVerified;
     }
 
-    const hybridVerified =
-      await this.hybridSignatureProvider().verify(
-        this.hybridCanonicalRecord(
-          trustRecord,
-          trustRecord.schemaVersion ?? HYBRID_SCHEMA_VERSION,
-        ),
-        trustRecord.signatures,
-      );
+    const hybridVerified = await this.hybridSignatureProvider().verify(
+      this.hybridCanonicalRecord(
+        trustRecord,
+        trustRecord.schemaVersion ?? HYBRID_SCHEMA_VERSION,
+      ),
+      trustRecord.signatures,
+    );
 
     return legacyVerified && hybridVerified;
   }
@@ -264,19 +234,13 @@ export class VerificationCrypto {
    * Verifies integrity and authenticity of the
    * Trust Record.
    */
-  async verify(
-    trustRecord: ExecutionTrustRecord,
-  ): Promise<boolean> {
+  async verify(trustRecord: ExecutionTrustRecord): Promise<boolean> {
     //
     // Verify hash integrity.
     //
-    const expectedHash =
-      await this.hash(trustRecord);
+    const expectedHash = await this.hash(trustRecord);
 
-    if (
-      expectedHash !==
-      trustRecord.trustRecordHash
-    ) {
+    if (expectedHash !== trustRecord.trustRecordHash) {
       return false;
     }
 

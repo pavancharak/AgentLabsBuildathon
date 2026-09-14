@@ -1,26 +1,14 @@
 \# 05 – Verify an Execution Trust Record
 
-
-
 This guide demonstrates how to independently verify an Execution Trust Record after execution.
-
-
 
 Verification confirms that the Trust Record has not been modified since it was created and that its cryptographic signature is valid.
 
-
-
 \---
-
-
 
 \## Prerequisites
 
-
-
 Complete:
-
-
 
 \- 01 – Starting the API
 
@@ -28,11 +16,7 @@ Complete:
 
 \- 03 – Execute a Business Transaction
 
-
-
 You should have a Trust Record ID similar to:
-
-
 
 ```
 
@@ -40,19 +24,11 @@ You should have a Trust Record ID similar to:
 
 ```
 
-
-
 \---
-
-
 
 \## Verify
 
-
-
 Send the Trust Record to the verification endpoint.
-
-
 
 ```powershell
 
@@ -78,19 +54,11 @@ Invoke-RestMethod `
 
 ```
 
-
-
 \---
-
-
 
 \## Successful Response
 
-
-
 A successful verification returns:
-
-
 
 ```json
 
@@ -112,15 +80,9 @@ A successful verification returns:
 
 ```
 
-
-
 \---
 
-
-
 \## Verification Summary
-
-
 
 | Item | Value |
 
@@ -134,15 +96,9 @@ A successful verification returns:
 
 | Result | Signature Valid |
 
-
-
 \---
 
-
-
 \## Verification Pipeline
-
-
 
 ```text
 
@@ -180,19 +136,11 @@ VERIFIED
 
 ```
 
-
-
 \---
-
-
 
 \## What Verification Confirms
 
-
-
 Verification provides independent evidence that:
-
-
 
 \- The Trust Record has not been altered.
 
@@ -202,23 +150,13 @@ Verification provides independent evidence that:
 
 \- The evidence is suitable for audit and compliance.
 
-
-
 Verification does not re-execute the business transaction. It validates the integrity and authenticity of the recorded execution.
-
-
 
 \---
 
-
-
 \## Expected Failure Cases
 
-
-
 Verification should fail if:
-
-
 
 \- Any field in the Trust Record is modified.
 
@@ -230,27 +168,14 @@ Verification should fail if:
 
 \- The signature algorithm does not match the stored signature.
 
-
-
 These failure modes help detect tampering and protect the integrity of execution evidence.
-
-
 
 \---
 
-
-
 \## Next Guide
-
-
 
 Continue with:
 
-
-
 \*\*06 – Retrieve an Execution Receipt\*\*
 
-
-
 This guide shows how to retrieve the signed Execution Receipt generated for a completed business transaction.
-

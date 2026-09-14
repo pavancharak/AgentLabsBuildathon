@@ -71,7 +71,10 @@ function buildDecision(transaction: BusinessTransaction): Decision {
   };
 }
 
-function buildExecution(transaction: BusinessTransaction, decision: Decision): Execution {
+function buildExecution(
+  transaction: BusinessTransaction,
+  decision: Decision,
+): Execution {
   return {
     executionId: crypto.randomUUID(),
     businessTransactionId: transaction.businessTransactionId,
@@ -136,6 +139,8 @@ describe("BusinessTrustRecordBuilder — authorization capture (NF-003)", () => 
     const record = await new BusinessTrustRecordBuilder().build(context);
 
     expect(record.authorization).toBeUndefined();
-    expect(Object.prototype.hasOwnProperty.call(record, "authorization")).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(record, "authorization")).toBe(
+      false,
+    );
   });
 });

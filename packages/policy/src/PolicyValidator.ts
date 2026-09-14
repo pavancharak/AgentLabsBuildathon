@@ -4,9 +4,7 @@ import type {
   PolicyOperator,
 } from "./types/Policy.js";
 
-import {
-  PolicyValidationError,
-} from "./errors/PolicyValidationError.js";
+import { PolicyValidationError } from "./errors/PolicyValidationError.js";
 
 /**
  * One pair of rules whose conditions can be simultaneously true (or, for
@@ -28,7 +26,6 @@ export interface RuleConflictWarning {
  * before it is evaluated.
  */
 export class PolicyValidator {
-
   /**
    * Supported operators.
    */
@@ -76,14 +73,9 @@ export class PolicyValidator {
   /**
    * Validate a Policy.
    */
-  public validate(
-    policy: Policy,
-  ): void {
-
+  public validate(policy: Policy): void {
     if (!policy) {
-      throw new PolicyValidationError(
-        "Policy is required.",
-      );
+      throw new PolicyValidationError("Policy is required.");
     }
 
     //
@@ -91,21 +83,15 @@ export class PolicyValidator {
     //
 
     if (!policy.policyId?.trim()) {
-      throw new PolicyValidationError(
-        "policyId is required.",
-      );
+      throw new PolicyValidationError("policyId is required.");
     }
 
     if (!policy.policyVersion?.trim()) {
-      throw new PolicyValidationError(
-        "policyVersion is required.",
-      );
+      throw new PolicyValidationError("policyVersion is required.");
     }
 
     if (!policy.schemaVersion?.trim()) {
-      throw new PolicyValidationError(
-        "schemaVersion is required.",
-      );
+      throw new PolicyValidationError("schemaVersion is required.");
     }
 
     //
@@ -113,15 +99,11 @@ export class PolicyValidator {
     //
 
     if (!Array.isArray(policy.rules)) {
-      throw new PolicyValidationError(
-        "Policy rules must be an array.",
-      );
+      throw new PolicyValidationError("Policy rules must be an array.");
     }
 
     if (policy.rules.length === 0) {
-      throw new PolicyValidationError(
-        "Policy must contain at least one rule.",
-      );
+      throw new PolicyValidationError("Policy must contain at least one rule.");
     }
 
     //
@@ -129,7 +111,6 @@ export class PolicyValidator {
     //
 
     if (policy.boundSignals !== undefined) {
-
       if (
         typeof policy.boundSignals !== "object" ||
         policy.boundSignals === null ||
@@ -140,8 +121,9 @@ export class PolicyValidator {
         );
       }
 
-      for (const [signalKey, intentPath] of Object.entries(policy.boundSignals)) {
-
+      for (const [signalKey, intentPath] of Object.entries(
+        policy.boundSignals,
+      )) {
         if (!signalKey.trim()) {
           throw new PolicyValidationError(
             "Policy boundSignals keys cannot be empty.",
@@ -161,7 +143,6 @@ export class PolicyValidator {
     //
 
     if (policy.unboundSignalReasons !== undefined) {
-
       if (
         typeof policy.unboundSignalReasons !== "object" ||
         policy.unboundSignalReasons === null ||
@@ -172,8 +153,9 @@ export class PolicyValidator {
         );
       }
 
-      for (const [fact, reasonText] of Object.entries(policy.unboundSignalReasons)) {
-
+      for (const [fact, reasonText] of Object.entries(
+        policy.unboundSignalReasons,
+      )) {
         if (!fact.trim()) {
           throw new PolicyValidationError(
             "Policy unboundSignalReasons keys cannot be empty.",
@@ -192,8 +174,8 @@ export class PolicyValidator {
         ) {
           throw new PolicyValidationError(
             `Policy unboundSignalReasons['${fact}'] is contradictory: '${fact}' ` +
-            "already has a boundSignals entry -- a bound fact needs no " +
-            "reason for being unbound.",
+              "already has a boundSignals entry -- a bound fact needs no " +
+              "reason for being unbound.",
           );
         }
       }
@@ -202,11 +184,8 @@ export class PolicyValidator {
     const ruleIds = new Set<string>();
 
     for (const rule of policy.rules) {
-
       if (!rule.id?.trim()) {
-        throw new PolicyValidationError(
-          "Policy rule id is required.",
-        );
+        throw new PolicyValidationError("Policy rule id is required.");
       }
 
       if (ruleIds.has(rule.id)) {
@@ -217,9 +196,7 @@ export class PolicyValidator {
 
       ruleIds.add(rule.id);
 
-      this.validateCondition(
-        rule.condition,
-      );
+      this.validateCondition(rule.condition);
 
       if (!rule.outcome) {
         throw new PolicyValidationError(
@@ -249,20 +226,17 @@ export class PolicyValidator {
     // confirmed well-formed above.
     //
 
-    const stillUncoveredFacts =
-      this.findUncoveredFacts(
-        policy,
-      );
+    const stillUncoveredFacts = this.findUncoveredFacts(policy);
 
     if (stillUncoveredFacts.length > 0) {
       throw new PolicyValidationError(
         `Policy references fact(s) ${stillUncoveredFacts.map((f) => `'${f}'`).join(", ")} ` +
-        "with no boundSignals entry and no unboundSignalReasons entry. Add " +
-        "one of:\n" +
-        "  1. A boundSignals entry, if the fact has a genuine Intent-side " +
-        "equivalent (e.g. an amount or target identifier).\n" +
-        "  2. An unboundSignalReasons entry with a documented reason, if " +
-        "leaving it unbound is a deliberate decision.",
+          "with no boundSignals entry and no unboundSignalReasons entry. Add " +
+          "one of:\n" +
+          "  1. A boundSignals entry, if the fact has a genuine Intent-side " +
+          "equivalent (e.g. an amount or target identifier).\n" +
+          "  2. An unboundSignalReasons entry with a documented reason, if " +
+          "leaving it unbound is a deliberate decision.",
       );
     }
   }
@@ -270,47 +244,28 @@ export class PolicyValidator {
   /**
    * Recursively validates a condition.
    */
-  private validateCondition(
-    condition: PolicyCondition,
-  ): void {
-
+  private validateCondition(condition: PolicyCondition): void {
     //
     // Leaf
     //
 
     if ("fact" in condition) {
-
       if (!condition.fact.trim()) {
-        throw new PolicyValidationError(
-          "Policy condition fact is required.",
-        );
+        throw new PolicyValidationError("Policy condition fact is required.");
       }
 
-      if (
-        !PolicyValidator.OPERATORS.has(
-          condition.operator,
-        )
-      ) {
+      if (!PolicyValidator.OPERATORS.has(condition.operator)) {
         throw new PolicyValidationError(
           `Unsupported operator '${condition.operator}'.`,
         );
       }
 
-      if (
-        condition.operator === "matches"
-      ) {
-
-        if (
-          typeof condition.value !== "string"
-        ) {
-          throw new PolicyValidationError(
-            "'matches' requires a regex string.",
-          );
+      if (condition.operator === "matches") {
+        if (typeof condition.value !== "string") {
+          throw new PolicyValidationError("'matches' requires a regex string.");
         }
 
-        this.validateRegex(
-          condition.value,
-        );
+        this.validateRegex(condition.value);
       }
 
       return;
@@ -321,67 +276,50 @@ export class PolicyValidator {
     //
 
     if ("all" in condition) {
-
-      if (
-        !Array.isArray(condition.all) ||
-        condition.all.length === 0
-      ) {
+      if (!Array.isArray(condition.all) || condition.all.length === 0) {
         throw new PolicyValidationError(
           "'all' must contain at least one condition.",
         );
       }
 
       for (const child of condition.all) {
-        this.validateCondition(
-          child,
-        );
+        this.validateCondition(child);
       }
 
       return;
     }
 
     //
-// Logical OR
-//
+    // Logical OR
+    //
 
-if ("any" in condition) {
+    if ("any" in condition) {
+      if (!Array.isArray(condition.any) || condition.any.length === 0) {
+        throw new PolicyValidationError(
+          "'any' must contain at least one condition.",
+        );
+      }
 
-  if (
-    !Array.isArray(condition.any) ||
-    condition.any.length === 0
-  ) {
-    throw new PolicyValidationError(
-      "'any' must contain at least one condition.",
-    );
-  }
+      for (const child of condition.any) {
+        this.validateCondition(child);
+      }
 
-  for (const child of condition.any) {
-    this.validateCondition(
-      child,
-    );
-  }
+      return;
+    }
 
-  return;
-}
+    //
+    // Always
+    //
 
-//
-// Always
-//
+    if ("always" in condition) {
+      if (condition.always !== true) {
+        throw new PolicyValidationError("'always' must be true.");
+      }
 
-if ("always" in condition) {
+      return;
+    }
 
-  if (condition.always !== true) {
-    throw new PolicyValidationError(
-      "'always' must be true.",
-    );
-  }
-
-  return;
-}
-
-throw new PolicyValidationError(
-  "Invalid policy condition.",
-);
+    throw new PolicyValidationError("Invalid policy condition.");
   }
 
   /**
@@ -420,34 +358,32 @@ throw new PolicyValidationError(
    * deliberate, bounded improvement over no check at all, not as a
    * ReDoS-proof guarantee.
    */
-  private validateRegex(
-    pattern: string,
-  ): void {
-
+  private validateRegex(pattern: string): void {
     if (pattern.length > PolicyValidator.MAX_PATTERN_LENGTH) {
       throw new PolicyValidationError(
         `'matches' pattern exceeds the maximum length of ` +
-        `${PolicyValidator.MAX_PATTERN_LENGTH} characters.`,
+          `${PolicyValidator.MAX_PATTERN_LENGTH} characters.`,
       );
     }
 
-    for (const match of pattern.matchAll(PolicyValidator.GROUP_THEN_QUANTIFIER)) {
+    for (const match of pattern.matchAll(
+      PolicyValidator.GROUP_THEN_QUANTIFIER,
+    )) {
       if (PolicyValidator.CONTAINS_QUANTIFIER.test(match[1] ?? "")) {
         throw new PolicyValidationError(
           `'matches' pattern '${pattern}' contains a nested quantifier ` +
-          "(a quantified group whose own contents are themselves " +
-          "quantified, e.g. '(a+)+') -- a common source of catastrophic " +
-          "backtracking (ReDoS) once evaluated against live signal values. " +
-          "Rewrite the pattern to avoid quantifying a group that already " +
-          "contains a quantifier.",
+            "(a quantified group whose own contents are themselves " +
+            "quantified, e.g. '(a+)+') -- a common source of catastrophic " +
+            "backtracking (ReDoS) once evaluated against live signal values. " +
+            "Rewrite the pattern to avoid quantifying a group that already " +
+            "contains a quantifier.",
         );
       }
     }
 
     try {
       new RegExp(pattern);
-    }
-    catch {
+    } catch {
       throw new PolicyValidationError(
         `Invalid regular expression '${pattern}'.`,
       );
@@ -468,31 +404,16 @@ throw new PolicyValidationError(
    * not merely a warning -- an uncovered, unacknowledged fact must
    * never simply go unmentioned.
    */
-  public findUncoveredFacts(
-    policy: Policy,
-  ): string[] {
+  public findUncoveredFacts(policy: Policy): string[] {
+    const boundKeys = new Set(Object.keys(policy.boundSignals ?? {}));
 
-    const boundKeys =
-      new Set(
-        Object.keys(
-          policy.boundSignals ?? {},
-        ),
-      );
+    const acknowledgedKeys = new Set(
+      Object.keys(policy.unboundSignalReasons ?? {}),
+    );
 
-    const acknowledgedKeys =
-      new Set(
-        Object.keys(
-          policy.unboundSignalReasons ?? {},
-        ),
-      );
+    const referenced = new Set<string>();
 
-    const referenced =
-      new Set<string>();
-
-    const walk = (
-      condition: PolicyCondition,
-    ): void => {
-
+    const walk = (condition: PolicyCondition): void => {
       if ("fact" in condition) {
         referenced.add(condition.fact);
         return;
@@ -543,10 +464,7 @@ throw new PolicyValidationError(
    * `always`) -- anything involving `all`/`any` is reported as
    * NEEDS_REVIEW (level "INFO"), not analyzed further.
    */
-  public findRuleConflicts(
-    policy: Policy,
-  ): RuleConflictWarning[] {
-
+  public findRuleConflicts(policy: Policy): RuleConflictWarning[] {
     const warnings: RuleConflictWarning[] = [];
     const rules = policy.rules;
 
@@ -586,7 +504,10 @@ throw new PolicyValidationError(
           continue;
         }
 
-        const overlap = this.conditionsOverlap(ruleA.condition, ruleB.condition);
+        const overlap = this.conditionsOverlap(
+          ruleA.condition,
+          ruleB.condition,
+        );
 
         if (overlap === "DEFINITE_OVERLAP") {
           warnings.push({
@@ -617,9 +538,7 @@ throw new PolicyValidationError(
     return warnings;
   }
 
-  private isAlways(
-    condition: PolicyCondition,
-  ): boolean {
+  private isAlways(condition: PolicyCondition): boolean {
     return "always" in condition;
   }
 
@@ -635,7 +554,6 @@ throw new PolicyValidationError(
     condA: PolicyCondition,
     condB: PolicyCondition,
   ): "NO_OVERLAP" | "DEFINITE_OVERLAP" | "NEEDS_REVIEW" {
-
     if ("fact" in condA && "fact" in condB) {
       if (condA.fact !== condB.fact) {
         return "NO_OVERLAP";
@@ -712,7 +630,6 @@ throw new PolicyValidationError(
     leaf: Extract<PolicyCondition, { fact: string }>,
     conjuncts: readonly PolicyCondition[],
   ): "NO_OVERLAP" | "NEEDS_REVIEW" {
-
     for (const conjunct of conjuncts) {
       if (!("fact" in conjunct) || conjunct.fact !== leaf.fact) {
         continue;
@@ -750,7 +667,6 @@ throw new PolicyValidationError(
     opB: PolicyOperator,
     valB: unknown,
   ): "NO_OVERLAP" | "DEFINITE_OVERLAP" | "NEEDS_REVIEW" {
-
     const [normOpA, normValA] = this.normalizeBooleanOperator(opA, valA);
     const [normOpB, normValB] = this.normalizeBooleanOperator(opB, valB);
 
@@ -829,7 +745,13 @@ throw new PolicyValidationError(
   private toRay(
     operator: string,
     value: unknown,
-  ): { readonly direction: "upper" | "lower"; readonly bound: number; readonly inclusive: boolean } | undefined {
+  ):
+    | {
+        readonly direction: "upper" | "lower";
+        readonly bound: number;
+        readonly inclusive: boolean;
+      }
+    | undefined {
     if (typeof value !== "number") {
       return undefined;
     }
@@ -859,8 +781,16 @@ throw new PolicyValidationError(
    * "check exact equal thresholds only" heuristic gets wrong.
    */
   private raysOverlap(
-    a: { readonly direction: "upper" | "lower"; readonly bound: number; readonly inclusive: boolean },
-    b: { readonly direction: "upper" | "lower"; readonly bound: number; readonly inclusive: boolean },
+    a: {
+      readonly direction: "upper" | "lower";
+      readonly bound: number;
+      readonly inclusive: boolean;
+    },
+    b: {
+      readonly direction: "upper" | "lower";
+      readonly bound: number;
+      readonly inclusive: boolean;
+    },
   ): boolean {
     if (a.direction === b.direction) {
       return true;

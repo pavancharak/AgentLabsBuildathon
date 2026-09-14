@@ -38,7 +38,10 @@ function newestMtimeMs(dir: string): number | undefined {
 
     if (entry.isDirectory()) {
       const childNewest = newestMtimeMs(entryPath);
-      if (childNewest !== undefined && (newest === undefined || childNewest > newest)) {
+      if (
+        childNewest !== undefined &&
+        (newest === undefined || childNewest > newest)
+      ) {
         newest = childNewest;
       }
       continue;
@@ -101,7 +104,9 @@ for (const dirName of packageDirs) {
 if (stale.length > 0) {
   console.error("check-dist-fresh: stale build output detected.\n");
   for (const { name, reason } of stale) {
-    console.error(`  dist/ is stale in ${name} (${reason}) — run npm run build.`);
+    console.error(
+      `  dist/ is stale in ${name} (${reason}) — run npm run build.`,
+    );
   }
   console.error(
     "\nTests import workspace packages through node_modules/@parmana/*, which " +

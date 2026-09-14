@@ -14,15 +14,15 @@ Modern organizations increasingly delegate decisions and execution to software, 
 
 Existing systems can usually answer:
 
-* Who approved an action?
-* When was it approved?
+- Who approved an action?
+- When was it approved?
 
 They often cannot answer with cryptographic certainty:
 
-* What exactly was supposed to happen?
-* What actually happened?
-* Was execution compliant with the approved intent?
-* Can execution be independently verified?
+- What exactly was supposed to happen?
+- What actually happened?
+- Was execution compliant with the approved intent?
+- Can execution be independently verified?
 
 Parmana exists to close this execution trust gap.
 
@@ -34,15 +34,15 @@ Parmana will become the universal **Execution Trust Infrastructure** for intelli
 
 Regardless of whether execution occurs on:
 
-* Enterprise software
-* Cloud services
-* AI models
-* AI agents
-* Multi-agent systems
-* Robotics
-* Distributed systems
-* Edge computing
-* Future quantum computing platforms
+- Enterprise software
+- Cloud services
+- AI models
+- AI agents
+- Multi-agent systems
+- Robotics
+- Distributed systems
+- Edge computing
+- Future quantum computing platforms
 
 Parmana provides a permanent trust layer that makes execution verifiable.
 
@@ -153,42 +153,42 @@ Cryptographic algorithms are configurable, allowing migration to future standard
 
 ## Generation 1
 
-* Enterprise Applications
-* Workflow Automation
-* API Integrations
+- Enterprise Applications
+- Workflow Automation
+- API Integrations
 
 ---
 
 ## Generation 2
 
-* Large Language Models
-* AI Assistants
-* AI Agents
-* Human-in-the-Loop Systems
+- Large Language Models
+- AI Assistants
+- AI Agents
+- Human-in-the-Loop Systems
 
 ---
 
 ## Generation 3
 
-* Autonomous Robotics
-* Industrial Automation
-* Cyber-Physical Systems
+- Autonomous Robotics
+- Industrial Automation
+- Cyber-Physical Systems
 
 ---
 
 ## Generation 4
 
-* Distributed Compute
-* Edge AI
-* Swarm Intelligence
+- Distributed Compute
+- Edge AI
+- Swarm Intelligence
 
 ---
 
 ## Generation 5
 
-* Hybrid Classical–Quantum Systems
-* Quantum Workflow Verification
-* Post-Quantum Cryptography
+- Hybrid Classical–Quantum Systems
+- Quantum Workflow Verification
+- Post-Quantum Cryptography
 
 ---
 
@@ -198,11 +198,11 @@ Parmana becomes the trust layer for computational execution.
 
 Organizations should be able to verify, with independent evidence:
 
-* what was authorized,
-* what was intended,
-* what was executed,
-* what evidence was produced,
-* and whether execution complied with approved policy.
+- what was authorized,
+- what was intended,
+- what was executed,
+- what evidence was produced,
+- and whether execution complied with approved policy.
 
 ---
 

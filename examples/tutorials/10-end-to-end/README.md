@@ -1,30 +1,16 @@
 \# Tutorial 10 — End-to-End
 
-
-
 \## Overview
-
-
 
 This tutorial demonstrates the complete Parmana execution lifecycle from Business Transaction submission to Receipt generation.
 
-
-
 It combines the concepts introduced throughout the previous tutorials into a single end-to-end workflow.
-
-
 
 \---
 
-
-
 \## Learning Objectives
 
-
-
 After completing this tutorial you will understand:
-
-
 
 \- Business Transaction
 
@@ -40,15 +26,9 @@ After completing this tutorial you will understand:
 
 \- Receipt Generation
 
-
-
 \---
 
-
-
 \## Files
-
-
 
 | File | Purpose |
 
@@ -58,15 +38,9 @@ After completing this tutorial you will understand:
 
 | `run.ts` | Executes the complete Parmana workflow |
 
-
-
 \---
 
-
-
 \## Architecture
-
-
 
 ```
 
@@ -110,15 +84,9 @@ Receipt
 
 ```
 
-
-
 \---
 
-
-
 \## Run
-
-
 
 ```bash
 
@@ -126,11 +94,7 @@ npm run example -- 10-end-to-end
 
 ```
 
-
-
 or
-
-
 
 ```bash
 
@@ -138,19 +102,11 @@ tsx run.ts
 
 ```
 
-
-
 \---
-
-
 
 \## Expected Output
 
-
-
 The tutorial prints:
-
-
 
 \- Business Transaction
 
@@ -160,19 +116,11 @@ The tutorial prints:
 
 \- Receipt
 
-
-
 This represents the complete Parmana execution lifecycle.
-
-
 
 \---
 
-
-
 \## Previous Tutorials
-
-
 
 1\. Hello World
 
@@ -192,7 +140,4 @@ This represents the complete Parmana execution lifecycle.
 
 9\. REST API
 
-
-
 Congratulations! You have completed the Parmana tutorial series.
-

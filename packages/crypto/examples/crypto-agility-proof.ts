@@ -81,18 +81,17 @@ async function main(): Promise<void> {
   if (!dilithiumVerified) {
     throw new Error("Dilithium3 verification failed");
   }
-  console.log(
-    "Dilithium3 signature created and verified:",
-    dilithiumVerified,
-  );
+  console.log("Dilithium3 signature created and verified:", dilithiumVerified);
   console.log();
 
   console.log("CRYPTO-AGILITY PROOF COMPLETE");
   console.log("==============================");
   console.log("- Same record, signed with Ed25519 -> verified");
   console.log("- Same record, signed with Dilithium3 -> verified");
-  console.log("- Signatures differ (algorithms differ):",
-    ed25519Signature !== dilithiumSignature);
+  console.log(
+    "- Signatures differ (algorithms differ):",
+    ed25519Signature !== dilithiumSignature,
+  );
   console.log("- Both independently verifiable, no code changes between them");
 }
 

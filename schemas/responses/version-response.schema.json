@@ -5,17 +5,11 @@
   "description": "Response returned by GET /version. All three fields are hardcoded literals in packages/api/src/routes/version.ts, not read from package.json or any build metadata.",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "name",
-    "version",
-    "api"
-  ],
+  "required": ["name", "version", "api"],
   "properties": {
     "name": {
       "type": "string",
-      "enum": [
-        "Parmana"
-      ]
+      "enum": ["Parmana"]
     },
     "version": {
       "type": "string",
@@ -23,9 +17,7 @@
     },
     "api": {
       "type": "string",
-      "enum": [
-        "v1"
-      ]
+      "enum": ["v1"]
     }
   },
   "examples": [

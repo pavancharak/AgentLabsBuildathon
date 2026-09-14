@@ -1,54 +1,28 @@
 \# RFC-0005 — Distributed Verification
 
-
-
 \*\*Status:\*\* Draft
-
-
 
 \*\*Author:\*\* Parmana Architecture Team
 
-
-
 \*\*Created:\*\* 2026-06-25
-
-
 
 \*\*Target Version:\*\* 0.3.0
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 Introduce a Distributed Verification model that enables multiple independent Verification Engines to evaluate the same immutable execution record and produce independently verifiable results.
-
-
 
 Distributed Verification strengthens trust by allowing verification across organizational, geographical, and technological boundaries without requiring shared runtime state or distributed consensus.
 
-
-
 \---
-
-
 
 \# Motivation
 
-
-
 Many execution environments involve multiple organizations or trust domains.
 
-
-
 Examples include:
-
-
 
 \* Financial institutions
 
@@ -62,23 +36,13 @@ Examples include:
 
 \* AI agent ecosystems
 
-
-
 Execution Trust should not depend on a single verifier.
-
-
 
 Independent parties should be able to verify the same execution record and compare results.
 
-
-
 \---
 
-
-
 \# Goals
-
-
 
 \* Support independent verification by multiple parties.
 
@@ -90,19 +54,11 @@ Independent parties should be able to verify the same execution record and compa
 
 \* Preserve execution record immutability.
 
-
-
 \---
-
-
 
 \# Non-Goals
 
-
-
 This RFC does not define:
-
-
 
 \* Blockchain integration.
 
@@ -114,19 +70,11 @@ This RFC does not define:
 
 \* Distributed transaction coordination.
 
-
-
 Distributed Verification is verification, not coordination.
-
-
 
 \---
 
-
-
 \# Architecture
-
-
 
 ```text
 
@@ -150,23 +98,13 @@ Verification     Verification    Verification
 
 ```
 
-
-
 Each verifier operates independently.
-
-
 
 \---
 
-
-
 \# Verification Independence
 
-
-
 Each Verification Engine:
-
-
 
 \* Loads immutable execution records.
 
@@ -176,27 +114,15 @@ Each Verification Engine:
 
 \* Produces an immutable Verification Report.
 
-
-
 Verifiers never communicate during verification.
-
-
 
 \---
 
-
-
 \# Trust Model
-
-
 
 Distributed trust is established when independent verifiers reach equivalent conclusions using the same immutable execution artifacts.
 
-
-
 Trust is derived from:
-
-
 
 \* Shared evidence
 
@@ -204,23 +130,13 @@ Trust is derived from:
 
 \* Independent implementations
 
-
-
 Not from verifier communication.
-
-
 
 \---
 
-
-
 \# Verification Inputs
 
-
-
 Every verifier consumes:
-
-
 
 \* ExecutionTransaction
 
@@ -230,23 +146,13 @@ Every verifier consumes:
 
 \* Verification configuration
 
-
-
 Inputs remain immutable.
-
-
 
 \---
 
-
-
 \# Verification Outputs
 
-
-
 Each verifier produces:
-
-
 
 \* Verification Report
 
@@ -258,27 +164,15 @@ Each verifier produces:
 
 \* Metadata
 
-
-
 Reports remain independent.
-
-
 
 \---
 
-
-
 \# Determinism
-
-
 
 Equivalent inputs SHALL produce equivalent verification outcomes.
 
-
-
 Differences in:
-
-
 
 \* Programming language
 
@@ -290,27 +184,15 @@ Differences in:
 
 \* Database
 
-
-
 SHALL NOT affect verification semantics.
-
-
 
 \---
 
-
-
 \# Verification Comparison
-
-
 
 Independent reports MAY be compared.
 
-
-
 Comparison may include:
-
-
 
 \* Overall Status
 
@@ -322,23 +204,13 @@ Comparison may include:
 
 \* Metadata Compatibility
 
-
-
 Comparison does not alter either report.
-
-
 
 \---
 
-
-
 \# Trust Domains
 
-
-
 Example:
-
-
 
 ```text
 
@@ -372,67 +244,35 @@ Verifier C
 
 ```
 
-
-
 Each organization maintains its own verifier.
-
-
 
 No shared runtime is required.
 
-
-
 \---
-
-
 
 \# Runtime Relationship
 
-
-
 The Runtime produces execution records.
-
-
 
 The Runtime is unaware of how many verifiers exist.
 
-
-
 Execution occurs exactly once.
-
-
 
 Verification may occur many times.
 
-
-
 \---
-
-
 
 \# Replay Relationship
 
-
-
 Replay reconstructs execution.
-
-
 
 Distributed Verification evaluates trust.
 
-
-
 Replay and Verification remain independent capabilities.
-
-
 
 \---
 
-
-
 \# Package Mapping
-
-
 
 ```text
 
@@ -452,79 +292,41 @@ verification/
 
 ```
 
-
-
 Distributed Verification extends the Verification package without changing the Core domain model.
 
-
-
 \---
-
-
 
 \# Compatibility
 
-
-
 This RFC is backward compatible.
-
-
 
 Single-verifier deployments remain fully supported.
 
-
-
 Distributed Verification is an optional capability.
 
-
-
 \---
-
-
 
 \# Alternatives Considered
 
-
-
 \## Blockchain Verification
-
-
 
 Rejected because Parmana focuses on independently verifiable execution rather than distributed consensus.
 
-
-
 \---
-
-
 
 \## Shared Verification Database
 
-
-
 Rejected because it creates unnecessary coupling between organizations.
 
-
-
 \---
-
-
 
 \## Runtime-Based Verification
 
-
-
 Rejected because verification must remain independent of execution.
-
-
 
 \---
 
-
-
 \# Open Questions
-
-
 
 \* Should verification reports be digitally signed?
 
@@ -534,15 +336,9 @@ Rejected because verification must remain independent of execution.
 
 \* Should verifier reputation be represented?
 
-
-
 \---
 
-
-
 \# Acceptance Criteria
-
-
 
 \* Multiple Verification Engines can evaluate the same execution record independently.
 
@@ -554,15 +350,9 @@ Rejected because verification must remain independent of execution.
 
 \* Distributed Verification introduces no changes to the Core domain model.
 
-
-
 \---
 
-
-
 \# References
-
-
 
 \* 013-VERIFICATION-ENGINE.md
 
@@ -575,6 +365,3 @@ Rejected because verification must remain independent of execution.
 \* ADR-0003 — Verification Is Independent
 
 \* ADR-0007 — Deterministic Execution
-
-
-

@@ -1,9 +1,9 @@
 # Why Parmana Needs 20-Year Recognition
 
-*Draft — DPIIT Deep Tech recognition application*
-*Status: DRAFT. Grounded in verified repo/git evidence and Pavan's 2026-08-25 correction to the
+_Draft — DPIIT Deep Tech recognition application_
+_Status: DRAFT. Grounded in verified repo/git evidence and Pavan's 2026-08-25 correction to the
 incorporation date. See [DEEP-TECH-APPLICATION-PROMPT.md](./DEEP-TECH-APPLICATION-PROMPT.md) for
-the verification trail.*
+the verification trail._
 
 ## The corrected starting point
 
@@ -51,7 +51,7 @@ gaps below is a multi-year commitment, not a point of near-term uncertainty.
    added — each one is a fresh adversarial question, not a template fill-in.
 
 2. **Regulatory acceptance in regulated finance is a multi-year process, not a technical one.**
-   Parmana's own roadmap (`docs/ROADMAP-v1.md`) targets a *shadow pilot* — deliberately not a
+   Parmana's own roadmap (`docs/ROADMAP-v1.md`) targets a _shadow pilot_ — deliberately not a
    live-money deployment — as the near-term production-readiness bar, specifically because a
    regulated financial institution's own review cycle, not Parmana's engineering velocity, sets
    the pace from pilot to live deployment to regulatory comfort. That is consistent with

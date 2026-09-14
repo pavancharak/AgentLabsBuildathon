@@ -12,18 +12,9 @@
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
 
-  "include": [
-    "src/**/*.ts"
-  ],
+  "include": ["src/**/*.ts"],
 
-  "exclude": [
-    "dist",
-    "node_modules",
-    "tests",
-    "test"
-  ],
+  "exclude": ["dist", "node_modules", "tests", "test"],
 
-  "references": [
-    { "path": "../capability-registry" }
-  ]
+  "references": [{ "path": "../capability-registry" }]
 }

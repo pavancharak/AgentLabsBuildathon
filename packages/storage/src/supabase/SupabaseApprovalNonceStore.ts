@@ -33,7 +33,10 @@ export class SupabaseApprovalNonceStore implements NonceStore {
 
   async checkAndRecord(nonce: string, expiresAt: string): Promise<boolean> {
     try {
-      await this.pool.query(INSERT_CONSUMED_APPROVAL_NONCE_SQL, [nonce, expiresAt]);
+      await this.pool.query(INSERT_CONSUMED_APPROVAL_NONCE_SQL, [
+        nonce,
+        expiresAt,
+      ]);
 
       return true;
     } catch (error) {

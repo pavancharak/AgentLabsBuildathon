@@ -35,7 +35,7 @@ single, individually-authorized execution it was issued for.
 [0002] Conventional integration architectures — API gateways, OAuth-scoped bearer tokens,
 role-based service accounts, static API keys — grant a calling process a credential that remains
 valid for a period of time or a number of uses extending beyond any single action. Two structural
-risks follow regardless of how narrowly the credential's *scope* is restricted:
+risks follow regardless of how narrowly the credential's _scope_ is restricted:
 
 [0003] First, a credential that outlives the action it was issued for is a standing target. If
 logged, leaked, or exfiltrated by a compromised or misled caller (for example, an AI agent
@@ -44,8 +44,8 @@ until it is manually revoked — an interval during which no cryptographic prope
 prevents misuse.
 
 [0004] Second, scope restriction is not the same as action-level binding. An OAuth scope such as
-`refunds:write` constrains *what class* of action a credential may perform; it does not bind the
-credential to *the one, individually-authorized execution* it was minted for. A credential valid
+`refunds:write` constrains _what class_ of action a credential may perform; it does not bind the
+credential to _the one, individually-authorized execution_ it was minted for. A credential valid
 for the scope can be replayed against any number of same-scoped requests, not only the one that
 was actually approved.
 

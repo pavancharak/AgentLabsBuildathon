@@ -89,35 +89,35 @@ function buildRequest(
 }
 
 describe("ExecutionGateway", () => {
-it("requires either connector or executionControl", () => {
-  const { publicKey } = generateKeyPair();
+  it("requires either connector or executionControl", () => {
+    const { publicKey } = generateKeyPair();
 
-  expect(() =>
-    new ExecutionGateway({
-      publicKey,
-      nonceStore: new MemoryNonceStore(),
-    }),
-  ).toThrow(
-    "ExecutionGateway requires a connector or executionControl.",
-  );
-});
+    expect(
+      () =>
+        new ExecutionGateway({
+          publicKey,
+          nonceStore: new MemoryNonceStore(),
+        }),
+    ).toThrow("ExecutionGateway requires a connector or executionControl.");
+  });
 
-it("rejects connector and executionControl together", () => {
-  const { publicKey } = generateKeyPair();
+  it("rejects connector and executionControl together", () => {
+    const { publicKey } = generateKeyPair();
 
-  expect(() =>
-    new ExecutionGateway({
-      publicKey,
-      nonceStore: new MemoryNonceStore(),
-      connector: new RecordingConnector(),
-      executionControl: {
-        route: () => "stripe",
-      },
-    }),
-  ).toThrow(
-    "ExecutionGateway accepts connector or executionControl, not both.",
-  );
-});
+    expect(
+      () =>
+        new ExecutionGateway({
+          publicKey,
+          nonceStore: new MemoryNonceStore(),
+          connector: new RecordingConnector(),
+          executionControl: {
+            route: () => "stripe",
+          },
+        }),
+    ).toThrow(
+      "ExecutionGateway accepts connector or executionControl, not both.",
+    );
+  });
   it("releases a valid request to the connector", async () => {
     const { privateKey, publicKey } = generateKeyPair();
     const authorization = await signAuthorization(privateKey);
@@ -143,9 +143,7 @@ it("rejects connector and executionControl together", () => {
     const forwardedContent = connector.lastRequest!.transaction;
     const recomputedHash = await contentHasher.hash(forwardedContent);
 
-    expect(recomputedHash).toBe(
-      authorization.payload.businessTransactionHash,
-    );
+    expect(recomputedHash).toBe(authorization.payload.businessTransactionHash);
 
     //
     // Deep-freeze: the connector cannot receive a mutable copy.
@@ -182,9 +180,7 @@ it("rejects connector and executionControl together", () => {
     expect(result.valid).toBe(false);
     expect(result.checks.businessTransactionHashMatches).toBe(false);
     expect(result.hashMismatch).toBeDefined();
-    expect(result.hashMismatch?.expected).not.toBe(
-      result.hashMismatch?.actual,
-    );
+    expect(result.hashMismatch?.expected).not.toBe(result.hashMismatch?.actual);
   });
 
   it("rejects a modified recipient (target)", async () => {
@@ -274,7 +270,11 @@ it("rejects connector and executionControl together", () => {
 
   it("rejects an expired authorization", async () => {
     const { privateKey, publicKey } = generateKeyPair();
-    const authorization = await signAuthorization(privateKey, SAMPLE_EXECUTABLE_CONTENT, 60);
+    const authorization = await signAuthorization(
+      privateKey,
+      SAMPLE_EXECUTABLE_CONTENT,
+      60,
+    );
 
     const connector = new RecordingConnector();
     const gateway = new ExecutionGateway({
@@ -317,9 +317,7 @@ it("rejects connector and executionControl together", () => {
 
     const request = buildRequest(SAMPLE_EXECUTABLE_CONTENT, tampered);
 
-    await expect(gateway.execute(request)).rejects.toThrow(
-      /signatureVerified/,
-    );
+    await expect(gateway.execute(request)).rejects.toThrow(/signatureVerified/);
     expect(connector.lastRequest).toBeUndefined();
   });
 
@@ -344,9 +342,7 @@ it("rejects connector and executionControl together", () => {
 
     const request = buildRequest(SAMPLE_EXECUTABLE_CONTENT, tampered);
 
-    await expect(gateway.execute(request)).rejects.toThrow(
-      /versionSupported/,
-    );
+    await expect(gateway.execute(request)).rejects.toThrow(/versionSupported/);
     expect(connector.lastRequest).toBeUndefined();
 
     const { result } = await gateway.verify(request);
@@ -387,4 +383,3 @@ it("rejects connector and executionControl together", () => {
     expect(connector.lastRequest?.verification.valid).toBe(true);
   });
 });
-

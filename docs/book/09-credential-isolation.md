@@ -18,7 +18,7 @@ single-purpose components rather than one class that does all of it.
 `GatewayAttestation` is a second, separate signature from the authorization envelope itself:
 `GatewayAttestationSigner.sign(gatewayId, authorizationId, privateKey)` Ed25519-signs
 `{gatewayId, authorizationId, nonce, issuedAt}`. Its own doc comment is careful to disclaim
-what this attestation is *not*: the `nonce` here is explicitly not a replay defense on its
+what this attestation is _not_: the `nonce` here is explicitly not a replay defense on its
 own; that's delegated to the session store (step 2) and the upstream envelope `NonceStore`
 (Chapter 7). What it does prove is narrower and specific: that the Gateway itself, not some
 other caller holding a copy of the verified content, is the one presenting this exact
@@ -72,7 +72,7 @@ Only after that consumption succeeds does the connector:
 material itself; the secret is only ever returned by consume(), and only once."
 ```
 
-`issue()` only confirms the underlying credential *exists*; it never resolves or stores the
+`issue()` only confirms the underlying credential _exists_; it never resolves or stores the
 secret. `consume()` is the one and only point the plaintext credential is fetched, and it can
 only be called once per lease. This is the actual mechanism behind "the caller never sees the
 credential": the caller (an AI agent, a human, anything upstream of the Gateway) only ever

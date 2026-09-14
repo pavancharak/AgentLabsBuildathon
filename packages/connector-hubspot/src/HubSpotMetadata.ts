@@ -20,5 +20,6 @@ export const HubSpotMetadata: ConnectorMetadata = Object.freeze({
 
   health: healthyNow(),
 
-  description: "HubSpot connector for Deal lookup and dealstage/amount update execution.",
+  description:
+    "HubSpot connector for Deal lookup and dealstage/amount update execution.",
 });

@@ -57,7 +57,10 @@ export class GatewaySlackAdapter implements Connector {
     // process must never even register a Slack connector pointed at a
     // plaintext endpoint. NODE_ENV=test is exempt so the hermetic mock
     // server (http://127.0.0.1:<port>) keeps working.
-    if (process.env.NODE_ENV !== "test" && !this.baseUrl.startsWith("https://")) {
+    if (
+      process.env.NODE_ENV !== "test" &&
+      !this.baseUrl.startsWith("https://")
+    ) {
       throw new Error(
         `SlackConnector "${this.connectorId}" requires an HTTPS base URL in production; ` +
           `received "${this.baseUrl}". Refusing to register a connector that would send a governed ` +
@@ -95,7 +98,9 @@ export class GatewaySlackAdapter implements Connector {
     // -- refuse outright unless the target is plainly local (a
     // hermetic mock server). Mirrors HubSpot's own
     // HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN guard.
-    const isLocalTarget = this.baseUrl.startsWith("http://127.0.0.1") || this.baseUrl.startsWith("http://localhost");
+    const isLocalTarget =
+      this.baseUrl.startsWith("http://127.0.0.1") ||
+      this.baseUrl.startsWith("http://localhost");
     if (!isLocalTarget && botToken === SLACK_TEST_MODE_PLACEHOLDER_TOKEN) {
       throw new Error(
         `SlackConnector "${this.connectorId}" refuses to send the built-in test-mode placeholder bot ` +
@@ -105,7 +110,10 @@ export class GatewaySlackAdapter implements Connector {
     }
 
     const disallowedKeys = Object.keys(request.parameters).filter(
-      (key) => !(SLACK_ALLOWED_POST_MESSAGE_PARAMETERS as readonly string[]).includes(key),
+      (key) =>
+        !(SLACK_ALLOWED_POST_MESSAGE_PARAMETERS as readonly string[]).includes(
+          key,
+        ),
     );
     if (disallowedKeys.length > 0) {
       throw new Error(
@@ -115,7 +123,10 @@ export class GatewaySlackAdapter implements Connector {
       );
     }
 
-    const channel = requireString(request.parameters.channel, "parameters.channel");
+    const channel = requireString(
+      request.parameters.channel,
+      "parameters.channel",
+    );
     const text = requireString(request.parameters.text, "parameters.text");
     const bearerRedacted = redactSlackToken(botToken);
 
@@ -180,7 +191,9 @@ export class GatewaySlackAdapter implements Connector {
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0) {
-    throw new Error(`SlackConnector request is missing required field "${field}".`);
+    throw new Error(
+      `SlackConnector request is missing required field "${field}".`,
+    );
   }
   return value;
 }

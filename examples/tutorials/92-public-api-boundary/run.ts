@@ -31,7 +31,9 @@ const internalSymbols = [
   "sanitizeEndpoint",
 ] as const;
 
-console.log("Internal implementation symbols -- none should be publicly exported");
+console.log(
+  "Internal implementation symbols -- none should be publicly exported",
+);
 console.log("--------------------------------------------------");
 
 const leaked: string[] = [];
@@ -42,11 +44,19 @@ for (const symbol of internalSymbols) {
 }
 console.log();
 
-console.log("Public execution entry point and connector factories -- these SHOULD be exported");
+console.log(
+  "Public execution entry point and connector factories -- these SHOULD be exported",
+);
 console.log("--------------------------------------------------");
-console.log(`ExecutionGateway                  -> ${typeof publicApi.ExecutionGateway}`);
-console.log(`createGatewayConnectorRegistry     -> ${typeof publicApi.createGatewayConnectorRegistry}`);
-console.log(`createGatewayHubSpotConnector       -> ${typeof publicApi.createGatewayHubSpotConnector}`);
+console.log(
+  `ExecutionGateway                  -> ${typeof publicApi.ExecutionGateway}`,
+);
+console.log(
+  `createGatewayConnectorRegistry     -> ${typeof publicApi.createGatewayConnectorRegistry}`,
+);
+console.log(
+  `createGatewayHubSpotConnector       -> ${typeof publicApi.createGatewayHubSpotConnector}`,
+);
 console.log();
 
 const allPassed =

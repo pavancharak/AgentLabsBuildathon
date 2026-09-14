@@ -8,9 +8,7 @@ import {
  * Governance, maker-checker). Append-only: create() always inserts,
  * never overwrites -- there is no update path in the interface.
  */
-export class MemoryPolicyChangeApprovalRecordRepository
-  implements PolicyChangeApprovalRecordRepository
-{
+export class MemoryPolicyChangeApprovalRecordRepository implements PolicyChangeApprovalRecordRepository {
   private readonly records = new Map<string, PolicyChangeApprovalRecord>();
 
   async create(

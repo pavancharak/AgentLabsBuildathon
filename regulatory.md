@@ -1,24 +1,16 @@
 \# PHASE 1/2 EXECUTION PROMPT — Ready When Documents Arrive
 
+\*\*Status:\*\* TEMPLATE READY
 
+\*\*Blocking:\*\* Actual requirements documents (FCA, NFRA, investor, or any formal spec)
 
-\*\*Status:\*\* TEMPLATE READY  
+\*\*Trigger:\*\* Pavan pastes requirements document + says "run phase 1/2"
 
-\*\*Blocking:\*\* Actual requirements documents (FCA, NFRA, investor, or any formal spec)  
-
-\*\*Trigger:\*\* Pavan pastes requirements document + says "run phase 1/2"  
-
-\*\*Timeline:\*\* 2-4 hours execution (requirements parsing + code audit + gap assessment)  
-
-
+\*\*Timeline:\*\* 2-4 hours execution (requirements parsing + code audit + gap assessment)
 
 \---
 
-
-
 \## WHAT THIS PROMPT DOES
-
-
 
 Takes actual requirements documents and produces:
 
@@ -32,57 +24,39 @@ Takes actual requirements documents and produces:
 
 5\. \*\*Submission Readiness Check\*\* (what's done, what's not)
 
-
-
 \---
-
-
 
 \## EXECUTION INSTRUCTIONS (FOR PAVAN)
 
-
-
 \### When Ready to Execute
-
-
 
 1\. \*\*Gather documents:\*\*
 
-&#x20;  - FCA Supercharged Sandbox criteria (or acceptance letter, or email spec)
+&#x20; - FCA Supercharged Sandbox criteria (or acceptance letter, or email spec)
 
-&#x20;  - NFRA RFP / pilot requirements
+&#x20; - NFRA RFP / pilot requirements
 
-&#x20;  - Investor checklist (if available)
+&#x20; - Investor checklist (if available)
 
-&#x20;  - Any other formal requirement (RBI guidance, NPCI spec, etc.)
-
-
+&#x20; - Any other formal requirement (RBI guidance, NPCI spec, etc.)
 
 2\. \*\*Paste documents here\*\* (use this conversation or new one)
 
-
-
 3\. \*\*Say:\*\* "Run Phase 1/2 Claude Code prompt against \[requirements]"
-
-
 
 4\. \*\*I will:\*\*
 
-&#x20;  - Parse requirements into structured list
+&#x20; - Parse requirements into structured list
 
-&#x20;  - Clone/audit parmana-exp repo against each requirement
+&#x20; - Clone/audit parmana-exp repo against each requirement
 
-&#x20;  - Find real code + test locations
+&#x20; - Find real code + test locations
 
-&#x20;  - Produce coverage matrix (COVERED/PARTIAL/GAP)
+&#x20; - Produce coverage matrix (COVERED/PARTIAL/GAP)
 
-&#x20;  - Output REQUIREMENTS\_MAPPING.md + GAPS\_AND\_MITIGATIONS.md
-
-
+&#x20; - Output REQUIREMENTS\_MAPPING.md + GAPS\_AND\_MITIGATIONS.md
 
 \### Document Format (Doesn't Matter)
-
-
 
 \- Email from FCA
 
@@ -96,29 +70,17 @@ Takes actual requirements documents and produces:
 
 \- Even informal "here's what they asked for" is fine
 
-
-
 \*\*I will extract the actual requirements from whatever format you provide.\*\*
-
-
 
 \---
 
-
-
 \## PHASE 1/2 EXECUTION FLOW (CLAUDE CODE)
-
-
 
 \### Step 1: Parse Requirements Document
 
-
-
-\*\*Input:\*\* Pasted document (any format)  
+\*\*Input:\*\* Pasted document (any format)
 
 \*\*Output:\*\* Structured list
-
-
 
 ```typescript
 
@@ -160,11 +122,7 @@ const requirements = \[
 
 ```
 
-
-
 \### Step 2: Clone Repo \& Audit Code
-
-
 
 \*\*For each requirement:\*\*
 
@@ -173,8 +131,6 @@ const requirements = \[
 2\. Find test that covers it (if exists)
 
 3\. Determine: COVERED, PARTIAL, or GAP
-
-
 
 ```typescript
 
@@ -236,14 +192,9 @@ const audit = \[
 
 ```
 
-
-
 \### Step 3: Create Requirements Matrix
 
-
-
 ```markdown
-
 | REQUIREMENT | CODE | TEST | STATUS | GAP? | PRIORITY |
 
 |---|---|---|---|---|---|
@@ -259,14 +210,9 @@ const audit = \[
 | Tamper-proof chain | CallerAuditChain.ts | chain.test.ts | COVERED | NO | CRITICAL |
 
 | ...more rows | | | | | |
-
 ```
 
-
-
 \### Step 4: Gap Assessment
-
-
 
 For each GAP:
 
@@ -276,13 +222,8 @@ For each GAP:
 
 \- \*\*Future work:\*\* Roadmap item for later?
 
-
-
 ```markdown
-
 \## Real Gaps Found
-
-
 
 \### Gap 1: Independent Verification at Connector (Medium Severity)
 
@@ -298,11 +239,7 @@ For each GAP:
 
 \*\*Decision:\*\* Fix now or defer to Q4?
 
-
-
 \## Accepted Risks
-
-
 
 \### Key Compromise (Cryptography Limit)
 
@@ -313,20 +250,12 @@ For each GAP:
 \*\*Future mitigation:\*\* KMS/HSM (Q4 2026)
 
 \*\*Regulatory position:\*\* Honest about limitation
-
 ```
-
-
 
 \### Step 5: Produce Submission Readiness Check
 
-
-
 ```markdown
-
 \## Submission Readiness (Against Requirements)
-
-
 
 \### FCA Requirements Coverage
 
@@ -340,23 +269,15 @@ For each GAP:
 
 \- \[✓] Tamper-proof audit → CLAIMS.md §Z, test: chain.test.ts:\*
 
-
-
 \*\*Status:\*\* 4/5 covered now, 5/5 if Gap #4 fixed Sep 13-21
-
-
 
 \### NFRA Requirements Coverage
 
 \[similar structure]
 
-
-
 \### Investor Checklist Coverage
 
 \[similar structure]
-
-
 
 \### Overall Readiness
 
@@ -365,14 +286,9 @@ For each GAP:
 \- \*\*Sep 21:\*\* Can submit 5/5 if Gap #4 fixed
 
 \- \*\*Jan 1, 2027:\*\* All regulatory requirements met
-
 ```
 
-
-
 \### Step 6: Output Files
-
-
 
 \*\*Produces:\*\*
 
@@ -386,15 +302,9 @@ For each GAP:
 
 5\. \*\*SUBMISSION\_READINESS.md\*\* — What's done, what's not
 
-
-
 \---
 
-
-
 \## WHAT THIS IS NOT
-
-
 
 \- ❌ Doesn't invent requirements
 
@@ -404,11 +314,7 @@ For each GAP:
 
 \- ❌ Doesn't assume any requirement is implied
 
-
-
 \## WHAT THIS IS
-
-
 
 \- ✅ Honest assessment against real requirements
 
@@ -418,39 +324,23 @@ For each GAP:
 
 \- ✅ Ready for submission/investor conversations
 
-
-
 \---
-
-
 
 \## TIMING
 
+\*\*From requirements document to output:\*\* 2-4 hours
 
-
-\*\*From requirements document to output:\*\* 2-4 hours  
-
-\*\*Execution method:\*\* Claude Code (repo audit + test search + coverage analysis)  
+\*\*Execution method:\*\* Claude Code (repo audit + test search + coverage analysis)
 
 \*\*Output format:\*\* Markdown files (ready for regulatory submission)
 
-
-
 \---
-
-
 
 \## READY
 
-
-
 This prompt is ready to execute.
 
-
-
 \*\*Waiting for:\*\* Pavan to paste actual requirements documents.
-
-
 
 \*\*When you have them:\*\*
 
@@ -462,11 +352,6 @@ This prompt is ready to execute.
 
 4\. 2-4 hours later: honest assessment (covered/partial/gap) against real requirements
 
-
-
 No fabrication. No invented tests. No assumptions.
 
-
-
 Just: "Here's what regulators asked for. Here's what your code does. Here's the gap analysis."
-

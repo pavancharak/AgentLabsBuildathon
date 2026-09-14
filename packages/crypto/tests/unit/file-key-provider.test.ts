@@ -13,21 +13,21 @@ describe("FileKeyProvider keyId sanitization", () => {
   it("rejects a path-traversal keyId in getPrivateKey before touching the filesystem", async () => {
     const provider = new FileKeyProvider();
 
-    await expect(
-      provider.getPrivateKey(TRAVERSAL_KEY_ID),
-    ).rejects.toThrow(CryptoError);
+    await expect(provider.getPrivateKey(TRAVERSAL_KEY_ID)).rejects.toThrow(
+      CryptoError,
+    );
 
-    await expect(
-      provider.getPrivateKey(TRAVERSAL_KEY_ID),
-    ).rejects.toThrow(/Invalid keyId/);
+    await expect(provider.getPrivateKey(TRAVERSAL_KEY_ID)).rejects.toThrow(
+      /Invalid keyId/,
+    );
   });
 
   it("rejects a path-traversal keyId in getPublicKey", async () => {
     const provider = new FileKeyProvider();
 
-    await expect(
-      provider.getPublicKey(TRAVERSAL_KEY_ID),
-    ).rejects.toThrow(/Invalid keyId/);
+    await expect(provider.getPublicKey(TRAVERSAL_KEY_ID)).rejects.toThrow(
+      /Invalid keyId/,
+    );
   });
 
   it("rejects a path-traversal keyId in hasKey", async () => {
@@ -41,9 +41,9 @@ describe("FileKeyProvider keyId sanitization", () => {
   it("rejects a path-traversal keyId in getMetadata", async () => {
     const provider = new FileKeyProvider();
 
-    await expect(
-      provider.getMetadata(TRAVERSAL_KEY_ID),
-    ).rejects.toThrow(/Invalid keyId/);
+    await expect(provider.getMetadata(TRAVERSAL_KEY_ID)).rejects.toThrow(
+      /Invalid keyId/,
+    );
   });
 
   it("accepts the well-formed keyId used by the rest of the suite", async () => {

@@ -1,153 +1,83 @@
-import {
-  CryptoBootstrap,
-  ExecutableContentHasher,
-} from "@parmana/crypto";
+import { CryptoBootstrap, ExecutableContentHasher } from "@parmana/crypto";
 
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeBuilder,
-} from "@parmana/runtime";
+import { RuntimeBuilder } from "@parmana/runtime";
 
-import {
-  MemoryExecutionTrustRecordRepository,
-} from "@parmana/storage";
+import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
-import type {
-  ExecutableContent,
-} from "@parmana/shared";
+import type { ExecutableContent } from "@parmana/shared";
 
-import transaction from "./transaction.json" with {
-  type: "json",
-};
+import transaction from "./transaction.json" with { type: "json" };
 
 async function main(): Promise<void> {
   console.log();
-  console.log(
-    "==================================================",
-  );
-  console.log(
-    "Tutorial 38 - Target Substitution",
-  );
-  console.log(
-    "==================================================",
-  );
+  console.log("==================================================");
+  console.log("Tutorial 38 - Target Substitution");
+  console.log("==================================================");
   console.log();
 
-  const runtime =
-    new RuntimeBuilder()
-      .withPolicyRepository(
-        new FilePolicyRepository(
-          "policies",
-        ),
-      )
-      .build(
-        new MemoryExecutionTrustRecordRepository(),
-      );
+  const runtime = new RuntimeBuilder()
+    .withPolicyRepository(new FilePolicyRepository("policies"))
+    .build(new MemoryExecutionTrustRecordRepository());
 
-  const { context } =
-    await runtime.execute(
-      transaction,
-    );
+  const { context } = await runtime.execute(transaction);
 
   if (!context.authorization) {
-    throw new Error(
-      "Execution Authorization missing.",
-    );
+    throw new Error("Execution Authorization missing.");
   }
 
-  const originalHash =
-    context.authorization.payload
-      .businessTransactionHash;
+  const originalHash = context.authorization.payload.businessTransactionHash;
 
   const substituted: ExecutableContent = {
-    businessTransactionId:
-      transaction.businessTransactionId,
+    businessTransactionId: transaction.businessTransactionId,
 
-    action:
-      transaction.intent.action,
+    action: transaction.intent.action,
 
-    target:
-      "oracle.payment.release",
+    target: "oracle.payment.release",
 
-    parameters:
-      transaction.intent.parameters,
+    parameters: transaction.intent.parameters,
   };
 
-  const hasher =
-    new ExecutableContentHasher(
-      CryptoBootstrap.create(),
-    );
+  const hasher = new ExecutableContentHasher(CryptoBootstrap.create());
 
-  const substitutedHash =
-    await hasher.hash(
-      substituted,
-    );
+  const substitutedHash = await hasher.hash(substituted);
 
-  console.log(
-    "Authorized Target",
-  );
+  console.log("Authorized Target");
 
-  console.log(
-    transaction.intent.target,
-  );
+  console.log(transaction.intent.target);
 
   console.log();
 
-  console.log(
-    "Substituted Target",
-  );
+  console.log("Substituted Target");
 
-  console.log(
-    substituted.target,
-  );
+  console.log(substituted.target);
 
   console.log();
 
-  console.log(
-    "Original Hash",
-  );
+  console.log("Original Hash");
 
-  console.log(
-    originalHash,
-  );
+  console.log(originalHash);
 
   console.log();
 
-  console.log(
-    "Substituted Hash",
-  );
+  console.log("Substituted Hash");
 
-  console.log(
-    substitutedHash,
-  );
+  console.log(substitutedHash);
 
   console.log();
 
-  if (
-    originalHash !==
-    substitutedHash
-  ) {
-    console.log(
-      "✓ Target substitution detected.",
-    );
+  if (originalHash !== substitutedHash) {
+    console.log("✓ Target substitution detected.");
 
-    console.log(
-      "Execution rejected.",
-    );
+    console.log("Execution rejected.");
   } else {
-    console.log(
-      "✗ Target substitution not detected.",
-    );
+    console.log("✗ Target substitution not detected.");
   }
 
   console.log();
 
-  console.log(
-    "Tutorial completed successfully.",
-  );
+  console.log("Tutorial completed successfully.");
 }
 
 main().catch((error) => {

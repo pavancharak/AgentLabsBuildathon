@@ -1,10 +1,6 @@
-import type {
-  ConnectorMetadata,
-} from "../../ConnectorMetadata.js";
+import type { ConnectorMetadata } from "../../ConnectorMetadata.js";
 
-import {
-  healthyNow,
-} from "../../ConnectorMetadata.js";
+import { healthyNow } from "../../ConnectorMetadata.js";
 
 /**
  * Metadata describing the Workday connector.
@@ -25,6 +21,5 @@ export const WorkdayMetadata: ConnectorMetadata = Object.freeze({
 
   health: healthyNow(),
 
-  description:
-    "Mock connector for Workday expense report execution.",
+  description: "Mock connector for Workday expense report execution.",
 });

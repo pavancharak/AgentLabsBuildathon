@@ -15,17 +15,15 @@ import type { BusinessTransaction } from "@parmana/shared";
 //
 process.env.NODE_ENV = "test";
 
-const { createExecutionSystem } = await import(
-  "../../../packages/api/src/bootstrap/createExecutionSystem.js"
-);
-const { createApplication } = await import(
-  "../../../packages/api/src/application.js"
-);
+const { createExecutionSystem } =
+  await import("../../../packages/api/src/bootstrap/createExecutionSystem.js");
+const { createApplication } =
+  await import("../../../packages/api/src/application.js");
 const { createApp } = await import("../../../packages/api/src/app.js");
-const { hashApiKey } = await import("../../../packages/api/src/auth/hashApiKey.js");
-const { StaticKeyAuthenticator } = await import(
-  "../../../packages/api/src/auth/StaticKeyAuthenticator.js"
-);
+const { hashApiKey } =
+  await import("../../../packages/api/src/auth/hashApiKey.js");
+const { StaticKeyAuthenticator } =
+  await import("../../../packages/api/src/auth/StaticKeyAuthenticator.js");
 
 const CALLER_KEY = "tutorial-101-caller-key";
 
@@ -46,9 +44,25 @@ function vendorPaymentTransaction(): BusinessTransaction {
 
   return {
     businessTransactionId,
-    metadata: { businessTransactionId, correlationId: crypto.randomUUID(), createdBy: "tutorial-101", createdAt: now },
-    authority: { authorityId, authorityType: "SERVICE", principalId: "tutorial-101", displayName: "Tutorial 101", issuedAt: now },
-    authorization: { authorizationId, authorityId, purpose: "Tutorial", authorizedAt: now },
+    metadata: {
+      businessTransactionId,
+      correlationId: crypto.randomUUID(),
+      createdBy: "tutorial-101",
+      createdAt: now,
+    },
+    authority: {
+      authorityId,
+      authorityType: "SERVICE",
+      principalId: "tutorial-101",
+      displayName: "Tutorial 101",
+      issuedAt: now,
+    },
+    authorization: {
+      authorizationId,
+      authorityId,
+      purpose: "Tutorial",
+      authorizedAt: now,
+    },
     intent: {
       intentId: crypto.randomUUID(),
       authorizationId,
@@ -57,7 +71,11 @@ function vendorPaymentTransaction(): BusinessTransaction {
       parameters: Object.freeze({ paymentId: "payment-001", amount: 1000 }),
       createdAt: now,
     },
-    policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+    policy: {
+      name: "vendor-payment",
+      version: "2.0.0",
+      schemaVersion: "1.0.0",
+    },
     signals: {
       vendorVerified: true,
       invoiceVerified: true,
@@ -76,20 +94,30 @@ async function startServer(auditSink: FailingCallerAuditSink) {
   const executionSystem = createExecutionSystem();
   const application = createApplication(executionSystem);
   const authenticator = new StaticKeyAuthenticator([
-    { callerId: "caller-101", keyHash: hashApiKey(CALLER_KEY), allowedPrincipalIds: ["tutorial-101"], allowedCapabilities: ["test:fixture-execute"] },
+    {
+      callerId: "caller-101",
+      keyHash: hashApiKey(CALLER_KEY),
+      allowedPrincipalIds: ["tutorial-101"],
+      allowedCapabilities: ["test:fixture-execute"],
+    },
   ]);
-  const app = createApp(application, { callerAuth: { authenticator, auditSink } });
-
-  return new Promise<{ baseUrl: string; close: () => Promise<void> }>((resolve) => {
-    const server = app.listen(0, () => {
-      const address = server.address();
-      const port = typeof address === "object" && address !== null ? address.port : 0;
-      resolve({
-        baseUrl: `http://127.0.0.1:${port}`,
-        close: () => new Promise((res) => server.close(() => res())),
-      });
-    });
+  const app = createApp(application, {
+    callerAuth: { authenticator, auditSink },
   });
+
+  return new Promise<{ baseUrl: string; close: () => Promise<void> }>(
+    (resolve) => {
+      const server = app.listen(0, () => {
+        const address = server.address();
+        const port =
+          typeof address === "object" && address !== null ? address.port : 0;
+        resolve({
+          baseUrl: `http://127.0.0.1:${port}`,
+          close: () => new Promise((res) => server.close(() => res())),
+        });
+      });
+    },
+  );
 }
 
 console.log();
@@ -102,7 +130,9 @@ const auditSink = new FailingCallerAuditSink();
 const { baseUrl, close } = await startServer(auditSink);
 
 try {
-  console.log("Scenario 1: A missing credential -- audit write fails, request fails closed at 503, not 401");
+  console.log(
+    "Scenario 1: A missing credential -- audit write fails, request fails closed at 503, not 401",
+  );
   console.log("--------------------------------------------------");
   const missing = await fetch(`${baseUrl}/execute`, {
     method: "POST",
@@ -114,11 +144,16 @@ try {
   console.log(`Code   : ${missingBody.code}`);
   console.log();
 
-  console.log("Scenario 2: A valid credential -- audit write ALSO fails, so even a well-authenticated request fails closed at 503, not 200");
+  console.log(
+    "Scenario 2: A valid credential -- audit write ALSO fails, so even a well-authenticated request fails closed at 503, not 200",
+  );
   console.log("--------------------------------------------------");
   const valid = await fetch(`${baseUrl}/execute`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${CALLER_KEY}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${CALLER_KEY}`,
+    },
     body: JSON.stringify(vendorPaymentTransaction()),
   });
   const validBody = await valid.json();
@@ -126,7 +161,9 @@ try {
   console.log(`Code   : ${validBody.code}`);
   console.log();
 
-  console.log(`Audit sink was called ${auditSink.attempts} times (once per request), no retry attempted either time.`);
+  console.log(
+    `Audit sink was called ${auditSink.attempts} times (once per request), no retry attempted either time.`,
+  );
   console.log();
 
   const allPassed =
@@ -141,12 +178,16 @@ try {
       "✓ Both the rejected and the accepted caller-authentication outcome fail the request when the audit write itself fails -- an action never executes without an audit record, and there is no retry to mask it.",
     );
   } else {
-    console.log("✗ Expected every audit-write failure to surface as 503 AUDIT_UNAVAILABLE, on both the reject and accept paths.");
+    console.log(
+      "✗ Expected every audit-write failure to surface as 503 AUDIT_UNAVAILABLE, on both the reject and accept paths.",
+    );
   }
 
   console.log();
   console.log("Tutorial Complete");
-  console.log("Next: Tutorial 102 - Distinguishable HTTP Status for Policy Denial and Replay");
+  console.log(
+    "Next: Tutorial 102 - Distinguishable HTTP Status for Policy Denial and Replay",
+  );
 } finally {
   await close();
 }

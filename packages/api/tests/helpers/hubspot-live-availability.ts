@@ -82,7 +82,9 @@ export function resolveHubSpotLiveGate(suiteLabel: string): boolean {
  * Absence is a clean skip and never a failure: explicit intent must
  * never quietly degrade, but absence is not intent.
  */
-export function resolveHubSpotTestDealGate(suiteLabel: string): string | undefined {
+export function resolveHubSpotTestDealGate(
+  suiteLabel: string,
+): string | undefined {
   const dealId = process.env.TEST_HUBSPOT_DEAL_ID;
 
   if (dealId === undefined) {

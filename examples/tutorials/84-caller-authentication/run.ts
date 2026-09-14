@@ -14,20 +14,17 @@ import type { BusinessTransaction } from "@parmana/shared";
 //
 process.env.NODE_ENV = "test";
 
-const { createExecutionSystem } = await import(
-  "../../../packages/api/src/bootstrap/createExecutionSystem.js"
-);
-const { createApplication } = await import(
-  "../../../packages/api/src/application.js"
-);
+const { createExecutionSystem } =
+  await import("../../../packages/api/src/bootstrap/createExecutionSystem.js");
+const { createApplication } =
+  await import("../../../packages/api/src/application.js");
 const { createApp } = await import("../../../packages/api/src/app.js");
-const { hashApiKey } = await import("../../../packages/api/src/auth/hashApiKey.js");
-const { StaticKeyAuthenticator } = await import(
-  "../../../packages/api/src/auth/StaticKeyAuthenticator.js"
-);
-const { InMemoryCallerAuditSink } = await import(
-  "../../../packages/api/src/auth/InMemoryCallerAuditSink.js"
-);
+const { hashApiKey } =
+  await import("../../../packages/api/src/auth/hashApiKey.js");
+const { StaticKeyAuthenticator } =
+  await import("../../../packages/api/src/auth/StaticKeyAuthenticator.js");
+const { InMemoryCallerAuditSink } =
+  await import("../../../packages/api/src/auth/InMemoryCallerAuditSink.js");
 
 const CALLER_A_KEY = "tutorial-84-caller-a-key";
 const CALLER_B_KEY = "tutorial-84-caller-b-key";
@@ -43,7 +40,12 @@ function vendorPaymentTransaction(): BusinessTransaction {
 
   return {
     businessTransactionId,
-    metadata: { businessTransactionId, correlationId: crypto.randomUUID(), createdBy: "tutorial-84", createdAt: now },
+    metadata: {
+      businessTransactionId,
+      correlationId: crypto.randomUUID(),
+      createdBy: "tutorial-84",
+      createdAt: now,
+    },
     authority: {
       authorityId,
       authorityType: "SERVICE",
@@ -51,7 +53,12 @@ function vendorPaymentTransaction(): BusinessTransaction {
       displayName: "Tutorial 84",
       issuedAt: now,
     },
-    authorization: { authorizationId, authorityId, purpose: "Tutorial", authorizedAt: now },
+    authorization: {
+      authorizationId,
+      authorityId,
+      purpose: "Tutorial",
+      authorizedAt: now,
+    },
     intent: {
       intentId,
       authorizationId,
@@ -64,7 +71,11 @@ function vendorPaymentTransaction(): BusinessTransaction {
       parameters: Object.freeze({ paymentId: "payment-001", amount: 1000 }),
       createdAt: now,
     },
-    policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+    policy: {
+      name: "vendor-payment",
+      version: "2.0.0",
+      schemaVersion: "1.0.0",
+    },
     signals: {
       vendorVerified: true,
       invoiceVerified: true,
@@ -79,23 +90,29 @@ function vendorPaymentTransaction(): BusinessTransaction {
   } as unknown as BusinessTransaction;
 }
 
-async function startServer(authenticator: InstanceType<typeof StaticKeyAuthenticator>, auditSink: InstanceType<typeof InMemoryCallerAuditSink>) {
+async function startServer(
+  authenticator: InstanceType<typeof StaticKeyAuthenticator>,
+  auditSink: InstanceType<typeof InMemoryCallerAuditSink>,
+) {
   const executionSystem = createExecutionSystem();
   const application = createApplication(executionSystem);
   const app = createApp(application, {
     callerAuth: { authenticator, auditSink },
   });
 
-  return new Promise<{ baseUrl: string; close: () => Promise<void> }>((resolve) => {
-    const server = app.listen(0, () => {
-      const address = server.address();
-      const port = typeof address === "object" && address !== null ? address.port : 0;
-      resolve({
-        baseUrl: `http://127.0.0.1:${port}`,
-        close: () => new Promise((res) => server.close(() => res())),
+  return new Promise<{ baseUrl: string; close: () => Promise<void> }>(
+    (resolve) => {
+      const server = app.listen(0, () => {
+        const address = server.address();
+        const port =
+          typeof address === "object" && address !== null ? address.port : 0;
+        resolve({
+          baseUrl: `http://127.0.0.1:${port}`,
+          close: () => new Promise((res) => server.close(() => res())),
+        });
       });
-    });
-  });
+    },
+  );
 }
 
 console.log();
@@ -106,16 +123,36 @@ console.log();
 
 const auditSink = new InMemoryCallerAuditSink();
 const authenticator = new StaticKeyAuthenticator([
-  { callerId: "caller-a", keyHash: hashApiKey(CALLER_A_KEY), allowedPrincipalIds: ["tutorial-84"], allowedCapabilities: ["test:fixture-execute"] },
-  { callerId: "caller-b", keyHash: hashApiKey(CALLER_B_KEY), allowedPrincipalIds: ["tutorial-84"], allowedCapabilities: ["test:fixture-execute"] },
+  {
+    callerId: "caller-a",
+    keyHash: hashApiKey(CALLER_A_KEY),
+    allowedPrincipalIds: ["tutorial-84"],
+    allowedCapabilities: ["test:fixture-execute"],
+  },
+  {
+    callerId: "caller-b",
+    keyHash: hashApiKey(CALLER_B_KEY),
+    allowedPrincipalIds: ["tutorial-84"],
+    allowedCapabilities: ["test:fixture-execute"],
+  },
   // Allowed to assert the "tutorial-84" principal, but not to invoke
   // test:fixture-execute -- passes the principal check, fails the
   // capability check that runs right after it (Scenario 6).
-  { callerId: "caller-c", keyHash: hashApiKey(CALLER_C_KEY), allowedPrincipalIds: ["tutorial-84"], allowedCapabilities: ["some-other-capability"] },
+  {
+    callerId: "caller-c",
+    keyHash: hashApiKey(CALLER_C_KEY),
+    allowedPrincipalIds: ["tutorial-84"],
+    allowedCapabilities: ["some-other-capability"],
+  },
   // Allowed to invoke test:fixture-execute, but not to assert the
   // "tutorial-84" principal -- fails the principal check, which runs
   // before the capability check, so it never even reaches it (Scenario 7).
-  { callerId: "caller-d", keyHash: hashApiKey(CALLER_D_KEY), allowedPrincipalIds: ["some-other-principal"], allowedCapabilities: ["test:fixture-execute"] },
+  {
+    callerId: "caller-d",
+    keyHash: hashApiKey(CALLER_D_KEY),
+    allowedPrincipalIds: ["some-other-principal"],
+    allowedCapabilities: ["test:fixture-execute"],
+  },
 ]);
 
 const { baseUrl, close } = await startServer(authenticator, auditSink);
@@ -125,13 +162,18 @@ try {
   console.log("--------------------------------------------------");
   const valid = await fetch(`${baseUrl}/execute`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${CALLER_A_KEY}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${CALLER_A_KEY}`,
+    },
     body: JSON.stringify(vendorPaymentTransaction()),
   });
   console.log(`Status : ${valid.status}`);
   console.log();
 
-  console.log("Scenario 2: A missing credential is rejected before anything else runs");
+  console.log(
+    "Scenario 2: A missing credential is rejected before anything else runs",
+  );
   console.log("--------------------------------------------------");
   const missing = await fetch(`${baseUrl}/execute`, {
     method: "POST",
@@ -145,13 +187,18 @@ try {
   console.log("--------------------------------------------------");
   const invalid = await fetch(`${baseUrl}/execute`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: "Bearer not-a-real-key" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer not-a-real-key",
+    },
     body: JSON.stringify(vendorPaymentTransaction()),
   });
   console.log(`Status : ${invalid.status}`);
   console.log();
 
-  console.log("Scenario 4: GET /health requires no credential; GET /policies does");
+  console.log(
+    "Scenario 4: GET /health requires no credential; GET /policies does",
+  );
   console.log("--------------------------------------------------");
   const health = await fetch(`${baseUrl}/health`);
   const policies = await fetch(`${baseUrl}/policies`);
@@ -159,36 +206,68 @@ try {
   console.log(`GET /policies -> ${policies.status}`);
   console.log();
 
-  console.log("Scenario 5: Key rotation -- old key works during rotation, is rejected after revocation");
+  console.log(
+    "Scenario 5: Key rotation -- old key works during rotation, is rejected after revocation",
+  );
   console.log("--------------------------------------------------");
   const oldKey = "tutorial-84-orchestrator-old-key";
   const newKey = "tutorial-84-orchestrator-new-key";
 
   const duringRotation = new StaticKeyAuthenticator([
-    { callerId: "orchestrator-1", keyHash: hashApiKey(oldKey), allowedPrincipalIds: ["tutorial-84"], allowedCapabilities: ["test:fixture-execute"] },
-    { callerId: "orchestrator-1", keyHash: hashApiKey(newKey), allowedPrincipalIds: ["tutorial-84"], allowedCapabilities: ["test:fixture-execute"] },
+    {
+      callerId: "orchestrator-1",
+      keyHash: hashApiKey(oldKey),
+      allowedPrincipalIds: ["tutorial-84"],
+      allowedCapabilities: ["test:fixture-execute"],
+    },
+    {
+      callerId: "orchestrator-1",
+      keyHash: hashApiKey(newKey),
+      allowedPrincipalIds: ["tutorial-84"],
+      allowedCapabilities: ["test:fixture-execute"],
+    },
   ]);
-  const rotationServer = await startServer(duringRotation, new InMemoryCallerAuditSink());
+  const rotationServer = await startServer(
+    duringRotation,
+    new InMemoryCallerAuditSink(),
+  );
   const stillWorks = await fetch(`${rotationServer.baseUrl}/execute`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${oldKey}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${oldKey}`,
+    },
     body: JSON.stringify(vendorPaymentTransaction()),
   });
   console.log(`Old key during rotation -> ${stillWorks.status}`);
   await rotationServer.close();
 
   const afterRevocation = new StaticKeyAuthenticator([
-    { callerId: "orchestrator-1", keyHash: hashApiKey(newKey), allowedPrincipalIds: ["tutorial-84"], allowedCapabilities: ["test:fixture-execute"] },
+    {
+      callerId: "orchestrator-1",
+      keyHash: hashApiKey(newKey),
+      allowedPrincipalIds: ["tutorial-84"],
+      allowedCapabilities: ["test:fixture-execute"],
+    },
   ]);
-  const revokedServer = await startServer(afterRevocation, new InMemoryCallerAuditSink());
+  const revokedServer = await startServer(
+    afterRevocation,
+    new InMemoryCallerAuditSink(),
+  );
   const revokedRejected = await fetch(`${revokedServer.baseUrl}/execute`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${oldKey}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${oldKey}`,
+    },
     body: JSON.stringify(vendorPaymentTransaction()),
   });
   const newKeyWorks = await fetch(`${revokedServer.baseUrl}/execute`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${newKey}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${newKey}`,
+    },
     body: JSON.stringify(vendorPaymentTransaction()),
   });
   console.log(`Old key after revocation -> ${revokedRejected.status}`);
@@ -196,21 +275,31 @@ try {
   await revokedServer.close();
   console.log();
 
-  console.log("Scenario 6: A caller allowed to assert this principal but not invoke this capability triggers caller.capability_denied");
+  console.log(
+    "Scenario 6: A caller allowed to assert this principal but not invoke this capability triggers caller.capability_denied",
+  );
   console.log("--------------------------------------------------");
   const capabilityDenied = await fetch(`${baseUrl}/execute`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${CALLER_C_KEY}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${CALLER_C_KEY}`,
+    },
     body: JSON.stringify(vendorPaymentTransaction()),
   });
   console.log(`Status : ${capabilityDenied.status}`);
   console.log();
 
-  console.log("Scenario 7: A caller allowed to invoke this capability but not assert this principal triggers caller.principal_denied");
+  console.log(
+    "Scenario 7: A caller allowed to invoke this capability but not assert this principal triggers caller.principal_denied",
+  );
   console.log("--------------------------------------------------");
   const principalDenied = await fetch(`${baseUrl}/execute`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${CALLER_D_KEY}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${CALLER_D_KEY}`,
+    },
     body: JSON.stringify(vendorPaymentTransaction()),
   });
   console.log(`Status : ${principalDenied.status}`);
@@ -220,7 +309,9 @@ try {
   console.log("--------------------------------------------------");
   console.log(`Events recorded : ${auditSink.events.length}`);
   for (const event of auditSink.events) {
-    console.log(`  ${event.type} on ${event.route} -- callerId=${event.callerId ?? "(none)"} reason=${event.reason ?? "(n/a)"}`);
+    console.log(
+      `  ${event.type} on ${event.route} -- callerId=${event.callerId ?? "(none)"} reason=${event.reason ?? "(n/a)"}`,
+    );
   }
   const serialized = JSON.stringify(auditSink.events);
   const rawKeyLeaked =
@@ -231,8 +322,12 @@ try {
   console.log(`Raw key ever appears in audit trail : ${rawKeyLeaked}`);
   console.log();
 
-  const capabilityDeniedAudited = auditSink.events.some((event) => event.type === "caller.capability_denied");
-  const principalDeniedAudited = auditSink.events.some((event) => event.type === "caller.principal_denied");
+  const capabilityDeniedAudited = auditSink.events.some(
+    (event) => event.type === "caller.capability_denied",
+  );
+  const principalDeniedAudited = auditSink.events.some(
+    (event) => event.type === "caller.principal_denied",
+  );
 
   const allPassed =
     valid.status === 200 &&
@@ -254,7 +349,9 @@ try {
       "✓ Authentication gates every route but /health as expected, key rotation works, capability/principal scoping is enforced and audited, and the raw key never appears in the audit trail.",
     );
   } else {
-    console.log("✗ Expected every scenario above to match caller-auth's real, documented behavior.");
+    console.log(
+      "✗ Expected every scenario above to match caller-auth's real, documented behavior.",
+    );
   }
 
   console.log();

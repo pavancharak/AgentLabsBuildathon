@@ -17,10 +17,7 @@ export class MemoryNonceStore implements NonceStore {
 
   private readonly seen = new Map<string, number>();
 
-  async checkAndRecord(
-    nonce: string,
-    expiresAt: string,
-  ): Promise<boolean> {
+  async checkAndRecord(nonce: string, expiresAt: string): Promise<boolean> {
     if (this.seen.has(nonce)) {
       return false;
     }

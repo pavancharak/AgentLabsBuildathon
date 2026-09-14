@@ -1,9 +1,5 @@
 import { Router } from "express";
-import type {
-  NextFunction,
-  Request,
-  Response,
-} from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import type { ExecutionTrustApplication } from "@parmana/runtime";
 import { isOwnedByCaller } from "../auth/isOwnedByCaller.js";
@@ -26,14 +22,9 @@ export function createRefusalGetRouter(
 
   router.get(
     "/:businessTransactionId",
-    async (
-      req: Request,
-      res: Response,
-      next: NextFunction,
-    ): Promise<void> => {
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
-        const businessTransactionId =
-          String(req.params.businessTransactionId);
+        const businessTransactionId = String(req.params.businessTransactionId);
 
         if (
           req.callerId !== undefined &&
@@ -49,10 +40,9 @@ export function createRefusalGetRouter(
           return;
         }
 
-        const refusalRecord =
-          await application.getRefusalRecord(
-            businessTransactionId,
-          );
+        const refusalRecord = await application.getRefusalRecord(
+          businessTransactionId,
+        );
 
         if (!refusalRecord) {
           res.status(404).json({

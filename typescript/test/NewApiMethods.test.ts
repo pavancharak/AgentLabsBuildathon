@@ -67,7 +67,9 @@ describe("VerificationApi.verify", () => {
 
     expect(transport.lastRequest?.method).toBe("POST");
     expect(transport.lastRequest?.path).toBe("/verify");
-    expect(transport.lastRequest?.body).toEqual({ businessTransactionId: "tx-1" });
+    expect(transport.lastRequest?.body).toEqual({
+      businessTransactionId: "tx-1",
+    });
     expect(result.status).toBe("VERIFIED");
   });
 
@@ -101,7 +103,10 @@ describe("TransactionApi.create", () => {
     expect(transport.lastRequest?.method).toBe("POST");
     expect(transport.lastRequest?.path).toBe("/transactions");
     expect(transport.lastRequest?.body).toBe(transaction);
-    expect(result).toEqual({ trustRecordId: "tr-1", businessTransactionId: "tx-1" });
+    expect(result).toEqual({
+      trustRecordId: "tr-1",
+      businessTransactionId: "tx-1",
+    });
   });
 });
 

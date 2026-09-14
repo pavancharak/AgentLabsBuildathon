@@ -16,9 +16,7 @@
  * - replay executions
  */
 
-import type {
-  Transport,
-} from "../config/Transport.js";
+import type { Transport } from "../config/Transport.js";
 
 /**
  * Canonical policy validation result.
@@ -39,9 +37,7 @@ export interface PolicyValidationResult {
  * Policy API.
  */
 export class PolicyApi {
-  constructor(
-    private readonly transport: Transport,
-  ) {}
+  constructor(private readonly transport: Transport) {}
 
   /**
    * Confirms that a policy (name + version) is loadable by the Runtime.
@@ -64,19 +60,18 @@ export class PolicyApi {
     policyId: string,
     policyVersion: string,
   ): Promise<PolicyValidationResult> {
-    const response =
-      await this.transport.send<PolicyValidationResult>({
-        path: "/policies/validate",
+    const response = await this.transport.send<PolicyValidationResult>({
+      path: "/policies/validate",
 
-        method: "POST",
+      method: "POST",
 
-        body: {
-          policyId,
-          policyVersion,
-        },
+      body: {
+        policyId,
+        policyVersion,
+      },
 
-        nonThrowingStatuses: [400, 404],
-      });
+      nonThrowingStatuses: [400, 404],
+    });
 
     return response.body;
   }

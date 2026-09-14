@@ -12,15 +12,12 @@ import type { BusinessTransaction } from "@parmana/shared";
 //
 process.env.NODE_ENV = "test";
 
-const { createExecutionSystem } = await import(
-  "../../../packages/api/src/bootstrap/createExecutionSystem.js"
-);
-const { createApplication } = await import(
-  "../../../packages/api/src/application.js"
-);
-const { isOwnedByCaller } = await import(
-  "../../../packages/api/src/auth/isOwnedByCaller.js"
-);
+const { createExecutionSystem } =
+  await import("../../../packages/api/src/bootstrap/createExecutionSystem.js");
+const { createApplication } =
+  await import("../../../packages/api/src/application.js");
+const { isOwnedByCaller } =
+  await import("../../../packages/api/src/auth/isOwnedByCaller.js");
 
 function vendorPaymentTransaction(submittedBy: string): BusinessTransaction {
   const businessTransactionId = crypto.randomUUID();
@@ -68,7 +65,11 @@ function vendorPaymentTransaction(submittedBy: string): BusinessTransaction {
       parameters: Object.freeze({ paymentId: "payment-001", amount: 1000 }),
       createdAt: now,
     },
-    policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+    policy: {
+      name: "vendor-payment",
+      version: "2.0.0",
+      schemaVersion: "1.0.0",
+    },
     signals: {
       vendorVerified: true,
       invoiceVerified: true,
@@ -95,32 +96,55 @@ const application = createApplication(executionSystem);
 const transaction = vendorPaymentTransaction("caller-a");
 await application.execute(transaction);
 
-console.log(`Transaction ${transaction.businessTransactionId} submitted by caller-a and approved.`);
+console.log(
+  `Transaction ${transaction.businessTransactionId} submitted by caller-a and approved.`,
+);
 console.log();
 
 console.log("Scenario 1: The owning caller looks up its own transaction");
 console.log("--------------------------------------------------");
-const ownerResult = await isOwnedByCaller(application, transaction.businessTransactionId, "caller-a");
+const ownerResult = await isOwnedByCaller(
+  application,
+  transaction.businessTransactionId,
+  "caller-a",
+);
 console.log(`isOwnedByCaller(txn, "caller-a") -> ${ownerResult}`);
 console.log();
 
-console.log("Scenario 2: A different, unrelated caller tries to look up the same transaction");
+console.log(
+  "Scenario 2: A different, unrelated caller tries to look up the same transaction",
+);
 console.log("--------------------------------------------------");
-const otherResult = await isOwnedByCaller(application, transaction.businessTransactionId, "caller-b");
+const otherResult = await isOwnedByCaller(
+  application,
+  transaction.businessTransactionId,
+  "caller-b",
+);
 console.log(`isOwnedByCaller(txn, "caller-b") -> ${otherResult}`);
 console.log();
 
-console.log("Scenario 3: A caller looks up a transaction id that does not exist at all");
+console.log(
+  "Scenario 3: A caller looks up a transaction id that does not exist at all",
+);
 console.log("--------------------------------------------------");
-const missingResult = await isOwnedByCaller(application, "does-not-exist", "caller-b");
-console.log(`isOwnedByCaller("does-not-exist", "caller-b") -> ${missingResult}`);
+const missingResult = await isOwnedByCaller(
+  application,
+  "does-not-exist",
+  "caller-b",
+);
+console.log(
+  `isOwnedByCaller("does-not-exist", "caller-b") -> ${missingResult}`,
+);
 console.log(
   "  (true here is deliberate -- a missing transaction is not an ownership question; the route's own",
 );
-console.log("   404 handling runs unchanged, so a non-owner can't distinguish \"not yours\" from \"doesn't exist\".)");
+console.log(
+  '   404 handling runs unchanged, so a non-owner can\'t distinguish "not yours" from "doesn\'t exist".)',
+);
 console.log();
 
-const allPassed = ownerResult === true && otherResult === false && missingResult === true;
+const allPassed =
+  ownerResult === true && otherResult === false && missingResult === true;
 
 if (allPassed) {
   console.log(

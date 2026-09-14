@@ -59,7 +59,12 @@ async function main(): Promise<void> {
   const withHash: ExecutionTrustRecord = {
     ...draft,
     trustRecordHash,
-    signature: { algorithm: "ed25519", keyId: "default", value: "", signedAt: new Date() },
+    signature: {
+      algorithm: "ed25519",
+      keyId: "default",
+      value: "",
+      signedAt: new Date(),
+    },
   };
 
   const signature = await crypto.sign(withHash);
@@ -76,9 +81,14 @@ async function main(): Promise<void> {
   const { readFileSync } = await import("node:fs");
   const { join } = await import("node:path");
   const keyDir = process.env.PARMANA_KEY_DIR ?? "./keys";
-  const realPublicKeyPem = readFileSync(join(keyDir, "default.public.pem"), "utf8");
+  const realPublicKeyPem = readFileSync(
+    join(keyDir, "default.public.pem"),
+    "utf8",
+  );
 
-  console.log("Scenario 1: A genuine record verifies with zero disk/network/env-var access");
+  console.log(
+    "Scenario 1: A genuine record verifies with zero disk/network/env-var access",
+  );
   console.log("--------------------------------------------------");
 
   const result = await verifyExecutionTrustRecordOffline(trustRecord, {
@@ -91,12 +101,17 @@ async function main(): Promise<void> {
   console.log(`algorithmsChecked    : ${result.algorithmsChecked.join(", ")}`);
   console.log();
 
-  console.log("Scenario 2: A tampered record is caught -- the hash no longer matches");
+  console.log(
+    "Scenario 2: A tampered record is caught -- the hash no longer matches",
+  );
   console.log("--------------------------------------------------");
 
   const tampered: ExecutionTrustRecord = {
     ...trustRecord,
-    transaction: { ...trustRecord.transaction, status: "APPROVED" as ExecutionTrustRecord["transaction"]["status"] },
+    transaction: {
+      ...trustRecord.transaction,
+      status: "APPROVED" as ExecutionTrustRecord["transaction"]["status"],
+    },
   };
 
   const tamperedResult = await verifyExecutionTrustRecordOffline(tampered, {
@@ -107,11 +122,15 @@ async function main(): Promise<void> {
   console.log(`errors    : ${tamperedResult.errors.join(" | ")}`);
   console.log();
 
-  console.log("Scenario 3: The wrong public key is rejected, not silently accepted");
+  console.log(
+    "Scenario 3: The wrong public key is rejected, not silently accepted",
+  );
   console.log("--------------------------------------------------");
 
   const { publicKey: wrongPublicKey } = generateKeyPairSync("ed25519");
-  const wrongPem = wrongPublicKey.export({ format: "pem", type: "spki" }).toString();
+  const wrongPem = wrongPublicKey
+    .export({ format: "pem", type: "spki" })
+    .toString();
 
   const wrongKeyResult = await verifyExecutionTrustRecordOffline(trustRecord, {
     default: wrongPem,
@@ -121,14 +140,17 @@ async function main(): Promise<void> {
   console.log(`errors    : ${wrongKeyResult.errors.join(" | ")}`);
   console.log();
 
-  const allCorrect = result.valid && !tamperedResult.valid && !wrongKeyResult.valid;
+  const allCorrect =
+    result.valid && !tamperedResult.valid && !wrongKeyResult.valid;
 
   if (allCorrect) {
     console.log(
       "✓ A genuine record verifies, a tampered one is caught by the hash check, and the wrong key is rejected -- all with zero disk/network/env-var access.",
     );
   } else {
-    console.log("✗ Expected the genuine record to verify and both negative cases to fail.");
+    console.log(
+      "✗ Expected the genuine record to verify and both negative cases to fail.",
+    );
   }
 
   console.log();

@@ -12,7 +12,7 @@ import {
   ExecutionStatus,
   ExecutionTrustRecord,
   Intent,
-    normalizePolicy,
+  normalizePolicy,
   PolicyReference,
 } from "@parmana/shared";
 
@@ -110,8 +110,7 @@ describe("Replay Engine", () => {
     const execution: Execution = {
       executionId: "exec-1",
 
-      businessTransactionId:
-        transaction.businessTransactionId,
+      businessTransactionId: transaction.businessTransactionId,
 
       decision: recordedDecision,
 
@@ -127,8 +126,7 @@ describe("Replay Engine", () => {
     const trustRecord: ExecutionTrustRecord = {
       trustRecordId: "tr-1",
 
-      businessTransactionId:
-        transaction.businessTransactionId,
+      businessTransactionId: transaction.businessTransactionId,
 
       transaction,
 
@@ -161,14 +159,12 @@ describe("Replay Engine", () => {
     //
     // Assert
     //
-    expect(
-      result.recordedDecision.decisionId,
-    ).toBe(recordedDecision.decisionId);
+    expect(result.recordedDecision.decisionId).toBe(
+      recordedDecision.decisionId,
+    );
 
     expect(result.matches).toBe(true);
 
-    expect(
-      result.replayedDecision.outcome,
-    ).toBe(recordedDecision.outcome);
+    expect(result.replayedDecision.outcome).toBe(recordedDecision.outcome);
   });
 });

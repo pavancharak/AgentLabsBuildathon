@@ -3,7 +3,10 @@ title: "Authentication"
 description: "How to authenticate API requests: the bearer key model, what gets checked, and how it differs from Policy evaluation and gateway attestation."
 ---
 
-<Info>**[AVAILABLE]**. `packages/api/src/middleware/caller-auth.ts`, `StaticKeyAuthenticator`, verified against a live server in this session.</Info>
+<Info>
+  **[AVAILABLE]**. `packages/api/src/middleware/caller-auth.ts`,
+  `StaticKeyAuthenticator`, verified against a live server in this session.
+</Info>
 
 ## Send a bearer key
 
@@ -46,7 +49,7 @@ entertained at all.** It is the first thing that runs, ahead of Policy evaluatio
 
 - A well-authenticated caller submitting a Policy-rejected transaction is still rejected,
   see [Policies and the decision](/concepts/policies-and-the-decision).
-- A well-authenticated caller does not thereby prove anything about *who authorized* the
+- A well-authenticated caller does not thereby prove anything about _who authorized_ the
   underlying business action, that is what [Execution
   Authorization](/concepts/execution-authorization) and [the gateway](/concepts/the-gateway)
   establish, on a completely separate signature.
@@ -82,21 +85,22 @@ production traffic, and are independently configurable per deployment via
 `RATE_LIMIT_EXECUTE_PER_MINUTE` / `RATE_LIMIT_HEALTH_PER_MINUTE` (see `.env.example`).
 
 <Warning>
-**Scope, precisely.** By default the limiter's store is `express-rate-limit`'s in-memory,
-single-process store. A multi-machine deployment counts independently per machine, an
-effective ceiling of the configured per-minute limit **times** the number of machines
-serving traffic, not a fleet-wide limit enforced once. **When `DATABASE_URL` is
-configured**, both the `/execute` and `/health`/`/ready` limiters instead share counts
-fleet-wide via a durable Postgres-backed store (`PostgresRateLimitStore`). Set it before
-scaling past one machine if the configured limit needs to actually be the limit. See
-`docs/VERIFICATION-GAPS.md` G-41.
+  **Scope, precisely.** By default the limiter's store is `express-rate-limit`'s
+  in-memory, single-process store. A multi-machine deployment counts
+  independently per machine, an effective ceiling of the configured per-minute
+  limit **times** the number of machines serving traffic, not a fleet-wide limit
+  enforced once. **When `DATABASE_URL` is configured**, both the `/execute` and
+  `/health`/`/ready` limiters instead share counts fleet-wide via a durable
+  Postgres-backed store (`PostgresRateLimitStore`). Set it before scaling past
+  one machine if the configured limit needs to actually be the limit. See
+  `docs/VERIFICATION-GAPS.md` G-41.
 </Warning>
 
 ## Errors
 
-| Status | Condition | Body |
-|---|---|---|
-| 401 | Missing or invalid `Authorization` header | `{"error":"authentication required"}` |
-| 429 | Rate limit exceeded (see above) | `{"error":"Rate limit exceeded. Try again later.","code":"RATE_LIMITED"}` |
+| Status | Condition                                 | Body                                                                      |
+| ------ | ----------------------------------------- | ------------------------------------------------------------------------- |
+| 401    | Missing or invalid `Authorization` header | `{"error":"authentication required"}`                                     |
+| 429    | Rate limit exceeded (see above)           | `{"error":"Rate limit exceeded. Try again later.","code":"RATE_LIMITED"}` |
 
 See the [Error catalog](/api-reference/error-catalog) for every other error this API returns.

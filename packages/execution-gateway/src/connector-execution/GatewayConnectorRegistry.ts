@@ -18,7 +18,10 @@ import {
 import type { Connector } from "@parmana/connector-sdk";
 import { CredentialVaultAdapter } from "./CredentialVaultAdapter.js";
 import type { CredentialProvider } from "@parmana/connector-sdk";
-import type { ConnectorMetadata, ConnectorVersion } from "@parmana/connector-sdk";
+import type {
+  ConnectorMetadata,
+  ConnectorVersion,
+} from "@parmana/connector-sdk";
 import { SdkConnectorExecutor } from "./SdkConnectorExecutor.js";
 
 const DEFAULT_SESSION_CREDENTIAL_LIFETIME_MS = 30_000;
@@ -90,10 +93,14 @@ export class GatewayConnectorRegistry implements ConnectorRegistry {
       ...(options.expectedVersion !== undefined
         ? { expectedVersion: options.expectedVersion }
         : {}),
-      ...(options.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs } : {}),
+      ...(options.timeoutMs !== undefined
+        ? { timeoutMs: options.timeoutMs }
+        : {}),
     });
 
-    const credentialVault = new CredentialVaultAdapter(options.credentialProvider);
+    const credentialVault = new CredentialVaultAdapter(
+      options.credentialProvider,
+    );
 
     let secureConnector: SecureConnector;
 
@@ -110,8 +117,8 @@ export class GatewayConnectorRegistry implements ConnectorRegistry {
       if (options.audit === undefined) {
         throw new Error(
           `Connector "${connectorId}" registration requires an ExecutionAuditSink — the ` +
-          `same instance ExecutionControlService writes to, per the single-audit-trail ` +
-          `requirement — unless legacyInsecure: true is explicitly set.`,
+            `same instance ExecutionControlService writes to, per the single-audit-trail ` +
+            `requirement — unless legacyInsecure: true is explicitly set.`,
         );
       }
 
@@ -121,7 +128,9 @@ export class GatewayConnectorRegistry implements ConnectorRegistry {
         credentials: credentialVault,
         clock,
         idGenerator: options.idGenerator ?? new RandomIdGenerator(),
-        lifetimeMs: options.sessionCredentialLifetimeMs ?? DEFAULT_SESSION_CREDENTIAL_LIFETIME_MS,
+        lifetimeMs:
+          options.sessionCredentialLifetimeMs ??
+          DEFAULT_SESSION_CREDENTIAL_LIFETIME_MS,
       });
 
       secureConnector = new SessionCredentialSecureConnector({
@@ -149,22 +158,14 @@ export class GatewayConnectorRegistry implements ConnectorRegistry {
     return this.inner.get(name);
   }
 
-  resolveCapability(
-    capability: string,
-  ): SecureConnector {
+  resolveCapability(capability: string): SecureConnector {
     for (const entry of this.entries.values()) {
-      if (
-        entry.secureConnector.capabilities.includes(
-          capability,
-        )
-      ) {
+      if (entry.secureConnector.capabilities.includes(capability)) {
         return entry.secureConnector;
       }
     }
 
-    throw new Error(
-      `No connector registered for capability '${capability}'.`,
-    );
+    throw new Error(`No connector registered for capability '${capability}'.`);
   }
 
   entry(name: string): ConnectorRegistryEntry {

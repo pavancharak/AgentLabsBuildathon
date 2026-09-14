@@ -12,8 +12,8 @@
 export function hasGitHubLiveConfig(): boolean {
   return Boolean(
     process.env.TEST_GITHUB_APP_ID &&
-      process.env.TEST_GITHUB_INSTALLATION_ID &&
-      process.env.TEST_GITHUB_APP_PRIVATE_KEY,
+    process.env.TEST_GITHUB_INSTALLATION_ID &&
+    process.env.TEST_GITHUB_APP_PRIVATE_KEY,
   );
 }
 
@@ -82,7 +82,9 @@ export function resolveGitHubLiveGate(suiteLabel: string): boolean {
  * exist, so it never mutates anything either way -- TEST_GITHUB_REPOSITORY
  * just needs to be a real repo the configured installation can see.
  */
-export function resolveGitHubTestRepositoryGate(suiteLabel: string): string | undefined {
+export function resolveGitHubTestRepositoryGate(
+  suiteLabel: string,
+): string | undefined {
   const repository = process.env.TEST_GITHUB_REPOSITORY;
 
   if (repository === undefined) {

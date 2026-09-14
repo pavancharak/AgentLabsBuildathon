@@ -1,34 +1,18 @@
 \# Tutorial 29 — Authorization Tampering
 
-
-
 \## Overview
-
-
 
 In the previous tutorials we learned how Parmana generates, verifies, and protects Execution Authorizations from replay.
 
-
-
 This tutorial demonstrates another important security property:
-
-
 
 > \*\*A signed Execution Authorization cannot be modified.\*\*
 
-
-
 Changing even a single field invalidates the cryptographic signature.
-
-
 
 \---
 
-
-
 \## Execution Flow
-
-
 
 ```text
 
@@ -66,19 +50,11 @@ AuthorizationVerifier
 
 ```
 
-
-
 \---
-
-
 
 \## Why Tamper Detection Matters
 
-
-
 An attacker must never be able to modify:
-
-
 
 \- Policy Version
 
@@ -90,23 +66,13 @@ An attacker must never be able to modify:
 
 \- Executable Content Hash
 
-
-
 without detection.
-
-
 
 Because the digital signature covers the complete authorization payload, any modification immediately invalidates the signature.
 
-
-
 \---
 
-
-
 \## Generating the Authorization
-
-
 
 ```ts
 
@@ -122,19 +88,11 @@ const authorization =
 
 ```
 
-
-
 \---
-
-
 
 \## Tampering With the Payload
 
-
-
 For demonstration purposes we modify the policy version after signing.
-
-
 
 ```ts
 
@@ -154,19 +112,11 @@ const tampered = {
 
 ```
 
-
-
 The signature is \*\*not regenerated\*\*.
-
-
 
 \---
 
-
-
 \## Verifying the Tampered Authorization
-
-
 
 ```ts
 
@@ -182,23 +132,13 @@ const result =
 
 ```
 
-
-
 The verifier recomputes the canonical payload and compares it against the signed payload.
-
-
 
 Because they no longer match, signature verification fails.
 
-
-
 \---
 
-
-
 \## Expected Output
-
-
 
 ```text
 
@@ -244,19 +184,11 @@ Tutorial completed successfully.
 
 ```
 
-
-
 \---
-
-
 
 \## Why Signature Verification Failed
 
-
-
 Originally the authorization contained:
-
-
 
 ```text
 
@@ -268,11 +200,7 @@ Policy Version
 
 ```
 
-
-
 After modification:
-
-
 
 ```text
 
@@ -284,27 +212,15 @@ Policy Version
 
 ```
 
-
-
 Although only one value changed, the payload hash changed.
-
-
 
 Since the signature was generated from the original payload, verification fails.
 
-
-
 \---
-
-
 
 \## Security Guarantees
 
-
-
 Execution Authorization protects against unauthorized modification of:
-
-
 
 \- Decision identifiers
 
@@ -316,19 +232,11 @@ Execution Authorization protects against unauthorized modification of:
 
 \- Executable content
 
-
-
 This guarantees that enterprise systems execute exactly what Parmana authorized.
-
-
 
 \---
 
-
-
 \## Running the Example
-
-
 
 ```bash
 
@@ -336,11 +244,7 @@ tsx examples/tutorials/29-authorization-tampering/run.ts
 
 ```
 
-
-
 or
-
-
 
 ```bash
 
@@ -348,35 +252,19 @@ npm run examples
 
 ```
 
-
-
 \---
-
-
 
 \## Next Tutorial
 
-
-
 \*\*Tutorial 30 — Policy Version Pinning\*\*
-
-
 
 The next tutorial demonstrates why enterprise systems must reject Execution Authorizations that reference an unexpected policy version, even when the authorization itself is otherwise valid.
 
-
-
 \---
-
-
 
 \## Summary
 
-
-
 In this tutorial you learned:
-
-
 
 \- Execution Authorizations are immutable.
 
@@ -385,4 +273,3 @@ In this tutorial you learned:
 \- Modifying even a single field invalidates the signature.
 
 \- Tampering is detected before enterprise execution begins.
-

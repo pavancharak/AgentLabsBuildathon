@@ -1,38 +1,20 @@
 \# RFC-0011: Deterministic Policy Execution Architecture
 
-
-
 \*\*Status:\*\* Accepted
-
-
 
 \## Purpose
 
-
-
 This RFC defines the canonical execution architecture of the Parmana Runtime.
-
-
 
 Its purpose is to ensure that policy execution is deterministic, reproducible, independently verifiable, and free from runtime policy-selection logic.
 
-
-
 This RFC establishes the execution contract between the Business Transaction, Policy Reference, Policy Registry, Policy Router, and Policy Engine.
-
-
 
 \---
 
-
-
 \# Design Principles
 
-
-
 The runtime SHALL:
-
-
 
 \* execute exactly one policy
 
@@ -46,23 +28,13 @@ The runtime SHALL:
 
 \* remain domain independent
 
-
-
 Business decisions belong to policy artifacts.
-
-
 
 Execution belongs to the runtime.
 
-
-
 \---
 
-
-
 \# Canonical Execution Pipeline
-
-
 
 ```text
 
@@ -156,47 +128,25 @@ Independent Verification
 
 ```
 
-
-
 Each stage has a single responsibility.
-
-
 
 No stage performs another stage's responsibility.
 
-
-
 \---
-
-
 
 \# BusinessTransaction
 
-
-
 A BusinessTransaction SHALL contain exactly one PolicyReference.
-
-
 
 The runtime SHALL NOT determine which policy to execute.
 
-
-
 Policy selection occurs before runtime execution.
-
-
 
 \---
 
-
-
 \# PolicyReference
 
-
-
 Every execution SHALL identify exactly one policy artifact.
-
-
 
 ```ts
 
@@ -212,27 +162,15 @@ interface PolicyReference {
 
 ```
 
-
-
 The PolicyReference is part of the execution trust chain.
-
-
 
 \---
 
-
-
 \# PolicyRegistry
-
-
 
 The PolicyRegistry manages policy metadata.
 
-
-
 Responsibilities:
-
-
 
 \* register policies
 
@@ -240,11 +178,7 @@ Responsibilities:
 
 \* resolve metadata
 
-
-
 The PolicyRegistry SHALL NOT:
-
-
 
 \* load policy files
 
@@ -252,23 +186,13 @@ The PolicyRegistry SHALL NOT:
 
 \* evaluate business logic
 
-
-
 \---
-
-
 
 \# PolicyRouter
 
-
-
 The PolicyRouter loads exactly one policy artifact.
 
-
-
 Responsibilities:
-
-
 
 \* load the referenced artifact
 
@@ -278,11 +202,7 @@ Responsibilities:
 
 \* validate schema version
 
-
-
 The PolicyRouter SHALL NOT:
-
-
 
 \* scan policy directories
 
@@ -294,23 +214,13 @@ The PolicyRouter SHALL NOT:
 
 \* apply fallback policy selection
 
-
-
 If the referenced policy cannot be loaded or validated, execution SHALL fail.
-
-
 
 \---
 
-
-
 \# PolicyAdapter
 
-
-
 The PolicyAdapter converts runtime data into PolicySignals.
-
-
 
 ```text
 
@@ -324,27 +234,15 @@ PolicySignals
 
 ```
 
-
-
 The adapter SHALL remain domain independent.
-
-
 
 It SHALL NOT contain payment-specific, healthcare-specific, HR-specific, or any other business-specific mappings.
 
-
-
 \---
-
-
 
 \# PolicySignals
 
-
-
 Policy signals are generic runtime inputs.
-
-
 
 ```ts
 
@@ -356,31 +254,17 @@ interface PolicySignals {
 
 ```
 
-
-
 A policy may evaluate any number of signals.
-
-
 
 The runtime imposes no domain-specific restrictions.
 
-
-
 \---
-
-
 
 \# PolicyEngine
 
-
-
 The PolicyEngine evaluates exactly one loaded policy.
 
-
-
 Responsibilities:
-
-
 
 \* deterministic rule evaluation
 
@@ -388,11 +272,7 @@ Responsibilities:
 
 \* evaluation trace generation
 
-
-
 The PolicyEngine SHALL NOT:
-
-
 
 \* load policy artifacts
 
@@ -400,19 +280,11 @@ The PolicyEngine SHALL NOT:
 
 \* modify execution state
 
-
-
 \---
-
-
 
 \# Decision
 
-
-
 A Decision is derived exclusively from:
-
-
 
 \* the referenced policy artifact
 
@@ -420,23 +292,13 @@ A Decision is derived exclusively from:
 
 \* deterministic evaluation
 
-
-
 No external runtime state may influence the decision.
-
-
 
 \---
 
-
-
 \# Determinism
 
-
-
 Given identical:
-
-
 
 \* BusinessTransaction
 
@@ -446,15 +308,9 @@ Given identical:
 
 \* Runtime signals
 
-
-
 the runtime SHALL always produce the same Decision.
 
-
-
 This invariant enables:
-
-
 
 \* replay
 
@@ -464,57 +320,41 @@ This invariant enables:
 
 \* reproducibility
 
-
-
 \---
-
-
 
 \# Separation of Responsibilities
 
-
-
-| Component           | Responsibility                    |
+| Component | Responsibility |
 
 | ------------------- | --------------------------------- |
 
-| BusinessTransaction | References policy                 |
+| BusinessTransaction | References policy |
 
-| PolicyReference     | Identifies policy artifact        |
+| PolicyReference | Identifies policy artifact |
 
-| PolicyRegistry      | Maintains metadata                |
+| PolicyRegistry | Maintains metadata |
 
-| PolicyRouter        | Loads exact artifact              |
+| PolicyRouter | Loads exact artifact |
 
-| PolicyAdapter       | Produces PolicySignals            |
+| PolicyAdapter | Produces PolicySignals |
 
-| PolicyEngine        | Evaluates policy                  |
+| PolicyEngine | Evaluates policy |
 
-| Decision            | Captures deterministic outcome    |
+| Decision | Captures deterministic outcome |
 
-| TrustRecord         | Records execution evidence        |
+| TrustRecord | Records execution evidence |
 
-| Receipt             | Produces cryptographic proof      |
+| Receipt | Produces cryptographic proof |
 
-| Verification        | Independently validates execution |
-
-
+| Verification | Independently validates execution |
 
 Each component owns exactly one responsibility.
 
-
-
 \---
-
-
 
 \# Architectural Invariants
 
-
-
 The runtime SHALL satisfy the following invariants:
-
-
 
 1\. BusinessTransaction SHALL contain exactly one PolicyReference.
 
@@ -536,19 +376,11 @@ The runtime SHALL satisfy the following invariants:
 
 10\. Identical inputs SHALL always produce identical decisions.
 
-
-
 \---
-
-
 
 \# Failure Conditions
 
-
-
 Execution SHALL fail if:
-
-
 
 \* PolicyReference is missing.
 
@@ -564,19 +396,11 @@ Execution SHALL fail if:
 
 \* Runtime signals do not satisfy policy requirements.
 
-
-
 The runtime SHALL fail explicitly rather than attempting recovery or fallback.
-
-
 
 \---
 
-
-
 \# Relationship to Other RFCs
-
-
 
 \* RFC-0007 — Canonical Trust Chain Domain Model
 
@@ -588,21 +412,10 @@ The runtime SHALL fail explicitly rather than attempting recovery or fallback.
 
 \* RFC-0011 — Deterministic Policy Execution Architecture
 
-
-
 \---
-
-
 
 \# Status
 
-
-
 This RFC defines the canonical execution architecture for the Parmana Runtime.
 
-
-
 It establishes the deterministic execution contract for all future implementations and ensures that policy execution remains reproducible, independently verifiable, domain independent, and free from runtime policy-selection logic.
-
-
-

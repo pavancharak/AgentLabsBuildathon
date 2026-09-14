@@ -41,39 +41,26 @@ export class ReceiptCrypto {
    */
   private readonly hybridKeys = new FileKeyProvider();
 
-  private readonly trustRecordHasher =
-    new TrustRecordHasher(this.crypto);
+  private readonly trustRecordHasher = new TrustRecordHasher(this.crypto);
 
-  private readonly receiptHasher =
-    new ReceiptHasher(this.trustRecordHasher);
+  private readonly receiptHasher = new ReceiptHasher(this.trustRecordHasher);
 
-  private readonly signer =
-    new ArtifactSigner(this.crypto);
+  private readonly signer = new ArtifactSigner(this.crypto);
 
   /**
    * Computes the canonical receipt hash.
    */
-  async hash(
-    trustRecord: unknown,
-  ): Promise<string> {
-    return this.receiptHasher.hash(
-      trustRecord,
-    );
+  async hash(trustRecord: unknown): Promise<string> {
+    return this.receiptHasher.hash(trustRecord);
   }
 
   /**
    * Signs any canonical object.
    */
-  async sign(
-    value: unknown,
-  ): Promise<string> {
+  async sign(value: unknown): Promise<string> {
     const signer = await this.signerPromise;
 
-    return this.signer.signWithSigner(
-      value,
-      DEFAULT_KEY_ID,
-      signer,
-    );
+    return this.signer.signWithSigner(value, DEFAULT_KEY_ID, signer);
   }
 
   /**
@@ -95,12 +82,10 @@ export class ReceiptCrypto {
     const unsignedReceipt = {
       ...payload,
 
-      algorithm:
-        this.crypto.signature.algorithm,
+      algorithm: this.crypto.signature.algorithm,
     };
 
-    const signature =
-      await this.sign(unsignedReceipt);
+    const signature = await this.sign(unsignedReceipt);
 
     if (this.config.crypto.mode !== "hybrid") {
       return {
@@ -110,19 +95,18 @@ export class ReceiptCrypto {
       };
     }
 
-    const signatures =
-      await new HybridSignatureProvider(
-        CryptoBootstrap.createHybrid(),
-        this.hybridKeys,
-      ).sign(
-        {
-          ...unsignedReceipt,
+    const signatures = await new HybridSignatureProvider(
+      CryptoBootstrap.createHybrid(),
+      this.hybridKeys,
+    ).sign(
+      {
+        ...unsignedReceipt,
 
-          schemaVersion: HYBRID_SCHEMA_VERSION,
-        },
-        DEFAULT_KEY_ID,
-        DEFAULT_SECONDARY_KEY_ID,
-      );
+        schemaVersion: HYBRID_SCHEMA_VERSION,
+      },
+      DEFAULT_KEY_ID,
+      DEFAULT_SECONDARY_KEY_ID,
+    );
 
     return {
       ...unsignedReceipt,

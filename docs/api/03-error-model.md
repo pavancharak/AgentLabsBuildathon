@@ -1,38 +1,20 @@
 \# Error Model v1 (Locked)
 
-
-
 \## Status
-
-
 
 \*\*Version:\*\* 1.0
 
-
-
 \*\*Status:\*\* Locked
-
-
 
 \---
 
-
-
 \# Purpose
-
-
 
 The Parmana Error Model defines the canonical structure for all API error responses.
 
-
-
 Every API endpoint MUST return errors using this specification.
 
-
-
 The goals are:
-
-
 
 \* Consistency
 
@@ -44,19 +26,11 @@ The goals are:
 
 \* Predictable client behavior
 
-
-
 \---
-
-
 
 \# Scope
 
-
-
 This specification defines:
-
-
 
 \* Error response format
 
@@ -68,11 +42,7 @@ This specification defines:
 
 \* Error handling principles
 
-
-
 This specification does not define:
-
-
 
 \* Individual endpoint validation rules
 
@@ -80,19 +50,11 @@ This specification does not define:
 
 \* Business policies
 
-
-
 \---
-
-
 
 \# Error Response Structure
 
-
-
 Every error response uses the following structure.
-
-
 
 ```json
 
@@ -110,49 +72,29 @@ Every error response uses the following structure.
 
 ```
 
-
-
 \---
-
-
 
 \# Error Object
 
-
-
-| Field   | Required | Description                              |
+| Field | Required | Description |
 
 | ------- | -------- | ---------------------------------------- |
 
-| code    | Yes      | Stable machine-readable error identifier |
+| code | Yes | Stable machine-readable error identifier |
 
-| message | Yes      | Human-readable error description         |
-
-
+| message | Yes | Human-readable error description |
 
 Future versions may extend the object with additional fields while preserving backward compatibility.
 
-
-
 \---
-
-
 
 \# Error Categories
 
-
-
 \## Validation Errors
-
-
 
 Request structure or content is invalid.
 
-
-
 Examples:
-
-
 
 \* Missing required fields
 
@@ -162,23 +104,13 @@ Examples:
 
 \* Invalid identifiers
 
-
-
 \---
-
-
 
 \## Authentication Errors
 
-
-
 Caller identity cannot be established.
 
-
-
 Examples:
-
-
 
 \* Missing credentials
 
@@ -186,45 +118,25 @@ Examples:
 
 \* Expired token
 
-
-
 \---
-
-
 
 \## Authorization Errors
 
-
-
 Caller lacks permission.
 
-
-
 Examples:
-
-
 
 \* Override not permitted
 
 \* Policy publication denied
 
-
-
 \---
-
-
 
 \## Resource Errors
 
-
-
 Requested resource cannot be resolved.
 
-
-
 Examples:
-
-
 
 \* Business Transaction not found
 
@@ -234,23 +146,13 @@ Examples:
 
 \* Receipt not found
 
-
-
 \---
-
-
 
 \## Conflict Errors
 
-
-
 The request conflicts with existing immutable state.
 
-
-
 Examples:
-
-
 
 \* Duplicate Business Transaction with different payload
 
@@ -258,23 +160,13 @@ Examples:
 
 \* Immutable resource modification
 
-
-
 \---
-
-
 
 \## Verification Errors
 
-
-
 Verification cannot establish trust.
 
-
-
 Examples:
-
-
 
 \* Receipt signature invalid
 
@@ -284,23 +176,13 @@ Examples:
 
 \* Execution Trust Record integrity failure
 
-
-
 \---
-
-
 
 \## Internal Errors
 
-
-
 Unexpected platform failures.
 
-
-
 Examples:
-
-
 
 \* Database unavailable
 
@@ -308,23 +190,13 @@ Examples:
 
 \* Unexpected runtime exception
 
-
-
 Internal implementation details must never be exposed to clients.
-
-
 
 \---
 
-
-
 \# Canonical Error Codes
 
-
-
 \## Validation
-
-
 
 ```text
 
@@ -348,15 +220,9 @@ INVALID\_SCHEMA
 
 ```
 
-
-
 \---
 
-
-
 \## Authentication
-
-
 
 ```text
 
@@ -372,15 +238,9 @@ TOKEN\_EXPIRED
 
 ```
 
-
-
 \---
 
-
-
 \## Authorization
-
-
 
 ```text
 
@@ -392,15 +252,9 @@ INSUFFICIENT\_PERMISSIONS
 
 ```
 
-
-
 \---
 
-
-
 \## Resource
-
-
 
 ```text
 
@@ -424,15 +278,9 @@ VERIFICATION\_NOT\_FOUND
 
 ```
 
-
-
 \---
 
-
-
 \## Conflict
-
-
 
 ```text
 
@@ -448,15 +296,9 @@ IMMUTABLE\_RESOURCE
 
 ```
 
-
-
 \---
 
-
-
 \## Verification
-
-
 
 ```text
 
@@ -476,15 +318,9 @@ POLICY\_MISMATCH
 
 ```
 
-
-
 \---
 
-
-
 \## Internal
-
-
 
 ```text
 
@@ -500,133 +336,77 @@ UNEXPECTED\_ERROR
 
 ```
 
-
-
 \---
-
-
 
 \# HTTP Status Mapping
 
-
-
-| HTTP Status | Category                  | Example               |
+| HTTP Status | Category | Example |
 
 | ----------- | ------------------------- | --------------------- |
 
-| 400         | Validation                | INVALID\_REQUEST       |
+| 400 | Validation | INVALID\_REQUEST |
 
-| 401         | Authentication            | UNAUTHENTICATED       |
+| 401 | Authentication | UNAUTHENTICATED |
 
-| 403         | Authorization             | FORBIDDEN             |
+| 403 | Authorization | FORBIDDEN |
 
-| 404         | Resource                  | POLICY\_NOT\_FOUND      |
+| 404 | Resource | POLICY\_NOT\_FOUND |
 
-| 409         | Conflict                  | DUPLICATE\_TRANSACTION |
+| 409 | Conflict | DUPLICATE\_TRANSACTION |
 
-| 422         | Verification / Validation | VERIFICATION\_FAILED   |
+| 422 | Verification / Validation | VERIFICATION\_FAILED |
 
-| 500         | Internal                  | INTERNAL\_ERROR        |
-
-
+| 500 | Internal | INTERNAL\_ERROR |
 
 \---
 
-
-
 \# Error Handling Rules
-
-
 
 \## Rule 1
 
-
-
 Every error response SHALL include both:
-
-
 
 \* code
 
 \* message
 
-
-
 \---
-
-
 
 \## Rule 2
 
-
-
 Error codes are stable.
-
-
 
 They are part of the public API contract and must not change between minor versions.
 
-
-
 \---
-
-
 
 \## Rule 3
 
-
-
 Messages are intended for humans.
-
-
 
 Clients should rely on the error code for programmatic behavior.
 
-
-
 \---
-
-
 
 \## Rule 4
 
-
-
 Internal implementation details must never be exposed.
 
-
-
 \---
-
-
 
 \## Rule 5
 
-
-
 Failed requests never partially modify immutable resources.
-
-
 
 Either the request succeeds or no state change occurs.
 
-
-
 \---
-
-
 
 \# Relationship to Business Transactions
 
-
-
 Business Transaction creation is atomic.
 
-
-
 If any validation step fails:
-
-
 
 \* No Business Transaction is created.
 
@@ -634,123 +414,63 @@ If any validation step fails:
 
 \* No partial state is persisted.
 
-
-
 \---
-
-
 
 \# Relationship to Verification
 
-
-
 Verification failures indicate that trust could not be established.
-
-
 
 They do not modify the Execution Trust Record.
 
-
-
 Verification results remain append-only.
 
-
-
 \---
-
-
 
 \# Canonical Principles
 
-
-
 \## Principle 1
-
-
 
 Every error uses the canonical Error Response structure.
 
-
-
 \---
-
-
 
 \## Principle 2
 
-
-
 Error codes are stable and machine-readable.
 
-
-
 \---
-
-
 
 \## Principle 3
 
-
-
 Messages are human-readable.
 
-
-
 \---
-
-
 
 \## Principle 4
 
-
-
 Errors never expose internal implementation details.
 
-
-
 \---
-
-
 
 \## Principle 5
 
-
-
 Failed operations preserve deterministic system state.
 
-
-
 \---
-
-
 
 \## Principle 6
 
-
-
 Business Transactions are created atomically.
 
-
-
 \---
-
-
 
 \## Principle 7
 
-
-
 Error semantics are consistent across all Parmana APIs.
-
-
 
 \---
 
-
-
 \# Canonical Model
-
-
 
 ```text
 
@@ -818,21 +538,10 @@ Success      Error
 
 ```
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 The Parmana Error Model provides a deterministic and uniform mechanism for reporting API failures.
 
-
-
 By standardizing error structures, stable error codes, HTTP status mappings, and error-handling principles, Parmana enables predictable client behavior, simplifies SDK development, and ensures that failures never compromise the integrity or immutability of Business Transactions or Execution Trust Records.
-
-
-

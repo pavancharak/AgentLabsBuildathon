@@ -110,7 +110,9 @@ describe("SignerBootstrap", () => {
       const SignerBootstrap = await freshSignerBootstrap();
 
       await expect(SignerBootstrap.create()).rejects.toThrow(/not implemented/);
-      await expect(SignerBootstrap.create()).rejects.toThrow(new RegExp(provider));
+      await expect(SignerBootstrap.create()).rejects.toThrow(
+        new RegExp(provider),
+      );
     },
   );
 });

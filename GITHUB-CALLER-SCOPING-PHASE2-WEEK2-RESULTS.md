@@ -12,11 +12,13 @@ live requests against `https://parmana-api.fly.dev` during this session (2026-08
 not copied from the prompt.
 
 ## Summary
+
 Three real-world scenarios tested against `parmana-api.fly.dev` with the live GitHub connector.
 All three reproduced the expected authorization behavior. Scope boundary holds regardless of what
 signals/policy state accompanies the request.
 
 ## Prerequisites (verified this session)
+
 - `parmana-api` deployed to Fly.dev — confirmed live: `GET /health` → `{"status":"UP"}`, HTTP 200.
 - GitHub App installed on `pavancharak/parmana-exp` — `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`,
   `GITHUB_APP_PRIVATE_KEY_BASE64`, `GITHUB_INSTALLATION_ID` are set as deployed Fly secrets
@@ -40,40 +42,46 @@ signals/policy state accompanies the request.
 **Actual:** ✅ SUCCESS — HTTP 200
 
 **Response (trimmed to the load-bearing fields):**
+
 ```json
 {
   "trustRecordId": "2f1321b1-021f-4e95-8179-7eb7c282de3a",
   "businessTransactionId": "3b0c9ad0-4ac0-4279-9dc0-721898dbc0c3",
-  "executions": [{
-    "status": "COMPLETED",
-    "decision": { "outcome": "APPROVED" },
-    "evidence": {
-      "action": "github:pr-fetch",
-      "target": "pavancharak/parmana-exp#1",
-      "success": true,
-      "attributes": {
-        "connector": {
-          "capability": "github:pr-fetch",
-          "connectorId": "github",
-          "credentialProviderId": "github-app",
-          "responseSummary": {
-            "success": true,
-            "metadata": {
-              "pullRequest": {
-                "number": 1,
-                "baseRef": "main",
-                "headSha": "53ff32fc2d573b318c7856ab8a821d42869605c7",
-                "mergedAt": null,
-                "mergeable": true
-              },
-              "tokenRedacted": "[REDACTED]"
+  "executions": [
+    {
+      "status": "COMPLETED",
+      "decision": { "outcome": "APPROVED" },
+      "evidence": {
+        "action": "github:pr-fetch",
+        "target": "pavancharak/parmana-exp#1",
+        "success": true,
+        "attributes": {
+          "connector": {
+            "capability": "github:pr-fetch",
+            "connectorId": "github",
+            "credentialProviderId": "github-app",
+            "responseSummary": {
+              "success": true,
+              "metadata": {
+                "pullRequest": {
+                  "number": 1,
+                  "baseRef": "main",
+                  "headSha": "53ff32fc2d573b318c7856ab8a821d42869605c7",
+                  "mergedAt": null,
+                  "mergeable": true
+                },
+                "tokenRedacted": "[REDACTED]"
+              }
             }
           }
         }
+      },
+      "chainSignature": {
+        "algorithm": "ed25519",
+        "value": "H90RG...(truncated)"
       }
-    },
-    "chainSignature": { "algorithm": "ed25519", "value": "H90RG...(truncated)" }
-  }],
+    }
+  ],
   "receipts": [{ "algorithm": "ed25519", "signature": "lwEdz...(truncated)" }]
 }
 ```
@@ -96,6 +104,7 @@ mock.
 **Actual:** ✅ CORRECTLY REJECTED — HTTP 403
 
 **Response (verbatim):**
+
 ```json
 {
   "error": "Caller is not permitted to invoke this capability.",
@@ -114,9 +123,9 @@ invocation, before policy evaluation.
 ## Scenario 3: Jailbreak-Framed Attempt (Boundary Holds Regardless of Signals)
 
 **Setup:** Same fetch-only caller, `github:pr-merge` action, but this time submitted with every
-policy signal set to the value that would make the request policy-*approving*
+policy signal set to the value that would make the request policy-_approving_
 (`repositoryAuthorized`, `requiredReviewsCompleted`, `statusChecksPassed`, `branchProtected` all
-`true`, low `riskScore`) — i.e., a request that would succeed on every axis *except* capability
+`true`, low `riskScore`) — i.e., a request that would succeed on every axis _except_ capability
 scope, simulating an agent that has been made to assert a merge is fully justified.
 
 **Expected:** REJECTED (boundary holds regardless of how favorable the rest of the request looks)
@@ -125,7 +134,7 @@ scope, simulating an agent that has been made to assert a merge is fully justifi
 
 **Proof:** This API has no separate client-asserted "scope" or "trust level" field to spoof —
 the only lever an agent controls is the request body's `signals`/`intent`, and none of that
-matters until *after* the capability-scope check. Making every other field maximally favorable
+matters until _after_ the capability-scope check. Making every other field maximally favorable
 did not change the outcome: the caller's key grants only `github:pr-fetch`, and the boundary
 check runs first, unconditionally, before touching policy evaluation or the connector. This is
 the honest version of "boundary protects even if the agent decides to merge anyway" — there was
@@ -156,18 +165,18 @@ should be confirmed separately.
 
 ✅ **Live deployment reachable:** `parmana-api.fly.dev/health` → 200
 ✅ **Bearer-token authentication:** requests without a valid key are not what was tested here, but
-   caller identity (`fca-fetch-only`) is threaded through the response (`metadata.createdBy`,
-   `metadata.submittedBy`) confirming the token was resolved to the correct principal.
+caller identity (`fca-fetch-only`) is threaded through the response (`metadata.createdBy`,
+`metadata.submittedBy`) confirming the token was resolved to the correct principal.
 ✅ **Capability scoping:** `allowedCapabilities` checked before any execution (Scenarios 2 & 3).
 ✅ **Real connector execution:** in-scope request reached the real `github-app`-credentialed
-   connector and returned real GitHub data (Scenario 1).
+connector and returned real GitHub data (Scenario 1).
 ✅ **Signed audit trail:** Scenario 1's response includes ed25519 chain and receipt signatures.
 
 ## What This Session Did Not Independently Verify
 
 - The precise history of `PARMANA_AUTH_DISABLED` (whether/when it was set and unset) was not
   something this session could confirm from `flyctl secrets list` (which shows only currently
-  set secrets, not history). What *is* directly confirmed: `PARMANA_AUTH_DISABLED` is **not**
+  set secrets, not history). What _is_ directly confirmed: `PARMANA_AUTH_DISABLED` is **not**
   currently present in `parmana-api`'s deployed secrets, and Scenario 2/3 above are live,
   affirmative proof that caller-auth is enforced right now, on production, today.
 - Supabase `execution_trust_records` row-level confirmation (i.e., querying the database directly
@@ -192,6 +201,7 @@ should be confirmed separately.
 now backed by live, reproducible evidence with a real PR, real GitHub App credentials, and a real
 deployed API, gathered independently this session rather than transcribed from a prompt. Two gaps
 to flag before calling this submission-ready:
+
 - The in-scope **merge-succeeds** control case was deliberately not exercised (would merge a real
   PR — needs explicit sign-off).
 - The `PARMANA_AUTH_DISABLED` historical narrative in earlier drafts of this document is not

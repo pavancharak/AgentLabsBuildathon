@@ -10,25 +10,38 @@ import {
 function deal(overrides: Partial<HubSpotDeal["properties"]> = {}): HubSpotDeal {
   return {
     id: "1001",
-    properties: { dealstage: "appointmentscheduled", amount: "5000", pipeline: "default", ...overrides },
+    properties: {
+      dealstage: "appointmentscheduled",
+      amount: "5000",
+      pipeline: "default",
+      ...overrides,
+    },
   };
 }
 
 describe("isHubSpotStageTransitionAllowed", () => {
   it("allows a no-op (same stage)", () => {
-    expect(isHubSpotStageTransitionAllowed("qualifiedtobuy", "qualifiedtobuy")).toBe(true);
+    expect(
+      isHubSpotStageTransitionAllowed("qualifiedtobuy", "qualifiedtobuy"),
+    ).toBe(true);
   });
 
   it("allows a single forward step", () => {
-    expect(isHubSpotStageTransitionAllowed("appointmentscheduled", "qualifiedtobuy")).toBe(true);
+    expect(
+      isHubSpotStageTransitionAllowed("appointmentscheduled", "qualifiedtobuy"),
+    ).toBe(true);
   });
 
   it("allows skipping forward multiple stages", () => {
-    expect(isHubSpotStageTransitionAllowed("appointmentscheduled", "contractsent")).toBe(true);
+    expect(
+      isHubSpotStageTransitionAllowed("appointmentscheduled", "contractsent"),
+    ).toBe(true);
   });
 
   it("denies a backward step", () => {
-    expect(isHubSpotStageTransitionAllowed("contractsent", "qualifiedtobuy")).toBe(false);
+    expect(
+      isHubSpotStageTransitionAllowed("contractsent", "qualifiedtobuy"),
+    ).toBe(false);
   });
 
   it("allows moving to closedlost from any active stage", () => {
@@ -38,18 +51,33 @@ describe("isHubSpotStageTransitionAllowed", () => {
   });
 
   it("denies any transition out of closedwon (terminal)", () => {
-    expect(isHubSpotStageTransitionAllowed("closedwon", "qualifiedtobuy")).toBe(false);
-    expect(isHubSpotStageTransitionAllowed("closedwon", "closedlost")).toBe(false);
+    expect(isHubSpotStageTransitionAllowed("closedwon", "qualifiedtobuy")).toBe(
+      false,
+    );
+    expect(isHubSpotStageTransitionAllowed("closedwon", "closedlost")).toBe(
+      false,
+    );
   });
 
   it("denies any transition out of closedlost (terminal)", () => {
-    expect(isHubSpotStageTransitionAllowed("closedlost", "qualifiedtobuy")).toBe(false);
-    expect(isHubSpotStageTransitionAllowed("closedlost", "closedwon")).toBe(false);
+    expect(
+      isHubSpotStageTransitionAllowed("closedlost", "qualifiedtobuy"),
+    ).toBe(false);
+    expect(isHubSpotStageTransitionAllowed("closedlost", "closedwon")).toBe(
+      false,
+    );
   });
 
   it("denies a transition to or from an unrecognized stage id", () => {
-    expect(isHubSpotStageTransitionAllowed("appointmentscheduled", "some-custom-stage")).toBe(false);
-    expect(isHubSpotStageTransitionAllowed("some-custom-stage", "qualifiedtobuy")).toBe(false);
+    expect(
+      isHubSpotStageTransitionAllowed(
+        "appointmentscheduled",
+        "some-custom-stage",
+      ),
+    ).toBe(false);
+    expect(
+      isHubSpotStageTransitionAllowed("some-custom-stage", "qualifiedtobuy"),
+    ).toBe(false);
   });
 });
 
@@ -75,7 +103,10 @@ describe("buildHubSpotDealUpdateSignals", () => {
   });
 
   it("defaults preAuthorizedForAmountChange to false when not supplied", () => {
-    const signals = buildHubSpotDealUpdateSignals({ currentDeal: deal(), proposedAmount: 5001 });
+    const signals = buildHubSpotDealUpdateSignals({
+      currentDeal: deal(),
+      proposedAmount: 5001,
+    });
     expect(signals.preAuthorizedForAmountChange).toBe(false);
   });
 

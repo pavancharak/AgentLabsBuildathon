@@ -71,128 +71,128 @@ async function signAuthorization(
 describe.skipIf(!isMlDsa65Supported())(
   `EnvelopeVerifier (dilithium3)${isMlDsa65Supported() ? "" : ` [SKIPPED: ${ML_DSA_65_SKIP_REASON}]`}`,
   () => {
-  it("accepts a valid first-use envelope", async () => {
-    const { privateKey, publicKey } = generateKeyPair();
-    const signed = await signAuthorization(privateKey);
+    it("accepts a valid first-use envelope", async () => {
+      const { privateKey, publicKey } = generateKeyPair();
+      const signed = await signAuthorization(privateKey);
 
-    expect(signed.algorithm).toBe("dilithium3");
+      expect(signed.algorithm).toBe("dilithium3");
 
-    const verifier = new EnvelopeVerifier({
-      publicKey,
-      nonceStore: new MemoryNonceStore(),
+      const verifier = new EnvelopeVerifier({
+        publicKey,
+        nonceStore: new MemoryNonceStore(),
+      });
+
+      const result = await verifier.verify(signed);
+
+      expect(result.valid).toBe(true);
+      expect(result.checks.signatureVerified).toBe(true);
+      expect(result.checks.notExpired).toBe(true);
+      expect(result.checks.ttlWithinPolicy).toBe(true);
+      expect(result.checks.nonceUnseen).toBe(true);
     });
 
-    const result = await verifier.verify(signed);
+    it("rejects a second use of the same nonce", async () => {
+      const { privateKey, publicKey } = generateKeyPair();
+      const signed = await signAuthorization(privateKey);
 
-    expect(result.valid).toBe(true);
-    expect(result.checks.signatureVerified).toBe(true);
-    expect(result.checks.notExpired).toBe(true);
-    expect(result.checks.ttlWithinPolicy).toBe(true);
-    expect(result.checks.nonceUnseen).toBe(true);
-  });
+      const nonceStore = new MemoryNonceStore();
 
-  it("rejects a second use of the same nonce", async () => {
-    const { privateKey, publicKey } = generateKeyPair();
-    const signed = await signAuthorization(privateKey);
+      const verifier = new EnvelopeVerifier({
+        publicKey,
+        nonceStore,
+      });
 
-    const nonceStore = new MemoryNonceStore();
+      const first = await verifier.verify(signed);
+      expect(first.valid).toBe(true);
 
-    const verifier = new EnvelopeVerifier({
-      publicKey,
-      nonceStore,
+      const second = await verifier.verify(signed);
+
+      expect(second.valid).toBe(false);
+      expect(second.checks.nonceUnseen).toBe(false);
+      expect(second.checks.signatureVerified).toBe(true);
+      expect(second.checks.notExpired).toBe(true);
+      expect(second.checks.ttlWithinPolicy).toBe(true);
     });
 
-    const first = await verifier.verify(signed);
-    expect(first.valid).toBe(true);
+    it("a forged envelope does not burn the nonce", async () => {
+      const { privateKey, publicKey } = generateKeyPair();
+      const signed = await signAuthorization(privateKey);
 
-    const second = await verifier.verify(signed);
+      const tampered: SignedExecutionAuthorization = {
+        ...signed,
+        payload: {
+          ...signed.payload,
+          decisionId: "decision-2",
+        },
+      };
 
-    expect(second.valid).toBe(false);
-    expect(second.checks.nonceUnseen).toBe(false);
-    expect(second.checks.signatureVerified).toBe(true);
-    expect(second.checks.notExpired).toBe(true);
-    expect(second.checks.ttlWithinPolicy).toBe(true);
-  });
+      const nonceStore = new MemoryNonceStore();
 
-  it("a forged envelope does not burn the nonce", async () => {
-    const { privateKey, publicKey } = generateKeyPair();
-    const signed = await signAuthorization(privateKey);
+      const verifier = new EnvelopeVerifier({
+        publicKey,
+        nonceStore,
+      });
 
-    const tampered: SignedExecutionAuthorization = {
-      ...signed,
-      payload: {
-        ...signed.payload,
-        decisionId: "decision-2",
-      },
-    };
+      const forgedResult = await verifier.verify(tampered);
 
-    const nonceStore = new MemoryNonceStore();
+      expect(forgedResult.valid).toBe(false);
+      expect(forgedResult.checks.signatureVerified).toBe(false);
+      expect(forgedResult.checks.nonceUnseen).toBe(false);
 
-    const verifier = new EnvelopeVerifier({
-      publicKey,
-      nonceStore,
+      const originalResult = await verifier.verify(signed);
+
+      expect(originalResult.valid).toBe(true);
+      expect(originalResult.checks.nonceUnseen).toBe(true);
     });
 
-    const forgedResult = await verifier.verify(tampered);
+    it("an expired envelope does not burn the nonce", async () => {
+      const { privateKey, publicKey } = generateKeyPair();
+      const signed = await signAuthorization(privateKey, 60);
 
-    expect(forgedResult.valid).toBe(false);
-    expect(forgedResult.checks.signatureVerified).toBe(false);
-    expect(forgedResult.checks.nonceUnseen).toBe(false);
+      const nonceStore = new MemoryNonceStore();
 
-    const originalResult = await verifier.verify(signed);
+      const verifier = new EnvelopeVerifier({
+        publicKey,
+        nonceStore,
+      });
 
-    expect(originalResult.valid).toBe(true);
-    expect(originalResult.checks.nonceUnseen).toBe(true);
-  });
+      const farFuture = new Date(
+        Date.parse(signed.payload.authorizedAt) + 120_000,
+      );
 
-  it("an expired envelope does not burn the nonce", async () => {
-    const { privateKey, publicKey } = generateKeyPair();
-    const signed = await signAuthorization(privateKey, 60);
+      const expiredResult = await verifier.verify(signed, farFuture);
 
-    const nonceStore = new MemoryNonceStore();
+      expect(expiredResult.valid).toBe(false);
+      expect(expiredResult.checks.signatureVerified).toBe(true);
+      expect(expiredResult.checks.notExpired).toBe(false);
+      expect(expiredResult.checks.nonceUnseen).toBe(false);
 
-    const verifier = new EnvelopeVerifier({
-      publicKey,
-      nonceStore,
+      const withinValidity = new Date(
+        Date.parse(signed.payload.authorizedAt) + 1_000,
+      );
+
+      const originalResult = await verifier.verify(signed, withinValidity);
+
+      expect(originalResult.valid).toBe(true);
+      expect(originalResult.checks.nonceUnseen).toBe(true);
     });
 
-    const farFuture = new Date(
-      Date.parse(signed.payload.authorizedAt) + 120_000,
-    );
+    it("rejects an envelope whose TTL exceeds maxTtlSeconds", async () => {
+      const { privateKey, publicKey } = generateKeyPair();
+      const signed = await signAuthorization(privateKey, 3600);
 
-    const expiredResult = await verifier.verify(signed, farFuture);
+      const verifier = new EnvelopeVerifier({
+        publicKey,
+        nonceStore: new MemoryNonceStore(),
+        maxTtlSeconds: 300,
+      });
 
-    expect(expiredResult.valid).toBe(false);
-    expect(expiredResult.checks.signatureVerified).toBe(true);
-    expect(expiredResult.checks.notExpired).toBe(false);
-    expect(expiredResult.checks.nonceUnseen).toBe(false);
+      const result = await verifier.verify(signed);
 
-    const withinValidity = new Date(
-      Date.parse(signed.payload.authorizedAt) + 1_000,
-    );
-
-    const originalResult = await verifier.verify(signed, withinValidity);
-
-    expect(originalResult.valid).toBe(true);
-    expect(originalResult.checks.nonceUnseen).toBe(true);
-  });
-
-  it("rejects an envelope whose TTL exceeds maxTtlSeconds", async () => {
-    const { privateKey, publicKey } = generateKeyPair();
-    const signed = await signAuthorization(privateKey, 3600);
-
-    const verifier = new EnvelopeVerifier({
-      publicKey,
-      nonceStore: new MemoryNonceStore(),
-      maxTtlSeconds: 300,
+      expect(result.valid).toBe(false);
+      expect(result.checks.ttlWithinPolicy).toBe(false);
+      expect(result.checks.signatureVerified).toBe(true);
+      expect(result.checks.nonceUnseen).toBe(false);
     });
-
-    const result = await verifier.verify(signed);
-
-    expect(result.valid).toBe(false);
-    expect(result.checks.ttlWithinPolicy).toBe(false);
-    expect(result.checks.signatureVerified).toBe(true);
-    expect(result.checks.nonceUnseen).toBe(false);
-  });
-});
-
+  },
+);

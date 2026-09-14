@@ -16,7 +16,7 @@ required to swap one for another; the whole point of Chapter 5's `RuntimeEngine`
 importing `ExecutionGateway` directly is that this substitution is possible at all.
 
 The class's own doc comment states the thesis plainly: an authorization envelope proves
-Parmana *decided* to approve something; it doesn't by itself stop a receiving system from
+Parmana _decided_ to approve something; it doesn't by itself stop a receiving system from
 executing something else under that approval, or from skipping verification altogether. The
 Gateway is "the one place designed to say no even if every earlier stage said yes: the last
 point before a real system state changes."
@@ -38,7 +38,7 @@ prior check having already passed.
 **`businessTransactionHash`**: always attempted when the prior checks passed. Recomputes
 the hash of the exact content about to be forwarded and compares it to the signed value.
 
-**`policyStillCurrent`** (Gap 1B): only when a `PolicyRepository` is supplied *and* the
+**`policyStillCurrent`** (Gap 1B): only when a `PolicyRepository` is supplied _and_ the
 authorization carries a `policyContentHash`. Reloads the policy at the authorization's own
 `(policyName, policyVersion)` and recomputes its current content hash. A mismatch, whether
 from the policy's content changing in place, or the policy no longer existing at that
@@ -47,9 +47,9 @@ name/version at all, sets this check `false` and reports both hashes in
 changed can still execute."
 
 **`signalsStillCurrent`** (G-31, the newest check, added the same session as this book): only
-when a `SignalStateVerifier` is supplied *and* the authorization carries a `signalsHash`
-*and* the incoming request carries `signals`. This is the execution-boundary analogue of
-Chapter 3's decision-time signal verification, reusing the *same* `SignalStateVerifier` port
+when a `SignalStateVerifier` is supplied _and_ the authorization carries a `signalsHash`
+_and_ the incoming request carries `signals`. This is the execution-boundary analogue of
+Chapter 3's decision-time signal verification, reusing the _same_ `SignalStateVerifier` port
 rather than a new interface. Two sub-checks, in order:
 
 ```typescript
@@ -70,12 +70,12 @@ if (currentSignalsHash !== signalsHash) {
 ```
 
 First, a tamper check: do the signals accompanying this request still hash to what was
-signed? Only if they match does the *second*, more interesting check run: an independent
+signed? Only if they match does the _second_, more interesting check run: an independent
 re-derivation of whether those declared signals are still true, right now, via the same
 verifier port used at decision time. Two receiving systems can hold the exact same
 authorization, the exact same declared signals, and the exact same `signalsHash`, and still
 reach different outcomes, because what differs is what each one's own live check finds at
-the moment it checks. This is deliberately a *freshness* check, not a tamper check. Tutorial
+the moment it checks. This is deliberately a _freshness_ check, not a tamper check. Tutorial
 98 (`examples/tutorials/98-signal-freshness-enforcement/run.ts`) demonstrates exactly this:
 one authorization, two independent "receiving systems," one whose live re-check finds nothing
 changed and executes normally, one that finds the vendor has since been blocked and is

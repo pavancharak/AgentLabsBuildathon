@@ -6,9 +6,9 @@ Prove that a Trust Record's `executions`/`overrides`/`verifications`/`receipts` 
 
 ## What You'll Learn
 
-* A signed Trust Record's hash is computed over its *full* contents, including item order within each collection — a repository that silently reorders items on reload (e.g. a query with no explicit `ORDER BY`) recomputes to a different hash than what was actually signed
-* This is the reference-behavior counterpart to a real bug: the Supabase-backed repository needed an explicit ordering fix for exactly this reason, while `MemoryExecutionTrustRecordRepository`'s plain array-append semantics never had the bug in the first place
-* Distinct from Tutorial 78's duplicate-write race (G-1, about preventing double-writes) — this is about *sequence integrity* within a single record's own collections
+- A signed Trust Record's hash is computed over its _full_ contents, including item order within each collection — a repository that silently reorders items on reload (e.g. a query with no explicit `ORDER BY`) recomputes to a different hash than what was actually signed
+- This is the reference-behavior counterpart to a real bug: the Supabase-backed repository needed an explicit ordering fix for exactly this reason, while `MemoryExecutionTrustRecordRepository`'s plain array-append semantics never had the bug in the first place
+- Distinct from Tutorial 78's duplicate-write race (G-1, about preventing double-writes) — this is about _sequence integrity_ within a single record's own collections
 
 ## Running the Tutorial
 

@@ -1,26 +1,14 @@
 \# Runtime Stages Architecture
 
-
-
 The Runtime itself is intentionally small.
-
-
 
 Its responsibility is to coordinate execution, not to implement business logic.
 
-
-
 Business behavior is implemented as a sequence of deterministic stages that transform an `ExecutionTransaction`.
-
-
 
 Each stage has one responsibility and produces a new immutable transaction. No stage mutates the existing transaction or depends on infrastructure-specific implementations.
 
-
-
 \## Runtime Pipeline
-
-
 
 ```text
 
@@ -52,151 +40,77 @@ RuntimePipeline
 
 ```
 
-
-
 The pipeline executes stages in order.
-
-
 
 Each stage receives an immutable `ExecutionTransaction` and returns a new `ExecutionTransaction`.
 
-
-
 \## Stage Responsibilities
-
-
 
 \### AuthorityStage
 
-
-
 Responsible for establishing the authority associated with the execution.
 
-
-
 Produces:
-
-
 
 \* Authority
 
-
-
 Does not perform policy evaluation.
 
-
-
 \---
-
-
 
 \### IntentStage
 
-
-
 Responsible for recording the intended action.
 
-
-
 Produces:
-
-
 
 \* Intent
 
-
-
 Intent is immutable once recorded.
 
-
-
 \---
-
-
 
 \### AuthorizationStage
 
-
-
 Responsible for evaluating whether execution is permitted.
 
-
-
 Produces:
-
-
 
 \* Authorization
 
-
-
 Authorization determines whether execution may continue.
-
-
 
 It does not execute the action.
 
-
-
 \---
-
-
 
 \### ExecutionStage
 
-
-
 Responsible for coordinating execution.
 
-
-
 Produces:
-
-
 
 \* Execution
 
-
-
 Execution records factual outcomes only.
 
-
-
 \---
-
-
 
 \### EvidenceStage
 
-
-
 Responsible for generating immutable evidence.
-
-
 
 Produces:
 
-
-
 \* Evidence
-
-
 
 Evidence becomes the factual record consumed by the Verification Engine.
 
-
-
 \---
-
-
 
 \## Pipeline Contract
 
-
-
 Every stage implements the same interface.
-
-
 
 ```typescript
 
@@ -212,11 +126,7 @@ interface RuntimeComponent {
 
 ```
 
-
-
 Stages must satisfy the following rules:
-
-
 
 \* Deterministic
 
@@ -228,23 +138,13 @@ Stages must satisfy the following rules:
 
 \* Composable
 
-
-
 Stages never mutate the incoming transaction.
-
-
 
 Stages never perform verification.
 
-
-
 Stages never depend on storage implementations.
 
-
-
 \## Execution Flow
-
-
 
 ```text
 
@@ -288,13 +188,6 @@ Completed ExecutionTransaction
 
 ```
 
-
-
 The Runtime completes when the transaction has been transformed into a complete execution record containing Authority, Intent, Authorization, Execution, and Evidence.
 
-
-
 Verification is performed afterwards by the Verification Engine.
-
-
-

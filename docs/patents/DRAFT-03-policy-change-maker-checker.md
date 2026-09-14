@@ -22,11 +22,11 @@ was altered outside the governed approval workflow.
 A system that evaluates automated execution requests against a policy (see
 `packages/policy/src/PolicyEngine.ts`, which evaluates each request deterministically at
 execution time — the "why not config-time" distinction the original patent-management prompt
-referenced) is only as trustworthy as the *policy document itself*. If any single actor can edit
+referenced) is only as trustworthy as the _policy document itself_. If any single actor can edit
 that policy unilaterally, then execution-time enforcement is not a real control — the actor with
 edit access to the policy can simply change what "authorized" means. This is a distinct problem
-from *transaction*-level authorization (already the subject of the two other patent candidates in
-this batch); it is authorization of the *rules themselves*.
+from _transaction_-level authorization (already the subject of the two other patent candidates in
+this batch); it is authorization of the _rules themselves_.
 
 A further, subtler failure mode: even if an approval workflow exists at the application layer, if
 the underlying policy file can be edited directly (e.g., a direct filesystem or database write
@@ -78,7 +78,7 @@ fail-closed configuration-validation behavior elsewhere).
    investigate, not a reason to take the execution pipeline down.
 6. **Downstream execution-time enforcement.** Separately, `PolicyEngine.evaluate()` evaluates the
    (now-governed) policy deterministically against each individual execution request at the
-   moment of execution — first-match rule semantics, no side effects, explicitly scoped to *not*
+   moment of execution — first-match rule semantics, no side effects, explicitly scoped to _not_
    authorize execution, execute actions, or access external systems itself.
 
 ## Novel Elements (candidate claims — informal, for attorney refinement)
@@ -109,11 +109,11 @@ fail-closed configuration-validation behavior elsewhere).
 - Maker-checker / dual-control approval workflows are well-established prior art in financial
   operations broadly (this is explicit non-novel background, not a claimed element by itself).
   The attorney will need to confirm the distinguishing elements are (a) the deploy-time
-  cryptographic detection of *out-of-band* bypass (claim 2) and (b) the structural pairing with
+  cryptographic detection of _out-of-band_ bypass (claim 2) and (b) the structural pairing with
   execution-time policy evaluation of the governed artifact (claim 3) — not the maker-checker
   concept itself.
 - Whether claim 3 is better filed as part of this application or kept entirely separate from
-  policy-*change* governance, since `PolicyEngine.evaluate()` is a general mechanism not
+  policy-_change_ governance, since `PolicyEngine.evaluate()` is a general mechanism not
   intrinsically tied to how the policy was authored.
 - Formal drawings: a state diagram of `PendingPolicyChangeStatus` transitions, and a sequence
   diagram of the deploy-time integrity check.

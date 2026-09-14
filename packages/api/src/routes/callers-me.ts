@@ -21,34 +21,31 @@ import type { Request, Response } from "express";
 export function createCallersMeRouter(): Router {
   const router = Router();
 
-  router.get(
-    "/",
-    (req: Request, res: Response): void => {
-      if (req.callerId === undefined) {
-        res.status(404).json({
-          error: "No authenticated caller identity available.",
-        });
-        return;
-      }
-
-      const allowedPrincipalIds =
-        req.callerAllowedPrincipalIds !== undefined
-          ? [...req.callerAllowedPrincipalIds]
-          : [req.callerId];
-
-      const allowedCapabilities =
-        req.callerAllowedCapabilities !== undefined
-          ? [...req.callerAllowedCapabilities]
-          : [];
-
-      res.json({
-        callerId: req.callerId,
-        allowedPrincipalIds,
-        allowedCapabilities,
-        unrestrictedCapabilities: allowedCapabilities.includes("*"),
+  router.get("/", (req: Request, res: Response): void => {
+    if (req.callerId === undefined) {
+      res.status(404).json({
+        error: "No authenticated caller identity available.",
       });
-    },
-  );
+      return;
+    }
+
+    const allowedPrincipalIds =
+      req.callerAllowedPrincipalIds !== undefined
+        ? [...req.callerAllowedPrincipalIds]
+        : [req.callerId];
+
+    const allowedCapabilities =
+      req.callerAllowedCapabilities !== undefined
+        ? [...req.callerAllowedCapabilities]
+        : [];
+
+    res.json({
+      callerId: req.callerId,
+      allowedPrincipalIds,
+      allowedCapabilities,
+      unrestrictedCapabilities: allowedCapabilities.includes("*"),
+    });
+  });
 
   return router;
 }

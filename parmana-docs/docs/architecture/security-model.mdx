@@ -4,17 +4,17 @@ Parmana supports pluggable digital signature providers.
 
 ### Implemented
 
-| Algorithm | Status | Notes |
-|-----------|--------|-------|
-| Ed25519 | ✅ Default | High-performance classical digital signature |
+| Algorithm              | Status       | Notes                                            |
+| ---------------------- | ------------ | ------------------------------------------------ |
+| Ed25519                | ✅ Default   | High-performance classical digital signature     |
 | Dilithium3 (ML-DSA-65) | ✅ Supported | NIST-standardized post-quantum digital signature |
 
 ### Planned
 
-| Algorithm | Status |
-|-----------|--------|
+| Algorithm              | Status  |
+| ---------------------- | ------- |
 | Dilithium5 (ML-DSA-87) | Planned |
-| SPHINCS+ (SLH-DSA) | Planned |
+| SPHINCS+ (SLH-DSA)     | Planned |
 
 Signature algorithms are selected using the runtime configuration.
 
@@ -32,9 +32,9 @@ SIGNATURE_PROVIDER=dilithium3
 
 Reference benchmark (50 sequential Receipt requests)
 
-| Algorithm | Average | Median |
-|-----------|---------|--------|
-| Ed25519 | 2.87 ms | 1.31 ms |
+| Algorithm              | Average | Median  |
+| ---------------------- | ------- | ------- |
+| Ed25519                | 2.87 ms | 1.31 ms |
 | Dilithium3 (ML-DSA-65) | 5.59 ms | 1.64 ms |
 
 The benchmark measures complete Receipt generation, including:
@@ -48,20 +48,20 @@ The benchmark measures complete Receipt generation, including:
 It is not an isolated cryptographic benchmark.
 
 AI Agent
-      │
-      ▼
+│
+▼
 Execution Request
-      │
-      ▼
+│
+▼
 Parmana Authorization
-      │
-      ▼
+│
+▼
 Enterprise System
-      │
-      ▼
+│
+▼
 Execution Evidence
-      │
-      ▼
+│
+▼
 Verification
 
 Parmana does not execute enterprise actions.

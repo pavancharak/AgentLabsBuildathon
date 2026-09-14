@@ -78,7 +78,9 @@ describe("Caller scoping (HTTP boundary, IDOR regression)", () => {
 
     expect(asCallerB.status).toBe(200);
     expect(
-      asCallerB.body.map((t: { businessTransactionId: string }) => t.businessTransactionId),
+      asCallerB.body.map(
+        (t: { businessTransactionId: string }) => t.businessTransactionId,
+      ),
     ).not.toContain(businessTransactionId);
 
     const asCallerA = await request(app)
@@ -86,7 +88,9 @@ describe("Caller scoping (HTTP boundary, IDOR regression)", () => {
       .set("Authorization", `Bearer ${CALLER_A_KEY}`);
 
     expect(
-      asCallerA.body.map((t: { businessTransactionId: string }) => t.businessTransactionId),
+      asCallerA.body.map(
+        (t: { businessTransactionId: string }) => t.businessTransactionId,
+      ),
     ).toContain(businessTransactionId);
   });
 

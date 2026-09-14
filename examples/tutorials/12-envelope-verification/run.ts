@@ -1,101 +1,62 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeBuilder,
-} from "@parmana/runtime";
+import { RuntimeBuilder } from "@parmana/runtime";
 
-import {
-  EnvelopeVerifier,
-  MemoryNonceStore,
-} from "@parmana/envelope-verifier";
+import { EnvelopeVerifier, MemoryNonceStore } from "@parmana/envelope-verifier";
 
-import {
-  FileKeyProvider,
-} from "@parmana/crypto";
+import { FileKeyProvider } from "@parmana/crypto";
 
-import {
-  MemoryExecutionTrustRecordRepository,
-} from "@parmana/storage";
+import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
-import type {
-  BusinessTransaction,
-} from "@parmana/shared";
+import type { BusinessTransaction } from "@parmana/shared";
 
 const root = path.resolve(import.meta.dirname);
 
 const transaction = JSON.parse(
   readFileSync(
-    path.join(
-      root,
-      "../../shared/vendor-payment-transaction.json",
-    ),
+    path.join(root, "../../shared/vendor-payment-transaction.json"),
     "utf8",
   ),
 ) as BusinessTransaction;
 
-const policyRepository =
-  new FilePolicyRepository(
-    path.resolve(
-      root,
-      "../../../policies",
-    ),
-  );
+const policyRepository = new FilePolicyRepository(
+  path.resolve(root, "../../../policies"),
+);
 
-const trustRecords =
-  new MemoryExecutionTrustRecordRepository();
+const trustRecords = new MemoryExecutionTrustRecordRepository();
 
-const runtime =
-  new RuntimeBuilder()
-    .withPolicyRepository(
-      policyRepository,
-    )
-    .build(trustRecords);
+const runtime = new RuntimeBuilder()
+  .withPolicyRepository(policyRepository)
+  .build(trustRecords);
 
 // --------------------------------------------------
 // EXECUTE
 // --------------------------------------------------
 
-const result =
-  await runtime.execute(
-    transaction,
-  );
+const result = await runtime.execute(transaction);
 
-const authorization =
-  result.context.authorization;
+const authorization = result.context.authorization;
 
 if (!authorization) {
-  throw new Error(
-    "Execution Authorization was not generated.",
-  );
+  throw new Error("Execution Authorization was not generated.");
 }
 
 // --------------------------------------------------
 // VERIFY ENVELOPE
 // --------------------------------------------------
 
-const keyProvider =
-  new FileKeyProvider();
+const keyProvider = new FileKeyProvider();
 
-const publicKey =
-  await keyProvider.getPublicKey(
-    authorization.keyId,
-  );
-const verifier =
-  new EnvelopeVerifier({
-    publicKey,
-    nonceStore:
-      new MemoryNonceStore(),
-  });
+const publicKey = await keyProvider.getPublicKey(authorization.keyId);
+const verifier = new EnvelopeVerifier({
+  publicKey,
+  nonceStore: new MemoryNonceStore(),
+});
 
-const verification =
-  await verifier.verify(
-    authorization,
-  );
+const verification = await verifier.verify(authorization);
 
 // --------------------------------------------------
 // OUTPUT
@@ -110,25 +71,13 @@ console.log();
 
 console.log("Verification Result");
 
-console.log(
-  JSON.stringify(
-    verification,
-    null,
-    2,
-  ),
-);
+console.log(JSON.stringify(verification, null, 2));
 
 console.log();
 
 console.log("Checks");
 
-console.log(
-  JSON.stringify(
-    verification.checks,
-    null,
-    2,
-  ),
-);
+console.log(JSON.stringify(verification.checks, null, 2));
 
 console.log();
 

@@ -33,7 +33,7 @@ generic `.status` property on anything.
   own specific status.
 - Malformed or oversized bodies are caught even earlier, by a small helper
   (`bodyParserErrorStatus`) that recognizes Express's own body-parser failure shapes
-  (`entity.too.large` to `413`, `entity.parse.failed` to `400`). These happen *before* any
+  (`entity.too.large` to `413`, `entity.parse.failed` to `400`). These happen _before_ any
   route handler runs at all, since `express.json()` itself throws, so this handler exists
   specifically to give them a clean, coded response instead of falling through to the
   generic `500` below.
@@ -42,7 +42,7 @@ generic `.status` property on anything.
   caller (or its SDK) can tell "this was a coded, expected rejection" from "something is
   actually broken." Chapter 8 and Chapter 5 both cover the specific coded cases this
   distinction serves: `403 POLICY_DENIED`, `409 NONCE_ALREADY_CONSUMED`, `503
-  AUDIT_UNAVAILABLE`. Tutorial 102 (`examples/tutorials/102-distinguishable-http-status`)
+AUDIT_UNAVAILABLE`. Tutorial 102 (`examples/tutorials/102-distinguishable-http-status`)
   demonstrates all three shapes, plus the generic `500`, side by side against a real server.
 
 ## Rate limiting: per-caller, not per-IP, and only when there's a caller to key on

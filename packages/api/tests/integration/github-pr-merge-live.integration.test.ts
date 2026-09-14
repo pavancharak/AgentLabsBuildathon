@@ -2,7 +2,15 @@ import { randomUUID } from "node:crypto";
 import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
 
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 import {
   ExecutionRejectedError,
@@ -16,7 +24,10 @@ import { createApplication } from "../../src/application.js";
 import { createApp } from "../../src/app.js";
 import { createExecutionSystem } from "../../src/bootstrap/createExecutionSystem.js";
 
-import { resolveGitHubLiveGate, resolveGitHubTestRepositoryGate } from "../helpers/github-live-availability.js";
+import {
+  resolveGitHubLiveGate,
+  resolveGitHubTestRepositoryGate,
+} from "../helpers/github-live-availability.js";
 
 const gitHubLiveConfigured = resolveGitHubLiveGate("GitHub Live Integration");
 
@@ -65,202 +76,216 @@ const testRepository = gitHubLiveConfigured
  * produced dist/ -- already true in CI and after any local `npm run
  * build` at the repo root.
  */
-describe.skipIf(!gitHubLiveConfigured)("GitHub live (through the real @parmana/sdk package)", () => {
-  const originalGitHubBaseUrl = process.env.GITHUB_BASE_URL;
+describe.skipIf(!gitHubLiveConfigured)(
+  "GitHub live (through the real @parmana/sdk package)",
+  () => {
+    const originalGitHubBaseUrl = process.env.GITHUB_BASE_URL;
 
-  let server: Server;
-  let client: ParmanaClient;
+    let server: Server;
+    let client: ParmanaClient;
 
-  beforeAll(async () => {
-    // No bridge needed: createGitHubCredentialProvider.ts's NODE_ENV=test
-    // branch reads TEST_GITHUB_APP_ID/TEST_GITHUB_INSTALLATION_ID/
-    // TEST_GITHUB_APP_PRIVATE_KEY directly -- the same names documented
-    // in .env.example -- so the real test credentials already sitting in
-    // the environment are picked up with no test-side mutation, and
-    // never appear in a variable, log, or assertion below.
+    beforeAll(async () => {
+      // No bridge needed: createGitHubCredentialProvider.ts's NODE_ENV=test
+      // branch reads TEST_GITHUB_APP_ID/TEST_GITHUB_INSTALLATION_ID/
+      // TEST_GITHUB_APP_PRIVATE_KEY directly -- the same names documented
+      // in .env.example -- so the real test credentials already sitting in
+      // the environment are picked up with no test-side mutation, and
+      // never appear in a variable, log, or assertion below.
 
-    // No GITHUB_BASE_URL override: GitHubConnector falls back to its own
-    // default, GitHub's real base URL (https://api.github.com).
-    delete process.env.GITHUB_BASE_URL;
+      // No GITHUB_BASE_URL override: GitHubConnector falls back to its own
+      // default, GitHub's real base URL (https://api.github.com).
+      delete process.env.GITHUB_BASE_URL;
 
-    const executionSystem = createExecutionSystem();
-    const application = createApplication(executionSystem);
-    const app = createApp(application, { callerAuth: "disabled" });
+      const executionSystem = createExecutionSystem();
+      const application = createApplication(executionSystem);
+      const app = createApp(application, { callerAuth: "disabled" });
 
-    server = await new Promise<Server>((resolve) => {
-      const httpServer = app.listen(0, "127.0.0.1", () => resolve(httpServer));
+      server = await new Promise<Server>((resolve) => {
+        const httpServer = app.listen(0, "127.0.0.1", () =>
+          resolve(httpServer),
+        );
+      });
+
+      const address = server.address() as AddressInfo;
+      const endpoint = `http://127.0.0.1:${address.port}`;
+
+      client = new ParmanaClient({
+        endpoint,
+        transport: new HttpTransport({ endpoint }),
+      });
     });
 
-    const address = server.address() as AddressInfo;
-    const endpoint = `http://127.0.0.1:${address.port}`;
+    afterAll(async () => {
+      if (originalGitHubBaseUrl === undefined) {
+        delete process.env.GITHUB_BASE_URL;
+      } else {
+        process.env.GITHUB_BASE_URL = originalGitHubBaseUrl;
+      }
 
-    client = new ParmanaClient({ endpoint, transport: new HttpTransport({ endpoint }) });
-  });
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      });
+    });
 
-  afterAll(async () => {
-    if (originalGitHubBaseUrl === undefined) {
-      delete process.env.GITHUB_BASE_URL;
-    } else {
-      process.env.GITHUB_BASE_URL = originalGitHubBaseUrl;
+    interface ObservedCall {
+      method: string;
+      url: string;
+      status: number;
     }
 
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => (error ? reject(error) : resolve()));
-    });
-  });
+    let realFetch: typeof fetch;
+    let fetchSpy: ReturnType<typeof vi.spyOn>;
+    let observed: ObservedCall[] = [];
 
-  interface ObservedCall {
-    method: string;
-    url: string;
-    status: number;
-  }
-
-  let realFetch: typeof fetch;
-  let fetchSpy: ReturnType<typeof vi.spyOn>;
-  let observed: ObservedCall[] = [];
-
-  beforeAll(() => {
-    realFetch = globalThis.fetch.bind(globalThis);
-    fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
-      const response = await realFetch(input, init);
-      observed.push({ method: init?.method ?? "GET", url: String(input), status: response.status });
-      return response;
-    });
-  });
-
-  afterAll(() => {
-    fetchSpy.mockRestore();
-  });
-
-  afterEach(() => {
-    observed = [];
-  });
-
-  function liveTransaction(overrides: {
-    owner: string;
-    repo: string;
-    pullNumber: number;
-    mergeMethod?: string;
-    signals: BusinessTransaction["signals"];
-  }): BusinessTransaction {
-    const businessTransactionId = randomUUID();
-    const authorityId = randomUUID();
-    const authorizationId = randomUUID();
-    const intentId = randomUUID();
-    const now = new Date();
-
-    return {
-      businessTransactionId,
-
-      metadata: {
-        businessTransactionId,
-        correlationId: randomUUID(),
-        sourceSystem: "github-live-integration-test",
-        submittedBy: "github-live-integration-test",
-        submittedAt: now,
-      },
-
-      authority: {
-        authorityId,
-        authorityType: "USER",
-        principalId: "github-live-integration-test",
-        displayName: "GitHub Live Integration Test",
-        issuedAt: now,
-      },
-
-      authorization: {
-        authorizationId,
-        authorityId,
-        purpose: "GitHub live integration test",
-        issuedAt: now,
-      },
-
-      intent: {
-        intentId,
-        authorizationId,
-        action: "github:pr-merge",
-        target: `${overrides.owner}/${overrides.repo}#${overrides.pullNumber}`,
-        parameters: {
-          mergeMethod: overrides.mergeMethod ?? "squash",
-        },
-        createdAt: now,
-      },
-
-      policy: {
-        name: "github-pr-approval",
-        version: "1.0.0",
-        schemaVersion: "1.0.0",
-      },
-
-      signals: overrides.signals,
-
-      status: "RECEIVED",
-      createdAt: now,
-    };
-  }
-
-  function approvedSignals(): BusinessTransaction["signals"] {
-    return {
-      repositoryAuthorized: true,
-      requiredReviewsCompleted: true,
-      statusChecksPassed: true,
-      branchProtected: true,
-      riskScore: 5,
-    };
-  }
-
-  // Fixed, deliberately non-existent pull request number: real enough to
-  // be well-formed, but guaranteed never to exist against any repository,
-  // so this test can never merge or otherwise mutate real data no matter
-  // which repository the configured installation can see.
-  const NON_EXISTENT_PULL_NUMBER = 999_999_999;
-
-  describe.skipIf(testRepository === undefined)("GitHub live reachability", () => {
-    const [owner, repo] = (testRepository ?? "/").split("/");
-
-    it(
-      "drives github:pr-merge through a real POST /execute (via the SDK) to the live GitHub API",
-      async () => {
-        const transaction = liveTransaction({
-          owner: owner as string,
-          repo: repo as string,
-          pullNumber: NON_EXISTENT_PULL_NUMBER,
-          signals: approvedSignals(),
+    beforeAll(() => {
+      realFetch = globalThis.fetch.bind(globalThis);
+      fetchSpy = vi
+        .spyOn(globalThis, "fetch")
+        .mockImplementation(async (input, init) => {
+          const response = await realFetch(input, init);
+          observed.push({
+            method: init?.method ?? "GET",
+            url: String(input),
+            status: response.status,
+          });
+          return response;
         });
+    });
 
-        let caught: unknown;
-        try {
-          await client.execute(transaction);
-        } catch (error) {
-          caught = error;
-        }
+    afterAll(() => {
+      fetchSpy.mockRestore();
+    });
 
-        // The connector's real error detail is swallowed by the generic
-        // error handler (mirrors hubspot-live.integration.test.ts's own
-        // documented behavior) -- this only proves the full chain ran and
-        // reached the connector's (or the credential provider's) failure
-        // path, thrown as the SDK's typed InternalServerError.
-        expect(caught).toBeInstanceOf(InternalServerError);
-        expect((caught as InternalServerError).message).toBe("Internal Server Error");
+    afterEach(() => {
+      observed = [];
+    });
 
-        // The independent, out-of-band proof that this specific failure
-        // came from a genuine GitHub HTTP response, not a network failure
-        // or a bug that never left this process: at least one real call
-        // landed on api.github.com (either the access_tokens exchange or
-        // the merge endpoint, depending on which layer the configured
-        // test credentials are valid for), and a real client-error status
-        // came back.
-        const gitHubCalls = observed.filter((entry) => entry.url.startsWith("https://api.github.com"));
-        expect(gitHubCalls.length).toBeGreaterThanOrEqual(1);
-        expect(gitHubCalls.every((entry) => entry.status >= 400)).toBe(true);
+    function liveTransaction(overrides: {
+      owner: string;
+      repo: string;
+      pullNumber: number;
+      mergeMethod?: string;
+      signals: BusinessTransaction["signals"];
+    }): BusinessTransaction {
+      const businessTransactionId = randomUUID();
+      const authorityId = randomUUID();
+      const authorizationId = randomUUID();
+      const intentId = randomUUID();
+      const now = new Date();
+
+      return {
+        businessTransactionId,
+
+        metadata: {
+          businessTransactionId,
+          correlationId: randomUUID(),
+          sourceSystem: "github-live-integration-test",
+          submittedBy: "github-live-integration-test",
+          submittedAt: now,
+        },
+
+        authority: {
+          authorityId,
+          authorityType: "USER",
+          principalId: "github-live-integration-test",
+          displayName: "GitHub Live Integration Test",
+          issuedAt: now,
+        },
+
+        authorization: {
+          authorizationId,
+          authorityId,
+          purpose: "GitHub live integration test",
+          issuedAt: now,
+        },
+
+        intent: {
+          intentId,
+          authorizationId,
+          action: "github:pr-merge",
+          target: `${overrides.owner}/${overrides.repo}#${overrides.pullNumber}`,
+          parameters: {
+            mergeMethod: overrides.mergeMethod ?? "squash",
+          },
+          createdAt: now,
+        },
+
+        policy: {
+          name: "github-pr-approval",
+          version: "1.0.0",
+          schemaVersion: "1.0.0",
+        },
+
+        signals: overrides.signals,
+
+        status: "RECEIVED",
+        createdAt: now,
+      };
+    }
+
+    function approvedSignals(): BusinessTransaction["signals"] {
+      return {
+        repositoryAuthorized: true,
+        requiredReviewsCompleted: true,
+        statusChecksPassed: true,
+        branchProtected: true,
+        riskScore: 5,
+      };
+    }
+
+    // Fixed, deliberately non-existent pull request number: real enough to
+    // be well-formed, but guaranteed never to exist against any repository,
+    // so this test can never merge or otherwise mutate real data no matter
+    // which repository the configured installation can see.
+    const NON_EXISTENT_PULL_NUMBER = 999_999_999;
+
+    describe.skipIf(testRepository === undefined)(
+      "GitHub live reachability",
+      () => {
+        const [owner, repo] = (testRepository ?? "/").split("/");
+
+        it("drives github:pr-merge through a real POST /execute (via the SDK) to the live GitHub API", async () => {
+          const transaction = liveTransaction({
+            owner: owner as string,
+            repo: repo as string,
+            pullNumber: NON_EXISTENT_PULL_NUMBER,
+            signals: approvedSignals(),
+          });
+
+          let caught: unknown;
+          try {
+            await client.execute(transaction);
+          } catch (error) {
+            caught = error;
+          }
+
+          // The connector's real error detail is swallowed by the generic
+          // error handler (mirrors hubspot-live.integration.test.ts's own
+          // documented behavior) -- this only proves the full chain ran and
+          // reached the connector's (or the credential provider's) failure
+          // path, thrown as the SDK's typed InternalServerError.
+          expect(caught).toBeInstanceOf(InternalServerError);
+          expect((caught as InternalServerError).message).toBe(
+            "Internal Server Error",
+          );
+
+          // The independent, out-of-band proof that this specific failure
+          // came from a genuine GitHub HTTP response, not a network failure
+          // or a bug that never left this process: at least one real call
+          // landed on api.github.com (either the access_tokens exchange or
+          // the merge endpoint, depending on which layer the configured
+          // test credentials are valid for), and a real client-error status
+          // came back.
+          const gitHubCalls = observed.filter((entry) =>
+            entry.url.startsWith("https://api.github.com"),
+          );
+          expect(gitHubCalls.length).toBeGreaterThanOrEqual(1);
+          expect(gitHubCalls.every((entry) => entry.status >= 400)).toBe(true);
+        }, 30_000);
       },
-      30_000,
     );
-  });
 
-  it(
-    "denies a policy-failing merge through POST /execute (via the SDK) before any GitHub call",
-    async () => {
+    it("denies a policy-failing merge through POST /execute (via the SDK) before any GitHub call", async () => {
       const transaction = liveTransaction({
         owner: "acme",
         repo: "widgets",
@@ -287,9 +312,10 @@ describe.skipIf(!gitHubLiveConfigured)("GitHub live (through the real @parmana/s
       // ExecutionComponent ever dispatches to the connector or resolves a
       // credential -- zero real GitHub calls for the denial itself, not
       // even the access_tokens exchange.
-      const gitHubCalls = observed.filter((entry) => entry.url.startsWith("https://api.github.com"));
+      const gitHubCalls = observed.filter((entry) =>
+        entry.url.startsWith("https://api.github.com"),
+      );
       expect(gitHubCalls).toHaveLength(0);
-    },
-    30_000,
-  );
-});
+    }, 30_000);
+  },
+);

@@ -5,7 +5,7 @@ assumed — see the file paths and interface names cited throughout.
 
 ## Overview
 
-Parmana's marketing claim is: *"The agent does not get direct authority to move money."*
+Parmana's marketing claim is: _"The agent does not get direct authority to move money."_
 
 That guarantee is real, and it is enforced structurally, not by convention: a connector never
 receives a raw, long-lived credential, and it never talks to a credential store directly. The
@@ -42,8 +42,8 @@ if (options.legacyInsecure === true) {
 ```
 
 `legacyInsecure` is documented in its own type (`ConnectorRegistrationOptions.legacyInsecure`,
-same file) as: *"For tests only — every production connector goes through the default,
-session-credential path."* Nothing in `packages/api/src/bootstrap/createConnectorRegistry.ts` —
+same file) as: _"For tests only — every production connector goes through the default,
+session-credential path."_ Nothing in `packages/api/src/bootstrap/createConnectorRegistry.ts` —
 the real production registry composition — sets this flag for HubSpot, GitHub, or the
 `test-fixture` connector. All three get isolation for free.
 
@@ -59,7 +59,7 @@ skip the accompanying audit-sink requirement without it.
 1. `policy.assertAllowed(request, this, gatewayAuthentication)` — capability/policy check.
 2. `sessionCredentials.issue(connectorId, authorizationId)` — mints a single-use,
    time-bounded `SessionCredential` (an opaque lease, no secret material).
-3. `sessionCredentials.consume(sessionCredentialId)` — the *only* point where the real
+3. `sessionCredentials.consume(sessionCredentialId)` — the _only_ point where the real
    `ExecutionCredential` is resolved, fresh, from the underlying `CredentialVault`. Consuming
    twice, after expiry, or after revocation all throw.
 4. `executor.execute(request.executableContent, credential)` — hands the resolved credential to
@@ -72,7 +72,10 @@ skip the accompanying audit-sink requirement without it.
 ```ts
 // packages/execution-control/src/SessionCredentialVault.ts (real source)
 export interface SessionCredentialVault {
-  issue(connectorId: string, authorizationId: string): Promise<SessionCredential>;
+  issue(
+    connectorId: string,
+    authorizationId: string,
+  ): Promise<SessionCredential>;
   consume(sessionCredentialId: string): Promise<ExecutionCredential>;
   revoke(sessionCredentialId: string): Promise<void>;
 }
@@ -84,14 +87,14 @@ credential is allowed to do" — that's a different layer entirely (next section
 
 ### Layer responsibilities
 
-| Layer | Responsibility | Real source |
-|---|---|---|
-| `PolicyEngine.evaluate()` | Scope/amount/action rules (`PolicyCondition`: `fact`/`operator`/`value`, `all`/`any`/`always`) — decides whether the action is allowed **before** any authorization is signed | `packages/policy/src/PolicyEngine.ts` |
-| `RuntimeEngine` / `AuthorizationSigner` | Signs the approved decision into a `SignedExecutionAuthorization` | `packages/runtime/src/RuntimeEngine.ts` |
-| `ExecutionGateway` | Independently re-verifies the envelope (signature, expiry, TTL, content hash) before releasing to execution-control | `packages/execution-gateway/src/ExecutionGateway.ts` |
-| `SessionCredentialSecureConnector` | Credential lifecycle only: issue → consume → revoke, single-use, time-bounded | `packages/execution-control/src/SessionCredentialSecureConnector.ts` |
-| `SdkConnectorExecutor` | Adapts the internal `ExecutableContent`/`ExecutionCredential` shape into the SDK's `ConnectorRequest`/`ConnectorExecutionContext` and calls the connector | `packages/execution-gateway/src/connector-execution/SdkConnectorExecutor.ts` |
-| Connector (`Connector` interface) | Executes one namespaced capability against the real backend, using an already-resolved `CredentialHandle` it never had to fetch itself | e.g. `packages/execution-gateway/src/connector-execution/GatewayHubSpotAdapter.ts` |
+| Layer                                   | Responsibility                                                                                                                                                                | Real source                                                                        |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `PolicyEngine.evaluate()`               | Scope/amount/action rules (`PolicyCondition`: `fact`/`operator`/`value`, `all`/`any`/`always`) — decides whether the action is allowed **before** any authorization is signed | `packages/policy/src/PolicyEngine.ts`                                              |
+| `RuntimeEngine` / `AuthorizationSigner` | Signs the approved decision into a `SignedExecutionAuthorization`                                                                                                             | `packages/runtime/src/RuntimeEngine.ts`                                            |
+| `ExecutionGateway`                      | Independently re-verifies the envelope (signature, expiry, TTL, content hash) before releasing to execution-control                                                           | `packages/execution-gateway/src/ExecutionGateway.ts`                               |
+| `SessionCredentialSecureConnector`      | Credential lifecycle only: issue → consume → revoke, single-use, time-bounded                                                                                                 | `packages/execution-control/src/SessionCredentialSecureConnector.ts`               |
+| `SdkConnectorExecutor`                  | Adapts the internal `ExecutableContent`/`ExecutionCredential` shape into the SDK's `ConnectorRequest`/`ConnectorExecutionContext` and calls the connector                     | `packages/execution-gateway/src/connector-execution/SdkConnectorExecutor.ts`       |
+| Connector (`Connector` interface)       | Executes one namespaced capability against the real backend, using an already-resolved `CredentialHandle` it never had to fetch itself                                        | e.g. `packages/execution-gateway/src/connector-execution/GatewayHubSpotAdapter.ts` |
 
 Scope/amount enforcement is upstream of the vault, in `PolicyEngine`, confirmed structurally:
 `RuntimeEngine.execute()` calls `PolicyEngine.evaluate()` and only proceeds to sign an
@@ -150,7 +153,10 @@ adapter that implements it on behalf of any `Connector`.
 export interface Connector {
   readonly connectorId: string;
   readonly capabilities: ConnectorCapabilities;
-  execute(request: ConnectorRequest, context: ConnectorExecutionContext): Promise<ConnectorResponse>;
+  execute(
+    request: ConnectorRequest,
+    context: ConnectorExecutionContext,
+  ): Promise<ConnectorResponse>;
 }
 
 export interface ConnectorRequest {
@@ -174,20 +180,22 @@ export interface ConnectorResponse {
 ```
 
 The doc comment on `Connector` in that file states the property this document is about,
-verbatim: *"Connectors NEVER evaluate policy, authorize execution, interpret AI output, perform
+verbatim: _"Connectors NEVER evaluate policy, authorize execution, interpret AI output, perform
 business decisions, or resolve credentials. They ONLY validate requests, execute operations using
-an already-resolved credential, and return a deterministic response."*
+an already-resolved credential, and return a deterministic response."_
 
 ## Implications for connector authors
 
 **Automatic, by construction:**
+
 - Every connector registered through the standard path (`createConnectorRegistry.ts` →
   `createGatewayConnectorRegistry`) is wrapped in `SessionCredentialSecureConnector`.
 - You cannot silently lose isolation — the only opt-out (`legacyInsecure: true`) is a named flag
-  that also requires you to *not* supply the required `ExecutionAuditSink`, which is itself an
+  that also requires you to _not_ supply the required `ExecutionAuditSink`, which is itself an
   explicit, reviewable choice, not a default.
 
 **Not your job as a connector author:**
+
 - Calling `SessionCredentialVault` — you never see it. You receive a `CredentialHandle` via
   `ConnectorExecutionContext.credential`.
 - Enforcing scope/amount limits — `PolicyEngine` has already run before your `execute()` is ever
@@ -195,6 +203,7 @@ an already-resolved credential, and return a deterministic response."*
 - Managing session lifetime — the wrapper issues, consumes, and revokes around your call.
 
 **Your job:**
+
 - Implement `Connector.execute(request, context)` correctly for your backend.
 - Declare capabilities (namespaced verbs, e.g. `hubspot:deal-update`) via `ConnectorCapabilities`.
 - Return an accurate `ConnectorResponse`.

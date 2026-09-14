@@ -1,18 +1,10 @@
 \# Example 01 — Basic Execution
 
-
-
 \## Overview
-
-
 
 This example demonstrates the simplest end-to-end interaction with the Parmana Runtime using the TypeScript SDK.
 
-
-
 By the end of this guide you will understand:
-
-
 
 \* Creating the core trust-chain objects
 
@@ -24,23 +16,13 @@ By the end of this guide you will understand:
 
 \* Understanding the resulting Execution Trust Chain
 
-
-
 This example is the foundation for every subsequent example in the SDK.
-
-
 
 \---
 
-
-
 \# Learning Objectives
 
-
-
 After completing this example you will understand:
-
-
 
 \* Authority
 
@@ -56,19 +38,11 @@ After completing this example you will understand:
 
 \* ParmanaClient
 
-
-
 Later examples build upon these concepts.
-
-
 
 \---
 
-
-
 \# Prerequisites
-
-
 
 \* Node.js 22+
 
@@ -76,27 +50,17 @@ Later examples build upon these concepts.
 
 \* Parmana Runtime running locally
 
-
-
 ```bash
 
 npm install @parmana/typescript-sdk
 
 ```
 
-
-
 \---
-
-
 
 \# The Execution Trust Chain
 
-
-
 Every execution begins with a Business Transaction.
-
-
 
 ```text
 
@@ -136,23 +100,13 @@ Receipt
 
 ```
 
-
-
 This sequence is deterministic.
-
-
 
 Every artifact becomes part of the trust chain.
 
-
-
 \---
 
-
-
 \# Step 1 — Create the Client
-
-
 
 ```typescript
 
@@ -168,23 +122,13 @@ const client = new ParmanaClient({
 
 ```
 
-
-
 The client communicates with the Parmana Runtime.
-
-
 
 \---
 
-
-
 \# Step 2 — Create an Authority
 
-
-
 Authority represents the business authority responsible for the transaction.
-
-
 
 ```typescript
 
@@ -200,23 +144,13 @@ const authority = {
 
 ```
 
-
-
 Authority defines \*\*who owns the decision-making authority\*\*.
-
-
 
 \---
 
-
-
 \# Step 3 — Create an Authorization
 
-
-
 Authorization grants permission to execute.
-
-
 
 ```typescript
 
@@ -242,27 +176,15 @@ const authorization = {
 
 ```
 
-
-
 Authorization answers:
-
-
 
 > Who is allowed to execute?
 
-
-
 \---
-
-
 
 \# Step 4 — Create an Intent
 
-
-
 Intent describes the requested business operation.
-
-
 
 ```typescript
 
@@ -282,27 +204,15 @@ const intent = {
 
 ```
 
-
-
 Intent answers:
-
-
 
 > What should happen?
 
-
-
 \---
-
-
 
 \# Step 5 — Select a Policy
 
-
-
 Every Business Transaction specifies exactly one policy.
-
-
 
 ```typescript
 
@@ -316,23 +226,13 @@ const policy = {
 
 ```
 
-
-
 This explicit policy reference becomes part of the immutable trust chain.
-
-
 
 The Runtime never searches for policies.
 
-
-
 \---
 
-
-
 \# Step 6 — Build the Business Transaction
-
-
 
 ```typescript
 
@@ -354,19 +254,11 @@ const transaction = {
 
 ```
 
-
-
 This object becomes the canonical request submitted to Parmana.
-
-
 
 \---
 
-
-
 \# Step 7 — Execute
-
-
 
 ```typescript
 
@@ -376,11 +268,7 @@ const receipt =
 
 ```
 
-
-
 The Runtime performs:
-
-
 
 1\. Trust validation
 
@@ -392,39 +280,21 @@ The Runtime performs:
 
 5\. Receipt generation
 
-
-
 \---
-
-
 
 \# Receipt
 
-
-
 The returned Receipt contains:
 
-
-
 ```typescript
-
 console.log(receipt.receiptId);
-
-
 
 console.log(receipt.receiptHash);
 
-
-
 console.log(receipt.algorithm);
-
 ```
 
-
-
 Example:
-
-
 
 ```text
 
@@ -452,31 +322,17 @@ Issued
 
 ```
 
-
-
 \---
-
-
 
 \# What Happened Internally?
 
-
-
 Although the SDK exposes a single method:
 
-
-
 ```typescript
-
 await client.execute(transaction);
-
 ```
 
-
-
 The Runtime performs multiple deterministic operations.
-
-
 
 ```text
 
@@ -512,23 +368,13 @@ Generate Receipt
 
 ```
 
-
-
 \---
-
-
 
 \# Why Use a Business Transaction?
 
-
-
 Instead of sending loose parameters, Parmana requires a structured Business Transaction.
 
-
-
 Advantages:
-
-
 
 \* Explicit authority
 
@@ -542,19 +388,11 @@ Advantages:
 
 \* Independent verification
 
-
-
 \---
-
-
 
 \# Error Handling
 
-
-
 Always wrap execution in a try/catch block.
-
-
 
 ```typescript
 
@@ -582,135 +420,79 @@ catch(error){
 
 ```
 
-
-
 Production applications should log failures and handle retries according to their operational requirements.
 
-
-
 \---
-
-
 
 \# Architectural Principles
 
-
-
 This example demonstrates several core Parmana principles.
-
-
 
 \## Explicit Authority
 
-
-
 Authority is always identified.
 
-
-
 \---
-
-
 
 \## Explicit Authorization
 
-
-
 Execution permission is explicit.
 
-
-
 \---
-
-
 
 \## Explicit Intent
 
-
-
 Intent is immutable.
 
-
-
 \---
-
-
 
 \## Explicit Policy
 
-
-
 Exactly one PolicyReference is provided.
 
-
-
 \---
-
-
 
 \## Deterministic Runtime
 
-
-
 The Runtime evaluates the supplied policy.
-
-
 
 It does not discover or choose one automatically.
 
-
-
 \---
-
-
 
 \# Relationship to Later Examples
 
-
-
 This example introduces the minimal trust chain.
-
-
 
 Subsequent examples extend it:
 
-
-
-| Example | Adds                   |
+| Example | Adds |
 
 | ------- | ---------------------- |
 
-| 02      | Verification           |
+| 02 | Verification |
 
-| 03      | Replay                 |
+| 03 | Replay |
 
-| 04      | Audit                  |
+| 04 | Audit |
 
-| 05      | Human Override         |
+| 05 | Human Override |
 
-| 06      | Autonomous Vehicle     |
+| 06 | Autonomous Vehicle |
 
-| 07      | Medical AI             |
+| 07 | Medical AI |
 
-| 08      | Financial Governance   |
+| 08 | Financial Governance |
 
-| 09      | Multi-Agent Systems    |
+| 09 | Multi-Agent Systems |
 
-| 10      | Custom Policy Versions |
-
-
+| 10 | Custom Policy Versions |
 
 \---
 
-
-
 \# Complete Example
 
-
-
 See:
-
-
 
 ```text
 
@@ -718,19 +500,11 @@ examples/01\_basic\_execution.ts
 
 ```
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 You have learned how to:
-
-
 
 \* Create an Authority
 
@@ -746,23 +520,13 @@ You have learned how to:
 
 \* Receive a Receipt
 
-
-
 These concepts form the foundation of every workflow built with Parmana.
-
-
 
 \---
 
-
-
 \# Next
 
-
-
 Continue with:
-
-
 
 ```text
 
@@ -770,9 +534,4 @@ docs/02\_verify\_receipt.md
 
 ```
 
-
-
 to learn how to independently verify an execution using the TypeScript SDK.
-
-
-

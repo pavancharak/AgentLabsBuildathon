@@ -27,7 +27,9 @@ afterEach(async () => {
   await server.close();
 });
 
-function context(overrides: Partial<ConnectorExecutionContext> = {}): ConnectorExecutionContext {
+function context(
+  overrides: Partial<ConnectorExecutionContext> = {},
+): ConnectorExecutionContext {
   return {
     credential: brandCredentialHandle({
       providerId: "static",
@@ -99,7 +101,11 @@ describe("GatewaySlackAdapter", () => {
 
     await expect(
       connector().execute(
-        { ...postMessageRequest(), capability: "slack:delete-message", action: "slack:delete-message" },
+        {
+          ...postMessageRequest(),
+          capability: "slack:delete-message",
+          action: "slack:delete-message",
+        },
         context(),
       ),
     ).rejects.toThrow(/does not declare capability/);
@@ -202,7 +208,9 @@ describe("GatewaySlackAdapter", () => {
         () =>
           new GatewaySlackAdapter({
             connectorId: "slack",
-            capabilities: connectorCapabilities([SLACK_POST_MESSAGE_CAPABILITY]),
+            capabilities: connectorCapabilities([
+              SLACK_POST_MESSAGE_CAPABILITY,
+            ]),
             baseUrl: "http://slack-lookalike.internal.example.com",
           }),
       ).toThrow(/HTTPS/);

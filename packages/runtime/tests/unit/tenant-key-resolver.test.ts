@@ -65,16 +65,14 @@ describe("FileTenantKeyResolver", () => {
       new StubKeyProvider(new Set(), new Set(["tenant.../../etc/passwd"])),
     );
 
-    expect(
-      await resolver.resolveKeyId("../../etc/passwd"),
-    ).toBe(DEFAULT_KEY_ID);
+    expect(await resolver.resolveKeyId("../../etc/passwd")).toBe(
+      DEFAULT_KEY_ID,
+    );
   });
 
   it("never returns the same keyId for two different tenants with distinct provisioned keys", async () => {
     const resolver = new FileTenantKeyResolver(
-      new StubKeyProvider(
-        new Set(["tenant.acme-corp", "tenant.globex-corp"]),
-      ),
+      new StubKeyProvider(new Set(["tenant.acme-corp", "tenant.globex-corp"])),
     );
 
     const acme = await resolver.resolveKeyId("acme-corp");

@@ -55,10 +55,10 @@ Represents the entity permitted to authorize execution.
 
 Examples:
 
-* Human approver
-* Service account
-* Organization
-* Workflow owner
+- Human approver
+- Service account
+- Organization
+- Workflow owner
 
 ---
 
@@ -68,9 +68,9 @@ Represents the approval allowing execution.
 
 Examples:
 
-* Approval ID
-* Digital signature
-* Approval timestamp
+- Approval ID
+- Digital signature
+- Approval timestamp
 
 ---
 
@@ -82,9 +82,9 @@ Intent is independent of implementation.
 
 Examples:
 
-* Release vendor payment
-* Approve loan
-* Grant access
+- Release vendor payment
+- Approve loan
+- Grant access
 
 ---
 
@@ -102,9 +102,9 @@ The BusinessTransaction is the canonical execution input.
 
 ```ts
 interface PolicyReference {
-    readonly name: string;
-    readonly version: string;
-    readonly schemaVersion: string;
+  readonly name: string;
+  readonly version: string;
+  readonly schemaVersion: string;
 }
 ```
 
@@ -120,9 +120,9 @@ Represents the deterministic outcome produced by evaluating the referenced polic
 
 A Decision is derived only from:
 
-* Policy
-* Signals
-* Deterministic evaluation
+- Policy
+- Signals
+- Deterministic evaluation
 
 ---
 
@@ -132,11 +132,11 @@ Immutable evidence describing execution.
 
 A TrustRecord binds together:
 
-* BusinessTransaction
-* PolicyReference
-* Decision
-* Hashes
-* Metadata
+- BusinessTransaction
+- PolicyReference
+- Decision
+- Hashes
+- Metadata
 
 ---
 
@@ -152,10 +152,10 @@ A Receipt enables independent verification without trusting the runtime.
 
 Verification independently proves that:
 
-* the correct policy executed,
-* the execution has not been modified,
-* the evidence is authentic,
-* the receipt signature is valid.
+- the correct policy executed,
+- the execution has not been modified,
+- the evidence is authentic,
+- the receipt signature is valid.
 
 ---
 
@@ -181,14 +181,14 @@ Each stage depends only on the previous stage.
 
 # Architectural Invariants
 
-* BusinessTransaction SHALL reference exactly one PolicyReference.
-* PolicyReference SHALL contain `name`, `version`, and `schemaVersion`.
-* Runtime SHALL execute exactly one policy.
-* Runtime SHALL NOT discover, scan, or guess policies.
-* Decisions SHALL be deterministic.
-* TrustRecords SHALL be immutable once created.
-* Receipts SHALL be digitally signed.
-* Verification SHALL be independent of the runtime.
+- BusinessTransaction SHALL reference exactly one PolicyReference.
+- PolicyReference SHALL contain `name`, `version`, and `schemaVersion`.
+- Runtime SHALL execute exactly one policy.
+- Runtime SHALL NOT discover, scan, or guess policies.
+- Decisions SHALL be deterministic.
+- TrustRecords SHALL be immutable once created.
+- Receipts SHALL be digitally signed.
+- Verification SHALL be independent of the runtime.
 
 ---
 

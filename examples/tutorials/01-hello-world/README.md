@@ -1,34 +1,34 @@
 # \# Tutorial 01 — Hello World
 
-# 
+#
 
 # \## Overview
 
-# 
+#
 
 # This tutorial introduces the canonical Parmana `BusinessTransaction`.
 
-# 
+#
 
 # It demonstrates the minimum structure required to represent a business transaction before any policy evaluation or runtime execution occurs.
 
-# 
+#
 
 # No policies are evaluated and no decisions are made in this tutorial.
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Learning Objectives
 
-# 
+#
 
 # After completing this tutorial you will understand:
 
-# 
+#
 
 # \- The structure of a Business Transaction
 
@@ -44,15 +44,15 @@
 
 # \- Metadata
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Files
 
-# 
+#
 
 # | File | Purpose |
 
@@ -64,45 +64,45 @@
 
 # | `run.ts` | Loads and prints the transaction |
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Architecture
 
-# 
+#
 
 # ```
 
 # Business Transaction
 
-# &#x20;       │
+# &#x20; │
 
-# &#x20;       ├── Metadata
+# &#x20; ├── Metadata
 
-# &#x20;       ├── Authority
+# &#x20; ├── Authority
 
-# &#x20;       ├── Authorization
+# &#x20; ├── Authorization
 
-# &#x20;       ├── Intent
+# &#x20; ├── Intent
 
-# &#x20;       ├── Policy Reference
+# &#x20; ├── Policy Reference
 
-# &#x20;       └── Signals
+# &#x20; └── Signals
 
 # ```
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Run
 
-# 
+#
 
 # ```bash
 
@@ -110,11 +110,11 @@
 
 # ```
 
-# 
+#
 
 # or
 
-# 
+#
 
 # ```bash
 
@@ -122,39 +122,38 @@
 
 # ```
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Expected Output
 
-# 
+#
 
 # The tutorial prints the complete Business Transaction as formatted JSON.
 
-# 
+#
 
 # No policy evaluation occurs.
 
-# 
+#
 
 # No runtime execution occurs.
 
-# 
+#
 
 # No Trust Record is generated.
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Next Tutorial
 
-# 
+#
 
 # Continue to \*\*Tutorial 02 – Policy Evaluation\*\* to evaluate the transaction against a reference policy.
-

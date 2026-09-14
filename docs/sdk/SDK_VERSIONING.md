@@ -1,46 +1,26 @@
 \# Parmana SDK Versioning
 
-
-
 \*\*Version:\*\* 1.0
 
 \*\*Status:\*\* Canonical
 
 \*\*Applies To:\*\* All Official Parmana SDKs
 
-
-
 \---
-
-
 
 \# 1. Purpose
 
-
-
 This document defines the canonical versioning strategy for all official Parmana SDKs.
-
-
 
 The objective is to provide predictable API evolution while maintaining compatibility across SDK implementations and the Parmana platform.
 
-
-
 Every official SDK MUST conform to this versioning policy.
-
-
 
 \---
 
-
-
 \# 2. Design Goals
 
-
-
 The versioning strategy is designed to provide:
-
-
 
 \* Stable public APIs
 
@@ -54,19 +34,11 @@ The versioning strategy is designed to provide:
 
 \* Long-term maintainability
 
-
-
 \---
-
-
 
 \# 3. Scope
 
-
-
 This document governs the versioning of:
-
-
 
 \* Official SDKs
 
@@ -80,11 +52,7 @@ This document governs the versioning of:
 
 \* SDK error model
 
-
-
 This document does not govern:
-
-
 
 \* Internal Runtime packages
 
@@ -94,19 +62,11 @@ This document does not govern:
 
 \* Internal replay algorithms
 
-
-
 \---
-
-
 
 \# 4. Semantic Versioning
 
-
-
 Official Parmana SDKs MUST follow Semantic Versioning.
-
-
 
 ```text
 
@@ -114,11 +74,7 @@ MAJOR.MINOR.PATCH
 
 ```
 
-
-
 Example
-
-
 
 ```text
 
@@ -126,23 +82,13 @@ Example
 
 ```
 
-
-
 \---
-
-
 
 \# 5. Major Version
 
-
-
 A major version change indicates one or more breaking changes.
 
-
-
 Examples include:
-
-
 
 \* Removing a public API
 
@@ -156,11 +102,7 @@ Examples include:
 
 \* Breaking serialization compatibility
 
-
-
 Example
-
-
 
 ```text
 
@@ -176,27 +118,15 @@ Example
 
 ```
 
-
-
 Major version upgrades may require application changes.
-
-
 
 \---
 
-
-
 \# 6. Minor Version
-
-
 
 A minor version introduces new functionality without breaking existing applications.
 
-
-
 Examples include:
-
-
 
 \* New SDK capability
 
@@ -210,11 +140,7 @@ Examples include:
 
 \* New documentation
 
-
-
 Example
-
-
 
 ```text
 
@@ -230,27 +156,15 @@ Example
 
 ```
 
-
-
 Existing applications should continue to work without modification.
-
-
 
 \---
 
-
-
 \# 7. Patch Version
-
-
 
 Patch releases contain backward-compatible improvements.
 
-
-
 Examples include:
-
-
 
 \* Bug fixes
 
@@ -264,11 +178,7 @@ Examples include:
 
 \* Test improvements
 
-
-
 Example
-
-
 
 ```text
 
@@ -284,23 +194,13 @@ Example
 
 ```
 
-
-
 Patch releases must not modify the public SDK contract.
-
-
 
 \---
 
-
-
 \# 8. Public API Stability
 
-
-
 The following public components are considered stable.
-
-
 
 ```text
 
@@ -332,27 +232,15 @@ Public Response Models
 
 ```
 
-
-
 These components are subject to semantic versioning.
-
-
 
 \---
 
-
-
 \# 9. Internal Components
-
-
 
 Internal implementation is not part of the SDK contract.
 
-
-
 Examples include:
-
-
 
 ```text
 
@@ -388,43 +276,23 @@ PolicyRouter
 
 ```
 
-
-
 Internal components may evolve without affecting SDK versioning, provided the public contract remains unchanged.
 
-
-
 \---
-
-
 
 \# 10. Backward Compatibility
 
-
-
 Minor and patch releases MUST preserve backward compatibility.
-
-
 
 Applications written against a supported SDK version should continue to function without modification.
 
-
-
 \---
-
-
 
 \# 11. Deprecation Policy
 
-
-
 Public APIs SHOULD be deprecated before removal.
 
-
-
 Deprecation should include:
-
-
 
 \* documentation
 
@@ -434,23 +302,13 @@ Deprecation should include:
 
 \* planned removal version
 
-
-
 Deprecated APIs should remain functional until the next major version whenever practical.
-
-
 
 \---
 
-
-
 \# 12. API Evolution
 
-
-
 Public APIs may evolve by:
-
-
 
 \* adding optional parameters
 
@@ -462,27 +320,15 @@ Public APIs may evolve by:
 
 \* introducing new error types
 
-
-
 Existing behavior must remain unchanged unless a major version increment occurs.
-
-
 
 \---
 
-
-
 \# 13. Domain Model Evolution
-
-
 
 Canonical domain models should evolve conservatively.
 
-
-
 Allowed changes include:
-
-
 
 \* adding optional fields
 
@@ -490,11 +336,7 @@ Allowed changes include:
 
 \* new related models
 
-
-
 Breaking changes include:
-
-
 
 \* removing fields
 
@@ -504,63 +346,33 @@ Breaking changes include:
 
 \* changing identifier formats
 
-
-
 \---
-
-
 
 \# 14. Error Model Evolution
 
-
-
 Existing error types must preserve their semantics.
-
-
 
 Future SDK versions may introduce additional error types.
 
-
-
 Previously defined error categories must not change meaning.
 
-
-
 \---
-
-
 
 \# 15. Configuration Evolution
 
-
-
 Configuration may expand through optional settings.
-
-
 
 Existing configuration behavior must remain stable.
 
-
-
 Removing configuration options requires a major version.
-
-
 
 \---
 
-
-
 \# 16. Documentation Versioning
-
-
 
 SDK documentation should align with SDK releases.
 
-
-
 Each documentation set should clearly indicate:
-
-
 
 \* SDK version
 
@@ -568,27 +380,15 @@ Each documentation set should clearly indicate:
 
 \* compatibility information
 
-
-
 Examples and tutorials should target the current stable SDK release.
-
-
 
 \---
 
-
-
 \# 17. Language Parity
-
-
 
 Official SDKs should maintain feature parity across supported languages.
 
-
-
 When a new SDK capability is introduced:
-
-
 
 \* TypeScript should implement it.
 
@@ -596,27 +396,15 @@ When a new SDK capability is introduced:
 
 \* Future official SDKs should implement it where practical.
 
-
-
 Temporary implementation differences are acceptable during active development but should converge before stable release.
-
-
 
 \---
 
-
-
 \# 18. Runtime Compatibility
-
-
 
 SDK versions should clearly state the supported Parmana Runtime versions.
 
-
-
 Example
-
-
 
 ```text
 
@@ -632,23 +420,13 @@ Runtime 1.x
 
 ```
 
-
-
 Compatibility information should be documented for every release.
-
-
 
 \---
 
-
-
 \# 19. Release Types
 
-
-
 Official SDK releases may be classified as:
-
-
 
 ```text
 
@@ -676,15 +454,9 @@ Long-Term Support
 
 ```
 
-
-
 Pre-release versions should clearly indicate their status.
 
-
-
 Example
-
-
 
 ```text
 
@@ -704,23 +476,13 @@ Example
 
 ```
 
-
-
 \---
-
-
 
 \# 20. Version Identification
 
-
-
 SDKs SHOULD expose their version programmatically.
 
-
-
 Example
-
-
 
 ```text
 
@@ -736,27 +498,15 @@ client.version
 
 ```
 
-
-
 This assists with diagnostics and support.
-
-
 
 \---
 
-
-
 \# 21. Migration Guidance
-
-
 
 Breaking changes must include migration documentation.
 
-
-
 Migration guides should explain:
-
-
 
 \* what changed
 
@@ -766,23 +516,13 @@ Migration guides should explain:
 
 \* deprecated alternatives
 
-
-
 Migration documentation should accompany every major release.
-
-
 
 \---
 
-
-
 \# 22. Conformance Requirements
 
-
-
 An official Parmana SDK MUST:
-
-
 
 \* follow Semantic Versioning
 
@@ -798,19 +538,11 @@ An official Parmana SDK MUST:
 
 \* expose SDK version information
 
-
-
 \---
-
-
 
 \# 23. Future Evolution
 
-
-
 The versioning policy is designed to support future official SDKs, including:
-
-
 
 \* Go
 
@@ -826,25 +558,12 @@ The versioning policy is designed to support future official SDKs, including:
 
 \* Additional languages
 
-
-
 All official SDKs must follow the same versioning principles while remaining idiomatic to their respective ecosystems.
-
-
 
 \---
 
-
-
 \# Summary
-
-
 
 The Parmana SDK Versioning policy establishes a stable, predictable framework for evolving official SDKs without disrupting application development.
 
-
-
 By adopting Semantic Versioning, preserving backward compatibility, and documenting all public changes, Parmana provides a consistent developer experience across languages and releases while allowing the platform to evolve responsibly.
-
-
-

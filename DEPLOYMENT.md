@@ -244,7 +244,7 @@ Two legitimate ways to handle this, and only one of them is safe:
   immediately — it tells you exactly what's currently ungoverned without
   pretending otherwise.
 - **Backfill real coverage, one policy at a time.** For each legacy
-  policy, propose its *current, unchanged* content as a pending change
+  policy, propose its _current, unchanged_ content as a pending change
   through the real API (`POST /policies/{name}/{version}/pending-changes`)
   and have a genuinely distinct human checker approve it through the real
   step-up flow (`scripts/sign-policy-change-step-up.ts`) — establishing a
@@ -276,7 +276,7 @@ Validated this session against a real `parmana-api` Fly app.
   caller) locally (never printed), leaving `SUPABASE_URL` /
   `SUPABASE_SERVICE_ROLE_KEY` / `HUBSPOT_PRIVATE_APP_TOKEN` as placeholders
   to fill in, then `fly secrets import < .flysecrets/secrets.env` (or `fly
-  secrets set PARMANA_STORAGE=supabase` etc. individually) to apply.
+secrets set PARMANA_STORAGE=supabase` etc. individually) to apply.
   Rotating any secret restarts every machine to pick it up — `fly status`
   should show a recent "last updated" and passing health checks before
   treating the new value as live.

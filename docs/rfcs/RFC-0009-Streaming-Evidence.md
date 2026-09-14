@@ -1,54 +1,28 @@
 \# RFC-0009 — Streaming Evidence
 
-
-
 \*\*Status:\*\* Draft
-
-
 
 \*\*Author:\*\* Parmana Architecture Team
 
-
-
 \*\*Created:\*\* 2026-06-25
-
-
 
 \*\*Target Version:\*\* 0.4.0
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 Introduce Streaming Evidence to allow long-running executions to emit immutable evidence artifacts incrementally before execution completes.
-
-
 
 Streaming Evidence enables near real-time observability, monitoring, and audit without compromising Parmana's append-only evidence model or deterministic execution guarantees.
 
-
-
 The ExecutionTransaction remains the aggregate root. Streaming Evidence extends how evidence is recorded, not how execution is modeled.
-
-
 
 \---
 
-
-
 \# Motivation
 
-
-
 Some executions may last:
-
-
 
 \* Minutes
 
@@ -58,11 +32,7 @@ Some executions may last:
 
 \* Weeks
 
-
-
 Waiting until completion to record evidence delays:
-
-
 
 \* Monitoring
 
@@ -74,19 +44,11 @@ Waiting until completion to record evidence delays:
 
 \* Operational diagnostics
 
-
-
 Streaming Evidence allows immutable execution facts to be recorded as they occur.
-
-
 
 \---
 
-
-
 \# Goals
-
-
 
 \* Record evidence incrementally.
 
@@ -98,19 +60,11 @@ Streaming Evidence allows immutable execution facts to be recorded as they occur
 
 \* Enable real-time consumers.
 
-
-
 \---
-
-
 
 \# Non-Goals
 
-
-
 This RFC does not define:
-
-
 
 \* Event streaming platforms.
 
@@ -122,39 +76,21 @@ This RFC does not define:
 
 \* Workflow orchestration.
 
-
-
 Streaming transport remains implementation specific.
 
-
-
 \---
-
-
 
 \# Architectural Principle
 
-
-
 Execution remains atomic.
-
-
 
 Evidence becomes incrementally observable.
 
-
-
 Execution semantics remain unchanged.
-
-
 
 \---
 
-
-
 \# Architecture
-
-
 
 ```text
 
@@ -194,27 +130,15 @@ ExecutionTransaction
 
 ```
 
-
-
 Evidence artifacts are appended throughout execution.
-
-
 
 \---
 
-
-
 \# Evidence Model
-
-
 
 Streaming Evidence SHALL consist of immutable Evidence Artifacts.
 
-
-
 Each artifact:
-
-
 
 \* Represents a factual observation.
 
@@ -224,19 +148,11 @@ Each artifact:
 
 \* Has a deterministic order.
 
-
-
 Previously emitted artifacts SHALL NOT be modified.
-
-
 
 \---
 
-
-
 \# Streaming Model
-
-
 
 ```text
 
@@ -264,31 +180,17 @@ Execution Complete
 
 ```
 
-
-
 Each artifact becomes immediately available after creation.
-
-
 
 \---
 
-
-
 \# Ordering
-
-
 
 Streaming Evidence SHALL preserve logical ordering.
 
-
-
 Every artifact SHALL include ordering metadata sufficient to reconstruct the original execution sequence.
 
-
-
 Ordering MAY be represented by:
-
-
 
 \* Sequence Number
 
@@ -298,23 +200,13 @@ Ordering MAY be represented by:
 
 \* Equivalent deterministic mechanism
 
-
-
 \---
-
-
 
 \# Runtime Integration
 
-
-
 The Runtime MAY emit evidence after each Runtime Stage.
 
-
-
 Example:
-
-
 
 ```text
 
@@ -358,87 +250,45 @@ Evidence
 
 ```
 
-
-
 Streaming is an implementation capability.
-
-
 
 The Runtime Pipeline remains unchanged.
 
-
-
 \---
-
-
 
 \# ExecutionTransaction
 
-
-
 ExecutionTransaction SHALL contain the complete ordered evidence collection after execution completes.
-
-
 
 Streaming does not alter the final execution record.
 
-
-
 \---
-
-
 
 \# Verification
 
-
-
 The Verification Engine verifies the completed evidence collection.
-
-
 
 Verification SHALL NOT require live evidence streaming.
 
-
-
 Streaming is an optimization for operational visibility, not a verification requirement.
 
-
-
 \---
-
-
 
 \# Replay
 
-
-
 Replay consumes the completed immutable evidence collection.
-
-
 
 Replay MAY reconstruct intermediate execution milestones using streaming order metadata.
 
-
-
 Replay SHALL remain deterministic.
-
-
 
 \---
 
-
-
 \# Subscribers
-
-
 
 Implementations MAY expose evidence to subscribers.
 
-
-
 Typical consumers include:
-
-
 
 \* Monitoring systems.
 
@@ -450,23 +300,13 @@ Typical consumers include:
 
 \* Compliance platforms.
 
-
-
 Subscribers SHALL NOT modify evidence.
-
-
 
 \---
 
-
-
 \# Storage
 
-
-
 Storage SHALL preserve:
-
-
 
 \* Artifact ordering.
 
@@ -474,19 +314,11 @@ Storage SHALL preserve:
 
 \* Append-only semantics.
 
-
-
 Storage implementations MAY persist artifacts individually before assembling the final execution record.
-
-
 
 \---
 
-
-
 \# Package Mapping
-
-
 
 ```text
 
@@ -506,83 +338,43 @@ runtime/
 
 ```
 
-
-
 Streaming components extend Runtime without modifying the Core domain model.
 
-
-
 \---
-
-
 
 \# Compatibility
 
-
-
 This RFC is fully backward compatible.
-
-
 
 Implementations that do not support streaming continue to produce identical completed ExecutionTransactions.
 
-
-
 Streaming is optional.
 
-
-
 \---
-
-
 
 \# Alternatives Considered
 
-
-
 \## Buffer Until Completion
-
-
 
 Rejected because long-running executions benefit from incremental visibility.
 
-
-
 \---
-
-
 
 \## Mutable Evidence
 
-
-
 Rejected because modifying evidence violates append-only semantics and weakens execution trust.
 
-
-
 \---
-
-
 
 \## Event-Sourced Runtime
 
-
-
 Rejected because Parmana records execution evidence rather than treating events as the primary execution model.
-
-
 
 ExecutionTransaction remains the aggregate root.
 
-
-
 \---
 
-
-
 \# Open Questions
-
-
 
 \* Should evidence streams support filtering?
 
@@ -592,15 +384,9 @@ ExecutionTransaction remains the aggregate root.
 
 \* Should streaming back-pressure be part of the Runtime contract?
 
-
-
 \---
 
-
-
 \# Acceptance Criteria
-
-
 
 \* Runtime supports incremental evidence publication.
 
@@ -614,15 +400,9 @@ ExecutionTransaction remains the aggregate root.
 
 \* Replay remains deterministic.
 
-
-
 \---
 
-
-
 \# References
-
-
 
 \* 003-EXECUTION-TRANSACTION.md
 
@@ -643,6 +423,3 @@ ExecutionTransaction remains the aggregate root.
 \* ADR-0007 — Deterministic Execution
 
 \* RFC-0002 — Replay Engine
-
-
-

@@ -24,10 +24,7 @@
     "status": {
       "type": "string",
       "description": "Verification result.",
-      "enum": [
-        "VERIFIED",
-        "FAILED"
-      ]
+      "enum": ["VERIFIED", "FAILED"]
     },
     "message": {
       "type": "string",

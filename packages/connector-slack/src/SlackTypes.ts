@@ -15,9 +15,13 @@ import { createHash } from "node:crypto";
  * request's parameters is refused before any network call -- see
  * GatewaySlackAdapter.postMessage.
  */
-export const SLACK_ALLOWED_POST_MESSAGE_PARAMETERS = Object.freeze(["channel", "text"] as const);
+export const SLACK_ALLOWED_POST_MESSAGE_PARAMETERS = Object.freeze([
+  "channel",
+  "text",
+] as const);
 
-export type SlackAllowedPostMessageParameter = (typeof SLACK_ALLOWED_POST_MESSAGE_PARAMETERS)[number];
+export type SlackAllowedPostMessageParameter =
+  (typeof SLACK_ALLOWED_POST_MESSAGE_PARAMETERS)[number];
 
 /**
  * The built-in test-mode placeholder credential (createSlackCredential
@@ -44,10 +48,14 @@ export interface SlackCredentialValue {
   readonly botToken: string;
 }
 
-export function isSlackCredentialValue(value: unknown): value is SlackCredentialValue {
+export function isSlackCredentialValue(
+  value: unknown,
+): value is SlackCredentialValue {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Record<string, unknown>;
-  return typeof candidate.botToken === "string" && candidate.botToken.length > 0;
+  return (
+    typeof candidate.botToken === "string" && candidate.botToken.length > 0
+  );
 }
 
 /**
@@ -67,7 +75,9 @@ export interface SlackPostMessageResponse {
   readonly error?: string;
 }
 
-export function isSlackPostMessageResponse(value: unknown): value is SlackPostMessageResponse {
+export function isSlackPostMessageResponse(
+  value: unknown,
+): value is SlackPostMessageResponse {
   if (typeof value !== "object" || value === null) return false;
   return typeof (value as Record<string, unknown>).ok === "boolean";
 }

@@ -163,7 +163,8 @@ export interface ChallengeRecordInvestigationStep {
  * becoming "confirmed there's no issue") or down.
  */
 export interface ChallengeRecordFinding {
-  readonly outcome: "confirmed" | "partially-confirmed" | "ruled-out" | "inconclusive";
+  readonly outcome:
+    "confirmed" | "partially-confirmed" | "ruled-out" | "inconclusive";
 
   /**
    * Precise statement of what, exactly, the outcome means here. A

@@ -32,8 +32,7 @@ describe("Receipt Service", () => {
       verifications: [
         {
           verificationId: "v-1",
-          businessTransactionId:
-            transaction.businessTransactionId,
+          businessTransactionId: transaction.businessTransactionId,
           status: VerificationStatus.VERIFIED,
           message: "ok",
           verifiedAt: new Date(),
@@ -60,10 +59,9 @@ describe("Receipt Service", () => {
     //
     // Act
     //
-    const receipt: Receipt =
-      await receiptService.generate(
-        transaction.businessTransactionId,
-      );
+    const receipt: Receipt = await receiptService.generate(
+      transaction.businessTransactionId,
+    );
 
     //
     // Assert
@@ -72,9 +70,7 @@ describe("Receipt Service", () => {
       transaction.businessTransactionId,
     );
 
-    expect(receipt.trustRecordHash).toBe(
-      trustRecord.trustRecordHash,
-    );
+    expect(receipt.trustRecordHash).toBe(trustRecord.trustRecordHash);
 
     expect(receipt.receiptId).toBeDefined();
   });
@@ -109,9 +105,7 @@ describe("Receipt Service", () => {
     // Act + Assert
     //
     await expect(
-      receiptService.generate(
-        transaction.businessTransactionId,
-      ),
+      receiptService.generate(transaction.businessTransactionId),
     ).rejects.toThrow();
   });
 });

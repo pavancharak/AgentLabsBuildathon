@@ -13,7 +13,11 @@ import {
   type ExecutionTrustRecordRepository,
 } from "@parmana/shared";
 
-import { PolicyAction, type Policy, type PolicyRepository } from "@parmana/policy";
+import {
+  PolicyAction,
+  type Policy,
+  type PolicyRepository,
+} from "@parmana/policy";
 
 import { RuntimeBuilder } from "../../src/RuntimeBuilder.js";
 
@@ -55,14 +59,10 @@ afterEach(() => {
   rmSync(keyDir, { recursive: true, force: true });
 });
 
-class InMemoryExecutionTrustRecordRepository
-  implements ExecutionTrustRecordRepository
-{
+class InMemoryExecutionTrustRecordRepository implements ExecutionTrustRecordRepository {
   public created: ExecutionTrustRecord[] = [];
 
-  async create(
-    record: ExecutionTrustRecord,
-  ): Promise<ExecutionTrustRecord> {
+  async create(record: ExecutionTrustRecord): Promise<ExecutionTrustRecord> {
     this.created.push(record);
     return record;
   }
@@ -191,4 +191,3 @@ describe("Runtime (facade)", () => {
     expect(runtime.size()).toBe(0);
   });
 });
-

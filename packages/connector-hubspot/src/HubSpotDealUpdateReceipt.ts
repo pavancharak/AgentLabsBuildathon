@@ -53,8 +53,12 @@ export async function buildHubSpotDealUpdateReceipt(
     businessTransactionId: options.businessTransactionId,
     approved: options.approved,
     dealId: options.dealId,
-    ...(options.proposedDealStage !== undefined ? { proposedDealStage: options.proposedDealStage } : {}),
-    ...(options.proposedAmount !== undefined ? { proposedAmount: options.proposedAmount } : {}),
+    ...(options.proposedDealStage !== undefined
+      ? { proposedDealStage: options.proposedDealStage }
+      : {}),
+    ...(options.proposedAmount !== undefined
+      ? { proposedAmount: options.proposedAmount }
+      : {}),
     ...(options.deal !== undefined
       ? {
           ...(options.deal.properties.dealstage !== undefined
@@ -66,7 +70,9 @@ export async function buildHubSpotDealUpdateReceipt(
         }
       : {}),
     policyDecision: options.policyDecision,
-    ...(options.bearerRedacted !== undefined ? { bearerRedacted: options.bearerRedacted } : {}),
+    ...(options.bearerRedacted !== undefined
+      ? { bearerRedacted: options.bearerRedacted }
+      : {}),
     ...(options.connectorEvidenceHash !== undefined
       ? { connectorEvidenceHash: options.connectorEvidenceHash }
       : {}),

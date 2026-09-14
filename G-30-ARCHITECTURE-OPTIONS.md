@@ -58,11 +58,11 @@ prevents that from happening again before whichever future session picks this up
 
 **Trade-offs:**
 
-| | |
-|---|---|
-| Pro | Ships now, zero code risk, zero new coupling |
-| Pro | Defers the coupling decision (B vs. C) to whenever there's time to do it properly |
-| Con | The exact mechanism that caused G-30 is still live in the codebase |
+|     |                                                                                                                 |
+| --- | --------------------------------------------------------------------------------------------------------------- |
+| Pro | Ships now, zero code risk, zero new coupling                                                                    |
+| Pro | Defers the coupling decision (B vs. C) to whenever there's time to do it properly                               |
+| Con | The exact mechanism that caused G-30 is still live in the codebase                                              |
 | Con | Depends on someone remembering to revisit it — the same failure mode as G-30 itself (a thing nobody's watching) |
 
 ---
@@ -72,7 +72,7 @@ prevents that from happening again before whichever future session picks this up
 **What this actually requires**, corrected against the real APIs:
 
 `createConnectorRegistry()` isn't a zero-argument static lookup — it's a factory that
-constructs the *executable* production registry, requiring a `ConnectorAuthenticator`,
+constructs the _executable_ production registry, requiring a `ConnectorAuthenticator`,
 `InMemoryGatewaySessionStore`, an `ExecutionAuditSink`, and a `gatewayAuthentication` value, and
 internally calls `CryptoBootstrap.create()` and the two connector-credential factories. Getting
 a real registry instance means building all of that in the test, the same way
@@ -89,7 +89,12 @@ import { createConnectorRegistry } from "@parmana/api/bootstrap/createConnectorR
 // ...plus everything createConnectorRegistry needs to construct: an authenticator,
 // a session store, an audit sink, and a gatewayAuthentication value.
 
-const registry = createConnectorRegistry(authenticator, sessions, audit, gatewayAuth);
+const registry = createConnectorRegistry(
+  authenticator,
+  sessions,
+  audit,
+  gatewayAuth,
+);
 
 const registeredCapabilities = new Set(
   registry.list().flatMap((connector) => connector.capabilities),
@@ -117,13 +122,13 @@ plus a 30-minute test rewrite.
 
 **Trade-offs:**
 
-| | |
-|---|---|
-| Pro | Closes the specific divergence that caused G-30 — the coverage test would now fail immediately if a connector's capability isn't bound |
-| Pro | No new package to create or version |
+|     |                                                                                                                                                                                                                                                          |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pro | Closes the specific divergence that caused G-30 — the coverage test would now fail immediately if a connector's capability isn't bound                                                                                                                   |
+| Pro | No new package to create or version                                                                                                                                                                                                                      |
 | Con | Adds a real dependency edge (`packages/policy` → `packages/api`) in the direction the current architecture doesn't have; `packages/policy` currently has zero workspace dependencies at all (checked: only `@supabase/supabase-js`, `express`, `vitest`) |
-| Con | Test now depends on constructing the full production registry (credentials, session store, audit sink), which is meaningfully more test setup than today's plain map comparison |
-| Con | Only closes the gap for *this one test* — the production map (`CANONICAL_CAPABILITY_POLICY_BINDINGS` itself) is still hand-written; a missing binding still ships to `main`, just gets caught by CI instead of silently passing |
+| Con | Test now depends on constructing the full production registry (credentials, session store, audit sink), which is meaningfully more test setup than today's plain map comparison                                                                          |
+| Con | Only closes the gap for _this one test_ — the production map (`CANONICAL_CAPABILITY_POLICY_BINDINGS` itself) is still hand-written; a missing binding still ships to `main`, just gets caught by CI instead of silently passing                          |
 
 ---
 
@@ -131,10 +136,10 @@ plus a 30-minute test rewrite.
 
 **What this actually requires**, thought through past the prompt's package-tree sketch:
 
-The two things currently out of sync are (1) *which capability identifiers exist* (currently:
+The two things currently out of sync are (1) _which capability identifiers exist_ (currently:
 string literals scattered across `GitHubCapabilities.ts`, `HubSpotCapabilities.ts`,
-`CANONICAL_CAPABILITY_POLICY_BINDINGS`, and the coverage test) and (2) *which of those are
-actually wired into the production registry*, which is inherently a runtime fact (credential
+`CANONICAL_CAPABILITY_POLICY_BINDINGS`, and the coverage test) and (2) _which of those are
+actually wired into the production registry_, which is inherently a runtime fact (credential
 availability, `NODE_ENV`), not something a static shared package can fully capture on its own.
 A shared package can cleanly solve (1) — both `packages/connector-github` and
 `packages/connector-hubspot` already export capability-identifier constants
@@ -148,6 +153,7 @@ declarative list from the shared package rather than hand-calling `registrations
 connector as it does today.
 
 **Realistic scope, if pursued:**
+
 1. New `packages/capability-registry` package holding capability-identifier constants
    (re-exported, not duplicated, from what `connector-github`/`connector-hubspot` already
    define) and `CANONICAL_CAPABILITY_POLICY_BINDINGS` itself.
@@ -174,27 +180,27 @@ estimate, and arguably its own decision rather than bundled into "Option C."
 
 **Trade-offs:**
 
-| | |
-|---|---|
-| Pro | Single place capability identifiers are defined; removes one real source of typo-level drift |
-| Pro | `packages/policy` → `packages/api` coupling from Option B is avoided entirely |
-| Pro | Downstream import churn is close to zero (re-export point absorbs it) |
-| Con | New package to build, version, and maintain in the monorepo |
+|     |                                                                                                                                                                                                                              |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pro | Single place capability identifiers are defined; removes one real source of typo-level drift                                                                                                                                 |
+| Pro | `packages/policy` → `packages/api` coupling from Option B is avoided entirely                                                                                                                                                |
+| Pro | Downstream import churn is close to zero (re-export point absorbs it)                                                                                                                                                        |
+| Con | New package to build, version, and maintain in the monorepo                                                                                                                                                                  |
 | Con | Does not, by itself, close the runtime-registration half of the gap (see step 4) — a connector could still be registered without updating the shared package, unless `createConnectorRegistry.ts` is separately restructured |
-| Con | Larger surface change for a security-adjacent path right before a submission checkpoint |
+| Con | Larger surface change for a security-adjacent path right before a submission checkpoint                                                                                                                                      |
 
 ---
 
 ## Decision Matrix
 
-| Criterion | Option A | Option B | Option C |
-|---|---|---|---|
-| Time to implement | ~30 min (docs only) | ~2–3 hrs (revised) | ~2 hrs for scaffolding; step 4 (full closure) is a separate day-sized effort |
-| New dependency edge | None | `packages/policy` → `packages/api` | None (new leaf package instead) |
-| Closes identifier-typo drift | No | No (test-only check) | Yes |
-| Closes runtime-registration drift | No | Yes, for the one test | No, unless step 4 is also done |
-| Downstream import churn | None | None | Near-zero (one re-export point) |
-| Code risk before a submission checkpoint | None | Low-moderate | Moderate |
+| Criterion                                | Option A            | Option B                           | Option C                                                                     |
+| ---------------------------------------- | ------------------- | ---------------------------------- | ---------------------------------------------------------------------------- |
+| Time to implement                        | ~30 min (docs only) | ~2–3 hrs (revised)                 | ~2 hrs for scaffolding; step 4 (full closure) is a separate day-sized effort |
+| New dependency edge                      | None                | `packages/policy` → `packages/api` | None (new leaf package instead)                                              |
+| Closes identifier-typo drift             | No                  | No (test-only check)               | Yes                                                                          |
+| Closes runtime-registration drift        | No                  | Yes, for the one test              | No, unless step 4 is also done                                               |
+| Downstream import churn                  | None                | None                               | Near-zero (one re-export point)                                              |
+| Code risk before a submission checkpoint | None                | Low-moderate                       | Moderate                                                                     |
 
 ---
 

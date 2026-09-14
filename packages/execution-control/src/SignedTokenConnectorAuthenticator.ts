@@ -38,7 +38,10 @@ export class SignedTokenConnectorAuthenticator implements RequestBoundConnectorA
     private readonly connectorIdentities: readonly ConnectorIdentity[],
   ) {}
 
-  authenticateGateway(identity: GatewayIdentity, authentication: unknown): boolean {
+  authenticateGateway(
+    identity: GatewayIdentity,
+    authentication: unknown,
+  ): boolean {
     return this.verifiedAttestation(identity, authentication) !== undefined;
   }
 
@@ -48,13 +51,17 @@ export class SignedTokenConnectorAuthenticator implements RequestBoundConnectorA
     authorizationId: string,
   ): boolean {
     const attestation = this.verifiedAttestation(identity, authentication);
-    return attestation !== undefined && attestation.payload.authorizationId === authorizationId;
+    return (
+      attestation !== undefined &&
+      attestation.payload.authorizationId === authorizationId
+    );
   }
 
   authenticateConnector(identity: ConnectorIdentity): boolean {
-    return this.connectorIdentities.some((trusted) =>
-      trusted.connectorId === identity.connectorId &&
-      trusted.publicIdentity === identity.publicIdentity,
+    return this.connectorIdentities.some(
+      (trusted) =>
+        trusted.connectorId === identity.connectorId &&
+        trusted.publicIdentity === identity.publicIdentity,
     );
   }
 
@@ -62,13 +69,19 @@ export class SignedTokenConnectorAuthenticator implements RequestBoundConnectorA
     identity: GatewayIdentity,
     authentication: unknown,
   ): GatewayAttestation | undefined {
-    if (identity.gatewayId !== this.gateway.gatewayId ||
-      identity.publicIdentity !== this.gateway.publicIdentity) {
+    if (
+      identity.gatewayId !== this.gateway.gatewayId ||
+      identity.publicIdentity !== this.gateway.publicIdentity
+    ) {
       return undefined;
     }
     if (!isGatewayAttestation(authentication)) return undefined;
-    if (authentication.payload.gatewayId !== this.gateway.gatewayId) return undefined;
-    if (!verifyGatewayAttestationSignature(authentication, this.gatewayPublicKey)) return undefined;
+    if (authentication.payload.gatewayId !== this.gateway.gatewayId)
+      return undefined;
+    if (
+      !verifyGatewayAttestationSignature(authentication, this.gatewayPublicKey)
+    )
+      return undefined;
     return authentication;
   }
 }

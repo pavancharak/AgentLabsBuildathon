@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import type { Pool } from "pg";
 
-import { ConflictError, type ChallengeRecord, type ChallengeRecordRepository } from "@parmana/shared";
+import {
+  ConflictError,
+  type ChallengeRecord,
+  type ChallengeRecordRepository,
+} from "@parmana/shared";
 
 import { MemoryChallengeRecordRepository } from "../../src/memory/MemoryChallengeRecordRepository.js";
 import { PostgresChallengeRecordRepository } from "../../src/postgres/PostgresChallengeRecordRepository.js";
@@ -41,10 +45,14 @@ function createFakePool(): Pool {
           status,
           claim_challenged: claimChallenged,
           source_json: JSON.parse(sourceJson as string),
-          investigation_steps_json: JSON.parse(investigationStepsJson as string),
+          investigation_steps_json: JSON.parse(
+            investigationStepsJson as string,
+          ),
           finding_json: findingJson ? JSON.parse(findingJson as string) : null,
           outcome_json: outcomeJson ? JSON.parse(outcomeJson as string) : null,
-          disclosure_json: disclosureJson ? JSON.parse(disclosureJson as string) : null,
+          disclosure_json: disclosureJson
+            ? JSON.parse(disclosureJson as string)
+            : null,
           supersedes: supersedes ?? null,
           created_at: new Date(createdAt as string),
           updated_at: new Date(updatedAt as string),
@@ -70,10 +78,18 @@ function createFakePool(): Pool {
           rows.set(challengeRecordId as string, {
             ...existing,
             status,
-            investigation_steps_json: JSON.parse(investigationStepsJson as string),
-            finding_json: findingJson ? JSON.parse(findingJson as string) : null,
-            outcome_json: outcomeJson ? JSON.parse(outcomeJson as string) : null,
-            disclosure_json: disclosureJson ? JSON.parse(disclosureJson as string) : null,
+            investigation_steps_json: JSON.parse(
+              investigationStepsJson as string,
+            ),
+            finding_json: findingJson
+              ? JSON.parse(findingJson as string)
+              : null,
+            outcome_json: outcomeJson
+              ? JSON.parse(outcomeJson as string)
+              : null,
+            disclosure_json: disclosureJson
+              ? JSON.parse(disclosureJson as string)
+              : null,
             updated_at: new Date(updatedAt as string),
           });
         }
@@ -123,8 +139,14 @@ function buildChallengeRecord(challengeRecordId: string): ChallengeRecord {
  * enforced append-only semantics from the shape of the result alone.
  */
 describe.each<[string, () => ChallengeRecordRepository]>([
-  ["MemoryChallengeRecordRepository", () => new MemoryChallengeRecordRepository()],
-  ["PostgresChallengeRecordRepository", () => new PostgresChallengeRecordRepository(createFakePool())],
+  [
+    "MemoryChallengeRecordRepository",
+    () => new MemoryChallengeRecordRepository(),
+  ],
+  [
+    "PostgresChallengeRecordRepository",
+    () => new PostgresChallengeRecordRepository(createFakePool()),
+  ],
 ])("%s", (_name, createRepository) => {
   it("carries a Challenge Record through its full lifecycle: open -> investigating -> resolved, with investigation steps, finding, outcome, and disclosure", async () => {
     const repository = createRepository();
@@ -163,7 +185,8 @@ describe.each<[string, () => ChallengeRecordRepository]>([
       kind: "finding",
       finding: {
         outcome: "confirmed",
-        statement: "PostgREST's schema cache is stuck at the REST layer specifically.",
+        statement:
+          "PostgREST's schema cache is stuck at the REST layer specifically.",
       },
     });
 
@@ -171,7 +194,8 @@ describe.each<[string, () => ChallengeRecordRepository]>([
       kind: "outcome",
       outcome: {
         changed: true,
-        description: "Shipped a direct-Postgres bypass for the two affected audit sinks.",
+        description:
+          "Shipped a direct-Postgres bypass for the two affected audit sinks.",
         references: ["docs/rfcs/RFC-0022-Challenge-Record.md"],
       },
     });
@@ -195,7 +219,9 @@ describe.each<[string, () => ChallengeRecordRepository]>([
     expect(current.outcome?.changed).toBe(true);
     expect(current.disclosure?.disclosedPublicly).toBe(true);
     expect(current.investigationSteps).toHaveLength(2);
-    expect(current.updatedAt.getTime()).toBeGreaterThan(current.createdAt.getTime());
+    expect(current.updatedAt.getTime()).toBeGreaterThan(
+      current.createdAt.getTime(),
+    );
 
     const reloaded = await repository.findById("lifecycle-1");
     expect(reloaded).toEqual(current);
@@ -213,7 +239,10 @@ describe.each<[string, () => ChallengeRecordRepository]>([
     await expect(
       repository.append("finding-1", {
         kind: "finding",
-        finding: { outcome: "confirmed", statement: "Attempted second finding." },
+        finding: {
+          outcome: "confirmed",
+          statement: "Attempted second finding.",
+        },
       }),
     ).rejects.toBeInstanceOf(ConflictError);
 
@@ -227,13 +256,21 @@ describe.each<[string, () => ChallengeRecordRepository]>([
 
     await repository.append("outcome-1", {
       kind: "outcome",
-      outcome: { changed: false, description: "First outcome.", references: [] },
+      outcome: {
+        changed: false,
+        description: "First outcome.",
+        references: [],
+      },
     });
 
     await expect(
       repository.append("outcome-1", {
         kind: "outcome",
-        outcome: { changed: true, description: "Attempted second outcome.", references: [] },
+        outcome: {
+          changed: true,
+          description: "Attempted second outcome.",
+          references: [],
+        },
       }),
     ).rejects.toBeInstanceOf(ConflictError);
   });
@@ -259,7 +296,10 @@ describe.each<[string, () => ChallengeRecordRepository]>([
     const repository = createRepository();
     await repository.create(buildChallengeRecord("status-1"));
 
-    await repository.append("status-1", { kind: "status", status: "investigating" });
+    await repository.append("status-1", {
+      kind: "status",
+      status: "investigating",
+    });
 
     await expect(
       repository.append("status-1", { kind: "status", status: "open" }),
@@ -270,10 +310,16 @@ describe.each<[string, () => ChallengeRecordRepository]>([
     const repository = createRepository();
     await repository.create(buildChallengeRecord("status-2"));
 
-    await repository.append("status-2", { kind: "status", status: "investigating" });
+    await repository.append("status-2", {
+      kind: "status",
+      status: "investigating",
+    });
 
     await expect(
-      repository.append("status-2", { kind: "status", status: "investigating" }),
+      repository.append("status-2", {
+        kind: "status",
+        status: "investigating",
+      }),
     ).rejects.toBeInstanceOf(ConflictError);
   });
 
@@ -283,12 +329,20 @@ describe.each<[string, () => ChallengeRecordRepository]>([
 
     await repository.append("steps-1", {
       kind: "investigation-step",
-      step: { performedAt: new Date("2026-08-03T01:00:00.000Z"), method: "step one", observation: "obs one" },
+      step: {
+        performedAt: new Date("2026-08-03T01:00:00.000Z"),
+        method: "step one",
+        observation: "obs one",
+      },
     });
 
     const afterSecond = await repository.append("steps-1", {
       kind: "investigation-step",
-      step: { performedAt: new Date("2026-08-03T02:00:00.000Z"), method: "step two", observation: "obs two" },
+      step: {
+        performedAt: new Date("2026-08-03T02:00:00.000Z"),
+        method: "step two",
+        observation: "obs two",
+      },
     });
 
     expect(afterSecond.investigationSteps.map((s) => s.method)).toEqual([

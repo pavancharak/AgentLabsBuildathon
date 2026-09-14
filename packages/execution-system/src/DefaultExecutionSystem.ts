@@ -1,14 +1,8 @@
-import {
-  ExecutionResult,
-} from "@parmana/shared";
+import { ExecutionResult } from "@parmana/shared";
 
-import {
-  ExecutionRequest,
-} from "./ExecutionRequest.js";
+import { ExecutionRequest } from "./ExecutionRequest.js";
 
-import {
-  ExecutionSystem,
-} from "./ExecutionSystem.js";
+import { ExecutionSystem } from "./ExecutionSystem.js";
 
 /**
  * Default Execution System.
@@ -16,24 +10,16 @@ import {
  * Placeholder implementation used until a real
  * enterprise execution system is configured.
  */
-export class DefaultExecutionSystem
-  implements ExecutionSystem
-{
-  public async execute(
-    request: ExecutionRequest,
-  ): Promise<ExecutionResult> {
+export class DefaultExecutionSystem implements ExecutionSystem {
+  public async execute(request: ExecutionRequest): Promise<ExecutionResult> {
     return {
-      businessTransactionId:
-        request.businessTransactionId,
+      businessTransactionId: request.businessTransactionId,
 
-      action:
-        request.action,
+      action: request.action,
 
-      target:
-        request.target,
+      target: request.target,
 
-      parameters:
-        request.parameters,
+      parameters: request.parameters,
 
       success: true,
 

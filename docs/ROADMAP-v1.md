@@ -18,13 +18,13 @@ call below is made against that specific bar.
 Run before any audit work, so the audit itself rests on a verified baseline rather than trust
 in this document's own claims.
 
-| Check | Result |
-|---|---|
-| `git status` | Clean. Branch `main`, one local commit ahead of `origin/main` at time of audit. |
+| Check                   | Result                                                                                                                                                                                                                                                                                                                                              |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `git status`            | Clean. Branch `main`, one local commit ahead of `origin/main` at time of audit.                                                                                                                                                                                                                                                                     |
 | `git log --oneline -15` | Most recent work: a test-alignment commit (`c282b8d`), an execution-system rename (`850e7ab`, see below), a runtime refactor separating business trust from execution trust building (`7c0f186`), a docs restructuring (`5a2b4d1`), and the credential-isolation feature landing (`651497a`). No surprises; consistent with recent session history. |
-| `npm run rebuild` | Clean, no errors. |
-| `npx tsc -b` | Exit 0. Whole workspace type-checks. |
-| `npm test` | **345 passed, 1 skipped, 84 test files.** Green. |
+| `npm run rebuild`       | Clean, no errors.                                                                                                                                                                                                                                                                                                                                   |
+| `npx tsc -b`            | Exit 0. Whole workspace type-checks.                                                                                                                                                                                                                                                                                                                |
+| `npm test`              | **345 passed, 1 skipped, 84 test files.** Green.                                                                                                                                                                                                                                                                                                    |
 
 **ExecutionTrustRecord to ExecutionTrustAttestation rename: NOT complete, and arguably not a
 rename at all.** Commit `850e7ab` ("rename execution trust record to execution trust
@@ -56,6 +56,7 @@ Each of the following was named as a known item going into this audit. All seven
 still true, with fresh evidence as of `c282b8d`, not carried over from memory.
 
 ### 1.1 `@parmana/receipt` package is orphaned
+
 Zero production dependents. `grep "@parmana/receipt"` across every `package.json` in the
 workspace returns only `packages/receipt/package.json` itself; across source and tests it
 returns only the package's own files plus three tutorials (54, 55, 56). Neither `packages/api`
@@ -64,12 +65,14 @@ nor `packages/runtime` depends on it. The receipt actually produced in productio
 a different, unrelated shape from the package's own `ExecutionReceipt` model. See D4, D5, O1.
 
 ### 1.2 `ExecutionPermit` model has no production caller
+
 `ExecutionPermitBuilder` (`packages/execution-control/src/ExecutionPermitBuilder.ts`) is
 exported from `execution-control`'s index but `grep -rn "new ExecutionPermitBuilder("` across
 the repository returns zero results. Its only consumer is the equally-orphaned
 `ExecutionReceiptBuilder` in the dead `@parmana/receipt` package (1.1).
 
 ### 1.3 `POST /execute` malformed body returns an unhandled 500
+
 Confirmed with exact evidence, not previously documented anywhere (including
 `VERIFICATION-GAPS.md`). `packages/api/src/routes/execute.ts:47-57` validates only
 `businessTransactionId` (a UUID regex). Every other field (`metadata`, `authority`,
@@ -88,6 +91,7 @@ different scenario entirely). **This is exactly the kind of input a security rev
 hour of fuzzing finds.** New gap: **G-12**.
 
 ### 1.4 Hybrid/PQ configuration is dead, and the dead chain is larger than previously documented
+
 `VERIFICATION-GAPS.md` G-4 already documents that `CRYPTO_MODE` is read into config but never
 consulted anywhere else, and that all three production signing call sites hardcode
 `CryptoBootstrap.create()` (single-provider) rather than `createHybrid()`. This audit confirms
@@ -100,6 +104,7 @@ to `ExecutionTrustAttestationBuilder`/`ExecutionPermitBuilder` to `ExecutionRece
 `@parmana/receipt`, an entire unwired subsystem, five packages deep. Extends **G-4**.
 
 ### 1.5 Dead bootstrap files: `ConnectorFactory` and `ExecutionControlComposition`
+
 Both exist under `packages/api/src/bootstrap/`. `ConnectorFactory.createAll()` is a stub
 returning `[]`. `ExecutionControlComposition.ts` is a full, working composition root, but
 nothing imports it outside `ConnectorFactory.ts` itself, and nothing imports
@@ -110,6 +115,7 @@ helpers. Two composition roots exist for the same responsibility; only one is re
 class. Do not conflate the two when acting on this finding.) New gap: **G-13**.
 
 ### 1.6 Runtime has no Clock injection seam
+
 Zero references to any `Clock` type in `packages/runtime/src` (confirmed by grep). Eight files
 construct timestamps that end up in immutable records via direct `new Date()` calls:
 `BusinessTrustRecordBuilder.ts:39`, `DecisionBuilder.ts:66`, `ExecutionBuilder.ts:48`,
@@ -123,6 +129,7 @@ between: no `Clock` interface, but at least a `now: Date = new Date()` default-p
 pattern that permits test override, unlike runtime's hardcoded calls. New gap: **G-14**.
 
 ### 1.7 Legacy docs tree and `GOVERNANCE.md` are stale, not just "older"
+
 `docs/00-introduction`, `docs/01-concepts`, `docs/02-architecture`, and `docs/03-api` were all
 created in a single commit on 2026-07-03 and have never been touched since, despite the
 architecture they describe changing materially afterward (the crypto provider refactor, the
@@ -132,7 +139,7 @@ x3, `RFC-0009` x2, `RFC-0010` x2), consistent with an uncurated set of supersede
 `GOVERNANCE.md` has had exactly 2 commits, the last on 2026-06-27, effectively frozen since
 the repository's first week. `docs/site` (the Mintlify site) is the only docs tree with commits
 as recent as the current HEAD. This was already flagged as deferred, out of scope, in
-`VERIFICATION-GAPS.md`; this audit adds the evidence for *why* it should stay deferred-and-
+`VERIFICATION-GAPS.md`; this audit adds the evidence for _why_ it should stay deferred-and-
 flagged rather than deferred-and-forgotten: anyone citing the legacy tree as authoritative
 today would be citing pre-refactor architecture.
 
@@ -141,6 +148,7 @@ today would be citing pre-refactor architecture.
 ## 2. Duplicate implementations
 
 ### D1. The "secure connector release" concept is implemented three times
+
 - **(a) `packages/execution-control`** (`InMemoryConnectorRegistry`, `SecureConnector`,
   `GatewayExecutionRequest`): the production path. Consumed by `ExecutionControlService`,
   `packages/api/src/bootstrap/ExecutionControlComposition.ts` (dead, see 1.5, but same types),
@@ -149,7 +157,7 @@ today would be citing pre-refactor architecture.
   duplicate. It wraps an internal `InMemoryConnectorRegistry` and delegates `get()` verbatim,
   adding authoring ergonomics on top (metadata, versioning, executor wiring). No action needed.
 - **(c) `packages/execution-gateway/src/connector-runtime/*`** (7 files, 380 lines): a fully
-  independent, structurally different reimplementation under the *same names* as (a)
+  independent, structurally different reimplementation under the _same names_ as (a)
   (`ConnectorIdentity`, `SecureConnector`, `ConnectorRegistry`, `ExecutionAuditSink`,
   `ConnectorPolicy`) but different shapes (`invoke()` instead of `execute()`, different
   identity fields). Its **only** consumer anywhere in the repository is
@@ -162,11 +170,13 @@ Two unrelated classes are both literally named `CapabilityConnectorPolicy` (one 
 small hazard independent of the larger duplication.
 
 ### D2. `channel`/`gatewayIdentity` (legacy) vs `service`/`gatewayAuthentication` (modern) on `ExecutionGatewayOptions`
+
 Both live on the same interface, one marked `@deprecated` in a doc comment. Production
 bootstrap (`createExecutionGateway.ts`) only ever sets `service`/`gatewayAuthentication`. The
 `channel` path's only caller is the same test file as D1(c).
 
 ### D3. Direct `connector` option vs `executionControl.service` on `ExecutionGatewayOptions`
+
 Unlike D1/D2, this one is not fully dead: it is used deliberately in
 `examples/04-verified-execution/run.ts` and, notably, in
 `examples/tutorials/60-end-to-end-enterprise-execution/run.ts`, which explicitly contrasts a
@@ -176,12 +186,14 @@ intentional public "simple mode" API for newcomers, demonstrated as superseded b
 tutorial that uses it, rather than dead code.
 
 ### D4. `ExecutionTrustRecord` (shared, live) vs `ExecutionTrustAttestation` (execution-system, orphaned)
+
 Covered in Phase 0 above. Different shapes, different purposes on paper (aggregate record vs.
 signed envelope), but the naming collision plus the fact that the "attestation" side is never
 instantiated makes this read as an incomplete migration rather than two deliberately distinct
 concepts.
 
 ### D5. Three parallel `Receipt` models
+
 1. `packages/shared/src/domain/receipt.ts` (`Receipt`): live, produced by
    `packages/runtime/src/services/receipt-service.ts`, the real production path.
 2. `packages/receipt/src/ReceiptEngine.ts` (a second, differently-shaped `Receipt`): zero call
@@ -195,14 +207,17 @@ concepts.
 ## 3. Obsolete classes, files, and packages
 
 ### O1. `@parmana/receipt` package
+
 Confirmed orphaned (1.1). Depends on two other orphaned classes (`ExecutionTrustAttestationBuilder`,
 `ExecutionPermitBuilder`). Its only reason to exist today is to be demonstrated by three
 tutorials that could equally demonstrate the real `ReceiptService`.
 
 ### O2. `ExecutionTrustAttestationBuilder`
+
 Exported, never instantiated anywhere, including in its own package's tests (1.4, D4).
 
 ### O3. `@parmana/replay` — NOT obsolete, a wiring gap
+
 Different in kind from the others: this is a substantial, real implementation (14 source
 files: `ReplayEngine`, `ReplayExecutor`, `ReplayPipeline`, `ReplayVerifier`, etc.), not dead
 code. But it has exactly one consumer repository-wide, tutorial 06, and is not a dependency of
@@ -213,6 +228,7 @@ project's shadow-pilot success criteria, this is worth resolving deliberately ra
 leaving as an accidental gap. See section 7.
 
 ### O4. `examples/archive/` — 90 directories, 2 files, zero references
+
 `find examples/archive -type f` returns exactly two files
 (`32-multi-step-execution/transaction.json`, `32-runtime-pipeline/run.ts`); the other 88
 directories are empty. Nothing in the repository (no README, no npm script, no docs page)
@@ -223,14 +239,17 @@ have no counterpart anywhere else in the repo and read as an unexecuted content 
 than abandoned work.
 
 ### O5. `packages/execution-gateway/src/connector-runtime/*`
+
 Same finding as D1(c), restated here because it also qualifies as obsolete on its own terms:
 380 lines, one test file as its only consumer, tied to the deprecated `channel` field (D2).
 
 ### O6. Direct `connector` field on `ExecutionGatewayOptions`
+
 Same finding as D3, restated here: not dead, but zero production bootstrap usage, load-bearing
 only for two example/tutorial files.
 
 ### O7. Trademark symbols remaining in code and docs
+
 Not part of the original known-items list, found during this audit while checking the locked
 architecture principle "no trademark symbols anywhere in code or docs." Five files still carry
 "™" after two symbols (`Execution Permit`, `Execution Trust Record`, `Execution Receipt`,
@@ -242,6 +261,7 @@ architecture principle "no trademark symbols anywhere in code or docs." Five fil
 files). New gap: **G-17**.
 
 ### O8. Stray "Execution Governance" outside the already-deferred legacy tree
+
 `docs/specifications/reference-policies.md:235` lists "Execution Governance" as one of four
 example values for a policy schema's `category` field (alongside "Execution Authorization,"
 "Deployment Governance," "Access Governance"). This file is not part of the previously
@@ -266,6 +286,7 @@ pre-production), G-9 (duplicate audit logging, pre-production), G-10 (vague CLAI
 citations, cosmetic), G-11 (undocumented env vars, cosmetic).
 
 **Already tracked, this audit extends with new evidence:**
+
 - **G-4** (hybrid/PQ dead config): extended per 1.4. The dead chain is five packages deep, not
   one env var. This changes the calculus on D-2's two options: Option B (document as
   single-provider, remove `CRYPTO_MODE`) now also implies either deleting or explicitly
@@ -275,19 +296,20 @@ citations, cosmetic), G-11 (undocumented env vars, cosmetic).
 
 **New gaps from this audit:**
 
-| Gap | Severity | Summary | Source |
-|---|---|---|---|
-| **G-12** | blocks-pilot | `POST /execute` with a malformed/incomplete body throws an unhandled `TypeError`, surfaced as an opaque 500, not a clean 400. Zero test coverage. | 1.3 |
-| **G-13** | pre-production | Two composition roots for Execution Control exist (`ExecutionControlComposition`/`ConnectorFactory`, dead, vs. `createExecutionControl.ts`, real). Reading the wrong one as source of truth risks real confusion for new contributors or auditors. | 1.5 |
-| **G-14** | pre-production | `packages/runtime` has no Clock injection seam; 8 files call `new Date()` directly for timestamps embedded in immutable trust/decision/execution/receipt records, undermining deterministic replay testing and requiring global `Date` mocking in tests instead of DI. | 1.6 |
-| **G-15** | pre-production | The `ExecutionTrustRecord`/`ExecutionTrustAttestation` naming collision (Phase 0, D4) is a readability and onboarding hazard: two types with the words "Execution Trust" in their name, only one of which is real, and the commit that introduced the second one described it as a rename of the first. |  Phase 0, D4 |
-| **G-16** | cosmetic | `examples/archive/` (90 directories, effectively empty) is unreferenced dead scaffolding. | O4 |
-| **G-17** | cosmetic, but flagged against a locked principle | Trademark symbols ("™") remain in `README.md` and tutorials 53-56, violating the explicit "no trademark symbols anywhere in code or docs" architecture principle. | O7 |
-| **G-18** | cosmetic | Stray "Execution Governance" category-example value in `docs/specifications/reference-policies.md`, outside the already-deferred legacy tree, missed by the terminology sweep. **RESOLVED 2026-07-17** — see `docs/VERIFICATION-GAPS.md`, "Gaps closed in the 2026-07-17 audit closeout session," item 19; the stray value was replaced with "AI Execution Authorization." | O8 |
-| **G-19** | pre-production | `@parmana/replay` (O3) is a real, tested capability with zero HTTP entry point and zero wiring into `packages/api`/`packages/runtime`. Directly relevant because "verifiable records" is a named success criterion for the shadow pilot this roadmap targets. | O3 |
+| Gap      | Severity                                         | Summary                                                                                                                                                                                                                                                                                                                                                                    | Source      |
+| -------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| **G-12** | blocks-pilot                                     | `POST /execute` with a malformed/incomplete body throws an unhandled `TypeError`, surfaced as an opaque 500, not a clean 400. Zero test coverage.                                                                                                                                                                                                                          | 1.3         |
+| **G-13** | pre-production                                   | Two composition roots for Execution Control exist (`ExecutionControlComposition`/`ConnectorFactory`, dead, vs. `createExecutionControl.ts`, real). Reading the wrong one as source of truth risks real confusion for new contributors or auditors.                                                                                                                         | 1.5         |
+| **G-14** | pre-production                                   | `packages/runtime` has no Clock injection seam; 8 files call `new Date()` directly for timestamps embedded in immutable trust/decision/execution/receipt records, undermining deterministic replay testing and requiring global `Date` mocking in tests instead of DI.                                                                                                     | 1.6         |
+| **G-15** | pre-production                                   | The `ExecutionTrustRecord`/`ExecutionTrustAttestation` naming collision (Phase 0, D4) is a readability and onboarding hazard: two types with the words "Execution Trust" in their name, only one of which is real, and the commit that introduced the second one described it as a rename of the first.                                                                    | Phase 0, D4 |
+| **G-16** | cosmetic                                         | `examples/archive/` (90 directories, effectively empty) is unreferenced dead scaffolding.                                                                                                                                                                                                                                                                                  | O4          |
+| **G-17** | cosmetic, but flagged against a locked principle | Trademark symbols ("™") remain in `README.md` and tutorials 53-56, violating the explicit "no trademark symbols anywhere in code or docs" architecture principle.                                                                                                                                                                                                          | O7          |
+| **G-18** | cosmetic                                         | Stray "Execution Governance" category-example value in `docs/specifications/reference-policies.md`, outside the already-deferred legacy tree, missed by the terminology sweep. **RESOLVED 2026-07-17** — see `docs/VERIFICATION-GAPS.md`, "Gaps closed in the 2026-07-17 audit closeout session," item 19; the stray value was replaced with "AI Execution Authorization." | O8          |
+| **G-19** | pre-production                                   | `@parmana/replay` (O3) is a real, tested capability with zero HTTP entry point and zero wiring into `packages/api`/`packages/runtime`. Directly relevant because "verifiable records" is a named success criterion for the shadow pilot this roadmap targets.                                                                                                              | O3          |
 
 **Not in VERIFICATION-GAPS.md at all, surfaced only in CLAIMS.md Section 4, elevated here
 because of the shadow-pilot target:**
+
 - **API-layer authentication.** `CLAIMS.md` states plainly: "no route in the Parmana API
   enforces auth today; every request accepted from any caller who can reach the port."
   Confirmed directly against source in this audit (`grep` for auth middleware across
@@ -337,7 +359,7 @@ Ordered so that nothing on the list depends on something later in the list.
     will notice its absence in a shadow pilot; it matters for the project's own testing
     rigor and for a more literal "replayable" claim, not for pilot readiness per se.
 11. **Key custody beyond local PEM files.** Named in `CLAIMS.md` Section 4 as a known future
-    claim, not yet started. Out of scope for a *shadow* pilot (no real financial consequence to
+    claim, not yet started. Out of scope for a _shadow_ pilot (no real financial consequence to
     a compromised local key in a non-production shadow run), but should be the first item
     tackled after the pilot if it converts to a live deployment. Listed here for dependency-order
     completeness, not for near-term action.
@@ -349,6 +371,7 @@ Ordered so that nothing on the list depends on something later in the list.
 Each entry: why, impact, breaking or non-breaking, estimated effort, dependencies, own branch.
 
 ### R1. Delete `packages/execution-gateway/src/connector-runtime/*` and the `channel`/`gatewayIdentity` fields on `ExecutionGatewayOptions`
+
 - **Why:** 380 lines of a parallel, never-production-used implementation (D1c, D2, O5).
   Confusion risk for anyone reading `execution-gateway` as source of truth.
 - **Impact:** removes public exports (`packages/execution-gateway/src/index.ts:24` and the
@@ -362,6 +385,7 @@ Each entry: why, impact, breaking or non-breaking, estimated effort, dependencie
 - **Branch:** own branch, since it is a public-API-surface deletion, not a pure test fix.
 
 ### R2. Delete `packages/api/src/bootstrap/ConnectorFactory.ts` and `ExecutionControlComposition.ts`
+
 - **Why:** dead composition root, zero callers, actively confusable with the real one (1.5,
   G-13).
 - **Impact:** internal only, not exported from the package's public surface.
@@ -371,6 +395,7 @@ Each entry: why, impact, breaking or non-breaking, estimated effort, dependencie
 - **Branch:** can ride along with R1 or land standalone; either is fine given the low risk.
 
 ### R3. Delete or repurpose `@parmana/receipt`, `ExecutionTrustAttestationBuilder`, `ExecutionPermitBuilder`
+
 - **Why:** an entire orphaned five-package-deep chain (1.1, 1.2, 1.4, D4, D5, O1, O2) that
   exists only to demonstrate itself in three tutorials, using a `Receipt` and
   `ExecutionTrustRecord`-shaped concept that diverges from the real, production
@@ -384,7 +409,7 @@ Each entry: why, impact, breaking or non-breaking, estimated effort, dependencie
   - **Option B, keep and document as `[FUTURE]`:** if the intent was always a distinct,
     forward-looking "portable receipt bundle" concept (permit plus attestation, independently
     verifiable without the full trust record), keep the package but add a `CLAIMS.md
-    [FUTURE]` entry making that intent explicit, and rename `ExecutionTrustAttestation` to
+[FUTURE]` entry making that intent explicit, and rename `ExecutionTrustAttestation` to
     something that does not collide with `ExecutionTrustRecord` (resolves G-15 without
     deleting anything).
 - **Impact:** Option A removes a whole package and rewrites three tutorials; Option B is a
@@ -397,6 +422,7 @@ Each entry: why, impact, breaking or non-breaking, estimated effort, dependencie
   own discipline says should be decided by you, not silently picked.
 
 ### R4. Delete `examples/archive/`
+
 - **Why:** 90 empty or near-empty directories, zero references anywhere in the repo (O4).
 - **Impact:** none, nothing points at it.
 - **Breaking:** no.
@@ -408,6 +434,7 @@ Each entry: why, impact, breaking or non-breaking, estimated effort, dependencie
 - **Branch:** can ride along with any other cleanup branch.
 
 ### R5. Remove trademark symbols (G-17)
+
 - **Why:** direct violation of the locked "no trademark symbols anywhere in code or docs"
   principle.
 - **Impact:** prose-only, `README.md` and 4 tutorial READMEs.
@@ -418,6 +445,7 @@ Each entry: why, impact, breaking or non-breaking, estimated effort, dependencie
 - **Branch:** could be a small standalone pass, does not need to block anything else.
 
 ### R6. Fix the stray "Execution Governance" category value (G-18)
+
 - **Why:** direct violation of the locked vocabulary principle, missed by the earlier sweep
   because this file was outside the previously identified legacy tree.
 - **Impact:** one line in `docs/specifications/reference-policies.md`.
@@ -430,6 +458,7 @@ Each entry: why, impact, breaking or non-breaking, estimated effort, dependencie
   audit closeout session," item 19.
 
 ### R7. Resolve the `ExecutionTrustRecord`/`ExecutionTrustAttestation` naming collision (G-15)
+
 - Subsumed by R3; whichever option is chosen there resolves this too. Not a separate piece of
   work.
 
@@ -444,6 +473,7 @@ produces. Not ready for unbounded scale, not ready for every connector in `CLAIM
 previous one's exit criteria.
 
 ### Phase A: Baseline trust (must complete before any external review)
+
 1. API-layer authentication (section 5, item 1). No dependencies. This is the one item on this
    entire roadmap that, left undone, is likely to end a pilot conversation before it starts.
 2. Fix G-1, duplicate transaction race (D-1 Option A). Half a day per `VERIFICATION-GAPS.md`'s
@@ -458,6 +488,7 @@ duplicate-transaction and malformed-body bugs are fixed with regression tests; C
 every PR; `npm test` no longer silently writes to a live external database by default.
 
 ### Phase B: Credibility under review (must complete before the security review itself)
+
 6. Resolve D-2, hybrid/PQ dead config, Option B (document as single-provider by design) unless
    hybrid signing is independently roadmapped for the pilot, in which case Option A.
 7. Resolve D-3, `OverrideService`, either option, so it stops being neither documented nor
@@ -480,6 +511,7 @@ docs a reviewer would read (`docs/site`, `README.md`) contain no unresolved cont
 between what is claimed and what runs.
 
 ### Phase C: Engineering rigor (can run in parallel with, or after, the pilot itself)
+
 12. Clock injection in runtime (G-14).
 13. Vague CLAIMS.md citations (G-10): point every claim at a specific test file, not a class
     name or a README section.

@@ -30,8 +30,6 @@ export function createTestFixtureConnector(): Connector | undefined {
   return new MockConnector({
     connectorId: "test-fixture",
 
-    capabilities: connectorCapabilities([
-      "test:fixture-execute",
-    ]),
+    capabilities: connectorCapabilities(["test:fixture-execute"]),
   });
 }

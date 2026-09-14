@@ -82,20 +82,20 @@ Authority --> Authorization --> Intent --> Business Transaction
                                 Verification  <-->  Settlement Confirmation
 ```
 
-| Package | Role |
-|---|---|
-| `@parmana/api` | REST API: `/execute`, `/verification`, webhooks, caller authentication |
-| `@parmana/runtime` | Orchestrates a Business Transaction through policy, execution, and evidence |
-| `@parmana/policy` | Deterministic policy evaluation, sequential rules, first-match semantics |
-| `@parmana/execution-gateway` | The sole boundary that releases an approved request to a connector |
-| `@parmana/execution-control` | Credential-isolating, single-use execution release |
-| `@parmana/connector-sdk` | Connector authoring contract: capability definitions, schemas, and the Connector/CredentialProvider interfaces |
-| `@parmana/envelope-verifier` | Verifies a Parmana authorization independently, no trust in Parmana's runtime or database required |
-| `@parmana/crypto` | Signing and verification, Ed25519 by default, ML-DSA-65 (post-quantum) configurable |
-| `@parmana/receipt` | Signed, portable proof of execution |
-| `@parmana/replay` | Deterministic reconstruction of a past policy decision |
-| `@parmana/storage` | Append-only persistence, in-memory or Supabase-backed |
-| `@parmana/shared` | Domain model and configuration shared across every package |
+| Package                      | Role                                                                                                           |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `@parmana/api`               | REST API: `/execute`, `/verification`, webhooks, caller authentication                                         |
+| `@parmana/runtime`           | Orchestrates a Business Transaction through policy, execution, and evidence                                    |
+| `@parmana/policy`            | Deterministic policy evaluation, sequential rules, first-match semantics                                       |
+| `@parmana/execution-gateway` | The sole boundary that releases an approved request to a connector                                             |
+| `@parmana/execution-control` | Credential-isolating, single-use execution release                                                             |
+| `@parmana/connector-sdk`     | Connector authoring contract: capability definitions, schemas, and the Connector/CredentialProvider interfaces |
+| `@parmana/envelope-verifier` | Verifies a Parmana authorization independently, no trust in Parmana's runtime or database required             |
+| `@parmana/crypto`            | Signing and verification, Ed25519 by default, ML-DSA-65 (post-quantum) configurable                            |
+| `@parmana/receipt`           | Signed, portable proof of execution                                                                            |
+| `@parmana/replay`            | Deterministic reconstruction of a past policy decision                                                         |
+| `@parmana/storage`           | Append-only persistence, in-memory or Supabase-backed                                                          |
+| `@parmana/shared`            | Domain model and configuration shared across every package                                                     |
 
 Key properties: fail-closed configuration (a misconfigured process refuses
 to start rather than degrade silently), credential isolation (a connector

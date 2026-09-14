@@ -1,6 +1,4 @@
-import {
-  FileKeyProvider,
-} from "@parmana/crypto";
+import { FileKeyProvider } from "@parmana/crypto";
 
 import {
   FilePolicyRepository,
@@ -10,35 +8,19 @@ import {
   type SignalStateViolation,
 } from "@parmana/policy";
 
-import {
-  RuntimeBuilder,
-} from "@parmana/runtime";
+import { RuntimeBuilder } from "@parmana/runtime";
 
-import {
-  MemoryExecutionTrustRecordRepository,
-} from "@parmana/storage";
+import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
-import {
-  MemoryNonceStore,
-} from "@parmana/envelope-verifier";
+import { MemoryNonceStore } from "@parmana/envelope-verifier";
 
-import {
-  ExecutionGateway,
-  type Connector,
-} from "@parmana/execution-gateway";
+import { ExecutionGateway, type Connector } from "@parmana/execution-gateway";
 
-import type {
-  ExecutionRequest,
-} from "@parmana/execution-system";
+import type { ExecutionRequest } from "@parmana/execution-system";
 
-import {
-  toExecutableContent,
-  type ExecutionResult,
-} from "@parmana/shared";
+import { toExecutableContent, type ExecutionResult } from "@parmana/shared";
 
-import transaction from "./transaction.json" with {
-  type: "json",
-};
+import transaction from "./transaction.json" with { type: "json" };
 
 //
 // A trivial Connector: this tutorial cares about whether the Execution
@@ -111,33 +93,23 @@ async function main(): Promise<void> {
   // Build Runtime and authorize the payment, exactly as any earlier
   // tutorial does -- this is real production code, not a stand-in.
   //
-  const runtime =
-    new RuntimeBuilder()
-      .withPolicyRepository(
-        new FilePolicyRepository("policies"),
-      )
-      .build(
-        new MemoryExecutionTrustRecordRepository(),
-      );
+  const runtime = new RuntimeBuilder()
+    .withPolicyRepository(new FilePolicyRepository("policies"))
+    .build(new MemoryExecutionTrustRecordRepository());
 
   console.log("Authorizing payment...");
 
-  const { context } =
-    await runtime.execute(transaction);
+  const { context } = await runtime.execute(transaction);
 
   if (!context.authorization) {
-    throw new Error(
-      "Execution Authorization was not generated.",
-    );
+    throw new Error("Execution Authorization was not generated.");
   }
 
   const { authorization } = context;
 
   console.log("✓ Authorization signed.");
   console.log();
-  console.log(
-    `signalsHash : ${authorization.payload.signalsHash}`,
-  );
+  console.log(`signalsHash : ${authorization.payload.signalsHash}`);
   console.log(
     "(a canonical hash of the transaction's own runtime signals -- new since G-31; older authorizations carry no such field)",
   );
@@ -151,10 +123,9 @@ async function main(): Promise<void> {
   // each independently verifying the exact same authorization and the
   // exact same declared signals -- only what they *find* differs.
   //
-  const publicKey =
-    await new FileKeyProvider().getPublicKey(
-      authorization.keyId,
-    );
+  const publicKey = await new FileKeyProvider().getPublicKey(
+    authorization.keyId,
+  );
 
   const request: ExecutionRequest = {
     ...toExecutableContent({
@@ -211,12 +182,8 @@ async function main(): Promise<void> {
   const { result } = await gatewayB.verify(request);
 
   console.log(`Valid                : ${result.valid}`);
-  console.log(
-    `Signature Verified   : ${result.checks.signatureVerified}`,
-  );
-  console.log(
-    `Signals Still Current: ${result.checks.signalsStillCurrent}`,
-  );
+  console.log(`Signature Verified   : ${result.checks.signatureVerified}`);
+  console.log(`Signals Still Current: ${result.checks.signalsStillCurrent}`);
   console.log(
     `Divergence           : ${JSON.stringify(result.signalDivergence)}`,
   );

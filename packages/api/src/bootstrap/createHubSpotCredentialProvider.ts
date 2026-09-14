@@ -84,11 +84,14 @@ class HubSpotEnvironmentCredentialProvider implements CredentialProvider {
  * crash that would also take down every other, unrelated capability this
  * process serves.
  */
-export function createHubSpotCredentialProvider(): CredentialProvider | undefined {
+export function createHubSpotCredentialProvider():
+  CredentialProvider | undefined {
   if (process.env.NODE_ENV === "test") {
     return new StaticCredentialProvider({
       [HUBSPOT_CONNECTOR_ID]: {
-        privateAppToken: process.env.TEST_HUBSPOT_PRIVATE_APP_TOKEN ?? HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN,
+        privateAppToken:
+          process.env.TEST_HUBSPOT_PRIVATE_APP_TOKEN ??
+          HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN,
       },
     });
   }

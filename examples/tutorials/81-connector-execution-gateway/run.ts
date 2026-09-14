@@ -1,4 +1,7 @@
-import { InMemoryGatewaySessionStore, MemoryExecutionAuditSink } from "@parmana/execution-control";
+import {
+  InMemoryGatewaySessionStore,
+  MemoryExecutionAuditSink,
+} from "@parmana/execution-control";
 
 //
 // Tutorials 57-59 show the credential-isolation and secure-connector
@@ -11,18 +14,21 @@ import { InMemoryGatewaySessionStore, MemoryExecutionAuditSink } from "@parmana/
 //
 process.env.NODE_ENV = "test";
 
-const { createConnectorRegistry } = await import(
-  "../../../packages/api/src/bootstrap/createConnectorRegistry.js"
-);
-const { createConnectorAuthenticator } = await import(
-  "../../../packages/api/src/bootstrap/createConnectorAuthenticator.js"
-);
+const { createConnectorRegistry } =
+  await import("../../../packages/api/src/bootstrap/createConnectorRegistry.js");
+const { createConnectorAuthenticator } =
+  await import("../../../packages/api/src/bootstrap/createConnectorAuthenticator.js");
 
 function buildRegistry() {
   const authenticator = createConnectorAuthenticator();
   const sessions = new InMemoryGatewaySessionStore(Object.freeze({}));
   const audit = new MemoryExecutionAuditSink();
-  return createConnectorRegistry(authenticator, sessions, audit, Object.freeze({ token: "test" }));
+  return createConnectorRegistry(
+    authenticator,
+    sessions,
+    audit,
+    Object.freeze({ token: "test" }),
+  );
 }
 
 console.log();
@@ -31,16 +37,26 @@ console.log("Tutorial 81 - Connector Execution Gateway");
 console.log("==================================================");
 console.log();
 
-console.log("Scenario 1: NODE_ENV=test -- every connector's capabilities resolve");
+console.log(
+  "Scenario 1: NODE_ENV=test -- every connector's capabilities resolve",
+);
 console.log("--------------------------------------------------");
 
 const registry1 = buildRegistry();
-console.log(`hubspot:deal-update    -> connector "${registry1.resolveCapability("hubspot:deal-update").connectorId}"`);
-console.log(`hubspot:deal-fetch     -> connector "${registry1.resolveCapability("hubspot:deal-fetch").connectorId}"`);
-console.log(`test:fixture-execute   -> connector "${registry1.resolveCapability("test:fixture-execute").connectorId}"`);
+console.log(
+  `hubspot:deal-update    -> connector "${registry1.resolveCapability("hubspot:deal-update").connectorId}"`,
+);
+console.log(
+  `hubspot:deal-fetch     -> connector "${registry1.resolveCapability("hubspot:deal-fetch").connectorId}"`,
+);
+console.log(
+  `test:fixture-execute   -> connector "${registry1.resolveCapability("test:fixture-execute").connectorId}"`,
+);
 console.log();
 
-console.log("Scenario 2: Outside test mode, with no HubSpot credentials configured -- fails closed, per capability");
+console.log(
+  "Scenario 2: Outside test mode, with no HubSpot credentials configured -- fails closed, per capability",
+);
 console.log("--------------------------------------------------");
 
 const previousNodeEnv = process.env.NODE_ENV;
@@ -73,24 +89,31 @@ console.log(`test:fixture-execute   -> throws: ${testFixtureError}`);
 console.log();
 
 process.env.NODE_ENV = previousNodeEnv;
-if (previousToken !== undefined) process.env.HUBSPOT_PRIVATE_APP_TOKEN = previousToken;
+if (previousToken !== undefined)
+  process.env.HUBSPOT_PRIVATE_APP_TOKEN = previousToken;
 
-console.log("Scenario 3: Outside test mode, WITH a real-looking HubSpot credential configured");
+console.log(
+  "Scenario 3: Outside test mode, WITH a real-looking HubSpot credential configured",
+);
 console.log("--------------------------------------------------");
 
 process.env.NODE_ENV = "production";
 process.env.HUBSPOT_PRIVATE_APP_TOKEN = "hubspot-tutorial-test-token";
 
 const registry3 = buildRegistry();
-console.log(`hubspot:deal-update    -> connector "${registry3.resolveCapability("hubspot:deal-update").connectorId}"`);
+console.log(
+  `hubspot:deal-update    -> connector "${registry3.resolveCapability("hubspot:deal-update").connectorId}"`,
+);
 
 delete process.env.HUBSPOT_PRIVATE_APP_TOKEN;
 process.env.NODE_ENV = previousNodeEnv;
 console.log();
 
 const allPassed =
-  registry1.resolveCapability("hubspot:deal-update").connectorId === "hubspot" &&
-  registry1.resolveCapability("test:fixture-execute").connectorId === "test-fixture" &&
+  registry1.resolveCapability("hubspot:deal-update").connectorId ===
+    "hubspot" &&
+  registry1.resolveCapability("test:fixture-execute").connectorId ===
+    "test-fixture" &&
   hubspotError?.includes("hubspot:deal-update") === true &&
   testFixtureError?.includes("test:fixture-execute") === true &&
   registry3.resolveCapability("hubspot:deal-update").connectorId === "hubspot";
@@ -100,7 +123,9 @@ if (allPassed) {
     "✓ Capabilities resolve to their registered connector when credentials exist, and fail closed, per capability, when they don't.",
   );
 } else {
-  console.log("✗ Expected every capability resolution above to match the credential-configuration state.");
+  console.log(
+    "✗ Expected every capability resolution above to match the credential-configuration state.",
+  );
 }
 
 console.log();

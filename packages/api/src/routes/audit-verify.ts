@@ -1,9 +1,5 @@
 import { Router } from "express";
-import type {
-  NextFunction,
-  Request,
-  Response,
-} from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import { AuditEventCrypto } from "@parmana/crypto";
 import type { Signature } from "@parmana/shared";
@@ -29,9 +25,7 @@ function isPlausibleAuditEvent(
   );
 }
 
-function isPlausibleSignature(
-  value: unknown,
-): value is Signature {
+function isPlausibleSignature(value: unknown): value is Signature {
   if (typeof value !== "object" || value === null) {
     return false;
   }
@@ -67,19 +61,12 @@ export function createAuditVerifyRouter(): Router {
 
   router.post(
     "/",
-    async (
-      req: Request,
-      res: Response,
-      next: NextFunction,
-    ): Promise<void> => {
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
         const body = req.body ?? {};
         const { event, signature } = body;
 
-        if (
-          !isPlausibleAuditEvent(event) ||
-          !isPlausibleSignature(signature)
-        ) {
+        if (!isPlausibleAuditEvent(event) || !isPlausibleSignature(signature)) {
           res.status(400).json({
             error:
               "Request body must be { event, signature } " +
@@ -89,10 +76,7 @@ export function createAuditVerifyRouter(): Router {
           return;
         }
 
-        const valid = await crypto.verify(
-          event,
-          signature,
-        );
+        const valid = await crypto.verify(event, signature);
 
         res.json({ valid });
         return;

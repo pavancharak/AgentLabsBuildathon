@@ -3,17 +3,24 @@ title: "@parmana/receipt"
 description: "A real, tested receipt/permit model. Nothing in packages/runtime or packages/api currently consumes it."
 ---
 
-<Info>**[PARTIAL]**. Real, tested code (`packages/receipt`), reachable only through `examples/tutorials/53` through `56`. Not wired into the server or the main trust record pipeline.</Info>
+<Info>
+  **[PARTIAL]**. Real, tested code (`packages/receipt`), reachable only through
+  `examples/tutorials/53` through `56`. Not wired into the server or the main
+  trust record pipeline.
+</Info>
 
 <Warning>
-**Nothing in `packages/runtime` or `packages/api` imports `@parmana/receipt`.** The
-`Receipt` that actually reaches an `ExecutionTrustRecord` and `POST /receipt` is
-`packages/shared/src/domain/receipt.ts`'s `Receipt`, built by `@parmana/crypto`'s
-`ReceiptCrypto` inside `packages/runtime/src/services/receipt-service.ts`. This package
-defines its own, separate `Receipt` interface (`ReceiptEngine.ts`) and a separate
-`ExecutionReceipt`/`ExecutionPermit` model (see [@parmana/execution-control](/reference/execution-control)),
-neither is the same type as the one used in the rest of this site, and neither is reachable
-from a running `packages/api` server.
+  **Nothing in `packages/runtime` or `packages/api` imports
+  `@parmana/receipt`.** The `Receipt` that actually reaches an
+  `ExecutionTrustRecord` and `POST /receipt` is
+  `packages/shared/src/domain/receipt.ts`'s `Receipt`, built by
+  `@parmana/crypto`'s `ReceiptCrypto` inside
+  `packages/runtime/src/services/receipt-service.ts`. This package defines its
+  own, separate `Receipt` interface (`ReceiptEngine.ts`) and a separate
+  `ExecutionReceipt`/`ExecutionPermit` model (see
+  [@parmana/execution-control](/reference/execution-control)), neither is the
+  same type as the one used in the rest of this site, and neither is reachable
+  from a running `packages/api` server.
 </Warning>
 
 ## Purpose
@@ -31,17 +38,20 @@ npm install @parmana/receipt
 
 ## Key exports
 
-| Export | Stability |
-|---|---|
-| `ExecutionReceiptBuilder` | [PARTIAL]. `.build(permit: ExecutionPermit, trustRecord: ExecutionTrustAttestation): ExecutionReceipt`. Real, tested, unconsumed elsewhere. |
-| `ExecutionReceiptVerifier` | [PARTIAL]. `.verify(receipt): boolean`, checks `version === 1` and that `permit`/`trustRecord` are both present. **Not a cryptographic check**, it does not re-verify the permit's signature or the trust record's hash itself. |
-| `ExecutionReceipt` (model) | `{ version, permit, trustRecord }` |
-| `ReceiptEngine` / `ReceiptBuilder` | [PARTIAL]. A third, separate `Receipt` shape (`{ receiptId, businessTransactionId, trustRecordHash, verificationId, status, issuedAt, receiptHash }`), also unconsumed anywhere in this monorepo outside its own tests. |
+| Export                             | Stability                                                                                                                                                                                                                       |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ExecutionReceiptBuilder`          | [PARTIAL]. `.build(permit: ExecutionPermit, trustRecord: ExecutionTrustAttestation): ExecutionReceipt`. Real, tested, unconsumed elsewhere.                                                                                     |
+| `ExecutionReceiptVerifier`         | [PARTIAL]. `.verify(receipt): boolean`, checks `version === 1` and that `permit`/`trustRecord` are both present. **Not a cryptographic check**, it does not re-verify the permit's signature or the trust record's hash itself. |
+| `ExecutionReceipt` (model)         | `{ version, permit, trustRecord }`                                                                                                                                                                                              |
+| `ReceiptEngine` / `ReceiptBuilder` | [PARTIAL]. A third, separate `Receipt` shape (`{ receiptId, businessTransactionId, trustRecordHash, verificationId, status, issuedAt, receiptHash }`), also unconsumed anywhere in this monorepo outside its own tests.         |
 
 ## Minimal example
 
 ```typescript
-import { ExecutionReceiptBuilder, ExecutionReceiptVerifier } from "@parmana/receipt";
+import {
+  ExecutionReceiptBuilder,
+  ExecutionReceiptVerifier,
+} from "@parmana/receipt";
 
 const receipt = new ExecutionReceiptBuilder().build(permit, trustRecord);
 const structurallyValid = new ExecutionReceiptVerifier().verify(receipt); // true
@@ -52,10 +62,18 @@ Full runnable version: `examples/tutorials/56-complete-execution-flow/run.ts`.
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="@parmana/execution-control" icon="lock" href="/reference/execution-control">
+  <Card
+    title="@parmana/execution-control"
+    icon="lock"
+    href="/reference/execution-control"
+  >
     Where `ExecutionPermit`, this package's other input, comes from.
   </Card>
-  <Card title="Execution trust records" icon="file-shield" href="/concepts/execution-trust-records">
+  <Card
+    title="Execution trust records"
+    icon="file-shield"
+    href="/concepts/execution-trust-records"
+  >
     The `Receipt` type this package's own model is not the same as.
   </Card>
 </CardGroup>

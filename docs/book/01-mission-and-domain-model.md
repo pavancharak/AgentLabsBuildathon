@@ -6,8 +6,8 @@
 
 Parmana calls itself **Execution Trust Infrastructure**. The category name is deliberate.
 It is not a payments product, not an AI-agent framework, and not a policy engine in
-isolation. It is the layer that sits between something that *wants* an action to happen (an
-AI agent, a human, a script, a third-party system) and something that can *make* it happen
+isolation. It is the layer that sits between something that _wants_ an action to happen (an
+AI agent, a human, a script, a third-party system) and something that can _make_ it happen
 (a connector to an external system), and it exists to make one property true: only what was
 actually authorized becomes real, and that fact is provable afterward by an independent
 party who trusts nothing about Parmana's own runtime process except a public key.
@@ -35,7 +35,7 @@ asserted:
   demonstrates the same thing at the library level, standalone.
 
 The practical consequence: there is no code path anywhere in the authorization pipeline that
-*could* discriminate by caller kind, even accidentally, because none of it ever reads caller
+_could_ discriminate by caller kind, even accidentally, because none of it ever reads caller
 identity in the first place. The one deliberate exception, policy governance, where a human
 credential is structurally required, is covered in Chapter 14, and its own design comment
 explains exactly why it's the one place this discipline is broken on purpose.
@@ -51,7 +51,7 @@ CRUD entity. The chain, in the order a request actually moves through it, follow
 // packages/shared/src/domain/authority.ts:11-36
 export interface Authority {
   readonly authorityId: string;
-  readonly authorityType: AuthorityType;   // USER | ROLE | SERVICE | ORGANIZATION: advisory, not enforced (see above)
+  readonly authorityType: AuthorityType; // USER | ROLE | SERVICE | ORGANIZATION: advisory, not enforced (see above)
   readonly principalId: string;
   readonly displayName?: string;
   readonly issuedAt: Date;
@@ -69,8 +69,8 @@ it, not as a structural guarantee.
 // packages/shared/src/domain/authorization.ts:22-31 (abridged)
 export interface Authorization {
   readonly authorizationId: string;
-  readonly authorityId: string;   // must match the Authority that issued it
-  readonly purpose: string;       // e.g. "Q3 vendor payment run"
+  readonly authorityId: string; // must match the Authority that issued it
+  readonly purpose: string; // e.g. "Q3 vendor payment run"
 }
 ```
 
@@ -81,7 +81,7 @@ export interface Authorization {
 export interface Intent {
   readonly intentId: string;
   readonly authorizationId: string;
-  readonly action: string;    // "TransferFunds", "hubspot:deal-update", ...
+  readonly action: string; // "TransferFunds", "hubspot:deal-update", ...
   // target, parameters follow
 }
 ```
@@ -107,8 +107,8 @@ export interface Decision {
   readonly decisionId: string;
   readonly intentId: string;
   readonly policy: PolicyReference;
-  readonly signals: Record<string, JsonValue>;   // captured for replay/independent verification
-  readonly outcome: DecisionOutcome;              // APPROVED | REJECTED
+  readonly signals: Record<string, JsonValue>; // captured for replay/independent verification
+  readonly outcome: DecisionOutcome; // APPROVED | REJECTED
   readonly reason?: string;
   readonly evaluatedAt: Date;
 }
@@ -126,9 +126,9 @@ covers why this restraint matters architecturally, not just as a style preferenc
 export interface Execution {
   readonly executionId: string;
   readonly businessTransactionId: string;
-  readonly decision: Decision;              // exactly one, immutable
-  readonly status: ExecutionStatus;         // PROCESSING | COMPLETED | FAILED
-  readonly mode: ExecutionMode;             // SYNC | ASYNC
+  readonly decision: Decision; // exactly one, immutable
+  readonly status: ExecutionStatus; // PROCESSING | COMPLETED | FAILED
+  readonly mode: ExecutionMode; // SYNC | ASYNC
   readonly startedAt: Date;
   readonly completedAt?: Date;
   readonly evidence?: ExecutionEvidence;
@@ -142,7 +142,7 @@ The `previousChainHash`/`chainHash`/`chainSignature` triple (added later than th
 this interface, hence optional, so old rows without them still verify) is a signed hash
 chain across every `Execution` belonging to one `BusinessTransactionId`, via
 `ExecutionChainCrypto` in `@parmana/crypto`. A plain hash alone would only guard against
-accidental corruption. Because it's *signed*, an actor with raw database write access still
+accidental corruption. Because it's _signed_, an actor with raw database write access still
 can't forge a replacement link without Parmana's private key. `previousChainHash` is fixed
 once, at creation; `chainHash`/`chainSignature` are recomputed on every legitimate mutation
 of the row (attaching evidence, completing, failing), since those change what the hash
@@ -164,8 +164,8 @@ export interface ExecutionTrustRecord {
   readonly receipts: readonly Receipt[];
   readonly trustRecordHash: string;
   readonly signature: Signature;
-  readonly schemaVersion?: number;          // absent = v1; >=2 means `signatures` below is populated
-  readonly signatures?: readonly SignatureEntry[];  // hybrid (Ed25519 + ML-DSA-65) additive proof
+  readonly schemaVersion?: number; // absent = v1; >=2 means `signatures` below is populated
+  readonly signatures?: readonly SignatureEntry[]; // hybrid (Ed25519 + ML-DSA-65) additive proof
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }

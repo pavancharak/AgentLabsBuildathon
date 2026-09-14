@@ -1,9 +1,5 @@
 import { Router } from "express";
-import type {
-  NextFunction,
-  Request,
-  Response,
-} from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import type { ExecutionTrustApplication } from "@parmana/runtime";
 import type { RefusalRecord } from "@parmana/shared";
@@ -14,9 +10,7 @@ import type { RefusalRecord } from "@parmana/shared";
  * businessTransactionId-only check), so this stays consistent with
  * that convention rather than introducing one just for this route.
  */
-function isPlausibleRefusalRecord(
-  value: unknown,
-): value is RefusalRecord {
+function isPlausibleRefusalRecord(value: unknown): value is RefusalRecord {
   if (typeof value !== "object" || value === null) {
     return false;
   }
@@ -52,11 +46,7 @@ export function createRefusalVerifyRouter(
 
   router.post(
     "/",
-    async (
-      req: Request,
-      res: Response,
-      next: NextFunction,
-    ): Promise<void> => {
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
         const body = req.body;
 
@@ -70,10 +60,7 @@ export function createRefusalVerifyRouter(
           return;
         }
 
-        const valid =
-          await application.verifyRefusalRecord(
-            body,
-          );
+        const valid = await application.verifyRefusalRecord(body);
 
         res.json({ valid });
         return;

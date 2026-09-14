@@ -3,7 +3,10 @@ title: "Verify a Trust Record Independently"
 description: "Take a trust record someone else gave you and verify its hash and signature with only the public key, no Parmana server, no database, no network call."
 ---
 
-<Info>**[AVAILABLE]**, demonstrated in this session with the Parmana server confirmed stopped throughout the verify step, commit `651497a`.</Info>
+<Info>
+  **[AVAILABLE]**, demonstrated in this session with the Parmana server
+  confirmed stopped throughout the verify step, commit `651497a`.
+</Info>
 
 ## Goal
 
@@ -23,7 +26,7 @@ verify it with nothing but Parmana's public key, while Parmana itself is not run
     [Authentication](/api-reference/authentication)). This is what actually makes the claim
     below true for someone who isn't the operator, not just "the server process happens
     to be stopped on the same box the key file already lives on."
-  You do **not** need the private key, `default.private.pem`, for any step in this guide.
+    You do **not** need the private key, `default.private.pem`, for any step in this guide.
 - Read [Execution trust records](/concepts/execution-trust-records) first, this guide
   verifies exactly the hash and signature that page describes.
 
@@ -86,7 +89,9 @@ import { verifyExecutionTrustRecordOffline } from "@parmana/crypto";
 const trustRecord = JSON.parse(readFileSync("trust-record.json", "utf8"));
 const publicKeyPem = readFileSync("default.public.pem", "utf8"); // e.g. fetched via GET /keys/default
 
-const result = await verifyExecutionTrustRecordOffline(trustRecord, { default: publicKeyPem });
+const result = await verifyExecutionTrustRecordOffline(trustRecord, {
+  default: publicKeyPem,
+});
 console.log(result); // { valid, hashValid, legacySignatureValid, hybridSignaturesValid?, algorithmsChecked, errors }
 ```
 
@@ -119,7 +124,7 @@ Fully verified:    false
 ```
 
 The hash comparison alone would have caught this. `verifySignature()` also fails because it
-verifies the signature against the *current* (now-mutated) content, not a cached original,
+verifies the signature against the _current_ (now-mutated) content, not a cached original,
 the mutation invalidates both checks independently, matching [what the hash and signature
 actually cover](/concepts/execution-trust-records).
 
@@ -148,9 +153,14 @@ actually cover](/concepts/execution-trust-records).
 
 <CardGroup cols={2}>
   <Card title="Detect tampering" icon="bug" href="/guides/detect-tampering">
-    The same tamper-then-verify pattern, applied to the authorization envelope instead.
+    The same tamper-then-verify pattern, applied to the authorization envelope
+    instead.
   </Card>
-  <Card title="Execution trust records" icon="file-shield" href="/concepts/execution-trust-records">
+  <Card
+    title="Execution trust records"
+    icon="file-shield"
+    href="/concepts/execution-trust-records"
+  >
     Exactly what's inside the hash this guide recomputed.
   </Card>
 </CardGroup>

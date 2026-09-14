@@ -5,12 +5,7 @@
   "description": "Immutable trust artifact proving that an Authority granted approval for an intended execution.",
   "type": "object",
   "additionalProperties": true,
-  "required": [
-    "authorizationId",
-    "authorityId",
-    "purpose",
-    "issuedAt"
-  ],
+  "required": ["authorizationId", "authorityId", "purpose", "issuedAt"],
   "properties": {
     "authorizationId": {
       "type": "string",

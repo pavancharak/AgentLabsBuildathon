@@ -10,9 +10,9 @@ describe("isUniqueViolation", () => {
   });
 
   it("returns false for a different Postgres error code", () => {
-    expect(isUniqueViolation({ code: "08006", message: "connection failure" })).toBe(
-      false,
-    );
+    expect(
+      isUniqueViolation({ code: "08006", message: "connection failure" }),
+    ).toBe(false);
   });
 
   it("returns false for an error with no code field", () => {

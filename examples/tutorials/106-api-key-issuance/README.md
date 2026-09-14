@@ -5,25 +5,25 @@
 Author a brand-new policy from scratch, correctly, under the discipline this repository's
 10 pre-existing policies had to be retrofitted for: fail-closed `boundSignals` coverage
 (`docs/VERIFICATION-GAPS.md` G-33) and zero advisory rule conflicts (G-39). Where Tutorial 14
-shows how to write *a* policy, this one is a template for writing a *correct* one the first
+shows how to write _a_ policy, this one is a template for writing a _correct_ one the first
 time — no retrofit needed.
 
 ## What You'll Learn
 
-* `policies/api-key-issuance/1.0.0/policy.json` binds its one genuinely Intent-bindable fact
+- `policies/api-key-issuance/1.0.0/policy.json` binds its one genuinely Intent-bindable fact
   (`keyLifetimeDays`, an amount-like field) via `boundSignals`, and explicitly acknowledges
   every other fact (`requesterVerified`, `scopeAuthorized`, `riskScore`) in
   `unboundSignalReasons` with a specific reason — `PolicyValidator.validate()` would otherwise
   refuse to load it at all
-* A caller declaring `keyLifetimeDays: 30` while the actual Intent requests a 400-day key is
-  rejected by `SignalIntentBinder` *before* `PolicyEngine` ever evaluates a rule — the bound
+- A caller declaring `keyLifetimeDays: 30` while the actual Intent requests a 400-day key is
+  rejected by `SignalIntentBinder` _before_ `PolicyEngine` ever evaluates a rule — the bound
   fact really is checked, not just documented as bindable (Scenario 2)
-* Independently-attested facts still produce specific, human-readable rejection reasons
+- Independently-attested facts still produce specific, human-readable rejection reasons
   (Scenario 3) — the auditability payoff of writing explicit rejection rules instead of
   relying solely on the engine's own default-reject (see
   [Write your first policy](/guides/write-your-first-policy)'s "Why explicit rejection
   rules?" section)
-* `PolicyValidator.findRuleConflicts(policy)` reports zero warnings for this policy's shape
+- `PolicyValidator.findRuleConflicts(policy)` reports zero warnings for this policy's shape
   (one nested-`all` approve rule, several single-fact reject rules, one trailing
   `always: true` catch-all) — the same shape every real policy in this repo now has, by
   construction, not by luck (Scenario 4)

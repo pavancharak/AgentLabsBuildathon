@@ -1,38 +1,20 @@
 \# OpenAPI Specification v1 (Locked)
 
-
-
 \## Status
-
-
 
 \*\*Version:\*\* 1.0
 
-
-
 \*\*Status:\*\* Locked
-
-
 
 \---
 
-
-
 \# Purpose
-
-
 
 This specification defines the canonical OpenAPI contract for the Parmana API.
 
-
-
 The OpenAPI document is derived from the locked architecture and API specifications.
 
-
-
 It is the authoritative machine-readable API contract used for:
-
-
 
 \* SDK generation
 
@@ -44,23 +26,13 @@ It is the authoritative machine-readable API contract used for:
 
 \* API testing
 
-
-
 The OpenAPI specification must remain consistent with the architecture documents.
-
-
 
 \---
 
-
-
 \# Scope
 
-
-
 This specification defines:
-
-
 
 \* OpenAPI version
 
@@ -74,11 +46,7 @@ This specification defines:
 
 \* Naming conventions
 
-
-
 This specification does \*\*not\*\* define:
-
-
 
 \* Business architecture
 
@@ -86,23 +54,13 @@ This specification does \*\*not\*\* define:
 
 \* Policy behavior
 
-
-
 Those are defined by the Architecture Specifications.
-
-
 
 \---
 
-
-
 \# OpenAPI Version
 
-
-
 Parmana uses:
-
-
 
 ```text
 
@@ -110,19 +68,11 @@ OpenAPI 3.1.0
 
 ```
 
-
-
 \---
-
-
 
 \# API Version
 
-
-
 Current API version:
-
-
 
 ```text
 
@@ -130,11 +80,7 @@ v1
 
 ```
 
-
-
 Example:
-
-
 
 ```text
 
@@ -142,23 +88,13 @@ Example:
 
 ```
 
-
-
 Future API versions introduce new paths rather than changing existing behavior.
-
-
 
 \---
 
-
-
 \# API Base Path
 
-
-
 Canonical base path:
-
-
 
 ```text
 
@@ -166,23 +102,13 @@ Canonical base path:
 
 ```
 
-
-
 \---
-
-
 
 \# Resource Groups
 
-
-
 The OpenAPI document is organized by resource.
 
-
-
 \## Business Transactions
-
-
 
 ```text
 
@@ -194,15 +120,9 @@ GET    /transactions/{businessTransactionId}
 
 ```
 
-
-
 \---
 
-
-
 \## Executions
-
-
 
 ```text
 
@@ -218,15 +138,9 @@ GET    /transactions/{businessTransactionId}/executions/{executionId}
 
 ```
 
-
-
 \---
 
-
-
 \## Override
-
-
 
 ```text
 
@@ -238,15 +152,9 @@ GET    /transactions/{businessTransactionId}/override
 
 ```
 
-
-
 \---
 
-
-
 \## Verification
-
-
 
 ```text
 
@@ -258,15 +166,9 @@ GET    /transactions/{businessTransactionId}/verifications
 
 ```
 
-
-
 \---
 
-
-
 \## Receipt
-
-
 
 ```text
 
@@ -278,15 +180,9 @@ GET    /transactions/{businessTransactionId}/executions/{executionId}/receipt
 
 ```
 
-
-
 \---
 
-
-
 \## Trust Chain
-
-
 
 ```text
 
@@ -294,15 +190,9 @@ GET    /transactions/{businessTransactionId}/trust-chain
 
 ```
 
-
-
 \---
 
-
-
 \## Policies
-
-
 
 ```text
 
@@ -314,15 +204,9 @@ GET    /policies/{name}/{version}
 
 ```
 
-
-
 \---
 
-
-
 \## System
-
-
 
 ```text
 
@@ -334,19 +218,11 @@ GET    /version
 
 ```
 
-
-
 \---
-
-
 
 \# Schema Organization
 
-
-
 Schemas are grouped under:
-
-
 
 ```text
 
@@ -354,11 +230,7 @@ components/schemas
 
 ```
 
-
-
 Canonical schemas include:
-
-
 
 \* BusinessTransaction
 
@@ -382,19 +254,11 @@ Canonical schemas include:
 
 \* Error
 
-
-
 \---
-
-
 
 \# Security
 
-
-
 Protected endpoints use:
-
-
 
 ```text
 
@@ -402,11 +266,7 @@ Bearer Authentication
 
 ```
 
-
-
 Defined under:
-
-
 
 ```text
 
@@ -414,23 +274,13 @@ components/securitySchemes
 
 ```
 
-
-
 Authentication mechanisms may evolve without changing API semantics.
-
-
 
 \---
 
-
-
 \# Response Model
 
-
-
 Successful responses return:
-
-
 
 ```json
 
@@ -442,11 +292,7 @@ Successful responses return:
 
 ```
 
-
-
 Error responses return:
-
-
 
 ```json
 
@@ -464,23 +310,13 @@ Error responses return:
 
 ```
 
-
-
 The OpenAPI document shall reference the canonical Request Response Model and Error Model.
-
-
 
 \---
 
-
-
 \# Naming Conventions
 
-
-
 \## Paths
-
-
 
 \* Lowercase
 
@@ -488,11 +324,7 @@ The OpenAPI document shall reference the canonical Request Response Model and Er
 
 \* Resource-oriented
 
-
-
 Examples:
-
-
 
 ```text
 
@@ -508,23 +340,13 @@ Examples:
 
 ```
 
-
-
 \---
-
-
 
 \## Schemas
 
-
-
 PascalCase.
 
-
-
 Examples:
-
-
 
 ```text
 
@@ -540,23 +362,13 @@ Receipt
 
 ```
 
-
-
 \---
-
-
 
 \## Properties
 
-
-
 camelCase.
 
-
-
 Examples:
-
-
 
 ```text
 
@@ -572,23 +384,13 @@ schemaVersion
 
 ```
 
-
-
 \---
-
-
 
 \## Enumerations
 
-
-
 UPPER\_SNAKE\_CASE.
 
-
-
 Examples:
-
-
 
 ```text
 
@@ -612,23 +414,13 @@ FAILED
 
 ```
 
-
-
 \---
-
-
 
 \# Generation Principles
 
-
-
 The OpenAPI document is generated from the frozen specifications.
 
-
-
 It must not introduce:
-
-
 
 \* New resources
 
@@ -638,135 +430,69 @@ It must not introduce:
 
 \* Alternative behaviors
 
-
-
 The architecture specifications remain the authoritative source.
 
-
-
 \---
-
-
 
 \# Compatibility
 
-
-
 Minor versions:
-
-
 
 \* Additive only.
 
-
-
 Major versions:
-
-
 
 \* May introduce breaking changes.
 
-
-
 Backward compatibility must be preserved within a major version.
 
-
-
 \---
-
-
 
 \# Canonical Principles
 
-
-
 \## Principle 1
-
-
 
 The OpenAPI specification is derived from the architecture specifications.
 
-
-
 \---
-
-
 
 \## Principle 2
 
-
-
 The OpenAPI specification is the authoritative machine-readable API contract.
 
-
-
 \---
-
-
 
 \## Principle 3
 
-
-
 The OpenAPI specification never introduces new architecture.
 
-
-
 \---
-
-
 
 \## Principle 4
 
-
-
 Resources are organized around Business Transactions.
 
-
-
 \---
-
-
 
 \## Principle 5
 
-
-
 Schemas follow consistent naming conventions.
 
-
-
 \---
-
-
 
 \## Principle 6
 
-
-
 All protected endpoints use the canonical security definition.
 
-
-
 \---
-
-
 
 \## Principle 7
 
-
-
 The OpenAPI specification enables deterministic SDK generation and API interoperability.
-
-
 
 \---
 
-
-
 \# Canonical Model
-
-
 
 ```text
 
@@ -814,25 +540,12 @@ SDKs  Clients  Servers  Documentation
 
 ```
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 The Parmana OpenAPI Specification is the machine-readable representation of the locked API architecture.
-
-
 
 It is derived directly from the Business Transaction model, Request Response Model, Error Model, and all supporting architecture specifications.
 
-
-
 By treating the OpenAPI document as an implementation artifact rather than the source of architectural truth, Parmana guarantees that generated SDKs, client libraries, server stubs, and documentation remain consistent with the frozen v1 architecture.
-
-
-

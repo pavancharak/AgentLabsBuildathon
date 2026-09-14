@@ -1,18 +1,10 @@
 \# Tutorial 16 — Runtime Pipeline
 
-
-
 This tutorial demonstrates how to build a custom \*\*Runtime Pipeline\*\* by composing multiple Runtime Components.
-
-
 
 Rather than extending the runtime with a single component, Parmana allows developers to assemble deterministic processing pipelines by registering multiple components in a specific order.
 
-
-
 \## What You Will Learn
-
-
 
 \* Build a Runtime Pipeline.
 
@@ -24,15 +16,9 @@ Rather than extending the runtime with a single component, Parmana allows develo
 
 \* Build custom runtime behavior without modifying Parmana.
 
-
-
 \## Scenario
 
-
-
 An enterprise wants every execution to perform three additional runtime tasks:
-
-
 
 1\. Log execution details.
 
@@ -40,15 +26,9 @@ An enterprise wants every execution to perform three additional runtime tasks:
 
 3\. Send execution notifications.
 
-
-
 Instead of changing Parmana's runtime, the organization builds a custom Runtime Pipeline.
 
-
-
 \## Directory Structure
-
-
 
 ```text
 
@@ -68,11 +48,7 @@ Instead of changing Parmana's runtime, the organization builds a custom Runtime 
 
 ```
 
-
-
 \## Pipeline
-
-
 
 ```text
 
@@ -122,15 +98,9 @@ Receipt
 
 ```
 
-
-
 Each Runtime Component receives the same immutable Runtime Context.
 
-
-
 A component may:
-
-
 
 \* Observe the Runtime Context.
 
@@ -144,19 +114,11 @@ A component may:
 
 \* Perform additional validation.
 
-
-
 The Runtime Context is then passed to the next component.
-
-
 
 \## Registering Components
 
-
-
 The Runtime Pipeline is built using the Runtime Builder.
-
-
 
 ```ts
 
@@ -176,27 +138,15 @@ const runtime =
 
 ```
 
-
-
 Components execute in the same order they are registered.
-
-
 
 \## Why Pipelines?
 
-
-
 Pipelines make runtime behavior composable.
-
-
 
 Organizations can introduce new functionality without modifying Parmana's runtime implementation.
 
-
-
 Common pipeline stages include:
-
-
 
 \* Logging
 
@@ -214,11 +164,7 @@ Common pipeline stages include:
 
 \* Rate Limiting
 
-
-
 \## Run
-
-
 
 ```bash
 
@@ -226,15 +172,9 @@ tsx examples/tutorials/16-runtime-pipeline/run.ts
 
 ```
 
-
-
 \## Expected Output
 
-
-
 The example demonstrates:
-
-
 
 \* Logging Component execution
 
@@ -248,17 +188,8 @@ The example demonstrates:
 
 \* Receipt generation
 
-
-
 \## Key Takeaway
-
-
 
 Parmana's runtime is a deterministic processing pipeline.
 
-
-
 Organizations extend runtime behavior by composing Runtime Components rather than modifying the runtime engine itself. This approach keeps the core runtime stable while allowing enterprise-specific behavior to be added through reusable pipeline stages.
-
-
-

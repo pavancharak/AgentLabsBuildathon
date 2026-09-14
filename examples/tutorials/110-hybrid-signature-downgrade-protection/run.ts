@@ -51,8 +51,14 @@ async function main(): Promise<void> {
 
   if (!existsSync(secondaryPrivatePath)) {
     const { privateKey, publicKey } = generateKeyPairSync("ml-dsa-65");
-    writeFileSync(secondaryPrivatePath, privateKey.export({ format: "pem", type: "pkcs8" }));
-    writeFileSync(secondaryPublicPath, publicKey.export({ format: "pem", type: "spki" }));
+    writeFileSync(
+      secondaryPrivatePath,
+      privateKey.export({ format: "pem", type: "pkcs8" }),
+    );
+    writeFileSync(
+      secondaryPublicPath,
+      publicKey.export({ format: "pem", type: "spki" }),
+    );
   }
 
   const crypto = new VerificationCrypto();
@@ -60,7 +66,11 @@ async function main(): Promise<void> {
   const draft = {
     trustRecordId: "downgrade-protection-demo",
     businessTransactionId: "downgrade-protection-demo",
-    transaction: { businessTransactionId: "downgrade-protection-demo", status: "RECEIVED", createdAt: new Date() },
+    transaction: {
+      businessTransactionId: "downgrade-protection-demo",
+      status: "RECEIVED",
+      createdAt: new Date(),
+    },
     overrides: [],
     executions: [],
     verifications: [],
@@ -74,7 +84,12 @@ async function main(): Promise<void> {
   const withHash: ExecutionTrustRecord = {
     ...draft,
     trustRecordHash,
-    signature: { algorithm: "ed25519", keyId: "default", value: "", signedAt: new Date() },
+    signature: {
+      algorithm: "ed25519",
+      keyId: "default",
+      value: "",
+      signedAt: new Date(),
+    },
   };
 
   const signature = await crypto.sign(withHash);
@@ -90,33 +105,51 @@ async function main(): Promise<void> {
   console.log("Scenario 1: A genuinely hybrid-signed record verifies");
   console.log("--------------------------------------------------");
   console.log(`schemaVersion : ${hybridRecord.schemaVersion}`);
-  console.log(`signatures    : ${hybridRecord.signatures?.map((entry) => entry.algorithm).join(" + ")}`);
+  console.log(
+    `signatures    : ${hybridRecord.signatures?.map((entry) => entry.algorithm).join(" + ")}`,
+  );
   console.log(`verify        : ${await crypto.verify(hybridRecord)}`);
   console.log();
 
   // Simulate an attacker (or a lossy pipeline) with mere storage
   // access -- no private key needed -- stripping the ML-DSA-65 half.
-  const { schemaVersion: _schemaVersion, signatures: _signatures, ...stripped } = hybridRecord;
+  const {
+    schemaVersion: _schemaVersion,
+    signatures: _signatures,
+    ...stripped
+  } = hybridRecord;
 
-  console.log("Scenario 2: Default policy (HYBRID_SIGNATURE_REQUIRED unset) -- the stripped record STILL verifies");
+  console.log(
+    "Scenario 2: Default policy (HYBRID_SIGNATURE_REQUIRED unset) -- the stripped record STILL verifies",
+  );
   console.log("--------------------------------------------------");
-  const strippedUnderDefault = await crypto.verify(stripped as ExecutionTrustRecord);
+  const strippedUnderDefault = await crypto.verify(
+    stripped as ExecutionTrustRecord,
+  );
   console.log(`verify(stripped) : ${strippedUnderDefault}`);
   console.log(
     "This is deliberate, additive backward compatibility for records signed before this deployment ever",
   );
-  console.log("turned on hybrid mode -- not the downgrade attack being missed.");
+  console.log(
+    "turned on hybrid mode -- not the downgrade attack being missed.",
+  );
   console.log();
 
-  console.log("Scenario 3: HYBRID_SIGNATURE_REQUIRED=true -- the identical stripped record is now rejected");
+  console.log(
+    "Scenario 3: HYBRID_SIGNATURE_REQUIRED=true -- the identical stripped record is now rejected",
+  );
   console.log("--------------------------------------------------");
   process.env.HYBRID_SIGNATURE_REQUIRED = "true";
   const strictCrypto = new VerificationCrypto();
-  const strippedUnderStrict = await strictCrypto.verify(stripped as ExecutionTrustRecord);
+  const strippedUnderStrict = await strictCrypto.verify(
+    stripped as ExecutionTrustRecord,
+  );
   console.log(`verify(stripped) : ${strippedUnderStrict}`);
   console.log();
 
-  console.log("Scenario 4: A genuinely complete hybrid record still verifies under the strict policy");
+  console.log(
+    "Scenario 4: A genuinely complete hybrid record still verifies under the strict policy",
+  );
   console.log("--------------------------------------------------");
   const completeUnderStrict = await strictCrypto.verify(hybridRecord);
   console.log(`verify(hybridRecord) : ${completeUnderStrict}`);
@@ -135,12 +168,16 @@ async function main(): Promise<void> {
       "✓ Stripping the ML-DSA-65 signature is invisible under the default policy (by design, non-breaking) and correctly rejected once a deployment opts into HYBRID_SIGNATURE_REQUIRED.",
     );
   } else {
-    console.log("✗ Expected the default policy to accept the stripped record and the strict policy to reject it.");
+    console.log(
+      "✗ Expected the default policy to accept the stripped record and the strict policy to reject it.",
+    );
   }
 
   console.log();
   console.log("Tutorial Complete");
-  console.log("This concludes the PQC production-readiness audit remediation tutorials (107-110).");
+  console.log(
+    "This concludes the PQC production-readiness audit remediation tutorials (107-110).",
+  );
 }
 
 main().catch((error) => {

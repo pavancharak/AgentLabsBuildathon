@@ -1,13 +1,13 @@
 # Commercialization Roadmap
 
-*Draft — DPIIT Deep Tech recognition application*
-*Status: DRAFT. Grounded only in verified repo/git evidence as of 2026-08-25. Figures that require
+_Draft — DPIIT Deep Tech recognition application_
+_Status: DRAFT. Grounded only in verified repo/git evidence as of 2026-08-25. Figures that require
 business facts not present in the repo (pilot names, revenue, contract status) are marked TODO —
 see the verification note in
-[DEEP-TECH-APPLICATION-PROMPT.md](./DEEP-TECH-APPLICATION-PROMPT.md).*
+[DEEP-TECH-APPLICATION-PROMPT.md](./DEEP-TECH-APPLICATION-PROMPT.md)._
 
 > **Correction to the source master prompt:** the original prompt lists "Razorpay connector +
-> policy governance in production" as an 0–12 month *upcoming* milestone. That's stale — the
+> policy governance in production" as an 0–12 month _upcoming_ milestone. That's stale — the
 > Razorpay connector was already built, deployed, and validated against Razorpay's live-mode API
 > with real money (`docs/CLAIMS.md` §3.8–§3.9), then **deliberately removed from the codebase on
 > 2026-08-12** (commit `f399ff5`, "refactor: remove production execution layer from connector
@@ -80,7 +80,7 @@ This is evidence, not a plan, and should be presented to DPIIT as such:
 
 The source master prompt asserts "Razorpay connector ... in production" as a near-term milestone,
 which is both stale (it was removed, not pending) and undersells what's actually true: Parmana
-already *proved* the regulated-payments case with real money before consolidating the
+already _proved_ the regulated-payments case with real money before consolidating the
 architecture, and has since proven the platform generalizes by standing up two more connectors
 (HubSpot, GitHub) through the same unmodified core. A DPIIT reviewer checking claims against the
 codebase will find the corrected version credible and the original version wrong. Lead with

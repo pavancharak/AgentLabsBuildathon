@@ -31,7 +31,7 @@ weaker protection. Here is what was actually traced, with sources:
   `businessTransactionId` against the plain server is rejected by
   `BusinessTransactionService.accept()` throwing
   `DuplicateBusinessTransactionError` (`packages/runtime/src/services/
-  business-transaction-service.ts:36-44`) -- a simple "does this ID
+business-transaction-service.ts:36-44`) -- a simple "does this ID
   already exist" check, mapped to HTTP 409. It has nothing to do with
   verifying the payload's content against a signed hash. A modified
   payload under a **new, never-seen** `businessTransactionId` would sail

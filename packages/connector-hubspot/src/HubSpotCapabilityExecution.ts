@@ -70,9 +70,10 @@ export async function executeHubSpotCapability(
 }
 
 /** Unwraps the connector-reported metadata a capability response carries. */
-export function hubSpotConnectorResponseMetadata(result: ExecutionResult): Record<string, unknown> {
+export function hubSpotConnectorResponseMetadata(
+  result: ExecutionResult,
+): Record<string, unknown> {
   const connector = result.metadata?.connector as
-    | { responseSummary?: { metadata?: Record<string, unknown> } }
-    | undefined;
+    { responseSummary?: { metadata?: Record<string, unknown> } } | undefined;
   return connector?.responseSummary?.metadata ?? {};
 }

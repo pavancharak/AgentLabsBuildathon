@@ -1,22 +1,12 @@
 \# 13 – REST API Reference
 
-
-
 This guide summarizes every REST endpoint exposed by the Parmana API.
-
-
 
 \---
 
-
-
 \# Authentication
 
-
-
 Protected endpoints require:
-
-
 
 ```
 
@@ -24,11 +14,7 @@ Authorization: Bearer <API\_KEY>
 
 ```
 
-
-
 Public endpoints:
-
-
 
 \- GET /health
 
@@ -36,27 +22,15 @@ Public endpoints:
 
 \- GET /documentation
 
-
-
 \---
-
-
 
 \# Execute
 
-
-
 \## POST /execute
-
-
 
 Creates and executes a Business Transaction.
 
-
-
 \### Request
-
-
 
 ```json
 
@@ -68,15 +42,9 @@ Creates and executes a Business Transaction.
 
 ```
 
-
-
 \### Success
 
-
-
 Returns:
-
-
 
 \- Business Transaction ID
 
@@ -86,27 +54,15 @@ Returns:
 
 \- Execution Result
 
-
-
 \---
-
-
 
 \# Verify
 
-
-
 \## POST /verify
-
-
 
 Verifies an existing Execution Trust Record.
 
-
-
 \### Request
-
-
 
 ```json
 
@@ -118,15 +74,9 @@ Verifies an existing Execution Trust Record.
 
 ```
 
-
-
 \### Success
 
-
-
 Returns:
-
-
 
 \- Verification ID
 
@@ -138,27 +88,15 @@ Returns:
 
 \- Verified At
 
-
-
 \---
-
-
 
 \# Receipt
 
-
-
 \## POST /receipt
-
-
 
 Generates a cryptographic execution receipt.
 
-
-
 \### Request
-
-
 
 ```json
 
@@ -170,35 +108,19 @@ Generates a cryptographic execution receipt.
 
 ```
 
-
-
 \### Success
-
-
 
 Returns an Execution Receipt.
 
-
-
 \---
-
-
 
 \# Replay
 
-
-
 \## POST /replay
-
-
 
 Performs deterministic replay verification.
 
-
-
 \### Request
-
-
 
 ```json
 
@@ -210,15 +132,9 @@ Performs deterministic replay verification.
 
 ```
 
-
-
 \### Success
 
-
-
 Returns:
-
-
 
 \- Business Transaction ID
 
@@ -226,27 +142,15 @@ Returns:
 
 \- Verified
 
-
-
 \---
-
-
 
 \# Trust Records
 
-
-
 \## GET /trust-records/{businessTransactionId}
-
-
 
 Returns the complete Execution Trust Record.
 
-
-
 \### Path Parameter
-
-
 
 ```
 
@@ -254,35 +158,19 @@ businessTransactionId
 
 ```
 
-
-
 \### Success
-
-
 
 Returns the complete immutable Trust Record.
 
-
-
 \---
-
-
 
 \# Health
 
-
-
 \## GET /health
-
-
 
 Returns API health.
 
-
-
 Example:
-
-
 
 ```json
 
@@ -294,51 +182,27 @@ Example:
 
 ```
 
-
-
 \---
-
-
 
 \# OpenAPI
 
-
-
 \## GET /openapi.yaml
-
-
 
 Returns the OpenAPI specification.
 
-
-
 \---
-
-
 
 \# Swagger UI
 
-
-
 \## GET /documentation
-
-
 
 Interactive API documentation.
 
-
-
 \---
-
-
 
 \# Authentication Errors
 
-
-
 All protected endpoints return:
-
-
 
 ```json
 
@@ -350,23 +214,13 @@ All protected endpoints return:
 
 ```
 
-
-
 when authentication fails.
-
-
 
 \---
 
-
-
 \# Validation Errors
 
-
-
 Typical validation failures include:
-
-
 
 \- Missing Business Transaction ID
 
@@ -376,15 +230,9 @@ Typical validation failures include:
 
 \- Execution Trust Record not found
 
-
-
 \---
 
-
-
 \# Execution Flow
-
-
 
 ```text
 
@@ -416,15 +264,8 @@ GET /trust-records/{businessTransactionId}
 
 ```
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 The Parmana REST API exposes deterministic execution, verification, receipt generation, replay, and immutable Execution Trust Record retrieval through a small set of focused endpoints secured by Bearer authentication.
-

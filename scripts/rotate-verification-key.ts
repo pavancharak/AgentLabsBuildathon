@@ -94,7 +94,9 @@ console.log("Algorithm :", algorithm);
 console.log("New keyId :", newKeyId);
 console.log("Directory :", keyDirectory);
 console.log();
-console.log(`Set ${envVar}=${newKeyId} and redeploy for NEW signatures to use it.`);
+console.log(
+  `Set ${envVar}=${newKeyId} and redeploy for NEW signatures to use it.`,
+);
 console.log(
   "Do not delete the previous keyId's key files -- every record already signed " +
     "under it needs them to keep verifying.",

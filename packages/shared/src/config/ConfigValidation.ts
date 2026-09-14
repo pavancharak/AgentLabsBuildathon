@@ -42,7 +42,12 @@ export const parseStorageProvider = (value?: string): StorageProvider => {
     );
   }
 
-  return parse(value, StorageProviders, "PARMANA_STORAGE", StorageProviders.MEMORY);
+  return parse(
+    value,
+    StorageProviders,
+    "PARMANA_STORAGE",
+    StorageProviders.MEMORY,
+  );
 };
 
 export const parseCryptoMode = (value?: string): CryptoMode =>
@@ -67,9 +72,7 @@ const SIGNATURE_ALGORITHM_ALIASES: Record<string, SignatureAlgorithm> = {
 
 export const parseSignatureAlgorithm = (value?: string): SignatureAlgorithm =>
   parse(
-    value !== undefined
-      ? (SIGNATURE_ALGORITHM_ALIASES[value] ?? value)
-      : value,
+    value !== undefined ? (SIGNATURE_ALGORITHM_ALIASES[value] ?? value) : value,
     SignatureAlgorithms,
     "SIGNATURE_PROVIDER",
     SignatureAlgorithms.ED25519,
@@ -79,7 +82,12 @@ export const parseKeyProvider = (value?: string): KeyProvider =>
   parse(value, KeyProviders, "KEY_PROVIDER", KeyProviders.LOCAL);
 
 export const parseSecretsProvider = (value?: string): SecretsProvider =>
-  parse(value, SecretsProviders, "PARMANA_SECRETS_PROVIDER", SecretsProviders.ENV);
+  parse(
+    value,
+    SecretsProviders,
+    "PARMANA_SECRETS_PROVIDER",
+    SecretsProviders.ENV,
+  );
 
 export const parseTrustProfile = (value?: string): TrustProfile =>
   parse(value, TrustProfiles, "TRUST_PROFILE", TrustProfiles.V1);
@@ -141,9 +149,7 @@ export function parseApiKeys(value?: string): ApiKeyEntry[] {
     if (allowedPrincipalIds !== undefined) {
       const validAllowedPrincipalIds =
         Array.isArray(allowedPrincipalIds) &&
-        allowedPrincipalIds.every(
-          (id) => typeof id === "string" && id !== "",
-        );
+        allowedPrincipalIds.every((id) => typeof id === "string" && id !== "");
 
       if (!validAllowedPrincipalIds) {
         throw new Error(
@@ -165,7 +171,7 @@ export function parseApiKeys(value?: string): ApiKeyEntry[] {
       if (!validAllowedCapabilities) {
         throw new Error(
           `PARMANA_API_KEYS[${index}].allowedCapabilities must be an array ` +
-            "of non-empty strings when present. Use \"*\" as an entry to " +
+            'of non-empty strings when present. Use "*" as an entry to ' +
             "grant every capability.",
         );
       }

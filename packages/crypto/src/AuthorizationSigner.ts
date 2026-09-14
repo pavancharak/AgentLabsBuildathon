@@ -38,9 +38,7 @@ export class AuthorizationSigner {
   private readonly signer: ArtifactSigner;
   private readonly contentHasher: ExecutableContentHasher;
 
-  constructor(
-    private readonly crypto: CryptoProvider,
-  ) {
+  constructor(private readonly crypto: CryptoProvider) {
     this.signer = new ArtifactSigner(crypto);
     this.contentHasher = new ExecutableContentHasher(crypto);
   }
@@ -60,18 +58,13 @@ export class AuthorizationSigner {
   ): Promise<SignedExecutionAuthorization> {
     const payload = await this.buildPayload(input, ttlSeconds);
 
-    const signature =
-      await this.signer.sign(
-        payload,
-        privateKey,
-      );
+    const signature = await this.signer.sign(payload, privateKey);
 
     return {
       payload,
       signature,
       keyId,
-      algorithm:
-        this.crypto.signature.algorithm,
+      algorithm: this.crypto.signature.algorithm,
     };
   }
 
@@ -89,19 +82,13 @@ export class AuthorizationSigner {
   ): Promise<SignedExecutionAuthorization> {
     const payload = await this.buildPayload(input, ttlSeconds);
 
-    const signature =
-      await this.signer.signWithSigner(
-        payload,
-        keyId,
-        signer,
-      );
+    const signature = await this.signer.signWithSigner(payload, keyId, signer);
 
     return {
       payload,
       signature,
       keyId,
-      algorithm:
-        this.crypto.signature.algorithm,
+      algorithm: this.crypto.signature.algorithm,
     };
   }
 
@@ -114,25 +101,17 @@ export class AuthorizationSigner {
     input: AuthorizationInput,
     ttlSeconds: number,
   ): Promise<ExecutionAuthorizationPayload> {
-    if (
-      !Number.isFinite(ttlSeconds) ||
-      ttlSeconds <= 0
-    ) {
-      throw new Error(
-        `Invalid authorization TTL: ${ttlSeconds}`,
-      );
+    if (!Number.isFinite(ttlSeconds) || ttlSeconds <= 0) {
+      throw new Error(`Invalid authorization TTL: ${ttlSeconds}`);
     }
 
     const issuedAt = new Date();
 
-    const expiresAt = new Date(
-      issuedAt.getTime() + ttlSeconds * 1000,
-    );
+    const expiresAt = new Date(issuedAt.getTime() + ttlSeconds * 1000);
 
-    const businessTransactionHash =
-      await this.contentHasher.hash(
-        input.executableContent,
-      );
+    const businessTransactionHash = await this.contentHasher.hash(
+      input.executableContent,
+    );
 
     return {
       version: 1,
@@ -143,8 +122,7 @@ export class AuthorizationSigner {
 
       decisionId: input.decisionId,
 
-      businessTransactionId:
-        input.businessTransactionId,
+      businessTransactionId: input.businessTransactionId,
 
       policyName: input.policyName,
 
@@ -166,11 +144,9 @@ export class AuthorizationSigner {
         grantedCapability: input.grantedCapability,
       }),
 
-      authorizedAt:
-        issuedAt.toISOString(),
+      authorizedAt: issuedAt.toISOString(),
 
-      expiresAt:
-        expiresAt.toISOString(),
+      expiresAt: expiresAt.toISOString(),
 
       businessTransactionHash,
     };

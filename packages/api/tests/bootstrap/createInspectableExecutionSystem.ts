@@ -78,7 +78,9 @@ export function createInspectableExecutionSystem(
   const route = createConnectorRoute();
 
   const sessionIssuanceAuthentication = Object.freeze({});
-  const sessions = new InMemoryGatewaySessionStore(sessionIssuanceAuthentication);
+  const sessions = new InMemoryGatewaySessionStore(
+    sessionIssuanceAuthentication,
+  );
 
   const attestationSigner = new GatewayAttestationSigner(
     new SystemClock(),
@@ -160,7 +162,11 @@ export function createInspectableExecutionSystem(
     executionControl: {
       service: executionControl,
       mintGatewayAuthentication: (authorizationId) =>
-        attestationSigner.sign(gatewayIdentity.gatewayId, authorizationId, signingKey),
+        attestationSigner.sign(
+          gatewayIdentity.gatewayId,
+          authorizationId,
+          signingKey,
+        ),
       route,
     },
   });

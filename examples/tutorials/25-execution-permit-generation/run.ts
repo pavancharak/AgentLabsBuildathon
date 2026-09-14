@@ -1,25 +1,15 @@
-import {
-  MemoryExecutionTrustRecordRepository,
-} from "@parmana/storage";
+import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeBuilder,
-} from "@parmana/runtime";
+import { RuntimeBuilder } from "@parmana/runtime";
 
-import transaction from "./transaction.json" with {
-  type: "json",
-};
+import transaction from "./transaction.json" with { type: "json" };
 
 async function main(): Promise<void> {
   console.log();
   console.log("==================================================");
-  console.log(
-    "Tutorial 25 - Execution Permit Generation",
-  );
+  console.log("Tutorial 25 - Execution Permit Generation");
   console.log("==================================================");
   console.log();
 
@@ -27,105 +17,60 @@ async function main(): Promise<void> {
   // Repository
   //
 
-  const repository =
-    new MemoryExecutionTrustRecordRepository();
+  const repository = new MemoryExecutionTrustRecordRepository();
 
   //
   // Runtime
   //
 
-  const runtime =
-    new RuntimeBuilder()
-      .withPolicyRepository(
-        new FilePolicyRepository(
-          "policies",
-        ),
-      )
-      .build(
-        repository,
-      );
+  const runtime = new RuntimeBuilder()
+    .withPolicyRepository(new FilePolicyRepository("policies"))
+    .build(repository);
 
-  console.log(
-    "Executing transaction...",
-  );
+  console.log("Executing transaction...");
   console.log();
 
-  const {
-    context,
-  } = await runtime.execute(
-    transaction,
-  );
+  const { context } = await runtime.execute(transaction);
 
-  console.log(
-    "✓ Policy approved.",
-  );
+  console.log("✓ Policy approved.");
 
   console.log();
-  console.log(
-    "Execution Permit",
-  );
-  console.log(
-    "------------------------------",
-  );
+  console.log("Execution Permit");
+  console.log("------------------------------");
 
- console.dir(
-  context.authorization,
-  { depth: null },
-);
+  console.dir(context.authorization, { depth: null });
 
-return;
+  return;
 
-  console.log(
-    `Authorization ID : ${permit.authorizationId}`,
-  );
+  console.log(`Authorization ID : ${permit.authorizationId}`);
 
-  console.log(
-    `Decision ID      : ${permit.decisionId}`,
-  );
+  console.log(`Decision ID      : ${permit.decisionId}`);
 
   console.log(
     `Policy           : ${permit.policyName}@${permit.policyVersion}`,
   );
 
-  console.log(
-    `Issued At        : ${permit.authorizedAt.toISOString()}`,
-  );
+  console.log(`Issued At        : ${permit.authorizedAt.toISOString()}`);
 
-  console.log(
-    `Expires At       : ${permit.expiresAt.toISOString()}`,
-  );
+  console.log(`Expires At       : ${permit.expiresAt.toISOString()}`);
 
   console.log();
 
-  console.log(
-    "Permit Signature",
-  );
-  console.log(
-    "------------------------------",
-  );
+  console.log("Permit Signature");
+  console.log("------------------------------");
 
-  console.log(
-    `Algorithm : ${context.authorization.algorithm}`,
-  );
+  console.log(`Algorithm : ${context.authorization.algorithm}`);
 
-  console.log(
-    `Key ID    : ${context.authorization.keyId}`,
-  );
+  console.log(`Key ID    : ${context.authorization.keyId}`);
 
-  console.log(
-    `Signature : ${context.authorization.signature}`,
-  );
+  console.log(`Signature : ${context.authorization.signature}`);
 
   console.log();
 
-  console.log(
-    "✓ Signature generated.",
-  );
+  console.log("✓ Signature generated.");
 
   console.log();
-  console.log(
-    "Tutorial completed successfully.",
-  );
+  console.log("Tutorial completed successfully.");
 }
 
 main().catch((error) => {

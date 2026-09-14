@@ -21,36 +21,27 @@ import type { ConnectorRequest } from "./ConnectorRequest.js";
  * require no changes.
  */
 export class HttpConnector implements Connector {
-  constructor(
-    private readonly options: ExecutionSystemClientOptions,
-  ) {
+  constructor(private readonly options: ExecutionSystemClientOptions) {
     Object.freeze(this);
   }
 
-  public async execute(
-    request: ConnectorRequest,
-  ): Promise<ExecutionResult> {
-    const response = await fetch(
-      `${this.options.baseUrl}/execute`,
-      {
-        method: "POST",
+  public async execute(request: ConnectorRequest): Promise<ExecutionResult> {
+    const response = await fetch(`${this.options.baseUrl}/execute`, {
+      method: "POST",
 
-        headers: {
-          "Content-Type": "application/json",
-          ...this.options.headers,
-        },
-
-        body: JSON.stringify({
-          ...request.transaction,
-          authorization: request.authorization,
-        }),
+      headers: {
+        "Content-Type": "application/json",
+        ...this.options.headers,
       },
-    );
+
+      body: JSON.stringify({
+        ...request.transaction,
+        authorization: request.authorization,
+      }),
+    });
 
     if (!response.ok) {
-      throw new Error(
-        `Connector returned HTTP ${response.status}.`,
-      );
+      throw new Error(`Connector returned HTTP ${response.status}.`);
     }
 
     return (await response.json()) as ExecutionResult;

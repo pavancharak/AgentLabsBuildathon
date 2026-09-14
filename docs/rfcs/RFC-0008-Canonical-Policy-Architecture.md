@@ -1,50 +1,26 @@
 \# RFC-0008: Canonical Policy Architecture
 
-
-
 \*\*Status:\*\* Accepted
-
-
 
 \## Purpose
 
-
-
 This RFC defines the canonical policy architecture for Parmana.
-
-
 
 The goal is to ensure that policy selection is deterministic, auditable, and forms part of the Execution Trust Chain.
 
-
-
 \---
-
-
 
 \# Problem
 
-
-
 A runtime must never infer which policy applies by scanning all available policies.
-
-
 
 Policy selection is an authorization decision, not a runtime decision.
 
-
-
 Allowing the runtime to discover or choose policies would make execution dependent on runtime state rather than the trusted execution request.
-
-
 
 \---
 
-
-
 \# Canonical Architecture
-
-
 
 ```
 
@@ -88,23 +64,13 @@ Execution
 
 ```
 
-
-
 \---
-
-
 
 \# BusinessTransaction
 
-
-
 The BusinessTransaction explicitly specifies the PolicyReference.
 
-
-
 Example:
-
-
 
 ```typescript
 
@@ -118,31 +84,17 @@ policy: {
 
 ```
 
-
-
 The PolicyReference is part of the cryptographically verifiable execution trust chain.
-
-
 
 \---
 
-
-
 \# PolicyRouter
-
-
 
 PolicyRouter has a single responsibility.
 
-
-
 It loads the requested versioned policy from storage.
 
-
-
 Example:
-
-
 
 ```
 
@@ -150,11 +102,7 @@ load(policyId, version)
 
 ```
 
-
-
 PolicyRouter MUST NOT:
-
-
 
 \* discover policies
 
@@ -164,23 +112,13 @@ PolicyRouter MUST NOT:
 
 \* scan every policy on disk
 
-
-
 \---
-
-
 
 \# PolicyRegistry
 
-
-
 PolicyRegistry maintains metadata describing available policies.
 
-
-
 Responsibilities include:
-
-
 
 \* registering policies
 
@@ -190,73 +128,39 @@ Responsibilities include:
 
 \* latest-version resolution
 
-
-
 PolicyRegistry does not evaluate policies.
-
-
 
 \---
 
-
-
 \# PolicyEngine
-
-
 
 PolicyEngine evaluates exactly one loaded policy.
 
-
-
 Inputs:
-
-
 
 \* Policy
 
 \* Signals
 
-
-
 Outputs:
-
-
 
 \* Decision
 
-
-
 PolicyEngine must remain deterministic.
 
-
-
 \---
-
-
 
 \# Runtime
 
-
-
 Runtime must never guess which policy applies.
-
-
 
 Runtime receives the PolicyReference from the BusinessTransaction and passes it unchanged through the execution pipeline.
 
-
-
 \---
-
-
 
 \# Trust Chain
 
-
-
 The policy is part of the execution trust chain.
-
-
 
 ```
 
@@ -284,23 +188,13 @@ Execution
 
 ```
 
-
-
 Changing the policy changes the trust chain.
-
-
 
 \---
 
-
-
 \# Determinism
 
-
-
 Deterministic execution requires:
-
-
 
 \* explicit PolicyReference
 
@@ -312,15 +206,9 @@ Deterministic execution requires:
 
 \* no policy guessing
 
-
-
 \---
 
-
-
 \# Design Principles
-
-
 
 1\. Policy selection is an authorization decision.
 
@@ -338,21 +226,10 @@ Deterministic execution requires:
 
 8\. PolicyReference is part of the trust chain.
 
-
-
 \---
-
-
 
 \# Architecture Lock
 
-
-
 This architecture is locked.
 
-
-
 Future changes may extend the policy language or storage mechanisms but must not change these responsibilities or reintroduce runtime policy discovery.
-
-
-

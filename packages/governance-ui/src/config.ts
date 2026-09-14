@@ -32,7 +32,9 @@ export function loadGovernanceUiConfig(): GovernanceUiConfig {
   const port = Number(process.env.PORT ?? "4100");
 
   if (!Number.isInteger(port) || port <= 0) {
-    throw new Error(`PORT must be a positive integer, got '${process.env.PORT}'.`);
+    throw new Error(
+      `PORT must be a positive integer, got '${process.env.PORT}'.`,
+    );
   }
 
   return {

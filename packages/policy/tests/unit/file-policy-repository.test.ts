@@ -19,19 +19,13 @@ import type { Policy } from "../../src/types/Policy.js";
  * — this mirrors that fix and that test file's structure.
  */
 describe("FilePolicyRepository name/version sanitization", () => {
-  const basePath = path.resolve(
-    import.meta.dirname,
-    "../../../../policies",
-  );
+  const basePath = path.resolve(import.meta.dirname, "../../../../policies");
 
   it("rejects a path-traversal name that resolves outside basePath", async () => {
     const repository = new FilePolicyRepository(basePath);
 
     await expect(
-      repository.load(
-        "../examples/tutorials/01-hello-world",
-        ".",
-      ),
+      repository.load("../examples/tutorials/01-hello-world", "."),
     ).rejects.toThrow(PolicyNotFoundError);
   });
 
@@ -39,10 +33,7 @@ describe("FilePolicyRepository name/version sanitization", () => {
     const repository = new FilePolicyRepository(basePath);
 
     await expect(
-      repository.load(
-        "vendor-payment",
-        "../../../../../../etc",
-      ),
+      repository.load("vendor-payment", "../../../../../../etc"),
     ).rejects.toThrow(PolicyNotFoundError);
   });
 
@@ -190,9 +181,9 @@ describe("FilePolicyRepository.save", () => {
       ),
     ).rejects.toThrow(PolicyWriteRejectedError);
 
-    expect(
-      existsSync(path.resolve(basePath, "..", "escape-attempt")),
-    ).toBe(false);
+    expect(existsSync(path.resolve(basePath, "..", "escape-attempt"))).toBe(
+      false,
+    );
   });
 
   it("rejects a path-traversal version and never writes outside basePath", async () => {
@@ -212,9 +203,7 @@ describe("FilePolicyRepository.save", () => {
     basePath = mkdtempSync(path.join(tmpdir(), "parmana-policy-save-"));
     const repository = new FilePolicyRepository(basePath);
 
-    expect(
-      existsSync(path.join(basePath, "brand-new-policy")),
-    ).toBe(false);
+    expect(existsSync(path.join(basePath, "brand-new-policy"))).toBe(false);
 
     await repository.save(
       "brand-new-policy",

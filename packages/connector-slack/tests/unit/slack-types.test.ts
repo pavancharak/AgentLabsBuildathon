@@ -59,7 +59,9 @@ describe("isSlackPostMessageResponse", () => {
   });
 
   it("accepts a well-formed failure response (ok:false is still a valid shape)", () => {
-    expect(isSlackPostMessageResponse({ ok: false, error: "channel_not_found" })).toBe(true);
+    expect(
+      isSlackPostMessageResponse({ ok: false, error: "channel_not_found" }),
+    ).toBe(true);
   });
 
   it.each([

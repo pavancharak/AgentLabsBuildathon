@@ -1,42 +1,22 @@
 \# RFC-0019: Business Transaction Domain Model
 
-
-
 \*\*Status:\*\* Accepted
-
-
 
 \## Purpose
 
-
-
 This RFC defines the canonical `BusinessTransaction` domain model within the Parmana Execution Trust Architecture.
-
-
 
 The `BusinessTransaction` represents the immutable business context submitted for execution. It captures everything required to deterministically evaluate a policy, but it does not contain the results of that evaluation.
 
-
-
 \---
-
-
 
 \# Architectural Position
 
-
-
 The `BusinessTransaction` is an input artifact.
-
-
 
 It exists before policy evaluation and therefore SHALL NOT contain execution artifacts produced later in the trust chain.
 
-
-
 The canonical execution flow is:
-
-
 
 ```text
 
@@ -104,19 +84,11 @@ Verification
 
 ```
 
-
-
 \---
-
-
 
 \# Responsibilities
 
-
-
 The `BusinessTransaction` SHALL:
-
-
 
 \* identify the business transaction
 
@@ -128,11 +100,7 @@ The `BusinessTransaction` SHALL:
 
 \* remain immutable after creation
 
-
-
 The `BusinessTransaction` SHALL NOT:
-
-
 
 \* contain a `Decision`
 
@@ -144,19 +112,11 @@ The `BusinessTransaction` SHALL NOT:
 
 \* contain execution evidence
 
-
-
 \---
-
-
 
 \# Canonical Structure
 
-
-
 The canonical `BusinessTransaction` SHALL contain:
-
-
 
 ```text
 
@@ -182,23 +142,13 @@ BusinessTransaction
 
 ```
 
-
-
 \---
-
-
 
 \# Policy Reference
 
-
-
 Every `BusinessTransaction` SHALL contain exactly one `PolicyReference`.
 
-
-
 The `PolicyReference` SHALL include:
-
-
 
 ```text
 
@@ -212,31 +162,17 @@ PolicyReference
 
 ```
 
-
-
 The `PolicyReference` forms part of the cryptographically verifiable execution trust chain.
-
-
 
 \---
 
-
-
 \# Runtime Signals
-
-
 
 Runtime signals are opaque business facts supplied at execution time.
 
-
-
 Examples include:
 
-
-
 Payment
-
-
 
 ```json
 
@@ -250,11 +186,7 @@ Payment
 
 ```
 
-
-
 Loan
-
-
 
 ```json
 
@@ -268,11 +200,7 @@ Loan
 
 ```
 
-
-
 Healthcare
-
-
 
 ```json
 
@@ -286,11 +214,7 @@ Healthcare
 
 ```
 
-
-
 Cybersecurity
-
-
 
 ```json
 
@@ -304,11 +228,7 @@ Cybersecurity
 
 ```
 
-
-
 Manufacturing
-
-
 
 ```json
 
@@ -322,31 +242,17 @@ Manufacturing
 
 ```
 
-
-
 Parmana assigns no business meaning to these values.
-
-
 
 Their interpretation belongs entirely to the referenced policy.
 
-
-
 \---
-
-
 
 \# Decision Separation
 
-
-
 A `Decision` SHALL NOT be embedded within a `BusinessTransaction`.
 
-
-
 The `Decision` is produced only after deterministic policy evaluation.
-
-
 
 ```text
 
@@ -366,23 +272,13 @@ Decision
 
 ```
 
-
-
 This preserves the causal relationship between inputs and outputs.
-
-
 
 \---
 
-
-
 \# Architectural Invariants
 
-
-
 The `BusinessTransaction` SHALL satisfy the following invariants:
-
-
 
 1\. It SHALL be immutable.
 
@@ -400,19 +296,11 @@ The `BusinessTransaction` SHALL satisfy the following invariants:
 
 8\. Identical `BusinessTransaction` instances SHALL produce identical policy evaluation inputs.
 
-
-
 \---
-
-
 
 \# Relationship to Other Domain Objects
 
-
-
 The trust chain is defined as:
-
-
 
 ```text
 
@@ -468,23 +356,13 @@ Verification
 
 ```
 
-
-
 Each domain object represents a distinct stage in the execution lifecycle and owns only the data created at that stage.
-
-
 
 \---
 
-
-
 \# Benefits
 
-
-
 Separating the `BusinessTransaction` from the `Decision` provides:
-
-
 
 \* clear separation of inputs and outputs
 
@@ -500,21 +378,10 @@ Separating the `BusinessTransaction` from the `Decision` provides:
 
 \* a clean execution trust chain
 
-
-
 \---
-
-
 
 \# Status
 
-
-
 This RFC locks the canonical `BusinessTransaction` domain model for Parmana.
 
-
-
 The `BusinessTransaction` SHALL remain an immutable execution input and SHALL NOT embed downstream execution artifacts such as `Decision`, `Execution`, `Receipt`, or `Verification`.
-
-
-

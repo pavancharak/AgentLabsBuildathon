@@ -3,7 +3,10 @@ title: "@parmana/connector-sdk"
 description: "Connector authoring contracts, reference implementations, and four enterprise-named reference mocks. Extends execution-control's seams, does not replace them."
 ---
 
-<Info>**[AVAILABLE]** as a library, 45 tests. **The four enterprise-named connectors are explicit mocks**, not integrations, see below.</Info>
+<Info>
+  **[AVAILABLE]** as a library, 45 tests. **The four enterprise-named connectors
+  are explicit mocks**, not integrations, see below.
+</Info>
 
 ## Purpose
 
@@ -21,33 +24,33 @@ npm install @parmana/connector-sdk
 
 ### Contracts, [AVAILABLE]
 
-| Export | Signature |
-|---|---|
-| `Connector` (interface) | `{ connectorId, capabilities, execute(request: ConnectorRequest, context: ConnectorExecutionContext): Promise<ConnectorResponse> }` |
-| `ConnectorRequest` | `{ capability, businessTransactionId, action, target, parameters }`, note `capability` and `action` are separate fields, expected to match by convention |
-| `connectorCapabilities(strings[])` | Validates each string as `namespace:verb`, throws at construction on a malformed one, not at execution time |
-| `ConnectorFactory` (interface) | Construction contract future connectors implement. No concrete factory ships. |
-| `ConnectorMetadata`, `ConnectorVersion`, `ConnectorHealth` | Registration-time descriptive metadata, checked by `SdkConnectorExecutor` before every invocation |
+| Export                                                     | Signature                                                                                                                                                |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Connector` (interface)                                    | `{ connectorId, capabilities, execute(request: ConnectorRequest, context: ConnectorExecutionContext): Promise<ConnectorResponse> }`                      |
+| `ConnectorRequest`                                         | `{ capability, businessTransactionId, action, target, parameters }`, note `capability` and `action` are separate fields, expected to match by convention |
+| `connectorCapabilities(strings[])`                         | Validates each string as `namespace:verb`, throws at construction on a malformed one, not at execution time                                              |
+| `ConnectorFactory` (interface)                             | Construction contract future connectors implement. No concrete factory ships.                                                                            |
+| `ConnectorMetadata`, `ConnectorVersion`, `ConnectorHealth` | Registration-time descriptive metadata, checked by `SdkConnectorExecutor` before every invocation                                                        |
 
 ### Reference implementations, [AVAILABLE]
 
-| Export | Purpose |
-|---|---|
-| `HttpConnector` | Capability-aware HTTP forwarding, per-request timeout, Bearer-token credential injection from an already-resolved `CredentialHandle`, fails closed on timeout or non-2xx. A different, newer class from `@parmana/execution-gateway`'s `HttpConnector`. |
-| `MockConnector` | Scripted responses (`script: { respond }`) or failure injection (`script: { failWith }`) for hermetic testing. `.invocations` records every request received. |
-| `SapConnector`, `OracleConnector`, `WorkdayConnector`, `SalesforceConnector` | **[AVAILABLE] as reference mocks only.** Thin factories wrapping `MockConnector` under an enterprise-shaped `connectorId`, self-documented: *"deterministic, in-memory connector used until the real enterprise connector is implemented."* None is wired into the default server, none calls a real SAP, Oracle, Workday, or Salesforce system. |
+| Export                                                                       | Purpose                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `HttpConnector`                                                              | Capability-aware HTTP forwarding, per-request timeout, Bearer-token credential injection from an already-resolved `CredentialHandle`, fails closed on timeout or non-2xx. A different, newer class from `@parmana/execution-gateway`'s `HttpConnector`.                                                                                          |
+| `MockConnector`                                                              | Scripted responses (`script: { respond }`) or failure injection (`script: { failWith }`) for hermetic testing. `.invocations` records every request received.                                                                                                                                                                                    |
+| `SapConnector`, `OracleConnector`, `WorkdayConnector`, `SalesforceConnector` | **[AVAILABLE] as reference mocks only.** Thin factories wrapping `MockConnector` under an enterprise-shaped `connectorId`, self-documented: _"deterministic, in-memory connector used until the real enterprise connector is implemented."_ None is wired into the default server, none calls a real SAP, Oracle, Workday, or Salesforce system. |
 
 ### Credential and registry seams, [AVAILABLE]
 
-| Export | Purpose |
-|---|---|
-| `CredentialProvider` (interface) | `{ providerId, resolve(connectorId): Promise<CredentialHandle> }` |
-| `StaticCredentialProvider` | In-memory map, tests and local dev only |
-| `CredentialVaultAdapter` | Adapts any `CredentialProvider` into `execution-control`'s `CredentialVault` interface |
-| `SdkConnectorExecutor` | Adapts the SDK's `Connector` into `execution-control`'s `ConnectorExecutor`, rejects version mismatches, `"unavailable"` health, and any credential that isn't a branded `CredentialHandle` |
-| `ConnectorSdkRegistry` | Implements `execution-control`'s `ConnectorRegistry`, composes `InMemoryConnectorRegistry` internally, adds metadata/version/health/credential-provider registration |
-| `CapabilityConnectorPolicy` | Wraps a `ConnectorPolicy`, checks the requested action against the connector's declared capabilities |
-| `ConnectorEvidence` (model) | What lands at `ExecutionResult.metadata.connector`: connector ID, version, capability, sanitized endpoint, redacted request/response summaries, a `connectorEvidenceHash`. See [Execution trust records](/concepts/execution-trust-records). |
+| Export                           | Purpose                                                                                                                                                                                                                                      |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CredentialProvider` (interface) | `{ providerId, resolve(connectorId): Promise<CredentialHandle> }`                                                                                                                                                                            |
+| `StaticCredentialProvider`       | In-memory map, tests and local dev only                                                                                                                                                                                                      |
+| `CredentialVaultAdapter`         | Adapts any `CredentialProvider` into `execution-control`'s `CredentialVault` interface                                                                                                                                                       |
+| `SdkConnectorExecutor`           | Adapts the SDK's `Connector` into `execution-control`'s `ConnectorExecutor`, rejects version mismatches, `"unavailable"` health, and any credential that isn't a branded `CredentialHandle`                                                  |
+| `ConnectorSdkRegistry`           | Implements `execution-control`'s `ConnectorRegistry`, composes `InMemoryConnectorRegistry` internally, adds metadata/version/health/credential-provider registration                                                                         |
+| `CapabilityConnectorPolicy`      | Wraps a `ConnectorPolicy`, checks the requested action against the connector's declared capabilities                                                                                                                                         |
+| `ConnectorEvidence` (model)      | What lands at `ExecutionResult.metadata.connector`: connector ID, version, capability, sanitized endpoint, redacted request/response summaries, a `connectorEvidenceHash`. See [Execution trust records](/concepts/execution-trust-records). |
 
 ## Minimal example
 
@@ -57,7 +60,9 @@ import { MockConnector, connectorCapabilities } from "@parmana/connector-sdk";
 const mock = new MockConnector({
   connectorId: "example",
   capabilities: connectorCapabilities(["crm:read"]),
-  script: { respond: () => ({ success: true, metadata: { recordId: "example-1" } }) },
+  script: {
+    respond: () => ({ success: true, metadata: { recordId: "example-1" } }),
+  },
 });
 ```
 
@@ -66,10 +71,18 @@ Full runnable version: [Add a connector with the Connector SDK](/guides/add-a-co
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="Add a connector with the Connector SDK" icon="plug" href="/guides/add-a-connector">
+  <Card
+    title="Add a connector with the Connector SDK"
+    icon="plug"
+    href="/guides/add-a-connector"
+  >
     Implement, test, and see what reaching the default server actually requires.
   </Card>
-  <Card title="@parmana/execution-control" icon="lock" href="/reference/execution-control">
+  <Card
+    title="@parmana/execution-control"
+    icon="lock"
+    href="/reference/execution-control"
+  >
     The seams this package implements rather than replaces.
   </Card>
 </CardGroup>

@@ -65,14 +65,19 @@ describe("VerificationCrypto key rotation (PQC audit RED-3)", () => {
     const keyDir = process.env.PARMANA_KEY_DIR;
 
     if (!keyDir) {
-      throw new Error("PARMANA_KEY_DIR was not set by vitest.setup.ts as expected.");
+      throw new Error(
+        "PARMANA_KEY_DIR was not set by vitest.setup.ts as expected.",
+      );
     }
 
     delete process.env.PARMANA_VERIFICATION_KEY_ID;
 
     try {
       const beforeRotation = new VerificationCrypto();
-      const originalRecord = await signRecord(beforeRotation, "txn-rotation-original");
+      const originalRecord = await signRecord(
+        beforeRotation,
+        "txn-rotation-original",
+      );
 
       expect(originalRecord.signature.keyId).toBe("default");
       expect(await beforeRotation.verify(originalRecord)).toBe(true);
@@ -98,7 +103,9 @@ describe("VerificationCrypto key rotation (PQC audit RED-3)", () => {
       const newRecord = await signRecord(afterRotation, "txn-rotation-new");
 
       expect(newRecord.signature.keyId).toBe(rotatedKeyId);
-      expect(newRecord.signature.keyId).not.toBe(originalRecord.signature.keyId);
+      expect(newRecord.signature.keyId).not.toBe(
+        originalRecord.signature.keyId,
+      );
 
       // The record signed BEFORE rotation must still verify, using a
       // freshly constructed VerificationCrypto (a new process/request

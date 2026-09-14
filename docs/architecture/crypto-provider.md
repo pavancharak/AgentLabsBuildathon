@@ -1,34 +1,18 @@
 \# Crypto Provider Architecture
 
-
-
 \## Overview
-
-
 
 Parmana separates cryptographic operations from business logic through a provider architecture.
 
-
-
 The runtime never depends on a specific cryptographic algorithm. Instead, algorithms are selected through configuration and resolved at startup.
-
-
 
 This architecture enables Parmana to support multiple hash functions, signature algorithms, and key management implementations without changing application code.
 
-
-
 \---
-
-
 
 \# Design Goals
 
-
-
 The crypto subsystem is designed around the following principles:
-
-
 
 \* Algorithm independence
 
@@ -40,15 +24,9 @@ The crypto subsystem is designed around the following principles:
 
 \* Deterministic cryptographic operations
 
-
-
 \---
 
-
-
 \# Architecture
-
-
 
 ```text
 
@@ -72,27 +50,15 @@ The crypto subsystem is designed around the following principles:
 
 ```
 
-
-
 The application interacts only with the `CryptoProvider` abstraction.
-
-
 
 \---
 
-
-
 \# CryptoBootstrap
-
-
 
 `CryptoBootstrap` is the composition root of the cryptography subsystem.
 
-
-
 Responsibilities:
-
-
 
 \* Load immutable configuration
 
@@ -104,27 +70,15 @@ Responsibilities:
 
 \* Cache the configured provider for the process lifetime
 
-
-
 The bootstrap is the only location that directly references concrete cryptographic implementations.
-
-
 
 \---
 
-
-
 \# CryptoBuilder
-
-
 
 `CryptoBuilder` constructs the immutable `CryptoProvider`.
 
-
-
 Responsibilities:
-
-
 
 \* Accept configured hash provider
 
@@ -132,79 +86,47 @@ Responsibilities:
 
 \* Produce immutable provider instances
 
-
-
 Business code never constructs providers directly.
-
-
 
 \---
 
-
-
 \# Hash Registry
-
-
 
 The `HashRegistry` maintains available hash implementations.
 
-
-
 Current providers:
 
-
-
-| Algorithm | Provider           |
+| Algorithm | Provider |
 
 | --------- | ------------------ |
 
-| SHA-256   | SHA256HashProvider |
-
-
+| SHA-256 | SHA256HashProvider |
 
 Future providers may include:
-
-
 
 \* SHA3-512
 
 \* BLAKE3
 
-
-
 Adding new providers does not require changes to business logic.
-
-
 
 \---
 
-
-
 \# Signature Registry
-
-
 
 The `SignatureRegistry` maintains available signature implementations.
 
-
-
 Current providers:
 
-
-
-| Algorithm | Provider                    |
+| Algorithm | Provider |
 
 | --------- | --------------------------- |
 
-| Ed25519   | Ed25519SignatureProvider    |
+| Ed25519 | Ed25519SignatureProvider |
 
 | ML-DSA-65 | Dilithium3SignatureProvider |
 
-
-
 The configured provider is selected using:
-
-
 
 ```dotenv
 
@@ -212,11 +134,7 @@ SIGNATURE\_PROVIDER=ed25519
 
 ```
 
-
-
 or
-
-
 
 ```dotenv
 
@@ -224,23 +142,13 @@ SIGNATURE\_PROVIDER=dilithium3
 
 ```
 
-
-
 \---
-
-
 
 \# CryptoProvider
 
-
-
 `CryptoProvider` exposes the active cryptographic implementation to the rest of Parmana.
 
-
-
 Responsibilities:
-
-
 
 \* Hash canonical data
 
@@ -248,19 +156,11 @@ Responsibilities:
 
 \* Verify signatures
 
-
-
 Higher-level services remain independent of concrete algorithms.
-
-
 
 \---
 
-
-
 \# Runtime Flow
-
-
 
 ```text
 
@@ -304,23 +204,13 @@ ReceiptCrypto / VerificationCrypto
 
 ```
 
-
-
 The runtime never directly instantiates individual algorithms after startup.
-
-
 
 \---
 
-
-
 \# Extending Parmana
 
-
-
 To add a new signature algorithm:
-
-
 
 1\. Implement `SignatureProvider`
 
@@ -330,11 +220,7 @@ To add a new signature algorithm:
 
 4\. Extend configuration validation
 
-
-
 No changes are required to:
-
-
 
 \* Receipt generation
 
@@ -346,23 +232,13 @@ No changes are required to:
 
 \* Storage
 
-
-
 This keeps cryptographic evolution isolated from business logic.
-
-
 
 \---
 
-
-
 \# Benefits
 
-
-
 The provider architecture offers several advantages:
-
-
 
 \* Configuration-driven cryptography
 
@@ -374,9 +250,4 @@ The provider architecture offers several advantages:
 
 \* Consistent cryptographic interfaces across the platform
 
-
-
 This design ensures that Parmana can evolve its cryptographic capabilities while preserving the stability of its execution trust infrastructure.
-
-
-

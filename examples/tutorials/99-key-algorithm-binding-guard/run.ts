@@ -13,15 +13,12 @@ import { isMlDsa65Supported, ML_DSA_65_SKIP_REASON } from "@parmana/crypto";
 // public package's compiled dist, or `instanceof` below would compare two
 // different module instances of the same class and always fail.
 //
-const { CryptoError } = await import(
-  "../../../packages/crypto/src/errors/CryptoError.js"
-);
-const { Ed25519SignatureProvider } = await import(
-  "../../../packages/crypto/src/providers/signature/Ed25519SignatureProvider.js"
-);
-const { Dilithium3SignatureProvider } = await import(
-  "../../../packages/crypto/src/providers/signature/Dilithium3SignatureProvider.js"
-);
+const { CryptoError } =
+  await import("../../../packages/crypto/src/errors/CryptoError.js");
+const { Ed25519SignatureProvider } =
+  await import("../../../packages/crypto/src/providers/signature/Ed25519SignatureProvider.js");
+const { Dilithium3SignatureProvider } =
+  await import("../../../packages/crypto/src/providers/signature/Dilithium3SignatureProvider.js");
 
 const data = Buffer.from("payload bytes to sign");
 
@@ -40,7 +37,7 @@ console.log(
 console.log(
   "a dilithium3-configured process holding Ed25519 PEMs on disk would silently",
 );
-console.log("sign with Ed25519 while labeling the envelope \"dilithium3\".");
+console.log('sign with Ed25519 while labeling the envelope "dilithium3".');
 console.log();
 
 console.log("Scenario 1: Dilithium3SignatureProvider given an Ed25519 key");
@@ -60,16 +57,24 @@ try {
 } catch (error) {
   scenario1IsCryptoError = error instanceof CryptoError;
   scenario1Error = error instanceof Error ? error.message : String(error);
-  console.log(`✓ Rejected (CryptoError: ${scenario1IsCryptoError}): ${scenario1Error}`);
+  console.log(
+    `✓ Rejected (CryptoError: ${scenario1IsCryptoError}): ${scenario1Error}`,
+  );
 }
 console.log();
 
-console.log("Scenario 2: Dilithium3SignatureProvider.verify() given an Ed25519 public key");
+console.log(
+  "Scenario 2: Dilithium3SignatureProvider.verify() given an Ed25519 public key",
+);
 console.log("--------------------------------------------------");
 
 let scenario2Error: string | undefined;
 try {
-  await dilithium3Provider.verify(data, "irrelevant-signature", ed25519PublicKey);
+  await dilithium3Provider.verify(
+    data,
+    "irrelevant-signature",
+    ed25519PublicKey,
+  );
   console.log("✗ Expected verify() to reject the wrong key type.");
 } catch (error) {
   scenario2Error = error instanceof Error ? error.message : String(error);
@@ -101,19 +106,32 @@ if (isMlDsa65Supported()) {
 }
 console.log();
 
-console.log("Scenario 4: A correctly matched key still signs and verifies normally");
+console.log(
+  "Scenario 4: A correctly matched key still signs and verifies normally",
+);
 console.log("--------------------------------------------------");
 
 const signature = await ed25519Provider.sign(data, ed25519PrivateKey);
-const verified = await ed25519Provider.verify(data, signature, ed25519PublicKey);
+const verified = await ed25519Provider.verify(
+  data,
+  signature,
+  ed25519PublicKey,
+);
 console.log(`Signed and verified with the correct key type: ${verified}`);
 console.log();
 
 const allPassed =
   scenario1IsCryptoError &&
-  scenario1Error?.includes('expected a "ml-dsa-65" key but received "ed25519"') === true &&
-  scenario2Error?.includes('expected a "ml-dsa-65" key but received "ed25519"') === true &&
-  (scenario3Skipped || scenario3Error?.includes('expected a "ed25519" key but received "ml-dsa-65"') === true) &&
+  scenario1Error?.includes(
+    'expected a "ml-dsa-65" key but received "ed25519"',
+  ) === true &&
+  scenario2Error?.includes(
+    'expected a "ml-dsa-65" key but received "ed25519"',
+  ) === true &&
+  (scenario3Skipped ||
+    scenario3Error?.includes(
+      'expected a "ed25519" key but received "ml-dsa-65"',
+    ) === true) &&
   verified === true;
 
 if (allPassed) {
@@ -121,7 +139,9 @@ if (allPassed) {
     "✓ Signing or verifying with the wrong key type fails closed, naming both the expected and actual key type; a correctly matched key is unaffected.",
   );
 } else {
-  console.log("✗ Expected every mismatched key type to be rejected and the matched case to still work.");
+  console.log(
+    "✗ Expected every mismatched key type to be rejected and the matched case to still work.",
+  );
 }
 
 console.log();

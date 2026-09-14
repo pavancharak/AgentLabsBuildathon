@@ -3,10 +3,13 @@ title: "Connect an External Agent"
 description: "Complete guide for a new developer: what's needed, why, how to build and send the request, and how to troubleshoot every failure mode — grounded in the actual source, using the real parmana-phinite-agent integration as the worked example."
 ---
 
-<Info>Repo copy of this guide: `docs/connectors/CONNECTING_AN_AGENT.md`, kept in sync with this
-page. Covers the caller/agent side only. For what happens after `APPROVED` (Execution Gateway →
-connector → the real business system), see [Add a connector](/guides/add-a-connector) and
-`docs/connectors/PAYTM_CONNECTOR.md` (repo root).</Info>
+<Info>
+  Repo copy of this guide: `docs/connectors/CONNECTING_AN_AGENT.md`, kept in
+  sync with this page. Covers the caller/agent side only. For what happens after
+  `APPROVED` (Execution Gateway → connector → the real business system), see
+  [Add a connector](/guides/add-a-connector) and
+  `docs/connectors/PAYTM_CONNECTOR.md` (repo root).
+</Info>
 
 ## The mental model
 
@@ -28,16 +31,16 @@ an approval flag, a fraud-check result, a policy name — the model is broken, e
 
 ## What you need, and why
 
-| # | You need | Why |
-|---|---|---|
-| 1 | A reachable Parmana deployment | Nothing to connect to without one. |
-| 2 | A capability name (e.g. `paytm:refund`) | Parmana authorizes capabilities, not free-form actions. Exact string matching — `refund` ≠ `paytm:refund`. |
-| 3 | A deployed policy bound to that capability | Decides APPROVE/REJECT. Missing → `404 PolicyNotFoundError`. |
-| 4 | The policy's exact `signalsSchema`/`boundSignals` | You must send every referenced signal; any `boundSignals` entry must equal the real `intent.parameters` value or the request is rejected before evaluation. |
-| 5 | An API key scoped to exactly that capability | Your agent's identity — see below. |
-| 6 | A trusted-signal source that is not the conversation | Signals must come from an independent business system, never inferred from what the customer said. |
-| 7 | Real UUID generation | `businessTransactionId` is checked against a UUID-shaped regex (versions 1–5); anything else is a `400` before any other logic runs. |
-| 8 | (For real execution) a registered connector for your capability on this deployment | `APPROVED` ≠ "executed." A separate, verifiable claim — see step 8 below. |
+| #   | You need                                                                           | Why                                                                                                                                                         |
+| --- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | A reachable Parmana deployment                                                     | Nothing to connect to without one.                                                                                                                          |
+| 2   | A capability name (e.g. `paytm:refund`)                                            | Parmana authorizes capabilities, not free-form actions. Exact string matching — `refund` ≠ `paytm:refund`.                                                  |
+| 3   | A deployed policy bound to that capability                                         | Decides APPROVE/REJECT. Missing → `404 PolicyNotFoundError`.                                                                                                |
+| 4   | The policy's exact `signalsSchema`/`boundSignals`                                  | You must send every referenced signal; any `boundSignals` entry must equal the real `intent.parameters` value or the request is rejected before evaluation. |
+| 5   | An API key scoped to exactly that capability                                       | Your agent's identity — see below.                                                                                                                          |
+| 6   | A trusted-signal source that is not the conversation                               | Signals must come from an independent business system, never inferred from what the customer said.                                                          |
+| 7   | Real UUID generation                                                               | `businessTransactionId` is checked against a UUID-shaped regex (versions 1–5); anything else is a `400` before any other logic runs.                        |
+| 8   | (For real execution) a registered connector for your capability on this deployment | `APPROVED` ≠ "executed." A separate, verifiable claim — see step 8 below.                                                                                   |
 
 ## Step by step
 
@@ -76,11 +79,41 @@ placeholder to fix later — from day one.
 ```json
 {
   "businessTransactionId": "<uuid v4>",
-  "authority": { "authorityId": "<uuid>", "authorityType": "SERVICE", "principalId": "my-refund-agent", "issuedAt": "<iso8601>" },
-  "authorization": { "authorizationId": "<uuid>", "authorityId": "<uuid>", "purpose": "Authorize Paytm customer refund", "issuedAt": "<iso8601>" },
-  "intent": { "intentId": "<uuid>", "authorizationId": "<uuid>", "action": "paytm:refund", "target": "<orderId>", "parameters": { "orderId": "<orderId>", "transactionId": "<txnId>", "amount": 500 }, "createdAt": "<iso8601>" },
-  "policy": { "name": "customer-refund", "version": "1.0.0", "schemaVersion": "1.0.0" },
-  "signals": { "refundEligible": true, "managerApproved": true, "fraudCheckPassed": true, "refundAmount": 500 },
+  "authority": {
+    "authorityId": "<uuid>",
+    "authorityType": "SERVICE",
+    "principalId": "my-refund-agent",
+    "issuedAt": "<iso8601>"
+  },
+  "authorization": {
+    "authorizationId": "<uuid>",
+    "authorityId": "<uuid>",
+    "purpose": "Authorize Paytm customer refund",
+    "issuedAt": "<iso8601>"
+  },
+  "intent": {
+    "intentId": "<uuid>",
+    "authorizationId": "<uuid>",
+    "action": "paytm:refund",
+    "target": "<orderId>",
+    "parameters": {
+      "orderId": "<orderId>",
+      "transactionId": "<txnId>",
+      "amount": 500
+    },
+    "createdAt": "<iso8601>"
+  },
+  "policy": {
+    "name": "customer-refund",
+    "version": "1.0.0",
+    "schemaVersion": "1.0.0"
+  },
+  "signals": {
+    "refundEligible": true,
+    "managerApproved": true,
+    "fraudCheckPassed": true,
+    "refundAmount": 500
+  },
   "status": "RECEIVED"
 }
 ```
@@ -103,17 +136,17 @@ and "the action executed" are two separately-verifiable claims — never conflat
 
 Every row is cited to the exact source producing it:
 
-| Status | `code` | Source | Meaning | Do this |
-|---|---|---|---|---|
-| `200` | — | Decision `APPROVE` | Authorized; a signed decision exists. Dispatch (if any) happens after. | Report authorization only — not execution, unless separately confirmed. |
-| `400` | — | Invalid `businessTransactionId` / body shape | Structural rejection, before auth or policy. | Fix request construction. |
-| `403` | (none) | `principalId` not permitted | Caller can't assert that principal. | Use your own `callerId`. |
-| `403` | `CAPABILITY_NOT_ALLOWED` | `intent.action` not in your key's `allowedCapabilities` | **Most common real-world bug.** Exact-string mismatch. | Compare `/callers/me`'s `allowedCapabilities` to your `intent.action`, character for character. |
-| `403` | `POLICY_DENIED` | `ExecutionGate.enforce` — uniform for *every* rejection cause | A real, correct decision. `message` names the actual rule that matched (excessive amount, failed fraud check, etc.). | Respect it. Never retry with altered parameters. |
-| `404` | — | `PolicyNotFoundError` | `policy.name`/`version` not deployed on this instance. | Check spelling/version and confirm deployment. |
-| `409` | — | `DuplicateBusinessTransactionError` | Reused `businessTransactionId`. | Fresh UUID per attempt; design idempotency separately if needed. |
-| `500` | — | Generic fallback — **also catches an unregistered-connector error** | Ambiguous by design. Very often "APPROVED, but no connector registered," not a bug in your agent. | Check server logs for the exact message before assuming it's your bug. |
-| (none) | — | Timeout/network | Unknown whether Parmana ever received it. | Treat as unresolved — never guess APPROVED or REJECTED. |
+| Status | `code`                   | Source                                                              | Meaning                                                                                                              | Do this                                                                                         |
+| ------ | ------------------------ | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `200`  | —                        | Decision `APPROVE`                                                  | Authorized; a signed decision exists. Dispatch (if any) happens after.                                               | Report authorization only — not execution, unless separately confirmed.                         |
+| `400`  | —                        | Invalid `businessTransactionId` / body shape                        | Structural rejection, before auth or policy.                                                                         | Fix request construction.                                                                       |
+| `403`  | (none)                   | `principalId` not permitted                                         | Caller can't assert that principal.                                                                                  | Use your own `callerId`.                                                                        |
+| `403`  | `CAPABILITY_NOT_ALLOWED` | `intent.action` not in your key's `allowedCapabilities`             | **Most common real-world bug.** Exact-string mismatch.                                                               | Compare `/callers/me`'s `allowedCapabilities` to your `intent.action`, character for character. |
+| `403`  | `POLICY_DENIED`          | `ExecutionGate.enforce` — uniform for _every_ rejection cause       | A real, correct decision. `message` names the actual rule that matched (excessive amount, failed fraud check, etc.). | Respect it. Never retry with altered parameters.                                                |
+| `404`  | —                        | `PolicyNotFoundError`                                               | `policy.name`/`version` not deployed on this instance.                                                               | Check spelling/version and confirm deployment.                                                  |
+| `409`  | —                        | `DuplicateBusinessTransactionError`                                 | Reused `businessTransactionId`.                                                                                      | Fresh UUID per attempt; design idempotency separately if needed.                                |
+| `500`  | —                        | Generic fallback — **also catches an unregistered-connector error** | Ambiguous by design. Very often "APPROVED, but no connector registered," not a bug in your agent.                    | Check server logs for the exact message before assuming it's your bug.                          |
+| (none) | —                        | Timeout/network                                                     | Unknown whether Parmana ever received it.                                                                            | Treat as unresolved — never guess APPROVED or REJECTED.                                         |
 
 ## Common mistakes
 
@@ -136,9 +169,15 @@ writeup.
 
 <CardGroup cols={2}>
   <Card title="Add a connector" icon="plug" href="/guides/add-a-connector">
-    What happens after APPROVED: Execution Gateway, connector dispatch, execution evidence.
+    What happens after APPROVED: Execution Gateway, connector dispatch,
+    execution evidence.
   </Card>
-  <Card title="Live API and Demos" icon="server" href="/guides/live-api-and-demos">
-    Call the real, deployed Parmana API directly and see what's and isn't wired on it today.
+  <Card
+    title="Live API and Demos"
+    icon="server"
+    href="/guides/live-api-and-demos"
+  >
+    Call the real, deployed Parmana API directly and see what's and isn't wired
+    on it today.
   </Card>
 </CardGroup>

@@ -34,7 +34,10 @@ export class SupabasePolicyChangeStepUpNonceStore implements NonceStore {
 
   async checkAndRecord(nonce: string, expiresAt: string): Promise<boolean> {
     try {
-      await this.pool.query(INSERT_CONSUMED_STEP_UP_NONCE_SQL, [nonce, expiresAt]);
+      await this.pool.query(INSERT_CONSUMED_STEP_UP_NONCE_SQL, [
+        nonce,
+        expiresAt,
+      ]);
 
       return true;
     } catch (error) {

@@ -1,38 +1,20 @@
 \# Example 05 — Human in the Loop
 
-
-
 \## Overview
-
-
 
 Not every AI-assisted decision should execute autonomously.
 
-
-
 Many organizations require explicit human approval before an AI system performs a sensitive action. Parmana supports this governance model by treating human approvals as \*\*first-class trust artifacts\*\*.
-
-
 
 A human override does not replace the trust chain. Instead, it becomes an immutable part of it.
 
-
-
 This guide demonstrates how Human-in-the-Loop (HITL) governance is modeled using the TypeScript SDK.
-
-
 
 \---
 
-
-
 \# Learning Objectives
 
-
-
 After completing this guide you will understand:
-
-
 
 \* When human approval is required
 
@@ -44,19 +26,11 @@ After completing this guide you will understand:
 
 \* Why immutable approval history matters
 
-
-
 \---
-
-
 
 \# Prerequisites
 
-
-
 Complete the previous guides:
-
-
 
 \* `docs/01\_basic\_execution.md`
 
@@ -66,23 +40,13 @@ Complete the previous guides:
 
 \* `docs/04\_audit\_trust\_chain.md`
 
-
-
 \---
-
-
 
 \# Why Human-in-the-Loop?
 
-
-
 Some business decisions cannot be fully delegated to automation.
 
-
-
 Examples include:
-
-
 
 \* Large financial transfers
 
@@ -96,19 +60,11 @@ Examples include:
 
 \* Safety-critical robotics
 
-
-
 In these situations, AI may recommend an action, but a human must explicitly approve execution.
-
-
 
 \---
 
-
-
 \# Execution Trust Chain with Human Approval
-
-
 
 ```text
 
@@ -160,27 +116,15 @@ ExecutionTrustRecord
 
 ```
 
-
-
 The override extends the trust chain without replacing any existing artifacts.
-
-
 
 \---
 
-
-
 \# What Is an Override?
-
-
 
 An `Override` records an authorized human decision.
 
-
-
 It includes:
-
-
 
 \* Override identifier
 
@@ -194,43 +138,23 @@ It includes:
 
 \* Approval timestamp
 
-
-
 Unlike traditional approval logs, Parmana treats the override as an immutable governance artifact.
 
-
-
 \---
-
-
 
 \# Example Scenario
 
-
-
 A warehouse robot requests permission to enter a restricted loading zone.
-
-
 
 The policy determines that the action requires supervisor approval.
 
-
-
 The supervisor reviews the request and authorizes execution.
-
-
 
 The approval becomes part of the permanent execution history.
 
-
-
 \---
 
-
-
 \# Creating the Override
-
-
 
 ```typescript
 
@@ -268,23 +192,13 @@ const override: Override = {
 
 ```
 
-
-
 The override is explicit and immutable.
-
-
 
 \---
 
-
-
 \# Building the Trust Record
 
-
-
 The override is stored alongside every other trust artifact.
-
-
 
 ```typescript
 
@@ -320,35 +234,19 @@ const trustRecord: ExecutionTrustRecord = {
 
 ```
 
-
-
 Notice that overrides are modeled as an array.
-
-
 
 Although many business processes allow only one accepted override, an append-only history preserves future extensibility.
 
-
-
 \---
-
-
 
 \# Why Are Overrides Immutable?
 
-
-
 A common mistake is to overwrite approval history.
-
-
 
 Parmana never modifies an existing approval.
 
-
-
 Instead:
-
-
 
 \* approvals are recorded
 
@@ -356,57 +254,35 @@ Instead:
 
 \* previous approvals remain intact
 
-
-
 This guarantees historical transparency.
-
-
 
 \---
 
-
-
 \# Approval vs Authorization
-
-
 
 These concepts are related but different.
 
-
-
-| Authorization            | Override                                   |
+| Authorization | Override |
 
 | ------------------------ | ------------------------------------------ |
 
 | Grants permission to act | Grants approval for a specific transaction |
 
-| Long-lived               | Transaction-specific                       |
+| Long-lived | Transaction-specific |
 
-| Issued before execution  | Recorded during execution                  |
+| Issued before execution | Recorded during execution |
 
-| Defines capabilities     | Documents human intervention               |
-
-
+| Defines capabilities | Documents human intervention |
 
 Authorization establishes capability.
 
-
-
 Override records an exceptional or required human decision.
-
-
 
 \---
 
-
-
 \# Replay with Human Approval
 
-
-
 Replay restores the original approval context.
-
-
 
 ```text
 
@@ -426,27 +302,15 @@ Replay Execution
 
 ```
 
-
-
 Replay does not ask for approval again.
-
-
 
 It uses the recorded approval because replay reconstructs historical execution, not current business state.
 
-
-
 \---
-
-
 
 \# Verification with Human Approval
 
-
-
 Verification validates:
-
-
 
 \* Override identifier
 
@@ -458,23 +322,13 @@ Verification validates:
 
 \* Trust record integrity
 
-
-
 If an override has been modified after execution, verification fails.
-
-
 
 \---
 
-
-
 \# Auditing Human Decisions
 
-
-
 Auditors can determine:
-
-
 
 \* Who approved
 
@@ -486,23 +340,13 @@ Auditors can determine:
 
 \* Which execution used the approval
 
-
-
 This provides significantly stronger governance than free-form approval notes or application logs.
-
-
 
 \---
 
-
-
 \# Typical Use Cases
 
-
-
 Human-in-the-Loop is common in:
-
-
 
 \* Healthcare
 
@@ -520,23 +364,13 @@ Human-in-the-Loop is common in:
 
 \* Enterprise approvals
 
-
-
 Each domain can define different approval policies while preserving the same trust chain structure.
-
-
 
 \---
 
-
-
 \# Benefits
 
-
-
 Modeling approvals as immutable trust artifacts provides:
-
-
 
 \* Accountability
 
@@ -550,15 +384,9 @@ Modeling approvals as immutable trust artifacts provides:
 
 \* Independent verification
 
-
-
 \---
 
-
-
 \# Complete Workflow
-
-
 
 ```text
 
@@ -602,23 +430,13 @@ Audit
 
 ```
 
-
-
 Every stage contributes to the final Execution Trust Record.
-
-
 
 \---
 
-
-
 \# Architectural Principles
 
-
-
 Human approval in Parmana follows these principles:
-
-
 
 \* Explicit approval
 
@@ -632,23 +450,13 @@ Human approval in Parmana follows these principles:
 
 \* Separation of authorization and approval
 
-
-
 These principles ensure that human intervention strengthens the trust chain rather than bypassing it.
-
-
 
 \---
 
-
-
 \# Complete Example
 
-
-
 See:
-
-
 
 ```text
 
@@ -656,23 +464,13 @@ examples/05\_human\_in\_the\_loop.ts
 
 ```
 
-
-
 for the full implementation.
-
-
 
 \---
 
-
-
 \# Summary
 
-
-
 In this guide you learned:
-
-
 
 \* Why Human-in-the-Loop governance exists
 
@@ -686,23 +484,13 @@ In this guide you learned:
 
 \* How auditing benefits from explicit approval records
 
-
-
 Parmana treats human approvals as durable governance artifacts, ensuring they remain visible, reproducible, and independently verifiable throughout the lifetime of the Execution Trust Record.
-
-
 
 \---
 
-
-
 \# Next
 
-
-
 Continue with:
-
-
 
 ```text
 
@@ -710,9 +498,4 @@ docs/06\_autonomous\_vehicle.md
 
 ```
 
-
-
 to learn how the same execution trust architecture governs autonomous vehicle operations, where policy evaluation, runtime signals, execution evidence, and trust artifacts combine to produce verifiable autonomous behavior.
-
-
-

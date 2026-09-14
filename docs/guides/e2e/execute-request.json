@@ -1,47 +1,47 @@
 {
-    "businessTransactionId":  "b9404bdf-ad2a-4dce-8001-0eacd0974200",
-    "metadata":  {
-                     "businessTransactionId":  "b9404bdf-ad2a-4dce-8001-0eacd0974200",
-                     "correlationId":  "bfe321d7-d9e7-4cef-a6da-eaeeba1c1d5b",
-                     "sourceSystem":  "vendor-payment-service",
-                     "submittedBy":  "ap-automation",
-                     "submittedAt":  "2026-07-07T16:38:59.285Z"
-                 },
-    "authority":  {
-                      "authorityId":  "f5636910-84db-41d8-9a38-09e5b0181392",
-                      "authorityType":  "SERVICE",
-                      "principalId":  "ap-automation-svc",
-                      "displayName":  "Accounts Payable Automation",
-                      "issuedAt":  "2026-07-07T16:38:59.285Z"
-                  },
-    "authorization":  {
-                          "authorizationId":  "2e87f670-631b-48a0-b278-835419841486",
-                          "authorityId":  "f5636910-84db-41d8-9a38-09e5b0181392",
-                          "purpose":  "Authorize vendor payment disbursement",
-                          "issuedAt":  "2026-07-07T16:38:59.285Z"
-                      },
-    "intent":  {
-                   "intentId":  "f92bb2c3-5d96-45a7-b8f7-3a527f1b7e0d",
-                   "authorizationId":  "2e87f670-631b-48a0-b278-835419841486",
-                   "action":  "payments:execute",
-                   "target":  "vendor/V-100",
-                   "parameters":  {
-                                      "amount":  4500,
-                                      "currency":  "USD"
-                                  },
-                   "createdAt":  "2026-07-07T16:38:59.285Z"
-               },
-    "policy":  {
-                   "name":  "vendor-payment",
-                   "version":  "2.0.0",
-                   "schemaVersion":  "1.0.0"
-               },
-    "signals":  {
-                    "vendorVerified":  true,
-                    "invoiceVerified":  true,
-                    "paymentApproved":  true,
-                    "sufficientFunds":  true,
-                    "paymentAmount":  4500,
-                    "riskScore":  10
-                }
+  "businessTransactionId": "b9404bdf-ad2a-4dce-8001-0eacd0974200",
+  "metadata": {
+    "businessTransactionId": "b9404bdf-ad2a-4dce-8001-0eacd0974200",
+    "correlationId": "bfe321d7-d9e7-4cef-a6da-eaeeba1c1d5b",
+    "sourceSystem": "vendor-payment-service",
+    "submittedBy": "ap-automation",
+    "submittedAt": "2026-07-07T16:38:59.285Z"
+  },
+  "authority": {
+    "authorityId": "f5636910-84db-41d8-9a38-09e5b0181392",
+    "authorityType": "SERVICE",
+    "principalId": "ap-automation-svc",
+    "displayName": "Accounts Payable Automation",
+    "issuedAt": "2026-07-07T16:38:59.285Z"
+  },
+  "authorization": {
+    "authorizationId": "2e87f670-631b-48a0-b278-835419841486",
+    "authorityId": "f5636910-84db-41d8-9a38-09e5b0181392",
+    "purpose": "Authorize vendor payment disbursement",
+    "issuedAt": "2026-07-07T16:38:59.285Z"
+  },
+  "intent": {
+    "intentId": "f92bb2c3-5d96-45a7-b8f7-3a527f1b7e0d",
+    "authorizationId": "2e87f670-631b-48a0-b278-835419841486",
+    "action": "payments:execute",
+    "target": "vendor/V-100",
+    "parameters": {
+      "amount": 4500,
+      "currency": "USD"
+    },
+    "createdAt": "2026-07-07T16:38:59.285Z"
+  },
+  "policy": {
+    "name": "vendor-payment",
+    "version": "2.0.0",
+    "schemaVersion": "1.0.0"
+  },
+  "signals": {
+    "vendorVerified": true,
+    "invoiceVerified": true,
+    "paymentApproved": true,
+    "sufficientFunds": true,
+    "paymentAmount": 4500,
+    "riskScore": 10
+  }
 }

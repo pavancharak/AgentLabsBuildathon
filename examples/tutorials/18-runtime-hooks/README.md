@@ -1,18 +1,10 @@
 \# Tutorial 18 — Runtime Hooks
 
-
-
 \## Overview
-
-
 
 This tutorial demonstrates how to observe the Parmana Runtime lifecycle using Runtime Hooks.
 
-
-
 Runtime Hooks allow developers to:
-
-
 
 \- Log execution events
 
@@ -24,27 +16,15 @@ Runtime Hooks allow developers to:
 
 \- Integrate observability platforms
 
-
-
 Hooks \*\*observe\*\* execution only.
-
-
 
 They \*\*must never modify\*\* Runtime state.
 
-
-
 If execution behavior must change, use \*\*Runtime Components\*\* instead.
-
-
 
 \---
 
-
-
 \## Runtime Lifecycle
-
-
 
 ```
 
@@ -140,23 +120,13 @@ onRuntimeError
 
 ```
 
-
-
 \---
-
-
 
 \## Creating a Hook
 
-
-
 Implement the `RuntimeHook` interface.
 
-
-
 Example:
-
-
 
 ```ts
 
@@ -172,15 +142,9 @@ export class LoggingHook implements RuntimeHook {
 
 ```
 
-
-
 \---
 
-
-
 \## Registering Hooks
-
-
 
 ```ts
 
@@ -196,43 +160,23 @@ const runtime =
 
 ```
 
-
-
 Hooks execute sequentially in the order they are registered.
 
-
-
 \---
-
-
 
 \## Included Hooks
 
-
-
 \### LoggingHook
-
-
 
 Demonstrates observing every Runtime lifecycle event.
 
-
-
 \### MetricsHook
-
-
 
 Measures the duration of each Runtime phase.
 
-
-
 \---
 
-
-
 \## Running the Example
-
-
 
 ```bash
 
@@ -240,15 +184,9 @@ tsx examples/tutorials/18-runtime-hooks/run.ts
 
 ```
 
-
-
 \---
 
-
-
 \## Expected Output
-
-
 
 ```
 
@@ -288,15 +226,9 @@ tsx examples/tutorials/18-runtime-hooks/run.ts
 
 ```
 
-
-
 \---
 
-
-
 \## Runtime Hooks vs Runtime Components
-
-
 
 | Runtime Hooks | Runtime Components |
 
@@ -314,15 +246,8 @@ tsx examples/tutorials/18-runtime-hooks/run.ts
 
 | Auditing | Runtime customization |
 
-
-
 \---
-
-
 
 \## Summary
 
-
-
 Runtime Hooks provide a safe, extensible mechanism for observing the complete Parmana Runtime lifecycle without affecting deterministic execution.
-

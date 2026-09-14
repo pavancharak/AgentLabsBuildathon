@@ -29,7 +29,9 @@ afterEach(async () => {
   await server.close();
 });
 
-function context(overrides: Partial<ConnectorExecutionContext> = {}): ConnectorExecutionContext {
+function context(
+  overrides: Partial<ConnectorExecutionContext> = {},
+): ConnectorExecutionContext {
   return {
     credential: brandCredentialHandle({
       providerId: "static",
@@ -45,12 +47,17 @@ function context(overrides: Partial<ConnectorExecutionContext> = {}): ConnectorE
 function connector(): GatewayHubSpotAdapter {
   return new GatewayHubSpotAdapter({
     connectorId: "hubspot",
-    capabilities: connectorCapabilities([HUBSPOT_DEAL_FETCH_CAPABILITY, HUBSPOT_DEAL_UPDATE_CAPABILITY]),
+    capabilities: connectorCapabilities([
+      HUBSPOT_DEAL_FETCH_CAPABILITY,
+      HUBSPOT_DEAL_UPDATE_CAPABILITY,
+    ]),
     baseUrl: server.baseUrl,
   });
 }
 
-function seededDeal(overrides: Partial<HubSpotDeal["properties"]> = {}): HubSpotDeal {
+function seededDeal(
+  overrides: Partial<HubSpotDeal["properties"]> = {},
+): HubSpotDeal {
   return {
     id: "1001",
     properties: {
@@ -79,7 +86,9 @@ describe("GatewayHubSpotAdapter", () => {
 
     expect(result.success).toBe(true);
     expect((result.metadata?.deal as HubSpotDeal).id).toBe("1001");
-    expect((result.metadata?.deal as HubSpotDeal).properties.dealstage).toBe("appointmentscheduled");
+    expect((result.metadata?.deal as HubSpotDeal).properties.dealstage).toBe(
+      "appointmentscheduled",
+    );
   });
 
   it("updates a deal's dealstage", async () => {
@@ -113,7 +122,11 @@ describe("GatewayHubSpotAdapter", () => {
         businessTransactionId: "txn-update-2",
         action: HUBSPOT_DEAL_UPDATE_CAPABILITY,
         target: "deals/1001",
-        parameters: { dealId: "1001", dealstage: "qualifiedtobuy", amount: 7500 },
+        parameters: {
+          dealId: "1001",
+          dealstage: "qualifiedtobuy",
+          amount: 7500,
+        },
       },
       context(),
     );
@@ -135,7 +148,11 @@ describe("GatewayHubSpotAdapter", () => {
           businessTransactionId: "txn-disallowed-property",
           action: HUBSPOT_DEAL_UPDATE_CAPABILITY,
           target: "deals/1001",
-          parameters: { dealId: "1001", dealstage: "qualifiedtobuy", closedate: "2026-01-01" },
+          parameters: {
+            dealId: "1001",
+            dealstage: "qualifiedtobuy",
+            closedate: "2026-01-01",
+          },
         },
         context(),
       );
@@ -214,7 +231,11 @@ describe("GatewayHubSpotAdapter", () => {
           parameters: { dealId: "1001" },
         },
         context({
-          credential: brandCredentialHandle({ providerId: "static", credentialId: "hubspot", value: { token: "wrong-shape" } }),
+          credential: brandCredentialHandle({
+            providerId: "static",
+            credentialId: "hubspot",
+            value: { token: "wrong-shape" },
+          }),
         }),
       ),
     ).rejects.toThrow(/resolved HubSpot Private App token/);
@@ -284,7 +305,10 @@ describe("GatewayHubSpotAdapter", () => {
     // combination the guard exists to catch.
     const realBaseUrlConnector = new GatewayHubSpotAdapter({
       connectorId: "hubspot",
-      capabilities: connectorCapabilities([HUBSPOT_DEAL_FETCH_CAPABILITY, HUBSPOT_DEAL_UPDATE_CAPABILITY]),
+      capabilities: connectorCapabilities([
+        HUBSPOT_DEAL_FETCH_CAPABILITY,
+        HUBSPOT_DEAL_UPDATE_CAPABILITY,
+      ]),
     });
 
     let caught: unknown;
@@ -317,7 +341,9 @@ describe("GatewayHubSpotAdapter", () => {
   });
 
   it("still allows the placeholder credential against a mock server (baseUrl override) — the guard is real-endpoint-specific", async () => {
-    const placeholderMockServer = new MockHubSpotServer({ token: HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN });
+    const placeholderMockServer = new MockHubSpotServer({
+      token: HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN,
+    });
 
     try {
       await placeholderMockServer.listen();
@@ -325,7 +351,10 @@ describe("GatewayHubSpotAdapter", () => {
 
       const mockConnector = new GatewayHubSpotAdapter({
         connectorId: "hubspot",
-        capabilities: connectorCapabilities([HUBSPOT_DEAL_FETCH_CAPABILITY, HUBSPOT_DEAL_UPDATE_CAPABILITY]),
+        capabilities: connectorCapabilities([
+          HUBSPOT_DEAL_FETCH_CAPABILITY,
+          HUBSPOT_DEAL_UPDATE_CAPABILITY,
+        ]),
         baseUrl: placeholderMockServer.baseUrl,
       });
 
@@ -352,4 +381,3 @@ describe("GatewayHubSpotAdapter", () => {
     }
   });
 });
-

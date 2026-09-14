@@ -1,9 +1,5 @@
 import { Router } from "express";
-import type {
-  NextFunction,
-  Request,
-  Response,
-} from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import { BusinessTransactionMapper } from "../mappers/BusinessTransactionMapper.js";
 import { isPrincipalAllowed } from "../auth/isPrincipalAllowed.js";
@@ -14,16 +10,12 @@ import {
   BusinessTransactionValidationError,
   DuplicateBusinessTransactionError,
 } from "@parmana/runtime";
-import type {
-  ExecutionTrustApplication,
-} from "@parmana/runtime";
+import type { ExecutionTrustApplication } from "@parmana/runtime";
 
 /**
  * Returns true when the value is a UUID.
  */
-function isValidBusinessTransactionId(
-  value: unknown,
-): value is string {
+function isValidBusinessTransactionId(value: unknown): value is string {
   return (
     typeof value === "string" &&
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -43,24 +35,14 @@ export function createExecuteRouter(
 
   router.post(
     "/",
-    async (
-      req: Request,
-      res: Response,
-      next: NextFunction,
-    ): Promise<void> => {
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       // Declared ahead of the try block, not inside it: `catch` below
       // needs it too (G-29 audit), and `try`/`catch` are separate block
       // scopes -- a `const` declared inside `try` is not visible there.
-      const {
-        businessTransactionId,
-      } = req.body;
+      const { businessTransactionId } = req.body;
 
       try {
-        if (
-          !isValidBusinessTransactionId(
-            businessTransactionId,
-          )
-        ) {
+        if (!isValidBusinessTransactionId(businessTransactionId)) {
           if (auditSink) {
             const recorded = await recordCallerAuditEvent(
               auditSink,
@@ -68,7 +50,9 @@ export function createExecuteRouter(
                 type: "caller.structural_rejected",
                 occurredAt: new Date().toISOString(),
                 route: req.originalUrl,
-                ...(req.callerId !== undefined ? { callerId: req.callerId } : {}),
+                ...(req.callerId !== undefined
+                  ? { callerId: req.callerId }
+                  : {}),
                 ...(typeof businessTransactionId === "string"
                   ? { businessTransactionId }
                   : {}),
@@ -82,16 +66,12 @@ export function createExecuteRouter(
           }
 
           res.status(400).json({
-            error:
-              "businessTransactionId must be a valid UUID.",
+            error: "businessTransactionId must be a valid UUID.",
           });
           return;
         }
 
-        let transaction =
-          BusinessTransactionMapper.fromRequest(
-            req.body,
-          );
+        let transaction = BusinessTransactionMapper.fromRequest(req.body);
 
         //
         // Caller identity binding: an authenticated caller may only
@@ -232,10 +212,7 @@ export function createExecuteRouter(
           };
         }
 
-        const result =
-          await application.execute(
-            transaction,
-          );
+        const result = await application.execute(transaction);
 
         res.json(result);
         return;

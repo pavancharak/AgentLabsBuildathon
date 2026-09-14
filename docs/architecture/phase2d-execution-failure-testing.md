@@ -19,15 +19,19 @@ Phase 2B's claim ("`RuntimeFactory.create()` now appears to provide the required
 **A second, more consequential blocker was found that Phase 2B's narrower check did not surface.** The skipped test, as written, does not use `RuntimeFactory`'s DI seam at all — it imports `app` from `../test-app.js`, a module-level singleton that calls the real, production `createExecutionSystem()` (the actual `ExecutionGateway`, wired to real connector resolution). There was never a mechanism in the test's own code for making that shared app's execution system fail; the DI seam being available doesn't help a test that doesn't use it.
 
 **A third issue, independent of both DI questions, was found and confirmed empirically, not by inspection alone.** The test's assertions describe a response shape that does not exist anywhere in the current API:
+
 ```ts
 expect(response.body.execution.status).toBe("FAILED");
 expect(response.body.error).toContain("Execution System");
 ```
+
 A disposable probe (constructed with `createInspectableExecutionSystem`, run once, deleted immediately — never committed) that submitted a real transaction against a connector executor engineered to throw produced:
+
 ```
 STATUS: 500
 BODY: {"error": "Internal Server Error"}
 ```
+
 `packages/api/src/middleware/error-handler.ts`'s generic fallback (`error-handler.ts:151-155`) maps any unrecognized thrown error to exactly this shape — by design, so no internal failure detail is ever leaked to a caller (the same "no stack-trace leakage" property `docs/investigations/GAP-AUDIT.md` independently confirmed a month earlier, §7 "What is genuinely solid"). There is no `execution` field in this response at all, and the message will never contain the real error text, "Execution System" or otherwise. The original test's specific assertions could never have passed against this codebase's actual, intentional error-handling design — they describe a response shape that doesn't exist, not one that used to exist and drifted.
 
 ## 3. Root Cause
@@ -48,7 +52,7 @@ Two independent, compounding problems, neither of which is "the DI seam is missi
   - The connector executor was called exactly once (proves the failure happened at the intended point, not earlier for an unrelated reason, and that nothing retried or partially executed).
   - `GET /trust-records/:id` → 404, exact body `{ error: "Execution Trust Record not found." }`.
   - `GET /receipt/latest/:id` → 404.
-  - `GET /refusal/:id` → 404, exact body `{ error: "Refusal Record not found." }` — proving this failure is *not* a policy rejection (a materially different, already-well-tested path — see §5), but a genuine post-authorization, downstream execution failure.
+  - `GET /refusal/:id` → 404, exact body `{ error: "Refusal Record not found." }` — proving this failure is _not_ a policy rejection (a materially different, already-well-tested path — see §5), but a genuine post-authorization, downstream execution failure.
   - At least one `execution.rejected` audit event exists (the failure is evidenced, not silently swallowed) — a light cross-check, not a duplicate of `credential-isolation.integration.test.ts`'s own, deeper credential-lifecycle proof for this same failure shape.
 - **A second test** added: the same failing setup run three times in a row, each asserting the identical `500` / exact-body result, demonstrating the failure is deterministic (a property of the connector always throwing) rather than something that happened to be observed once.
 
@@ -56,14 +60,14 @@ No assertion from the original test was weakened — the two that could never ha
 
 ## 5. Failure Integrity Guarantees (Task 1 / Task 5 — coverage inventory)
 
-| Failure path | Coverage before this phase | Coverage after this phase |
-|---|---|---|
-| Connector resolution failure (no connector registered — TD-1/Phase 2A) | Unit-tested (`create-connector-registry.test.ts`) | Unchanged — out of this phase's scope |
-| **Connector execution failure (executor throws)** | Partially tested — `credential-isolation.integration.test.ts` proved the audit/credential-lifecycle angle only; response shape and evidentiary absence were untested anywhere | **Now fully tested** (this phase) — response contract, Trust Record/Receipt/Refusal-Record absence, determinism |
-| Runtime exception (non-connector, unexpected internal error) | Untested as a distinct scenario | Still untested as a distinct scenario — shares the same generic-500 handling path as connector execution failure (§2), so the incremental risk is low; not in this phase's scope (the skipped test was specifically about connector/execution-system failure, not internal runtime bugs) |
-| Authorization denial (policy REJECT) | Extensively tested (`refusal-record.integration.test.ts`, `execution-authorization-wiring.test.ts`, others) | Unchanged |
-| Signal verification failure | Tested (`hubspot-deal-update.integration.test.ts`, `hubspot-deal-update-policy.test.ts`, `hubspot-deal-update-signals.test.ts`) | Unchanged |
-| Replay protection failure (nonce reuse) | Tested (`execution-gateway.test.ts`, 409 `NonceAlreadyConsumedError`) | Unchanged |
+| Failure path                                                           | Coverage before this phase                                                                                                                                                    | Coverage after this phase                                                                                                                                                                                                                                                                |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Connector resolution failure (no connector registered — TD-1/Phase 2A) | Unit-tested (`create-connector-registry.test.ts`)                                                                                                                             | Unchanged — out of this phase's scope                                                                                                                                                                                                                                                    |
+| **Connector execution failure (executor throws)**                      | Partially tested — `credential-isolation.integration.test.ts` proved the audit/credential-lifecycle angle only; response shape and evidentiary absence were untested anywhere | **Now fully tested** (this phase) — response contract, Trust Record/Receipt/Refusal-Record absence, determinism                                                                                                                                                                          |
+| Runtime exception (non-connector, unexpected internal error)           | Untested as a distinct scenario                                                                                                                                               | Still untested as a distinct scenario — shares the same generic-500 handling path as connector execution failure (§2), so the incremental risk is low; not in this phase's scope (the skipped test was specifically about connector/execution-system failure, not internal runtime bugs) |
+| Authorization denial (policy REJECT)                                   | Extensively tested (`refusal-record.integration.test.ts`, `execution-authorization-wiring.test.ts`, others)                                                                   | Unchanged                                                                                                                                                                                                                                                                                |
+| Signal verification failure                                            | Tested (`hubspot-deal-update.integration.test.ts`, `hubspot-deal-update-policy.test.ts`, `hubspot-deal-update-signals.test.ts`)                                               | Unchanged                                                                                                                                                                                                                                                                                |
+| Replay protection failure (nonce reuse)                                | Tested (`execution-gateway.test.ts`, 409 `NonceAlreadyConsumedError`)                                                                                                         | Unchanged                                                                                                                                                                                                                                                                                |
 
 Every failure path this phase's instructions named is covered by at least one test, before and after this phase. The one gap this phase closes is specifically the connector-execution-failure path's HTTP-contract and evidentiary-absence properties — the credential-lifecycle half of that same path was already covered.
 
@@ -93,15 +97,15 @@ The restored file's own tests, run in isolation with verbose output, both pass: 
 
 ## Final Verification
 
-| Item | Status |
-|---|---|
-| Skipped integration test restored | ✓ — `.skip` removed, both tests pass |
+| Item                                                  | Status                                                                                                                                                                          |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Skipped integration test restored                     | ✓ — `.skip` removed, both tests pass                                                                                                                                            |
 | Original blocker independently disproven or confirmed | ✓ — disproven (DI seam confirmed present, §2); a second, more consequential blocker (stale assertions, unused DI capability) was found and independently fixed in the same pass |
-| Failure integrity verified | ✓ — via assertions, not exception-presence alone (§4, §5) |
-| Deterministic failures preserved | ✓ — dedicated repeated-attempt test added |
-| Runtime behavior unchanged | ✓ — zero files under `packages/*/src` modified |
-| Security behavior unchanged | ✓ — no-leak error-handling behavior independently confirmed, not altered |
-| No production behavior changed | ✓ — `git diff --stat -- packages/*/src/` empty |
+| Failure integrity verified                            | ✓ — via assertions, not exception-presence alone (§4, §5)                                                                                                                       |
+| Deterministic failures preserved                      | ✓ — dedicated repeated-attempt test added                                                                                                                                       |
+| Runtime behavior unchanged                            | ✓ — zero files under `packages/*/src` modified                                                                                                                                  |
+| Security behavior unchanged                           | ✓ — no-leak error-handling behavior independently confirmed, not altered                                                                                                        |
+| No production behavior changed                        | ✓ — `git diff --stat -- packages/*/src/` empty                                                                                                                                  |
 
 ## Final Recommendation
 

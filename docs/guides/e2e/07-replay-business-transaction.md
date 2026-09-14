@@ -1,26 +1,14 @@
 \# 07 – Replay a Business Transaction
 
-
-
 This guide demonstrates how to replay a previously executed Business Transaction.
-
-
 
 Replay reconstructs the Execution Trust Record from the stored transaction and validates that Parmana can deterministically reproduce the recorded execution.
 
-
-
 \---
-
-
 
 \## Prerequisites
 
-
-
 Complete:
-
-
 
 \- 01 – Starting the API
 
@@ -34,15 +22,9 @@ Complete:
 
 \- 06 – Generate an Execution Receipt
 
-
-
 Use the Business Transaction ID returned during execution.
 
-
-
 Example:
-
-
 
 ```
 
@@ -50,23 +32,15 @@ b9404bdf-ad2a-4dce-8001-0eacd0974200
 
 ```
 
-
-
 \---
 
-
-
 \## Request File
-
-
 
 ```
 
 docs/guides/e2e/replay-request.json
 
 ```
-
-
 
 ```json
 
@@ -78,15 +52,9 @@ docs/guides/e2e/replay-request.json
 
 ```
 
-
-
 \---
 
-
-
 \## Replay
-
-
 
 ```powershell
 
@@ -112,19 +80,11 @@ Invoke-RestMethod `
 
 ```
 
-
-
 \---
-
-
 
 \## Successful Response
 
-
-
 The API returned:
-
-
 
 ```json
 
@@ -140,11 +100,7 @@ The API returned:
 
 ```
 
-
-
 The complete response is also available in:
-
-
 
 ```
 
@@ -152,15 +108,9 @@ docs/guides/e2e/replay-response.json
 
 ```
 
-
-
 \---
 
-
-
 \## Replay Summary
-
-
 
 | Property | Value |
 
@@ -172,19 +122,11 @@ docs/guides/e2e/replay-response.json
 
 | Verified | \*\*true\*\* |
 
-
-
 \---
-
-
 
 \## What This Validates
 
-
-
 Replay confirms that Parmana successfully:
-
-
 
 \- Located the stored Business Transaction.
 
@@ -194,21 +136,13 @@ Replay confirms that Parmana successfully:
 
 \- Verified that the reconstructed Trust Record matches the stored evidence.
 
-
-
 A successful replay demonstrates deterministic reconstruction of execution evidence without invoking external connectors or re-executing the original business operation.
 
 \## What Replay Validates
 
-
-
 Replay confirms that Parmana can reconstruct the execution using the stored Business Transaction and its associated evidence.
 
-
-
 A successful replay demonstrates that:
-
-
 
 \- The Business Transaction exists.
 
@@ -218,19 +152,11 @@ A successful replay demonstrates that:
 
 \- The execution history remains auditable.
 
-
-
 Replay does \*\*not\*\* execute external connectors again. It reconstructs and validates the recorded execution.
-
-
 
 \---
 
-
-
 \## Replay Lifecycle
-
-
 
 ```text
 
@@ -256,15 +182,9 @@ Replay Result
 
 ```
 
-
-
 \---
 
-
-
 \## Files Used
-
-
 
 | File | Purpose |
 
@@ -276,19 +196,10 @@ Replay Result
 
 | `docs/guides/e2e/07-replay-business-transaction.md` | This guide |
 
-
-
 \---
-
-
 
 \## Next Guide
 
-
-
 Continue with:
 
-
-
 \*\*08 – Query Stored Trust Records\*\*
-

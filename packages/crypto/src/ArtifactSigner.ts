@@ -1,6 +1,4 @@
-import {
-  type KeyObject,
-} from "node:crypto";
+import { type KeyObject } from "node:crypto";
 
 import { CanonicalSerializer } from "./CanonicalSerializer.js";
 
@@ -13,25 +11,13 @@ import type { Signer } from "./Signer.js";
 export class ArtifactSigner {
   constructor(
     private readonly crypto: CryptoProvider,
-    private readonly serializer =
-      new CanonicalSerializer(),
+    private readonly serializer = new CanonicalSerializer(),
   ) {}
 
-  async sign(
-    artifact: unknown,
-    privateKey: KeyObject,
-  ): Promise<string> {
-    const bytes =
-      this.serializer.serialize(artifact);
+  async sign(artifact: unknown, privateKey: KeyObject): Promise<string> {
+    const bytes = this.serializer.serialize(artifact);
 
-
-
-    const signature =
-      await this.crypto.signature.sign(
-        bytes,
-        privateKey,
-      );
-
+    const signature = await this.crypto.signature.sign(bytes, privateKey);
 
     return signature;
   }
@@ -48,8 +34,7 @@ export class ArtifactSigner {
     keyId: string,
     signer: Signer,
   ): Promise<string> {
-    const bytes =
-      this.serializer.serialize(artifact);
+    const bytes = this.serializer.serialize(artifact);
 
     return signer.sign(keyId, bytes);
   }

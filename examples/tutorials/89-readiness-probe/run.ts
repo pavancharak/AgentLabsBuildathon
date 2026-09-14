@@ -7,12 +7,10 @@
 // there's nothing external to check. With Supabase-backed storage
 // that's unreachable, it reports NOT_READY (503) with a reason.
 //
-const { createExecutionSystem } = await import(
-  "../../../packages/api/src/bootstrap/createExecutionSystem.js"
-);
-const { createApplication } = await import(
-  "../../../packages/api/src/application.js"
-);
+const { createExecutionSystem } =
+  await import("../../../packages/api/src/bootstrap/createExecutionSystem.js");
+const { createApplication } =
+  await import("../../../packages/api/src/application.js");
 const { createApp } = await import("../../../packages/api/src/app.js");
 
 function buildApp() {
@@ -25,7 +23,10 @@ async function startServer(app: ReturnType<typeof buildApp>) {
   const server = app.listen(0);
   const address = server.address();
   const baseUrl = `http://127.0.0.1:${typeof address === "object" && address !== null ? address.port : 0}`;
-  return { baseUrl, close: () => new Promise<void>((resolve) => server.close(() => resolve())) };
+  return {
+    baseUrl,
+    close: () => new Promise<void>((resolve) => server.close(() => resolve())),
+  };
 }
 
 console.log();
@@ -35,12 +36,16 @@ console.log("==================================================");
 console.log();
 
 const ENV_KEYS = ["NODE_ENV", "PARMANA_STORAGE", "DATABASE_URL"] as const;
-const saved = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
+const saved = Object.fromEntries(
+  ENV_KEYS.map((key) => [key, process.env[key]]),
+);
 
 try {
   process.env.NODE_ENV = "test";
 
-  console.log("Scenario 1: NODE_ENV=test -- reports READY without touching any real database");
+  console.log(
+    "Scenario 1: NODE_ENV=test -- reports READY without touching any real database",
+  );
   console.log("--------------------------------------------------");
   const app1 = buildApp();
   const server1 = await startServer(app1);
@@ -51,7 +56,9 @@ try {
   await server1.close();
   console.log();
 
-  console.log("Scenario 2: Outside test mode, but storage is explicitly memory-backed -- still READY, no database touched");
+  console.log(
+    "Scenario 2: Outside test mode, but storage is explicitly memory-backed -- still READY, no database touched",
+  );
   console.log("--------------------------------------------------");
   const app2 = buildApp(); // built under NODE_ENV=test so construction's own eager checks don't throw
   const server2 = await startServer(app2);
@@ -64,14 +71,17 @@ try {
   await server2.close();
   console.log();
 
-  console.log("Scenario 3: Supabase-backed storage configured, but genuinely unreachable -- NOT_READY, 503, with a reason");
+  console.log(
+    "Scenario 3: Supabase-backed storage configured, but genuinely unreachable -- NOT_READY, 503, with a reason",
+  );
   console.log("--------------------------------------------------");
   process.env.NODE_ENV = "test"; // restore before construction, same reasoning as scenario 2
   const app3 = buildApp();
   const server3 = await startServer(app3);
   process.env.NODE_ENV = "production";
   process.env.PARMANA_STORAGE = "supabase";
-  process.env.DATABASE_URL = "postgresql://unreachable:unreachable@127.0.0.1:1/postgres";
+  process.env.DATABASE_URL =
+    "postgresql://unreachable:unreachable@127.0.0.1:1/postgres";
   const response3 = await fetch(`${server3.baseUrl}/ready`);
   const body3 = await response3.json();
   console.log(`Status : ${response3.status}`);
@@ -94,7 +104,9 @@ try {
       "✓ Memory-backed configurations report READY with zero database calls; a genuinely unreachable Supabase backend reports NOT_READY with a specific reason.",
     );
   } else {
-    console.log("✗ Expected READY for memory-backed storage and NOT_READY (503, with a reason) for an unreachable Supabase backend.");
+    console.log(
+      "✗ Expected READY for memory-backed storage and NOT_READY (503, with a reason) for an unreachable Supabase backend.",
+    );
   }
 
   console.log();

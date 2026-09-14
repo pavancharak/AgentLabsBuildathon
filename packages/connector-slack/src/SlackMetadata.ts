@@ -20,5 +20,6 @@ export const SlackMetadata: ConnectorMetadata = Object.freeze({
 
   health: healthyNow(),
 
-  description: "Slack connector for posting a message to a channel via chat.postMessage.",
+  description:
+    "Slack connector for posting a message to a channel via chat.postMessage.",
 });

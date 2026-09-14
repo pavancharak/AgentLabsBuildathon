@@ -1,24 +1,18 @@
-import {
-  createPrivateKey,
-  createPublicKey,
-  type KeyObject,
-} from "node:crypto";
+import { createPrivateKey, createPublicKey, type KeyObject } from "node:crypto";
 
-import {
-  existsSync,
-  readFileSync,
-} from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 import { readdir } from "node:fs/promises";
 
 import { join } from "node:path";
 
-import { loadConfig, SignatureAlgorithms, type SignatureAlgorithm } from "@parmana/shared";
+import {
+  loadConfig,
+  SignatureAlgorithms,
+  type SignatureAlgorithm,
+} from "@parmana/shared";
 
-import type {
-  KeyMetadata,
-  KeyProvider,
-} from "../../KeyProvider.js";
+import type { KeyMetadata, KeyProvider } from "../../KeyProvider.js";
 
 import { CryptoError } from "../../errors/CryptoError.js";
 
@@ -30,9 +24,7 @@ import { CryptoError } from "../../errors/CryptoError.js";
  * (a key file this codebase has no SignatureProvider for) throw
  * rather than silently mislabeling the key's algorithm.
  */
-function algorithmFromKeyType(
-  keyType: string | undefined,
-): SignatureAlgorithm {
+function algorithmFromKeyType(keyType: string | undefined): SignatureAlgorithm {
   if (keyType === "ed25519") {
     return SignatureAlgorithms.ED25519;
   }
@@ -78,24 +70,17 @@ function assertValidKeyId(keyId: string): void {
  * cloud key vault implementations without changing
  * the crypto layer.
  */
-export class FileKeyProvider
-  implements KeyProvider
-{
-  private readonly config =
-    loadConfig();
+export class FileKeyProvider implements KeyProvider {
+  private readonly config = loadConfig();
 
-  private readonly keyDirectory =
-    this.config.keys.keyDirectory ??
-    "./keys";
+  private readonly keyDirectory = this.config.keys.keyDirectory ?? "./keys";
 
   /**
    * Root directory containing Parmana keys.
    */
   private getKeyDirectory(): string {
     if (!existsSync(this.keyDirectory)) {
-      throw new Error(
-        `Key directory does not exist: ${this.keyDirectory}`,
-      );
+      throw new Error(`Key directory does not exist: ${this.keyDirectory}`);
     }
 
     return this.keyDirectory;
@@ -104,12 +89,8 @@ export class FileKeyProvider
   /**
    * Returns true if the key exists.
    */
-  async hasKey(
-    keyId: string,
-  ): Promise<boolean> {
-    return existsSync(
-      this.privateKeyPath(keyId),
-    );
+  async hasKey(keyId: string): Promise<boolean> {
+    return existsSync(this.privateKeyPath(keyId));
   }
 
   /**
@@ -134,13 +115,9 @@ export class FileKeyProvider
    * Future implementations may load this from a
    * manifest or key registry.
    */
-  async getMetadata(
-    keyId: string,
-  ): Promise<KeyMetadata> {
+  async getMetadata(keyId: string): Promise<KeyMetadata> {
     if (!(await this.hasKey(keyId))) {
-      throw new Error(
-        `Key not found: ${keyId}`,
-      );
+      throw new Error(`Key not found: ${keyId}`);
     }
 
     const publicKey = await this.getPublicKey(keyId);
@@ -154,41 +131,27 @@ export class FileKeyProvider
   /**
    * Loads the private key.
    */
-  async getPrivateKey(
-    keyId: string,
-  ): Promise<KeyObject> {
-    const path =
-      this.privateKeyPath(keyId);
+  async getPrivateKey(keyId: string): Promise<KeyObject> {
+    const path = this.privateKeyPath(keyId);
 
     if (!existsSync(path)) {
-      throw new Error(
-        `Private key not found: ${keyId}`,
-      );
+      throw new Error(`Private key not found: ${keyId}`);
     }
 
-    return createPrivateKey(
-      readFileSync(path),
-    );
+    return createPrivateKey(readFileSync(path));
   }
 
   /**
    * Loads the public key.
    */
-  async getPublicKey(
-    keyId: string,
-  ): Promise<KeyObject> {
-    const path =
-      this.publicKeyPath(keyId);
+  async getPublicKey(keyId: string): Promise<KeyObject> {
+    const path = this.publicKeyPath(keyId);
 
     if (!existsSync(path)) {
-      throw new Error(
-        `Public key not found: ${keyId}`,
-      );
+      throw new Error(`Public key not found: ${keyId}`);
     }
 
-    return createPublicKey(
-      readFileSync(path),
-    );
+    return createPublicKey(readFileSync(path));
   }
 
   /**
@@ -212,28 +175,18 @@ export class FileKeyProvider
   /**
    * Resolves the private key path.
    */
-  private privateKeyPath(
-    keyId: string,
-  ): string {
+  private privateKeyPath(keyId: string): string {
     assertValidKeyId(keyId);
 
-    return join(
-      this.getKeyDirectory(),
-      `${keyId}.private.pem`,
-    );
+    return join(this.getKeyDirectory(), `${keyId}.private.pem`);
   }
 
   /**
    * Resolves the public key path.
    */
-  private publicKeyPath(
-    keyId: string,
-  ): string {
+  private publicKeyPath(keyId: string): string {
     assertValidKeyId(keyId);
 
-    return join(
-      this.getKeyDirectory(),
-      `${keyId}.public.pem`,
-    );
+    return join(this.getKeyDirectory(), `${keyId}.public.pem`);
   }
 }

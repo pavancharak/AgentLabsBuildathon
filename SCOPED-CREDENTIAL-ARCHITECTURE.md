@@ -36,7 +36,7 @@ on: `"hubspot:deal-fetch"`, `"hubspot:deal-update"`, `"github:pr-fetch"`,
 auditable wildcard grant, never an implicit default.
 
 **Fail-closed default, and it's the opposite default from the sibling `allowedPrincipalIds`
-field on the same entry:** an unset or empty `allowedCapabilities` denies *every* capability.
+field on the same entry:** an unset or empty `allowedCapabilities` denies _every_ capability.
 (`allowedPrincipalIds`, by contrast, defaults to "may only assert itself" — there's a
 meaningful non-empty fallback for principal identity that doesn't exist for capabilities, per
 that field's own doc comment.)
@@ -80,7 +80,7 @@ export function isCapabilityAllowed(
 spoof:** `action` here is `transaction.intent.action` — the actual capability the request is
 asking to invoke, parsed server-side from the Business Transaction body, the same field
 `CapabilityPolicyBinder`/`PolicyEngine`/the connector registry all key on downstream. There is
-no separate, client-asserted "capabilities" field checked *instead* of the real action (unlike,
+no separate, client-asserted "capabilities" field checked _instead_ of the real action (unlike,
 say, a JWT scope claim a client could try to forge). A caller cannot smuggle an out-of-scope
 action past this check by declaring something different in a side channel — the thing being
 checked is the thing that would actually execute. This matters directly for the "three
@@ -97,12 +97,12 @@ Razorpay's capability list (`refund`, `charge`, `reverse`, `dispute`, etc., per 
 prompt) describes a connector that isn't here. The real, currently registered capabilities
 (`packages/api/src/bootstrap/createConnectorRegistry.ts`, `docs/CLAIMS.md` §3.10/§3.17):
 
-| Connector | Capabilities | Nature |
-|---|---|---|
-| HubSpot | `hubspot:deal-fetch` | read-only |
-| HubSpot | `hubspot:deal-update` | mutates `dealstage`/`amount` on an existing deal |
-| GitHub | `github:pr-fetch` | read-only (PR state) |
-| GitHub | `github:pr-merge` | mutates: merges a pull request, irreversible |
+| Connector | Capabilities          | Nature                                           |
+| --------- | --------------------- | ------------------------------------------------ |
+| HubSpot   | `hubspot:deal-fetch`  | read-only                                        |
+| HubSpot   | `hubspot:deal-update` | mutates `dealstage`/`amount` on an existing deal |
+| GitHub    | `github:pr-fetch`     | read-only (PR state)                             |
+| GitHub    | `github:pr-merge`     | mutates: merges a pull request, irreversible     |
 
 `test-fixture` also registers `test:fixture-execute` (`NODE_ENV=test`-only, unbound from
 `CapabilityPolicyBinder`'s governance, no production implication) — this is the capability
@@ -142,7 +142,7 @@ documents.
 
 **The critical gap for a live FCA demo, already disclosed in `docs/CLAIMS.md` §4 (`[FUTURE]`)
 and restated in the G-30 audit-fix pass's own correction to that item:** neither HubSpot's nor
-GitHub's *production* integration path has caller-auth turned on. Both integration test
+GitHub's _production_ integration path has caller-auth turned on. Both integration test
 suites construct their app with `callerAuth: "disabled"` (`hubspot-deal-update.integration.
 test.ts`, `hubspot-live.integration.test.ts`, `github-pr-merge.integration.test.ts`,
 `github-pr-merge-live.integration.test.ts`) — confirmed directly, not assumed. Today, this
@@ -156,7 +156,7 @@ moves real state.
 `packages/api/tests/integration/caller-capability-scoping.integration.test.ts` — HTTP-level,
 against the real `createApp`/`POST /execute` route, four caller shapes (scoped, wrong-scope,
 wildcard, no-capabilities), asserting `403`/`CAPABILITY_NOT_ALLOWED` on denial (not
-`POLICY_DENIED` — proves capability denial runs *before* policy evaluation, not merely also
+`POLICY_DENIED` — proves capability denial runs _before_ policy evaluation, not merely also
 rejecting), and that the audit trail (`caller.capability_denied`) never contains the raw key.
 Companion unit-level coverage in `packages/api/tests/unit/isCapabilityAllowed.test.ts` for the
 pure function itself.
@@ -170,12 +170,12 @@ pure function itself.
    (`UNSCOPED_KEY`/`NO_CAPABILITIES_KEY` cases, verbatim.)
 3. **"Jailbreak attempt"** — per §2 above, there is no separate client-asserted scope field to
    forge; the check runs against the actual `intent.action` that would execute. The honest
-   version of this scenario is: an out-of-scope caller retries the *same* request against the
+   version of this scenario is: an out-of-scope caller retries the _same_ request against the
    mutating capability while the read-only one is allowed (e.g., scoped to `github:pr-fetch`
    only, attempts `github:pr-merge`) — same `403`/`CAPABILITY_NOT_ALLOWED` result as scenario 2,
    but a clearer "compromised low-privilege agent tries to escalate to the dangerous action"
    narrative for an FCA reviewer than a generic wrong-capability case. This is a stronger claim
-   than "policy-checked" precisely *because* there's nothing to jailbreak — worth stating
+   than "policy-checked" precisely _because_ there's nothing to jailbreak — worth stating
    plainly in the proof artifact rather than manufacturing a synthetic bypass attempt that
    doesn't correspond to how the check actually works.
 

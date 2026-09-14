@@ -71,7 +71,9 @@ export class MockSlackServer {
         });
       });
     });
-    await new Promise<void>((resolve) => this.server!.listen(0, "127.0.0.1", resolve));
+    await new Promise<void>((resolve) =>
+      this.server!.listen(0, "127.0.0.1", resolve),
+    );
     const address = this.server!.address() as AddressInfo;
     this.baseUrlValue = `http://127.0.0.1:${address.port}`;
   }
@@ -81,7 +83,10 @@ export class MockSlackServer {
     await new Promise<void>((resolve) => this.server!.close(() => resolve()));
   }
 
-  private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  private async handle(
+    req: IncomingMessage,
+    res: ServerResponse,
+  ): Promise<void> {
     if (!this.authenticates(req)) {
       // Slack's real API answers an invalid token with HTTP 200,
       // {ok: false, error: "invalid_auth"} -- not a 401. Mirrored here.
@@ -98,7 +103,10 @@ export class MockSlackServer {
     }
 
     if (this.forcedHttpStatus !== undefined) {
-      this.respond(res, this.forcedHttpStatus, { ok: false, error: "forced_failure" });
+      this.respond(res, this.forcedHttpStatus, {
+        ok: false,
+        error: "forced_failure",
+      });
       return;
     }
 
@@ -132,7 +140,9 @@ export class MockSlackServer {
     return header.slice("Bearer ".length) === this.options.botToken;
   }
 
-  private async readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
+  private async readJsonBody(
+    req: IncomingMessage,
+  ): Promise<Record<string, unknown>> {
     const chunks: Buffer[] = [];
     for await (const chunk of req as AsyncIterable<Buffer>) chunks.push(chunk);
     const raw = Buffer.concat(chunks).toString("utf8");

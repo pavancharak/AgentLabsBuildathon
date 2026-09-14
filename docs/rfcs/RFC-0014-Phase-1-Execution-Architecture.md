@@ -1,38 +1,20 @@
 \# RFC-0014: Phase 1 Execution Architecture
 
-
-
 \*\*Status:\*\* Accepted
-
-
 
 \## Purpose
 
-
-
 This RFC records the completion of the Phase 1 execution architecture for Parmana.
-
-
 
 Phase 1 establishes the canonical execution trust model, deterministic policy execution pipeline, and domain model that all future implementations SHALL follow.
 
-
-
 This RFC serves as the architectural baseline for implementation.
-
-
 
 \---
 
-
-
 \# Phase 1 Goals
 
-
-
 Phase 1 establishes:
-
-
 
 \* Deterministic execution
 
@@ -46,19 +28,11 @@ Phase 1 establishes:
 
 \* Cryptographically verifiable execution evidence
 
-
-
 \---
-
-
 
 \# Canonical Trust Chain
 
-
-
 The canonical trust chain is:
-
-
 
 ```text
 
@@ -128,23 +102,13 @@ Verification
 
 ```
 
-
-
 Each artifact is immutable.
-
-
 
 Each artifact extends the trust chain.
 
-
-
 \---
 
-
-
 \# Canonical Policy Execution Pipeline
-
-
 
 ```text
 
@@ -212,67 +176,35 @@ Decision
 
 ```
 
-
-
 The runtime executes exactly one policy.
 
-
-
 \---
-
-
 
 \# Domain Model
 
-
-
 \## Authority
-
-
 
 Defines who is permitted to authorize actions.
 
-
-
 \---
-
-
 
 \## Authorization
 
-
-
 Records approval granted by an authority.
 
-
-
 \---
-
-
 
 \## Intent
 
-
-
 Represents the desired business outcome.
-
-
 
 \---
 
-
-
 \## BusinessTransaction
-
-
 
 Represents an execution request.
 
-
-
 It contains exactly one:
-
-
 
 ```text
 
@@ -280,15 +212,9 @@ PolicyReference
 
 ```
 
-
-
 \---
 
-
-
 \## PolicyReference
-
-
 
 ```ts
 
@@ -304,23 +230,13 @@ interface PolicyReference {
 
 ```
 
-
-
 It uniquely identifies the policy artifact.
-
-
 
 \---
 
-
-
 \## Policy
 
-
-
 Every policy declares:
-
-
 
 ```text
 
@@ -336,27 +252,15 @@ rules
 
 ```
 
-
-
 Policy artifacts are immutable.
-
-
 
 \---
 
-
-
 \## Decision
-
-
 
 The deterministic result of evaluating a policy against validated runtime signals.
 
-
-
 A Decision binds together:
-
-
 
 \* Intent
 
@@ -370,23 +274,13 @@ A Decision binds together:
 
 \* Evaluation timestamp
 
-
-
 \---
-
-
 
 \## Execution
 
-
-
 Records the lifecycle of processing a BusinessTransaction.
 
-
-
 Execution captures:
-
-
 
 \* lifecycle state
 
@@ -398,27 +292,15 @@ Execution captures:
 
 \* execution metadata
 
-
-
 Execution is immutable.
-
-
 
 \---
 
-
-
 \## ExecutionTrustRecord
-
-
 
 The canonical aggregate.
 
-
-
 It contains:
-
-
 
 \* BusinessTransaction
 
@@ -432,75 +314,39 @@ It contains:
 
 \* TrustRecordHash
 
-
-
 It is the authoritative source for replay, audit, receipt generation, and verification.
 
-
-
 \---
-
-
 
 \## Receipt
 
-
-
 Cryptographically signed proof of the ExecutionTrustRecord state.
-
-
 
 Receipts are immutable.
 
-
-
 \---
-
-
 
 \## Verification
 
-
-
 Records the independent verification of an ExecutionTrustRecord.
-
-
 
 Each verification is immutable.
 
-
-
 \---
-
-
 
 \# Runtime Components
 
-
-
 \## PolicyRegistry
-
-
 
 Maintains policy metadata.
 
-
-
 \---
-
-
 
 \## PolicyRouter
 
-
-
 Loads the exact policy artifact identified by the PolicyReference.
 
-
-
 The router SHALL NOT:
-
-
 
 \* discover policies
 
@@ -508,19 +354,11 @@ The router SHALL NOT:
 
 \* evaluate business logic
 
-
-
 \---
-
-
 
 \## PolicyValidator
 
-
-
 Validates:
-
-
 
 \* policyId
 
@@ -532,67 +370,35 @@ Validates:
 
 \* rule structure
 
-
-
 \---
-
-
 
 \## PolicyAdapter
 
-
-
 Converts RuntimeTransaction into generic PolicySignals.
-
-
 
 The adapter contains no business-specific logic.
 
-
-
 \---
-
-
 
 \## SignalValidator
 
-
-
 Validates runtime signals against the policy's declared signalsSchema.
-
-
 
 Execution SHALL fail if validation fails.
 
-
-
 \---
-
-
 
 \## PolicyEngine
 
-
-
 Evaluates exactly one loaded policy.
-
-
 
 The engine is deterministic and domain independent.
 
-
-
 \---
-
-
 
 \# Architectural Invariants
 
-
-
 The runtime SHALL satisfy the following invariants:
-
-
 
 1\. Exactly one policy is executed.
 
@@ -614,19 +420,11 @@ The runtime SHALL satisfy the following invariants:
 
 10\. Identical inputs SHALL produce identical decisions.
 
-
-
 \---
-
-
 
 \# Phase 1 Deliverables
 
-
-
 The following architectural components are complete:
-
-
 
 \* Authority
 
@@ -662,23 +460,13 @@ The following architectural components are complete:
 
 \* Verification
 
-
-
 \---
-
-
 
 \# Remaining Implementation Work
 
-
-
 The remaining work focuses on implementation rather than architectural redesign.
 
-
-
 Priority order:
-
-
 
 1\. DecisionService
 
@@ -694,19 +482,11 @@ Priority order:
 
 7\. Performance optimization
 
-
-
 These components SHALL implement the architecture defined in this RFC without altering the canonical domain model.
-
-
 
 \---
 
-
-
 \# Relationship to Previous RFCs
-
-
 
 \* RFC-0007 — Canonical Trust Chain Domain Model
 
@@ -724,21 +504,10 @@ These components SHALL implement the architecture defined in this RFC without al
 
 \* RFC-0014 — Phase 1 Execution Architecture
 
-
-
 \---
-
-
 
 \# Status
 
-
-
 This RFC locks the Phase 1 execution architecture for Parmana.
 
-
-
 Future work SHALL extend this architecture without changing the core execution trust model, deterministic policy pipeline, or canonical domain model established in Phase 1.
-
-
-

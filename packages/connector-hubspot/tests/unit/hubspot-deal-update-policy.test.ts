@@ -1,12 +1,21 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import { PolicyEngine, PolicyOutcome, PolicyValidator, type Policy, type PolicySignals } from "@parmana/policy";
+import {
+  PolicyEngine,
+  PolicyOutcome,
+  PolicyValidator,
+  type Policy,
+  type PolicySignals,
+} from "@parmana/policy";
 import { describe, expect, it } from "vitest";
 
 const policy = JSON.parse(
   readFileSync(
-    path.resolve(import.meta.dirname, "../../../../policies/hubspot-deal-update/1.0.0/policy.json"),
+    path.resolve(
+      import.meta.dirname,
+      "../../../../policies/hubspot-deal-update/1.0.0/policy.json",
+    ),
     "utf8",
   ),
 ) as Policy;
@@ -67,7 +76,10 @@ describe("hubspot-deal-update policy", () => {
   });
 
   it("denies a dealstage transition that is not on an allowed forward path", () => {
-    const decision = engine.evaluate(policy, baseSignals({ dealStageTransitionAllowed: false }));
+    const decision = engine.evaluate(
+      policy,
+      baseSignals({ dealStageTransitionAllowed: false }),
+    );
     expect(decision.outcome).toBe(PolicyOutcome.REJECT);
     expect(decision.matchedRuleId).toBe("reject-stage-transition-not-allowed");
     expect(decision.reason).toMatch(/not on an allowed forward path/);
@@ -86,7 +98,9 @@ describe("hubspot-deal-update policy", () => {
       }),
     );
     expect(decision.outcome).toBe(PolicyOutcome.REJECT);
-    expect(decision.matchedRuleId).toBe("reject-amount-exceeds-threshold-without-preauth");
+    expect(decision.matchedRuleId).toBe(
+      "reject-amount-exceeds-threshold-without-preauth",
+    );
   });
 
   it("approves an amount change exceeding the threshold when pre-authorized", () => {

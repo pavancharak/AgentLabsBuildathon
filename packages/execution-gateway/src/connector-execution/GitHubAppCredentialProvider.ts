@@ -1,6 +1,9 @@
 import type { KeyObject } from "node:crypto";
 
-import type { CredentialHandle, CredentialProvider } from "@parmana/connector-sdk";
+import type {
+  CredentialHandle,
+  CredentialProvider,
+} from "@parmana/connector-sdk";
 import { brandCredentialHandle } from "@parmana/connector-sdk";
 import { signGitHubAppJwt } from "@parmana/connector-github";
 

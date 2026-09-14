@@ -21,9 +21,8 @@ const ORIGINAL_ENV = {
 
 async function freshCreateGitHubCredentialProvider() {
   vi.resetModules();
-  const module = await import(
-    "../../../src/bootstrap/createGitHubCredentialProvider.js"
-  );
+  const module =
+    await import("../../../src/bootstrap/createGitHubCredentialProvider.js");
   return module.createGitHubCredentialProvider;
 }
 
@@ -47,7 +46,8 @@ describe("createGitHubCredentialProvider — Vercel Connect path (ADR-0009)", ()
     process.env.PARMANA_GITHUB_VERCEL_CONNECT_CONNECTOR_ID = "github/myagent";
     getTokenMock.mockResolvedValue("ghs_real_installation_token");
 
-    const createGitHubCredentialProvider = await freshCreateGitHubCredentialProvider();
+    const createGitHubCredentialProvider =
+      await freshCreateGitHubCredentialProvider();
     const provider = createGitHubCredentialProvider();
 
     expect(provider).toBeDefined();
@@ -66,7 +66,8 @@ describe("createGitHubCredentialProvider — Vercel Connect path (ADR-0009)", ()
   it("resolve() rejects a connectorId other than 'github'", async () => {
     process.env.PARMANA_GITHUB_VERCEL_CONNECT_CONNECTOR_ID = "github/myagent";
 
-    const createGitHubCredentialProvider = await freshCreateGitHubCredentialProvider();
+    const createGitHubCredentialProvider =
+      await freshCreateGitHubCredentialProvider();
     const provider = createGitHubCredentialProvider();
 
     await expect(provider!.resolve("hubspot")).rejects.toThrow(
@@ -82,7 +83,8 @@ describe("createGitHubCredentialProvider — Vercel Connect path (ADR-0009)", ()
     // repo's real .env (it has dev-mode GitHub App credentials
     // configured) -- so these must be deleted AFTER the fresh import,
     // not before, to actually exercise "neither path configured".
-    const createGitHubCredentialProvider = await freshCreateGitHubCredentialProvider();
+    const createGitHubCredentialProvider =
+      await freshCreateGitHubCredentialProvider();
 
     delete process.env.GITHUB_APP_ID;
     delete process.env.GITHUB_INSTALLATION_ID;

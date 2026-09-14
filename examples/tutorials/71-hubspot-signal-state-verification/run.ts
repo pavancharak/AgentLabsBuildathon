@@ -1,7 +1,10 @@
 import crypto from "node:crypto";
 
 import type { BusinessTransaction } from "@parmana/shared";
-import { MockHubSpotServer, HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN } from "@parmana/connector-hubspot";
+import {
+  MockHubSpotServer,
+  HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN,
+} from "@parmana/connector-hubspot";
 
 //
 // The HubSpot sibling of Tutorial 65: a caller can declare any
@@ -19,12 +22,10 @@ await mockServer.listen();
 process.env.HUBSPOT_BASE_URL = mockServer.baseUrl;
 process.env.TEST_HUBSPOT_PRIVATE_APP_TOKEN = TOKEN;
 
-const { createExecutionSystem } = await import(
-  "../../../packages/api/src/bootstrap/createExecutionSystem.js"
-);
-const { createApplication } = await import(
-  "../../../packages/api/src/application.js"
-);
+const { createExecutionSystem } =
+  await import("../../../packages/api/src/bootstrap/createExecutionSystem.js");
+const { createApplication } =
+  await import("../../../packages/api/src/application.js");
 
 function dealUpdateTransaction(overrides: {
   dealId: string;
@@ -66,7 +67,9 @@ function dealUpdateTransaction(overrides: {
       target: `hubspot://deals/${overrides.dealId}`,
       parameters: Object.freeze({
         dealId: overrides.dealId,
-        ...(overrides.dealstage !== undefined ? { dealstage: overrides.dealstage } : {}),
+        ...(overrides.dealstage !== undefined
+          ? { dealstage: overrides.dealstage }
+          : {}),
         ...(overrides.amount !== undefined ? { amount: overrides.amount } : {}),
       }),
       createdAt: now,
@@ -93,7 +96,11 @@ try {
   // no forward transition is ever allowed out of it.
   mockServer.setDeal({
     id: "9004",
-    properties: { dealstage: "closedlost", amount: "5000", pipeline: "default" },
+    properties: {
+      dealstage: "closedlost",
+      amount: "5000",
+      pipeline: "default",
+    },
   });
 
   const executionSystem = createExecutionSystem();
@@ -142,10 +149,16 @@ try {
   console.log("--------------------------------------------------");
   console.log(`Real dealstage (independently fetched) : closedlost`);
   console.log(`Caller-declared currentDealStage        : appointmentscheduled`);
-  console.log(`Deal 9004 dealstage (unchanged)          : ${deal?.properties.dealstage}`);
+  console.log(
+    `Deal 9004 dealstage (unchanged)          : ${deal?.properties.dealstage}`,
+  );
   console.log();
 
-  if (outcome === "REJECTED" && reason.includes("currentDealStage") && deal?.properties.dealstage === "closedlost") {
+  if (
+    outcome === "REJECTED" &&
+    reason.includes("currentDealStage") &&
+    deal?.properties.dealstage === "closedlost"
+  ) {
     console.log(
       "✓ The caller's declared currentDealStage was rejected against the independently verified real state.",
     );

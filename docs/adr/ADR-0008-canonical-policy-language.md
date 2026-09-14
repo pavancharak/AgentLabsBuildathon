@@ -1,38 +1,22 @@
 \# Decision Record: Canonical Policy Language v1.0
 
-
-
 \*\*Status:\*\* Accepted
 
 \*\*Date:\*\* 2026-07-04
 
 \*\*Decision Type:\*\* Architecture Decision Record (ADR)
 
-
-
 \---
-
-
 
 \# Title
 
-
-
 Adopt a Canonical Policy Language for Parmana
-
-
 
 \---
 
-
-
 \# Context
 
-
-
 The initial implementation of the Policy Engine supported a minimal policy syntax:
-
-
 
 ```json
 
@@ -46,11 +30,7 @@ The initial implementation of the Policy Engine supported a minimal policy synta
 
 ```
 
-
-
 and
-
-
 
 ```json
 
@@ -64,11 +44,7 @@ and
 
 ```
 
-
-
 This syntax was sufficient for early prototypes but became inadequate as Parmana expanded to support multiple enterprise domains including:
-
-
 
 \* AI Governance
 
@@ -84,11 +60,7 @@ This syntax was sufficient for early prototypes but became inadequate as Parmana
 
 \* Autonomous Systems
 
-
-
 The new policy library introduced a richer syntax based on:
-
-
 
 ```json
 
@@ -104,27 +76,15 @@ The new policy library introduced a richer syntax based on:
 
 ```
 
-
-
 During implementation it became clear that the existing Policy Engine and the new policy library were incompatible.
-
-
 
 \---
 
-
-
 \# Decision
-
-
 
 Parmana shall adopt a single canonical policy language.
 
-
-
 The previous policy syntax using
-
-
 
 ```json
 
@@ -136,27 +96,15 @@ greater\_than
 
 ```
 
-
-
 is deprecated and will be removed before v1.0 release.
-
-
 
 All policies shall use the canonical format.
 
-
-
 \---
-
-
 
 \# Canonical Leaf Condition
 
-
-
 Every leaf condition SHALL be represented as
-
-
 
 ```json
 
@@ -172,19 +120,11 @@ Every leaf condition SHALL be represented as
 
 ```
 
-
-
 \---
-
-
 
 \# Canonical Logical Conditions
 
-
-
 AND
-
-
 
 ```json
 
@@ -218,11 +158,7 @@ AND
 
 ```
 
-
-
 OR
-
-
 
 ```json
 
@@ -238,73 +174,49 @@ OR
 
 ```
 
-
-
 Nested logical conditions are permitted.
 
-
-
 \---
-
-
 
 \# Supported Operators (v1)
 
-
-
 The Policy Engine SHALL support the following deterministic operators.
 
-
-
-| Operator   | Description                            |
+| Operator | Description |
 
 | ---------- | -------------------------------------- |
 
-| eq         | equals                                 |
+| eq | equals |
 
-| neq        | not equals                             |
+| neq | not equals |
 
-| gt         | greater than                           |
+| gt | greater than |
 
-| gte        | greater than or equal                  |
+| gte | greater than or equal |
 
-| lt         | less than                              |
+| lt | less than |
 
-| lte        | less than or equal                     |
+| lte | less than or equal |
 
-| in         | value exists within collection         |
+| in | value exists within collection |
 
-| not\_in     | value does not exist within collection |
+| not\_in | value does not exist within collection |
 
-| exists     | fact exists                            |
+| exists | fact exists |
 
-| not\_exists | fact does not exist                    |
-
-
+| not\_exists | fact does not exist |
 
 Future operators may be added in later schema versions.
 
-
-
 \---
-
-
 
 \# Determinism Requirements
 
-
-
 Changing the policy language SHALL NOT affect determinism.
-
-
 
 The Policy Engine SHALL remain a pure deterministic evaluator.
 
-
-
 Given identical
-
-
 
 \* Policy
 
@@ -316,11 +228,7 @@ Given identical
 
 \* Policy Engine Version
 
-
-
 the engine SHALL always produce identical
-
-
 
 \* Decision
 
@@ -332,19 +240,11 @@ the engine SHALL always produce identical
 
 \* Evaluation Trace
 
-
-
 \---
-
-
 
 \# Determinism Rules
 
-
-
 The Policy Engine SHALL NOT
-
-
 
 \* call LLMs
 
@@ -358,49 +258,27 @@ The Policy Engine SHALL NOT
 
 \* mutate runtime state
 
-
-
 Policy evaluation SHALL depend exclusively upon
-
-
 
 \* Policy
 
 \* Runtime Signals
 
-
-
 \---
-
-
 
 \# Evaluation Order
 
-
-
 Policy evaluation SHALL remain deterministic.
-
-
 
 Rules SHALL be evaluated sequentially.
 
-
-
 The first matching rule SHALL determine the decision.
-
-
 
 \---
 
-
-
 \# Runtime Responsibilities
 
-
-
 The Policy Engine SHALL
-
-
 
 \* evaluate policies
 
@@ -410,11 +288,7 @@ The Policy Engine SHALL
 
 \* return deterministic decisions
 
-
-
 The Policy Engine SHALL NOT
-
-
 
 \* authorize execution
 
@@ -428,19 +302,11 @@ The Policy Engine SHALL NOT
 
 \* generate receipts
 
-
-
 \---
-
-
 
 \# Engine Refactoring
 
-
-
 The engine SHALL be refactored into deterministic stages.
-
-
 
 ```text
 
@@ -478,27 +344,15 @@ evaluateOperator()
 
 ```
 
-
-
 Operator evaluation SHALL be isolated into a dedicated component.
-
-
 
 \---
 
-
-
 \# Policy Versioning
-
-
 
 Policy versions remain independent of schema versions.
 
-
-
 Example
-
-
 
 ```json
 
@@ -514,11 +368,7 @@ Example
 
 ```
 
-
-
 Future language changes SHALL increment
-
-
 
 ```
 
@@ -526,23 +376,13 @@ schemaVersion
 
 ```
 
-
-
 rather than policy versions.
-
-
 
 \---
 
-
-
 \# Migration
 
-
-
 Before Parmana v1.0 release
-
-
 
 \* migrate all bundled policies
 
@@ -554,23 +394,13 @@ Before Parmana v1.0 release
 
 \* update documentation
 
-
-
 No backward compatibility is required because Parmana has no production customers and no public compatibility commitments.
-
-
 
 \---
 
-
-
 \# Consequences
 
-
-
 \## Benefits
-
-
 
 \* Single policy language
 
@@ -588,11 +418,7 @@ No backward compatibility is required because Parmana has no production customer
 
 \* Preserves deterministic replay
 
-
-
 \## Costs
-
-
 
 \* One-time migration of bundled policies
 
@@ -602,21 +428,12 @@ No backward compatibility is required because Parmana has no production customer
 
 \* Update of SDK examples
 
-
-
 \---
 
-
-
 \# Architecture Principle
-
-
 
 > \*\*Policy Language is part of Parmana's public contract.\*\*
 
 >
 
 > The language SHALL remain deterministic, versioned, replayable, auditable, and independent of execution, authorization, and trust record generation.
-
-
-

@@ -31,7 +31,7 @@
 > which is still comfortably within DPIIT's 20-year Deep Tech window, but changes the honest
 > framing from "established track record" to "high R&D velocity in a very short window": TRL 6-7
 > evidence, a live real-money regulated-payments validation, and 1,313 automated tests were all
-> produced within roughly two months of the first commit. That is arguably a *stronger* R&D-
+> produced within roughly two months of the first commit. That is arguably a _stronger_ R&D-
 > intensity data point for the application than the original "2+ years" claim, not a weaker one —
 > see [01-INNOVATION-NARRATIVE.md](./01-INNOVATION-NARRATIVE.md).
 
@@ -40,12 +40,14 @@
 ## Purpose of This Document
 
 This prompt guides Claude to systematically:
+
 1. Track what Deep Tech documentation is complete vs. missing
 2. Identify R&D spend, IP, and technical evidence gaps
 3. Draft narratives that connect Parmana's work to DPIIT Deep Tech criteria
 4. Monitor application readiness and timeline
 
 Use this when you need to:
+
 - Audit Deep Tech eligibility
 - Build the innovation narrative
 - Gather R&D proof
@@ -60,6 +62,7 @@ Use this when you need to:
 A Deep Tech Startup must demonstrate:
 
 **Mandatory attributes:**
+
 - Core scientific or engineering innovation (not incremental)
 - Significant R&D expenditure and intensity
 - Novel intellectual property (patents, registered designs, proprietary tech)
@@ -68,12 +71,14 @@ A Deep Tech Startup must demonstrate:
 - Focus on AI, semiconductors, biotech, quantum, robotics, advanced materials, advanced engineering
 
 **Legal/structural:**
+
 - Incorporated in India (Private Ltd, LLP, Partnership, Cooperative)
 - Within 20 years of incorporation (Parmana: incorporated April 20, 2026 — about 4 months old as of Aug 2026, comfortably within range)
 - Turnover: up to ₹300 crore in any financial year (Parmana: currently under cap)
 - Not a reconstruction or split of existing business
 
 **Process requirements:**
+
 - Submit standard DPIIT recognition docs
 - PLUS additional technical documentation demonstrating Deep Tech attributes
 - Enhanced scrutiny from DPIIT with domain-specific assessment
@@ -90,12 +95,14 @@ A Deep Tech Startup must demonstrate:
 Parmana builds cryptographic runtime governance for AI-executed transactions in regulated financial services. The innovation is NOT a policy engine or API gateway—it's a **credential isolation and execution audit architecture** that prevents unauthorized execution even when initial permissions are granted.
 
 **Technical depth:**
+
 - Cryptographic credential vault (SessionCredentialSecureConnector wraps all connectors)
 - Execution audit trail with signed decisions (webhook mechanics)
 - Policy governance (maker-checker system, not just role-based access)
 - Zero-trust execution model (credential isolation is automatic, not manual)
 
 **R&D challenges addressed:**
+
 - How to isolate credentials at runtime without breaking connector semantics
 - How to audit execution without replay vulnerability or latency overhead
 - How to enforce policy at execution time when initial permission doesn't guarantee safe behavior
@@ -104,12 +111,14 @@ Parmana builds cryptographic runtime governance for AI-executed transactions in 
 ### IP & Patents (Evidence of Core Tech)
 
 **Status to clarify:**
+
 - [ ] Patent application filed on credential isolation + execution audit? (If yes, reference number + filing date)
 - [ ] Patent application filed on policy governance (maker-checker)? (If yes, reference number + filing date)
 - [ ] Design registrations for webhook audit format or vault API?
 - [ ] Proprietary architecture (not open-source equivalent available)?
 
 **If patents NOT yet filed:**
+
 - Urgently file provisional applications before Deep Tech submission
 - Focus on: credential isolation mechanism, policy enforcement at execution time, audit trail structure
 - Reference: UK AISI incident (Aug 2026) as validation that this invention addresses real attack surface
@@ -220,6 +229,7 @@ Parmana builds cryptographic runtime governance for AI-executed transactions in 
 ### Supporting Documents to Reference
 
 When drafting, link to:
+
 - Competitive landscape analysis (AGT, execution-authority-gate, etc.) — proof of novel positioning
 - SSRN papers (if published) — academic validation
 - Investor materials (pitch deck) — commercial viability
@@ -231,18 +241,18 @@ When drafting, link to:
 
 **Current status:** Regular DPIIT certificate issued Aug 24, 2026
 
-| Date | Milestone | Owner | Status |
-|------|-----------|-------|--------|
-| Aug 25, 2026 | Audit Deep Tech eligibility & gaps | Pavan + CA | IN PROGRESS |
-| Aug 28, 2026 | Patent filing status confirmed | Pavan | TODO |
-| Sep 01, 2026 | R&D spend statement compiled | Finance/Pavan | TODO |
-| Sep 05, 2026 | Innovation narrative drafted | Pavan + Claude | TODO |
-| Sep 08, 2026 | Commercialization roadmap drafted | Pavan + Product | TODO |
-| Sep 10, 2026 | All supporting docs collected | Pavan + Admin | TODO |
-| Sep 12, 2026 | Application reviewed by CA/legal | External | TODO |
-| Sep 15, 2026 | Deep Tech recognition application submitted | Pavan | TODO |
-| Sep 20 - Oct 20, 2026 | DPIIT review & potential clarifications | DPIIT | TODO |
-| Oct 25, 2026 | Expected: Deep Tech certificate issued | DPIIT | TARGET |
+| Date                  | Milestone                                   | Owner           | Status      |
+| --------------------- | ------------------------------------------- | --------------- | ----------- |
+| Aug 25, 2026          | Audit Deep Tech eligibility & gaps          | Pavan + CA      | IN PROGRESS |
+| Aug 28, 2026          | Patent filing status confirmed              | Pavan           | TODO        |
+| Sep 01, 2026          | R&D spend statement compiled                | Finance/Pavan   | TODO        |
+| Sep 05, 2026          | Innovation narrative drafted                | Pavan + Claude  | TODO        |
+| Sep 08, 2026          | Commercialization roadmap drafted           | Pavan + Product | TODO        |
+| Sep 10, 2026          | All supporting docs collected               | Pavan + Admin   | TODO        |
+| Sep 12, 2026          | Application reviewed by CA/legal            | External        | TODO        |
+| Sep 15, 2026          | Deep Tech recognition application submitted | Pavan           | TODO        |
+| Sep 20 - Oct 20, 2026 | DPIIT review & potential clarifications     | DPIIT           | TODO        |
+| Oct 25, 2026          | Expected: Deep Tech certificate issued      | DPIIT           | TARGET      |
 
 ---
 

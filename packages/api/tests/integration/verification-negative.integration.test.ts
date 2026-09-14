@@ -10,12 +10,14 @@ import { executionTrustRecordRepository } from "../../src/repositories.js";
 import { createBusinessTransaction } from "../fixtures/business-transaction.js";
 import { resolveDatabaseGate } from "../helpers/database-availability.js";
 
-const databaseConfigured = resolveDatabaseGate("Verification Negative Integration");
+const databaseConfigured = resolveDatabaseGate(
+  "Verification Negative Integration",
+);
 
-describe.skipIf(!databaseConfigured)("Verification Negative Integration", () => {
-  it(
-    "reports FAILED when the persisted record is tampered after execution",
-    async () => {
+describe.skipIf(!databaseConfigured)(
+  "Verification Negative Integration",
+  () => {
+    it("reports FAILED when the persisted record is tampered after execution", async () => {
       //
       // Execute a real transaction through the live path so a
       // genuinely hashed and signed Execution Trust Record is
@@ -23,9 +25,7 @@ describe.skipIf(!databaseConfigured)("Verification Negative Integration", () => 
       //
       const transaction = createBusinessTransaction();
 
-      const execute = await request(app)
-        .post("/execute")
-        .send(transaction);
+      const execute = await request(app).post("/execute").send(transaction);
 
       expect(execute.status).toBe(200);
 
@@ -50,53 +50,48 @@ describe.skipIf(!databaseConfigured)("Verification Negative Integration", () => 
         },
       });
 
-      const verify = await request(app)
-        .post("/verify")
-        .send({
-          businessTransactionId:
-            transaction.businessTransactionId,
-        });
+      const verify = await request(app).post("/verify").send({
+        businessTransactionId: transaction.businessTransactionId,
+      });
 
       expect(verify.status).toBe(200);
       expect(verify.body.status).toBe("FAILED");
       expect(verify.body.message).toContain("Integrity check failed");
-    },
-    30000,
-  );
+    }, 30000);
 
-  it("fails for an unknown Business Transaction", async () => {
-    const response = await request(app)
-      .post("/verify")
+    it("fails for an unknown Business Transaction", async () => {
+      const response = await request(app)
+        .post("/verify")
 
-      .send({
-        businessTransactionId: crypto.randomUUID(),
-      });
+        .send({
+          businessTransactionId: crypto.randomUUID(),
+        });
 
-    expect(response.status).toBe(404);
+      expect(response.status).toBe(404);
 
-    expect(response.body.error).toContain("Execution Trust Record not found.");
-  });
+      expect(response.body.error).toContain(
+        "Execution Trust Record not found.",
+      );
+    });
 
-  it("fails when Business Transaction ID is missing", async () => {
-    const response = await request(app)
-      .post("/verify")
+    it("fails when Business Transaction ID is missing", async () => {
+      const response = await request(app)
+        .post("/verify")
 
-      .send({});
+        .send({});
 
-    expect(response.status).toBe(400);
-  });
+      expect(response.status).toBe(400);
+    });
 
-  it("fails for an invalid Business Transaction ID", async () => {
-    const response = await request(app)
-      .post("/verify")
+    it("fails for an invalid Business Transaction ID", async () => {
+      const response = await request(app)
+        .post("/verify")
 
-      .send({
-        businessTransactionId: "not-a-uuid",
-      });
+        .send({
+          businessTransactionId: "not-a-uuid",
+        });
 
-    expect(response.status).toBe(400);
-  });
-});
-
-
-
+      expect(response.status).toBe(400);
+    });
+  },
+);

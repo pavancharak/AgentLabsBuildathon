@@ -1,42 +1,22 @@
 \# Tutorial 47 — Canonical JSON
 
-
-
 \## Overview
-
-
 
 Digital signatures are created over \*\*bytes\*\*, not objects.
 
-
-
 Unfortunately, the same JSON object can be represented in many different textual forms.
-
-
 
 Without canonicalization, two systems could sign logically identical objects but produce different signatures.
 
-
-
 Parmana solves this by converting every object into \*\*Canonical JSON\*\* before hashing or signing.
-
-
 
 \---
 
-
-
 \## The Problem
-
-
 
 These two objects contain identical information.
 
-
-
 \### Object A
-
-
 
 ```json
 
@@ -52,11 +32,7 @@ These two objects contain identical information.
 
 ```
 
-
-
 \### Object B
-
-
 
 ```json
 
@@ -72,23 +48,13 @@ These two objects contain identical information.
 
 ```
 
-
-
 Although they are semantically identical, their raw JSON text differs.
-
-
 
 \---
 
-
-
 \## Canonical Serialization
 
-
-
 Parmana converts both objects into the same canonical representation.
-
-
 
 ```text
 
@@ -128,19 +94,11 @@ Canonical Bytes
 
 ```
 
-
-
 This guarantees that identical business data always produces identical bytes.
-
-
 
 \---
 
-
-
 \## Expected Output
-
-
 
 ```text
 
@@ -184,19 +142,11 @@ Tutorial completed successfully.
 
 ```
 
-
-
 \---
-
-
 
 \## Why Canonical JSON Matters
 
-
-
 Canonical serialization guarantees:
-
-
 
 \- identical hashes
 
@@ -208,19 +158,11 @@ Canonical serialization guarantees:
 
 \- reproducible trust records
 
-
-
 Without canonicalization, simply changing the property order would invalidate every signature.
-
-
 
 \---
 
-
-
 \## Cryptographic Pipeline
-
-
 
 ```text
 
@@ -252,19 +194,11 @@ Verification
 
 ```
 
-
-
 Every signature in Parmana begins with canonical serialization.
-
-
 
 \---
 
-
-
 \## Running the Example
-
-
 
 ```bash
 
@@ -272,11 +206,7 @@ tsx examples/tutorials/47-canonical-json/run.ts
 
 ```
 
-
-
 or
-
-
 
 ```bash
 
@@ -284,35 +214,19 @@ npm run examples
 
 ```
 
-
-
 \---
-
-
 
 \## Next Tutorial
 
-
-
 \*\*Tutorial 48 — Deterministic Signatures\*\*
-
-
 
 The next tutorial demonstrates that identical canonical bytes always produce identical hashes, forming the foundation for reproducible cryptographic verification.
 
-
-
 \---
-
-
 
 \## Summary
 
-
-
 In this tutorial you learned:
-
-
 
 \- Digital signatures operate on bytes, not objects.
 
@@ -321,4 +235,3 @@ In this tutorial you learned:
 \- Canonical serialization produces deterministic bytes.
 
 \- Canonical JSON is the foundation of every Parmana signature.
-

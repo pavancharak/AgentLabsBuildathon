@@ -1,7 +1,4 @@
-import {
-  mkdir,
-  writeFile,
-} from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 
 import path from "node:path";
 
@@ -17,32 +14,15 @@ export async function saveOutput(
   fileName: string,
   value: unknown,
 ): Promise<void> {
-  await mkdir(
-    outputDirectory,
-    {
-      recursive: true,
-    },
-  );
+  await mkdir(outputDirectory, {
+    recursive: true,
+  });
 
-  const outputPath =
-    path.join(
-      outputDirectory,
-      fileName,
-    );
+  const outputPath = path.join(outputDirectory, fileName);
 
-  await writeFile(
-    outputPath,
-    JSON.stringify(
-      value,
-      null,
-      2,
-    ),
-    "utf8",
-  );
+  await writeFile(outputPath, JSON.stringify(value, null, 2), "utf8");
 
-  console.log(
-    `Saved output: ${outputPath}`,
-  );
+  console.log(`Saved output: ${outputPath}`);
 }
 
 /**
@@ -52,11 +32,7 @@ export async function saveTrustRecord(
   outputDirectory: string,
   trustRecord: unknown,
 ): Promise<void> {
-  await saveOutput(
-    outputDirectory,
-    "execution-trust-record.json",
-    trustRecord,
-  );
+  await saveOutput(outputDirectory, "execution-trust-record.json", trustRecord);
 }
 
 /**
@@ -66,11 +42,7 @@ export async function saveVerification(
   outputDirectory: string,
   verification: unknown,
 ): Promise<void> {
-  await saveOutput(
-    outputDirectory,
-    "verification.json",
-    verification,
-  );
+  await saveOutput(outputDirectory, "verification.json", verification);
 }
 
 /**
@@ -80,11 +52,7 @@ export async function saveReceipt(
   outputDirectory: string,
   receipt: unknown,
 ): Promise<void> {
-  await saveOutput(
-    outputDirectory,
-    "receipt.json",
-    receipt,
-  );
+  await saveOutput(outputDirectory, "receipt.json", receipt);
 }
 
 /**
@@ -94,9 +62,5 @@ export async function saveReplay(
   outputDirectory: string,
   replay: unknown,
 ): Promise<void> {
-  await saveOutput(
-    outputDirectory,
-    "replay.json",
-    replay,
-  );
+  await saveOutput(outputDirectory, "replay.json", replay);
 }

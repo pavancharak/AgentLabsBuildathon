@@ -5,7 +5,9 @@ import { assertStorageConfigured } from "../../../src/bootstrap/assertStorageCon
 const ENV_KEYS = ["NODE_ENV", "PARMANA_STORAGE", "DATABASE_URL"] as const;
 
 describe("assertStorageConfigured", () => {
-  const original = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
+  const original = Object.fromEntries(
+    ENV_KEYS.map((key) => [key, process.env[key]]),
+  );
 
   afterEach(() => {
     for (const key of ENV_KEYS) {
@@ -45,7 +47,8 @@ describe("assertStorageConfigured", () => {
   it("does not throw when PARMANA_STORAGE=supabase and DATABASE_URL is configured", () => {
     process.env.NODE_ENV = "production";
     process.env.PARMANA_STORAGE = "supabase";
-    process.env.DATABASE_URL = "postgresql://user:pass@example.supabase.co:5432/postgres";
+    process.env.DATABASE_URL =
+      "postgresql://user:pass@example.supabase.co:5432/postgres";
 
     expect(() => assertStorageConfigured()).not.toThrow();
   });

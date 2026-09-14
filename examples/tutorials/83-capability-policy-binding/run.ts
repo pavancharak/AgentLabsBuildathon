@@ -1,4 +1,7 @@
-import { CANONICAL_CAPABILITY_POLICY_BINDINGS, CapabilityPolicyBinder } from "@parmana/policy";
+import {
+  CANONICAL_CAPABILITY_POLICY_BINDINGS,
+  CapabilityPolicyBinder,
+} from "@parmana/policy";
 
 //
 // TD-22 (Phase 2K): found by independent repository verification.
@@ -23,23 +26,37 @@ console.log();
 
 const binder = new CapabilityPolicyBinder();
 
-console.log("Scenario 1: An action with no canonical binding (every test/tutorial-only action)");
+console.log(
+  "Scenario 1: An action with no canonical binding (every test/tutorial-only action)",
+);
 console.log("--------------------------------------------------");
-const violation1 = binder.findViolation("PAY", { name: "payment-approval", version: "1.0.0", schemaVersion: "1.0.0" });
-console.log(`Violation : ${violation1 === undefined ? "none" : JSON.stringify(violation1)}`);
+const violation1 = binder.findViolation("PAY", {
+  name: "payment-approval",
+  version: "1.0.0",
+  schemaVersion: "1.0.0",
+});
+console.log(
+  `Violation : ${violation1 === undefined ? "none" : JSON.stringify(violation1)}`,
+);
 console.log();
 
-console.log("Scenario 2: A real capability paired with its own correct, canonical policy");
+console.log(
+  "Scenario 2: A real capability paired with its own correct, canonical policy",
+);
 console.log("--------------------------------------------------");
 const violation2 = binder.findViolation("hubspot:deal-update", {
   name: "hubspot-deal-update",
   version: "1.0.0",
   schemaVersion: "1.0.0",
 });
-console.log(`Violation : ${violation2 === undefined ? "none" : JSON.stringify(violation2)}`);
+console.log(
+  `Violation : ${violation2 === undefined ? "none" : JSON.stringify(violation2)}`,
+);
 console.log();
 
-console.log("Scenario 3: The exact live-shaped exploit -- hubspot:deal-update paired with an unrelated, unprotected policy");
+console.log(
+  "Scenario 3: The exact live-shaped exploit -- hubspot:deal-update paired with an unrelated, unprotected policy",
+);
 console.log("--------------------------------------------------");
 // vendor-payment/2.0.0 is a real, production-loadable policy that
 // declares no boundSignals for hubspot:deal-update -- its own approve
@@ -54,7 +71,9 @@ const violation3 = binder.findViolation("hubspot:deal-update", {
 console.log(`Violation : ${JSON.stringify(violation3)}`);
 console.log();
 
-console.log("Scenario 4: The same substitution shape against hubspot:deal-fetch");
+console.log(
+  "Scenario 4: The same substitution shape against hubspot:deal-fetch",
+);
 console.log("--------------------------------------------------");
 const violation4 = binder.findViolation("hubspot:deal-fetch", {
   name: "customer-refund",
@@ -71,7 +90,9 @@ const violation5 = binder.findViolation("hubspot:deal-update", {
   version: "9.9.9",
   schemaVersion: "1.0.0",
 });
-console.log(`Violation : ${violation5 !== undefined ? "caught (name matched, version did not)" : "none"}`);
+console.log(
+  `Violation : ${violation5 !== undefined ? "caught (name matched, version did not)" : "none"}`,
+);
 console.log();
 
 console.log("Every production-registered capability's canonical binding");
@@ -95,7 +116,9 @@ if (allPassed) {
     "✓ Every real capability is bound to exactly one canonical policy -- pairing it with any other is caught before evaluation.",
   );
 } else {
-  console.log("✗ Expected the unbound/correctly-paired cases to pass and every substitution/version-mismatch to be caught.");
+  console.log(
+    "✗ Expected the unbound/correctly-paired cases to pass and every substitution/version-mismatch to be caught.",
+  );
 }
 
 console.log();

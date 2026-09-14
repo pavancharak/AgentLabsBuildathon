@@ -49,8 +49,15 @@ const connectorIdentity: ConnectorIdentity = {
   authenticationMetadata: {},
 };
 
-const signer = new GatewayAttestationSigner(new ManualClock(new Date()), new SequentialIdGenerator());
-const authenticator = new SignedTokenConnectorAuthenticator(gatewayIdentity, publicKey, [connectorIdentity]);
+const signer = new GatewayAttestationSigner(
+  new ManualClock(new Date()),
+  new SequentialIdGenerator(),
+);
+const authenticator = new SignedTokenConnectorAuthenticator(
+  gatewayIdentity,
+  publicKey,
+  [connectorIdentity],
+);
 
 console.log();
 console.log("==================================================");
@@ -58,29 +65,72 @@ console.log("Tutorial 86 - Gateway Attestation");
 console.log("==================================================");
 console.log();
 
-console.log("Scenario 1: A tampered payload, still carrying its original (now-mismatched) signature");
+console.log(
+  "Scenario 1: A tampered payload, still carrying its original (now-mismatched) signature",
+);
 console.log("--------------------------------------------------");
-const genuine = signer.sign(gatewayIdentity.gatewayId, "authorization-1", privateKey);
-const tampered = { ...genuine, payload: { ...genuine.payload, authorizationId: "authorization-2" } };
-const tamperedResult = authenticator.authenticateGatewayForRequest(gatewayIdentity, tampered, "authorization-2");
-console.log(`Rewriting authorizationId post-signing, then checking against the NEW value -> accepted: ${tamperedResult}`);
-console.log("(The signature was computed over the original payload -- rewriting any field breaks it, even the field being checked against.)");
+const genuine = signer.sign(
+  gatewayIdentity.gatewayId,
+  "authorization-1",
+  privateKey,
+);
+const tampered = {
+  ...genuine,
+  payload: { ...genuine.payload, authorizationId: "authorization-2" },
+};
+const tamperedResult = authenticator.authenticateGatewayForRequest(
+  gatewayIdentity,
+  tampered,
+  "authorization-2",
+);
+console.log(
+  `Rewriting authorizationId post-signing, then checking against the NEW value -> accepted: ${tamperedResult}`,
+);
+console.log(
+  "(The signature was computed over the original payload -- rewriting any field breaks it, even the field being checked against.)",
+);
 console.log();
 
-console.log("Scenario 2: No attestation presented at all (today's production default)");
+console.log(
+  "Scenario 2: No attestation presented at all (today's production default)",
+);
 console.log("--------------------------------------------------");
-const undefinedForRequest = authenticator.authenticateGatewayForRequest(gatewayIdentity, undefined, "authorization-1");
-const undefinedGeneral = authenticator.authenticateGateway(gatewayIdentity, undefined);
-console.log(`authenticateGatewayForRequest(undefined) -> accepted: ${undefinedForRequest}`);
-console.log(`authenticateGateway(undefined)            -> accepted: ${undefinedGeneral}`);
+const undefinedForRequest = authenticator.authenticateGatewayForRequest(
+  gatewayIdentity,
+  undefined,
+  "authorization-1",
+);
+const undefinedGeneral = authenticator.authenticateGateway(
+  gatewayIdentity,
+  undefined,
+);
+console.log(
+  `authenticateGatewayForRequest(undefined) -> accepted: ${undefinedForRequest}`,
+);
+console.log(
+  `authenticateGateway(undefined)            -> accepted: ${undefinedGeneral}`,
+);
 console.log();
 
-console.log("Scenario 3: Signature-only check vs. signature-AND-request-binding check");
+console.log(
+  "Scenario 3: Signature-only check vs. signature-AND-request-binding check",
+);
 console.log("--------------------------------------------------");
-const signatureOnly = authenticator.authenticateGateway(gatewayIdentity, genuine);
-const wrongBinding = authenticator.authenticateGatewayForRequest(gatewayIdentity, genuine, "authorization-999");
-console.log(`authenticateGateway(genuine)                                    -> accepted: ${signatureOnly} (signature alone is valid)`);
-console.log(`authenticateGatewayForRequest(genuine, "authorization-999")     -> accepted: ${wrongBinding} (but it was never minted for THIS request)`);
+const signatureOnly = authenticator.authenticateGateway(
+  gatewayIdentity,
+  genuine,
+);
+const wrongBinding = authenticator.authenticateGatewayForRequest(
+  gatewayIdentity,
+  genuine,
+  "authorization-999",
+);
+console.log(
+  `authenticateGateway(genuine)                                    -> accepted: ${signatureOnly} (signature alone is valid)`,
+);
+console.log(
+  `authenticateGatewayForRequest(genuine, "authorization-999")     -> accepted: ${wrongBinding} (but it was never minted for THIS request)`,
+);
 console.log();
 
 console.log("Scenario 4: Trusted vs. unknown connector identity");
@@ -91,8 +141,12 @@ const unknownConnector = authenticator.authenticateConnector({
   publicIdentity: "spiffe://parmana/connectors/oracle",
   authenticationMetadata: {},
 });
-console.log(`authenticateConnector("sap")    -> accepted: ${trustedConnector} (registered at authenticator construction)`);
-console.log(`authenticateConnector("oracle") -> accepted: ${unknownConnector} (never registered)`);
+console.log(
+  `authenticateConnector("sap")    -> accepted: ${trustedConnector} (registered at authenticator construction)`,
+);
+console.log(
+  `authenticateConnector("oracle") -> accepted: ${unknownConnector} (never registered)`,
+);
 console.log();
 
 const allPassed =
@@ -109,7 +163,9 @@ if (allPassed) {
     "✓ Tampering, missing attestations, and unbound/untrusted identities are all rejected; only a genuine, correctly-bound, pre-registered identity passes.",
   );
 } else {
-  console.log("✗ Expected every scenario above to match SignedTokenConnectorAuthenticator's documented behavior.");
+  console.log(
+    "✗ Expected every scenario above to match SignedTokenConnectorAuthenticator's documented behavior.",
+  );
 }
 
 console.log();

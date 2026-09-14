@@ -1,20 +1,12 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import type {
-  BusinessTransaction,
-} from "@parmana/shared";
+import type { BusinessTransaction } from "@parmana/shared";
 
 const root = path.resolve(import.meta.dirname);
 
 const transaction = JSON.parse(
-  readFileSync(
-    path.join(
-      root,
-      "transaction.json",
-    ),
-    "utf8",
-  ),
+  readFileSync(path.join(root, "transaction.json"), "utf8"),
 ) as BusinessTransaction;
 
 console.log("========================================");
@@ -25,49 +17,25 @@ console.log();
 
 console.log("Authority");
 
-console.log(
-  JSON.stringify(
-    transaction.authority,
-    null,
-    2,
-  ),
-);
+console.log(JSON.stringify(transaction.authority, null, 2));
 
 console.log();
 
 console.log("Authorization");
 
-console.log(
-  JSON.stringify(
-    transaction.authorization,
-    null,
-    2,
-  ),
-);
+console.log(JSON.stringify(transaction.authorization, null, 2));
 
 console.log();
 
 console.log("Intent");
 
-console.log(
-  JSON.stringify(
-    transaction.intent,
-    null,
-    2,
-  ),
-);
+console.log(JSON.stringify(transaction.intent, null, 2));
 
 console.log();
 
 console.log("Business Transaction");
 
-console.log(
-  JSON.stringify(
-    transaction,
-    null,
-    2,
-  ),
-);
+console.log(JSON.stringify(transaction, null, 2));
 
 console.log();
 
@@ -86,6 +54,4 @@ console.log(
 console.log();
 
 console.log("Tutorial Complete");
-console.log(
-  "Next: Tutorial 09 - REST API",
-);
+console.log("Next: Tutorial 09 - REST API");

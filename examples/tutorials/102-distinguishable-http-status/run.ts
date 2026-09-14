@@ -6,7 +6,11 @@ import { ExecutionGateway, type Connector } from "@parmana/execution-gateway";
 import { FilePolicyRepository } from "@parmana/policy";
 import { RuntimeBuilder } from "@parmana/runtime";
 import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
-import { NonceAlreadyConsumedError, type ExecutionResult, type BusinessTransaction } from "@parmana/shared";
+import {
+  NonceAlreadyConsumedError,
+  type ExecutionResult,
+  type BusinessTransaction,
+} from "@parmana/shared";
 
 //
 // docs/CLAIMS.md 2.21: a policy REJECTED decision surfaces as HTTP 403
@@ -36,8 +40,18 @@ function rejectingTransaction(): BusinessTransaction {
   return {
     businessTransactionId,
     metadata: { businessTransactionId },
-    authority: { authorityId, authorityType: "SERVICE" as never, principalId: "tutorial-102", issuedAt: now },
-    authorization: { authorizationId, authorityId, purpose: "tutorial", issuedAt: now },
+    authority: {
+      authorityId,
+      authorityType: "SERVICE" as never,
+      principalId: "tutorial-102",
+      issuedAt: now,
+    },
+    authorization: {
+      authorizationId,
+      authorityId,
+      purpose: "tutorial",
+      issuedAt: now,
+    },
     intent: {
       intentId: crypto.randomUUID(),
       authorizationId,
@@ -46,7 +60,11 @@ function rejectingTransaction(): BusinessTransaction {
       parameters: { vendorId: "VENDOR-1001", amount: 25000 },
       createdAt: now,
     },
-    policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+    policy: {
+      name: "vendor-payment",
+      version: "2.0.0",
+      schemaVersion: "1.0.0",
+    },
     signals: {
       vendorVerified: true,
       invoiceVerified: true,
@@ -81,7 +99,9 @@ console.log("Tutorial 102 - Distinguishable HTTP Status");
 console.log("==================================================");
 console.log();
 
-console.log("Scenario 1: A policy REJECTED decision -- real HTTP server, POST /execute");
+console.log(
+  "Scenario 1: A policy REJECTED decision -- real HTTP server, POST /execute",
+);
 console.log("--------------------------------------------------");
 
 // Required before bootstrapping: without it, createConnectorRegistry
@@ -90,12 +110,10 @@ console.log("--------------------------------------------------");
 // "connecting" forever and the process never exiting.
 process.env.NODE_ENV = "test";
 
-const { createExecutionSystem } = await import(
-  "../../../packages/api/src/bootstrap/createExecutionSystem.js"
-);
-const { createApplication } = await import(
-  "../../../packages/api/src/application.js"
-);
+const { createExecutionSystem } =
+  await import("../../../packages/api/src/bootstrap/createExecutionSystem.js");
+const { createApplication } =
+  await import("../../../packages/api/src/application.js");
 const { createApp } = await import("../../../packages/api/src/app.js");
 
 const executionSystem = createExecutionSystem();
@@ -126,7 +144,9 @@ try {
 }
 console.log();
 
-console.log("Scenario 2: A replayed authorization -- ExecutionGateway.execute() called directly, twice");
+console.log(
+  "Scenario 2: A replayed authorization -- ExecutionGateway.execute() called directly, twice",
+);
 console.log("--------------------------------------------------");
 
 const runtime = new RuntimeBuilder()
@@ -153,9 +173,12 @@ const approvedTransaction = {
 };
 
 const { context } = await runtime.execute(approvedTransaction as never);
-if (!context.authorization) throw new Error("Execution Authorization was not generated.");
+if (!context.authorization)
+  throw new Error("Execution Authorization was not generated.");
 
-const publicKey = await new FileKeyProvider().getPublicKey(context.authorization.keyId);
+const publicKey = await new FileKeyProvider().getPublicKey(
+  context.authorization.keyId,
+);
 
 const gateway = new ExecutionGateway({
   publicKey,
@@ -182,13 +205,17 @@ try {
 } catch (error) {
   replayStatus = (error as { status?: number }).status;
   replayCode = (error as { code?: string }).code;
-  console.log(`Second execute() -> ${error instanceof NonceAlreadyConsumedError ? "NonceAlreadyConsumedError" : "unexpected error type"}`);
+  console.log(
+    `Second execute() -> ${error instanceof NonceAlreadyConsumedError ? "NonceAlreadyConsumedError" : "unexpected error type"}`,
+  );
   console.log(`Status : ${replayStatus}`);
   console.log(`Code   : ${replayCode}`);
 }
 console.log();
 
-console.log("Scenario 3: A genuine unexpected failure -- tampered content, still plain uncoded 500");
+console.log(
+  "Scenario 3: A genuine unexpected failure -- tampered content, still plain uncoded 500",
+);
 console.log("--------------------------------------------------");
 
 const tampered = {
@@ -206,8 +233,12 @@ try {
   console.log("✗ Expected the tampered request to be rejected.");
 } catch (error) {
   tamperedIsCoded = (error as { code?: string }).code !== undefined;
-  console.log(`Tampered execute() -> ${error instanceof Error ? error.message : String(error)}`);
-  console.log(`Has a .code (like POLICY_DENIED/NONCE_ALREADY_CONSUMED)? ${tamperedIsCoded}`);
+  console.log(
+    `Tampered execute() -> ${error instanceof Error ? error.message : String(error)}`,
+  );
+  console.log(
+    `Has a .code (like POLICY_DENIED/NONCE_ALREADY_CONSUMED)? ${tamperedIsCoded}`,
+  );
 }
 console.log();
 
@@ -223,7 +254,9 @@ if (allPassed) {
     "✓ Policy denial (403/POLICY_DENIED), authorization replay (409/NONCE_ALREADY_CONSUMED), and a genuine content mismatch (plain, uncoded error) are all distinguishable from each other.",
   );
 } else {
-  console.log("✗ Expected each of the three failure shapes above to be distinguishable as documented.");
+  console.log(
+    "✗ Expected each of the three failure shapes above to be distinguishable as documented.",
+  );
 }
 
 console.log();

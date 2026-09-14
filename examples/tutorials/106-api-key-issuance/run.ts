@@ -89,7 +89,11 @@ function transactionFor(
       createdAt: new Date(),
     },
 
-    policy: { name: "api-key-issuance", version: "1.0.0", schemaVersion: "1.0.0" },
+    policy: {
+      name: "api-key-issuance",
+      version: "1.0.0",
+      schemaVersion: "1.0.0",
+    },
 
     signals: {
       requesterVerified,
@@ -110,19 +114,28 @@ console.log("Tutorial 106 - API Key Issuance (writing a new policy)");
 console.log("==================================================");
 console.log();
 
-console.log("Scenario 1: verified requester, authorized scope, 30-day key, low risk -- approved");
+console.log(
+  "Scenario 1: verified requester, authorized scope, 30-day key, low risk -- approved",
+);
 console.log("--------------------------------------------------");
-const { trustRecord: approved } = await runtime.execute(transactionFor("tx-106-approve"));
+const { trustRecord: approved } = await runtime.execute(
+  transactionFor("tx-106-approve"),
+);
 console.log(`Decision outcome : ${approved.executions[0]?.decision.outcome}`);
 console.log(`Reason           : ${approved.executions[0]?.decision.reason}`);
 console.log();
 
-console.log("Scenario 2: signals declare a 30-day key, but the Intent actually requests 400 days -- boundSignals catches the mismatch before PolicyEngine ever runs");
+console.log(
+  "Scenario 2: signals declare a 30-day key, but the Intent actually requests 400 days -- boundSignals catches the mismatch before PolicyEngine ever runs",
+);
 console.log("--------------------------------------------------");
 let scenario2Reason = "";
 try {
   await runtime.execute(
-    transactionFor("tx-106-mismatch", { signaledLifetimeDays: 30, intentLifetimeDays: 400 }),
+    transactionFor("tx-106-mismatch", {
+      signaledLifetimeDays: 30,
+      intentLifetimeDays: 400,
+    }),
   );
 } catch (error) {
   scenario2Reason = error instanceof Error ? error.message : String(error);
@@ -130,7 +143,9 @@ try {
 console.log(`Rejected : ${scenario2Reason}`);
 console.log();
 
-console.log("Scenario 3: requester identity not verified -- rejected with a specific reason");
+console.log(
+  "Scenario 3: requester identity not verified -- rejected with a specific reason",
+);
 console.log("--------------------------------------------------");
 //
 // A REJECTED decision does not come back as a normal return value --
@@ -149,7 +164,9 @@ try {
 console.log(`Rejected : ${scenario3Reason}`);
 console.log();
 
-console.log("Scenario 4: this policy has zero rule conflicts (the shape every policy in this repo now targets)");
+console.log(
+  "Scenario 4: this policy has zero rule conflicts (the shape every policy in this repo now targets)",
+);
 console.log("--------------------------------------------------");
 const policy = await policyRepository.load("api-key-issuance", "1.0.0");
 const validator = new PolicyValidator();
@@ -168,7 +185,9 @@ if (allPassed) {
     "✓ A new policy authored with boundSignals + unboundSignalReasons from the start loads cleanly, catches signal/intent drift on its bound fact, rejects with specific reasons, and reports zero rule conflicts.",
   );
 } else {
-  console.log("✗ Expected every scenario above to behave exactly as documented.");
+  console.log(
+    "✗ Expected every scenario above to behave exactly as documented.",
+  );
 }
 
 console.log();

@@ -1,7 +1,10 @@
 import crypto from "node:crypto";
 
 import type { BusinessTransaction } from "@parmana/shared";
-import { MockSlackServer, SLACK_TEST_MODE_PLACEHOLDER_TOKEN } from "@parmana/connector-slack";
+import {
+  MockSlackServer,
+  SLACK_TEST_MODE_PLACEHOLDER_TOKEN,
+} from "@parmana/connector-slack";
 
 //
 // Tutorial 112 - Slack Connector
@@ -30,10 +33,10 @@ await mockSlack.listen();
 process.env.SLACK_BASE_URL = mockSlack.baseUrl;
 process.env.TEST_SLACK_BOT_TOKEN = TOKEN;
 
-const { createExecutionSystem } = await import(
-  "../../../packages/api/src/bootstrap/createExecutionSystem.js"
-);
-const { createApplication } = await import("../../../packages/api/src/application.js");
+const { createExecutionSystem } =
+  await import("../../../packages/api/src/bootstrap/createExecutionSystem.js");
+const { createApplication } =
+  await import("../../../packages/api/src/application.js");
 
 function postMessageTransaction(overrides: {
   channel: string;
@@ -48,7 +51,12 @@ function postMessageTransaction(overrides: {
 
   return {
     businessTransactionId,
-    metadata: { businessTransactionId, correlationId: crypto.randomUUID(), createdBy: "tutorial-112", createdAt: now },
+    metadata: {
+      businessTransactionId,
+      correlationId: crypto.randomUUID(),
+      createdBy: "tutorial-112",
+      createdAt: now,
+    },
     authority: {
       authorityId,
       authorityType: "SERVICE",
@@ -56,16 +64,28 @@ function postMessageTransaction(overrides: {
       displayName: "Tutorial 112",
       issuedAt: now,
     },
-    authorization: { authorizationId, authorityId, purpose: "Tutorial", authorizedAt: now },
+    authorization: {
+      authorizationId,
+      authorityId,
+      purpose: "Tutorial",
+      authorizedAt: now,
+    },
     intent: {
       intentId,
       authorizationId,
       action: "slack:post-message",
       target: overrides.channel,
-      parameters: Object.freeze({ channel: overrides.channel, text: overrides.text ?? "Deployment succeeded." }),
+      parameters: Object.freeze({
+        channel: overrides.channel,
+        text: overrides.text ?? "Deployment succeeded.",
+      }),
       createdAt: now,
     },
-    policy: { name: "slack-post-message", version: "1.0.0", schemaVersion: "1.0.0" },
+    policy: {
+      name: "slack-post-message",
+      version: "1.0.0",
+      schemaVersion: "1.0.0",
+    },
     signals: overrides.signals,
     status: "RECEIVED",
     createdAt: now,
@@ -82,13 +102,19 @@ const executionSystem = createExecutionSystem();
 const application = createApplication(executionSystem);
 
 try {
-  console.log("Scenario 1: Content approved and channel authorized -- APPROVED and really posted");
+  console.log(
+    "Scenario 1: Content approved and channel authorized -- APPROVED and really posted",
+  );
   console.log("--------------------------------------------------");
 
   const approvedTransaction = postMessageTransaction({
     channel: "C0123456789",
     text: "Deployment succeeded.",
-    signals: { contentApproved: true, channelAuthorized: true, channelId: "C0123456789" },
+    signals: {
+      contentApproved: true,
+      channelAuthorized: true,
+      channelId: "C0123456789",
+    },
   });
 
   let approvedOutcome: "APPROVED" | "REJECTED" = "REJECTED";
@@ -96,7 +122,8 @@ try {
   try {
     const trustRecord = await application.execute(approvedTransaction);
     const decision = trustRecord.executions.at(-1)?.decision;
-    approvedOutcome = (decision?.outcome as "APPROVED" | "REJECTED") ?? "REJECTED";
+    approvedOutcome =
+      (decision?.outcome as "APPROVED" | "REJECTED") ?? "REJECTED";
     approvedReason = decision?.reason ?? "";
   } catch (error) {
     approvedReason = error instanceof Error ? error.message : String(error);
@@ -109,12 +136,18 @@ try {
   console.log(`  text    : ${mockSlack.calls[0]?.text}`);
   console.log();
 
-  console.log("Scenario 2: Content not approved -- REJECTED, and Slack is never called");
+  console.log(
+    "Scenario 2: Content not approved -- REJECTED, and Slack is never called",
+  );
   console.log("--------------------------------------------------");
 
   const deniedTransaction = postMessageTransaction({
     channel: "C0123456789",
-    signals: { contentApproved: false, channelAuthorized: true, channelId: "C0123456789" },
+    signals: {
+      contentApproved: false,
+      channelAuthorized: true,
+      channelId: "C0123456789",
+    },
   });
 
   let deniedOutcome: "APPROVED" | "REJECTED" = "APPROVED";
@@ -122,7 +155,8 @@ try {
   try {
     const trustRecord = await application.execute(deniedTransaction);
     const decision = trustRecord.executions.at(-1)?.decision;
-    deniedOutcome = (decision?.outcome as "APPROVED" | "REJECTED") ?? "REJECTED";
+    deniedOutcome =
+      (decision?.outcome as "APPROVED" | "REJECTED") ?? "REJECTED";
     deniedReason = decision?.reason ?? "";
   } catch (error) {
     deniedOutcome = "REJECTED";
@@ -131,15 +165,23 @@ try {
 
   console.log(`Outcome : ${deniedOutcome}`);
   console.log(`Reason  : ${deniedReason}`);
-  console.log(`Slack mock server total calls (unchanged from Scenario 1) : ${mockSlack.calls.length}`);
+  console.log(
+    `Slack mock server total calls (unchanged from Scenario 1) : ${mockSlack.calls.length}`,
+  );
   console.log();
 
-  console.log("Scenario 3: channelId signal does not match intent.target -- rejected before policy even runs");
+  console.log(
+    "Scenario 3: channelId signal does not match intent.target -- rejected before policy even runs",
+  );
   console.log("--------------------------------------------------");
 
   const mismatchedTransaction = postMessageTransaction({
     channel: "C0123456789",
-    signals: { contentApproved: true, channelAuthorized: true, channelId: "C_DIFFERENT_CHANNEL" },
+    signals: {
+      contentApproved: true,
+      channelAuthorized: true,
+      channelId: "C_DIFFERENT_CHANNEL",
+    },
   });
 
   let mismatchReason = "";
@@ -150,7 +192,9 @@ try {
   }
 
   console.log(`Rejected : ${mismatchReason}`);
-  console.log(`Slack mock server total calls (unchanged) : ${mockSlack.calls.length}`);
+  console.log(
+    `Slack mock server total calls (unchanged) : ${mockSlack.calls.length}`,
+  );
   console.log();
 
   console.log("==================================================");
@@ -166,12 +210,22 @@ try {
     mismatchReason.length > 0;
 
   if (allPassed) {
-    console.log("✓ The new Slack connector authorized and really posted a message when approved,");
-    console.log("  was rejected by policy without ever calling Slack when content wasn't approved,");
-    console.log("  and SignalIntentBinder caught a channelId/target mismatch before policy evaluation");
-    console.log("  even ran -- the same protections HubSpot/Paytm's own connectors get for free.");
+    console.log(
+      "✓ The new Slack connector authorized and really posted a message when approved,",
+    );
+    console.log(
+      "  was rejected by policy without ever calling Slack when content wasn't approved,",
+    );
+    console.log(
+      "  and SignalIntentBinder caught a channelId/target mismatch before policy evaluation",
+    );
+    console.log(
+      "  even ran -- the same protections HubSpot/Paytm's own connectors get for free.",
+    );
   } else {
-    console.log("✗ Expected every scenario above to match the documented connector contract.");
+    console.log(
+      "✗ Expected every scenario above to match the documented connector contract.",
+    );
   }
 
   console.log();

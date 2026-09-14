@@ -1,18 +1,10 @@
-import {
-  CanonicalSerializer,
-} from "@parmana/crypto";
+import { CanonicalSerializer } from "@parmana/crypto";
 
 async function main(): Promise<void> {
   console.log();
-  console.log(
-    "==================================================",
-  );
-  console.log(
-    "Tutorial 47 - Canonical JSON",
-  );
-  console.log(
-    "==================================================",
-  );
+  console.log("==================================================");
+  console.log("Tutorial 47 - Canonical JSON");
+  console.log("==================================================");
   console.log();
 
   //
@@ -31,92 +23,47 @@ async function main(): Promise<void> {
     vendorId: "VENDOR-1001",
   };
 
-const serializer =
-  new CanonicalSerializer();
+  const serializer = new CanonicalSerializer();
 
-const bytesA =
-  serializer.serialize(
-    objectA,
-  );
+  const bytesA = serializer.serialize(objectA);
 
-const bytesB =
-  serializer.serialize(
-    objectB,
-  );
+  const bytesB = serializer.serialize(objectB);
 
-  console.log(
-    "Object A",
-  );
+  console.log("Object A");
 
-  console.log(
-    JSON.stringify(
-      objectA,
-      null,
-      2,
-    ),
-  );
+  console.log(JSON.stringify(objectA, null, 2));
 
   console.log();
 
-  console.log(
-    "Object B",
-  );
+  console.log("Object B");
 
-  console.log(
-    JSON.stringify(
-      objectB,
-      null,
-      2,
-    ),
-  );
+  console.log(JSON.stringify(objectB, null, 2));
 
   console.log();
 
-  console.log(
-    "Canonical JSON A",
-  );
-const canonicalA =
-  new TextDecoder().decode(
-    bytesA,
-  );
+  console.log("Canonical JSON A");
+  const canonicalA = new TextDecoder().decode(bytesA);
 
-console.log(
-  canonicalA,
-);
+  console.log(canonicalA);
   console.log();
 
-  console.log(
-    "Canonical JSON B",
-  );
+  console.log("Canonical JSON B");
 
-const canonicalB =
-  new TextDecoder().decode(
-    bytesB,
-  );
+  const canonicalB = new TextDecoder().decode(bytesB);
 
-console.log(
-  canonicalB,
-);
+  console.log(canonicalB);
 
-console.log();
+  console.log();
 
-if (
-  canonicalA === canonicalB
-) {
-    console.log(
-      "✓ Canonical serialization is deterministic.",
-    );
+  if (canonicalA === canonicalB) {
+    console.log("✓ Canonical serialization is deterministic.");
   } else {
-    console.log(
-      "✗ Canonical serialization differs.",
-    );
+    console.log("✗ Canonical serialization differs.");
   }
 
   console.log();
 
-  console.log(
-    "Tutorial completed successfully.",
-  );
+  console.log("Tutorial completed successfully.");
 }
 
 main().catch((error) => {

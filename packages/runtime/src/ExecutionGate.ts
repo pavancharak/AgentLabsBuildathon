@@ -1,7 +1,4 @@
-import {
-  Decision,
-  DecisionOutcome,
-} from "@parmana/shared";
+import { Decision, DecisionOutcome } from "@parmana/shared";
 
 import { RuntimeError } from "./errors/RuntimeError.js";
 
@@ -16,30 +13,20 @@ export class ExecutionGate {
   /**
    * Returns true when execution is permitted.
    */
-  public canExecute(
-    decision: Decision,
-  ): boolean {
-    return (
-      decision.outcome ===
-      DecisionOutcome.APPROVED
-    );
+  public canExecute(decision: Decision): boolean {
+    return decision.outcome === DecisionOutcome.APPROVED;
   }
 
   /**
    * Enforces the decision.
    */
-  public enforce(
-    decision: Decision,
-  ): void {
+  public enforce(decision: Decision): void {
     if (this.canExecute(decision)) {
       return;
     }
 
     throw new RuntimeError(
-      `Execution rejected: ${
-        decision.reason ??
-        "Policy rejected execution."
-      }`,
+      `Execution rejected: ${decision.reason ?? "Policy rejected execution."}`,
       403,
       "POLICY_DENIED",
     );

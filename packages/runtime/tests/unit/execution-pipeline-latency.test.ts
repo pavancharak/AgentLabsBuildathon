@@ -19,9 +19,7 @@ import {
   type PolicyRepository,
 } from "@parmana/policy";
 
-import {
-  DefaultExecutionSystem,
-} from "@parmana/execution-system";
+import { DefaultExecutionSystem } from "@parmana/execution-system";
 
 import { RuntimeBuilder } from "../../src/RuntimeBuilder.js";
 import { ExecutionRequestBuilder } from "../../src/ExecutionRequestBuilder.js";
@@ -56,7 +54,9 @@ class InMemoryBusinessTransactionRepository implements BusinessTransactionReposi
     return transaction;
   }
 
-  async findById(businessTransactionId: string): Promise<BusinessTransaction | null> {
+  async findById(
+    businessTransactionId: string,
+  ): Promise<BusinessTransaction | null> {
     return this.store.get(businessTransactionId) ?? null;
   }
 
@@ -77,14 +77,19 @@ class InMemoryExecutionTrustRecordRepository implements ExecutionTrustRecordRepo
     return record;
   }
 
-  async findByTransactionId(businessTransactionId: string): Promise<ExecutionTrustRecord | null> {
+  async findByTransactionId(
+    businessTransactionId: string,
+  ): Promise<ExecutionTrustRecord | null> {
     return this.store.get(businessTransactionId) ?? null;
   }
 
   async appendExecution(_id: string, _execution: Execution): Promise<void> {}
   async replaceExecution(_execution: Execution): Promise<void> {}
   async appendOverride(_id: string, _override: Override): Promise<void> {}
-  async appendVerification(_id: string, _verification: Verification): Promise<void> {}
+  async appendVerification(
+    _id: string,
+    _verification: Verification,
+  ): Promise<void> {}
   async appendReceipt(_id: string, _receipt: Receipt): Promise<void> {}
 }
 
@@ -127,7 +132,12 @@ function createTransaction(businessTransactionId: string): BusinessTransaction {
       principalId: "svc-1",
       issuedAt: fixedDate,
     },
-    authorization: { authorizationId, authorityId, purpose: "test", issuedAt: fixedDate },
+    authorization: {
+      authorizationId,
+      authorityId,
+      purpose: "test",
+      issuedAt: fixedDate,
+    },
     intent: {
       intentId: "intent-1",
       authorizationId,
@@ -136,7 +146,11 @@ function createTransaction(businessTransactionId: string): BusinessTransaction {
       parameters: { amount: 100 },
       createdAt: fixedDate,
     },
-    policy: { name: "payment-approval", version: "1.0.0", schemaVersion: "1.0.0" },
+    policy: {
+      name: "payment-approval",
+      version: "1.0.0",
+      schemaVersion: "1.0.0",
+    },
     signals: { amount: 100 },
     status: BusinessTransactionStatus.RECEIVED,
     createdAt: fixedDate,

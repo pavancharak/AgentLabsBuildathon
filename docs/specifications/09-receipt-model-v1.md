@@ -1,38 +1,20 @@
 \# Receipt Model v1 (Locked)
 
-
-
 \## Status
-
-
 
 \*\*Version:\*\* 1.0
 
-
-
 \*\*Status:\*\* Locked
-
-
 
 \---
 
-
-
 \# Purpose
-
-
 
 A \*\*Receipt\*\* is a compact, cryptographically verifiable representation of an Execution Trust Record.
 
-
-
 The Receipt provides portable proof that Parmana processed a Business Transaction and produced an Execution Trust Record.
 
-
-
 Receipts are intended for:
-
-
 
 \* Sharing
 
@@ -42,23 +24,13 @@ Receipts are intended for:
 
 \* Independent verification
 
-
-
 The Receipt is \*\*not\*\* the Execution Trust Record.
-
-
 
 \---
 
-
-
 \# Scope
 
-
-
 This specification defines:
-
-
 
 \* Receipt purpose
 
@@ -72,11 +44,7 @@ This specification defines:
 
 \* Relationship to Verification
 
-
-
 This specification does \*\*not\*\* define:
-
-
 
 \* Verification
 
@@ -86,41 +54,23 @@ This specification does \*\*not\*\* define:
 
 \* Trust Chain
 
-
-
 \---
-
-
 
 \# Receipt Generation
 
-
-
 A Receipt is generated after an Execution reaches a terminal state.
 
-
-
 Terminal states:
-
-
 
 \* `COMPLETED`
 
 \* `FAILED`
 
-
-
 Exactly one Receipt is generated for each Execution.
-
-
 
 \---
 
-
-
 \# Receipt Flow
-
-
 
 ```text id="t6pyfv"
 
@@ -164,23 +114,13 @@ Receipt
 
 ```
 
-
-
 The Receipt is always derived from the Execution Trust Record.
-
-
 
 \---
 
-
-
 \# Receipt Object
 
-
-
 Canonical structure:
-
-
 
 ```json id="6ps2db"
 
@@ -224,19 +164,11 @@ Canonical structure:
 
 ```
 
-
-
 \---
-
-
 
 \# Required Fields
 
-
-
 Every Receipt SHALL contain:
-
-
 
 \* receiptId
 
@@ -260,19 +192,11 @@ Every Receipt SHALL contain:
 
 \* receiptVersion
 
-
-
 \---
-
-
 
 \# Receipt Guarantees
 
-
-
 A valid Receipt guarantees that:
-
-
 
 \* Parmana processed the identified Business Transaction.
 
@@ -284,19 +208,11 @@ A valid Receipt guarantees that:
 
 \* The Receipt can be independently verified using Parmana's public verification key.
 
-
-
 \---
-
-
 
 \# Receipt Does Not Guarantee
 
-
-
 A Receipt does \*\*not\*\* guarantee:
-
-
 
 \* That the business decision was correct.
 
@@ -306,27 +222,15 @@ A Receipt does \*\*not\*\* guarantee:
 
 \* That external systems behaved correctly.
 
-
-
 The Receipt guarantees only the integrity and authenticity of Parmana's recorded trust artifacts.
-
-
 
 \---
 
-
-
 \# Cryptographic Integrity
-
-
 
 Every Receipt is cryptographically protected.
 
-
-
 Generation flow:
-
-
 
 ```text id="rtm87t"
 
@@ -382,23 +286,13 @@ Receipt
 
 ```
 
-
-
 The signature enables independent verification without requiring access to Parmana.
-
-
 
 \---
 
-
-
 \# Independent Verification
 
-
-
 Any verifier possessing Parmana's public verification key can:
-
-
 
 \* Validate the Receipt signature.
 
@@ -406,27 +300,15 @@ Any verifier possessing Parmana's public verification key can:
 
 \* Confirm that the Receipt corresponds to the referenced Execution Trust Record.
 
-
-
 Independent verification does not require re-executing the Business Transaction.
-
-
 
 \---
 
-
-
 \# Relationship to the Execution Trust Record
-
-
 
 The Execution Trust Record is the authoritative source.
 
-
-
 The Receipt is a compact representation derived from it.
-
-
 
 ```text id="3jptb2"
 
@@ -446,23 +328,13 @@ Receipt
 
 ```
 
-
-
 The Receipt never replaces the Execution Trust Record.
-
-
 
 \---
 
-
-
 \# Relationship to Verification
 
-
-
 Verification validates:
-
-
 
 \* Receipt integrity.
 
@@ -470,27 +342,15 @@ Verification validates:
 
 \* Receipt linkage to the Execution Trust Record.
 
-
-
 Verification does not regenerate Receipts.
-
-
 
 \---
 
-
-
 \# Receipt Immutability
-
-
 
 Receipts are immutable.
 
-
-
 Once issued:
-
-
 
 \* Contents cannot be modified.
 
@@ -498,107 +358,55 @@ Once issued:
 
 \* Receipt cannot be replaced.
 
-
-
 If a new Execution occurs, a new Receipt is generated for that Execution.
 
-
-
 \---
-
-
 
 \# Canonical Principles
 
-
-
 \## Principle 1
-
-
 
 The Receipt is a portable trust artifact.
 
-
-
 \---
-
-
 
 \## Principle 2
 
-
-
 Every Receipt is derived from exactly one Execution Trust Record.
 
-
-
 \---
-
-
 
 \## Principle 3
 
-
-
 Every Execution has exactly one Receipt.
 
-
-
 \---
-
-
 
 \## Principle 4
 
-
-
 Receipts are cryptographically signed.
 
-
-
 \---
-
-
 
 \## Principle 5
 
-
-
 Receipts are independently verifiable.
 
-
-
 \---
-
-
 
 \## Principle 6
 
-
-
 Receipts are immutable.
 
-
-
 \---
-
-
 
 \## Principle 7
 
-
-
 Receipts never replace the Execution Trust Record.
-
-
 
 \---
 
-
-
 \# Canonical Model
-
-
 
 ```text id="h3srwo"
 
@@ -654,25 +462,12 @@ Independent Verification
 
 ```
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 The Receipt Model defines the portable, cryptographically verifiable artifact issued by Parmana after an Execution reaches a terminal state.
-
-
 
 A Receipt provides compact proof that Parmana processed a specific Business Transaction, produced an Execution Trust Record, and protected that record with cryptographic integrity.
 
-
-
 By separating the Receipt from the Execution Trust Record, Parmana enables secure sharing, long-term retention, and independent verification without exposing the complete internal trust record.
-
-
-

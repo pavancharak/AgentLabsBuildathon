@@ -4,15 +4,9 @@ import type {
   ExecutionTrustRecord,
 } from "@parmana/shared";
 
-import type {
-  Policy,
-  PolicyDecision,
-} from "@parmana/policy";
+import type { Policy, PolicyDecision } from "@parmana/policy";
 
-import type {
-  RuntimeContext,
-  RuntimeHook,
-} from "@parmana/runtime";
+import type { RuntimeContext, RuntimeHook } from "@parmana/runtime";
 
 /**
  * Demonstrates observing the complete
@@ -21,15 +15,9 @@ import type {
  * Runtime Hooks are observational only.
  * They must never modify Runtime state.
  */
-export class LoggingHook
-  implements RuntimeHook
-{
-  async beforePolicyLoad(
-    transaction: BusinessTransaction,
-  ): Promise<void> {
-    console.log(
-      `[Hook] Loading policy for "${transaction.intent.action}".`,
-    );
+export class LoggingHook implements RuntimeHook {
+  async beforePolicyLoad(transaction: BusinessTransaction): Promise<void> {
+    console.log(`[Hook] Loading policy for "${transaction.intent.action}".`);
   }
 
   async afterPolicyLoad(
@@ -45,9 +33,7 @@ export class LoggingHook
     _transaction: BusinessTransaction,
     _policy: Policy,
   ): Promise<void> {
-    console.log(
-      "[Hook] Evaluating policy.",
-    );
+    console.log("[Hook] Evaluating policy.");
   }
 
   async afterPolicyEvaluation(
@@ -55,35 +41,25 @@ export class LoggingHook
     _policy: Policy,
     decision: PolicyDecision,
   ): Promise<void> {
-    console.log(
-      `[Hook] Policy decision: ${decision.outcome}.`,
-    );
+    console.log(`[Hook] Policy decision: ${decision.outcome}.`);
   }
 
   async beforeDecision(
     _transaction: BusinessTransaction,
     _decision: PolicyDecision,
   ): Promise<void> {
-    console.log(
-      "[Hook] Building Decision artifact.",
-    );
+    console.log("[Hook] Building Decision artifact.");
   }
 
-  async afterDecision(
-    context: RuntimeContext,
-  ): Promise<void> {
-    console.log(
-      `[Hook] Decision created: ${context.decision.decisionId}.`,
-    );
+  async afterDecision(context: RuntimeContext): Promise<void> {
+    console.log(`[Hook] Decision created: ${context.decision.decisionId}.`);
   }
 
   async beforeAuthorization(
     _transaction: BusinessTransaction,
     _decision: PolicyDecision,
   ): Promise<void> {
-    console.log(
-      "[Hook] Signing execution authorization.",
-    );
+    console.log("[Hook] Signing execution authorization.");
   }
 
   async afterAuthorization(
@@ -96,57 +72,36 @@ export class LoggingHook
     // This lets us discover the exact runtime
     // shape of SignedExecutionAuthorization.
     //
-    console.log(
-      "[Hook] Authorization created:",
-    );
+    console.log("[Hook] Authorization created:");
 
-    console.dir(
-      authorization,
-      {
-        depth: null,
-      },
-    );
+    console.dir(authorization, {
+      depth: null,
+    });
   }
 
-  async beforeExecution(
-    _context: RuntimeContext,
-  ): Promise<void> {
-    console.log(
-      "[Hook] Executing runtime pipeline.",
-    );
+  async beforeExecution(_context: RuntimeContext): Promise<void> {
+    console.log("[Hook] Executing runtime pipeline.");
   }
 
-  async afterExecution(
-    _context: RuntimeContext,
-  ): Promise<void> {
-    console.log(
-      "[Hook] Runtime pipeline completed.",
-    );
+  async afterExecution(_context: RuntimeContext): Promise<void> {
+    console.log("[Hook] Runtime pipeline completed.");
   }
 
-  async beforeTrustRecord(
-    _context: RuntimeContext,
-  ): Promise<void> {
-    console.log(
-      "[Hook] Building Execution Trust Record.",
-    );
+  async beforeTrustRecord(_context: RuntimeContext): Promise<void> {
+    console.log("[Hook] Building Execution Trust Record.");
   }
 
   async afterTrustRecord(
     _context: RuntimeContext,
     trustRecord: ExecutionTrustRecord,
   ): Promise<void> {
-    console.log(
-      `[Hook] Trust Record created: ${trustRecord.trustRecordId}.`,
-    );
+    console.log(`[Hook] Trust Record created: ${trustRecord.trustRecordId}.`);
   }
 
   async onRuntimeError(
     _context: RuntimeContext | undefined,
     error: Error,
   ): Promise<void> {
-    console.error(
-      `[Hook] Runtime failed: ${error.message}`,
-    );
+    console.error(`[Hook] Runtime failed: ${error.message}`);
   }
 }

@@ -17,13 +17,9 @@ export class IntentStage implements RuntimeComponent {
    * @returns The same immutable execution transaction.
    * @throws RuntimeError if Intent is missing.
    */
-  public execute(
-    transaction: ExecutionTransaction
-  ): ExecutionTransaction {
+  public execute(transaction: ExecutionTransaction): ExecutionTransaction {
     if (!transaction.intent) {
-      throw new RuntimeError(
-        "ExecutionTransaction must contain an Intent."
-      );
+      throw new RuntimeError("ExecutionTransaction must contain an Intent.");
     }
 
     return transaction;

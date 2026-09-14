@@ -27,5 +27,3 @@ describe("ReplayPipeline", () => {
     expect(pipeline.buildPlan([]).executionIds).toEqual([]);
   });
 });
-
-

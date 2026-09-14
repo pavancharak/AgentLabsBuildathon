@@ -1,12 +1,6 @@
-import {
-  createPublicKey,
-  type KeyObject,
-} from "node:crypto";
+import { createPublicKey, type KeyObject } from "node:crypto";
 
-import {
-  existsSync,
-  readFileSync,
-} from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 import { join } from "node:path";
 
@@ -22,26 +16,16 @@ export function createGatewayPublicKey(): KeyObject {
   const config = loadConfig();
 
   if (!config.keys.keyDirectory) {
-    throw new Error(
-      "PARMANA_KEY_DIR is not configured.",
-    );
+    throw new Error("PARMANA_KEY_DIR is not configured.");
   }
 
-  const keyPath = join(
-    config.keys.keyDirectory,
-    "default.public.pem",
-  );
+  const keyPath = join(config.keys.keyDirectory, "default.public.pem");
 
   if (!existsSync(keyPath)) {
-    throw new Error(
-      `Gateway public key not found: ${keyPath}`,
-    );
+    throw new Error(`Gateway public key not found: ${keyPath}`);
   }
 
-  const pem = readFileSync(
-    keyPath,
-    "utf8",
-  );
+  const pem = readFileSync(keyPath, "utf8");
 
   return createPublicKey(pem);
 }

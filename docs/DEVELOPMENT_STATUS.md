@@ -1,18 +1,10 @@
 \# Parmana Development Status (Architecture Lock v1)
 
-
-
 \## Project Status
-
-
 
 The core \*\*Execution Trust Lifecycle (v1)\*\* is complete and considered architecturally locked.
 
-
-
 The following workflow is implemented and passing integration tests:
-
-
 
 ```
 
@@ -50,19 +42,11 @@ Replay
 
 ```
 
-
-
 \---
-
-
 
 \# Completed
 
-
-
 \## Runtime
-
-
 
 \* Business Transaction acceptance
 
@@ -76,11 +60,7 @@ Replay
 
 \* Replay service
 
-
-
 \## Cryptography
-
-
 
 \* Canonical serialization
 
@@ -92,15 +72,9 @@ Replay
 
 \* Receipt signature verification
 
-
-
 \## API
 
-
-
 Implemented endpoints:
-
-
 
 \* POST /execute
 
@@ -110,11 +84,7 @@ Implemented endpoints:
 
 \* POST /replay
 
-
-
 Read APIs:
-
-
 
 \* GET /trust-records/:businessTransactionId
 
@@ -124,25 +94,15 @@ Read APIs:
 
 \* GET /receipt/latest/:businessTransactionId
 
-
-
 \## Storage
-
-
 
 \* Memory repository
 
 \* Supabase repository
 
-
-
 \## Validation
 
-
-
 Request validation implemented for:
-
-
 
 \* Execute
 
@@ -150,15 +110,9 @@ Request validation implemented for:
 
 \* Receipt
 
-
-
 \## Tests
 
-
-
 Completed:
-
-
 
 \* Workflow integration
 
@@ -176,23 +130,13 @@ Completed:
 
 \* API validation tests
 
-
-
 \---
-
-
 
 \# Locked Architecture
 
-
-
 The following components are frozen for v1.
 
-
-
 \## Lifecycle
-
-
 
 ```
 
@@ -206,15 +150,9 @@ Execute
 
 ```
 
-
-
 \## Cryptographic Invariant
 
-
-
 Exactly one canonical Trust Record hashing implementation exists:
-
-
 
 ```
 
@@ -240,23 +178,13 @@ SHA-256
 
 ```
 
-
-
 No other component should compute Trust Record hashes independently.
-
-
 
 \## Replay
 
-
-
 Replay is an integrity operation.
 
-
-
 Replay:
-
-
 
 \* loads an existing Trust Record
 
@@ -266,23 +194,13 @@ Replay:
 
 \* returns verification status
 
-
-
 Replay never re-executes business logic.
-
-
 
 \## Trust Record Hash
 
-
-
 The Trust Record hash is computed only from immutable execution evidence.
 
-
-
 Included:
-
-
 
 \* trustRecordId
 
@@ -296,11 +214,7 @@ Included:
 
 \* createdAt
 
-
-
 Excluded:
-
-
 
 \* trustRecordHash
 
@@ -310,31 +224,17 @@ Excluded:
 
 \* updatedAt
 
-
-
 This invariant is locked for v1.
-
-
 
 \---
 
-
-
 \# Remaining Roadmap
-
-
 
 \## Phase 2 — Production Cryptography
 
-
-
 \### Persistent Key Management
 
-
-
 Implement:
-
-
 
 ```
 
@@ -342,25 +242,15 @@ packages/crypto/src/providers/key/
 
 ```
 
-
-
 including:
-
-
 
 \* FileKeyProvider
 
 \* KeyProvider abstraction
 
-
-
 \### Key Generation CLI
 
-
-
 Create:
-
-
 
 ```
 
@@ -368,11 +258,7 @@ packages/crypto/scripts/generate-keypair.ts
 
 ```
 
-
-
 Capabilities:
-
-
 
 \* generate Ed25519 keypair
 
@@ -380,31 +266,17 @@ Capabilities:
 
 \* export public.pem
 
-
-
 \### CryptoBootstrap
-
-
 
 Replace ephemeral keys with persistent keys.
 
-
-
 \---
-
-
 
 \## Phase 3
 
-
-
 Key Rotation
 
-
-
 Support:
-
-
 
 \* multiple signing keys
 
@@ -412,45 +284,25 @@ Support:
 
 \* receipt key identifiers
 
-
-
 \---
-
-
 
 \## Phase 4
 
-
-
 Multi-tenant Signing
 
-
-
 Support:
-
-
 
 \* tenant-specific key providers
 
 \* tenant isolation
 
-
-
 \---
-
-
 
 \## Phase 5
 
-
-
 Cloud Key Providers
 
-
-
 Implement providers for:
-
-
 
 \* AWS KMS
 
@@ -462,23 +314,13 @@ Implement providers for:
 
 \* HSM
 
-
-
 No changes should be required in Ed25519SignatureProvider.
-
-
 
 \---
 
-
-
 \# Repository Status
 
-
-
 Current state:
-
-
 
 \* Core lifecycle complete
 
@@ -488,9 +330,4 @@ Current state:
 
 \* Ready for production-grade key management
 
-
-
 Future work must extend the architecture without changing the v1 lifecycle or Trust Record hashing model.
-
-
-

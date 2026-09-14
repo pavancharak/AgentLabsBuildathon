@@ -1,12 +1,12 @@
 # Parmana — The Unavoidability Arc
 
-*The path from "verify it yourself" to "AI structurally cannot act alone."*
-*Strategy document. Snapshot: July 5, 2026.*
+_The path from "verify it yourself" to "AI structurally cannot act alone."_
+_Strategy document. Snapshot: July 5, 2026._
 
 > **The north star for this arc:**
-> *"It does not yet make Parmana unavoidable — that's the next arc, where AI systems
+> _"It does not yet make Parmana unavoidable — that's the next arc, where AI systems
 > stop holding execution credentials at all and the authorized path becomes the only
-> reachable one. We'll write about that as we build it, not before."*
+> reachable one. We'll write about that as we build it, not before."_
 
 ---
 
@@ -17,18 +17,19 @@ single-use authorization that receiving systems verify independently, byte-for-b
 
 What that does NOT yet do: it makes Parmana's authorization **verifiable**, not
 **unavoidable**. Today an AI still holds whatever execution credentials it was given;
-Parmana authorizes, but the AI *could* act without asking. This arc closes that gap.
+Parmana authorizes, but the AI _could_ act without asking. This arc closes that gap.
 
 ---
 
 ## The three moves, in dependency order
 
-### Move 1 — KMS / HSM key custody  (~2 weeks, safe to build now, standalone)
+### Move 1 — KMS / HSM key custody (~2 weeks, safe to build now, standalone)
 
 **What:** Parmana's signing key moves into a KMS/HSM and never exists in an application
-process. Signing becomes an operation Parmana *requests*, not a secret it *holds*.
+process. Signing becomes an operation Parmana _requests_, not a secret it _holds_.
 
 **Why first — three reasons:**
+
 1. It's the only one of the three genuinely safe to build well in isolation — no
    dependency on a partner's environment, known interface, clear correctness criteria.
 2. It's the prerequisite that makes "sole execution authority" coherent. The first
@@ -37,10 +38,11 @@ process. Signing becomes an operation Parmana *requests*, not a secret it *holds
    incident (the key was committed to public GitHub) proving it.
 3. It retroactively hardens every signature claim already made.
 
-**The claim it unlocks:** *"Parmana's signing key cannot be exfiltrated from the
-application process."*
+**The claim it unlocks:** _"Parmana's signing key cannot be exfiltrated from the
+application process."_
 
 **Known design questions (Phase 1 investigation resolves these):**
+
 - Interface inversion: today `ArtifactSigner.sign(artifact, privateKey)` requires the
   caller to HOLD the key; KMS inverts this (the provider signs, key never leaves). Likely
   a `SigningService` abstraction with `LocalKeySigner` (current behavior, byte-for-byte)
@@ -56,7 +58,7 @@ application process."*
 
 ---
 
-### Move 2 — Credential brokering, one system class  (~4–8 weeks, needs a design partner)
+### Move 2 — Credential brokering, one system class (~4–8 weeks, needs a design partner)
 
 **What:** the architectural leap. A verified envelope causes the GATEWAY to mint a
 short-lived, action-scoped credential (AWS STS first), use it against the target system,
@@ -75,12 +77,12 @@ question of whether it works in reality; the second is honest roadmap.
 format change → a dedicated versioned session, never a rider. (The v1 `version` field
 added in the gateway work is exactly what makes this clean.)
 
-**The claim it unlocks (scoped):** *"For [action class] on AWS, AI never possesses
-execution credentials."* Scoped to the integrated system class — never universal.
+**The claim it unlocks (scoped):** _"For [action class] on AWS, AI never possesses
+execution credentials."_ Scoped to the integrated system class — never universal.
 
 ---
 
-### Move 3 — Network enforcement + bypass detection  (per-deployment; needs a red team)
+### Move 3 — Network enforcement + bypass detection (per-deployment; needs a red team)
 
 **What:** making the authorized path the ONLY reachable one. Network-policy templates
 (firewall / security-group / K8s NetworkPolicy) so the target's ingress accepts traffic
@@ -91,8 +93,8 @@ raises an alert.
 **Why last:** it's a property of a customer's deployment, not of code alone, and it's
 proven by a partner's security team trying to break it, not by a unit test.
 
-**The claim it unlocks (permanently scoped):** *"Non-bypassable per integrated system
-under the reference deployment; bypass detected everywhere."*
+**The claim it unlocks (permanently scoped):** _"Non-bypassable per integrated system
+under the reference deployment; bypass detected everywhere."_
 
 ---
 
@@ -134,7 +136,7 @@ business track; KMS is the thing that's safe to build while those conversations 
   honest ceiling is always "per integrated system under the reference deployment."
 - **"Universal credential isolation"** — never. It is per-system-class, earned per
   integration.
-- **"The policy is correct"** — never. Parmana proves rules were *followed*, not *wise*.
+- **"The policy is correct"** — never. Parmana proves rules were _followed_, not _wise_.
 
 ---
 

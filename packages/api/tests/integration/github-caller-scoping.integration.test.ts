@@ -64,7 +64,9 @@ describe("GitHub caller-to-capability scoping (HTTP boundary, caller-auth enable
     server: MockGitHubServer;
     auditSink: InMemoryCallerAuditSink;
   }> {
-    const mockServer = new MockGitHubServer({ installationToken: INSTALLATION_TOKEN });
+    const mockServer = new MockGitHubServer({
+      installationToken: INSTALLATION_TOKEN,
+    });
     await mockServer.listen();
     server = mockServer;
 
@@ -233,7 +235,9 @@ describe("GitHub caller-to-capability scoping (HTTP boundary, caller-auth enable
 
     // The PR is untouched on GitHub's (mock) side, and no network call
     // was made at all -- not even the credential-mint exchange.
-    expect(mockServer.getPullRequest("acme", "widgets", 43)?.mergedAt).toBeNull();
+    expect(
+      mockServer.getPullRequest("acme", "widgets", 43)?.mergedAt,
+    ).toBeNull();
     expect(mockServer.mergeCalls).toBe(0);
     const gitHubCalls = fetchSpy.mock.calls.filter((call) =>
       String(call[0]).startsWith(mockServer.baseUrl),
@@ -241,7 +245,9 @@ describe("GitHub caller-to-capability scoping (HTTP boundary, caller-auth enable
     expect(gitHubCalls).toHaveLength(0);
     fetchSpy.mockRestore();
 
-    const denied = auditSink.events.find((event) => event.type === "caller.capability_denied");
+    const denied = auditSink.events.find(
+      (event) => event.type === "caller.capability_denied",
+    );
     expect(denied).toMatchObject({
       type: "caller.capability_denied",
       callerId: "fca-fetch-only-caller",
@@ -290,7 +296,9 @@ describe("GitHub caller-to-capability scoping (HTTP boundary, caller-auth enable
 
       expect(response.status).toBe(403);
       expect(response.body.code).toBe("CAPABILITY_NOT_ALLOWED");
-      expect(mockServer.getPullRequest("acme", "widgets", 44)?.mergedAt).toBeNull();
+      expect(
+        mockServer.getPullRequest("acme", "widgets", 44)?.mergedAt,
+      ).toBeNull();
       expect(mockServer.mergeCalls).toBe(0);
 
       const gitHubCalls = fetchSpy.mock.calls.filter((call) =>
@@ -326,7 +334,9 @@ describe("GitHub caller-to-capability scoping (HTTP boundary, caller-auth enable
       .send(transaction);
 
     expect(response.status).toBe(200);
-    expect(mockServer.getPullRequest("acme", "widgets", 45)?.mergedAt).not.toBeNull();
+    expect(
+      mockServer.getPullRequest("acme", "widgets", 45)?.mergedAt,
+    ).not.toBeNull();
     expect(mockServer.mergeCalls).toBe(1);
   });
 });

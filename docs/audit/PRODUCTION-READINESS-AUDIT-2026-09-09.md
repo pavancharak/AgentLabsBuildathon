@@ -13,6 +13,7 @@
 ## Claim Verification (5 Critical Claims)
 
 ### Claim 1: Credential Isolation
+
 **Statement:** AI agents never hold or directly exercise execution credentials; credentials exist transiently inside Parmana and are revoked immediately after use.
 
 **Status:** ✅ VERIFIED
@@ -24,6 +25,7 @@
 **Severity:** N/A (verified true)
 
 ### Claim 2: One-Time Use Enforcement
+
 **Statement:** Each credential can only be used once; replay attacks are prevented by nonce tracking and revocation.
 
 **Status:** ✅ VERIFIED
@@ -33,6 +35,7 @@
 **Severity:** N/A (verified true)
 
 ### Claim 3: Scope Drift Detection (boundSignals)
+
 **Statement:** Parmana detects scope drift by binding execution authorization to specific transaction facts (boundSignals); a transaction modified after authorization is rejected.
 
 **Status:** ✅ VERIFIED (originally 🟡 PARTIAL at audit time; the coverage gap found here was fixed same-day — see `docs/VERIFICATION-GAPS.md` G-33)
@@ -50,19 +53,21 @@
 **Severity:** N/A (fixed, verified) — see `docs/VERIFICATION-GAPS.md` G-33 for full evidence (test counts, exact policy diffs, full-suite regression results: 1560 passed, 0 failed).
 
 ### Claim 4: Cryptographic Proof Records
+
 **Statement:** All executions are signed with Ed25519; trust records are independently verifiable without trusting Parmana's runtime or database.
 
 **Status:** ✅ VERIFIED
 
 **Evidence:** Ed25519 default (`Ed25519SignatureProvider`), ML-DSA-65 opt-in (`PRIMARY_SIGNATURE_PROVIDER=dilithium3`, Node ≥24). Signed fields (`packages/crypto/src/VerificationCrypto.ts`, `canonicalRecord()`): `trustRecordId`, `businessTransactionId`, `transaction`, **`authorization`**, `overrides`, `executions`, `createdAt`.
 
-**Fields NOT signed but in the record:** `verifications` and `receipts` (deliberately — they're produced *from* the sealed record, signing them would be circular), and the `trustRecordHash`/`signature`/`signatures` fields themselves (self-referential, obviously excluded).
+**Fields NOT signed but in the record:** `verifications` and `receipts` (deliberately — they're produced _from_ the sealed record, signing them would be circular), and the `trustRecordHash`/`signature`/`signatures` fields themselves (self-referential, obviously excluded).
 
 **External verifiability:** `python/parmana/api/verification_api.py`, `python/examples/03_verify.py` — a real, separate-language verification path exists, not just an internal claim.
 
 **Severity:** N/A (verified true)
 
 ### Claim 5: No Unauthorized Execution
+
 **Statement:** No agent can execute a transaction that violates its granted authority, capability, or policy, regardless of how it attacks the system.
 
 **Status:** ✅ VERIFIED, with stated assumptions
@@ -80,6 +85,7 @@
 ## Security Findings (Known Issues)
 
 ### Finding 1: `ExecutionTrustRecord.authorization` (NF-003)
+
 **Status:** ✅ FIXED. This is a real finding ID — commit `6303801` (2026-09-07) is literally titled `fix: persist signed execution authorization in trust records (NF-003)`. `authorization?: SignedExecutionAuthorization` exists on the type (`packages/shared/src/domain/execution-trust-record.ts:89`), is populated by `BusinessTrustRecordBuilder.build()`, and is included in the signature (confirmed under Claim 4).
 
 **Correction to the source prompt:** this isn't tracked under a gap numbered "NF-003" in `VERIFICATION-GAPS.md`'s table — the identifier lives in `CODEBASE-REFERENCE.md` and the commit message; the prompt's date/status were otherwise accurate.
@@ -87,6 +93,7 @@
 **Severity:** N/A (fixed, verified)
 
 ### Finding 2: Razorpay Connector Deleted But Comments Remain
+
 **Status:** ✅ Confirmed accurate, low severity. Grep for `Razorpay` across live `.ts` source: 7 files, all comments — either an explicit "lesson learned from the Razorpay connector's own history" (`packages/connector-hubspot/src/HubSpotTypes.ts:53-58`, `packages/api/src/bootstrap/createHubSpotCredentialProvider.ts:11-13,57-59`) or test fixtures. `createConnectorRegistry.ts` registers exactly three connectors: `test-fixture`, `hubspot`, `github` — no Razorpay.
 
 **Correction to the source prompt:** these comments aren't stale cruft, they're deliberate incident-history context citing `docs/CLAIMS.md §3.4` — and the prompt mislabels this "Gap 3"; the actual numbered Gap 3 in `VERIFICATION-GAPS.md` is an unrelated `DuplicateBusinessTransactionError` HTTP-status finding.
@@ -94,13 +101,15 @@
 **Severity:** MEDIUM as the source prompt states is generous — LOW is more accurate; the comments are intentional, not debris.
 
 ### Finding 3: Missing Capability Binding Guardrail
+
 **Status:** ✅ ALREADY FIXED — the source prompt's "not yet fixed" is stale. `assertConnectorCapabilitiesBound()` (`packages/api/src/bootstrap/assertConnectorCapabilitiesBound.ts`) exists, is fail-closed (throws at startup, not a warning, for any capability with no canonical binding and no documented exemption), and is called from `createConnectorRegistry.ts:160` before the registry is ever returned. This closed `docs/VERIFICATION-GAPS.md` G-30 on 2026-08-25/26.
 
-**Residual, honestly documented in G-30 itself:** the *test* asserting this guardrail's coverage still uses a hand-maintained literal set, not a live read of the registry — so the guardrail fires correctly today, but a future connector could theoretically still slip past the *test's* own detection if someone also forgets to update its expected-set literal (the guardrail itself would still catch a truly unbound capability at runtime).
+**Residual, honestly documented in G-30 itself:** the _test_ asserting this guardrail's coverage still uses a hand-maintained literal set, not a live read of the registry — so the guardrail fires correctly today, but a future connector could theoretically still slip past the _test's_ own detection if someone also forgets to update its expected-set literal (the guardrail itself would still catch a truly unbound capability at runtime).
 
 **Severity:** the runtime protection is real (not MEDIUM/missing); LOW residual on the test's own maintainability.
 
 ### Finding 4: PostgREST Bypass to Raw Postgres
+
 **Status:** ✅ Real, but **broader than documented**. `docs/CLAIMS.md` line 1581 frames this as one narrow workaround scoped to `SupabaseCallerAuditSink` ("a temporary workaround for a PostgREST schema-cache issue... flagged as revertible"). Direct grep shows **8 of 9** `Supabase*` storage classes now use raw `pg.Pool`: `SupabaseExecutionTrustRecordRepository`, `SupabaseBusinessTransactionRepository`, `SupabaseNonceStore`, `SupabasePendingPolicyChangeRepository`, `SupabasePolicyChangeApprovalRecordRepository`, `SupabasePolicyChangeStepUpNonceStore`, `SupabaseApprovalNonceStore`, `SupabaseRefusalRecordRepository`. `SupabaseExecutionTrustRecordRepository.ts`'s own comment (lines 19-22) states the real intent plainly: **"part of removing PostgREST from every Supabase-backed table's failure modes, not just the audit sinks that broke first."** This is a deliberate, repo-wide architecture migration away from PostgREST, not a single revertible patch — `CLAIMS.md`'s framing understates current scope.
 
 **Impact:** loss of PostgREST's RLS/auth layer for these tables (mitigated in-app, not at the DB layer), and it forecloses any future serverless-Postgres/PostgREST-only deployment path unless reverted.
@@ -112,6 +121,7 @@
 ## Structural Audit
 
 ### Dead Code
+
 **Status — the source prompt is stale on 2 of 4 items; the real new ones were fixed same-day (`docs/VERIFICATION-GAPS.md` G-34):**
 
 - `@parmana/receipt` — the prompt asks to check it; **it no longer exists at all**, deleted 2026-09-08 (commit `e6c73f0`), confirmed by directory listing.
@@ -125,6 +135,7 @@
 **Severity:** was MEDIUM/LOW-MEDIUM; now N/A (fixed). Verified: full workspace `npx tsc -b` clean, full repo suite 1559 passed / 38 skipped / 0 failed.
 
 ### Cryptographic Naming
+
 **Status:** FIXED, as an alias rather than a rename (`docs/VERIFICATION-GAPS.md` G-35). 8 occurrences of `Dilithium3`/`dilithium3` remain in `packages/*/src`, all in **internal config-value/class-name identifiers** (`PRIMARY_SIGNATURE_PROVIDER=dilithium3`, `Dilithium3SignatureProvider`), not user-facing claims — `docs/CLAIMS.md` and `docs/site/cryptography/overview.mdx` already consistently say "ML-DSA-65 (FIPS 204, historically called 'dilithium3' in this codebase)" everywhere checked.
 
 **Renamed?** NO, still correctly not renamed — the original conclusion stands: renaming the internal identifier would break `PRIMARY_SIGNATURE_PROVIDER=dilithium3` for existing deployments for no externally-visible benefit. **Instead:** `parseSignatureAlgorithm` (`packages/shared/src/config/ConfigValidation.ts`) now accepts `ml-dsa-65` as an additive input alias resolving to the unchanged canonical `dilithium3` identifier — a new deployment can use the accurate NIST/FIPS 204 name; an existing `dilithium3`-configured one is completely unaffected. Both `generate-keypair.ts` CLIs accept the same alias.
@@ -162,11 +173,11 @@
 
 For traceability, every place this audit's findings diverge from the source prompt's own assumptions:
 
-| Prompt claim | Actual state | Where verified |
-|---|---|---|
-| "Missing Capability Binding Guardrail... Not yet fixed" | Already fixed, fail-closed, wired into startup | `assertConnectorCapabilitiesBound.ts`, `createConnectorRegistry.ts:160`, G-30 |
-| Razorpay finding labeled "Gap 3" | Gap 3 in `VERIFICATION-GAPS.md` is an unrelated `DuplicateBusinessTransactionError` finding | `docs/VERIFICATION-GAPS.md:57` |
-| PostgREST bypass "documented as workaround" (implying narrow/contained) | Real, but repo-wide across 8 of 9 Supabase storage classes, per the code's own comments | `SupabaseExecutionTrustRecordRepository.ts:19-22` and 7 sibling classes |
-| `@parmana/receipt`, `packages/runtime/src/policy/+ports/` dead-code check | Both already deleted 2026-09-08 | commit `e6c73f0` |
-| (not asked) `SupabaseClientFactory` current usage | Dead — zero real call sites remain | grep across `packages/*/src` |
-| (not asked) stray debris files | `packages/audit.txt`, a tracked UTF-16 binary dump, still exists | `git ls-files packages/audit.txt` |
+| Prompt claim                                                              | Actual state                                                                                | Where verified                                                                |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| "Missing Capability Binding Guardrail... Not yet fixed"                   | Already fixed, fail-closed, wired into startup                                              | `assertConnectorCapabilitiesBound.ts`, `createConnectorRegistry.ts:160`, G-30 |
+| Razorpay finding labeled "Gap 3"                                          | Gap 3 in `VERIFICATION-GAPS.md` is an unrelated `DuplicateBusinessTransactionError` finding | `docs/VERIFICATION-GAPS.md:57`                                                |
+| PostgREST bypass "documented as workaround" (implying narrow/contained)   | Real, but repo-wide across 8 of 9 Supabase storage classes, per the code's own comments     | `SupabaseExecutionTrustRecordRepository.ts:19-22` and 7 sibling classes       |
+| `@parmana/receipt`, `packages/runtime/src/policy/+ports/` dead-code check | Both already deleted 2026-09-08                                                             | commit `e6c73f0`                                                              |
+| (not asked) `SupabaseClientFactory` current usage                         | Dead — zero real call sites remain                                                          | grep across `packages/*/src`                                                  |
+| (not asked) stray debris files                                            | `packages/audit.txt`, a tracked UTF-16 binary dump, still exists                            | `git ls-files packages/audit.txt`                                             |

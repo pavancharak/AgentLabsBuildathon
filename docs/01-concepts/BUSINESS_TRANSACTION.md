@@ -1,42 +1,22 @@
 \# Business Transaction
 
-
-
 \## Purpose
-
-
 
 This document defines the concept of a \*\*Business Transaction\*\* within Parmana.
 
-
-
 A Business Transaction represents the organizational objective that requires authorization before execution. It is the highest-level business concept in the Parmana domain model and serves as the foundation for all execution authorization.
-
-
 
 This document is normative.
 
-
-
 \---
-
-
 
 \# Definition
 
-
-
 A \*\*Business Transaction\*\* is a unit of business work that an organization intends to perform.
-
-
 
 A Business Transaction represents \*\*what\*\* the organization wants to accomplish.
 
-
-
 It does \*\*not\*\* describe:
-
-
 
 \* how the work is implemented,
 
@@ -46,23 +26,13 @@ It does \*\*not\*\* describe:
 
 \* or whether it has been authorized.
 
-
-
 Those concerns are handled by other Parmana concepts.
-
-
 
 \---
 
-
-
 \# Characteristics
 
-
-
 A Business Transaction has the following characteristics:
-
-
 
 \* Represents a business objective.
 
@@ -76,19 +46,11 @@ A Business Transaction has the following characteristics:
 
 \* Produces an auditable execution record after authorization.
 
-
-
 \---
-
-
 
 \# Examples
 
-
-
 Examples of Business Transactions include:
-
-
 
 \* Approve an invoice.
 
@@ -110,39 +72,21 @@ Examples of Business Transactions include:
 
 \* Release a software deployment.
 
-
-
 Each example represents a business objective rather than a technical operation.
-
-
 
 \---
 
-
-
 \# Business Transaction vs Technical Operation
-
-
 
 A Business Transaction should not be confused with an API call, database update, or workflow step.
 
-
-
 For example:
-
-
 
 Business Transaction:
 
-
-
 > Approve supplier payment.
 
-
-
 Possible technical operations:
-
-
 
 \* Validate budget.
 
@@ -158,59 +102,31 @@ Possible technical operations:
 
 \* Record audit event.
 
-
-
 Parmana authorizes the \*\*Business Transaction\*\*.
-
-
 
 The underlying implementation remains the responsibility of enterprise systems.
 
-
-
 \---
-
-
 
 \# Relationship to AI
 
-
-
 An AI system may identify, recommend, or propose a Business Transaction.
-
-
 
 For example:
 
-
-
 > "Approve Invoice #78431."
-
-
 
 The AI proposes the transaction.
 
-
-
 It does not authorize it.
-
-
 
 Authorization remains an organizational responsibility.
 
-
-
 \---
-
-
 
 \# Relationship to Execution Request
 
-
-
 A Business Transaction is transformed into an \*\*Execution Request\*\* before authorization.
-
-
 
 ```text
 
@@ -224,27 +140,15 @@ Execution Request
 
 ```
 
-
-
 The Execution Request contains the structured information required for Authority Verification.
-
-
 
 \---
 
-
-
 \# Relationship to Organizational Policy
-
-
 
 Every Business Transaction is governed by one or more organizational policies.
 
-
-
 Policies determine:
-
-
 
 \* whether execution is allowed,
 
@@ -256,27 +160,15 @@ Policies determine:
 
 \* authorization conditions.
 
-
-
 Business Transactions themselves do not contain policy logic.
-
-
 
 \---
 
-
-
 \# Relationship to Human Authority
-
-
 
 Business Transactions are executed under organizational authority.
 
-
-
 Organizations define:
-
-
 
 \* who may request them,
 
@@ -284,27 +176,15 @@ Organizations define:
 
 \* under which circumstances they may execute.
 
-
-
 Human Authority remains the source of execution authority.
-
-
 
 \---
 
-
-
 \# Relationship to Evidence
-
-
 
 A Business Transaction does not contain evidence.
 
-
-
 Evidence is collected during Authority Verification and may include:
-
-
 
 \* Enterprise Facts,
 
@@ -316,23 +196,13 @@ Evidence is collected during Authority Verification and may include:
 
 \* Policy evaluation results.
 
-
-
 Evidence supports the authorization decision—not the Business Transaction itself.
-
-
 
 \---
 
-
-
 \# Lifecycle
 
-
-
 The lifecycle of a Business Transaction is:
-
-
 
 ```text
 
@@ -382,23 +252,13 @@ Execution Receipt
 
 ```
 
-
-
 The Business Transaction is the starting point of the authorization lifecycle.
-
-
 
 \---
 
-
-
 \# Design Principles
 
-
-
 Business Transactions follow these principles:
-
-
 
 \* Business-first rather than system-first.
 
@@ -416,19 +276,11 @@ Business Transactions follow these principles:
 
 \* Fully auditable after execution.
 
-
-
 \---
-
-
 
 \# What a Business Transaction Is Not
 
-
-
 A Business Transaction is \*\*not\*\*:
-
-
 
 \* an API request,
 
@@ -448,23 +300,13 @@ A Business Transaction is \*\*not\*\*:
 
 \* an implementation artifact.
 
-
-
 These concepts are defined separately within Parmana.
-
-
 
 \---
 
-
-
 \# Guarantees
 
-
-
 Within Parmana:
-
-
 
 \* Every Execution Request represents exactly one Business Transaction.
 
@@ -474,29 +316,14 @@ Within Parmana:
 
 \* Every Execution Receipt references one authorized Business Transaction.
 
-
-
 These guarantees ensure traceability throughout the execution lifecycle.
-
-
 
 \---
 
-
-
 \# Summary
-
-
 
 The Business Transaction is the foundational business concept in Parmana.
 
-
-
 It represents the organizational objective that requires authorization before execution.
 
-
-
 All subsequent concepts—including Execution Requests, Authority Verification, Authorization Decisions, Execution Trust Records, and Execution Receipts—exist to evaluate, authorize, record, and verify the execution of a Business Transaction.
-
-
-

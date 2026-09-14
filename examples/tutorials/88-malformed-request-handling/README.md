@@ -6,9 +6,9 @@ Prove that malformed JSON and oversized request bodies return specific, diagnosa
 
 ## What You'll Learn
 
-* Malformed JSON (a truncated body) returns `400` with `"Malformed JSON body."` — a caller sending a typo'd request can tell it was their mistake, not this server's
-* A body over `express.json()`'s default 100KB limit returns `413` with `"Payload too large."` — the same clarity the webhook route already had for its own oversized-body case, now applied to the general JSON body parser too
-* A well-formed, reasonably-sized request is completely unaffected — this is purely a response-clarity fix for the two failure shapes, not a new restriction on legitimate traffic
+- Malformed JSON (a truncated body) returns `400` with `"Malformed JSON body."` — a caller sending a typo'd request can tell it was their mistake, not this server's
+- A body over `express.json()`'s default 100KB limit returns `413` with `"Payload too large."` — the same clarity the webhook route already had for its own oversized-body case, now applied to the general JSON body parser too
+- A well-formed, reasonably-sized request is completely unaffected — this is purely a response-clarity fix for the two failure shapes, not a new restriction on legitimate traffic
 
 ## Running the Tutorial
 

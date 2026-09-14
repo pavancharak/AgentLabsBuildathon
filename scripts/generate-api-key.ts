@@ -91,9 +91,7 @@ export function generateApiKey({
 
   const rawKey = randomBytes(32).toString("base64url");
 
-  const keyHash = createHash("sha256")
-    .update(rawKey, "utf8")
-    .digest("hex");
+  const keyHash = createHash("sha256").update(rawKey, "utf8").digest("hex");
 
   if (!API_KEY_HASH_PATTERN.test(keyHash)) {
     throw new Error("Generated key hash has an invalid format.");
@@ -150,9 +148,7 @@ export function parseAllowedPrincipalIds(
     .filter(Boolean);
 
   if (values.length === 0) {
-    throw new Error(
-      "--allowed-principal-ids contained no non-empty values.",
-    );
+    throw new Error("--allowed-principal-ids contained no non-empty values.");
   }
 
   return values;
@@ -178,9 +174,7 @@ export function parseAllowedCapabilities(
     .filter(Boolean);
 
   if (values.length === 0) {
-    throw new Error(
-      "--allowed-capabilities contained no non-empty values.",
-    );
+    throw new Error("--allowed-capabilities contained no non-empty values.");
   }
 
   return values;
@@ -206,9 +200,7 @@ export function parseCredentialHolderType(
 
   const trimmed = value.trim();
 
-  if (
-    !Object.values(AuthorityType).includes(trimmed as AuthorityType)
-  ) {
+  if (!Object.values(AuthorityType).includes(trimmed as AuthorityType)) {
     throw new Error(
       `--credential-holder-type must be one of ${Object.values(AuthorityType).join(", ")}.`,
     );
@@ -257,9 +249,7 @@ export function appendApiKeyEntry(
 
   if (existingIndex !== -1) {
     if (!options.replace) {
-      throw new Error(
-        `Caller ID "${entry.callerId}" already has an entry`,
-      );
+      throw new Error(`Caller ID "${entry.callerId}" already has an entry`);
     }
 
     entries[existingIndex] = entry;
@@ -352,7 +342,9 @@ function main(args = process.argv.slice(2)): void {
   console.log();
 
   if (stepUpPrivateKey !== undefined) {
-    console.log("Step-up authorization key generated (separate from the bearer key above)");
+    console.log(
+      "Step-up authorization key generated (separate from the bearer key above)",
+    );
     console.log("--------------------------------");
     console.log(stepUpPrivateKey);
     console.log(

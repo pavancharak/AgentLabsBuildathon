@@ -33,16 +33,16 @@ still technically "works."
 
 ## Part 1 — What you need, and why
 
-| # | You need | Why |
-|---|---|---|
-| 1 | A reachable Parmana deployment (a base URL for `POST /execute`) | There's nothing to connect to without one. Could be a self-hosted `packages/api` instance or an existing live deployment. |
-| 2 | A capability name your agent will invoke (e.g. `paytm:refund`) | Parmana authorizes *capabilities*, not free-form actions. The capability string is what gets bound to a policy and to a caller's permissions — pick it before writing any code. |
-| 3 | A deployed policy bound to that capability (e.g. `customer-refund@1.0.0`) | The policy is what actually decides APPROVE/REJECT. If it doesn't exist on the target deployment yet, your first call fails with `404` (`PolicyNotFoundError`) — see Troubleshooting. |
-| 4 | The policy's exact `signalsSchema` and `boundSignals` | You must send every signal the policy's rules reference, and any `boundSignals` entry must equal the corresponding `intent.parameters` value exactly, or the request is rejected before the policy engine ever runs. Read the policy's `.json` file directly — don't guess field names. |
-| 5 | An API key, scoped to exactly that capability | This is your agent's identity. See Step 3 below for how to mint one. |
-| 6 | A source of trusted business signals that is *not* the conversation | The signals a policy evaluates (e.g. `managerApproved`, `fraudCheckPassed`) must come from an independent business system. An LLM inferring `managerApproved = true` because the customer said so is exactly the failure mode this whole architecture exists to prevent. |
-| 7 | UUID generation for `businessTransactionId` / `authorityId` / `authorizationId` / `intentId` | `businessTransactionId` is validated against a UUID-shaped regex (versions 1–5, `packages/api/src/routes/execute.ts`); a slug or short string is rejected with `400` before anything else runs. |
-| 8 | (Only if you need real downstream execution) confirmation that a connector is registered for your capability on this specific deployment | An `APPROVED` decision with no registered connector fails at dispatch — see Step 8 below. This is a separate question from whether your agent-to-Parmana integration is correct. |
+| #   | You need                                                                                                                                 | Why                                                                                                                                                                                                                                                                                     |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | A reachable Parmana deployment (a base URL for `POST /execute`)                                                                          | There's nothing to connect to without one. Could be a self-hosted `packages/api` instance or an existing live deployment.                                                                                                                                                               |
+| 2   | A capability name your agent will invoke (e.g. `paytm:refund`)                                                                           | Parmana authorizes _capabilities_, not free-form actions. The capability string is what gets bound to a policy and to a caller's permissions — pick it before writing any code.                                                                                                         |
+| 3   | A deployed policy bound to that capability (e.g. `customer-refund@1.0.0`)                                                                | The policy is what actually decides APPROVE/REJECT. If it doesn't exist on the target deployment yet, your first call fails with `404` (`PolicyNotFoundError`) — see Troubleshooting.                                                                                                   |
+| 4   | The policy's exact `signalsSchema` and `boundSignals`                                                                                    | You must send every signal the policy's rules reference, and any `boundSignals` entry must equal the corresponding `intent.parameters` value exactly, or the request is rejected before the policy engine ever runs. Read the policy's `.json` file directly — don't guess field names. |
+| 5   | An API key, scoped to exactly that capability                                                                                            | This is your agent's identity. See Step 3 below for how to mint one.                                                                                                                                                                                                                    |
+| 6   | A source of trusted business signals that is _not_ the conversation                                                                      | The signals a policy evaluates (e.g. `managerApproved`, `fraudCheckPassed`) must come from an independent business system. An LLM inferring `managerApproved = true` because the customer said so is exactly the failure mode this whole architecture exists to prevent.                |
+| 7   | UUID generation for `businessTransactionId` / `authorityId` / `authorizationId` / `intentId`                                             | `businessTransactionId` is validated against a UUID-shaped regex (versions 1–5, `packages/api/src/routes/execute.ts`); a slug or short string is rejected with `400` before anything else runs.                                                                                         |
+| 8   | (Only if you need real downstream execution) confirmation that a connector is registered for your capability on this specific deployment | An `APPROVED` decision with no registered connector fails at dispatch — see Step 8 below. This is a separate question from whether your agent-to-Parmana integration is correct.                                                                                                        |
 
 ## Part 2 — Step by step
 
@@ -95,7 +95,7 @@ value (a documented, real mistake made while building the live demo deployment).
 **Why scope `--allowed-capabilities` narrowly:** never grant `"*"` to a single-purpose agent. Least
 privilege here is not a formality — `unrestrictedCapabilities` in `/callers/me`'s response is
 literally derived as `allowedCapabilities.includes("*")` (`packages/api/src/routes/callers-me.ts`), so
-a wildcard caller can invoke *any* capability on the deployment, not just the one your agent needs.
+a wildcard caller can invoke _any_ capability on the deployment, not just the one your agent needs.
 
 ### Step 4: Verify the key works before writing any agent code
 
@@ -153,11 +153,24 @@ accepts version nibbles 1–5, not a v4-only parser):
     "authorizationId": "<uuid>",
     "action": "paytm:refund",
     "target": "<orderId>",
-    "parameters": { "orderId": "<orderId>", "transactionId": "<txnId>", "amount": 500 },
+    "parameters": {
+      "orderId": "<orderId>",
+      "transactionId": "<txnId>",
+      "amount": 500
+    },
     "createdAt": "<iso8601>"
   },
-  "policy": { "name": "customer-refund", "version": "1.0.0", "schemaVersion": "1.0.0" },
-  "signals": { "refundEligible": true, "managerApproved": true, "fraudCheckPassed": true, "refundAmount": 500 },
+  "policy": {
+    "name": "customer-refund",
+    "version": "1.0.0",
+    "schemaVersion": "1.0.0"
+  },
+  "signals": {
+    "refundEligible": true,
+    "managerApproved": true,
+    "fraudCheckPassed": true,
+    "refundAmount": 500
+  },
   "status": "RECEIVED"
 }
 ```
@@ -166,7 +179,7 @@ Field-by-field notes that matter:
 
 - **`intent.action` must equal your caller's exact `allowedCapabilities` entry.** Not a prefix, not
   a related string.
-- **`policy.name`/`policy.version` must match a real, deployed policy exactly.** It is *not* inferred
+- **`policy.name`/`policy.version` must match a real, deployed policy exactly.** It is _not_ inferred
   from `intent.action` — you name it explicitly, and a caller could otherwise pair a real capability
   with an unrelated policy if `CapabilityPolicyBinder` didn't independently confirm this pairing.
 - **Every `boundSignals` entry must equal its bound `intent.parameters` path.** Here,
@@ -190,7 +203,7 @@ this example alone.
 
 ### Step 8 (only if you need real downstream execution): confirm a connector is registered
 
-`APPROVED` from Parmana means *authorization* succeeded. It does not by itself mean a downstream
+`APPROVED` from Parmana means _authorization_ succeeded. It does not by itself mean a downstream
 system (Paytm, HubSpot, GitHub, whatever your capability's connector talks to) actually executed
 anything. Before claiming end-to-end execution:
 
@@ -220,36 +233,36 @@ stakeholder.
 
 Every row below is cited to the exact source that produces it — this is not a paraphrase.
 
-| HTTP status | `code` | Where it comes from | What it actually means | What to do |
-|---|---|---|---|---|
-| `200` | — | `execute.ts`, decision outcome `APPROVE` | Parmana approved the transaction; a signed decision was produced. Execution dispatch (if any) happens after this. | Report the authorization. Do not claim downstream execution unless separately confirmed (Step 8). |
-| `400` | — | `execute.ts` (`businessTransactionId` not a valid UUID) | Structural rejection before any auth/policy logic runs. | Fix the UUID; this is a bug in your request construction, not a policy decision. |
-| `400` | — | `error-handler.ts` (`BusinessTransactionValidationError` / `PolicyValidationError` / `SignalValidationError`) | The transaction shape, or the policy/signal shape, failed structural validation. | Read `error.message` — it names the specific field. |
-| `400` | — | `error-handler.ts` (`entity.parse.failed`, from Express body parsing) | Malformed JSON body. | Fix request serialization; this happens before any Parmana logic runs at all. |
-| `403` | (none) | `execute.ts` — `authority.principalId` not permitted | Caller authenticated, but tried to assert a `principalId` it isn't allowed to use. | Set `principalId` to your own `callerId`, or request a broader `allowedPrincipalIds` grant. |
-| `403` | `CAPABILITY_NOT_ALLOWED` | `execute.ts` — `intent.action` not in caller's `allowedCapabilities` | **The single most common integration bug.** Your capability string doesn't exactly match what your API key is scoped to. | `GET /callers/me` and compare its exact `allowedCapabilities` strings against your `intent.action` string, character for character. |
-| `403` | `POLICY_DENIED` | `ExecutionGate.enforce` (`packages/runtime/src/ExecutionGate.ts`) — **uniform for every policy rejection, regardless of which rule caused it** | The policy evaluated your signals and rejected the transaction. `error.message` is `"Execution rejected: <the matched rule's reason>"` — read it, it names the actual cause (excessive amount, failed fraud check, not manager-approved, or the policy's default fallback). | This is a real, correct decision, not a bug. Do not retry with altered parameters; do not treat it as a client error to route around. |
-| `404` | — | `error-handler.ts` (`PolicyNotFoundError`) | `policy.name`/`policy.version` in your request doesn't match any policy deployed on this instance. | Check spelling/version exactly, and confirm the policy is actually deployed on *this* deployment (policies are baked into the build per deployment). |
-| `409` | — | `error-handler.ts` (`DuplicateBusinessTransactionError`) | You reused a `businessTransactionId` that was already accepted. | Generate a fresh UUID per attempt. If retrying a specific logical operation, that's a separate idempotency concern your integration must design for explicitly — Parmana's own uniqueness check is not an idempotency mechanism you should rely on for that. |
-| `413` | — | `error-handler.ts` (Express body-parser, oversized body) | Request body too large. | Trim the payload; this is a transport-level limit, unrelated to policy. |
-| `500` | — | `error-handler.ts`'s generic fallback — **catches every error that isn't one of the typed ones above**, including a plain `Error` thrown by `GatewayConnectorRegistry.resolveCapability` (`"No connector registered for capability '<name>'."`) | Ambiguous by design of the error handler — could be a genuine bug, **or** (very commonly) an `APPROVED` decision whose capability has no connector registered on this deployment. | Check server logs for the exact error message. If it says "No connector registered," this is Step 8's issue, not a bug in your agent. Anything else genuinely is unexpected and worth reporting upstream. |
-| (no HTTP response at all) | — | network/timeout | The request may or may not have reached Parmana at all. | Treat as an unresolved, client-side state — never assume either APPROVED or REJECTED from a timeout. |
+| HTTP status               | `code`                   | Where it comes from                                                                                                                                                                                                                             | What it actually means                                                                                                                                                                                                                                                      | What to do                                                                                                                                                                                                                                                   |
+| ------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `200`                     | —                        | `execute.ts`, decision outcome `APPROVE`                                                                                                                                                                                                        | Parmana approved the transaction; a signed decision was produced. Execution dispatch (if any) happens after this.                                                                                                                                                           | Report the authorization. Do not claim downstream execution unless separately confirmed (Step 8).                                                                                                                                                            |
+| `400`                     | —                        | `execute.ts` (`businessTransactionId` not a valid UUID)                                                                                                                                                                                         | Structural rejection before any auth/policy logic runs.                                                                                                                                                                                                                     | Fix the UUID; this is a bug in your request construction, not a policy decision.                                                                                                                                                                             |
+| `400`                     | —                        | `error-handler.ts` (`BusinessTransactionValidationError` / `PolicyValidationError` / `SignalValidationError`)                                                                                                                                   | The transaction shape, or the policy/signal shape, failed structural validation.                                                                                                                                                                                            | Read `error.message` — it names the specific field.                                                                                                                                                                                                          |
+| `400`                     | —                        | `error-handler.ts` (`entity.parse.failed`, from Express body parsing)                                                                                                                                                                           | Malformed JSON body.                                                                                                                                                                                                                                                        | Fix request serialization; this happens before any Parmana logic runs at all.                                                                                                                                                                                |
+| `403`                     | (none)                   | `execute.ts` — `authority.principalId` not permitted                                                                                                                                                                                            | Caller authenticated, but tried to assert a `principalId` it isn't allowed to use.                                                                                                                                                                                          | Set `principalId` to your own `callerId`, or request a broader `allowedPrincipalIds` grant.                                                                                                                                                                  |
+| `403`                     | `CAPABILITY_NOT_ALLOWED` | `execute.ts` — `intent.action` not in caller's `allowedCapabilities`                                                                                                                                                                            | **The single most common integration bug.** Your capability string doesn't exactly match what your API key is scoped to.                                                                                                                                                    | `GET /callers/me` and compare its exact `allowedCapabilities` strings against your `intent.action` string, character for character.                                                                                                                          |
+| `403`                     | `POLICY_DENIED`          | `ExecutionGate.enforce` (`packages/runtime/src/ExecutionGate.ts`) — **uniform for every policy rejection, regardless of which rule caused it**                                                                                                  | The policy evaluated your signals and rejected the transaction. `error.message` is `"Execution rejected: <the matched rule's reason>"` — read it, it names the actual cause (excessive amount, failed fraud check, not manager-approved, or the policy's default fallback). | This is a real, correct decision, not a bug. Do not retry with altered parameters; do not treat it as a client error to route around.                                                                                                                        |
+| `404`                     | —                        | `error-handler.ts` (`PolicyNotFoundError`)                                                                                                                                                                                                      | `policy.name`/`policy.version` in your request doesn't match any policy deployed on this instance.                                                                                                                                                                          | Check spelling/version exactly, and confirm the policy is actually deployed on _this_ deployment (policies are baked into the build per deployment).                                                                                                         |
+| `409`                     | —                        | `error-handler.ts` (`DuplicateBusinessTransactionError`)                                                                                                                                                                                        | You reused a `businessTransactionId` that was already accepted.                                                                                                                                                                                                             | Generate a fresh UUID per attempt. If retrying a specific logical operation, that's a separate idempotency concern your integration must design for explicitly — Parmana's own uniqueness check is not an idempotency mechanism you should rely on for that. |
+| `413`                     | —                        | `error-handler.ts` (Express body-parser, oversized body)                                                                                                                                                                                        | Request body too large.                                                                                                                                                                                                                                                     | Trim the payload; this is a transport-level limit, unrelated to policy.                                                                                                                                                                                      |
+| `500`                     | —                        | `error-handler.ts`'s generic fallback — **catches every error that isn't one of the typed ones above**, including a plain `Error` thrown by `GatewayConnectorRegistry.resolveCapability` (`"No connector registered for capability '<name>'."`) | Ambiguous by design of the error handler — could be a genuine bug, **or** (very commonly) an `APPROVED` decision whose capability has no connector registered on this deployment.                                                                                           | Check server logs for the exact error message. If it says "No connector registered," this is Step 8's issue, not a bug in your agent. Anything else genuinely is unexpected and worth reporting upstream.                                                    |
+| (no HTTP response at all) | —                        | network/timeout                                                                                                                                                                                                                                 | The request may or may not have reached Parmana at all.                                                                                                                                                                                                                     | Treat as an unresolved, client-side state — never assume either APPROVED or REJECTED from a timeout.                                                                                                                                                         |
 
 ## Part 4 — Common mistakes checklist
 
 - [ ] Capability string in `intent.action` does not exactly match an entry in your API key's
-  `allowedCapabilities` (the #1 real-world cause of "why is this always rejected").
+      `allowedCapabilities` (the #1 real-world cause of "why is this always rejected").
 - [ ] `authority.authorityType` set to `"AGENT"` — not a valid value; use `"SERVICE"`.
 - [ ] A signal value inferred from what the customer said, instead of from an independent business
-  system.
+      system.
 - [ ] `businessTransactionId` reused across retries where each retry should be its own attempt (or
-  the opposite — a fresh ID generated for what should logically be the same idempotent retry).
+      the opposite — a fresh ID generated for what should logically be the same idempotent retry).
 - [ ] Treating a `403 POLICY_DENIED` as a bug to work around rather than a correct decision to
-  respect and report.
+      respect and report.
 - [ ] Claiming a refund/action "executed" based on an `APPROVED` response alone, without confirming
-  the connector for that capability is actually registered on that specific deployment.
+      the connector for that capability is actually registered on that specific deployment.
 - [ ] Granting `"*"` in `allowedCapabilities` "just to get it working," and never narrowing it
-  afterward.
+      afterward.
 - [ ] Guessing at signal field names instead of reading the policy's `signalsSchema` directly.
 
 ## Reference implementation

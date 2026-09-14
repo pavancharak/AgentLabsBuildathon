@@ -23,17 +23,13 @@ import { createExecutionAuditSink } from "./createExecutionAuditSink.js";
  * without first passing a request-bound Gateway attestation check.
  */
 export function createExecutionControl(): ExecutionControl {
-  const gatewayIdentity =
-    createGatewayIdentity();
+  const gatewayIdentity = createGatewayIdentity();
 
-  const authenticator =
-    createConnectorAuthenticator();
+  const authenticator = createConnectorAuthenticator();
 
-  const sessions =
-    createSessionStore();
+  const sessions = createSessionStore();
 
-  const audit =
-    createExecutionAuditSink();
+  const audit = createExecutionAuditSink();
 
   //
   // Static, registration-time attestation for each connector's own
@@ -41,26 +37,25 @@ export function createExecutionControl(): ExecutionControl {
   // request-bound — the request-bound check happens below, at
   // SessionCredentialExecutionControl.
   //
-  const { privateKey: gatewayPrivateKey } =
-    createGatewayKeyPair();
+  const { privateKey: gatewayPrivateKey } = createGatewayKeyPair();
 
-  const attestationSigner =
-    new GatewayAttestationSigner(new SystemClock(), new RandomIdGenerator());
+  const attestationSigner = new GatewayAttestationSigner(
+    new SystemClock(),
+    new RandomIdGenerator(),
+  );
 
-  const registrationAttestation =
-    attestationSigner.sign(
-      gatewayIdentity.gatewayId,
-      "registration",
-      gatewayPrivateKey,
-    );
+  const registrationAttestation = attestationSigner.sign(
+    gatewayIdentity.gatewayId,
+    "registration",
+    gatewayPrivateKey,
+  );
 
-  const registry =
-    createConnectorRegistry(
-      authenticator,
-      sessions,
-      audit,
-      registrationAttestation,
-    );
+  const registry = createConnectorRegistry(
+    authenticator,
+    sessions,
+    audit,
+    registrationAttestation,
+  );
 
   const inner = new ExecutionControlService({
     gatewayIdentity,
@@ -74,8 +69,7 @@ export function createExecutionControl(): ExecutionControl {
     // separate, narrower trust boundary from gatewayAuthentication
     // above. Tracked in the notes list as a same-process-only check.
     //
-    sessionIssuanceAuthentication:
-  gatewaySessionIssuanceAuthentication,
+    sessionIssuanceAuthentication: gatewaySessionIssuanceAuthentication,
 
     audit,
   });

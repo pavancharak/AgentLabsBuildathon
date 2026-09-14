@@ -11,7 +11,11 @@ import {
   type RefusalRecord,
   type RefusalRecordRepository,
 } from "@parmana/shared";
-import { PolicyAction, type Policy, type PolicyRepository } from "@parmana/policy";
+import {
+  PolicyAction,
+  type Policy,
+  type PolicyRepository,
+} from "@parmana/policy";
 import { RuntimeBuilder, RuntimeError } from "@parmana/runtime";
 
 //
@@ -31,8 +35,14 @@ console.log();
 
 const keyDir = mkdtempSync(join(tmpdir(), "parmana-tutorial-74-keys-"));
 const { privateKey, publicKey } = generateKeyPairSync("ed25519");
-writeFileSync(join(keyDir, "default.private.pem"), privateKey.export({ format: "pem", type: "pkcs8" }));
-writeFileSync(join(keyDir, "default.public.pem"), publicKey.export({ format: "pem", type: "spki" }));
+writeFileSync(
+  join(keyDir, "default.private.pem"),
+  privateKey.export({ format: "pem", type: "pkcs8" }),
+);
+writeFileSync(
+  join(keyDir, "default.public.pem"),
+  publicKey.export({ format: "pem", type: "spki" }),
+);
 process.env.PARMANA_KEY_DIR = keyDir;
 
 class NullExecutionTrustRecordRepository implements ExecutionTrustRecordRepository {
@@ -88,16 +98,35 @@ function createTransaction(): BusinessTransaction {
   const fixedDate = new Date();
   return {
     businessTransactionId: "txn-tutorial-74",
-    metadata: { businessTransactionId: "txn-tutorial-74", submittedBy: "tutorial-74" },
+    metadata: {
+      businessTransactionId: "txn-tutorial-74",
+      submittedBy: "tutorial-74",
+    },
     authority: {
       authorityId: "authority-1",
       authorityType: AuthorityType.SERVICE,
       principalId: "svc-1",
       issuedAt: fixedDate,
     },
-    authorization: { authorizationId: "authorization-1", authorityId: "authority-1", purpose: "tutorial", issuedAt: fixedDate },
-    intent: { intentId: "intent-1", authorizationId: "authorization-1", action: "PAY", target: "vendor/1", parameters: { amount: 100 }, createdAt: fixedDate },
-    policy: { name: "tutorial-74-policy", version: "1.0.0", schemaVersion: "1.0.0" },
+    authorization: {
+      authorizationId: "authorization-1",
+      authorityId: "authority-1",
+      purpose: "tutorial",
+      issuedAt: fixedDate,
+    },
+    intent: {
+      intentId: "intent-1",
+      authorizationId: "authorization-1",
+      action: "PAY",
+      target: "vendor/1",
+      parameters: { amount: 100 },
+      createdAt: fixedDate,
+    },
+    policy: {
+      name: "tutorial-74-policy",
+      version: "1.0.0",
+      schemaVersion: "1.0.0",
+    },
     signals: { amount: 100 },
     status: BusinessTransactionStatus.RECEIVED,
     createdAt: fixedDate,
@@ -115,7 +144,9 @@ try {
     .withPolicyRepository(new FixedPolicyRepository())
     .build(new NullExecutionTrustRecordRepository());
 
-  console.log("Scenario 1: Refusal Record repository configured, but every write throws");
+  console.log(
+    "Scenario 1: Refusal Record repository configured, but every write throws",
+  );
   console.log("--------------------------------------------------");
 
   let caughtWithFailingWrite: unknown;
@@ -127,10 +158,18 @@ try {
   }
   const elapsedMs = Date.now() - startedAt;
 
-  console.log(`Threw RuntimeError        : ${caughtWithFailingWrite instanceof RuntimeError}`);
-  console.log(`status / code             : ${(caughtWithFailingWrite as RuntimeError)?.status} / ${(caughtWithFailingWrite as RuntimeError)?.code}`);
-  console.log(`Write was actually attempted (createCallCount) : ${throwingRefusalRecords.createCallCount}`);
-  console.log(`Time to reject            : ${elapsedMs}ms (no retry loop, no hang)`);
+  console.log(
+    `Threw RuntimeError        : ${caughtWithFailingWrite instanceof RuntimeError}`,
+  );
+  console.log(
+    `status / code             : ${(caughtWithFailingWrite as RuntimeError)?.status} / ${(caughtWithFailingWrite as RuntimeError)?.code}`,
+  );
+  console.log(
+    `Write was actually attempted (createCallCount) : ${throwingRefusalRecords.createCallCount}`,
+  );
+  console.log(
+    `Time to reject            : ${elapsedMs}ms (no retry loop, no hang)`,
+  );
   console.log();
 
   console.log("Scenario 2: No Refusal Record repository configured at all");
@@ -143,8 +182,12 @@ try {
     caughtWithNoRepository = error;
   }
 
-  console.log(`Threw RuntimeError        : ${caughtWithNoRepository instanceof RuntimeError}`);
-  console.log(`status / code             : ${(caughtWithNoRepository as RuntimeError)?.status} / ${(caughtWithNoRepository as RuntimeError)?.code}`);
+  console.log(
+    `Threw RuntimeError        : ${caughtWithNoRepository instanceof RuntimeError}`,
+  );
+  console.log(
+    `status / code             : ${(caughtWithNoRepository as RuntimeError)?.status} / ${(caughtWithNoRepository as RuntimeError)?.code}`,
+  );
   console.log();
 
   const bothIdentical =
@@ -161,7 +204,9 @@ try {
       "✓ Both scenarios produced byte-for-byte identical rejections -- the failed write never blocked, delayed, or changed the REJECT.",
     );
   } else {
-    console.log("✗ Expected identical rejection behavior regardless of whether the Refusal Record write succeeded.");
+    console.log(
+      "✗ Expected identical rejection behavior regardless of whether the Refusal Record write succeeded.",
+    );
   }
 
   console.log();

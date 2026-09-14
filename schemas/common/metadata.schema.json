@@ -5,9 +5,7 @@
   "description": "Immutable Business Transaction metadata supplied by the calling application. Not evaluated by Policy. businessTransactionId is the only required field; it must match the top-level businessTransactionId. Parmana rejects a mismatch with a 400.",
   "type": "object",
   "additionalProperties": true,
-  "required": [
-    "businessTransactionId"
-  ],
+  "required": ["businessTransactionId"],
   "properties": {
     "businessTransactionId": {
       "type": "string",

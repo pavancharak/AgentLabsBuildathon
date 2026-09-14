@@ -1,34 +1,18 @@
 \# RFC-0009: Policy Versioning and Resolution
 
-
-
 \*\*Status:\*\* Accepted
-
-
 
 \## Purpose
 
-
-
 This RFC defines the canonical model for policy identification, versioning, and resolution in Parmana.
-
-
 
 Its purpose is to ensure that every execution is reproducible, deterministic, and independently verifiable by uniquely identifying the policy artifact used during execution.
 
-
-
 \---
-
-
 
 \# Goals
 
-
-
 The policy versioning model SHALL:
-
-
 
 \* uniquely identify every policy artifact
 
@@ -42,19 +26,11 @@ The policy versioning model SHALL:
 
 \* preserve execution reproducibility
 
-
-
 \---
-
-
 
 \# Policy Identity
 
-
-
 A policy is uniquely identified by three attributes:
-
-
 
 ```ts
 
@@ -70,27 +46,15 @@ interface PolicyReference {
 
 ```
 
-
-
 These attributes form the canonical identity of a policy artifact.
-
-
 
 \---
 
-
-
 \# Policy Name
-
-
 
 The policy name identifies the business policy.
 
-
-
 Examples:
-
-
 
 ```
 
@@ -106,27 +70,15 @@ purchase-order
 
 ```
 
-
-
 The name is stable across business versions.
-
-
 
 \---
 
-
-
 \# Business Version
-
-
 
 The business version identifies the business logic revision.
 
-
-
 Example:
-
-
 
 ```
 
@@ -138,15 +90,9 @@ Example:
 
 ```
 
-
-
 Changing business rules requires a new business version.
 
-
-
 Examples:
-
-
 
 \* approval thresholds
 
@@ -156,27 +102,15 @@ Examples:
 
 \* rule ordering
 
-
-
 Business versions SHALL be immutable.
-
-
 
 \---
 
-
-
 \# Schema Version
-
-
 
 The schema version identifies the structure of the policy artifact.
 
-
-
 Examples:
-
-
 
 ```
 
@@ -186,15 +120,9 @@ Examples:
 
 ```
 
-
-
 Changing the artifact format requires a schema version change.
 
-
-
 Examples include:
-
-
 
 \* new JSON fields
 
@@ -204,27 +132,15 @@ Examples include:
 
 \* metadata changes
 
-
-
 Changing the schema SHALL NOT imply a change in business logic.
-
-
 
 \---
 
-
-
 \# Policy Artifact
-
-
 
 Each policy SHALL declare its identity.
 
-
-
 Example:
-
-
 
 ```json
 
@@ -258,19 +174,11 @@ Example:
 
 ```
 
-
-
 \---
-
-
 
 \# Policy Directory Layout
 
-
-
 The canonical layout is:
-
-
 
 ```text
 
@@ -292,27 +200,15 @@ policies/
 
 ```
 
-
-
 The directory structure is organized by business version.
-
-
 
 The policy artifact itself declares both the business version and schema version.
 
-
-
 \---
-
-
 
 \# Resolution Process
 
-
-
 Policy resolution SHALL follow this sequence:
-
-
 
 ```text
 
@@ -362,23 +258,13 @@ PolicyEngine
 
 ```
 
-
-
 No policy discovery occurs during resolution.
-
-
 
 \---
 
-
-
 \# Policy Registry Responsibilities
 
-
-
 The PolicyRegistry SHALL:
-
-
 
 \* register policy metadata
 
@@ -386,11 +272,7 @@ The PolicyRegistry SHALL:
 
 \* list available policies
 
-
-
 The PolicyRegistry SHALL NOT:
-
-
 
 \* execute policies
 
@@ -398,19 +280,11 @@ The PolicyRegistry SHALL NOT:
 
 \* choose policies
 
-
-
 \---
-
-
 
 \# Policy Router Responsibilities
 
-
-
 The PolicyRouter SHALL:
-
-
 
 \* load the exact referenced policy
 
@@ -418,19 +292,13 @@ The PolicyRouter SHALL:
 
 \* validate:
 
-
-
 &#x20; \* policyId
 
 &#x20; \* policyVersion
 
 &#x20; \* schemaVersion
 
-
-
 The PolicyRouter SHALL NOT:
-
-
 
 \* scan all policies
 
@@ -440,39 +308,21 @@ The PolicyRouter SHALL NOT:
 
 \* evaluate business logic
 
-
-
 \---
-
-
 
 \# Runtime Responsibilities
 
-
-
 The runtime SHALL execute only the policy referenced by the BusinessTransaction.
-
-
 
 The runtime SHALL NOT determine which policy should execute.
 
-
-
 Policy selection occurs before runtime execution.
-
-
 
 \---
 
-
-
 \# Deterministic Resolution
 
-
-
 Given the same:
-
-
 
 \* PolicyReference
 
@@ -480,27 +330,15 @@ Given the same:
 
 \* runtime signals
 
-
-
 the runtime SHALL always load the same policy artifact and produce the same decision.
-
-
 
 Policy resolution is therefore deterministic.
 
-
-
 \---
-
-
 
 \# Version Evolution
 
-
-
 Business Version changes:
-
-
 
 \* business rules
 
@@ -508,11 +346,7 @@ Business Version changes:
 
 \* decision behavior
 
-
-
 Schema Version changes:
-
-
 
 \* artifact structure
 
@@ -522,23 +356,13 @@ Schema Version changes:
 
 \* policy language capabilities
 
-
-
 Business versions and schema versions evolve independently.
-
-
 
 \---
 
-
-
 \# Verification
 
-
-
 A verifier SHALL confirm that:
-
-
 
 \* the requested policy name matches
 
@@ -548,19 +372,11 @@ A verifier SHALL confirm that:
 
 \* the executed policy artifact matches the reference
 
-
-
 Failure of any validation SHALL invalidate the execution.
-
-
 
 \---
 
-
-
 \# Architectural Invariants
-
-
 
 \* Every BusinessTransaction SHALL reference exactly one PolicyReference.
 
@@ -578,15 +394,9 @@ Failure of any validation SHALL invalidate the execution.
 
 \* Policy artifacts SHALL be immutable after publication.
 
-
-
 \---
 
-
-
 \# Relationship to Other RFCs
-
-
 
 \* \*\*RFC-0007\*\* defines the canonical trust-chain domain model.
 
@@ -594,17 +404,8 @@ Failure of any validation SHALL invalidate the execution.
 
 \* \*\*RFC-0009\*\* defines how policies are uniquely identified and deterministically resolved.
 
-
-
 \---
-
-
 
 \# Status
 
-
-
 This document defines the canonical policy versioning and resolution model for Parmana Phase 1 and establishes the foundation for deterministic, reproducible, and independently verifiable policy execution.
-
-
-

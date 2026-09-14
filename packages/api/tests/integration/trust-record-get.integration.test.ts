@@ -19,7 +19,8 @@ describe.skipIf(!databaseConfigured)("Trust Record GET Integration", () => {
     // Execute
     //
     const executeResponse = await request(app)
-      .post("/execute").send(transaction);
+      .post("/execute")
+      .send(transaction);
 
     expect(executeResponse.status).toBe(200);
 
@@ -57,11 +58,3 @@ describe.skipIf(!databaseConfigured)("Trust Record GET Integration", () => {
     expect(response.body.error).toContain("Execution Trust Record");
   });
 });
-
-
-
-
-
-
-
-

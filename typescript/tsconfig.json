@@ -3,10 +3,7 @@
     /* Language */
 
     "target": "ES2022",
-    "lib": [
-      "ES2022",
-      "DOM"
-    ],
+    "lib": ["ES2022", "DOM"],
 
     /* Module */
 
@@ -45,14 +42,7 @@
     "removeComments": false
   },
 
-  "include": [
-    "src"
-  ],
+  "include": ["src"],
 
-  "exclude": [
-    "dist",
-    "node_modules",
-    "test",
-    "examples"
-  ]
+  "exclude": ["dist", "node_modules", "test", "examples"]
 }

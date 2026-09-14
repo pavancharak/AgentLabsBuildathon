@@ -1,5 +1,9 @@
 import { ApprovalVerifier } from "@parmana/approval";
-import { CryptoBootstrap, DEFAULT_KEY_ID, FileKeyProvider } from "@parmana/crypto";
+import {
+  CryptoBootstrap,
+  DEFAULT_KEY_ID,
+  FileKeyProvider,
+} from "@parmana/crypto";
 import { HubSpotSignalStateVerifier } from "@parmana/connector-hubspot";
 import type { SignalStateVerifier } from "@parmana/policy";
 import type { ExecutionSystem } from "@parmana/execution-system";
@@ -28,9 +32,7 @@ import { createApprovalNonceStore } from "./createApprovalNonceStore.js";
 export function createHubSpotSignalStateVerifier(
   executionSystem: ExecutionSystem,
 ): SignalStateVerifier {
-  const {
-    ttlSeconds: authorizationTtlSeconds,
-  } = loadConfig().authorization;
+  const { ttlSeconds: authorizationTtlSeconds } = loadConfig().authorization;
 
   const crypto = CryptoBootstrap.create();
 

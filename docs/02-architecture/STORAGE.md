@@ -1,42 +1,22 @@
 \# Storage
 
-
-
 \*\*Document:\*\* `docs/02-architecture/STORAGE.md`
-
-
 
 \## Purpose
 
-
-
 This document defines the \*\*Storage Layer\*\*, the physical persistence layer of the Parmana architecture.
-
-
 
 The Storage Layer is responsible for durably storing authorization artifacts produced by the Parmana Runtime. It provides reliable, consistent, and durable persistence while remaining hidden behind the Repository abstraction.
 
-
-
 This document specifies the architectural responsibilities of the Storage Layer rather than a specific database implementation.
-
-
 
 This document is normative.
 
-
-
 \---
-
-
 
 \# Overview
 
-
-
 The Parmana Runtime produces immutable authorization artifacts that must remain available for:
-
-
 
 \* Independent verification
 
@@ -48,23 +28,13 @@ The Parmana Runtime produces immutable authorization artifacts that must remain 
 
 \* Operational analysis
 
-
-
 The Storage Layer provides durable persistence for these artifacts.
-
-
 
 Unlike the Repository Layer, which defines the persistence interface, the Storage Layer implements the actual persistence mechanism.
 
-
-
 \---
 
-
-
 \# Architectural Position
-
-
 
 ```text
 
@@ -96,27 +66,15 @@ Execution Trust   Execution      Runtime Metadata
 
 ```
 
-
-
 The Runtime never communicates directly with the Storage Layer.
-
-
 
 All access occurs through the Repository.
 
-
-
 \---
-
-
 
 \# Responsibilities
 
-
-
 The Storage Layer is responsible for:
-
-
 
 \* Persisting authorization artifacts.
 
@@ -132,11 +90,7 @@ The Storage Layer is responsible for:
 
 \* Maintaining data integrity.
 
-
-
 The Storage Layer does \*\*not\*\*:
-
-
 
 \* Perform Authority Verification.
 
@@ -148,31 +102,17 @@ The Storage Layer does \*\*not\*\*:
 
 \* Execute business workflows.
 
-
-
 \---
-
-
 
 \# Storage Objects
 
-
-
 The Storage Layer persists the following logical objects.
-
-
 
 \## Execution Trust Records
 
-
-
 The canonical authorization record.
 
-
-
 Characteristics:
-
-
 
 \* Immutable
 
@@ -182,27 +122,15 @@ Characteristics:
 
 \* Verifiable
 
-
-
 Execution Trust Records are the primary persistence object.
-
-
 
 \---
 
-
-
 \## Execution Receipts
-
-
 
 Portable authorization artifacts derived from Execution Trust Records.
 
-
-
 Characteristics:
-
-
 
 \* Immutable
 
@@ -210,27 +138,15 @@ Characteristics:
 
 \* Shareable
 
-
-
 Execution Receipts never replace Execution Trust Records.
-
-
 
 \---
 
-
-
 \## Verification Metadata
-
-
 
 Operational metadata describing verification.
 
-
-
 Examples include:
-
-
 
 \* Verification timestamp
 
@@ -238,27 +154,15 @@ Examples include:
 
 \* Verification duration
 
-
-
 Verification metadata supports operational analysis.
-
-
 
 \---
 
-
-
 \## Replay Metadata
-
-
 
 Metadata required for replay operations.
 
-
-
 Examples include:
-
-
 
 \* Replay version
 
@@ -266,19 +170,11 @@ Examples include:
 
 \* Runtime compatibility information
 
-
-
 \---
-
-
 
 \# Logical Storage Model
 
-
-
 Conceptually:
-
-
 
 ```text
 
@@ -296,31 +192,17 @@ Storage
 
 ```
 
-
-
 The physical implementation is implementation-specific.
-
-
 
 \---
 
-
-
 \# Storage Characteristics
-
-
 
 The Storage Layer provides the following characteristics.
 
-
-
 \## Durability
 
-
-
 Successfully committed authorization artifacts must survive:
-
-
 
 \* Runtime restart
 
@@ -328,43 +210,23 @@ Successfully committed authorization artifacts must survive:
 
 \* Process failure
 
-
-
 Durability is mandatory.
 
-
-
 \---
-
-
 
 \## Immutability
 
-
-
 Execution Trust Records and Execution Receipts are immutable.
-
-
 
 Existing records are never modified.
 
-
-
 Changes result in new records.
-
-
 
 \---
 
-
-
 \## Consistency
 
-
-
 Storage must preserve:
-
-
 
 \* Referential integrity
 
@@ -372,23 +234,13 @@ Storage must preserve:
 
 \* Record relationships
 
-
-
 Incomplete persistence is not permitted.
-
-
 
 \---
 
-
-
 \## Availability
 
-
-
 Stored authorization artifacts should remain accessible for:
-
-
 
 \* Replay
 
@@ -398,23 +250,13 @@ Stored authorization artifacts should remain accessible for:
 
 \* Compliance review
 
-
-
 Availability requirements depend upon deployment.
-
-
 
 \---
 
-
-
 \# Append-Only Model
 
-
-
 Authorization history is append-only.
-
-
 
 ```text
 
@@ -434,27 +276,15 @@ Record 4
 
 ```
 
-
-
 Historical records remain unchanged.
-
-
 
 New authorization events create new records.
 
-
-
 \---
-
-
 
 \# Record Relationships
 
-
-
 The Storage Layer preserves relationships between persisted objects.
-
-
 
 ```text
 
@@ -488,27 +318,15 @@ Execution Request
 
 ```
 
-
-
 Relationships remain stable throughout the lifetime of each record.
-
-
 
 \---
 
-
-
 \# Storage Independence
-
-
 
 The architecture does not require a specific storage technology.
 
-
-
 Possible implementations include:
-
-
 
 \* PostgreSQL
 
@@ -520,27 +338,15 @@ Possible implementations include:
 
 \* Future storage systems
 
-
-
 All implementations must preserve the architectural guarantees defined by Parmana.
-
-
 
 \---
 
-
-
 \# Physical Schema
-
-
 
 The physical schema is implementation-specific.
 
-
-
 Typical deployments may store:
-
-
 
 \* Execution Trust Records
 
@@ -550,27 +356,15 @@ Typical deployments may store:
 
 \* Runtime Metadata
 
-
-
 The logical model remains consistent regardless of schema design.
-
-
 
 \---
 
-
-
 \# Transaction Model
-
-
 
 Persistence operations should be atomic.
 
-
-
 Conceptually:
-
-
 
 ```text
 
@@ -590,27 +384,15 @@ Commit Transaction
 
 ```
 
-
-
 If persistence fails, the Runtime must treat the authorization process as incomplete.
-
-
 
 \---
 
-
-
 \# Retrieval
-
-
 
 The Storage Layer supports retrieval using stable identifiers.
 
-
-
 Examples include:
-
-
 
 \* Record Identifier
 
@@ -620,23 +402,13 @@ Examples include:
 
 \* Authorization Decision Identifier
 
-
-
 Query capabilities depend upon Repository implementations.
-
-
 
 \---
 
-
-
 \# Backup and Recovery
 
-
-
 Implementations should support:
-
-
 
 \* Regular backup
 
@@ -646,23 +418,13 @@ Implementations should support:
 
 \* Integrity verification
 
-
-
 Backup mechanisms are deployment-specific.
-
-
 
 \---
 
-
-
 \# Scalability
 
-
-
 The Storage Layer should support growth in:
-
-
 
 \* Authorization volume
 
@@ -674,23 +436,13 @@ The Storage Layer should support growth in:
 
 \* Verification requests
 
-
-
 Scalability mechanisms are implementation-specific.
-
-
 
 \---
 
-
-
 \# Security Considerations
 
-
-
 The Storage Layer should protect against:
-
-
 
 \* Unauthorized modification
 
@@ -702,23 +454,13 @@ The Storage Layer should protect against:
 
 \* Identifier collision
 
-
-
 Cryptographic integrity protection is defined separately in `CRYPTOGRAPHY.md`.
-
-
 
 \---
 
-
-
 \# Design Principles
 
-
-
 The Storage Layer follows these principles:
-
-
 
 \* Durable persistence.
 
@@ -734,19 +476,11 @@ The Storage Layer follows these principles:
 
 \* Replay support.
 
-
-
 \---
-
-
 
 \# What the Storage Layer Is Not
 
-
-
 The Storage Layer is \*\*not\*\*:
-
-
 
 \* a Repository,
 
@@ -758,23 +492,13 @@ The Storage Layer is \*\*not\*\*:
 
 \* an authorization engine.
 
-
-
 It is the physical persistence implementation used by the Repository.
-
-
 
 \---
 
-
-
 \# Guarantees
 
-
-
 The Storage Layer guarantees:
-
-
 
 \* Durable storage of authorization artifacts.
 
@@ -790,23 +514,13 @@ The Storage Layer guarantees:
 
 \* Preservation of referential integrity.
 
-
-
 \---
-
-
 
 \# Relationship to Other Documents
 
-
-
 This document specifies the physical persistence layer.
 
-
-
 Related specifications include:
-
-
 
 \* `REPOSITORY.md`
 
@@ -814,29 +528,17 @@ Related specifications include:
 
 \* `REPLAY.md`
 
-
-
 Conceptual definitions include:
-
-
 
 \* `01-concepts/EXECUTION\_TRUST\_RECORD.md`
 
 \* `01-concepts/EXECUTION\_RECEIPT.md`
 
-
-
 \---
-
-
 
 \# Current Reference Implementation
 
-
-
 The current Parmana reference implementation uses:
-
-
 
 \* \*\*Repository Layer:\*\* Repository abstraction
 
@@ -848,29 +550,14 @@ The current Parmana reference implementation uses:
 
 \* \*\*Digital Signatures:\*\* Ed25519
 
-
-
 These implementation choices are replaceable provided the architectural guarantees defined in this document continue to be satisfied.
-
-
 
 \---
 
-
-
 \# Summary
-
-
 
 The Storage Layer provides the durable persistence foundation of the Parmana architecture.
 
-
-
 It stores immutable authorization artifacts, preserves the integrity and traceability of Execution Trust Records, and enables replay, independent verification, and audit through reliable long-term persistence.
 
-
-
 By remaining hidden behind the Repository abstraction, the Storage Layer allows Parmana to evolve its storage technologies without affecting the Runtime, authorization model, or trust guarantees.
-
-
-

@@ -9,7 +9,7 @@ actually authorized by Parmana before you act on it.
 A passing verification proves that Parmana's runtime signed off on a specific
 decision. It does **not** re-run or re-evaluate the policy that produced that
 decision. This package has no notion of policies, rules, or business logic —
-it only checks a cryptographic envelope. If you need to know *why* a request
+it only checks a cryptographic envelope. If you need to know _why_ a request
 was approved, that lives in Parmana's own trust record / receipt, not here.
 
 Concretely, `EnvelopeVerifier.verify()` checks, in this order of concern (not
@@ -36,10 +36,7 @@ It does **not**:
 
 ```ts
 import { generateKeyPairSync } from "node:crypto";
-import {
-  EnvelopeVerifier,
-  MemoryNonceStore,
-} from "@parmana/envelope-verifier";
+import { EnvelopeVerifier, MemoryNonceStore } from "@parmana/envelope-verifier";
 
 // publicKey comes from Parmana out-of-band (e.g. a config value, a secret
 // manager, however your organization distributes it) — never generated here.
@@ -73,14 +70,10 @@ const verifier = new EnvelopeVerifier({
 const app = express();
 app.use(express.json());
 
-app.post(
-  "/execute",
-  requireParmanaAuthorization(verifier),
-  (req, res) => {
-    // req.parmanaAuthorization is populated here.
-    res.status(200).json({ ok: true });
-  },
-);
+app.post("/execute", requireParmanaAuthorization(verifier), (req, res) => {
+  // req.parmanaAuthorization is populated here.
+  res.status(200).json({ ok: true });
+});
 ```
 
 The Express integration is a separate entry point
@@ -116,7 +109,7 @@ so a durable store never needs to retain a nonce longer than
 - **The signer and every verifier must be configured with the same
   `SIGNATURE_PROVIDER`, and the verifier must hold the signer's matching
   public key.** `EnvelopeVerifier` verifies using whichever single
-  algorithm the *verifying* process is configured for — it does not
+  algorithm the _verifying_ process is configured for — it does not
   negotiate or auto-detect the signer's algorithm.
 - **The envelope's `algorithm` field is informational only, not a routing
   key.** Verification never branches on `authorization.algorithm`; it

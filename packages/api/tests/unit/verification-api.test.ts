@@ -44,6 +44,3 @@ describe("GET /verification/:id", () => {
     expect(response.body.trustRecordHash).toBe(execute.body.trustRecordHash);
   });
 });
-
-
-

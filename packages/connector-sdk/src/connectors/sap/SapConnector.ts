@@ -1,10 +1,6 @@
-import {
-  MockConnector,
-} from "../../MockConnector.js";
+import { MockConnector } from "../../MockConnector.js";
 
-import {
-  connectorCapabilities,
-} from "../../ConnectorTypes.js";
+import { connectorCapabilities } from "../../ConnectorTypes.js";
 
 /**
  * Mock SAP connector.
@@ -16,8 +12,6 @@ export function createSapConnector(): MockConnector {
   return new MockConnector({
     connectorId: "sap",
 
-    capabilities: connectorCapabilities([
-      "sap:post-invoice",
-    ]),
+    capabilities: connectorCapabilities(["sap:post-invoice"]),
   });
 }

@@ -5,22 +5,15 @@
   "description": "Response returned by GET / (packages/api/src/app.ts). Distinct from, and simpler than, GET /health and GET /version; it is not registered under any router file.",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "name",
-    "status"
-  ],
+  "required": ["name", "status"],
   "properties": {
     "name": {
       "type": "string",
-      "enum": [
-        "Parmana"
-      ]
+      "enum": ["Parmana"]
     },
     "status": {
       "type": "string",
-      "enum": [
-        "UP"
-      ]
+      "enum": ["UP"]
     }
   },
   "examples": [

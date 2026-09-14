@@ -27,7 +27,7 @@ Policy Reference to the Action That Will Actually Execute
 [0001] This invention relates to policy-gated authorization of automated execution — including but
 not limited to execution initiated by an AI agent — and specifically to two structurally related
 mechanisms that close a class of vulnerability in which a request that is fully verified and
-approved *as declared* is used to execute a materially *different* action or is evaluated against
+approved _as declared_ is used to execute a materially _different_ action or is evaluated against
 a policy other than the one specifically designed to govern it.
 
 ## Background
@@ -48,11 +48,11 @@ could declare a small, fully-verifiable, policy-approved action (small signal va
 while the intent actually carried forward to execution names a different target or different
 parameters — for example, declaring a signal set consistent with a low-value transaction while the
 intent that will actually execute names a materially different, higher-value target. The policy
-approved what was *declared*; nothing checked that what was declared matches what will *execute*.
+approved what was _declared_; nothing checked that what was declared matches what will _execute_.
 
 [0005] **Gap 2 — Capability/policy substitution.** Independently, nothing inherently guarantees
 that a given capability (a specific executable action type, e.g., "update a CRM deal record") is
-evaluated against the *specific* policy purpose-built to protect it. A caller could pair a real,
+evaluated against the _specific_ policy purpose-built to protect it. A caller could pair a real,
 sensitive capability with an unrelated, less-restrictive policy that declares no protective
 bindings for that capability at all, have that unrelated policy's own (looser) rules evaluated
 against self-declared signals, and have the real, sensitive capability's actual parameters executed
@@ -60,7 +60,7 @@ against self-declared signals, and have the real, sensitive capability's actual 
 Nothing upstream of capability dispatch enforces that a specific capability can only be evaluated
 under its one designated policy.
 
-[0006] Both gaps share a common structural signature: an approval is obtained against a *declared*
+[0006] Both gaps share a common structural signature: an approval is obtained against a _declared_
 value (a signal set, a policy reference) that is not structurally forced to correspond to the
 value that will actually govern or describe execution. Access-control and role-based schemes that
 check "is this caller allowed to invoke this class of action" do not address either gap, because
@@ -71,7 +71,7 @@ the checking itself was authorized.
 ## Summary of the Invention
 
 [0007] The invention comprises two structurally related, independently applicable binding
-mechanisms, each inserted into the request path *before* policy evaluation or capability dispatch
+mechanisms, each inserted into the request path _before_ policy evaluation or capability dispatch
 occurs, and each acting only on the two specific values it is given rather than evaluating policy
 rules or performing execution itself:
 
@@ -149,12 +149,12 @@ the point of being evaluated under the wrong, weaker policy at all.
 [0014] Mechanisms A and B address structurally parallel instances of the same underlying defect —
 an approval obtained against a declared value that is not forced to correspond to what will
 actually govern or describe execution — at two different points in the same request path: A binds
-the *evaluated signals* to the *executed intent*; B binds the *declared policy* to the *invoked
-capability*. Each is independently applicable (a system could adopt one without the other), but
+the _evaluated signals_ to the _executed intent_; B binds the _declared policy_ to the _invoked
+capability_. Each is independently applicable (a system could adopt one without the other), but
 together they close the full class: A prevents "approved-as-declared, executed-as-different"
 within a single, correctly-selected policy; B prevents the correctly-selected policy itself from
 being swapped for a weaker one in the first place. Both share the identical implementation
-discipline — a small, side-effect-free, execution-inert comparator invoked strictly *before* the
+discipline — a small, side-effect-free, execution-inert comparator invoked strictly _before_ the
 mechanism it protects (policy evaluation for A, policy-file loading for B) is allowed to proceed —
 which is itself a distinguishing structural property relative to access-control schemes that check
 authorization only once, upstream of both.
@@ -252,8 +252,8 @@ materially different and less restrictive policy, than the one actually approved
   prosecution-strategy decision for counsel, not a technical one.
 - Binding a declared value to an executed value, and binding a resource type to a designated
   policy, both have analogues in other domains (e.g., CSRF token binding, RBAC resource-type
-  scoping) — the attorney will need to confirm the specific novelty is the *pre-evaluation,
-  execution-inert comparator pattern applied to policy-gated AI-agent execution specifically*,
+  scoping) — the attorney will need to confirm the specific novelty is the _pre-evaluation,
+  execution-inert comparator pattern applied to policy-gated AI-agent execution specifically_,
   not the general concept of binding a declared value to an enforced one.
 - Formal drawings: a request-path sequence diagram showing where Mechanism A and Mechanism B each
   intercept the request relative to `PolicyEngine.evaluate` and policy-file loading.

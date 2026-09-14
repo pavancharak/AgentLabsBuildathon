@@ -8,11 +8,7 @@
  */
 
 export type SignatureAlgorithm =
-  | "ed25519"
-  | "ecdsa-p256"
-  | "dilithium3"
-  | "dilithium5"
-  | "sphincs-plus";
+  "ed25519" | "ecdsa-p256" | "dilithium3" | "dilithium5" | "sphincs-plus";
 
 export interface Signature {
   readonly algorithm: SignatureAlgorithm;

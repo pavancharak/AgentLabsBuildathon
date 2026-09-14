@@ -42,7 +42,7 @@ describe("resolveSupabaseGate", () => {
     logSpy.mockRestore();
   });
 
-  it("(case a) also returns false without throwing when ALLOW_LIVE_SUPABASE is set to something other than \"1\"", () => {
+  it('(case a) also returns false without throwing when ALLOW_LIVE_SUPABASE is set to something other than "1"', () => {
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     process.env.SUPABASE_URL = "https://example.supabase.co";

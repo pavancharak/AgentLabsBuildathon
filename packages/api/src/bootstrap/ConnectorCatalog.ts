@@ -38,47 +38,46 @@ export interface ConnectorDefinition {
  *
  * Add every supported enterprise connector here.
  */
-export const ConnectorCatalog: readonly ConnectorDefinition[] =
-  Object.freeze([
-    Object.freeze({
-      id: "stripe",
-      displayName: "Stripe",
-      enabled: false,
-    }),
+export const ConnectorCatalog: readonly ConnectorDefinition[] = Object.freeze([
+  Object.freeze({
+    id: "stripe",
+    displayName: "Stripe",
+    enabled: false,
+  }),
 
-    Object.freeze({
-      id: "salesforce",
-      displayName: "Salesforce",
-      enabled: false,
-    }),
+  Object.freeze({
+    id: "salesforce",
+    displayName: "Salesforce",
+    enabled: false,
+  }),
 
-    Object.freeze({
-      id: "sap",
-      displayName: "SAP",
-      enabled: false,
-    }),
+  Object.freeze({
+    id: "sap",
+    displayName: "SAP",
+    enabled: false,
+  }),
 
-    Object.freeze({
-      id: "servicenow",
-      displayName: "ServiceNow",
-      enabled: false,
-    }),
+  Object.freeze({
+    id: "servicenow",
+    displayName: "ServiceNow",
+    enabled: false,
+  }),
 
-    Object.freeze({
-      id: "slack",
-      displayName: "Slack",
-      enabled: false,
-    }),
+  Object.freeze({
+    id: "slack",
+    displayName: "Slack",
+    enabled: false,
+  }),
 
-    Object.freeze({
-      id: "jira",
-      displayName: "Jira",
-      enabled: false,
-    }),
+  Object.freeze({
+    id: "jira",
+    displayName: "Jira",
+    enabled: false,
+  }),
 
-    Object.freeze({
-      id: "github",
-      displayName: "GitHub",
-      enabled: false,
-    }),
-  ]);
+  Object.freeze({
+    id: "github",
+    displayName: "GitHub",
+    enabled: false,
+  }),
+]);

@@ -28,38 +28,30 @@ export class ReplayEngine {
     //
     const signals = toPolicySignals(input.transaction.signals);
 
-    const policy = normalizePolicy(
-  input.policy ?? {},
-) as Policy;
+    const policy = normalizePolicy(input.policy ?? {}) as Policy;
 
     //
     // Deterministic policy evaluation
     //
-    const policyDecision =
-  this.policyEngine.evaluate(
-    policy,
-    signals,
-  );
+    const policyDecision = this.policyEngine.evaluate(policy, signals);
 
-const replayedDecision = {
-  decisionId: recordedDecision.decisionId,
-  intentId: recordedDecision.intentId,
-  policy: recordedDecision.policy,
-  signals: recordedDecision.signals,
+    const replayedDecision = {
+      decisionId: recordedDecision.decisionId,
+      intentId: recordedDecision.intentId,
+      policy: recordedDecision.policy,
+      signals: recordedDecision.signals,
 
-  outcome:
-    policyDecision.outcome === "APPROVE"
-      ? DecisionOutcome.APPROVED
-      : DecisionOutcome.REJECTED,
+      outcome:
+        policyDecision.outcome === "APPROVE"
+          ? DecisionOutcome.APPROVED
+          : DecisionOutcome.REJECTED,
 
-  reason: policyDecision.reason,
+      reason: policyDecision.reason,
 
-  evaluatedAt: recordedDecision.evaluatedAt,
-};
+      evaluatedAt: recordedDecision.evaluatedAt,
+    };
 
-    const matches =
-      recordedDecision.outcome ===
-      replayedDecision.outcome;
+    const matches = recordedDecision.outcome === replayedDecision.outcome;
 
     return {
       recordedDecision,

@@ -12,15 +12,9 @@ import {
 
 async function main(): Promise<void> {
   console.log();
-  console.log(
-    "==================================================",
-  );
-  console.log(
-    "Tutorial 52 - Hybrid Signatures",
-  );
-  console.log(
-    "==================================================",
-  );
+  console.log("==================================================");
+  console.log("Tutorial 52 - Hybrid Signatures");
+  console.log("==================================================");
   console.log();
 
   //
@@ -63,15 +57,19 @@ async function main(): Promise<void> {
   if (!existsSync(secondaryPrivatePath)) {
     const { privateKey, publicKey } = generateKeyPairSync("ml-dsa-65");
 
-    writeFileSync(secondaryPrivatePath, privateKey.export({ format: "pem", type: "pkcs8" }));
-    writeFileSync(secondaryPublicPath, publicKey.export({ format: "pem", type: "spki" }));
+    writeFileSync(
+      secondaryPrivatePath,
+      privateKey.export({ format: "pem", type: "pkcs8" }),
+    );
+    writeFileSync(
+      secondaryPublicPath,
+      publicKey.export({ format: "pem", type: "spki" }),
+    );
   }
 
-  const crypto =
-    CryptoBootstrap.createHybrid();
+  const crypto = CryptoBootstrap.createHybrid();
 
-  const keyProvider =
-    new FileKeyProvider();
+  const keyProvider = new FileKeyProvider();
 
   //
   // Sign with both algorithms, fail-closed.
@@ -81,74 +79,47 @@ async function main(): Promise<void> {
   // ReceiptCrypto.createReceipt()) to dual-sign Execution Trust
   // Records and Receipts -- see Tutorial 53.
   //
-  const hybridSigner =
-    new HybridSignatureProvider(
-      crypto,
-      keyProvider,
-    );
+  const hybridSigner = new HybridSignatureProvider(crypto, keyProvider);
 
-  const signatures =
-    await hybridSigner.sign(
-      artifact,
-      "default",
-      "default-secondary",
-    );
+  const signatures = await hybridSigner.sign(
+    artifact,
+    "default",
+    "default-secondary",
+  );
 
   //
   // Verify. Requires exactly one entry per algorithm --
   // a missing, extra, or wrong-algorithm entry rejects,
   // never a partial pass.
   //
-  const verified =
-    await hybridSigner.verify(
-      artifact,
-      signatures,
-    );
+  const verified = await hybridSigner.verify(artifact, signatures);
 
-  console.log(
-    "Hybrid Signatures",
-  );
+  console.log("Hybrid Signatures");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
   for (const signature of signatures) {
     console.log();
 
-    console.log(
-      `Algorithm : ${signature.algorithm}`,
-    );
+    console.log(`Algorithm : ${signature.algorithm}`);
 
-    console.log(
-      `Key ID    : ${signature.keyId}`,
-    );
+    console.log(`Key ID    : ${signature.keyId}`);
 
-    console.log(
-      `Length    : ${signature.signature.length} characters`,
-    );
+    console.log(`Length    : ${signature.signature.length} characters`);
 
-    console.log(
-      `Preview   : ${signature.signature.substring(0, 80)}...`,
-    );
+    console.log(`Preview   : ${signature.signature.substring(0, 80)}...`);
   }
 
   console.log();
 
-  console.log(
-    `Verified : ${verified}`,
-  );
+  console.log(`Verified : ${verified}`);
 
   console.log();
 
   if (verified) {
-    console.log(
-      "✓ Hybrid signatures verified.",
-    );
+    console.log("✓ Hybrid signatures verified.");
   } else {
-    console.log(
-      "✗ Verification failed.",
-    );
+    console.log("✗ Verification failed.");
   }
 
   console.log();
@@ -164,33 +135,21 @@ async function main(): Promise<void> {
       : entry,
   );
 
-  const tamperedVerified =
-    await hybridSigner.verify(
-      artifact,
-      tampered,
-    );
+  const tamperedVerified = await hybridSigner.verify(artifact, tampered);
 
-  console.log(
-    `Tampered second signature verified : ${tamperedVerified}`,
-  );
+  console.log(`Tampered second signature verified : ${tamperedVerified}`);
 
   console.log();
 
   if (!tamperedVerified) {
-    console.log(
-      "✓ Tampered signature correctly rejected.",
-    );
+    console.log("✓ Tampered signature correctly rejected.");
   } else {
-    console.log(
-      "✗ Tampered signature was not rejected.",
-    );
+    console.log("✗ Tampered signature was not rejected.");
   }
 
   console.log();
 
-  console.log(
-    "Tutorial completed successfully.",
-  );
+  console.log("Tutorial completed successfully.");
 }
 
 main().catch((error) => {

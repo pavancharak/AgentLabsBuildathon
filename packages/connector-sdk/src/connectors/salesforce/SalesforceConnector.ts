@@ -1,10 +1,6 @@
-import {
-  MockConnector,
-} from "../../MockConnector.js";
+import { MockConnector } from "../../MockConnector.js";
 
-import {
-  connectorCapabilities,
-} from "../../ConnectorTypes.js";
+import { connectorCapabilities } from "../../ConnectorTypes.js";
 
 /**
  * Mock Salesforce connector.
@@ -16,8 +12,6 @@ export function createSalesforceConnector(): MockConnector {
   return new MockConnector({
     connectorId: "salesforce",
 
-    capabilities: connectorCapabilities([
-      "salesforce:update-opportunity",
-    ]),
+    capabilities: connectorCapabilities(["salesforce:update-opportunity"]),
   });
 }

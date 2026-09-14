@@ -1,34 +1,18 @@
 \# Audit Package — AS-001 Approved Vendor Payment
 
-
-
 \## Overview
-
-
 
 This directory contains a complete audit package for a successfully authorized Vendor Payment executed by Parmana.
 
-
-
 The package demonstrates every artifact generated during the execution lifecycle, from human authorization through verification and receipt generation.
-
-
 
 It serves as a reference implementation for auditors, compliance teams, security reviewers, and enterprise customers.
 
-
-
 \---
-
-
 
 \# Audit Scenario
 
-
-
 Scenario ID
-
-
 
 ```
 
@@ -36,11 +20,7 @@ AS-001
 
 ```
 
-
-
 Scenario Name
-
-
 
 ```
 
@@ -48,11 +28,7 @@ Approved Vendor Payment
 
 ```
 
-
-
 Business Domain
-
-
 
 ```
 
@@ -60,11 +36,7 @@ Accounts Payable
 
 ```
 
-
-
 Execution Outcome
-
-
 
 ```
 
@@ -72,15 +44,9 @@ APPROVED
 
 ```
 
-
-
 \---
 
-
-
 \# Execution Lifecycle
-
-
 
 ```
 
@@ -142,15 +108,9 @@ Receipt
 
 ```
 
-
-
 \---
 
-
-
 \# Package Contents
-
-
 
 | File | Description |
 
@@ -176,19 +136,11 @@ Receipt
 
 | AUDIT.md | Human-readable audit report |
 
-
-
 \---
-
-
 
 \# Purpose
 
-
-
 This audit package demonstrates:
-
-
 
 \- Human Authority
 
@@ -202,23 +154,13 @@ This audit package demonstrates:
 
 \- Cryptographic Receipt Generation
 
-
-
 Every artifact is immutable and intended to support independent review.
-
-
 
 \---
 
-
-
 \# Intended Audience
 
-
-
 This package is designed for:
-
-
 
 \- Auditors
 
@@ -234,19 +176,11 @@ This package is designed for:
 
 \- Customers evaluating Parmana
 
-
-
 \---
-
-
 
 \# Related Documentation
 
-
-
 See the Parmana documentation for:
-
-
 
 \- Runtime
 
@@ -257,4 +191,3 @@ See the Parmana documentation for:
 \- Replay
 
 \- Receipt Generation
-

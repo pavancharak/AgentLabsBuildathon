@@ -10,10 +10,7 @@ import {
 
 import { MemoryNonceStore } from "@parmana/envelope-verifier";
 
-import {
-  isMlDsa65Supported,
-  ML_DSA_65_SKIP_REASON,
-} from "@parmana/crypto";
+import { isMlDsa65Supported, ML_DSA_65_SKIP_REASON } from "@parmana/crypto";
 
 import type { ExecutionRequest } from "@parmana/execution-system";
 
@@ -108,267 +105,267 @@ function buildRequest(
 describe.skipIf(!isMlDsa65Supported())(
   `ExecutionGateway (dilithium3)${isMlDsa65Supported() ? "" : ` [SKIPPED: ${ML_DSA_65_SKIP_REASON}]`}`,
   () => {
-  it("releases a valid request to the connector", async () => {
-    const { privateKey, publicKey } = generateKeyPair();
-    const authorization = await signAuthorization(privateKey);
+    it("releases a valid request to the connector", async () => {
+      const { privateKey, publicKey } = generateKeyPair();
+      const authorization = await signAuthorization(privateKey);
 
-    expect(authorization.algorithm).toBe("dilithium3");
+      expect(authorization.algorithm).toBe("dilithium3");
 
-    const connector = new RecordingConnector();
-    const gateway = new ExecutionGateway({
-      publicKey,
-      nonceStore: new MemoryNonceStore(),
-      connector,
+      const connector = new RecordingConnector();
+      const gateway = new ExecutionGateway({
+        publicKey,
+        nonceStore: new MemoryNonceStore(),
+        connector,
+      });
+
+      const request = buildRequest(SAMPLE_EXECUTABLE_CONTENT, authorization);
+      const executionResult = await gateway.execute(request);
+
+      expect(executionResult.success).toBe(true);
+      expect(connector.lastRequest).toBeDefined();
+      expect(connector.lastRequest?.verification.valid).toBe(true);
+
+      const forwardedContent = connector.lastRequest!.transaction;
+      const recomputedHash = await contentHasher.hash(forwardedContent);
+
+      expect(recomputedHash).toBe(
+        authorization.payload.businessTransactionHash,
+      );
+
+      expect(Object.isFrozen(forwardedContent)).toBe(true);
+      expect(Object.isFrozen(forwardedContent.parameters)).toBe(true);
     });
 
-    const request = buildRequest(SAMPLE_EXECUTABLE_CONTENT, authorization);
-    const executionResult = await gateway.execute(request);
+    it("rejects a modified amount — hash mismatch names both hashes", async () => {
+      const { privateKey, publicKey } = generateKeyPair();
+      const authorization = await signAuthorization(privateKey);
 
-    expect(executionResult.success).toBe(true);
-    expect(connector.lastRequest).toBeDefined();
-    expect(connector.lastRequest?.verification.valid).toBe(true);
+      const modifiedAmount: ExecutableContent = {
+        ...SAMPLE_EXECUTABLE_CONTENT,
+        parameters: { amount: 999 },
+      };
 
-    const forwardedContent = connector.lastRequest!.transaction;
-    const recomputedHash = await contentHasher.hash(forwardedContent);
+      const connector = new RecordingConnector();
+      const gateway = new ExecutionGateway({
+        publicKey,
+        nonceStore: new MemoryNonceStore(),
+        connector,
+      });
 
-    expect(recomputedHash).toBe(
-      authorization.payload.businessTransactionHash,
-    );
+      const request = buildRequest(modifiedAmount, authorization);
 
-    expect(Object.isFrozen(forwardedContent)).toBe(true);
-    expect(Object.isFrozen(forwardedContent.parameters)).toBe(true);
-  });
+      await expect(gateway.execute(request)).rejects.toThrow(
+        /businessTransactionHash mismatch/,
+      );
+      expect(connector.lastRequest).toBeUndefined();
 
-  it("rejects a modified amount — hash mismatch names both hashes", async () => {
-    const { privateKey, publicKey } = generateKeyPair();
-    const authorization = await signAuthorization(privateKey);
+      const { result } = await gateway.verify(request);
 
-    const modifiedAmount: ExecutableContent = {
-      ...SAMPLE_EXECUTABLE_CONTENT,
-      parameters: { amount: 999 },
-    };
-
-    const connector = new RecordingConnector();
-    const gateway = new ExecutionGateway({
-      publicKey,
-      nonceStore: new MemoryNonceStore(),
-      connector,
+      expect(result.valid).toBe(false);
+      expect(result.checks.businessTransactionHashMatches).toBe(false);
+      expect(result.hashMismatch).toBeDefined();
+      expect(result.hashMismatch?.expected).not.toBe(
+        result.hashMismatch?.actual,
+      );
     });
 
-    const request = buildRequest(modifiedAmount, authorization);
+    it("rejects a modified recipient (target)", async () => {
+      const { privateKey, publicKey } = generateKeyPair();
+      const authorization = await signAuthorization(privateKey);
 
-    await expect(gateway.execute(request)).rejects.toThrow(
-      /businessTransactionHash mismatch/,
-    );
-    expect(connector.lastRequest).toBeUndefined();
+      const modifiedTarget: ExecutableContent = {
+        ...SAMPLE_EXECUTABLE_CONTENT,
+        target: "account/99999",
+      };
 
-    const { result } = await gateway.verify(request);
+      const connector = new RecordingConnector();
+      const gateway = new ExecutionGateway({
+        publicKey,
+        nonceStore: new MemoryNonceStore(),
+        connector,
+      });
 
-    expect(result.valid).toBe(false);
-    expect(result.checks.businessTransactionHashMatches).toBe(false);
-    expect(result.hashMismatch).toBeDefined();
-    expect(result.hashMismatch?.expected).not.toBe(
-      result.hashMismatch?.actual,
-    );
-  });
+      const request = buildRequest(modifiedTarget, authorization);
 
-  it("rejects a modified recipient (target)", async () => {
-    const { privateKey, publicKey } = generateKeyPair();
-    const authorization = await signAuthorization(privateKey);
-
-    const modifiedTarget: ExecutableContent = {
-      ...SAMPLE_EXECUTABLE_CONTENT,
-      target: "account/99999",
-    };
-
-    const connector = new RecordingConnector();
-    const gateway = new ExecutionGateway({
-      publicKey,
-      nonceStore: new MemoryNonceStore(),
-      connector,
+      await expect(gateway.execute(request)).rejects.toThrow(
+        /businessTransactionHash mismatch/,
+      );
+      expect(connector.lastRequest).toBeUndefined();
     });
 
-    const request = buildRequest(modifiedTarget, authorization);
+    it("rejects the same businessTransactionId carrying entirely different content", async () => {
+      const { privateKey, publicKey } = generateKeyPair();
+      const authorization = await signAuthorization(privateKey);
 
-    await expect(gateway.execute(request)).rejects.toThrow(
-      /businessTransactionHash mismatch/,
-    );
-    expect(connector.lastRequest).toBeUndefined();
-  });
+      const differentContent: ExecutableContent = {
+        businessTransactionId: SAMPLE_EXECUTABLE_CONTENT.businessTransactionId,
+        action: "DeployApplication",
+        target: "service/payment-api",
+        parameters: { version: "2.0.0" },
+      };
 
-  it("rejects the same businessTransactionId carrying entirely different content", async () => {
-    const { privateKey, publicKey } = generateKeyPair();
-    const authorization = await signAuthorization(privateKey);
+      const connector = new RecordingConnector();
+      const gateway = new ExecutionGateway({
+        publicKey,
+        nonceStore: new MemoryNonceStore(),
+        connector,
+      });
 
-    const differentContent: ExecutableContent = {
-      businessTransactionId: SAMPLE_EXECUTABLE_CONTENT.businessTransactionId,
-      action: "DeployApplication",
-      target: "service/payment-api",
-      parameters: { version: "2.0.0" },
-    };
+      const request = buildRequest(differentContent, authorization);
 
-    const connector = new RecordingConnector();
-    const gateway = new ExecutionGateway({
-      publicKey,
-      nonceStore: new MemoryNonceStore(),
-      connector,
+      await expect(gateway.execute(request)).rejects.toThrow(
+        /businessTransactionHash mismatch/,
+      );
+      expect(connector.lastRequest).toBeUndefined();
     });
 
-    const request = buildRequest(differentContent, authorization);
+    it("rejects a replayed request without releasing it twice, as a distinguishable NonceAlreadyConsumedError (409)", async () => {
+      const { privateKey, publicKey } = generateKeyPair();
+      const authorization = await signAuthorization(privateKey);
 
-    await expect(gateway.execute(request)).rejects.toThrow(
-      /businessTransactionHash mismatch/,
-    );
-    expect(connector.lastRequest).toBeUndefined();
-  });
+      const connector = new RecordingConnector();
+      const nonceStore = new MemoryNonceStore();
+      const gateway = new ExecutionGateway({
+        publicKey,
+        nonceStore,
+        connector,
+      });
 
-  it("rejects a replayed request without releasing it twice, as a distinguishable NonceAlreadyConsumedError (409)", async () => {
-    const { privateKey, publicKey } = generateKeyPair();
-    const authorization = await signAuthorization(privateKey);
+      const request = buildRequest(SAMPLE_EXECUTABLE_CONTENT, authorization);
 
-    const connector = new RecordingConnector();
-    const nonceStore = new MemoryNonceStore();
-    const gateway = new ExecutionGateway({
-      publicKey,
-      nonceStore,
-      connector,
+      const first = await gateway.execute(request);
+      expect(first.success).toBe(true);
+
+      let caught: unknown;
+
+      try {
+        await gateway.execute(request);
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).toBeInstanceOf(NonceAlreadyConsumedError);
+      expect((caught as NonceAlreadyConsumedError).status).toBe(409);
+      expect((caught as NonceAlreadyConsumedError).code).toBe(
+        "NONCE_ALREADY_CONSUMED",
+      );
     });
 
-    const request = buildRequest(SAMPLE_EXECUTABLE_CONTENT, authorization);
+    it("rejects an expired authorization", async () => {
+      const { privateKey, publicKey } = generateKeyPair();
+      const authorization = await signAuthorization(
+        privateKey,
+        SAMPLE_EXECUTABLE_CONTENT,
+        60,
+      );
 
-    const first = await gateway.execute(request);
-    expect(first.success).toBe(true);
+      const connector = new RecordingConnector();
+      const gateway = new ExecutionGateway({
+        publicKey,
+        nonceStore: new MemoryNonceStore(),
+        connector,
+      });
 
-    let caught: unknown;
+      const request = buildRequest(SAMPLE_EXECUTABLE_CONTENT, authorization);
 
-    try {
-      await gateway.execute(request);
-    } catch (error) {
-      caught = error;
-    }
+      const farFuture = new Date(
+        Date.parse(authorization.payload.authorizedAt) + 120_000,
+      );
 
-    expect(caught).toBeInstanceOf(NonceAlreadyConsumedError);
-    expect((caught as NonceAlreadyConsumedError).status).toBe(409);
-    expect((caught as NonceAlreadyConsumedError).code).toBe(
-      "NONCE_ALREADY_CONSUMED",
-    );
-  });
+      const { result } = await gateway.verify(request, farFuture);
 
-  it("rejects an expired authorization", async () => {
-    const { privateKey, publicKey } = generateKeyPair();
-    const authorization = await signAuthorization(
-      privateKey,
-      SAMPLE_EXECUTABLE_CONTENT,
-      60,
-    );
-
-    const connector = new RecordingConnector();
-    const gateway = new ExecutionGateway({
-      publicKey,
-      nonceStore: new MemoryNonceStore(),
-      connector,
+      expect(result.valid).toBe(false);
+      expect(result.checks.notExpired).toBe(false);
+      expect(result.checks.nonceUnseen).toBe(false);
     });
 
-    const request = buildRequest(SAMPLE_EXECUTABLE_CONTENT, authorization);
+    it("rejects a tampered signature", async () => {
+      const { privateKey, publicKey } = generateKeyPair();
+      const authorization = await signAuthorization(privateKey);
 
-    const farFuture = new Date(
-      Date.parse(authorization.payload.authorizedAt) + 120_000,
-    );
+      const tampered: SignedExecutionAuthorization = {
+        ...authorization,
+        payload: {
+          ...authorization.payload,
+          decisionId: "decision-2",
+        },
+      };
 
-    const { result } = await gateway.verify(request, farFuture);
+      const connector = new RecordingConnector();
+      const gateway = new ExecutionGateway({
+        publicKey,
+        nonceStore: new MemoryNonceStore(),
+        connector,
+      });
 
-    expect(result.valid).toBe(false);
-    expect(result.checks.notExpired).toBe(false);
-    expect(result.checks.nonceUnseen).toBe(false);
-  });
+      const request = buildRequest(SAMPLE_EXECUTABLE_CONTENT, tampered);
 
-  it("rejects a tampered signature", async () => {
-    const { privateKey, publicKey } = generateKeyPair();
-    const authorization = await signAuthorization(privateKey);
-
-    const tampered: SignedExecutionAuthorization = {
-      ...authorization,
-      payload: {
-        ...authorization.payload,
-        decisionId: "decision-2",
-      },
-    };
-
-    const connector = new RecordingConnector();
-    const gateway = new ExecutionGateway({
-      publicKey,
-      nonceStore: new MemoryNonceStore(),
-      connector,
+      await expect(gateway.execute(request)).rejects.toThrow(
+        /signatureVerified/,
+      );
+      expect(connector.lastRequest).toBeUndefined();
     });
 
-    const request = buildRequest(SAMPLE_EXECUTABLE_CONTENT, tampered);
+    it("rejects an unknown payload version", async () => {
+      const { privateKey, publicKey } = generateKeyPair();
+      const authorization = await signAuthorization(privateKey);
 
-    await expect(gateway.execute(request)).rejects.toThrow(
-      /signatureVerified/,
-    );
-    expect(connector.lastRequest).toBeUndefined();
-  });
+      const tampered = {
+        ...authorization,
+        payload: {
+          ...authorization.payload,
+          version: 2,
+        },
+      } as unknown as SignedExecutionAuthorization;
 
-  it("rejects an unknown payload version", async () => {
-    const { privateKey, publicKey } = generateKeyPair();
-    const authorization = await signAuthorization(privateKey);
+      const connector = new RecordingConnector();
+      const gateway = new ExecutionGateway({
+        publicKey,
+        nonceStore: new MemoryNonceStore(),
+        connector,
+      });
 
-    const tampered = {
-      ...authorization,
-      payload: {
-        ...authorization.payload,
-        version: 2,
-      },
-    } as unknown as SignedExecutionAuthorization;
+      const request = buildRequest(SAMPLE_EXECUTABLE_CONTENT, tampered);
 
-    const connector = new RecordingConnector();
-    const gateway = new ExecutionGateway({
-      publicKey,
-      nonceStore: new MemoryNonceStore(),
-      connector,
+      await expect(gateway.execute(request)).rejects.toThrow(
+        /versionSupported/,
+      );
+      expect(connector.lastRequest).toBeUndefined();
+
+      const { result } = await gateway.verify(request);
+      expect(result.checks.versionSupported).toBe(false);
+      expect(result.checks.signatureVerified).toBe(false);
     });
 
-    const request = buildRequest(SAMPLE_EXECUTABLE_CONTENT, tampered);
+    it("a rejected verification never consumes the nonce", async () => {
+      const { privateKey, publicKey } = generateKeyPair();
+      const authorization = await signAuthorization(privateKey);
 
-    await expect(gateway.execute(request)).rejects.toThrow(
-      /versionSupported/,
-    );
-    expect(connector.lastRequest).toBeUndefined();
+      const modifiedAmount: ExecutableContent = {
+        ...SAMPLE_EXECUTABLE_CONTENT,
+        parameters: { amount: 999 },
+      };
 
-    const { result } = await gateway.verify(request);
-    expect(result.checks.versionSupported).toBe(false);
-    expect(result.checks.signatureVerified).toBe(false);
-  });
+      const nonceStore = new MemoryNonceStore();
+      const connector = new RecordingConnector();
+      const gateway = new ExecutionGateway({
+        publicKey,
+        nonceStore,
+        connector,
+      });
 
-  it("a rejected verification never consumes the nonce", async () => {
-    const { privateKey, publicKey } = generateKeyPair();
-    const authorization = await signAuthorization(privateKey);
+      const tamperedRequest = buildRequest(modifiedAmount, authorization);
 
-    const modifiedAmount: ExecutableContent = {
-      ...SAMPLE_EXECUTABLE_CONTENT,
-      parameters: { amount: 999 },
-    };
+      await expect(gateway.execute(tamperedRequest)).rejects.toThrow();
 
-    const nonceStore = new MemoryNonceStore();
-    const connector = new RecordingConnector();
-    const gateway = new ExecutionGateway({
-      publicKey,
-      nonceStore,
-      connector,
+      const originalRequest = buildRequest(
+        SAMPLE_EXECUTABLE_CONTENT,
+        authorization,
+      );
+
+      const result = await gateway.execute(originalRequest);
+      expect(result.success).toBe(true);
+      expect(connector.lastRequest?.verification.valid).toBe(true);
     });
-
-    const tamperedRequest = buildRequest(modifiedAmount, authorization);
-
-    await expect(gateway.execute(tamperedRequest)).rejects.toThrow();
-
-    const originalRequest = buildRequest(
-      SAMPLE_EXECUTABLE_CONTENT,
-      authorization,
-    );
-
-    const result = await gateway.execute(originalRequest);
-    expect(result.success).toBe(true);
-    expect(connector.lastRequest?.verification.valid).toBe(true);
-  });
-});
-
+  },
+);

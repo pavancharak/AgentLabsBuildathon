@@ -35,7 +35,9 @@ describe("GitHubAppCredentialProvider", () => {
 
     expect(handle.providerId).toBe("github-app");
     expect(handle.credentialId).toBe("installation:154863462");
-    expect((handle.value as { installationToken: string }).installationToken).toBe(INSTALLATION_TOKEN);
+    expect(
+      (handle.value as { installationToken: string }).installationToken,
+    ).toBe(INSTALLATION_TOKEN);
   });
 
   it("brands the returned handle (rejectable by SdkConnectorExecutor's raw-credential guard otherwise)", async () => {
@@ -44,7 +46,11 @@ describe("GitHubAppCredentialProvider", () => {
     // observable proxy for "is this branded" is that the object survived
     // brandCredentialHandle's own Object.freeze without extra own keys
     // beyond providerId/credentialId/value.
-    expect(Object.keys(handle).sort()).toEqual(["credentialId", "providerId", "value"]);
+    expect(Object.keys(handle).sort()).toEqual([
+      "credentialId",
+      "providerId",
+      "value",
+    ]);
     expect(Object.isFrozen(handle)).toBe(true);
   });
 
@@ -79,13 +85,19 @@ describe("GitHubAppCredentialProvider", () => {
     }
 
     expect(caught).toBeInstanceOf(Error);
-    const privateKeyPem = privateKey.export({ type: "pkcs1", format: "pem" }).toString();
-    expect((caught as Error).message).not.toContain(privateKeyPem.split("\n")[1]);
+    const privateKeyPem = privateKey
+      .export({ type: "pkcs1", format: "pem" })
+      .toString();
+    expect((caught as Error).message).not.toContain(
+      privateKeyPem.split("\n")[1],
+    );
   });
 
   it("never places the private key or the minted token in the resolved handle's identifiers", async () => {
     const handle = await provider().resolve("github");
-    const privateKeyPem = privateKey.export({ type: "pkcs1", format: "pem" }).toString();
+    const privateKeyPem = privateKey
+      .export({ type: "pkcs1", format: "pem" })
+      .toString();
 
     expect(handle.credentialId).not.toContain(INSTALLATION_TOKEN);
     expect(handle.credentialId).not.toContain(privateKeyPem.split("\n")[1]);

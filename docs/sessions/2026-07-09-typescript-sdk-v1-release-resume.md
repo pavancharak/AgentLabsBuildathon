@@ -16,25 +16,26 @@ We are resuming the Parmana v1.0.0 release.
 
 ### Completed
 
-* ✅ Parmana Platform architecture finalized.
-* ✅ Python SDK v1.0.0 published to PyPI.
-* ✅ Python SDK tested in a clean virtual environment.
-* ✅ Git tag `v1.0.0` created and pushed for the Python SDK.
-* ✅ TypeScript SDK brought to feature parity with the Python SDK:
+- ✅ Parmana Platform architecture finalized.
+- ✅ Python SDK v1.0.0 published to PyPI.
+- ✅ Python SDK tested in a clean virtual environment.
+- ✅ Git tag `v1.0.0` created and pushed for the Python SDK.
+- ✅ TypeScript SDK brought to feature parity with the Python SDK:
 
-  * HealthApi
-  * ExecutionApi
-  * VerificationApi
-  * ReplayApi
-  * ReceiptApi
-  * TransactionApi
-  * TrustRecordApi
-  * PolicyApi
-  * ParmanaClient parity
-* ✅ Canonical TypeScript domain models added.
-* ✅ All packages build successfully.
-* ✅ Full test suite passes (all integration and unit tests are green).
-* ✅ Runtime lifecycle finalized as:
+  - HealthApi
+  - ExecutionApi
+  - VerificationApi
+  - ReplayApi
+  - ReceiptApi
+  - TransactionApi
+  - TrustRecordApi
+  - PolicyApi
+  - ParmanaClient parity
+
+- ✅ Canonical TypeScript domain models added.
+- ✅ All packages build successfully.
+- ✅ Full test suite passes (all integration and unit tests are green).
+- ✅ Runtime lifecycle finalized as:
 
   ```
   Execute
@@ -43,7 +44,8 @@ We are resuming the Parmana v1.0.0 release.
       ↓
   Receipt (automatic)
   ```
-* ✅ Integration tests updated to match the canonical lifecycle.
+
+- ✅ Integration tests updated to match the canonical lifecycle.
 
 ### Current status
 

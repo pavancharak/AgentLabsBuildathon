@@ -223,7 +223,7 @@ this codebase.
 
 ## Fetching the raw private key into the process (Vault KV / Secrets Manager KV)
 
-Rejected for the *signing key specifically* (opaque connector secrets, which have no
+Rejected for the _signing key specifically_ (opaque connector secrets, which have no
 meaningful "sign-only" operation, are fine in Secrets Manager): this only relocates
 where the private key rests at rest, and a fully compromised process can still read
 it into memory and exfiltrate it. KMS's `Sign` API never releases the key at all.

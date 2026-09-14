@@ -27,13 +27,20 @@ const content: ExecutableContent = {
 
 async function fixture() {
   const { privateKey } = generateKeyPairSync("ed25519");
-  const authorization = await new AuthorizationSigner(CryptoBootstrap.create()).sign({
-    decisionId: "decision-1",
-    businessTransactionId: content.businessTransactionId,
-    policyName: "payments",
-    policyVersion: "1.0.0",
-    executableContent: content,
-  }, privateKey, "key-1", 60);
+  const authorization = await new AuthorizationSigner(
+    CryptoBootstrap.create(),
+  ).sign(
+    {
+      decisionId: "decision-1",
+      businessTransactionId: content.businessTransactionId,
+      policyName: "payments",
+      policyVersion: "1.0.0",
+      executableContent: content,
+    },
+    privateKey,
+    "key-1",
+    60,
+  );
   const gatewayIdentity: GatewayIdentity = {
     gatewayId: "gateway-1",
     publicIdentity: "spiffe://parmana/gateway",
@@ -45,14 +52,22 @@ async function fixture() {
     authenticationMetadata: { mechanism: "in-memory-registry" },
   };
   const gatewayAuthentication = Object.freeze({ token: "gateway-only" });
-  const sessionIssuanceAuthentication = Object.freeze({ capability: "session-issuer" });
-  const sessions = new InMemoryGatewaySessionStore(sessionIssuanceAuthentication);
+  const sessionIssuanceAuthentication = Object.freeze({
+    capability: "session-issuer",
+  });
+  const sessions = new InMemoryGatewaySessionStore(
+    sessionIssuanceAuthentication,
+  );
   const authenticator = new InMemoryConnectorAuthenticator(
-    gatewayIdentity, gatewayAuthentication, [connectorIdentity],
+    gatewayIdentity,
+    gatewayAuthentication,
+    [connectorIdentity],
   );
   const policy = new DefaultConnectorPolicy(authenticator, sessions);
   const vault = new InMemoryCredentialVault();
-  vault.setCredential("stripe", { value: Object.freeze({ apiKey: "connector-secret" }) });
+  vault.setCredential("stripe", {
+    value: Object.freeze({ apiKey: "connector-secret" }),
+  });
   let credentialUses = 0;
   const connector = new InMemorySecureConnector({
     identity: connectorIdentity,
@@ -64,14 +79,23 @@ async function fixture() {
       async execute(executableContent, credential): Promise<ExecutionResult> {
         expect(credential.value).toEqual({ apiKey: "connector-secret" });
         credentialUses += 1;
-        return { ...executableContent, success: true, executedAt: new Date(), metadata: {} };
+        return {
+          ...executableContent,
+          success: true,
+          executedAt: new Date(),
+          metadata: {},
+        };
       },
     },
   });
   const registry = new InMemoryConnectorRegistry([connector]);
   const audit = new MemoryExecutionAuditSink();
   const service = new ExecutionControlService({
-    gatewayIdentity, authenticator, registry, sessions, audit,
+    gatewayIdentity,
+    authenticator,
+    registry,
+    sessions,
+    audit,
     sessionIssuanceAuthentication,
   });
   const release: ExecutionRelease = {
@@ -85,15 +109,28 @@ async function fixture() {
     executionTimestamp: new Date().toISOString(),
   };
   return {
-    authorization, gatewayIdentity, gatewayAuthentication, sessionIssuanceAuthentication,
-    sessions, connector,
-    registry, service, release, audit, credentialUses: () => credentialUses,
+    authorization,
+    gatewayIdentity,
+    gatewayAuthentication,
+    sessionIssuanceAuthentication,
+    sessions,
+    connector,
+    registry,
+    service,
+    release,
+    audit,
+    credentialUses: () => credentialUses,
   };
 }
 
 function connectorRequest(
   f: Awaited<ReturnType<typeof fixture>>,
-  session = f.sessions.create(f.release, "stripe", 30_000, f.sessionIssuanceAuthentication),
+  session = f.sessions.create(
+    f.release,
+    "stripe",
+    30_000,
+    f.sessionIssuanceAuthentication,
+  ),
 ): GatewayExecutionRequest {
   return {
     authorization: f.authorization,
@@ -108,26 +145,33 @@ function connectorRequest(
 describe("execution control", () => {
   it("executes a valid request without exposing credentials", async () => {
     const f = await fixture();
-    await expect(f.service.execute(f.release, f.gatewayAuthentication))
-      .resolves.toMatchObject({ success: true });
+    await expect(
+      f.service.execute(f.release, f.gatewayAuthentication),
+    ).resolves.toMatchObject({ success: true });
     expect(f.credentialUses()).toBe(1);
     expect(JSON.stringify(f.release)).not.toContain("connector-secret");
   });
 
   it("rejects an unauthenticated Gateway", async () => {
     const f = await fixture();
-    await expect(f.service.execute(f.release, { token: "gateway-only" }))
-      .rejects.toThrow("unauthenticated Gateway");
+    await expect(
+      f.service.execute(f.release, { token: "gateway-only" }),
+    ).rejects.toThrow("unauthenticated Gateway");
     expect(f.credentialUses()).toBe(0);
   });
 
   it("rejects an expired session", async () => {
     const f = await fixture();
     const session = f.sessions.create(
-      f.release, "stripe", 1, f.sessionIssuanceAuthentication, new Date(Date.now() - 10),
+      f.release,
+      "stripe",
+      1,
+      f.sessionIssuanceAuthentication,
+      new Date(Date.now() - 10),
     );
-    await expect(f.connector.execute(connectorRequest(f, session)))
-      .rejects.toThrow("expired");
+    await expect(
+      f.connector.execute(connectorRequest(f, session)),
+    ).rejects.toThrow("expired");
     expect(f.credentialUses()).toBe(0);
   });
 
@@ -142,35 +186,48 @@ describe("execution control", () => {
   it("rejects modified executable content", async () => {
     const f = await fixture();
     const request = connectorRequest(f);
-    await expect(f.connector.execute({
-      ...request,
-      executableContent: { ...content, parameters: { amount: 9999 } },
-    })).rejects.toThrow("modified");
+    await expect(
+      f.connector.execute({
+        ...request,
+        executableContent: { ...content, parameters: { amount: 9999 } },
+      }),
+    ).rejects.toThrow("modified");
     expect(f.credentialUses()).toBe(0);
   });
 
   it("rejects modified authorization", async () => {
     const f = await fixture();
     const request = connectorRequest(f);
-    await expect(f.connector.execute({
-      ...request,
-      authorization: { ...f.authorization, signature: `${f.authorization.signature}x` },
-    })).rejects.toThrow("modified");
+    await expect(
+      f.connector.execute({
+        ...request,
+        authorization: {
+          ...f.authorization,
+          signature: `${f.authorization.signature}x`,
+        },
+      }),
+    ).rejects.toThrow("modified");
     expect(f.credentialUses()).toBe(0);
   });
 
-  it.each(["Runtime", "AI"])("rejects a direct %s connector invocation", async () => {
-    const f = await fixture();
-    await expect(f.connector.execute({
-      ...connectorRequest(f),
-      gatewaySession: {
-        sessionId: "forged", createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 30_000).toISOString(),
-        authorizationId: f.authorization.payload.authorizationId,
-      },
-    })).rejects.toThrow("invalid");
-    expect(f.credentialUses()).toBe(0);
-  });
+  it.each(["Runtime", "AI"])(
+    "rejects a direct %s connector invocation",
+    async () => {
+      const f = await fixture();
+      await expect(
+        f.connector.execute({
+          ...connectorRequest(f),
+          gatewaySession: {
+            sessionId: "forged",
+            createdAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 30_000).toISOString(),
+            authorizationId: f.authorization.payload.authorizationId,
+          },
+        }),
+      ).rejects.toThrow("invalid");
+      expect(f.credentialUses()).toBe(0);
+    },
+  );
 
   it("returns the registered connector and rejects unknown names", async () => {
     const f = await fixture();
@@ -193,16 +250,26 @@ describe("execution control", () => {
 
   it("creates distinct one-time sessions for releases", async () => {
     const f = await fixture();
-    const first = f.sessions.create(f.release, "stripe", 30_000, f.sessionIssuanceAuthentication);
-    const second = f.sessions.create(f.release, "stripe", 30_000, f.sessionIssuanceAuthentication);
+    const first = f.sessions.create(
+      f.release,
+      "stripe",
+      30_000,
+      f.sessionIssuanceAuthentication,
+    );
+    const second = f.sessions.create(
+      f.release,
+      "stripe",
+      30_000,
+      f.sessionIssuanceAuthentication,
+    );
     expect(first.sessionId).not.toBe(second.sessionId);
     expect(first.authorizationId).toBe(f.authorization.payload.authorizationId);
   });
 
   it("rejects session creation by Runtime or AI callers", async () => {
     const f = await fixture();
-    expect(() => f.sessions.create(f.release, "stripe", 30_000, {}))
-      .toThrow("unauthenticated caller");
+    expect(() => f.sessions.create(f.release, "stripe", 30_000, {})).toThrow(
+      "unauthenticated caller",
+    );
   });
 });
-

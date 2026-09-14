@@ -23,7 +23,12 @@ function validArtifact(): unknown {
       scope: { field: "amountDeltaAbs", comparator: "lte", value: 50_000 },
       nonce: "nonce-1",
     },
-    signature: { algorithm: "ed25519", keyId: "manager-jane-key-1", value: "base64signature", signedAt: "2026-08-05T12:00:00.000Z" },
+    signature: {
+      algorithm: "ed25519",
+      keyId: "manager-jane-key-1",
+      value: "base64signature",
+      signedAt: "2026-08-05T12:00:00.000Z",
+    },
   };
 }
 
@@ -34,7 +39,11 @@ describe("isSignedApprovalShape", () => {
 
   it("accepts a well-formed 'between' scope", () => {
     const artifact = validArtifact() as { payload: { scope: unknown } };
-    artifact.payload.scope = { field: "amountDeltaAbs", comparator: "between", value: { min: 1, max: 2 } };
+    artifact.payload.scope = {
+      field: "amountDeltaAbs",
+      comparator: "between",
+      value: { min: 1, max: 2 },
+    };
     expect(isSignedApprovalShape(artifact)).toBe(true);
   });
 
@@ -73,20 +82,30 @@ describe("isSignedApprovalShape", () => {
   });
 
   it("rejects an issuer missing keyId", () => {
-    const artifact = validArtifact() as { payload: { issuer: Record<string, unknown> } };
+    const artifact = validArtifact() as {
+      payload: { issuer: Record<string, unknown> };
+    };
     delete artifact.payload.issuer.keyId;
     expect(isSignedApprovalShape(artifact)).toBe(false);
   });
 
   it("rejects a scope with a non-numeric 'between' bound", () => {
     const artifact = validArtifact() as { payload: Record<string, unknown> };
-    artifact.payload.scope = { field: "amountDeltaAbs", comparator: "between", value: { min: "1", max: 2 } };
+    artifact.payload.scope = {
+      field: "amountDeltaAbs",
+      comparator: "between",
+      value: { min: "1", max: 2 },
+    };
     expect(isSignedApprovalShape(artifact)).toBe(false);
   });
 
   it("rejects a scope whose value is neither primitive nor a min/max object", () => {
     const artifact = validArtifact() as { payload: Record<string, unknown> };
-    artifact.payload.scope = { field: "amountDeltaAbs", comparator: "eq", value: [1, 2] };
+    artifact.payload.scope = {
+      field: "amountDeltaAbs",
+      comparator: "eq",
+      value: [1, 2],
+    };
     expect(isSignedApprovalShape(artifact)).toBe(false);
   });
 
@@ -105,7 +124,9 @@ describe("isSignedApprovalShape", () => {
   });
 
   it("does not throw on deeply hostile/malformed input, only returns false", () => {
-    const hostile = JSON.parse('{"__proto__": {"x": 1}, "payload": null, "signature": null}');
+    const hostile = JSON.parse(
+      '{"__proto__": {"x": 1}, "payload": null, "signature": null}',
+    );
     expect(() => isSignedApprovalShape(hostile)).not.toThrow();
     expect(isSignedApprovalShape(hostile)).toBe(false);
   });

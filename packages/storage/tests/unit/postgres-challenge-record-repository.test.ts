@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import type { Pool } from "pg";
 
-import { ChallengeRecordNotFoundError, type ChallengeRecord } from "@parmana/shared";
+import {
+  ChallengeRecordNotFoundError,
+  type ChallengeRecord,
+} from "@parmana/shared";
 
 import { PostgresChallengeRecordRepository } from "../../src/postgres/PostgresChallengeRecordRepository.js";
 
@@ -15,7 +18,10 @@ import { PostgresChallengeRecordRepository } from "../../src/postgres/PostgresCh
  * driver would return, not the raw parameterized strings that were
  * sent.
  */
-function createFakePool(): { pool: Pool; rows: Map<string, Record<string, unknown>> } {
+function createFakePool(): {
+  pool: Pool;
+  rows: Map<string, Record<string, unknown>>;
+} {
   const rows = new Map<string, Record<string, unknown>>();
 
   const pool = {
@@ -40,10 +46,14 @@ function createFakePool(): { pool: Pool; rows: Map<string, Record<string, unknow
           status,
           claim_challenged: claimChallenged,
           source_json: JSON.parse(sourceJson as string),
-          investigation_steps_json: JSON.parse(investigationStepsJson as string),
+          investigation_steps_json: JSON.parse(
+            investigationStepsJson as string,
+          ),
           finding_json: findingJson ? JSON.parse(findingJson as string) : null,
           outcome_json: outcomeJson ? JSON.parse(outcomeJson as string) : null,
-          disclosure_json: disclosureJson ? JSON.parse(disclosureJson as string) : null,
+          disclosure_json: disclosureJson
+            ? JSON.parse(disclosureJson as string)
+            : null,
           supersedes: supersedes ?? null,
           created_at: new Date(createdAt as string),
           updated_at: new Date(updatedAt as string),
@@ -69,10 +79,18 @@ function createFakePool(): { pool: Pool; rows: Map<string, Record<string, unknow
           rows.set(challengeRecordId as string, {
             ...existing,
             status,
-            investigation_steps_json: JSON.parse(investigationStepsJson as string),
-            finding_json: findingJson ? JSON.parse(findingJson as string) : null,
-            outcome_json: outcomeJson ? JSON.parse(outcomeJson as string) : null,
-            disclosure_json: disclosureJson ? JSON.parse(disclosureJson as string) : null,
+            investigation_steps_json: JSON.parse(
+              investigationStepsJson as string,
+            ),
+            finding_json: findingJson
+              ? JSON.parse(findingJson as string)
+              : null,
+            outcome_json: outcomeJson
+              ? JSON.parse(outcomeJson as string)
+              : null,
+            disclosure_json: disclosureJson
+              ? JSON.parse(disclosureJson as string)
+              : null,
             updated_at: new Date(updatedAt as string),
           });
         }
@@ -91,7 +109,9 @@ function createFakePool(): { pool: Pool; rows: Map<string, Record<string, unknow
         return Promise.resolve({ rows: [...rows.values()] });
       }
 
-      throw new Error(`PostgresChallengeRecordRepository test fake: unexpected SQL: ${sql}`);
+      throw new Error(
+        `PostgresChallengeRecordRepository test fake: unexpected SQL: ${sql}`,
+      );
     },
   };
 
@@ -114,7 +134,8 @@ function buildChallengeRecord(challengeRecordId: string): ChallengeRecord {
       {
         performedAt: now,
         method: "read packages/api/src/auth/SupabaseCallerAuditSink.ts",
-        observation: "confirmed the insert path now bypasses PostgREST entirely",
+        observation:
+          "confirmed the insert path now bypasses PostgREST entirely",
       },
     ],
     createdAt: now,
@@ -188,7 +209,9 @@ describe("PostgresChallengeRecordRepository", () => {
     const found = await repository.findById("challenge-1");
 
     expect(found!.investigationSteps).toHaveLength(2);
-    expect(found!.investigationSteps[1]!.observation).toBe("730 passed, 0 failed");
+    expect(found!.investigationSteps[1]!.observation).toBe(
+      "730 passed, 0 failed",
+    );
   });
 
   it("throws ChallengeRecordNotFoundError when appending to an unknown id", async () => {

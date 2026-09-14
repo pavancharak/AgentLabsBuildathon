@@ -313,7 +313,11 @@ describe("GatewayPaytmAdapter", () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
     await connector().execute(
-      refundRequest({ orderId: "order-sig", transactionId: "txn-sig", amount: 250 }),
+      refundRequest({
+        orderId: "order-sig",
+        transactionId: "txn-sig",
+        amount: 250,
+      }),
       context(),
     );
 
@@ -324,7 +328,9 @@ describe("GatewayPaytmAdapter", () => {
     expect(sentBody.authorization.signature.length).toBeGreaterThan(0);
     expect(typeof sentBody.authorization.keyId).toBe("string");
     expect(typeof sentBody.authorization.payload.expiresAt).toBe("number");
-    expect(sentBody.authorization.payload.expiresAt).toBeGreaterThan(Date.now());
+    expect(sentBody.authorization.payload.expiresAt).toBeGreaterThan(
+      Date.now(),
+    );
 
     // Independently verify -- proves this isn't just "some string", it's a
     // real signature over the exact canonical content a receiving service

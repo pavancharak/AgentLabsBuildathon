@@ -9,12 +9,13 @@
  * assertion. Every entry must carry a non-empty reason (enforced by
  * assert-connector-capabilities-bound.test.ts).
  */
-export const INTENTIONALLY_UNBOUND_CAPABILITIES: ReadonlyMap<string, string> = new Map([
-  [
-    "test:fixture-execute",
+export const INTENTIONALLY_UNBOUND_CAPABILITIES: ReadonlyMap<string, string> =
+  new Map([
+    [
+      "test:fixture-execute",
 
-    "Test-only fixture connector (createTestFixtureConnector.ts), never " +
-      "registered outside NODE_ENV=test, carries no production implication " +
-      "-- see that file's own doc comment.",
-  ],
-]);
+      "Test-only fixture connector (createTestFixtureConnector.ts), never " +
+        "registered outside NODE_ENV=test, carries no production implication " +
+        "-- see that file's own doc comment.",
+    ],
+  ]);

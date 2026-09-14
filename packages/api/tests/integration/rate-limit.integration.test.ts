@@ -22,14 +22,28 @@ describe("Rate limiting (HTTP boundary)", () => {
   const CALLER_A_KEY = "rate-limit-caller-a-raw-key-for-tests-only";
   const CALLER_B_KEY = "rate-limit-caller-b-raw-key-for-tests-only";
 
-  function buildApp(rateLimit: { executePerMinute: number; healthPerMinute: number }) {
-    const { executionSystem, auditSink: executionAuditSink } = createInspectableExecutionSystem();
+  function buildApp(rateLimit: {
+    executePerMinute: number;
+    healthPerMinute: number;
+  }) {
+    const { executionSystem, auditSink: executionAuditSink } =
+      createInspectableExecutionSystem();
 
     const application = createApplication(executionSystem);
 
     const authenticator = new StaticKeyAuthenticator([
-      { callerId: "caller-a", keyHash: hashApiKey(CALLER_A_KEY), allowedPrincipalIds: ["integration-test"], allowedCapabilities: ["test:fixture-execute"] },
-      { callerId: "caller-b", keyHash: hashApiKey(CALLER_B_KEY), allowedPrincipalIds: ["integration-test"], allowedCapabilities: ["test:fixture-execute"] },
+      {
+        callerId: "caller-a",
+        keyHash: hashApiKey(CALLER_A_KEY),
+        allowedPrincipalIds: ["integration-test"],
+        allowedCapabilities: ["test:fixture-execute"],
+      },
+      {
+        callerId: "caller-b",
+        keyHash: hashApiKey(CALLER_B_KEY),
+        allowedPrincipalIds: ["integration-test"],
+        allowedCapabilities: ["test:fixture-execute"],
+      },
     ]);
 
     const callerAuditSink = new InMemoryCallerAuditSink();
@@ -61,7 +75,10 @@ describe("Rate limiting (HTTP boundary)", () => {
     });
 
     it("traffic over the limit gets a clean 429 with a Retry-After header, and never reaches signing/execution", async () => {
-      const { app, executionAuditSink } = buildApp({ executePerMinute: 2, healthPerMinute: 300 });
+      const { app, executionAuditSink } = buildApp({
+        executePerMinute: 2,
+        healthPerMinute: 300,
+      });
 
       const first = await request(app)
         .post("/execute")
@@ -184,8 +201,12 @@ describe("Rate limiting (HTTP boundary)", () => {
         rateLimit: { executePerMinute: 1, healthPerMinute: 300 },
       });
 
-      const first = await request(app).post("/execute").send(createBusinessTransaction());
-      const second = await request(app).post("/execute").send(createBusinessTransaction());
+      const first = await request(app)
+        .post("/execute")
+        .send(createBusinessTransaction());
+      const second = await request(app)
+        .post("/execute")
+        .send(createBusinessTransaction());
 
       expect(first.status).toBe(200);
       expect(second.status).toBe(200);
@@ -198,7 +219,12 @@ describe("Rate limiting (HTTP boundary)", () => {
       const application = createApplication(executionSystem);
 
       const authenticator = new StaticKeyAuthenticator([
-        { callerId: "caller-a", keyHash: hashApiKey(CALLER_A_KEY), allowedPrincipalIds: ["integration-test"], allowedCapabilities: ["test:fixture-execute"] },
+        {
+          callerId: "caller-a",
+          keyHash: hashApiKey(CALLER_A_KEY),
+          allowedPrincipalIds: ["integration-test"],
+          allowedCapabilities: ["test:fixture-execute"],
+        },
       ]);
 
       const app = createApp(application, {

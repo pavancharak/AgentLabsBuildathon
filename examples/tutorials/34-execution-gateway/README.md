@@ -1,38 +1,20 @@
 \# Tutorial 34 — Execution Gateway
 
-
-
 \## Overview
-
-
 
 This tutorial concludes the Parmana tutorial series.
 
-
-
 The \*\*Execution Gateway\*\* is the final enforcement point before an enterprise action is performed.
-
-
 
 Its responsibility is simple:
 
-
-
 > Only execution requests carrying a valid Execution Authorization are allowed to reach enterprise systems.
-
-
 
 Everything else is rejected.
 
-
-
 \---
 
-
-
 \## Architecture
-
-
 
 ```text
 
@@ -82,19 +64,11 @@ Enterprise System
 
 ```
 
-
-
 \---
-
-
 
 \## Why an Execution Gateway?
 
-
-
 Without a gateway, AI systems could communicate directly with enterprise applications.
-
-
 
 ```text
 
@@ -108,15 +82,9 @@ SAP
 
 ```
 
-
-
 There would be no centralized point to verify whether execution was authorized.
 
-
-
 The Execution Gateway introduces a mandatory verification layer.
-
-
 
 ```text
 
@@ -148,19 +116,11 @@ Enterprise System
 
 ```
 
-
-
 \---
-
-
 
 \## Responsibilities
 
-
-
 The Execution Gateway validates that:
-
-
 
 \- the Execution Authorization exists
 
@@ -174,19 +134,11 @@ The Execution Gateway validates that:
 
 \- the authorization has not been replayed
 
-
-
 Only after every validation succeeds is the request forwarded to the enterprise system.
-
-
 
 \---
 
-
-
 \## Execution Flow
-
-
 
 ```text
 
@@ -224,15 +176,9 @@ Business Action
 
 ```
 
-
-
 \---
 
-
-
 \## Example Output
-
-
 
 ```text
 
@@ -342,19 +288,11 @@ Tutorial completed successfully.
 
 ```
 
-
-
 \---
-
-
 
 \## Relationship to Previous Tutorials
 
-
-
 Earlier tutorials introduced individual security controls:
-
-
 
 \- Execution Authorization
 
@@ -374,23 +312,13 @@ Earlier tutorials introduced individual security controls:
 
 \- Execution Boundary
 
-
-
 The Execution Gateway combines those controls into a single enforcement point before enterprise execution.
-
-
 
 \---
 
-
-
 \## Security Model
 
-
-
 Every execution request must satisfy all required checks before it reaches an enterprise system.
-
-
 
 ```text
 
@@ -440,19 +368,11 @@ Enterprise Execution
 
 ```
 
-
-
 \---
-
-
 
 \## Canonical Execution Authorization Model
 
-
-
 Parmana separates intelligence from execution.
-
-
 
 ```text
 
@@ -478,19 +398,11 @@ Enterprise systems execute
 
 ```
 
-
-
 This separation ensures that enterprise systems never execute AI-generated requests directly. Every execution must first pass through Parmana's governance and verification process.
-
-
 
 \---
 
-
-
 \## Running the Example
-
-
 
 ```bash
 
@@ -498,11 +410,7 @@ tsx examples/tutorials/34-execution-gateway/run.ts
 
 ```
 
-
-
 or
-
-
 
 ```bash
 
@@ -510,23 +418,13 @@ npm run examples
 
 ```
 
-
-
 \---
-
-
 
 \## Tutorial Series Complete
 
-
-
 Congratulations!
 
-
-
 You have completed the full Parmana tutorial series covering:
-
-
 
 1\. Runtime fundamentals
 
@@ -572,7 +470,4 @@ You have completed the full Parmana tutorial series covering:
 
 22\. Execution gateway
 
-
-
 Together, these tutorials demonstrate Parmana's execution trust model from policy evaluation through trusted enterprise execution.
-

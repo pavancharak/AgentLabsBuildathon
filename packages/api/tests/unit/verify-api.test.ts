@@ -16,6 +16,3 @@ describe("POST /verify", () => {
     );
   });
 });
-
-
-

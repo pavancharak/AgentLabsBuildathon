@@ -22,12 +22,8 @@ class FixedPolicyRepository implements PolicyRepository {
   }
 }
 
-class NullExecutionTrustRecordRepository
-  implements ExecutionTrustRecordRepository
-{
-  async create(
-    record: ExecutionTrustRecord,
-  ): Promise<ExecutionTrustRecord> {
+class NullExecutionTrustRecordRepository implements ExecutionTrustRecordRepository {
+  async create(record: ExecutionTrustRecord): Promise<ExecutionTrustRecord> {
     return record;
   }
 
@@ -55,9 +51,7 @@ const noopStage: RuntimeComponent = {
 describe("RuntimeBuilder", () => {
   it("throws when built without a PolicyRepository", () => {
     expect(() =>
-      new RuntimeBuilder().build(
-        new NullExecutionTrustRecordRepository(),
-      ),
+      new RuntimeBuilder().build(new NullExecutionTrustRecordRepository()),
     ).toThrow("PolicyRepository is required.");
   });
 
@@ -97,4 +91,3 @@ describe("RuntimeBuilder", () => {
     expect(runtime.isEmpty()).toBe(true);
   });
 });
-

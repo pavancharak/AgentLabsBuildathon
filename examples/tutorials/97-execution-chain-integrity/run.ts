@@ -9,10 +9,7 @@ import {
   type Execution,
 } from "@parmana/shared";
 
-import {
-  ExecutionChainCrypto,
-  FileKeyExpiryStore,
-} from "@parmana/crypto";
+import { ExecutionChainCrypto, FileKeyExpiryStore } from "@parmana/crypto";
 
 console.log();
 console.log("==================================================");
@@ -70,8 +67,12 @@ const execution2: Execution = { ...draft2, ...chain2 };
 
 console.log("Chain Links");
 console.log("--------------------------------------------------");
-console.log(`Execution 1 : previousChainHash=${execution1.previousChainHash}  chainHash=${execution1.chainHash?.slice(0, 16)}...`);
-console.log(`Execution 2 : previousChainHash=${execution2.previousChainHash?.slice(0, 16)}...  chainHash=${execution2.chainHash?.slice(0, 16)}...`);
+console.log(
+  `Execution 1 : previousChainHash=${execution1.previousChainHash}  chainHash=${execution1.chainHash?.slice(0, 16)}...`,
+);
+console.log(
+  `Execution 2 : previousChainHash=${execution2.previousChainHash?.slice(0, 16)}...  chainHash=${execution2.chainHash?.slice(0, 16)}...`,
+);
 console.log();
 
 const validChain = await chainCrypto.verifyChain([execution1, execution2]);
@@ -85,14 +86,23 @@ const tamperedExecution1: Execution = {
   status: ExecutionStatus.COMPLETED,
 };
 
-const tamperedChain = await chainCrypto.verifyChain([tamperedExecution1, execution2]);
-console.log(`Tampered chain verification : ${tamperedChain.valid} (broken at ${tamperedChain.brokenAt}, reason: ${tamperedChain.reason})`);
+const tamperedChain = await chainCrypto.verifyChain([
+  tamperedExecution1,
+  execution2,
+]);
+console.log(
+  `Tampered chain verification : ${tamperedChain.valid} (broken at ${tamperedChain.brokenAt}, reason: ${tamperedChain.reason})`,
+);
 console.log();
 
 if (validChain.valid && !tamperedChain.valid) {
-  console.log("✓ Chain integrity holds: legitimate chain verifies, tampered chain is caught.");
+  console.log(
+    "✓ Chain integrity holds: legitimate chain verifies, tampered chain is caught.",
+  );
 } else {
-  console.log("✗ Expected the valid chain to verify and the tampered one to fail.");
+  console.log(
+    "✗ Expected the valid chain to verify and the tampered one to fail.",
+  );
 }
 
 console.log();
@@ -112,8 +122,14 @@ console.log();
 const tempKeyDir = mkdtempSync(join(tmpdir(), "parmana-key-expiry-"));
 
 try {
-  copyFileSync("keys/default.private.pem", join(tempKeyDir, "default.private.pem"));
-  copyFileSync("keys/default.public.pem", join(tempKeyDir, "default.public.pem"));
+  copyFileSync(
+    "keys/default.private.pem",
+    join(tempKeyDir, "default.private.pem"),
+  );
+  copyFileSync(
+    "keys/default.public.pem",
+    join(tempKeyDir, "default.public.pem"),
+  );
 
   writeFileSync(
     join(tempKeyDir, "key-expiry.json"),
@@ -135,18 +151,29 @@ try {
 
     console.log("Key Expiry Lookups");
     console.log("--------------------------------------------------");
-    console.log(`"default" (revoked in key-expiry.json)           : ${JSON.stringify(revokedEntry)}`);
-    console.log(`"default-secondary" (expired in key-expiry.json)  : ${JSON.stringify(expiredEntry)}`);
-    console.log(`"gateway" (absent from key-expiry.json)           : ${unlistedEntry === undefined ? "undefined (always valid)" : JSON.stringify(unlistedEntry)}`);
+    console.log(
+      `"default" (revoked in key-expiry.json)           : ${JSON.stringify(revokedEntry)}`,
+    );
+    console.log(
+      `"default-secondary" (expired in key-expiry.json)  : ${JSON.stringify(expiredEntry)}`,
+    );
+    console.log(
+      `"gateway" (absent from key-expiry.json)           : ${unlistedEntry === undefined ? "undefined (always valid)" : JSON.stringify(unlistedEntry)}`,
+    );
     console.log();
 
     const isRevoked = revokedEntry?.revoked === true;
-    const isExpired = (expiredEntry?.expiresAt?.getTime() ?? Infinity) < Date.now();
+    const isExpired =
+      (expiredEntry?.expiresAt?.getTime() ?? Infinity) < Date.now();
 
     if (isRevoked && isExpired && unlistedEntry === undefined) {
-      console.log("✓ Key expiry store correctly reports revoked/expired keys and treats an unlisted keyId as always valid.");
+      console.log(
+        "✓ Key expiry store correctly reports revoked/expired keys and treats an unlisted keyId as always valid.",
+      );
     } else {
-      console.log("✗ Expected revoked/expired entries to be reported and an unlisted keyId to be undefined.");
+      console.log(
+        "✗ Expected revoked/expired entries to be reported and an unlisted keyId to be undefined.",
+      );
     }
   } finally {
     if (originalKeyDir === undefined) {

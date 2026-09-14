@@ -13,12 +13,12 @@ to a freshly generated keyId, and nothing already issued is affected.
 
 ## What You'll Learn
 
-* A record signed before rotation uses keyId `"default"` and verifies (Scenario 1)
-* Rotation means generating a brand-new keyId's key pair — `default.*.pem` is never
+- A record signed before rotation uses keyId `"default"` and verifies (Scenario 1)
+- Rotation means generating a brand-new keyId's key pair — `default.*.pem` is never
   touched, never deleted (Scenario 2)
-* A record signed after rotation, by a freshly constructed `VerificationCrypto` (simulating
+- A record signed after rotation, by a freshly constructed `VerificationCrypto` (simulating
   a new process after redeploy), uses the new keyId and verifies (Scenario 3)
-* The pre-rotation record still verifies correctly after rotation — this is the property
+- The pre-rotation record still verifies correctly after rotation — this is the property
   that was previously false: verification always resolves the public key by the record's
   own stored `keyId`, never a hardcoded "current" one (Scenario 4)
 

@@ -30,9 +30,7 @@ const ALGORITHM_ALIASES: Record<string, SupportedAlgorithm> = {
   "ml-dsa-65": "dilithium3",
 };
 
-function isSupportedAlgorithm(
-  value: string,
-): value is SupportedAlgorithm {
+function isSupportedAlgorithm(value: string): value is SupportedAlgorithm {
   return value in NODE_KEY_TYPES;
 }
 
@@ -77,9 +75,7 @@ if (!isSupportedAlgorithm(algorithm)) {
 //
 const config = loadConfig();
 
-const keyDirectory = resolve(
-  config.keys.keyDirectory ?? "./keys",
-);
+const keyDirectory = resolve(config.keys.keyDirectory ?? "./keys");
 
 const privatePath = join(keyDirectory, "default.private.pem");
 const publicPath = join(keyDirectory, "default.public.pem");
@@ -96,8 +92,7 @@ mkdirSync(keyDirectory, { recursive: true });
 
 const nodeKeyType = NODE_KEY_TYPES[algorithm];
 
-const { privateKey, publicKey } =
-  generateKeyPairSync(nodeKeyType);
+const { privateKey, publicKey } = generateKeyPairSync(nodeKeyType);
 
 writeFileSync(
   privatePath,

@@ -2,22 +2,13 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { generateKeyPairSync } from "node:crypto";
 import path from "node:path";
 
-import {
-  isMlDsa65Supported,
-  ML_DSA_65_SKIP_REASON,
-} from "@parmana/crypto";
+import { isMlDsa65Supported, ML_DSA_65_SKIP_REASON } from "@parmana/crypto";
 
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeFactory,
-} from "@parmana/runtime";
+import { RuntimeFactory } from "@parmana/runtime";
 
-import {
-  DefaultExecutionSystem,
-} from "@parmana/execution-system";
+import { DefaultExecutionSystem } from "@parmana/execution-system";
 
 import {
   MemoryBusinessTransactionRepository,
@@ -60,46 +51,41 @@ const secondaryPublicPath = path.join(keyDir, "default-secondary.public.pem");
 if (!existsSync(secondaryPrivatePath)) {
   const { privateKey, publicKey } = generateKeyPairSync("ml-dsa-65");
 
-  writeFileSync(secondaryPrivatePath, privateKey.export({ format: "pem", type: "pkcs8" }));
-  writeFileSync(secondaryPublicPath, publicKey.export({ format: "pem", type: "spki" }));
+  writeFileSync(
+    secondaryPrivatePath,
+    privateKey.export({ format: "pem", type: "pkcs8" }),
+  );
+  writeFileSync(
+    secondaryPublicPath,
+    publicKey.export({ format: "pem", type: "spki" }),
+  );
 }
 
 const root = path.resolve(import.meta.dirname);
 
 const transaction = JSON.parse(
   readFileSync(
-    path.join(
-      root,
-      "../../shared/vendor-payment-transaction.json",
-    ),
+    path.join(root, "../../shared/vendor-payment-transaction.json"),
     "utf8",
   ),
 ) as BusinessTransaction;
 
-const policyRepository =
-  new FilePolicyRepository(
-    path.resolve(
-      root,
-      "../../../policies",
-    ),
-  );
+const policyRepository = new FilePolicyRepository(
+  path.resolve(root, "../../../policies"),
+);
 
-const transactions =
-  new MemoryBusinessTransactionRepository();
+const transactions = new MemoryBusinessTransactionRepository();
 
-const trustRecords =
-  new MemoryExecutionTrustRecordRepository();
+const trustRecords = new MemoryExecutionTrustRecordRepository();
 
-const executionSystem =
-  new DefaultExecutionSystem();
+const executionSystem = new DefaultExecutionSystem();
 
-const application =
-  RuntimeFactory.create(
-    transactions,
-    trustRecords,
-    policyRepository,
-    executionSystem,
-  );
+const application = RuntimeFactory.create(
+  transactions,
+  trustRecords,
+  policyRepository,
+  executionSystem,
+);
 
 console.log("========================================");
 console.log(" Parmana Tutorial 56 - Complete Execution Flow");
@@ -122,19 +108,14 @@ console.log();
 //    and a hybrid-signed Execution Trust Record.
 // --------------------------------------------------
 
-const trustRecord =
-  await application.execute(
-    transaction,
-  );
+const trustRecord = await application.execute(transaction);
 
 console.log("1. Execution Trust Record");
 console.log("--------------------------------------------------");
 console.log(
   `Decision       : ${trustRecord.executions.at(-1)?.decision.outcome}`,
 );
-console.log(
-  `Schema version : ${trustRecord.schemaVersion}`,
-);
+console.log(`Schema version : ${trustRecord.schemaVersion}`);
 console.log(
   `Signatures     : ${trustRecord.signatures?.map((s) => s.algorithm).join(", ")}`,
 );
@@ -146,13 +127,10 @@ console.log();
 //    hybrid-signed.
 // --------------------------------------------------
 
-const receipt =
-  trustRecord.receipts.at(-1);
+const receipt = trustRecord.receipts.at(-1);
 
 if (!receipt) {
-  throw new Error(
-    "Expected a Receipt to be generated as part of execute().",
-  );
+  throw new Error("Expected a Receipt to be generated as part of execute().");
 }
 
 console.log("2. Receipt");
@@ -169,10 +147,9 @@ console.log();
 // 3. Verify -- genuine record.
 // --------------------------------------------------
 
-const genuineVerification =
-  await application.verify(
-    transaction.businessTransactionId,
-  );
+const genuineVerification = await application.verify(
+  transaction.businessTransactionId,
+);
 
 console.log("3. Verification (genuine)");
 console.log("--------------------------------------------------");
@@ -201,10 +178,9 @@ const tampered: ExecutionTrustRecord = {
 
 await trustRecords.create(tampered);
 
-const tamperedVerification =
-  await application.verify(
-    transaction.businessTransactionId,
-  );
+const tamperedVerification = await application.verify(
+  transaction.businessTransactionId,
+);
 
 console.log("4. Verification (tampered second signature)");
 console.log("--------------------------------------------------");

@@ -117,7 +117,10 @@ async function buildAndSealDraft(
   };
 
   const trustRecordHash = await verificationCrypto.hash(withEmptyHash);
-  const recordWithHash: ExecutionTrustRecord = { ...withEmptyHash, trustRecordHash };
+  const recordWithHash: ExecutionTrustRecord = {
+    ...withEmptyHash,
+    trustRecordHash,
+  };
   const signature = await verificationCrypto.sign(recordWithHash);
 
   return { ...recordWithHash, signature };
@@ -136,7 +139,11 @@ describe("VerificationCrypto — authorization envelope coverage (NF-003)", () =
     const transaction = buildTransaction();
     const trustRecordId = crypto.randomUUID();
 
-    const withoutAuth = await buildAndSealDraft(transaction, undefined, trustRecordId);
+    const withoutAuth = await buildAndSealDraft(
+      transaction,
+      undefined,
+      trustRecordId,
+    );
     const withAuth = await buildAndSealDraft(
       transaction,
       buildSignedExecutionAuthorization(),
@@ -202,7 +209,10 @@ describe("VerificationCrypto — authorization envelope coverage (NF-003)", () =
     };
 
     const trustRecordHash = await verificationCrypto.hash(withEmptyHash);
-    const recordWithHash: ExecutionTrustRecord = { ...withEmptyHash, trustRecordHash };
+    const recordWithHash: ExecutionTrustRecord = {
+      ...withEmptyHash,
+      trustRecordHash,
+    };
     const signature = await verificationCrypto.sign(recordWithHash);
     const legacyRecord: ExecutionTrustRecord = { ...recordWithHash, signature };
 
@@ -211,7 +221,11 @@ describe("VerificationCrypto — authorization envelope coverage (NF-003)", () =
     // And it must equal the hash of the same content built through the
     // helper with `authorization: undefined` explicitly omitted, proving
     // the two shapes are byte-identical to the hasher.
-    const equivalent = await buildAndSealDraft(transaction, undefined, trustRecordId);
+    const equivalent = await buildAndSealDraft(
+      transaction,
+      undefined,
+      trustRecordId,
+    );
     expect(legacyRecord.trustRecordHash).toBe(equivalent.trustRecordHash);
   });
 });

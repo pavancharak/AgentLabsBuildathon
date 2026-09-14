@@ -1,4 +1,7 @@
-import { VerificationCrypto, verifyExecutionTrustRecordOffline } from "@parmana/crypto";
+import {
+  VerificationCrypto,
+  verifyExecutionTrustRecordOffline,
+} from "@parmana/crypto";
 import type { ExecutionTrustRecord } from "@parmana/shared";
 
 //
@@ -14,12 +17,10 @@ import type { ExecutionTrustRecord } from "@parmana/shared";
 //
 process.env.NODE_ENV = "test";
 
-const { createExecutionSystem } = await import(
-  "../../../packages/api/src/bootstrap/createExecutionSystem.js"
-);
-const { createApplication } = await import(
-  "../../../packages/api/src/application.js"
-);
+const { createExecutionSystem } =
+  await import("../../../packages/api/src/bootstrap/createExecutionSystem.js");
+const { createApplication } =
+  await import("../../../packages/api/src/application.js");
 const { createApp } = await import("../../../packages/api/src/app.js");
 
 console.log();
@@ -37,11 +38,18 @@ const address = server.address();
 const baseUrl = `http://127.0.0.1:${typeof address === "object" && address !== null ? address.port : 0}`;
 
 try {
-  console.log("Scenario 1: GET /keys/default, unauthenticated, returns the real public key");
+  console.log(
+    "Scenario 1: GET /keys/default, unauthenticated, returns the real public key",
+  );
   console.log("--------------------------------------------------");
 
   const keyResponse = await fetch(`${baseUrl}/keys/default`);
-  const key = (await keyResponse.json()) as { keyId: string; algorithm: string; pem: string; jwk?: unknown };
+  const key = (await keyResponse.json()) as {
+    keyId: string;
+    algorithm: string;
+    pem: string;
+    jwk?: unknown;
+  };
 
   console.log(`Status    : ${keyResponse.status}`);
   console.log(`keyId     : ${key.keyId}`);
@@ -50,25 +58,35 @@ try {
   console.log(`has jwk   : ${key.jwk !== undefined}`);
   console.log();
 
-  console.log("Scenario 2: GET /.well-known/jwks.json lists every key this deployment holds");
+  console.log(
+    "Scenario 2: GET /.well-known/jwks.json lists every key this deployment holds",
+  );
   console.log("--------------------------------------------------");
 
   const jwksResponse = await fetch(`${baseUrl}/.well-known/jwks.json`);
-  const jwks = (await jwksResponse.json()) as { keys: Array<{ keyId: string }> };
+  const jwks = (await jwksResponse.json()) as {
+    keys: Array<{ keyId: string }>;
+  };
 
   console.log(`Status    : ${jwksResponse.status}`);
   console.log(`Key count : ${jwks.keys.length}`);
-  console.log(`Key IDs   : ${jwks.keys.map((entry) => entry.keyId).join(", ")}`);
+  console.log(
+    `Key IDs   : ${jwks.keys.map((entry) => entry.keyId).join(", ")}`,
+  );
   console.log();
 
-  console.log("Scenario 3: GET /keys/:keyId returns 404 for an unknown key, not a silent empty result");
+  console.log(
+    "Scenario 3: GET /keys/:keyId returns 404 for an unknown key, not a silent empty result",
+  );
   console.log("--------------------------------------------------");
 
   const missingResponse = await fetch(`${baseUrl}/keys/does-not-exist`);
   console.log(`Status : ${missingResponse.status}`);
   console.log();
 
-  console.log("Scenario 4: The full chain -- fetch a key over HTTP, then verify a real record with zero further server calls (RED-1 + RED-2 combined)");
+  console.log(
+    "Scenario 4: The full chain -- fetch a key over HTTP, then verify a real record with zero further server calls (RED-1 + RED-2 combined)",
+  );
   console.log("--------------------------------------------------");
 
   const crypto = new VerificationCrypto();
@@ -94,7 +112,12 @@ try {
   const withHash: ExecutionTrustRecord = {
     ...draft,
     trustRecordHash,
-    signature: { algorithm: "ed25519", keyId: "default", value: "", signedAt: new Date() },
+    signature: {
+      algorithm: "ed25519",
+      keyId: "default",
+      value: "",
+      signedAt: new Date(),
+    },
   };
 
   const signature = await crypto.sign(withHash);

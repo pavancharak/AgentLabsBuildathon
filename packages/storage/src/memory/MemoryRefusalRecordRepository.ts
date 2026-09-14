@@ -1,23 +1,13 @@
-import {
-  RefusalRecord,
-  RefusalRecordRepository,
-} from "@parmana/shared";
+import { RefusalRecord, RefusalRecordRepository } from "@parmana/shared";
 
 /**
  * In-memory Refusal Record repository (RFC-0021).
  */
-export class MemoryRefusalRecordRepository
-  implements RefusalRecordRepository
-{
+export class MemoryRefusalRecordRepository implements RefusalRecordRepository {
   private readonly records = new Map<string, RefusalRecord>();
 
-  async create(
-    record: RefusalRecord,
-  ): Promise<RefusalRecord> {
-    this.records.set(
-      record.businessTransactionId,
-      record,
-    );
+  async create(record: RefusalRecord): Promise<RefusalRecord> {
+    this.records.set(record.businessTransactionId, record);
 
     return record;
   }

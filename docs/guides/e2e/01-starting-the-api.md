@@ -1,26 +1,14 @@
 \# Step 1 - Authentication Enforcement
 
-
-
 \## Request
-
-
 
 GET /
 
-
-
 No Authorization header.
-
-
 
 \## Result
 
-
-
 HTTP 401
-
-
 
 {
 
@@ -28,43 +16,23 @@ HTTP 401
 
 }
 
-
-
 \## Status
-
-
 
 PASS
 
-
-
 The API rejects anonymous callers before routing requests.
-
-
 
 \# Authenticated Request
 
-
-
 \## Request
-
-
 
 GET /
 
-
-
 Authorization: Bearer my-secret-api-key
-
-
 
 \## Response
 
-
-
 HTTP 200 OK
-
-
 
 ```json
 
@@ -78,15 +46,8 @@ HTTP 200 OK
 
 ```
 
-
-
 \## Status
-
-
 
 PASS
 
-
-
 Authenticated callers can successfully access protected endpoints after caller authentication.
-

@@ -17,15 +17,22 @@ export class DefaultConnectorPolicy implements ConnectorPolicy {
     connector: SecureConnector,
     authentication: unknown,
   ): Promise<void> {
-    if (!this.authenticator.authenticateGateway(request.gatewayIdentity, authentication)) {
+    if (
+      !this.authenticator.authenticateGateway(
+        request.gatewayIdentity,
+        authentication,
+      )
+    ) {
       throw new Error("Connector rejected unauthenticated Gateway.");
     }
     if (!this.authenticator.authenticateConnector(connector.identity)) {
       throw new Error("Connector identity is not trusted.");
     }
-    if (!request.verifiedTransaction.authorizationVerified ||
+    if (
+      !request.verifiedTransaction.authorizationVerified ||
       !request.verifiedTransaction.executableContentVerified ||
-      !request.verifiedTransaction.replayCheckPassed) {
+      !request.verifiedTransaction.replayCheckPassed
+    ) {
       throw new Error("Connector requires a verified transaction.");
     }
     if (!connector.capabilities.includes(request.executableContent.action)) {
@@ -44,14 +51,17 @@ export class DefaultConnectorPolicy implements ConnectorPolicy {
     //
     if (
       request.authorization.payload.grantedCapability !== undefined &&
-      request.authorization.payload.grantedCapability !== request.executableContent.action
+      request.authorization.payload.grantedCapability !==
+        request.executableContent.action
     ) {
       throw new Error(
         "Connector requires the executed action to match the authorization's granted capability.",
       );
     }
     if (!this.sessions.consume(request, connector.connectorId)) {
-      throw new Error("Connector rejected invalid, expired, modified, or reused Gateway session.");
+      throw new Error(
+        "Connector rejected invalid, expired, modified, or reused Gateway session.",
+      );
     }
   }
 }

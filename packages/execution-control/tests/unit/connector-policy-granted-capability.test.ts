@@ -32,7 +32,9 @@ const content: ExecutableContent = {
 async function fixture(grantedCapability?: string) {
   const { privateKey } = generateKeyPairSync("ed25519");
 
-  const authorization = await new AuthorizationSigner(CryptoBootstrap.create()).sign(
+  const authorization = await new AuthorizationSigner(
+    CryptoBootstrap.create(),
+  ).sign(
     {
       decisionId: "decision-1",
       businessTransactionId: content.businessTransactionId,
@@ -58,8 +60,12 @@ async function fixture(grantedCapability?: string) {
     authenticationMetadata: { mechanism: "in-memory-registry" },
   };
   const gatewayAuthentication = Object.freeze({ token: "gateway-only" });
-  const sessionIssuanceAuthentication = Object.freeze({ capability: "session-issuer" });
-  const sessions = new InMemoryGatewaySessionStore(sessionIssuanceAuthentication);
+  const sessionIssuanceAuthentication = Object.freeze({
+    capability: "session-issuer",
+  });
+  const sessions = new InMemoryGatewaySessionStore(
+    sessionIssuanceAuthentication,
+  );
   const authenticator = new InMemoryConnectorAuthenticator(
     gatewayIdentity,
     gatewayAuthentication,
@@ -67,7 +73,9 @@ async function fixture(grantedCapability?: string) {
   );
   const policy = new DefaultConnectorPolicy(authenticator, sessions);
   const vault = new InMemoryCredentialVault();
-  vault.setCredential("hubspot", { value: Object.freeze({ token: "connector-secret" }) });
+  vault.setCredential("hubspot", {
+    value: Object.freeze({ token: "connector-secret" }),
+  });
 
   const connector = new InMemorySecureConnector({
     identity: connectorIdentity,
@@ -77,7 +85,12 @@ async function fixture(grantedCapability?: string) {
     credentialVault: vault,
     executor: {
       async execute(executableContent): Promise<ExecutionResult> {
-        return { ...executableContent, success: true, executedAt: new Date(), metadata: {} };
+        return {
+          ...executableContent,
+          success: true,
+          executedAt: new Date(),
+          metadata: {},
+        };
       },
     },
   });
@@ -93,7 +106,12 @@ async function fixture(grantedCapability?: string) {
     executionTimestamp: new Date().toISOString(),
   };
 
-  const session = sessions.create(release, "hubspot", 30_000, sessionIssuanceAuthentication);
+  const session = sessions.create(
+    release,
+    "hubspot",
+    30_000,
+    sessionIssuanceAuthentication,
+  );
 
   return {
     connector,
@@ -112,13 +130,17 @@ describe("DefaultConnectorPolicy grantedCapability consistency check", () => {
   it("allows execution when grantedCapability matches the executed action", async () => {
     const { connector, request } = await fixture("hubspot:deal-update");
 
-    await expect(connector.execute(request)).resolves.toMatchObject({ success: true });
+    await expect(connector.execute(request)).resolves.toMatchObject({
+      success: true,
+    });
   });
 
   it("allows execution when grantedCapability is absent (caller-auth was disabled)", async () => {
     const { connector, request } = await fixture(undefined);
 
-    await expect(connector.execute(request)).resolves.toMatchObject({ success: true });
+    await expect(connector.execute(request)).resolves.toMatchObject({
+      success: true,
+    });
   });
 
   it("rejects execution when grantedCapability names a different action than the one executed", async () => {

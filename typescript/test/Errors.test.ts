@@ -11,10 +11,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import {
-  ErrorCode,
-  ParmanaError,
-} from "../src/errors/ParmanaError.js";
+import { ErrorCode, ParmanaError } from "../src/errors/ParmanaError.js";
 import { ConfigurationError } from "../src/errors/ConfigurationError.js";
 import { ValidationError } from "../src/errors/ValidationError.js";
 import { AuthenticationError } from "../src/errors/AuthenticationError.js";
@@ -39,19 +36,71 @@ const CLASSES: ReadonlyArray<{
     options?: { requestId?: string; cause?: unknown },
   ) => ParmanaError;
 }> = [
-  { name: "ConfigurationError", code: ErrorCode.CONFIGURATION_ERROR, construct: (m, o) => new ConfigurationError(m, o) },
-  { name: "ValidationError", code: ErrorCode.VALIDATION_ERROR, construct: (m, o) => new ValidationError(m, o) },
-  { name: "AuthenticationError", code: ErrorCode.AUTHENTICATION_ERROR, construct: (m, o) => new AuthenticationError(m, o) },
-  { name: "AuthorizationError", code: ErrorCode.AUTHORIZATION_ERROR, construct: (m, o) => new AuthorizationError(m, o) },
-  { name: "NotFoundError", code: ErrorCode.NOT_FOUND_ERROR, construct: (m, o) => new NotFoundError(m, o) },
-  { name: "ConflictError", code: ErrorCode.CONFLICT_ERROR, construct: (m, o) => new ConflictError(m, o) },
-  { name: "ExecutionRejectedError", code: ErrorCode.EXECUTION_REJECTED, construct: (m, o) => new ExecutionRejectedError(m, o) },
-  { name: "InternalServerError", code: ErrorCode.INTERNAL_SERVER_ERROR, construct: (m, o) => new InternalServerError(m, o) },
-  { name: "NetworkError", code: ErrorCode.NETWORK_ERROR, construct: (m, o) => new NetworkError(m, o) },
-  { name: "TimeoutError", code: ErrorCode.TIMEOUT_ERROR, construct: (m, o) => new TimeoutError(m, o) },
-  { name: "RateLimitError", code: ErrorCode.RATE_LIMIT_ERROR, construct: (m, o) => new RateLimitError(m, o) },
-  { name: "ReplayError", code: ErrorCode.REPLAY_ERROR, construct: (m, o) => new ReplayError(m, o) },
-  { name: "VerificationError", code: ErrorCode.VERIFICATION_ERROR, construct: (m, o) => new VerificationError(m, o) },
+  {
+    name: "ConfigurationError",
+    code: ErrorCode.CONFIGURATION_ERROR,
+    construct: (m, o) => new ConfigurationError(m, o),
+  },
+  {
+    name: "ValidationError",
+    code: ErrorCode.VALIDATION_ERROR,
+    construct: (m, o) => new ValidationError(m, o),
+  },
+  {
+    name: "AuthenticationError",
+    code: ErrorCode.AUTHENTICATION_ERROR,
+    construct: (m, o) => new AuthenticationError(m, o),
+  },
+  {
+    name: "AuthorizationError",
+    code: ErrorCode.AUTHORIZATION_ERROR,
+    construct: (m, o) => new AuthorizationError(m, o),
+  },
+  {
+    name: "NotFoundError",
+    code: ErrorCode.NOT_FOUND_ERROR,
+    construct: (m, o) => new NotFoundError(m, o),
+  },
+  {
+    name: "ConflictError",
+    code: ErrorCode.CONFLICT_ERROR,
+    construct: (m, o) => new ConflictError(m, o),
+  },
+  {
+    name: "ExecutionRejectedError",
+    code: ErrorCode.EXECUTION_REJECTED,
+    construct: (m, o) => new ExecutionRejectedError(m, o),
+  },
+  {
+    name: "InternalServerError",
+    code: ErrorCode.INTERNAL_SERVER_ERROR,
+    construct: (m, o) => new InternalServerError(m, o),
+  },
+  {
+    name: "NetworkError",
+    code: ErrorCode.NETWORK_ERROR,
+    construct: (m, o) => new NetworkError(m, o),
+  },
+  {
+    name: "TimeoutError",
+    code: ErrorCode.TIMEOUT_ERROR,
+    construct: (m, o) => new TimeoutError(m, o),
+  },
+  {
+    name: "RateLimitError",
+    code: ErrorCode.RATE_LIMIT_ERROR,
+    construct: (m, o) => new RateLimitError(m, o),
+  },
+  {
+    name: "ReplayError",
+    code: ErrorCode.REPLAY_ERROR,
+    construct: (m, o) => new ReplayError(m, o),
+  },
+  {
+    name: "VerificationError",
+    code: ErrorCode.VERIFICATION_ERROR,
+    construct: (m, o) => new VerificationError(m, o),
+  },
 ];
 
 describe("SDK error classes", () => {
@@ -101,7 +150,9 @@ describe("SDK error classes", () => {
   });
 
   it("AuthorizationError carries an optional serverCode when supplied", () => {
-    const error = new AuthorizationError("not allowed", { serverCode: "CAPABILITY_NOT_ALLOWED" });
+    const error = new AuthorizationError("not allowed", {
+      serverCode: "CAPABILITY_NOT_ALLOWED",
+    });
     expect(error.serverCode).toBe("CAPABILITY_NOT_ALLOWED");
   });
 
@@ -117,9 +168,7 @@ describe("mapHttpErrorResponse", () => {
       error: "businessTransactionId must be a valid UUID.",
     });
     expect(error).toBeInstanceOf(ValidationError);
-    expect(error.message).toBe(
-      "businessTransactionId must be a valid UUID.",
-    );
+    expect(error.message).toBe("businessTransactionId must be a valid UUID.");
   });
 
   it("maps 401 to AuthenticationError", () => {
@@ -153,13 +202,14 @@ describe("mapHttpErrorResponse", () => {
 
   it("maps 409 to ConflictError", () => {
     const error = mapHttpErrorResponse(409, {
-      error: "Execution Trust Record must be successfully verified before a Receipt can be generated.",
+      error:
+        "Execution Trust Record must be successfully verified before a Receipt can be generated.",
       code: "RECEIPT_GENERATION_FAILED",
     });
     expect(error).toBeInstanceOf(ConflictError);
   });
 
-  it('maps a 403 with code POLICY_DENIED to ExecutionRejectedError', () => {
+  it("maps a 403 with code POLICY_DENIED to ExecutionRejectedError", () => {
     // A policy REJECTED decision (packages/runtime/src/ExecutionGate.ts)
     // now carries its own dedicated 403 + code, replacing the old,
     // ambiguous 500 + code RUNTIME_ERROR shape this mapping used to
@@ -184,13 +234,15 @@ describe("mapHttpErrorResponse", () => {
     expect(error).not.toBeInstanceOf(ExecutionRejectedError);
   });
 
-  it('maps a 403 with code CAPABILITY_NOT_ALLOWED to AuthorizationError, preserving the code as serverCode', () => {
+  it("maps a 403 with code CAPABILITY_NOT_ALLOWED to AuthorizationError, preserving the code as serverCode", () => {
     const error = mapHttpErrorResponse(403, {
       error: "Caller is not permitted to invoke this capability.",
       code: "CAPABILITY_NOT_ALLOWED",
     });
     expect(error).toBeInstanceOf(AuthorizationError);
-    expect((error as AuthorizationError).serverCode).toBe("CAPABILITY_NOT_ALLOWED");
+    expect((error as AuthorizationError).serverCode).toBe(
+      "CAPABILITY_NOT_ALLOWED",
+    );
   });
 
   it("maps 429 to RateLimitError, parsing Retry-After from headers", () => {

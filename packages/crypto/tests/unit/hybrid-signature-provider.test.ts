@@ -162,11 +162,13 @@ describe.skipIf(!isMlDsa65Supported())(
         SECONDARY_KEY_ID,
       );
 
-      const primaryOnly = signatures.find((entry) => entry.algorithm === "ed25519")!;
+      const primaryOnly = signatures.find(
+        (entry) => entry.algorithm === "ed25519",
+      )!;
 
-      expect(
-        await provider.verify(artifact, [primaryOnly, primaryOnly]),
-      ).toBe(false);
+      expect(await provider.verify(artifact, [primaryOnly, primaryOnly])).toBe(
+        false,
+      );
     });
 
     it("rejects a signature produced by a different keypair", async () => {
@@ -185,7 +187,11 @@ describe.skipIf(!isMlDsa65Supported())(
       // signing, then verify against the original signature -- the
       // public key on file no longer matches what actually signed.
       const rogueDilithium = generateKeyPairSync("ml-dsa-65");
-      keys.set(SECONDARY_KEY_ID, rogueDilithium.privateKey, rogueDilithium.publicKey);
+      keys.set(
+        SECONDARY_KEY_ID,
+        rogueDilithium.privateKey,
+        rogueDilithium.publicKey,
+      );
 
       expect(await provider.verify(artifact, signatures)).toBe(false);
     });

@@ -10,6 +10,8 @@ import { GatewaySlackAdapter } from "./GatewaySlackAdapter.js";
  * GatewaySlackAdapter class -- callers never construct or depend on the
  * adapter implementation directly.
  */
-export function createGatewaySlackConnector(options: SlackConnectorOptions): Connector {
+export function createGatewaySlackConnector(
+  options: SlackConnectorOptions,
+): Connector {
   return new GatewaySlackAdapter(options);
 }

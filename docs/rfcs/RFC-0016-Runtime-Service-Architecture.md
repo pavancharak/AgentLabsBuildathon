@@ -1,38 +1,20 @@
 \# RFC-0016: Runtime Service Architecture
 
-
-
 \*\*Status:\*\* Accepted
-
-
 
 \## Purpose
 
-
-
 This RFC defines the canonical runtime service architecture for Parmana.
-
-
 
 Phase 1 established the canonical domain model and deterministic policy execution pipeline.
 
-
-
 This RFC defines how runtime services collaborate to execute that architecture while maintaining strict separation of responsibilities.
-
-
 
 \---
 
-
-
 \# Objectives
 
-
-
 The runtime service architecture SHALL:
-
-
 
 \* separate orchestration from business logic
 
@@ -46,15 +28,9 @@ The runtime service architecture SHALL:
 
 \* maintain a single responsibility for every runtime service
 
-
-
 \---
 
-
-
 \# Runtime Service Pipeline
-
-
 
 ```text
 
@@ -106,31 +82,17 @@ ExecutionService
 
 ```
 
-
-
 The ExecutionService coordinates the workflow.
-
-
 
 It does not contain business logic.
 
-
-
 \---
-
-
 
 \# Runtime Services
 
-
-
 \## BusinessTransactionService
 
-
-
 Responsibilities:
-
-
 
 \* construct BusinessTransaction
 
@@ -138,19 +100,11 @@ Responsibilities:
 
 \* initialize execution request
 
-
-
 \---
-
-
 
 \## ExecutionService
 
-
-
 Responsibilities:
-
-
 
 \* coordinate execution workflow
 
@@ -158,11 +112,7 @@ Responsibilities:
 
 \* manage execution lifecycle
 
-
-
 The ExecutionService SHALL NOT:
-
-
 
 \* evaluate policy rules
 
@@ -172,37 +122,21 @@ The ExecutionService SHALL NOT:
 
 \* verify execution
 
-
-
 \---
-
-
 
 \## PolicyRouter
 
-
-
 Responsibilities:
-
-
 
 \* locate policy artifact
 
 \* load one policy
 
-
-
 \---
-
-
 
 \## PolicyValidator
 
-
-
 Responsibilities:
-
-
 
 \* validate policy artifact
 
@@ -210,79 +144,41 @@ Responsibilities:
 
 \* validate schema version
 
-
-
 \---
-
-
 
 \## PolicyAdapter
 
-
-
 Responsibilities:
-
-
 
 Convert RuntimeTransaction into PolicySignals.
 
-
-
 \---
-
-
 
 \## SignalValidator
 
-
-
 Responsibilities:
-
-
 
 Validate PolicySignals against the policy's declared signalsSchema.
 
-
-
 \---
-
-
 
 \## PolicyEngine
 
-
-
 Responsibilities:
-
-
 
 Evaluate deterministic policy rules.
 
-
-
 The PolicyEngine SHALL NOT construct Decisions.
-
-
 
 \---
 
-
-
 \## DecisionService
-
-
 
 Responsibilities:
 
-
-
 Construct immutable Decision artifacts.
 
-
-
 The DecisionService SHALL:
-
-
 
 \* generate decisionId
 
@@ -296,27 +192,15 @@ The DecisionService SHALL:
 
 \* record timestamp
 
-
-
 \---
-
-
 
 \## ExecutionTrustRecordService
 
-
-
 Responsibilities:
-
-
 
 Construct immutable ExecutionTrustRecord aggregates.
 
-
-
 The service SHALL:
-
-
 
 \* initialize execution history
 
@@ -328,87 +212,57 @@ The service SHALL:
 
 \* compute initial trustRecordHash
 
-
-
 \---
-
-
 
 \## ReceiptService
 
-
-
 Responsibilities:
-
-
 
 Generate immutable cryptographic Receipts.
 
-
-
 \---
-
-
 
 \## VerificationService
 
-
-
 Responsibilities:
-
-
 
 Perform independent verification of execution artifacts.
 
-
-
 \---
-
-
 
 \# Service Responsibilities
 
-
-
-| Service                     | Responsibility                                |
+| Service | Responsibility |
 
 | --------------------------- | --------------------------------------------- |
 
-| BusinessTransactionService  | Create BusinessTransaction                    |
+| BusinessTransactionService | Create BusinessTransaction |
 
-| ExecutionService            | Orchestrate runtime execution                 |
+| ExecutionService | Orchestrate runtime execution |
 
-| PolicyRouter                | Load policy artifact                          |
+| PolicyRouter | Load policy artifact |
 
-| PolicyValidator             | Validate policy artifact                      |
+| PolicyValidator | Validate policy artifact |
 
-| PolicyAdapter               | Convert RuntimeTransaction into PolicySignals |
+| PolicyAdapter | Convert RuntimeTransaction into PolicySignals |
 
-| SignalValidator             | Validate runtime signals                      |
+| SignalValidator | Validate runtime signals |
 
-| PolicyEngine                | Evaluate policy                               |
+| PolicyEngine | Evaluate policy |
 
-| DecisionService             | Build Decision                                |
+| DecisionService | Build Decision |
 
-| ExecutionTrustRecordService | Build ExecutionTrustRecord                    |
+| ExecutionTrustRecordService | Build ExecutionTrustRecord |
 
-| ReceiptService              | Generate Receipt                              |
+| ReceiptService | Generate Receipt |
 
-| VerificationService         | Verify execution                              |
-
-
+| VerificationService | Verify execution |
 
 Every service SHALL own exactly one responsibility.
 
-
-
 \---
 
-
-
 \# Execution Flow
-
-
 
 ```text
 
@@ -512,19 +366,11 @@ Verification
 
 ```
 
-
-
 \---
-
-
 
 \# Architectural Invariants
 
-
-
 The runtime SHALL satisfy the following invariants:
-
-
 
 1\. Runtime services SHALL have a single responsibility.
 
@@ -546,19 +392,11 @@ The runtime SHALL satisfy the following invariants:
 
 10\. Business logic SHALL reside exclusively in policy artifacts.
 
-
-
 \---
-
-
 
 \# Remaining Phase 1 Implementation
 
-
-
 The remaining implementation work SHALL proceed in the following order:
-
-
 
 1\. Refactor ExecutionService into a pure orchestrator.
 
@@ -572,25 +410,12 @@ The remaining implementation work SHALL proceed in the following order:
 
 6\. Validate persistence, replay, cryptographic receipts, and verification.
 
-
-
 No additional architectural changes are required.
-
-
 
 \---
 
-
-
 \# Status
-
-
 
 This RFC locks the runtime service architecture for Parmana Phase 1.
 
-
-
 Future enhancements SHALL extend this architecture without changing the canonical execution trust chain or the single-responsibility service model.
-
-
-

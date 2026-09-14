@@ -2,10 +2,6 @@
  * Workday connector exports.
  */
 
-export {
-  createWorkdayConnector,
-} from "./WorkdayConnector.js";
+export { createWorkdayConnector } from "./WorkdayConnector.js";
 
-export {
-  WorkdayMetadata,
-} from "./WorkdayMetadata.js";
+export { WorkdayMetadata } from "./WorkdayMetadata.js";

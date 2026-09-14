@@ -53,7 +53,7 @@ describe("ReplayEngine - Deterministic Execution", () => {
           decision: {
             decisionId: "d1",
             intentId: "i1",
-    policy: TEST_POLICY,
+            policy: TEST_POLICY,
             signals: { riskScore: 10 },
             outcome: DecisionOutcome.APPROVED,
             reason: "ok",
@@ -68,7 +68,8 @@ describe("ReplayEngine - Deterministic Execution", () => {
       transaction: {
         signals: { riskScore: 10 },
       },
-policy: TEST_POLICY,    };
+      policy: TEST_POLICY,
+    };
 
     const result = engine.replay(input);
 
@@ -76,4 +77,3 @@ policy: TEST_POLICY,    };
     expect(result.matches).toBe(true);
   });
 });
-

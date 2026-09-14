@@ -41,104 +41,96 @@ const databaseConfigured = resolveDatabaseGate(
 describe.skipIf(!databaseConfigured)(
   "SupabaseExecutionTrustRecordRepository ordering",
   () => {
-    it(
-      "round-trips a Trust Record with 2+ items per collection without breaking hash or signature",
-      async () => {
-        const pool = PostgresPoolFactory.create();
+    it("round-trips a Trust Record with 2+ items per collection without breaking hash or signature", async () => {
+      const pool = PostgresPoolFactory.create();
 
-        const businessTransactions =
-          new SupabaseBusinessTransactionRepository(pool);
+      const businessTransactions = new SupabaseBusinessTransactionRepository(
+        pool,
+      );
 
-        const trustRecords =
-          new SupabaseExecutionTrustRecordRepository(pool);
+      const trustRecords = new SupabaseExecutionTrustRecordRepository(pool);
 
-        const transaction = buildBusinessTransaction(
-          crypto.randomUUID(),
-        );
+      const transaction = buildBusinessTransaction(crypto.randomUUID());
 
-        await businessTransactions.create(transaction);
+      await businessTransactions.create(transaction);
 
-        const signedRecord =
-          await buildSignedMultiExecutionOverrideRecord(transaction);
+      const signedRecord =
+        await buildSignedMultiExecutionOverrideRecord(transaction);
 
-        await trustRecords.create(signedRecord);
+      await trustRecords.create(signedRecord);
 
-        for (const execution of signedRecord.executions) {
-          await trustRecords.appendExecution(
-            transaction.businessTransactionId,
-            execution,
-          );
-        }
-
-        for (const override of signedRecord.overrides) {
-          await trustRecords.appendOverride(
-            transaction.businessTransactionId,
-            override,
-          );
-        }
-
-        const [verification1, verification2] = buildVerificationPair(
+      for (const execution of signedRecord.executions) {
+        await trustRecords.appendExecution(
           transaction.businessTransactionId,
-          signedRecord.trustRecordHash,
+          execution,
         );
+      }
 
-        await trustRecords.appendVerification(
+      for (const override of signedRecord.overrides) {
+        await trustRecords.appendOverride(
           transaction.businessTransactionId,
-          verification1,
+          override,
         );
-        await trustRecords.appendVerification(
-          transaction.businessTransactionId,
-          verification2,
-        );
+      }
 
-        const [receipt1, receipt2] = buildReceiptPair(
-          transaction.businessTransactionId,
-          signedRecord.trustRecordHash,
-        );
+      const [verification1, verification2] = buildVerificationPair(
+        transaction.businessTransactionId,
+        signedRecord.trustRecordHash,
+      );
 
-        await trustRecords.appendReceipt(
-          transaction.businessTransactionId,
-          receipt1,
-        );
-        await trustRecords.appendReceipt(
-          transaction.businessTransactionId,
-          receipt2,
-        );
+      await trustRecords.appendVerification(
+        transaction.businessTransactionId,
+        verification1,
+      );
+      await trustRecords.appendVerification(
+        transaction.businessTransactionId,
+        verification2,
+      );
 
-        const reloaded = await trustRecords.findByTransactionId(
-          transaction.businessTransactionId,
-        );
+      const [receipt1, receipt2] = buildReceiptPair(
+        transaction.businessTransactionId,
+        signedRecord.trustRecordHash,
+      );
 
-        expect(reloaded).not.toBeNull();
+      await trustRecords.appendReceipt(
+        transaction.businessTransactionId,
+        receipt1,
+      );
+      await trustRecords.appendReceipt(
+        transaction.businessTransactionId,
+        receipt2,
+      );
 
-        expect(reloaded!.executions.map((e) => e.executionId)).toEqual(
-          signedRecord.executions.map((e) => e.executionId),
-        );
-        expect(reloaded!.overrides.map((o) => o.overrideId)).toEqual(
-          signedRecord.overrides.map((o) => o.overrideId),
-        );
-        expect(
-          reloaded!.verifications.map((v) => v.verificationId),
-        ).toEqual([
-          verification1.verificationId,
-          verification2.verificationId,
-        ]);
-        expect(reloaded!.receipts.map((r) => r.receiptId)).toEqual([
-          receipt1.receiptId,
-          receipt2.receiptId,
-        ]);
+      const reloaded = await trustRecords.findByTransactionId(
+        transaction.businessTransactionId,
+      );
 
-        const verificationCrypto = new VerificationCrypto();
+      expect(reloaded).not.toBeNull();
 
-        const recomputedHash = await verificationCrypto.hash(reloaded!);
+      expect(reloaded!.executions.map((e) => e.executionId)).toEqual(
+        signedRecord.executions.map((e) => e.executionId),
+      );
+      expect(reloaded!.overrides.map((o) => o.overrideId)).toEqual(
+        signedRecord.overrides.map((o) => o.overrideId),
+      );
+      expect(reloaded!.verifications.map((v) => v.verificationId)).toEqual([
+        verification1.verificationId,
+        verification2.verificationId,
+      ]);
+      expect(reloaded!.receipts.map((r) => r.receiptId)).toEqual([
+        receipt1.receiptId,
+        receipt2.receiptId,
+      ]);
 
-        expect(recomputedHash).toBe(reloaded!.trustRecordHash);
+      const verificationCrypto = new VerificationCrypto();
 
-        const verified = await verificationCrypto.verify(reloaded!);
+      const recomputedHash = await verificationCrypto.hash(reloaded!);
 
-        expect(verified).toBe(true);
-      },
-      30000,
-    );
+      expect(recomputedHash).toBe(reloaded!.trustRecordHash);
+
+      const verified = await verificationCrypto.verify(reloaded!);
+
+      expect(verified).toBe(true);
+    }, 30000);
   },
 );

@@ -1,29 +1,30 @@
 # 01 — ACHIEVED
 
-*Sessions 1–8, plus two unplanned incident-response detours. Snapshot: July 5, 2026.*
+_Sessions 1–8, plus two unplanned incident-response detours. Snapshot: July 5, 2026._
 
 ---
 
 ## 1. The transformation, at a glance
 
-| Dimension | Before | After |
-|---|---|---|
-| Core claim | "Trust our audit log" | **"Verify it yourself — byte-for-byte"** |
-| Execution boundary | Unsigned plain JSON | Signed, versioned, content-bound, single-use, expiring envelope |
-| Receiving side | Nothing to verify with | `@parmana/envelope-verifier` + `@parmana/execution-gateway` |
-| `/verify` endpoint | Passed ANY well-formed record (stub stages) | Real: integrity + signature + authorization-binding, tamper-proven end-to-end |
-| Content binding | Bound to ID only (same-ID/different-payload attack open) | Closed — hash mismatch rejected at the gateway, both hashes named |
-| Post-quantum | Broken provider: throwaway keys, wrong interface | ML-DSA-65 genuinely selectable, persistent keys, fail-closed key/algorithm guards |
-| Key custody | Private key committed & **public on GitHub** | Rotated, gitignored, compromise documented |
-| Test suite | Placeholder `expect(true)` stubs pervasive | **208 passed + 1 skipped, 12 packages**, hermetic core |
-| Claims discipline | Aspirational README text | `docs/CLAIMS.md` — every claim cites its test |
-| Public README status | "Verification ✅ Complete" (false) | Corrected to a truthful status table |
+| Dimension            | Before                                                   | After                                                                             |
+| -------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Core claim           | "Trust our audit log"                                    | **"Verify it yourself — byte-for-byte"**                                          |
+| Execution boundary   | Unsigned plain JSON                                      | Signed, versioned, content-bound, single-use, expiring envelope                   |
+| Receiving side       | Nothing to verify with                                   | `@parmana/envelope-verifier` + `@parmana/execution-gateway`                       |
+| `/verify` endpoint   | Passed ANY well-formed record (stub stages)              | Real: integrity + signature + authorization-binding, tamper-proven end-to-end     |
+| Content binding      | Bound to ID only (same-ID/different-payload attack open) | Closed — hash mismatch rejected at the gateway, both hashes named                 |
+| Post-quantum         | Broken provider: throwaway keys, wrong interface         | ML-DSA-65 genuinely selectable, persistent keys, fail-closed key/algorithm guards |
+| Key custody          | Private key committed & **public on GitHub**             | Rotated, gitignored, compromise documented                                        |
+| Test suite           | Placeholder `expect(true)` stubs pervasive               | **208 passed + 1 skipped, 12 packages**, hermetic core                            |
+| Claims discipline    | Aspirational README text                                 | `docs/CLAIMS.md` — every claim cites its test                                     |
+| Public README status | "Verification ✅ Complete" (false)                       | Corrected to a truthful status table                                              |
 
 ---
 
 ## 2. Shipped artifacts
 
 **New packages (2):**
+
 - `@parmana/envelope-verifier` — receiving-side verification: signature, expiry, TTL cap,
   single-use nonce. ~10 lines of middleware to adopt. Now split into a two-phase API
   (`verifyChecks()` + `consumeNonce()`) so the gateway can insert its content check in
@@ -33,17 +34,20 @@
   content to a connector, stateless reject on mismatch. 18 tests (9 cases × 2 algorithms).
 
 **Wire format:**
+
 - `ExecutionAuthorizationPayload` v1: `version` (fail-closed on unknown), `nonce`,
   `businessTransactionHash` (content binding), identity + policy fields, ISO timestamps.
-  Format locked *before* any external consumer exists — the cheapest possible moment.
+  Format locked _before_ any external consumer exists — the cheapest possible moment.
 
 **Shared primitives:**
+
 - `AuthorizationSigner` / `AuthorizationVerifier` (Ed25519 + ML-DSA-65)
 - `ExecutableContentHasher` — single-sourced canonical hash of
   `{businessTransactionId, action, target, parameters}`, used by BOTH signer and gateway
 - `DEFAULT_KEY_ID` centralized constant
 
 **The demo (example 04) — five live scenarios:**
+
 1. Valid envelope → HTTP 200 accepted
 2. Replayed envelope → 403 (`nonceUnseen: false`)
 3. Tampered payload → 403 (`signatureVerified: false`)
@@ -59,6 +63,7 @@ The old six-stage `packages/verification` pipeline — discovered to be **entire
 scaffolding** with placeholder stages beside the actually-live path — was deleted.
 Verification now lives in one place (`verification-service.ts`) and performs three real
 checks:
+
 - **Integrity** — recompute canonical trust-record hash, compare to stored
 - **Signature** — cryptographic Ed25519/ML-DSA verification
 - **Authorization binding** — every APPROVED execution carries its authorizationId

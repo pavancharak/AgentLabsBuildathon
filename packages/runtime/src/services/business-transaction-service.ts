@@ -13,22 +13,16 @@ import { BusinessTransactionValidator } from "../validators/BusinessTransactionV
  * A Business Transaction becomes immutable once accepted.
  */
 export class BusinessTransactionService {
-  constructor(
-    private readonly repository: BusinessTransactionRepository,
-  ) {}
+  constructor(private readonly repository: BusinessTransactionRepository) {}
 
   /**
    * Accepts a new Business Transaction.
    */
-  async accept(
-    transaction: BusinessTransaction,
-  ): Promise<BusinessTransaction> {
+  async accept(transaction: BusinessTransaction): Promise<BusinessTransaction> {
     //
     // Validate trust-chain invariants.
     //
-    BusinessTransactionValidator.validate(
-      transaction,
-    );
+    BusinessTransactionValidator.validate(transaction);
 
     //
     // Reject duplicate transactions.
@@ -46,9 +40,7 @@ export class BusinessTransactionService {
     //
     // Persist immutable transaction.
     //
-    return this.repository.create(
-      transaction,
-    );
+    return this.repository.create(transaction);
   }
 
   /**
@@ -57,21 +49,13 @@ export class BusinessTransactionService {
   async get(
     businessTransactionId: string,
   ): Promise<BusinessTransaction | null> {
-    return this.repository.findById(
-      businessTransactionId,
-    );
+    return this.repository.findById(businessTransactionId);
   }
 
   /**
    * Lists Business Transactions.
    */
-  async list(
-    page = 1,
-    pageSize = 25,
-  ): Promise<readonly BusinessTransaction[]> {
-    return this.repository.list(
-      page,
-      pageSize,
-    );
+  async list(page = 1, pageSize = 25): Promise<readonly BusinessTransaction[]> {
+    return this.repository.list(page, pageSize);
   }
 }

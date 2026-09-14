@@ -40,8 +40,6 @@ export {
 } from "./connector-execution/createGatewayConnectorRegistry.js";
 export { createGatewayHubSpotConnector } from "./connector-execution/createGatewayHubSpotConnector.js";
 export { createGatewayGitHubConnector } from "./connector-execution/createGatewayGitHubConnector.js";
-export {
-  createGatewayGitHubCredentialProvider,
-} from "./connector-execution/createGatewayGitHubCredentialProvider.js";
+export { createGatewayGitHubCredentialProvider } from "./connector-execution/createGatewayGitHubCredentialProvider.js";
 export { createGatewayPaytmConnector } from "./connector-execution/createGatewayPaytmConnector.js";
 export { createGatewaySlackConnector } from "./connector-execution/createGatewaySlackConnector.js";

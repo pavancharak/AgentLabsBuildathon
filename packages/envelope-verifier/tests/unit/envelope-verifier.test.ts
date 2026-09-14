@@ -94,9 +94,7 @@ class MapKeyProvider implements KeyProvider {
  * In-memory KeyExpiryStore test double, keyed by keyId.
  */
 class MapKeyExpiryStore implements KeyExpiryStore {
-  constructor(
-    private readonly entries: Map<string, KeyExpiryEntry>,
-  ) {}
+  constructor(private readonly entries: Map<string, KeyExpiryEntry>) {}
 
   async get(keyId: string): Promise<KeyExpiryEntry | undefined> {
     return this.entries.get(keyId);
@@ -342,9 +340,7 @@ describe("EnvelopeVerifier", () => {
     expect(nonceStore.size).toBe(1);
 
     // The live nonce is still recorded and still rejects reuse.
-    expect(
-      await nonceStore.checkAndRecord("live-nonce", future),
-    ).toBe(false);
+    expect(await nonceStore.checkAndRecord("live-nonce", future)).toBe(false);
   });
 });
 
@@ -401,12 +397,7 @@ describe("EnvelopeVerifier keyId-aware verification (Gap 2A)", () => {
     );
 
     const keyExpiryStore = new MapKeyExpiryStore(
-      new Map([
-        [
-          "expiring-key",
-          { expiresAt: new Date(Date.now() - 1_000) },
-        ],
-      ]),
+      new Map([["expiring-key", { expiresAt: new Date(Date.now() - 1_000) }]]),
     );
 
     const verifier = new EnvelopeVerifier({
@@ -596,4 +587,3 @@ describe("requireParmanaAuthorization", () => {
     expect(req.parmanaAuthorization?.valid).toBe(true);
   });
 });
-

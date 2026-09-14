@@ -7,6 +7,7 @@ Executes and verifies the production deployment of Phase 2A, approved after Phas
 ## Preconditions Verified Before Deploying
 
 **Repository state, confirmed clean:**
+
 ```
 git status          → clean, no uncommitted changes
 git log --oneline -5:
@@ -14,18 +15,20 @@ git log --oneline -5:
   6eff8ec  fix(production): remove MockConnector from production bootstrap (Phase 2A)
   ...
 ```
+
 Phase 2A (`6eff8ec`) and Phase 2A.1 (`10c8064`) both committed.
 
 **Phase 2A.1's three explicit conditions, quoted and individually addressed:**
 
-1. *"Complete the deployment checklist in §8 in full, in order, including the rollback decision point."* — This condition is executed by this very phase: §8's checklist items map directly onto the Post-Deployment Verification sections below (build identity, connector registration, fail-closed check, logs, rollback decision), all completed in order and recorded here.
-2. *"Treat the first monitoring window post-deploy as the resolution mechanism for the §4.5 uncertainty..."* — Executed: see §6 (Production Monitoring) below; no `payments:execute` traffic appeared in the observation window, consistent with §3's prediction.
-3. *"If practical, resolve the database-identity question directly..."* — Attempted: see §7 (Historical Data Integrity Status) below. Narrowed but not fully closed.
+1. _"Complete the deployment checklist in §8 in full, in order, including the rollback decision point."_ — This condition is executed by this very phase: §8's checklist items map directly onto the Post-Deployment Verification sections below (build identity, connector registration, fail-closed check, logs, rollback decision), all completed in order and recorded here.
+2. _"Treat the first monitoring window post-deploy as the resolution mechanism for the §4.5 uncertainty..."_ — Executed: see §6 (Production Monitoring) below; no `payments:execute` traffic appeared in the observation window, consistent with §3's prediction.
+3. _"If practical, resolve the database-identity question directly..."_ — Attempted: see §7 (Historical Data Integrity Status) below. Narrowed but not fully closed.
 
 **Other preconditions:**
+
 - Rollback plan: exists (Phase 2A.1 §7), with the exact pre-deploy image identified.
 - Production backup: not independently re-verified this session (Supabase-managed backups assumed baseline, as in Phase 2A.1); irrelevant to deploy risk since Phase 2A makes no schema/data change.
-- **Deployment approval: obtained.** Pavan's message explicitly states: *"I have reviewed the Phase 2A.1 Operational Readiness Report... I accept the documented deployment conditions and residual operational risk... You are approved to proceed with Phase 2A.2."*
+- **Deployment approval: obtained.** Pavan's message explicitly states: _"I have reviewed the Phase 2A.1 Operational Readiness Report... I accept the documented deployment conditions and residual operational risk... You are approved to proceed with Phase 2A.2."_
 
 ## 1. Deployment Summary
 
@@ -41,15 +44,15 @@ Deployed the exact reviewed Phase 2A commit to `parmana-api` on Fly.io via a ded
 
 ## 3. Deployment Evidence
 
-| Field | Value |
-|---|---|
-| Deployment target | Fly.io app `parmana-api` (`fly.toml`: `app = 'parmana-api'`) |
-| Deployment command | `flyctl deploy --app parmana-api`, run from the `6eff8ec` worktree |
-| Deployment start | 2026-08-05T02:31:17Z (pre-deploy state captured) |
-| Deployment completion | 2026-08-05T02:33:58Z (both machines confirmed `started`, health checks passing) |
-| New release | `v40`, `registry.fly.io/parmana-api:deployment-01KZ7W5ZZF13WV46E6TBNTVFE6` |
-| Previous release (rollback target) | `v39`, `registry.fly.io/parmana-api:deployment-01KZ3ZJEXK4RFV440R84E4E2S9` (unchanged from Phase 2A.1's identification) |
-| Deployment result | **Success** — both machines (`2867e1ef14d648`, `6830243f236d98`) reached `started` state, 1/1 health checks passing, confirmed via `flyctl status` and `flyctl image show` (both machines report identical image digest `sha256:72ef1f662b852de6fdc7492ccbeac011d3847882865da8d8727c9cb55754e859`) |
+| Field                              | Value                                                                                                                                                                                                                                                                                              |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Deployment target                  | Fly.io app `parmana-api` (`fly.toml`: `app = 'parmana-api'`)                                                                                                                                                                                                                                       |
+| Deployment command                 | `flyctl deploy --app parmana-api`, run from the `6eff8ec` worktree                                                                                                                                                                                                                                 |
+| Deployment start                   | 2026-08-05T02:31:17Z (pre-deploy state captured)                                                                                                                                                                                                                                                   |
+| Deployment completion              | 2026-08-05T02:33:58Z (both machines confirmed `started`, health checks passing)                                                                                                                                                                                                                    |
+| New release                        | `v40`, `registry.fly.io/parmana-api:deployment-01KZ7W5ZZF13WV46E6TBNTVFE6`                                                                                                                                                                                                                         |
+| Previous release (rollback target) | `v39`, `registry.fly.io/parmana-api:deployment-01KZ3ZJEXK4RFV440R84E4E2S9` (unchanged from Phase 2A.1's identification)                                                                                                                                                                            |
+| Deployment result                  | **Success** — both machines (`2867e1ef14d648`, `6830243f236d98`) reached `started` state, 1/1 health checks passing, confirmed via `flyctl status` and `flyctl image show` (both machines report identical image digest `sha256:72ef1f662b852de6fdc7492ccbeac011d3847882865da8d8727c9cb55754e859`) |
 
 One transient warning appeared during the rolling update (`"The app is not listening on the expected address..."`) immediately followed by `"Machine ... is now in a good state"` for the same machine — consistent with a health-check race during the brief window before the new process bound its port, not a persistent condition; both machines were confirmed healthy seconds later and remained so through the entire verification window.
 
@@ -100,13 +103,14 @@ Reviewed post-deploy logs across both machines (live tail and `--no-tail` buffer
 Phase 2A.1 classified this **C. Unable to Certify**, because the Supabase database this session could query (credentials in `.env`, documented there as backing "live integration tests") could not be confirmed as the same database backing production's `DATABASE_URL`/`SUPABASE_URL` Fly secrets.
 
 **New evidence obtained this session, attempting to resolve condition #3:**
+
 - The Supabase CLI (`supabase`, authenticated) was available and was not used in Phase 2A.1. `supabase projects list` returned exactly two projects on this account: `REDACTED-PROJECT-REF`, named **"REDACTED-PROJECT-NAME"**, region `ap-southeast-2`, created `2026-06-17` — and `REDACTED-SANDBOX-PROJECT-REF`, named **"REDACTED-SANDBOX-NAME"**, region `ap-south-1`, created `2026-08-04` (the day before this deploy), not linked to this repository.
 - `REDACTED-PROJECT-REF`'s host (`db.REDACTED-PROJECT-REF.supabase.co`) is the **exact same host** as the `DATABASE_URL` found in the local `.env` (already known from Phase 2A.1) — this CLI lookup independently corroborates that hostname's project identity and name for the first time.
 - This repository's own `supabase/.temp/linked-project.json` (CLI-generated local state, not committed) confirms this repository's Supabase CLI is linked specifically to `REDACTED-PROJECT-REF` ("REDACTED-PROJECT-NAME"), not the sandbox project.
 - `flyctl ssh console` was retried (attempting to read production's actual resolved `DATABASE_URL`/`SUPABASE_URL` environment variables directly, redacting credentials before display) and **failed again**, identical error to Phase 2A.1 (`websocket: failed to WebSocket dial... connection attempt failed`) — confirmed as a persistent network/tunnel limitation of this environment across two independent sessions, not a transient or permissions issue. Not retried a third time, per this review's own guidance against rabbit-holing on a repeatedly-failing tool call.
 - No mechanism was found to compare Fly's secret digests (`flyctl secrets list` shows digests, not values, with an undocumented hashing scheme) against a locally-computed value, so this avenue remains closed.
 
-**Classification: Still Unable to Certify.** The uncertainty is narrower than Phase 2A.1 left it — this is now known to be the one Supabase project this repository's own tooling associates with itself, distinctly named apart from the separate, newer "sandbox" project, rather than an anonymous database of unknown relationship — but "narrower" is not "closed." No mechanism available to this session could produce a byte-for-byte confirmation that Fly's production `DATABASE_URL` secret resolves to this project. The database's *content* was not re-queried this session (nothing in this deployment would have changed it, and Phase 2A.1's findings — 18 `payments:execute` records, 100% test-attributed — stand unchanged).
+**Classification: Still Unable to Certify.** The uncertainty is narrower than Phase 2A.1 left it — this is now known to be the one Supabase project this repository's own tooling associates with itself, distinctly named apart from the separate, newer "sandbox" project, rather than an anonymous database of unknown relationship — but "narrower" is not "closed." No mechanism available to this session could produce a byte-for-byte confirmation that Fly's production `DATABASE_URL` secret resolves to this project. The database's _content_ was not re-queried this session (nothing in this deployment would have changed it, and Phase 2A.1's findings — 18 `payments:execute` records, 100% test-attributed — stand unchanged).
 
 **Recommended follow-up to close this fully:** a one-step confirmation from whoever manages the Fly/Supabase organization (`REDACTED-ORG-SLUG`) that project `REDACTED-PROJECT-REF` ("REDACTED-PROJECT-NAME") is or isn't what `parmana-api`'s `DATABASE_URL`/`SUPABASE_URL` secrets point to — now a much narrower, specific question than Phase 2A.1 could pose.
 
@@ -115,6 +119,7 @@ Phase 2A.1 classified this **C. Unable to Certify**, because the Supabase databa
 **Decision: Continue operating. No rollback.**
 
 Evidence supporting this decision:
+
 - Build identity confirmed (§3).
 - Connector registration confirmed correct — MockConnector absent, exactly as intended (§4).
 - Fail-closed behavior confirmed deterministic, given §4's evidence (§5).
@@ -126,7 +131,7 @@ None of the three rollback triggers defined in Phase 2A.1 §7 have occurred. The
 
 ## 9. Remaining Operational Risks
 
-- **Database-identity question (§7)** remains open, narrower but unresolved. If it's later confirmed that the queried database is *not* production, the Historical Data Integrity Assessment reverts to fully unexamined for the real production store, and a fresh assessment against the actual production database would be warranted.
+- **Database-identity question (§7)** remains open, narrower but unresolved. If it's later confirmed that the queried database is _not_ production, the Historical Data Integrity Assessment reverts to fully unexamined for the real production store, and a fresh assessment against the actual production database would be warranted.
 - **Observation window is short** (this session's monitoring covers roughly the 10 minutes following deploy, not a full business cycle). Continued passive monitoring for `payments:execute` traffic and the `vendor_payment_connector_unavailable` warning's rate over the following days is prudent, consistent with Phase 2A.1's condition #2, though nothing in this session's evidence suggests it's necessary to block on.
 - **`VENDOR_PAYMENT_TOKEN` Fly secret is now orphaned** — it was never consumed by `MockConnector` even before this fix (MockConnector ignores credentials entirely) and now backs a capability that isn't registered at all. No security or operational risk (unused secrets don't grant capability), just housekeeping; not addressed in this phase as it's outside this phase's scope (deployment verification, not cleanup).
 
@@ -136,15 +141,15 @@ None of the three rollback triggers defined in Phase 2A.1 §7 have occurred. The
 
 Not an unconditional **DEPLOYMENT VERIFIED**, specifically because one item from the Final Recommendation's required list cannot be fully demonstrated:
 
-| Requirement | Status |
-|---|---|
-| Deployed commit exactly matches the reviewed commit | ✓ — `6eff8ec`, deployed from a verified-clean worktree at that exact SHA (§2, §3) |
-| Deployment succeeded | ✓ (§3) |
-| MockConnector absent from production | ✓ — confirmed by direct production log evidence, not inference (§4) |
-| Fail-closed behavior verified | ✓ — deterministically, from confirmed registry state plus unchanged, previously-tested code paths (§5); **not** verified by an actual live authenticated HTTP call, which this session correctly declined to attempt without legitimate credentials |
-| No unexpected operational impact | ✓ — no errors, no unexpected traffic, one transient self-correcting anomaly explained (§6) |
-| No production security regression | ✓ — no security-relevant code touched; connector-registration behavior change only |
-| No rollback criteria triggered during the observation window | ✓ (§8) |
+| Requirement                                                  | Status                                                                                                                                                                                                                                              |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Deployed commit exactly matches the reviewed commit          | ✓ — `6eff8ec`, deployed from a verified-clean worktree at that exact SHA (§2, §3)                                                                                                                                                                   |
+| Deployment succeeded                                         | ✓ (§3)                                                                                                                                                                                                                                              |
+| MockConnector absent from production                         | ✓ — confirmed by direct production log evidence, not inference (§4)                                                                                                                                                                                 |
+| Fail-closed behavior verified                                | ✓ — deterministically, from confirmed registry state plus unchanged, previously-tested code paths (§5); **not** verified by an actual live authenticated HTTP call, which this session correctly declined to attempt without legitimate credentials |
+| No unexpected operational impact                             | ✓ — no errors, no unexpected traffic, one transient self-correcting anomaly explained (§6)                                                                                                                                                          |
+| No production security regression                            | ✓ — no security-relevant code touched; connector-registration behavior change only                                                                                                                                                                  |
+| No rollback criteria triggered during the observation window | ✓ (§8)                                                                                                                                                                                                                                              |
 
 **Why "WITH FOLLOW-UP" rather than an unconditional verified:** the Historical Data Integrity Assessment (§7) remains **Still Unable to Certify** — narrowed by new evidence this session (the Supabase CLI project-identity finding), but not closed. This mirrors Phase 2A.1's own instruction precedent (an Unable to Certify classification changes the recommendation tier) and this phase's explicit rule not to infer success where evidence is incomplete. Every other requirement is fully satisfied with direct evidence; this is the one specific, narrow, named gap.
 

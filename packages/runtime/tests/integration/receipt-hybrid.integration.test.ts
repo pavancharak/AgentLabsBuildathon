@@ -44,7 +44,10 @@ describe.skipIf(!isMlDsa65Supported())(
         );
       }
 
-      const secondaryPrivatePath = join(keyDir, "default-secondary.private.pem");
+      const secondaryPrivatePath = join(
+        keyDir,
+        "default-secondary.private.pem",
+      );
       const secondaryPublicPath = join(keyDir, "default-secondary.public.pem");
 
       if (!existsSync(secondaryPrivatePath)) {
@@ -105,9 +108,9 @@ describe.skipIf(!isMlDsa65Supported())(
       // Additive hybrid fields.
       expect(receipt.schemaVersion).toBe(2);
       expect(receipt.signatures).toHaveLength(2);
-      expect(receipt.signatures?.map((entry) => entry.algorithm).sort()).toEqual(
-        ["dilithium3", "ed25519"].sort(),
-      );
+      expect(
+        receipt.signatures?.map((entry) => entry.algorithm).sort(),
+      ).toEqual(["dilithium3", "ed25519"].sort());
 
       // Independently re-verify via the same class ReceiptCrypto used
       // to produce these -- proves they're real signatures, not just
@@ -118,8 +121,13 @@ describe.skipIf(!isMlDsa65Supported())(
         keys,
       );
 
-      const { signature: _signature, algorithm, schemaVersion, signatures, ...unsignedReceipt } =
-        receipt;
+      const {
+        signature: _signature,
+        algorithm,
+        schemaVersion,
+        signatures,
+        ...unsignedReceipt
+      } = receipt;
 
       expect(
         await provider.verify(

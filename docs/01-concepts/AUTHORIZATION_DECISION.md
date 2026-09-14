@@ -1,46 +1,24 @@
 \# Authorization Decision
 
-
-
 \## Purpose
-
-
 
 This document defines the \*\*Authorization Decision\*\*, the canonical outcome produced by Authority Verification.
 
-
-
 An Authorization Decision represents Parmana's determination of whether an Execution Request is permitted to proceed according to organizational policy, verified evidence, and required human authority.
-
-
 
 It is the authoritative decision that controls execution.
 
-
-
 This document is normative.
-
-
 
 \---
 
-
-
 \# Definition
-
-
 
 An \*\*Authorization Decision\*\* is the deterministic outcome of Authority Verification.
 
-
-
 It expresses the organization's decision regarding an Execution Request.
 
-
-
 An Authorization Decision determines whether execution:
-
-
 
 \* may proceed,
 
@@ -50,27 +28,15 @@ An Authorization Decision determines whether execution:
 
 \* or must be escalated.
 
-
-
 The Authorization Decision is produced before any execution occurs.
-
-
 
 \---
 
-
-
 \# Purpose
-
-
 
 The Authorization Decision separates \*\*authorization\*\* from \*\*execution\*\*.
 
-
-
 Its responsibilities are to:
-
-
 
 \* Express the authorization outcome.
 
@@ -82,27 +48,15 @@ Its responsibilities are to:
 
 \* Produce a consistent interface for execution systems.
 
-
-
 Parmana authorizes actions.
-
-
 
 Execution systems perform actions.
 
-
-
 \---
-
-
 
 \# Position in the Execution Lifecycle
 
-
-
 The Authorization Decision is produced after Authority Verification and before execution.
-
-
 
 ```text
 
@@ -140,23 +94,13 @@ Execution Trust Record
 
 ```
 
-
-
 It is the control point that determines whether execution may continue.
-
-
 
 \---
 
-
-
 \# Inputs
 
-
-
 An Authorization Decision is derived from:
-
-
 
 \* Execution Request
 
@@ -172,91 +116,47 @@ An Authorization Decision is derived from:
 
 \* Execution Context
 
-
-
 No other information influences the decision.
 
-
-
 \---
-
-
 
 \# Decision Outcomes
 
-
-
 Parmana defines four canonical outcomes.
-
-
 
 \## Approved
 
-
-
 Execution is authorized.
-
-
 
 All required policy conditions have been satisfied.
 
-
-
 The execution system may proceed.
 
-
-
 \---
-
-
 
 \## Rejected
 
-
-
 Execution is denied.
-
-
 
 One or more policy requirements were not satisfied.
 
-
-
 No execution is permitted.
 
-
-
 \---
-
-
 
 \## Awaiting Approval
 
-
-
 Execution cannot continue because one or more required Human Approvals have not yet been obtained.
-
-
 
 The request may be resubmitted after the required approvals are available.
 
-
-
 \---
-
-
 
 \## Escalated
 
-
-
 Execution requires review outside the normal authorization path.
 
-
-
 Examples include:
-
-
 
 \* Policy conflicts
 
@@ -266,23 +166,13 @@ Examples include:
 
 \* Manual investigation
 
-
-
 Execution remains blocked until the escalation is resolved.
-
-
 
 \---
 
-
-
 \# Decision Characteristics
 
-
-
 Every Authorization Decision is:
-
-
 
 \* Deterministic
 
@@ -296,23 +186,13 @@ Every Authorization Decision is:
 
 \* Replayable
 
-
-
 These properties are fundamental to Parmana.
-
-
 
 \---
 
-
-
 \# Decision Contents
 
-
-
 Conceptually, an Authorization Decision consists of:
-
-
 
 ```text
 
@@ -334,27 +214,15 @@ Authorization Decision
 
 ```
 
-
-
 The physical representation is implementation-specific.
-
-
 
 \---
 
-
-
 \# Decision Basis
-
-
 
 Authorization Decisions are based exclusively on verified evidence.
 
-
-
 Evidence may include:
-
-
 
 \* Enterprise Facts
 
@@ -366,47 +234,25 @@ Evidence may include:
 
 \* Execution Context
 
-
-
 AI confidence alone is never sufficient.
 
-
-
 \---
-
-
 
 \# Relationship to Human Authority
 
-
-
 Human Authority remains the source of execution authority.
-
-
 
 The Authorization Decision records whether the required authority has been satisfied.
 
-
-
 It does not create new authority.
-
-
 
 \---
 
-
-
 \# Relationship to Policy
-
-
 
 Every Authorization Decision references the governing organizational policy.
 
-
-
 This enables:
-
-
 
 \* Replay
 
@@ -416,31 +262,17 @@ This enables:
 
 \* Historical analysis
 
-
-
 Authorization decisions remain understandable even after policies evolve.
-
-
 
 \---
 
-
-
 \# Relationship to Execution
-
-
 
 Execution systems consume Authorization Decisions.
 
-
-
 Execution systems do not reinterpret policy.
 
-
-
 They simply respect the authorization outcome.
-
-
 
 ```text
 
@@ -488,23 +320,13 @@ Authorization Decision
 
 ```
 
-
-
 \---
-
-
 
 \# Relationship to Execution Trust Record
 
-
-
 Every Authorization Decision becomes part of the Execution Trust Record.
 
-
-
 The record preserves:
-
-
 
 \* Decision outcome
 
@@ -516,47 +338,25 @@ The record preserves:
 
 \* Decision timestamp
 
-
-
 This allows the decision to be independently verified in the future.
 
-
-
 \---
-
-
 
 \# Immutability
 
-
-
 Once issued, an Authorization Decision MUST NOT be modified.
-
-
 
 If business circumstances change, a new Execution Request must be submitted and a new Authorization Decision produced.
 
-
-
 Historical decisions remain permanent.
-
-
 
 \---
 
-
-
 \# Determinism
-
-
 
 Authorization Decisions are deterministic.
 
-
-
 Given identical:
-
-
 
 \* Execution Request
 
@@ -570,27 +370,15 @@ Given identical:
 
 \* Execution Context
 
-
-
 Parmana will produce the same Authorization Decision.
-
-
 
 This property enables replay and independent verification.
 
-
-
 \---
-
-
 
 \# Security Considerations
 
-
-
 Authorization Decisions should be protected against:
-
-
 
 \* Modification
 
@@ -602,23 +390,13 @@ Authorization Decisions should be protected against:
 
 \* Replay attacks
 
-
-
 Integrity protection is provided by the Execution Trust Record and associated cryptographic mechanisms.
-
-
 
 \---
 
-
-
 \# Design Principles
 
-
-
 Authorization Decisions follow these principles:
-
-
 
 \* Produced only after Authority Verification.
 
@@ -636,19 +414,11 @@ Authorization Decisions follow these principles:
 
 \* Technology-independent.
 
-
-
 \---
-
-
 
 \# What an Authorization Decision Is Not
 
-
-
 An Authorization Decision is \*\*not\*\*:
-
-
 
 \* a Business Transaction,
 
@@ -664,23 +434,13 @@ An Authorization Decision is \*\*not\*\*:
 
 \* an Organizational Policy.
 
-
-
 It is the formal authorization outcome produced by Parmana.
-
-
 
 \---
 
-
-
 \# Guarantees
 
-
-
 Parmana provides the following guarantees:
-
-
 
 \* Every Authorization Decision is produced by Authority Verification.
 
@@ -698,25 +458,12 @@ Parmana provides the following guarantees:
 
 \* Execution occurs only when the Authorization Decision is \*\*Approved\*\*.
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 The Authorization Decision is the authoritative outcome of Parmana's authorization process.
-
-
 
 It translates organizational policy and verified evidence into a deterministic execution decision while preserving human authority and organizational governance.
 
-
-
 By separating authorization from execution, Parmana enables autonomous AI systems to perform real work without transferring execution authority away from the organization.
-
-
-

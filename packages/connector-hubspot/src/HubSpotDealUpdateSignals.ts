@@ -48,7 +48,8 @@ export function isHubSpotStageTransitionAllowed(
   if (currentStage === proposedStage) return true;
 
   const terminalStage = stageOrder[stageOrder.length - 1];
-  const currentIsTerminal = currentStage === HUBSPOT_LOST_STAGE || currentStage === terminalStage;
+  const currentIsTerminal =
+    currentStage === HUBSPOT_LOST_STAGE || currentStage === terminalStage;
 
   if (proposedStage === HUBSPOT_LOST_STAGE) {
     return !currentIsTerminal && stageOrder.includes(currentStage);
@@ -96,31 +97,48 @@ export interface BuildHubSpotDealUpdateSignalsInput {
  * like-for-like rather than a default value against a genuinely absent
  * Intent field.
  */
-export function buildHubSpotDealUpdateSignals(input: BuildHubSpotDealUpdateSignalsInput): PolicySignals {
+export function buildHubSpotDealUpdateSignals(
+  input: BuildHubSpotDealUpdateSignalsInput,
+): PolicySignals {
   const currentDealStage = input.currentDeal.properties.dealstage ?? "";
   const currentAmount =
-    input.currentDeal.properties.amount !== undefined ? Number(input.currentDeal.properties.amount) : undefined;
+    input.currentDeal.properties.amount !== undefined
+      ? Number(input.currentDeal.properties.amount)
+      : undefined;
 
   const dealStageChangeRequested =
-    input.proposedDealStage !== undefined && input.proposedDealStage !== currentDealStage;
+    input.proposedDealStage !== undefined &&
+    input.proposedDealStage !== currentDealStage;
   const dealStageTransitionAllowed = !dealStageChangeRequested
     ? true
-    : isHubSpotStageTransitionAllowed(currentDealStage, input.proposedDealStage as string, input.stageOrder);
+    : isHubSpotStageTransitionAllowed(
+        currentDealStage,
+        input.proposedDealStage as string,
+        input.stageOrder,
+      );
 
-  const amountChangeRequested = input.proposedAmount !== undefined && input.proposedAmount !== currentAmount;
+  const amountChangeRequested =
+    input.proposedAmount !== undefined &&
+    input.proposedAmount !== currentAmount;
   const amountDeltaAbs = amountChangeRequested
     ? Math.abs((input.proposedAmount as number) - (currentAmount ?? 0))
     : 0;
-  const threshold = input.amountChangeThreshold ?? HUBSPOT_DEFAULT_AMOUNT_CHANGE_THRESHOLD;
-  const amountChangeExceedsThreshold = amountChangeRequested && amountDeltaAbs > threshold;
+  const threshold =
+    input.amountChangeThreshold ?? HUBSPOT_DEFAULT_AMOUNT_CHANGE_THRESHOLD;
+  const amountChangeExceedsThreshold =
+    amountChangeRequested && amountDeltaAbs > threshold;
 
   return {
     currentDealStage,
-    ...(input.proposedDealStage !== undefined ? { proposedDealStage: input.proposedDealStage } : {}),
+    ...(input.proposedDealStage !== undefined
+      ? { proposedDealStage: input.proposedDealStage }
+      : {}),
     dealStageChangeRequested,
     dealStageTransitionAllowed,
     amountChangeRequested,
-    ...(input.proposedAmount !== undefined ? { proposedAmount: input.proposedAmount } : {}),
+    ...(input.proposedAmount !== undefined
+      ? { proposedAmount: input.proposedAmount }
+      : {}),
     amountDeltaAbs,
     amountChangeExceedsThreshold,
     preAuthorizedForAmountChange: input.preAuthorizedForAmountChange ?? false,

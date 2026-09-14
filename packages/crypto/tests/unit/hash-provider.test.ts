@@ -45,4 +45,3 @@ describe("SHA256HashProvider", () => {
     expect(a).not.toBe(b);
   });
 });
-

@@ -109,7 +109,9 @@ export interface PolicyChangeStepUpPayloadVerificationResult {
  * oracle on any one field).
  */
 export class PolicyChangeStepUpAuthorizationVerifier {
-  private readonly verifier = new SignatureVerifier(ED25519_ONLY_CRYPTO_PROVIDER);
+  private readonly verifier = new SignatureVerifier(
+    ED25519_ONLY_CRYPTO_PROVIDER,
+  );
 
   async verify(
     authorization: PolicyChangeStepUpAuthorization,

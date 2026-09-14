@@ -48,13 +48,20 @@ const content: ExecutableContent = {
 
 async function fixture() {
   const { privateKey } = generateKeyPairSync("ed25519");
-  const authorization = await new AuthorizationSigner(CryptoBootstrap.create()).sign({
-    decisionId: "decision-1",
-    businessTransactionId: content.businessTransactionId,
-    policyName: "payments",
-    policyVersion: "1.0.0",
-    executableContent: content,
-  }, privateKey, "key-1", 60);
+  const authorization = await new AuthorizationSigner(
+    CryptoBootstrap.create(),
+  ).sign(
+    {
+      decisionId: "decision-1",
+      businessTransactionId: content.businessTransactionId,
+      policyName: "payments",
+      policyVersion: "1.0.0",
+      executableContent: content,
+    },
+    privateKey,
+    "key-1",
+    60,
+  );
 
   const gatewayIdentity: GatewayIdentity = {
     gatewayId: "gateway-1",
@@ -67,16 +74,24 @@ async function fixture() {
     authenticationMetadata: {},
   };
   const gatewayAuthentication = Object.freeze({ token: "gateway-only" });
-  const sessionIssuanceAuthentication = Object.freeze({ capability: "session-issuer" });
+  const sessionIssuanceAuthentication = Object.freeze({
+    capability: "session-issuer",
+  });
 
-  const sessions = new InMemoryGatewaySessionStore(sessionIssuanceAuthentication);
+  const sessions = new InMemoryGatewaySessionStore(
+    sessionIssuanceAuthentication,
+  );
   const authenticator = new InMemoryConnectorAuthenticator(
-    gatewayIdentity, gatewayAuthentication, [connectorIdentity],
+    gatewayIdentity,
+    gatewayAuthentication,
+    [connectorIdentity],
   );
   const policy = new DefaultConnectorPolicy(authenticator, sessions);
 
   const credentials = new InMemoryCredentialVault();
-  credentials.setCredential("sap", { value: Object.freeze({ apiKey: "sap-secret" }) });
+  credentials.setCredential("sap", {
+    value: Object.freeze({ apiKey: "sap-secret" }),
+  });
 
   const inner = new InMemorySessionCredentialVault({
     credentials,
@@ -87,7 +102,8 @@ async function fixture() {
 
   const revokedIds: string[] = [];
   const sessionCredentials: SessionCredentialVault = {
-    issue: (connectorId, authorizationId) => inner.issue(connectorId, authorizationId),
+    issue: (connectorId, authorizationId) =>
+      inner.issue(connectorId, authorizationId),
     consume: (id) => inner.consume(id),
     revoke: async (id) => {
       revokedIds.push(id);
@@ -101,7 +117,12 @@ async function fixture() {
     async execute(executableContent): Promise<ExecutionResult> {
       executorCalls += 1;
       if (failNext) throw new Error("executor failure");
-      return { ...executableContent, success: true, executedAt: new Date(), metadata: {} };
+      return {
+        ...executableContent,
+        success: true,
+        executedAt: new Date(),
+        metadata: {},
+      };
     },
   };
 
@@ -131,16 +152,31 @@ async function fixture() {
   };
 
   return {
-    authorization, gatewayIdentity, gatewayAuthentication, sessionIssuanceAuthentication,
-    authenticator, sessions, connector, release, revokedIds, audit,
+    authorization,
+    gatewayIdentity,
+    gatewayAuthentication,
+    sessionIssuanceAuthentication,
+    authenticator,
+    sessions,
+    connector,
+    release,
+    revokedIds,
+    audit,
     executorCalls: () => executorCalls,
-    setFailNext: (value: boolean) => { failNext = value; },
+    setFailNext: (value: boolean) => {
+      failNext = value;
+    },
   };
 }
 
 function connectorRequest(
   f: Awaited<ReturnType<typeof fixture>>,
-  session = f.sessions.create(f.release, "sap", 30_000, f.sessionIssuanceAuthentication),
+  session = f.sessions.create(
+    f.release,
+    "sap",
+    30_000,
+    f.sessionIssuanceAuthentication,
+  ),
 ): GatewayExecutionRequest {
   return {
     authorization: f.authorization,
@@ -156,7 +192,9 @@ describe("SessionCredentialSecureConnector", () => {
   it("executes successfully and destroys the session credential after success", async () => {
     const f = await fixture();
 
-    await expect(f.connector.execute(connectorRequest(f))).resolves.toMatchObject({ success: true });
+    await expect(
+      f.connector.execute(connectorRequest(f)),
+    ).resolves.toMatchObject({ success: true });
 
     expect(f.executorCalls()).toBe(1);
     expect(f.revokedIds).toHaveLength(1);
@@ -166,7 +204,9 @@ describe("SessionCredentialSecureConnector", () => {
     const f = await fixture();
     f.setFailNext(true);
 
-    await expect(f.connector.execute(connectorRequest(f))).rejects.toThrow("executor failure");
+    await expect(f.connector.execute(connectorRequest(f))).rejects.toThrow(
+      "executor failure",
+    );
 
     expect(f.executorCalls()).toBe(1);
     expect(f.revokedIds).toHaveLength(1);
@@ -175,15 +215,17 @@ describe("SessionCredentialSecureConnector", () => {
   it("(a) rejects direct invocation with no genuine session (forged sessionId)", async () => {
     const f = await fixture();
 
-    await expect(f.connector.execute({
-      ...connectorRequest(f),
-      gatewaySession: {
-        sessionId: "forged",
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 30_000).toISOString(),
-        authorizationId: f.authorization.payload.authorizationId,
-      },
-    })).rejects.toThrow("invalid");
+    await expect(
+      f.connector.execute({
+        ...connectorRequest(f),
+        gatewaySession: {
+          sessionId: "forged",
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 30_000).toISOString(),
+          authorizationId: f.authorization.payload.authorizationId,
+        },
+      }),
+    ).rejects.toThrow("invalid");
 
     expect(f.executorCalls()).toBe(0);
     expect(f.revokedIds).toHaveLength(0);
@@ -192,10 +234,16 @@ describe("SessionCredentialSecureConnector", () => {
   it("(b) rejects direct invocation with an expired session", async () => {
     const f = await fixture();
     const session = f.sessions.create(
-      f.release, "sap", 1, f.sessionIssuanceAuthentication, new Date(Date.now() - 10),
+      f.release,
+      "sap",
+      1,
+      f.sessionIssuanceAuthentication,
+      new Date(Date.now() - 10),
     );
 
-    await expect(f.connector.execute(connectorRequest(f, session))).rejects.toThrow("invalid");
+    await expect(
+      f.connector.execute(connectorRequest(f, session)),
+    ).rejects.toThrow("invalid");
 
     expect(f.executorCalls()).toBe(0);
     expect(f.revokedIds).toHaveLength(0);
@@ -219,22 +267,29 @@ describe("SessionCredentialSecureConnector", () => {
     // The connector's baked-in gatewayAuthentication genuinely passes the
     // authenticator in isolation...
     //
-    expect(f.authenticator.authenticateGateway(f.gatewayIdentity, f.gatewayAuthentication)).toBe(true);
+    expect(
+      f.authenticator.authenticateGateway(
+        f.gatewayIdentity,
+        f.gatewayAuthentication,
+      ),
+    ).toBe(true);
 
     //
     // ...yet execution is still rejected without a real, gateway-issued
     // session — proving the static attestation is not, by itself,
     // sufficient to authorize anything.
     //
-    await expect(f.connector.execute({
-      ...connectorRequest(f),
-      gatewaySession: {
-        sessionId: "no-such-session",
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 30_000).toISOString(),
-        authorizationId: f.authorization.payload.authorizationId,
-      },
-    })).rejects.toThrow("invalid");
+    await expect(
+      f.connector.execute({
+        ...connectorRequest(f),
+        gatewaySession: {
+          sessionId: "no-such-session",
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 30_000).toISOString(),
+          authorizationId: f.authorization.payload.authorizationId,
+        },
+      }),
+    ).rejects.toThrow("invalid");
 
     expect(f.executorCalls()).toBe(0);
     expect(f.revokedIds).toHaveLength(0);
@@ -259,15 +314,17 @@ describe("SessionCredentialSecureConnector", () => {
   it("records an execution.rejected audit event with a reason on policy failure", async () => {
     const f = await fixture();
 
-    await expect(f.connector.execute({
-      ...connectorRequest(f),
-      gatewaySession: {
-        sessionId: "forged",
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 30_000).toISOString(),
-        authorizationId: f.authorization.payload.authorizationId,
-      },
-    })).rejects.toThrow("invalid");
+    await expect(
+      f.connector.execute({
+        ...connectorRequest(f),
+        gatewaySession: {
+          sessionId: "forged",
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 30_000).toISOString(),
+          authorizationId: f.authorization.payload.authorizationId,
+        },
+      }),
+    ).rejects.toThrow("invalid");
 
     expect(f.audit.events).toHaveLength(1);
     expect(f.audit.events[0]).toMatchObject({
@@ -285,7 +342,9 @@ describe("SessionCredentialSecureConnector", () => {
 
     await f.connector.execute(connectorRequest(f));
     f.setFailNext(true);
-    await expect(f.connector.execute(connectorRequest(f))).rejects.toThrow("executor failure");
+    await expect(f.connector.execute(connectorRequest(f))).rejects.toThrow(
+      "executor failure",
+    );
 
     expect(f.audit.events.length).toBeGreaterThan(0);
     expect(JSON.stringify(f.audit.events)).not.toContain("sap-secret");

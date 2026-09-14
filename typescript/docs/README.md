@@ -1,46 +1,24 @@
 \# Parmana TypeScript SDK
 
-
-
 \## Overview
-
-
 
 The Parmana TypeScript SDK enables JavaScript and TypeScript applications to interact with the Parmana Runtime.
 
-
-
 Parmana is an \*\*Execution Trust Infrastructure\*\* that ensures AI systems execute only authorized business transactions under explicitly defined governance policies. Every execution produces an immutable trust chain that can be replayed, verified, and independently audited.
-
-
 
 The SDK provides strongly typed domain models, a high-level client, and helper APIs for execution, verification, and replay.
 
-
-
 \---
-
-
 
 \# What is Parmana?
 
-
-
 Modern AI systems make decisions that increasingly affect business operations, financial transactions, healthcare, autonomous systems, and critical infrastructure.
-
-
 
 Organizations require more than accurate AI models—they require confidence that AI systems execute only what has been authorized and approved.
 
-
-
 Parmana provides this confidence through a deterministic execution trust architecture.
 
-
-
 Every governed execution records:
-
-
 
 \* Authority
 
@@ -62,23 +40,13 @@ Every governed execution records:
 
 \* Execution Trust Record
 
-
-
 These artifacts collectively form the \*\*Execution Trust Chain\*\*.
-
-
 
 \---
 
-
-
 \# Features
 
-
-
 The TypeScript SDK provides:
-
-
 
 \* Strongly typed domain models
 
@@ -96,19 +64,11 @@ The TypeScript SDK provides:
 
 \* Support for Node.js and modern TypeScript applications
 
-
-
 \---
-
-
 
 \# Installation
 
-
-
 Using npm:
-
-
 
 ```bash
 
@@ -116,11 +76,7 @@ npm install @parmana/typescript-sdk
 
 ```
 
-
-
 Using pnpm:
-
-
 
 ```bash
 
@@ -128,11 +84,7 @@ pnpm add @parmana/typescript-sdk
 
 ```
 
-
-
 Using yarn:
-
-
 
 ```bash
 
@@ -140,15 +92,9 @@ yarn add @parmana/typescript-sdk
 
 ```
 
-
-
 \---
 
-
-
 \# Requirements
-
-
 
 \* Node.js 22+
 
@@ -156,15 +102,9 @@ yarn add @parmana/typescript-sdk
 
 \* Parmana Runtime
 
-
-
 \---
 
-
-
 \# Quick Start
-
-
 
 ```typescript
 
@@ -192,15 +132,9 @@ console.log(receipt.receiptId);
 
 ```
 
-
-
 \---
 
-
-
 \# SDK Structure
-
-
 
 ```text
 
@@ -228,147 +162,75 @@ typescript/
 
 ```
 
-
-
 \---
-
-
 
 \# Domain Model
 
-
-
 The SDK mirrors the Parmana Trust Core.
-
-
 
 \## Authority
 
-
-
 Defines who owns the business authority.
 
-
-
 \---
-
-
 
 \## Authorization
 
-
-
 Defines who or what may execute.
 
-
-
 \---
-
-
 
 \## Intent
 
-
-
 Defines the requested business operation.
 
-
-
 \---
-
-
 
 \## PolicyReference
 
-
-
 Identifies the exact governance policy.
 
-
-
 \---
-
-
 
 \## BusinessTransaction
 
-
-
 The immutable business request submitted to Parmana.
 
-
-
 \---
-
-
 
 \## Decision
 
-
-
 Records deterministic policy evaluation.
 
-
-
 \---
-
-
 
 \## Execution
 
-
-
 Records what actually happened.
 
-
-
 \---
-
-
 
 \## Verification
 
-
-
 Records independent verification.
 
-
-
 \---
-
-
 
 \## Receipt
 
-
-
 Cryptographic proof of execution.
 
-
-
 \---
-
-
 
 \## ExecutionTrustRecord
 
-
-
 Canonical immutable record representing the complete execution trust chain.
-
-
 
 \---
 
-
-
 \# ParmanaClient
 
-
-
 The SDK revolves around `ParmanaClient`.
-
-
 
 ```typescript
 
@@ -380,43 +242,23 @@ const client = new ParmanaClient({
 
 ```
 
-
-
 The client exposes:
 
-
-
 ```typescript
-
 await client.execute(transaction);
-
-
 
 await client.verify(trustRecord);
 
-
-
 await client.replay(trustRecord);
-
-
 
 await client.health();
 
-
-
 await client.version();
-
 ```
-
-
 
 \---
 
-
-
 \# Architecture
-
-
 
 ```text
 
@@ -448,61 +290,43 @@ Execution Trust Infrastructure
 
 ```
 
-
-
 The SDK is intentionally lightweight. Business governance remains inside the Parmana Runtime.
 
-
-
 \---
-
-
 
 \# Examples
 
-
-
 The SDK includes ten complete examples.
 
-
-
-| Example | Description           |
+| Example | Description |
 
 | ------- | --------------------- |
 
-| 01      | Basic execution       |
+| 01 | Basic execution |
 
-| 02      | Verify receipt        |
+| 02 | Verify receipt |
 
-| 03      | Replay execution      |
+| 03 | Replay execution |
 
-| 04      | Audit trust chain     |
+| 04 | Audit trust chain |
 
-| 05      | Human-in-the-loop     |
+| 05 | Human-in-the-loop |
 
-| 06      | Autonomous vehicle    |
+| 06 | Autonomous vehicle |
 
-| 07      | Medical AI            |
+| 07 | Medical AI |
 
-| 08      | Financial transaction |
+| 08 | Financial transaction |
 
-| 09      | Multi-agent workflow  |
+| 09 | Multi-agent workflow |
 
-| 10      | Custom policy         |
-
-
+| 10 | Custom policy |
 
 \---
 
-
-
 \# Documentation
 
-
-
 Each example has a corresponding guide.
-
-
 
 ```text
 
@@ -532,19 +356,11 @@ README.md
 
 ```
 
-
-
 \---
-
-
 
 \# Design Principles
 
-
-
 The TypeScript SDK follows the same architectural principles as the Parmana Runtime:
-
-
 
 \* Explicit policy selection
 
@@ -560,23 +376,13 @@ The TypeScript SDK follows the same architectural principles as the Parmana Runt
 
 \* Minimal client API
 
-
-
 \---
-
-
 
 \# Relationship to the Runtime
 
-
-
 The SDK is \*\*not\*\* the Runtime.
 
-
-
 The Runtime:
-
-
 
 \* Evaluates policies
 
@@ -588,23 +394,13 @@ The Runtime:
 
 \* Produces verification artifacts
 
-
-
 The SDK simply provides a convenient, type-safe interface for interacting with those capabilities.
-
-
 
 \---
 
-
-
 \# Development Status
 
-
-
 Current SDK capabilities include:
-
-
 
 \* Typed domain models
 
@@ -620,23 +416,13 @@ Current SDK capabilities include:
 
 \* Comprehensive documentation
 
-
-
 Future releases will expand support for authentication, streaming APIs, advanced runtime features, and additional developer tooling.
-
-
 
 \---
 
-
-
 \# Next Steps
 
-
-
 Begin with:
-
-
 
 ```text
 
@@ -644,33 +430,16 @@ docs/01\_basic\_execution.md
 
 ```
 
-
-
 to learn how to construct a `BusinessTransaction`, submit it to the Parmana Runtime, and understand the resulting execution trust chain.
 
-
-
 \---
-
-
 
 \# License
 
-
-
 Apache License 2.0
-
-
 
 \---
 
-
-
 \# Learn More
 
-
-
 The remaining documentation explores replay, verification, auditing, human oversight, autonomous systems, healthcare, financial governance, multi-agent coordination, and deterministic policy selection using the TypeScript SDK.
-
-
-

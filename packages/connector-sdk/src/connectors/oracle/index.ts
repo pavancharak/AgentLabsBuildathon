@@ -2,10 +2,6 @@
  * Oracle connector exports.
  */
 
-export {
-  createOracleConnector,
-} from "./OracleConnector.js";
+export { createOracleConnector } from "./OracleConnector.js";
 
-export {
-  OracleMetadata,
-} from "./OracleMetadata.js";
+export { OracleMetadata } from "./OracleMetadata.js";

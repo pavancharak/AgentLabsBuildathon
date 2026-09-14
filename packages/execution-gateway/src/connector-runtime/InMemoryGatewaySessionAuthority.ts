@@ -35,14 +35,17 @@ export class InMemoryGatewaySessionAuthority implements GatewaySessionAuthority 
     identity: ConnectorIdentity,
   ): Promise<boolean> {
     const stored = this.sessions.get(session.sessionId);
-    const valid = stored !== undefined &&
+    const valid =
+      stored !== undefined &&
       !stored.consumed &&
       Date.parse(stored.expiresAt) > Date.now() &&
       stored.connectorId === identity.connectorId &&
       stored.connectorId === request.connectorId &&
       stored.executionId === request.executionId &&
-      stored.authorizationId === request.authorization.payload.authorizationId &&
-      stored.contentHash === request.authorization.payload.businessTransactionHash &&
+      stored.authorizationId ===
+        request.authorization.payload.authorizationId &&
+      stored.contentHash ===
+        request.authorization.payload.businessTransactionHash &&
       this.sameSession(stored, session);
 
     if (!valid || stored === undefined) return false;
@@ -51,9 +54,14 @@ export class InMemoryGatewaySessionAuthority implements GatewaySessionAuthority 
   }
 
   private sameSession(a: GatewaySession, b: GatewaySession): boolean {
-    return a.sessionId === b.sessionId && a.connectorId === b.connectorId &&
-      a.executionId === b.executionId && a.authorizationId === b.authorizationId &&
-      a.contentHash === b.contentHash && a.expiresAt === b.expiresAt;
+    return (
+      a.sessionId === b.sessionId &&
+      a.connectorId === b.connectorId &&
+      a.executionId === b.executionId &&
+      a.authorizationId === b.authorizationId &&
+      a.contentHash === b.contentHash &&
+      a.expiresAt === b.expiresAt
+    );
   }
 
   private publicSession(session: SessionRecord): GatewaySession {

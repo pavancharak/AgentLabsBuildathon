@@ -2,14 +2,14 @@
 
 ## Objective
 
-Show that a signed Execution Authorization only proves conditions were true *when it was issued* — and that `ExecutionGateway`'s `signalsStillCurrent` check lets a receiving system independently confirm those conditions still hold *when it actually executes*, even when signature, expiry, and content hash all still check out.
+Show that a signed Execution Authorization only proves conditions were true _when it was issued_ — and that `ExecutionGateway`'s `signalsStillCurrent` check lets a receiving system independently confirm those conditions still hold _when it actually executes_, even when signature, expiry, and content hash all still check out.
 
 ## What You'll Learn
 
-* `RuntimeEngine.execute()` now signs a `signalsHash` into every `ExecutionAuthorizationPayload` — a canonical hash of the runtime signals (`PolicySignals`) the decision was evaluated against, the direct sibling of the existing `policyContentHash` (Tutorial 34's `ExecutionGateway`, `docs/CLAIMS.md` §2.27)
-* `ExecutionGateway` optionally accepts a `SignalStateVerifier` (the same port `@parmana/policy` already defines for pre-authorization checks — see Tutorial 71/82) and independently re-verifies the authorization's declared signals against real-world state *at the execution boundary*, before the connector is ever invoked
-* Two receiving systems can hold the exact same authorization, the exact same declared signals, and the exact same `signalsHash` — and still reach different outcomes, because what differs is what each one's own live check finds
-* A rejection here (`signalsStillCurrent: false`, `signalDivergence`) is a distinct failure mode from tampering (Tutorial 29) or expiry (Tutorial 27): nothing about the request was forged or altered, the facts it was authorized under simply changed
+- `RuntimeEngine.execute()` now signs a `signalsHash` into every `ExecutionAuthorizationPayload` — a canonical hash of the runtime signals (`PolicySignals`) the decision was evaluated against, the direct sibling of the existing `policyContentHash` (Tutorial 34's `ExecutionGateway`, `docs/CLAIMS.md` §2.27)
+- `ExecutionGateway` optionally accepts a `SignalStateVerifier` (the same port `@parmana/policy` already defines for pre-authorization checks — see Tutorial 71/82) and independently re-verifies the authorization's declared signals against real-world state _at the execution boundary_, before the connector is ever invoked
+- Two receiving systems can hold the exact same authorization, the exact same declared signals, and the exact same `signalsHash` — and still reach different outcomes, because what differs is what each one's own live check finds
+- A rejection here (`signalsStillCurrent: false`, `signalDivergence`) is a distinct failure mode from tampering (Tutorial 29) or expiry (Tutorial 27): nothing about the request was forged or altered, the facts it was authorized under simply changed
 
 ## Running the Tutorial
 

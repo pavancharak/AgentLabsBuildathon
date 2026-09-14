@@ -6,10 +6,10 @@ Exercise `SignedTokenConnectorAuthenticator`'s full API surface directly — the
 
 ## What You'll Learn
 
-* Rewriting any field of a signed attestation payload — even the very field a check is comparing against — breaks its signature; there's no way to "fix up" a tampered attestation to pass
-* `authenticateGatewayForRequest(gateway, undefined, authorizationId)` — no attestation presented at all — is rejected, matching today's production default
-* `authenticateGateway()` checks the signature alone; `authenticateGatewayForRequest()` additionally checks the attestation was minted for *this specific* `authorizationId` — a genuine, validly-signed attestation still fails the second check if presented against the wrong request
-* `authenticateConnector()` is a separate allow-list check: only connector identities registered at authenticator construction time pass, regardless of anything about the gateway's own attestation
+- Rewriting any field of a signed attestation payload — even the very field a check is comparing against — breaks its signature; there's no way to "fix up" a tampered attestation to pass
+- `authenticateGatewayForRequest(gateway, undefined, authorizationId)` — no attestation presented at all — is rejected, matching today's production default
+- `authenticateGateway()` checks the signature alone; `authenticateGatewayForRequest()` additionally checks the attestation was minted for _this specific_ `authorizationId` — a genuine, validly-signed attestation still fails the second check if presented against the wrong request
+- `authenticateConnector()` is a separate allow-list check: only connector identities registered at authenticator construction time pass, regardless of anything about the gateway's own attestation
 
 ## Running the Tutorial
 

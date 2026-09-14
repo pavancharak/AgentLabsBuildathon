@@ -68,11 +68,7 @@ class MapPolicyRepository implements PolicyRepository {
     return policy;
   }
 
-  async save(
-    name: string,
-    version: string,
-    content: Policy,
-  ): Promise<void> {
+  async save(name: string, version: string, content: Policy): Promise<void> {
     this.policies.set(`${name}@${version}`, content);
   }
 }

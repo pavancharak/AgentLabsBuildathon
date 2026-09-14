@@ -1,7 +1,11 @@
 import type { CryptoProvider } from "@parmana/crypto";
 import { TrustRecordHasher } from "@parmana/crypto";
 
-import type { ConnectorCapability, ConnectorRequest, ConnectorResponse } from "@parmana/connector-sdk";
+import type {
+  ConnectorCapability,
+  ConnectorRequest,
+  ConnectorResponse,
+} from "@parmana/connector-sdk";
 import type { ConnectorVersion } from "@parmana/connector-sdk";
 import { formatConnectorVersion } from "@parmana/connector-sdk";
 
@@ -28,7 +32,8 @@ export interface ConnectorEvidence {
   readonly connectorEvidenceHash: string;
 }
 
-const SENSITIVE_KEY_PATTERN = /credential|secret|token|apikey|api_key|password|authorization/i;
+const SENSITIVE_KEY_PATTERN =
+  /credential|secret|token|apikey|api_key|password|authorization/i;
 
 /**
  * Strips keys that look credential-shaped from connector-supplied response

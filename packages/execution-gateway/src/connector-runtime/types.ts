@@ -33,8 +33,7 @@ export interface GatewayExecutionRequest {
   readonly verification: GatewayVerificationResult;
 }
 
-export interface AuthenticatedConnectorRequest
-  extends GatewayExecutionRequest {
+export interface AuthenticatedConnectorRequest extends GatewayExecutionRequest {
   readonly session: GatewaySession;
 }
 

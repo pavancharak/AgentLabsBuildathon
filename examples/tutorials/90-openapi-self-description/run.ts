@@ -18,12 +18,10 @@ import $RefParser from "@apidevtools/json-schema-ref-parser";
 //
 process.env.NODE_ENV = "test";
 
-const { createExecutionSystem } = await import(
-  "../../../packages/api/src/bootstrap/createExecutionSystem.js"
-);
-const { createApplication } = await import(
-  "../../../packages/api/src/application.js"
-);
+const { createExecutionSystem } =
+  await import("../../../packages/api/src/bootstrap/createExecutionSystem.js");
+const { createApplication } =
+  await import("../../../packages/api/src/application.js");
 const { createApp } = await import("../../../packages/api/src/app.js");
 
 console.log();
@@ -41,11 +39,16 @@ const address = server.address();
 const baseUrl = `http://127.0.0.1:${typeof address === "object" && address !== null ? address.port : 0}`;
 
 try {
-  console.log("Scenario 1: GET /openapi.yaml, unauthenticated, serves a valid OpenAPI 3.1 document");
+  console.log(
+    "Scenario 1: GET /openapi.yaml, unauthenticated, serves a valid OpenAPI 3.1 document",
+  );
   console.log("--------------------------------------------------");
   const response = await fetch(`${baseUrl}/openapi.yaml`);
   const text = await response.text();
-  const spec = load(text) as { openapi?: string; paths?: Record<string, unknown> };
+  const spec = load(text) as {
+    openapi?: string;
+    paths?: Record<string, unknown>;
+  };
 
   console.log(`Status         : ${response.status}`);
   console.log(`openapi field  : ${spec.openapi}`);
@@ -53,35 +56,65 @@ try {
   console.log();
 
   const scenario1Passed =
-    response.status === 200 && /^3\.1/.test(spec.openapi ?? "") && Object.keys(spec.paths ?? {}).length > 0;
+    response.status === 200 &&
+    /^3\.1/.test(spec.openapi ?? "") &&
+    Object.keys(spec.paths ?? {}).length > 0;
 
-  console.log("Scenario 2: The bundled spec's $refs fully resolve -- no composite schema is left as a raw pointer");
+  console.log(
+    "Scenario 2: The bundled spec's $refs fully resolve -- no composite schema is left as a raw pointer",
+  );
   console.log("--------------------------------------------------");
 
   const __filename = fileURLToPath(import.meta.url);
-  const specPath = path.resolve(path.dirname(__filename), "../../../openapi/openapi.bundled.yaml");
+  const specPath = path.resolve(
+    path.dirname(__filename),
+    "../../../openapi/openapi.bundled.yaml",
+  );
   readFileSync(specPath, "utf8"); // confirms the file exists and is readable before handing it to the ref parser
 
   const dereferenced = (await $RefParser.dereference(specPath)) as {
     components: {
-      schemas: Record<string, { $id?: unknown; $schema?: unknown; properties?: Record<string, { type?: string; items?: { type?: string } }> }>;
+      schemas: Record<
+        string,
+        {
+          $id?: unknown;
+          $schema?: unknown;
+          properties?: Record<
+            string,
+            { type?: string; items?: { type?: string } }
+          >;
+        }
+      >;
     };
   };
 
   const noUnresolvedRefs = !JSON.stringify(dereferenced).includes('"$ref"');
-  console.log(`No unresolved $ref remaining after dereference : ${noUnresolvedRefs}`);
+  console.log(
+    `No unresolved $ref remaining after dereference : ${noUnresolvedRefs}`,
+  );
 
-  const trustRecordSchema = dereferenced.components.schemas["execution-trust-record.schema"];
-  const compositeFields = ["transaction", "overrides", "executions", "verifications", "receipts"] as const;
+  const trustRecordSchema =
+    dereferenced.components.schemas["execution-trust-record.schema"];
+  const compositeFields = [
+    "transaction",
+    "overrides",
+    "executions",
+    "verifications",
+    "receipts",
+  ] as const;
   for (const field of compositeFields) {
     const property = trustRecordSchema?.properties?.[field];
-    const type = field === "transaction" ? property?.type : property?.items?.type;
-    console.log(`  ${field.padEnd(14)} -> resolved to type "${type}" (not left as an unexpanded $ref)`);
+    const type =
+      field === "transaction" ? property?.type : property?.items?.type;
+    console.log(
+      `  ${field.padEnd(14)} -> resolved to type "${type}" (not left as an unexpanded $ref)`,
+    );
   }
 
   const compositesFullyExpand = compositeFields.every((field) => {
     const property = trustRecordSchema?.properties?.[field];
-    const type = field === "transaction" ? property?.type : property?.items?.type;
+    const type =
+      field === "transaction" ? property?.type : property?.items?.type;
     return type === "object";
   });
 
@@ -94,14 +127,17 @@ try {
   console.log(`No bundled schema carries a stray $id/$schema  : ${noStrayIds}`);
   console.log();
 
-  const allPassed = scenario1Passed && noUnresolvedRefs && compositesFullyExpand && noStrayIds;
+  const allPassed =
+    scenario1Passed && noUnresolvedRefs && compositesFullyExpand && noStrayIds;
 
   if (allPassed) {
     console.log(
       "✓ The API's own OpenAPI document is valid, unauthenticated, and its bundled $refs fully resolve -- no schema is left broken for strict-resolver tools like Swagger UI.",
     );
   } else {
-    console.log("✗ Expected a valid OpenAPI 3.1 document with every $ref fully resolved and no stray $id/$schema fields.");
+    console.log(
+      "✗ Expected a valid OpenAPI 3.1 document with every $ref fully resolved and no stray $id/$schema fields.",
+    );
   }
 
   console.log();

@@ -1,22 +1,12 @@
 \# Tutorial 19 — Runtime Composition
 
-
-
 \## Overview
-
-
 
 This tutorial demonstrates how to compose a Parmana Runtime from reusable building blocks.
 
-
-
 Instead of creating a monolithic Runtime, Parmana encourages composing small, focused components that each have a single responsibility.
 
-
-
 In this tutorial, the Runtime is composed from:
-
-
 
 \- Policy Repository
 
@@ -26,15 +16,9 @@ In this tutorial, the Runtime is composed from:
 
 \- Metrics Hook
 
-
-
 \---
 
-
-
 \## Runtime Composition
-
-
 
 ```
 
@@ -66,51 +50,27 @@ Execution Trust Record
 
 ```
 
-
-
 Each piece has a dedicated responsibility and can be reused across multiple Runtime configurations.
 
-
-
 \---
-
-
 
 \## Components Used
 
-
-
 \### Policy Repository
-
-
 
 Responsible for loading the correct policy version.
 
-
-
 ```ts
-
-new FilePolicyRepository("policies")
-
+new FilePolicyRepository("policies");
 ```
-
-
 
 \---
 
-
-
 \### Runtime Component
-
-
 
 Runtime Components participate in execution.
 
-
-
 Typical responsibilities include:
-
-
 
 \- Runtime enrichment
 
@@ -119,8 +79,6 @@ Typical responsibilities include:
 \- Metadata generation
 
 \- Custom execution logic
-
-
 
 ```ts
 
@@ -132,23 +90,13 @@ Typical responsibilities include:
 
 ```
 
-
-
 \---
-
-
 
 \### Runtime Hooks
 
-
-
 Hooks observe Runtime execution.
 
-
-
 Typical responsibilities include:
-
-
 
 \- Logging
 
@@ -160,11 +108,7 @@ Typical responsibilities include:
 
 \- Auditing
 
-
-
 Hooks must never modify Runtime state.
-
-
 
 ```ts
 
@@ -182,15 +126,9 @@ Hooks must never modify Runtime state.
 
 ```
 
-
-
 \---
 
-
-
 \## Building the Runtime
-
-
 
 ```ts
 
@@ -226,15 +164,9 @@ const runtime =
 
 ```
 
-
-
 \---
 
-
-
 \## Runtime Components vs Runtime Hooks
-
-
 
 | Runtime Components | Runtime Hooks |
 
@@ -248,15 +180,9 @@ const runtime =
 
 | Execute within the Runtime Pipeline | Execute alongside the Runtime lifecycle |
 
-
-
 \---
 
-
-
 \## Running the Example
-
-
 
 ```bash
 
@@ -264,15 +190,9 @@ tsx examples/tutorials/19-runtime-composition/run.ts
 
 ```
 
-
-
 \---
 
-
-
 \## Expected Output
-
-
 
 ```text
 
@@ -330,27 +250,15 @@ Tutorial completed successfully.
 
 ```
 
-
-
 \---
-
-
 
 \## Design Principles
 
-
-
 Parmana promotes composition over inheritance.
-
-
 
 Each Runtime capability is implemented as an independent building block that can be combined as needed.
 
-
-
 This approach provides:
-
-
 
 \- Reusable Runtime configurations
 
@@ -362,19 +270,10 @@ This approach provides:
 
 \- Enterprise extensibility
 
-
-
 \---
-
-
 
 \## Summary
 
-
-
 In this tutorial you learned how to compose a Runtime from reusable components rather than embedding all behavior into a single implementation.
 
-
-
 This composition model enables organizations to build Runtime configurations tailored to their governance, compliance, and operational requirements while keeping each extension focused and maintainable.
-

@@ -1,4 +1,4 @@
- import type { BusinessTransaction } from "@parmana/shared";
+import type { BusinessTransaction } from "@parmana/shared";
 import { TEST_POLICY } from "./policies.js";
 export function createBusinessTransaction(): BusinessTransaction {
   const businessTransactionId = crypto.randomUUID();
@@ -32,41 +32,41 @@ export function createBusinessTransaction(): BusinessTransaction {
       authorizedAt: new Date(),
     },
 
-intent: {
-  intentId,
-  authorizationId,
+    intent: {
+      intentId,
+      authorizationId,
 
-  // test:fixture-execute (not payments:execute/vendor-payment, removed
-  // per docs/VERIFICATION-GAPS.md G-27) -- a generic, test-only
-  // capability with no production implication, unbound in
-  // CANONICAL_CAPABILITY_POLICY_BINDINGS, existing solely so this
-  // shared fixture has a real connector to execute against. Still
-  // governed by the vendor-payment/2.0.0 policy below, kept unchanged
-  // and unbound from any capability -- policy content and capability
-  // identity are independent concepts in this architecture.
-  action: "test:fixture-execute",
+      // test:fixture-execute (not payments:execute/vendor-payment, removed
+      // per docs/VERIFICATION-GAPS.md G-27) -- a generic, test-only
+      // capability with no production implication, unbound in
+      // CANONICAL_CAPABILITY_POLICY_BINDINGS, existing solely so this
+      // shared fixture has a real connector to execute against. Still
+      // governed by the vendor-payment/2.0.0 policy below, kept unchanged
+      // and unbound from any capability -- policy content and capability
+      // identity are independent concepts in this architecture.
+      action: "test:fixture-execute",
 
-  target: "vendor://payments",
+      target: "vendor://payments",
 
-  parameters: Object.freeze({
-    paymentId: "payment-001",
-    amount: 1000,
-  }),
+      parameters: Object.freeze({
+        paymentId: "payment-001",
+        amount: 1000,
+      }),
 
-  createdAt: new Date(),
-},
-policy: TEST_POLICY,
-signals: {
-  vendorVerified: true,
-  invoiceVerified: true,
-  paymentApproved: true,
-  sufficientFunds: true,
-  paymentAmount: 1000,
-  riskScore: 10,
-  // Must match intent.target exactly: vendor-payment/2.0.0 declares
-  // boundSignals requiring vendorId === intent.target.
-  vendorId: "vendor://payments",
-},
+      createdAt: new Date(),
+    },
+    policy: TEST_POLICY,
+    signals: {
+      vendorVerified: true,
+      invoiceVerified: true,
+      paymentApproved: true,
+      sufficientFunds: true,
+      paymentAmount: 1000,
+      riskScore: 10,
+      // Must match intent.target exactly: vendor-payment/2.0.0 declares
+      // boundSignals requiring vendorId === intent.target.
+      vendorId: "vendor://payments",
+    },
 
     decision: {
       outcome: "APPROVED",
@@ -77,4 +77,3 @@ signals: {
     createdAt: new Date(),
   };
 }
-

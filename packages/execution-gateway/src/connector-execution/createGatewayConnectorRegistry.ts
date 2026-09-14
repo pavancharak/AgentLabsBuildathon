@@ -8,7 +8,12 @@ import type {
   IdGenerator,
 } from "@parmana/execution-control";
 
-import type { Connector, ConnectorMetadata, ConnectorVersion, CredentialProvider } from "@parmana/connector-sdk";
+import type {
+  Connector,
+  ConnectorMetadata,
+  ConnectorVersion,
+  CredentialProvider,
+} from "@parmana/connector-sdk";
 
 import { GatewayCapabilityConnectorPolicy } from "./GatewayCapabilityConnectorPolicy.js";
 import { GatewayConnectorRegistry } from "./GatewayConnectorRegistry.js";

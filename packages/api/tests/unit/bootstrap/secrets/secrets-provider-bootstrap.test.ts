@@ -12,15 +12,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  */
 const awsProviderCreateMock = vi.fn();
 
-vi.mock("../../../../src/bootstrap/secrets/AwsSecretsManagerProvider.js", () => ({
-  AwsSecretsManagerProvider: { create: awsProviderCreateMock },
-}));
+vi.mock(
+  "../../../../src/bootstrap/secrets/AwsSecretsManagerProvider.js",
+  () => ({
+    AwsSecretsManagerProvider: { create: awsProviderCreateMock },
+  }),
+);
 
 async function freshSecretsProviderBootstrap() {
   vi.resetModules();
-  const module = await import(
-    "../../../../src/bootstrap/secrets/SecretsProviderBootstrap.js"
-  );
+  const module =
+    await import("../../../../src/bootstrap/secrets/SecretsProviderBootstrap.js");
   return module.SecretsProviderBootstrap;
 }
 

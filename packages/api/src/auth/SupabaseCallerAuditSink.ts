@@ -1,6 +1,10 @@
 import type { Pool, PoolClient } from "pg";
 
-import { AuditEventCrypto, CryptoBootstrap, TrustRecordHasher } from "@parmana/crypto";
+import {
+  AuditEventCrypto,
+  CryptoBootstrap,
+  TrustRecordHasher,
+} from "@parmana/crypto";
 import type { Signature } from "@parmana/shared";
 
 import type { CallerAuditEvent, CallerAuditSink } from "./CallerAuditSink.js";
@@ -128,10 +132,9 @@ export class SupabaseCallerAuditSink implements CallerAuditSink {
     try {
       await client.query("BEGIN");
 
-      await client.query(
-        "SELECT pg_advisory_xact_lock(hashtext($1))",
-        [event.callerId],
-      );
+      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
+        event.callerId,
+      ]);
 
       const { rows } = await client.query<LastChainLinkRow>(
         LAST_CALLER_CHAIN_LINK_SQL,

@@ -25,18 +25,18 @@ Queried directly against `pending_policy_changes` via `@parmana/storage`'s real
 `PendingPolicyChangeRepository` (the same repository `GET /policies/pending-changes`
 uses) — not read from a prior draft of this document.
 
-| # | Policy | Version | Proposed by | Proposed at (UTC) |
-|---|---|---|---|---|
-| 1 | `access-control` | 1.0.0 | charak1987 | 2026-08-19 01:47:43 |
-| 2 | `connector-capability` | 1.0.0 | charak1987 | 2026-08-19 01:47:44 |
-| 3 | `customer-refund` | 1.0.0 | charak1987 | 2026-08-19 01:47:44 |
-| 4 | `database-change` | 3.0.0 | charak1987 | 2026-08-19 01:47:45 |
-| 5 | `github-pr-approval` | 1.0.0 | charak1987 | 2026-08-19 01:47:45 |
-| 6 | `hubspot-deal-update` | 1.0.0 | charak1987 | 2026-08-19 01:47:46 |
-| 7 | `llm-tool-call` | 1.0.0 | charak1987 | 2026-08-19 01:47:46 |
-| 8 | `production-deployment` | 1.0.0 | charak1987 | 2026-08-19 01:47:47 |
-| 9 | `rag-document-access` | 1.0.0 | charak1987 | 2026-08-19 01:47:47 |
-| 10 | `vendor-payment` | 2.0.0 | charak1987 | 2026-08-19 01:47:47 |
+| #   | Policy                  | Version | Proposed by | Proposed at (UTC)   |
+| --- | ----------------------- | ------- | ----------- | ------------------- |
+| 1   | `access-control`        | 1.0.0   | charak1987  | 2026-08-19 01:47:43 |
+| 2   | `connector-capability`  | 1.0.0   | charak1987  | 2026-08-19 01:47:44 |
+| 3   | `customer-refund`       | 1.0.0   | charak1987  | 2026-08-19 01:47:44 |
+| 4   | `database-change`       | 3.0.0   | charak1987  | 2026-08-19 01:47:45 |
+| 5   | `github-pr-approval`    | 1.0.0   | charak1987  | 2026-08-19 01:47:45 |
+| 6   | `hubspot-deal-update`   | 1.0.0   | charak1987  | 2026-08-19 01:47:46 |
+| 7   | `llm-tool-call`         | 1.0.0   | charak1987  | 2026-08-19 01:47:46 |
+| 8   | `production-deployment` | 1.0.0   | charak1987  | 2026-08-19 01:47:47 |
+| 9   | `rag-document-access`   | 1.0.0   | charak1987  | 2026-08-19 01:47:47 |
+| 10  | `vendor-payment`        | 2.0.0   | charak1987  | 2026-08-19 01:47:47 |
 
 All ten are proposed by the same account. By `SameActorCannotApproveOwnChangeError`,
 none of them can be approved or rejected by `charak1987` — a genuinely distinct
@@ -68,6 +68,7 @@ npx tsx scripts/generate-api-key.ts \
 ```
 
 This prints, once, to your terminal only (nothing is written to disk):
+
 - the reviewer's bearer API key
 - the reviewer's step-up **private** key (PEM)
 - a JSON `entry` (containing only the key **hash** and the step-up **public** key)
@@ -160,18 +161,18 @@ be refused at execution time the moment this flag is on.
 
 ## Part 6: Tracking (fill in as each is actually resolved — do not pre-fill)
 
-| Policy | Version | Reviewer | Decision | Resolved at | pendingPolicyChangeId |
-|---|---|---|---|---|---|
-| access-control | 1.0.0 | | | | |
-| connector-capability | 1.0.0 | | | | |
-| customer-refund | 1.0.0 | | | | |
-| database-change | 3.0.0 | | | | |
-| github-pr-approval | 1.0.0 | | | | |
-| hubspot-deal-update | 1.0.0 | | | | |
-| llm-tool-call | 1.0.0 | | | | |
-| production-deployment | 1.0.0 | | | | |
-| rag-document-access | 1.0.0 | | | | |
-| vendor-payment | 2.0.0 | | | | |
+| Policy                | Version | Reviewer | Decision | Resolved at | pendingPolicyChangeId |
+| --------------------- | ------- | -------- | -------- | ----------- | --------------------- |
+| access-control        | 1.0.0   |          |          |             |                       |
+| connector-capability  | 1.0.0   |          |          |             |                       |
+| customer-refund       | 1.0.0   |          |          |             |                       |
+| database-change       | 3.0.0   |          |          |             |                       |
+| github-pr-approval    | 1.0.0   |          |          |             |                       |
+| hubspot-deal-update   | 1.0.0   |          |          |             |                       |
+| llm-tool-call         | 1.0.0   |          |          |             |                       |
+| production-deployment | 1.0.0   |          |          |             |                       |
+| rag-document-access   | 1.0.0   |          |          |             |                       |
+| vendor-payment        | 2.0.0   |          |          |             |                       |
 
 ## Part 6.5: Before/after state verification queries
 
@@ -232,7 +233,7 @@ own `signature_json`, via `PolicyChangeCrypto.verify()`.
 **Query 5 — content still matches what was approved:**
 
 Don't hand-roll a `sha256sum` comparison — `content_hash_after` is a hash of
-the *canonicalized* JSON (`CanonicalSerializer`, key-sorted), not the raw
+the _canonicalized_ JSON (`CanonicalSerializer`, key-sorted), not the raw
 file bytes, so a naive file hash will not reliably match. Use the tool this
 codebase already has for exactly this:
 

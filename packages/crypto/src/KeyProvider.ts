@@ -50,10 +50,7 @@ export const DEFAULT_SECONDARY_KEY_ID = "default-secondary";
  * validation is duplicated here.
  */
 export function currentVerificationKeyId(): string {
-  return (
-    process.env.PARMANA_VERIFICATION_KEY_ID ??
-    DEFAULT_KEY_ID
-  );
+  return process.env.PARMANA_VERIFICATION_KEY_ID ?? DEFAULT_KEY_ID;
 }
 
 /**
@@ -83,30 +80,22 @@ export interface KeyProvider {
   /**
    * Returns metadata for the specified key.
    */
-  getMetadata(
-    keyId: string,
-  ): Promise<KeyMetadata>;
+  getMetadata(keyId: string): Promise<KeyMetadata>;
 
   /**
    * Returns the private key.
    */
-  getPrivateKey(
-    keyId: string,
-  ): Promise<KeyObject>;
+  getPrivateKey(keyId: string): Promise<KeyObject>;
 
   /**
    * Returns the public key.
    */
-  getPublicKey(
-    keyId: string,
-  ): Promise<KeyObject>;
+  getPublicKey(keyId: string): Promise<KeyObject>;
 
   /**
    * Returns true if the key exists.
    */
-  hasKey(
-    keyId: string,
-  ): Promise<boolean>;
+  hasKey(keyId: string): Promise<boolean>;
 
   /**
    * Lists every keyId this provider can currently load a public key

@@ -21,9 +21,7 @@ describe("CryptoBuilder", () => {
 
   it("throws when built without a hash provider", () => {
     expect(() =>
-      new CryptoBuilder()
-        .withSignature(new Ed25519SignatureProvider())
-        .build(),
+      new CryptoBuilder().withSignature(new Ed25519SignatureProvider()).build(),
     ).toThrow(CryptoError);
   });
 
@@ -33,4 +31,3 @@ describe("CryptoBuilder", () => {
     ).toThrow(CryptoError);
   });
 });
-

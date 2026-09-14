@@ -1,77 +1,41 @@
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeBuilder,
-} from "@parmana/runtime";
+import { RuntimeBuilder } from "@parmana/runtime";
 
-import {
-  MemoryExecutionTrustRecordRepository,
-} from "@parmana/storage";
+import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
-import transaction from "./transaction.json" with {
-  type: "json",
-};
+import transaction from "./transaction.json" with { type: "json" };
 
 async function main(): Promise<void> {
   console.log();
-  console.log(
-    "==================================================",
-  );
-  console.log(
-    "Tutorial 44 - Direct API Bypass",
-  );
-  console.log(
-    "==================================================",
-  );
+  console.log("==================================================");
+  console.log("Tutorial 44 - Direct API Bypass");
+  console.log("==================================================");
   console.log();
 
   //
   // Generate a legitimate authorization so we can
   // compare it with a request that bypasses Parmana.
   //
-  const runtime =
-    new RuntimeBuilder()
-      .withPolicyRepository(
-        new FilePolicyRepository(
-          "policies",
-        ),
-      )
-      .build(
-        new MemoryExecutionTrustRecordRepository(),
-      );
+  const runtime = new RuntimeBuilder()
+    .withPolicyRepository(new FilePolicyRepository("policies"))
+    .build(new MemoryExecutionTrustRecordRepository());
 
-  const { context } =
-    await runtime.execute(
-      transaction,
-    );
+  const { context } = await runtime.execute(transaction);
 
   if (!context.authorization) {
-    throw new Error(
-      "Execution Authorization missing.",
-    );
+    throw new Error("Execution Authorization missing.");
   }
 
-  console.log(
-    "Legitimate Request",
-  );
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("Legitimate Request");
+  console.log("--------------------------------------------------");
 
-  console.log(
-    "✓ Execution Authorization present.",
-  );
+  console.log("✓ Execution Authorization present.");
 
   console.log();
 
-  console.log(
-    "Direct API Call",
-  );
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("Direct API Call");
+  console.log("--------------------------------------------------");
 
   //
   // Simulate a request sent directly to the
@@ -80,34 +44,22 @@ async function main(): Promise<void> {
   const authorization = undefined;
 
   if (!authorization) {
-    console.log(
-      "✗ No Execution Authorization supplied.",
-    );
+    console.log("✗ No Execution Authorization supplied.");
 
-    console.log(
-      "Gateway rejected the request.",
-    );
+    console.log("Gateway rejected the request.");
 
     console.log();
 
-    console.log(
-      "Reason:",
-    );
+    console.log("Reason:");
 
-    console.log(
-      "Sensitive APIs only accept requests",
-    );
+    console.log("Sensitive APIs only accept requests");
 
-    console.log(
-      "that carry a valid Execution Authorization.",
-    );
+    console.log("that carry a valid Execution Authorization.");
   }
 
   console.log();
 
-  console.log(
-    "Tutorial completed successfully.",
-  );
+  console.log("Tutorial completed successfully.");
 }
 
 main().catch((error) => {

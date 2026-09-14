@@ -14,7 +14,11 @@ import {
   type RefusalRecordRepository,
 } from "@parmana/shared";
 
-import { PolicyAction, type Policy, type PolicyRepository } from "@parmana/policy";
+import {
+  PolicyAction,
+  type Policy,
+  type PolicyRepository,
+} from "@parmana/policy";
 
 import { RuntimeBuilder } from "../../src/RuntimeBuilder.js";
 import { RuntimeError } from "../../src/errors/RuntimeError.js";
@@ -54,9 +58,7 @@ afterEach(() => {
   rmSync(keyDir, { recursive: true, force: true });
 });
 
-class NullExecutionTrustRecordRepository
-  implements ExecutionTrustRecordRepository
-{
+class NullExecutionTrustRecordRepository implements ExecutionTrustRecordRepository {
   async create<T>(record: T): Promise<T> {
     return record;
   }
@@ -75,9 +77,7 @@ class NullExecutionTrustRecordRepository
  * storage outage, a signing failure, anything -- RFC-0021 §6 requires
  * the REJECT to be identical regardless of which failure this is.
  */
-class ThrowingRefusalRecordRepository
-  implements RefusalRecordRepository
-{
+class ThrowingRefusalRecordRepository implements RefusalRecordRepository {
   public createCallCount = 0;
 
   async create(): Promise<RefusalRecord> {
@@ -172,10 +172,7 @@ describe("RFC-0021 fail-open guarantee: Refusal Record write failure never block
 
     const runtimeWithFailingWrite = new RuntimeBuilder()
       .withPolicyRepository(new FixedPolicyRepository())
-      .build(
-        new NullExecutionTrustRecordRepository(),
-        throwingRefusalRecords,
-      );
+      .build(new NullExecutionTrustRecordRepository(), throwingRefusalRecords);
 
     const runtimeWithNoRefusalRepository = new RuntimeBuilder()
       .withPolicyRepository(new FixedPolicyRepository())
@@ -209,9 +206,7 @@ describe("RFC-0021 fail-open guarantee: Refusal Record write failure never block
     // for the case with no Refusal Record feature involved at all.
     for (const caught of [caughtWithFailingWrite, caughtWithNoRepository]) {
       expect(caught).toBeInstanceOf(RuntimeError);
-      expect((caught as RuntimeError).message).toContain(
-        "rejected for test",
-      );
+      expect((caught as RuntimeError).message).toContain("rejected for test");
       expect((caught as RuntimeError).status).toBe(403);
       expect((caught as RuntimeError).code).toBe("POLICY_DENIED");
     }
@@ -222,16 +217,13 @@ describe("RFC-0021 fail-open guarantee: Refusal Record write failure never block
 
     const runtime = new RuntimeBuilder()
       .withPolicyRepository(new FixedPolicyRepository())
-      .build(
-        new NullExecutionTrustRecordRepository(),
-        throwingRefusalRecords,
-      );
+      .build(new NullExecutionTrustRecordRepository(), throwingRefusalRecords);
 
     const startedAt = Date.now();
 
-    await expect(
-      runtime.execute(createTransaction()),
-    ).rejects.toBeInstanceOf(RuntimeError);
+    await expect(runtime.execute(createTransaction())).rejects.toBeInstanceOf(
+      RuntimeError,
+    );
 
     expect(Date.now() - startedAt).toBeLessThan(1000);
   });

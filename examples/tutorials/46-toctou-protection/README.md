@@ -1,30 +1,16 @@
 \# Tutorial 46 — TOCTOU Protection
 
-
-
 \## Overview
-
-
 
 Time-of-Check to Time-of-Use (TOCTOU) is one of the most important security problems in distributed systems.
 
-
-
 A request may be approved correctly, but modified before it is actually executed.
-
-
 
 Parmana prevents this by verifying the executable content immediately before enterprise execution.
 
-
-
 \---
 
-
-
 \## The TOCTOU Problem
-
-
 
 ```text
 
@@ -130,27 +116,15 @@ Execution Rejected
 
 ```
 
-
-
 \---
-
-
 
 \## Why This Matters
 
-
-
 Approving a request is not enough.
-
-
 
 The system must also verify that \*\*the request being executed is still the request that was approved\*\*.
 
-
-
 Without this verification an attacker could modify:
-
-
 
 \- payment amount
 
@@ -166,19 +140,11 @@ Without this verification an attacker could modify:
 
 \- execution target
 
-
-
 after authorization but before execution.
-
-
 
 \---
 
-
-
 \## Expected Output
-
-
 
 ```text
 
@@ -248,19 +214,11 @@ Tutorial completed successfully.
 
 ```
 
-
-
 \---
-
-
 
 \## How Parmana Prevents TOCTOU
 
-
-
 Immediately before execution the gateway:
-
-
 
 1\. Reads the incoming request.
 
@@ -272,19 +230,11 @@ Immediately before execution the gateway:
 
 5\. Rejects execution if they differ.
 
-
-
 This verification occurs \*\*at execution time\*\*, not only at decision time.
-
-
 
 \---
 
-
-
 \## Complete Execution Authorization Pipeline
-
-
 
 ```text
 
@@ -352,23 +302,13 @@ Enterprise System
 
 ```
 
-
-
 Every layer must succeed before execution proceeds.
-
-
 
 \---
 
-
-
 \## What This Tutorial Brings Together
 
-
-
 This final tutorial demonstrates nearly every major capability of Parmana:
-
-
 
 \- Deterministic policy evaluation
 
@@ -390,15 +330,9 @@ This final tutorial demonstrates nearly every major capability of Parmana:
 
 \- TOCTOU protection
 
-
-
 \---
 
-
-
 \## Running the Example
-
-
 
 ```bash
 
@@ -406,11 +340,7 @@ tsx examples/tutorials/46-toctou-protection/run.ts
 
 ```
 
-
-
 or
-
-
 
 ```bash
 
@@ -418,23 +348,13 @@ npm run examples
 
 ```
 
-
-
 \---
-
-
 
 \## Series Complete
 
-
-
 You have completed the execution authorization tutorial series.
 
-
-
 Across 46 tutorials you built a complete understanding of how Parmana ensures that AI-driven execution is:
-
-
 
 \- authorized
 
@@ -452,11 +372,6 @@ Across 46 tutorials you built a complete understanding of how Parmana ensures th
 
 \- cryptographically verifiable
 
-
-
 The fundamental principle is:
 
-
-
 > \*\*Parmana verifies what is about to execute—not merely what was previously approved.\*\*
-

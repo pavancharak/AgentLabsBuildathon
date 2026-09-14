@@ -17,13 +17,7 @@
  * test/integration/parmana-client.integration.test.ts.
  */
 
-import {
-  afterEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { HttpTransport } from "../src/transport/HttpTransport.js";
 import type { Configuration } from "../src/config/Configuration.js";
@@ -53,9 +47,7 @@ function fakeResponse(init: FakeResponseInit): Response {
   return {
     status: init.status,
     headers: {
-      forEach: (
-        callback: (value: string, key: string) => void,
-      ) => {
+      forEach: (callback: (value: string, key: string) => void) => {
         for (const [key, value] of headerEntries) {
           callback(value, key);
         }
@@ -71,20 +63,12 @@ function fakeResponse(init: FakeResponseInit): Response {
 }
 
 function configureFetchMock(
-  implementation: (
-    url: string,
-    requestInit: RequestInit,
-  ) => Promise<Response>,
+  implementation: (url: string, requestInit: RequestInit) => Promise<Response>,
 ): void {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(implementation),
-  );
+  vi.stubGlobal("fetch", vi.fn(implementation));
 }
 
-function baseConfiguration(
-  overrides?: Partial<Configuration>,
-): Configuration {
+function baseConfiguration(overrides?: Partial<Configuration>): Configuration {
   return {
     endpoint: "http://localhost:3000",
     ...overrides,
@@ -112,9 +96,7 @@ describe("HttpTransport", () => {
 
       await transport.send({ method: "GET", path: "/version" });
 
-      expect(capturedHeaders?.Authorization).toBe(
-        "Bearer my-secret-api-key",
-      );
+      expect(capturedHeaders?.Authorization).toBe("Bearer my-secret-api-key");
     });
 
     it("omits Authorization entirely when no apiKey is configured", async () => {
@@ -150,9 +132,7 @@ describe("HttpTransport", () => {
         headers: { Authorization: "Bearer explicit-override" },
       });
 
-      expect(capturedHeaders?.Authorization).toBe(
-        "Bearer explicit-override",
-      );
+      expect(capturedHeaders?.Authorization).toBe("Bearer explicit-override");
     });
   });
 
@@ -271,7 +251,7 @@ describe("HttpTransport", () => {
       ).rejects.toThrowError(ConflictError);
     });
 
-    it('maps 403 with code POLICY_DENIED to ExecutionRejectedError, not AuthorizationError', async () => {
+    it("maps 403 with code POLICY_DENIED to ExecutionRejectedError, not AuthorizationError", async () => {
       // A policy REJECTED decision now carries its own dedicated 403 +
       // code POLICY_DENIED (packages/runtime/src/ExecutionGate.ts),
       // replacing the old, ambiguous 500 + code RUNTIME_ERROR shape.
@@ -295,7 +275,7 @@ describe("HttpTransport", () => {
       ).rejects.toThrowError(ExecutionRejectedError);
     });
 
-    it('maps 403 with code CAPABILITY_NOT_ALLOWED to AuthorizationError, preserving serverCode', async () => {
+    it("maps 403 with code CAPABILITY_NOT_ALLOWED to AuthorizationError, preserving serverCode", async () => {
       // A caller-capability-scoping denial (isCapabilityAllowed.ts)
       // carries its own code, distinct from the plain caller-identity
       // 403 above (no code at all) and from POLICY_DENIED (a different
@@ -470,9 +450,7 @@ describe("HttpTransport", () => {
           }),
       );
 
-      const transport = new HttpTransport(
-        baseConfiguration({ timeout: 5 }),
-      );
+      const transport = new HttpTransport(baseConfiguration({ timeout: 5 }));
 
       await expect(
         transport.send({ method: "GET", path: "/health" }),

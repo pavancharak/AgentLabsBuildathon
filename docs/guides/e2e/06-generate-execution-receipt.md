@@ -84,14 +84,14 @@ docs/guides/e2e/receipt-response.json
 
 ## Receipt Summary
 
-| Property | Value |
-|-----------|-------|
-| Receipt ID | 6f1e7586-ae5d-4718-8d06-36aa541bdb8b |
-| Business Transaction ID | b9404bdf-ad2a-4dce-8001-0eacd0974200 |
-| Trust Record Hash | f6b35361c5cf90fefef039c56cacafdb9cc030f0d2c1259e6eb3b565c58cc3e4 |
-| Receipt Hash | bd1280f038f0e9257b86f006fb023d90ae1f00d0b9f12451c72bf7d06c469ac6 |
-| Signature Algorithm | Ed25519 |
-| Status | Receipt Generated |
+| Property                | Value                                                            |
+| ----------------------- | ---------------------------------------------------------------- |
+| Receipt ID              | 6f1e7586-ae5d-4718-8d06-36aa541bdb8b                             |
+| Business Transaction ID | b9404bdf-ad2a-4dce-8001-0eacd0974200                             |
+| Trust Record Hash       | f6b35361c5cf90fefef039c56cacafdb9cc030f0d2c1259e6eb3b565c58cc3e4 |
+| Receipt Hash            | bd1280f038f0e9257b86f006fb023d90ae1f00d0b9f12451c72bf7d06c469ac6 |
+| Signature Algorithm     | Ed25519                                                          |
+| Status                  | Receipt Generated                                                |
 
 ---
 
@@ -137,11 +137,11 @@ The receipt serves as verifiable evidence that the execution completed successfu
 
 ## Files Used
 
-| File | Purpose |
-|------|---------|
-| `docs/guides/e2e/receipt-request.json` | Request payload |
-| `docs/guides/e2e/receipt-response.json` | Successful response |
-| `docs/guides/e2e/06-generate-execution-receipt.md` | This guide |
+| File                                               | Purpose             |
+| -------------------------------------------------- | ------------------- |
+| `docs/guides/e2e/receipt-request.json`             | Request payload     |
+| `docs/guides/e2e/receipt-response.json`            | Successful response |
+| `docs/guides/e2e/06-generate-execution-receipt.md` | This guide          |
 
 ---
 

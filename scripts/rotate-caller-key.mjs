@@ -25,20 +25,27 @@ const secretsDir = argument("--secrets-dir");
 const secretsFile = join(secretsDir, "secrets.env");
 const keyFile = join(secretsDir, `${callerId}-api-key.txt`);
 const legacyKeyFile = join(secretsDir, "smoke-test-api-key.txt");
-const activeKeyFile = existsSync(legacyKeyFile) && callerId === "smoke-test" ? legacyKeyFile : keyFile;
+const activeKeyFile =
+  existsSync(legacyKeyFile) && callerId === "smoke-test"
+    ? legacyKeyFile
+    : keyFile;
 
 if (!existsSync(secretsFile)) {
   throw new Error(`Secrets file not found: ${secretsFile}`);
 }
 
 const lines = readFileSync(secretsFile, "utf8").split("\n");
-const apiKeysLineIndex = lines.findIndex((l) => l.startsWith("PARMANA_API_KEYS="));
+const apiKeysLineIndex = lines.findIndex((l) =>
+  l.startsWith("PARMANA_API_KEYS="),
+);
 
 if (apiKeysLineIndex === -1) {
   throw new Error(`PARMANA_API_KEYS= line not found in ${secretsFile}`);
 }
 
-const existingApiKeys = JSON.parse(lines[apiKeysLineIndex].slice("PARMANA_API_KEYS=".length));
+const existingApiKeys = JSON.parse(
+  lines[apiKeysLineIndex].slice("PARMANA_API_KEYS=".length),
+);
 
 const rawKey = randomBytes(32).toString("base64url");
 const keyHash = createHash("sha256").update(rawKey, "utf8").digest("hex");
@@ -59,8 +66,12 @@ writeFileSync(secretsFile, lines.join("\n"), { mode: 0o600 });
 
 console.log("Rotated (no values printed):");
 console.log(`  ${secretsFile}`);
-console.log(`    PARMANA_API_KEYS updated: callerId "${callerId}" now maps to a freshly generated hash`);
+console.log(
+  `    PARMANA_API_KEYS updated: callerId "${callerId}" now maps to a freshly generated hash`,
+);
 console.log(`  ${activeKeyFile}`);
 console.log(`    new raw key for callerId "${callerId}"`);
 console.log(`  ${activeKeyFile}.OLD`);
-console.log(`    previous raw key, kept for negative verification (should 401 after import + restart)`);
+console.log(
+  `    previous raw key, kept for negative verification (should 401 after import + restart)`,
+);

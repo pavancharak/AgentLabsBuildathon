@@ -1,26 +1,14 @@
 \# 06 – Retrieve an Execution Receipt
 
-
-
 This guide demonstrates how to retrieve the signed Execution Receipt for a completed business transaction.
-
-
 
 An Execution Receipt is cryptographically signed evidence that a business transaction completed successfully.
 
-
-
 \---
-
-
 
 \## Prerequisites
 
-
-
 Complete:
-
-
 
 \- 01 – Starting the API
 
@@ -30,11 +18,7 @@ Complete:
 
 \- 04 – Execute Transaction
 
-
-
 You should have a Receipt ID similar to:
-
-
 
 ```
 
@@ -42,15 +26,9 @@ a677de4e-472c-4b37-8a12-4199d2510b8b
 
 ```
 
-
-
 \---
 
-
-
 \## Retrieve the Latest Receipt
-
-
 
 ```powershell
 
@@ -68,19 +46,11 @@ Invoke-RestMethod `
 
 ```
 
-
-
 \---
-
-
 
 \## Retrieve a Specific Receipt
 
-
-
 Replace the receipt ID with your own.
-
-
 
 ```powershell
 
@@ -102,19 +72,11 @@ Invoke-RestMethod `
 
 ```
 
-
-
 \---
-
-
 
 \## Expected Response
 
-
-
 A successful request returns an Execution Receipt containing:
-
-
 
 \- Receipt ID
 
@@ -130,11 +92,7 @@ A successful request returns an Execution Receipt containing:
 
 \- Issue Timestamp
 
-
-
 Example:
-
-
 
 ```json
 
@@ -158,19 +116,11 @@ Example:
 
 ```
 
-
-
 \---
-
-
 
 \## Receipt Contents
 
-
-
 Every Execution Receipt binds together:
-
-
 
 \- The completed business transaction
 
@@ -182,19 +132,11 @@ Every Execution Receipt binds together:
 
 \- The issuance timestamp
 
-
-
 This allows independent verification of the execution evidence without re-running the transaction.
-
-
 
 \---
 
-
-
 \## Receipt Lifecycle
-
-
 
 ```text
 
@@ -226,35 +168,18 @@ Execution Receipt
 
 ```
 
-
-
 \---
-
-
 
 \## What This Demonstrates
 
-
-
 Retrieving a receipt confirms that Parmana has produced a persistent, signed record of the completed execution. The receipt can be stored, shared, or verified later as evidence of what was executed and when.
-
-
 
 \---
 
-
-
 \## Next Guide
-
-
 
 Continue with:
 
-
-
 \*\*07 – Replay a Business Transaction\*\*
 
-
-
 Replay demonstrates deterministic execution by re-evaluating a previously recorded transaction and confirming that the same inputs produce the same outcome.
-

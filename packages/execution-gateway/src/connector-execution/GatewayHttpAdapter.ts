@@ -67,14 +67,18 @@ export class GatewayHttpAdapter implements Connector {
     }
 
     const method = httpMethodForCapability(request.capability);
-    const path = request.target.startsWith("/") ? request.target : `/${request.target}`;
+    const path = request.target.startsWith("/")
+      ? request.target
+      : `/${request.target}`;
     const url = `${this.options.baseUrl}${path}`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), context.timeoutMs);
 
     const credentialValue = context.credential.value;
-    const bearer = isCredentialTokenValue(credentialValue) ? credentialValue.token : undefined;
+    const bearer = isCredentialTokenValue(credentialValue)
+      ? credentialValue.token
+      : undefined;
 
     try {
       const response = await fetch(url, {
@@ -83,9 +87,13 @@ export class GatewayHttpAdapter implements Connector {
         headers: {
           "Content-Type": "application/json",
           ...this.options.headers,
-          ...(bearer !== undefined ? { Authorization: `Bearer ${bearer}` } : {}),
+          ...(bearer !== undefined
+            ? { Authorization: `Bearer ${bearer}` }
+            : {}),
         },
-        ...(method === "GET" ? {} : { body: JSON.stringify(request.parameters) }),
+        ...(method === "GET"
+          ? {}
+          : { body: JSON.stringify(request.parameters) }),
       });
 
       if (!response.ok) {
@@ -98,7 +106,10 @@ export class GatewayHttpAdapter implements Connector {
 
       return {
         success: true,
-        metadata: { status: response.status, body: body as Record<string, unknown> },
+        metadata: {
+          status: response.status,
+          body: body as Record<string, unknown>,
+        },
       };
     } catch (error) {
       if (controller.signal.aborted) {

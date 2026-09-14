@@ -6,9 +6,9 @@ Execute a real GitHub pull-request merge through the same production composition
 
 ## What You'll Learn
 
-* The full path from a `BusinessTransaction` with `intent.action = "github:pr-merge"` through policy evaluation to an actual merge call against the connector
-* That an approved merge results in a real (mocked) side effect: the pull request's `mergedAt` actually changes on the GitHub server, and `mockServer.mergeCalls` proves exactly one network call was made
-* How GitHub's credential differs from HubSpot's: it's ephemeral (a JWT-signed exchange for a short-lived installation token on every `resolve()` call, not a single static token), and under `NODE_ENV=test` with no `TEST_GITHUB_*` triple set, `createGitHubCredentialProvider.ts` generates a fresh, never-real RSA keypair automatically — no `.env` empty-string override needed the way Tutorial 69 needs for HubSpot
+- The full path from a `BusinessTransaction` with `intent.action = "github:pr-merge"` through policy evaluation to an actual merge call against the connector
+- That an approved merge results in a real (mocked) side effect: the pull request's `mergedAt` actually changes on the GitHub server, and `mockServer.mergeCalls` proves exactly one network call was made
+- How GitHub's credential differs from HubSpot's: it's ephemeral (a JWT-signed exchange for a short-lived installation token on every `resolve()` call, not a single static token), and under `NODE_ENV=test` with no `TEST_GITHUB_*` triple set, `createGitHubCredentialProvider.ts` generates a fresh, never-real RSA keypair automatically — no `.env` empty-string override needed the way Tutorial 69 needs for HubSpot
 
 ## Running the Tutorial
 

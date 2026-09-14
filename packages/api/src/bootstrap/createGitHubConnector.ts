@@ -20,8 +20,13 @@ export function createGitHubConnector(): Connector {
   return createGatewayGitHubConnector({
     connectorId: "github",
 
-    capabilities: connectorCapabilities([GITHUB_PR_FETCH_CAPABILITY, GITHUB_PR_MERGE_CAPABILITY]),
+    capabilities: connectorCapabilities([
+      GITHUB_PR_FETCH_CAPABILITY,
+      GITHUB_PR_MERGE_CAPABILITY,
+    ]),
 
-    ...(process.env.GITHUB_BASE_URL !== undefined ? { baseUrl: process.env.GITHUB_BASE_URL } : {}),
+    ...(process.env.GITHUB_BASE_URL !== undefined
+      ? { baseUrl: process.env.GITHUB_BASE_URL }
+      : {}),
   });
 }

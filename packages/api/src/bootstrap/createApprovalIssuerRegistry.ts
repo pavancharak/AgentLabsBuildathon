@@ -3,7 +3,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { StaticApprovalIssuerRegistry } from "@parmana/approval";
-import type { ApprovalIssuerRegistry, TrustedApprovalIssuer } from "@parmana/approval";
+import type {
+  ApprovalIssuerRegistry,
+  TrustedApprovalIssuer,
+} from "@parmana/approval";
 import { loadConfig } from "@parmana/shared";
 
 interface ConfiguredApprovalIssuer {
@@ -59,27 +62,29 @@ export function createApprovalIssuerRegistry(): ApprovalIssuerRegistry {
     throw new Error("PARMANA_KEY_DIR is not configured.");
   }
 
-  const issuers: TrustedApprovalIssuer[] = TRUSTED_APPROVAL_ISSUERS.map(({ approverId, keyId, revoked }) => {
-    const publicKeyPath = join(
-      config.keys.keyDirectory as string,
-      "approval-issuers",
-      `${approverId}__${keyId}.public.pem`,
-    );
-
-    if (!existsSync(publicKeyPath)) {
-      throw new Error(
-        `Approval issuer public key not found: ${publicKeyPath}. Provision it before starting -- ` +
-          "no key is generated automatically.",
+  const issuers: TrustedApprovalIssuer[] = TRUSTED_APPROVAL_ISSUERS.map(
+    ({ approverId, keyId, revoked }) => {
+      const publicKeyPath = join(
+        config.keys.keyDirectory as string,
+        "approval-issuers",
+        `${approverId}__${keyId}.public.pem`,
       );
-    }
 
-    return {
-      approverId,
-      keyId,
-      publicKey: createPublicKey(readFileSync(publicKeyPath, "utf8")),
-      revoked,
-    };
-  });
+      if (!existsSync(publicKeyPath)) {
+        throw new Error(
+          `Approval issuer public key not found: ${publicKeyPath}. Provision it before starting -- ` +
+            "no key is generated automatically.",
+        );
+      }
+
+      return {
+        approverId,
+        keyId,
+        publicKey: createPublicKey(readFileSync(publicKeyPath, "utf8")),
+        revoked,
+      };
+    },
+  );
 
   return new StaticApprovalIssuerRegistry(issuers);
 }

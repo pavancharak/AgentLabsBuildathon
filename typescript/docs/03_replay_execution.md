@@ -1,38 +1,20 @@
 \# Example 03 — Replay Execution
 
-
-
 \## Overview
-
-
 
 One of Parmana's defining capabilities is \*\*deterministic replay\*\*.
 
-
-
 Replay allows an execution to be reproduced from its immutable Execution Trust Record, enabling organizations to demonstrate that a recorded outcome can be regenerated using the same inputs, policy, and execution context.
-
-
 
 Unlike verification, which proves integrity, replay proves reproducibility.
 
-
-
 This guide demonstrates replay using the TypeScript SDK.
-
-
 
 \---
 
-
-
 \# Learning Objectives
 
-
-
 After completing this guide you will understand:
-
-
 
 \* What deterministic replay is
 
@@ -44,29 +26,17 @@ After completing this guide you will understand:
 
 \* How replay supports debugging, auditing, and governance
 
-
-
 \---
-
-
 
 \# Prerequisites
 
-
-
 Complete the previous guides:
-
-
 
 \* `docs/01\_basic\_execution.md`
 
 \* `docs/02\_verify\_receipt.md`
 
-
-
 You should already understand:
-
-
 
 \* BusinessTransaction
 
@@ -76,35 +46,19 @@ You should already understand:
 
 \* ExecutionTrustRecord
 
-
-
 \---
-
-
 
 \# What Is Replay?
 
-
-
 Replay reconstructs a previously executed Business Transaction.
-
-
 
 The Runtime loads the recorded trust chain and evaluates the same policy using the same recorded inputs.
 
-
-
 If the execution is deterministic, replay produces the same decision.
-
-
 
 \---
 
-
-
 \# Replay Architecture
-
-
 
 ```text
 
@@ -156,27 +110,15 @@ Compare Results
 
 ```
 
-
-
 Replay never invents missing information.
-
-
 
 Everything required must already exist in the trust chain.
 
-
-
 \---
-
-
 
 \# Why Replay Exists
 
-
-
 Replay is useful for:
-
-
 
 \* Governance
 
@@ -192,65 +134,39 @@ Replay is useful for:
 
 \* Root-cause analysis
 
-
-
 Rather than asking:
-
-
 
 > "What do we think happened?"
 
-
-
 Replay answers:
-
-
 
 > "What does the recorded evidence reproduce?"
 
-
-
 \---
-
-
 
 \# Replay vs Verification
 
-
-
 These capabilities serve different purposes.
 
-
-
-| Verification          | Replay                  |
+| Verification | Replay |
 
 | --------------------- | ----------------------- |
 
-| Validates integrity   | Reproduces execution    |
+| Validates integrity | Reproduces execution |
 
-| Checks hashes         | Re-evaluates policy     |
+| Checks hashes | Re-evaluates policy |
 
-| Detects tampering     | Detects non-determinism |
+| Detects tampering | Detects non-determinism |
 
-| Produces Verification | Produces replay result  |
-
-
+| Produces Verification | Produces replay result |
 
 Most systems stop at verification.
 
-
-
 Parmana provides both.
-
-
 
 \---
 
-
-
 \# Creating the Client
-
-
 
 ```typescript
 
@@ -266,67 +182,35 @@ const client = new ParmanaClient({
 
 ```
 
-
-
 \---
-
-
 
 \# Load the Trust Record
 
-
-
 Replay requires an immutable `ExecutionTrustRecord`.
 
-
-
 ```typescript
-
 const trustRecord = getExecutionTrustRecord();
-
 ```
-
-
 
 In the SDK example, a placeholder record is supplied.
 
-
-
 \---
-
-
 
 \# Replay the Execution
 
-
-
 Replay is initiated with a single SDK call.
 
-
-
 ```typescript
-
 await client.replay(trustRecord);
-
 ```
-
-
 
 The Runtime reconstructs the execution using the recorded trust artifacts.
 
-
-
 \---
-
-
 
 \# Replay Pipeline
 
-
-
 Internally the Runtime performs:
-
-
 
 ```text
 
@@ -358,27 +242,15 @@ Generate Replay Result
 
 ```
 
-
-
 Every step is deterministic.
-
-
 
 \---
 
-
-
 \# Why Policy Versions Matter
-
-
 
 Replay always uses the recorded `PolicyReference`.
 
-
-
 For example:
-
-
 
 ```text
 
@@ -398,31 +270,17 @@ Version
 
 ```
 
-
-
 Even if version \*\*2.0.0\*\* exists later, replay still evaluates \*\*1.0.0\*\*.
-
-
 
 This guarantees historical reproducibility.
 
-
-
 \---
-
-
 
 \# Runtime Signals
 
-
-
 Replay uses the recorded runtime signals.
 
-
-
 Example:
-
-
 
 ```typescript
 
@@ -438,32 +296,18 @@ signals: {
 
 ```
 
-
-
 Signals are never regenerated from current system state.
-
-
 
 They are restored from the trust record.
 
-
-
 \---
-
-
 
 \# Deterministic Decision
 
-
-
 Replay recomputes the policy decision.
-
-
 
 Original:
 
-
-
 ```text
 
 Decision
@@ -473,13 +317,9 @@ Decision
 APPROVED
 
 ```
-
-
 
 Replay:
 
-
-
 ```text
 
 Decision
@@ -490,23 +330,13 @@ APPROVED
 
 ```
 
-
-
 Matching results demonstrate deterministic execution.
-
-
 
 \---
 
-
-
 \# Replay Failure
 
-
-
 Replay may fail when:
-
-
 
 \* Trust record is incomplete
 
@@ -518,19 +348,11 @@ Replay may fail when:
 
 \* Trust validation fails
 
-
-
 Replay failures should be investigated rather than ignored.
-
-
 
 \---
 
-
-
 \# Error Handling
-
-
 
 ```typescript
 
@@ -556,27 +378,15 @@ catch(error){
 
 ```
 
-
-
 Applications should distinguish replay failures from execution failures.
-
-
 
 \---
 
-
-
 \# Replay Is Read-Only
-
-
 
 Replay never changes the original trust chain.
 
-
-
 It does not:
-
-
 
 \* modify executions
 
@@ -586,23 +396,13 @@ It does not:
 
 \* change trust hashes
 
-
-
 Replay is a read-only governance capability.
-
-
 
 \---
 
-
-
 \# Benefits
 
-
-
 Deterministic replay enables:
-
-
 
 \* Repeatable investigations
 
@@ -616,15 +416,9 @@ Deterministic replay enables:
 
 \* Independent validation
 
-
-
 \---
 
-
-
 \# Example Workflow
-
-
 
 ```text
 
@@ -652,23 +446,13 @@ Audit
 
 ```
 
-
-
 Replay is one stage in the complete execution lifecycle.
-
-
 
 \---
 
-
-
 \# Complete Example
 
-
-
 See:
-
-
 
 ```text
 
@@ -676,55 +460,37 @@ examples/03\_replay\_execution.ts
 
 ```
 
-
-
 for the full implementation.
 
-
-
 \---
-
-
 
 \# Relationship to Later Examples
 
-
-
 Replay becomes increasingly valuable in the remaining examples.
 
-
-
-| Example | Replay Context                       |
+| Example | Replay Context |
 
 | ------- | ------------------------------------ |
 
-| 04      | Audit complete trust chain           |
+| 04 | Audit complete trust chain |
 
-| 05      | Replay with human override           |
+| 05 | Replay with human override |
 
-| 06      | Replay autonomous vehicle execution  |
+| 06 | Replay autonomous vehicle execution |
 
-| 07      | Replay clinical AI workflow          |
+| 07 | Replay clinical AI workflow |
 
-| 08      | Replay financial approval            |
+| 08 | Replay financial approval |
 
-| 09      | Replay multi-agent workflow          |
+| 09 | Replay multi-agent workflow |
 
-| 10      | Replay using explicit policy version |
-
-
+| 10 | Replay using explicit policy version |
 
 \---
 
-
-
 \# Architectural Principles
 
-
-
 Replay follows the same principles as the Parmana Runtime:
-
-
 
 \* Deterministic execution
 
@@ -740,23 +506,13 @@ Replay follows the same principles as the Parmana Runtime:
 
 \* No hidden state
 
-
-
 These guarantees make replay suitable for high-assurance systems.
-
-
 
 \---
 
-
-
 \# Summary
 
-
-
 In this guide you learned how to:
-
-
 
 \* Replay an Execution Trust Record
 
@@ -768,23 +524,13 @@ In this guide you learned how to:
 
 \* Understand the difference between replay and verification
 
-
-
 Replay is a cornerstone of Parmana's Execution Trust Infrastructure because it transforms recorded evidence into reproducible evidence.
-
-
 
 \---
 
-
-
 \# Next
 
-
-
 Continue with:
-
-
 
 ```text
 
@@ -792,9 +538,4 @@ docs/04\_audit\_trust\_chain.md
 
 ```
 
-
-
 to learn how to inspect and audit an entire Execution Trust Record, including its authority, authorization, decision, execution history, verification history, and receipts.
-
-
-

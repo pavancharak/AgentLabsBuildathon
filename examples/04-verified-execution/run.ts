@@ -7,10 +7,7 @@ import express from "express";
 
 import { FileKeyProvider } from "@parmana/crypto";
 
-import {
-  EnvelopeVerifier,
-  MemoryNonceStore,
-} from "@parmana/envelope-verifier";
+import { EnvelopeVerifier, MemoryNonceStore } from "@parmana/envelope-verifier";
 import { requireParmanaAuthorization } from "@parmana/envelope-verifier/express";
 
 import { FilePolicyRepository } from "@parmana/policy";
@@ -22,10 +19,7 @@ import {
 
 import { RuntimeFactory } from "@parmana/runtime";
 
-import type {
-  Connector,
-  ConnectorRequest,
-} from "@parmana/execution-gateway";
+import type { Connector, ConnectorRequest } from "@parmana/execution-gateway";
 import { ExecutionGateway } from "@parmana/execution-gateway";
 
 import type {
@@ -94,10 +88,7 @@ function ensureKeysAvailable(): void {
       process.execPath,
       [
         "./node_modules/tsx/dist/cli.mjs",
-        path.join(
-          repoRoot,
-          "packages/crypto/scripts/generate-keypair.ts",
-        ),
+        path.join(repoRoot, "packages/crypto/scripts/generate-keypair.ts"),
         "--algorithm",
         "ed25519",
       ],
@@ -135,9 +126,7 @@ class RecordingHttpConnector implements Connector {
 
   constructor(private readonly baseUrl: string) {}
 
-  async execute(
-    request: ConnectorRequest,
-  ): Promise<ExecutionResult> {
+  async execute(request: ConnectorRequest): Promise<ExecutionResult> {
     this.lastRequest = request;
 
     const response = await fetch(`${this.baseUrl}/execute`, {
@@ -153,9 +142,7 @@ class RecordingHttpConnector implements Connector {
     this.lastResponseBody = await response.json();
 
     if (!response.ok) {
-      throw new Error(
-        `Execution System returned HTTP ${response.status}.`,
-      );
+      throw new Error(`Execution System returned HTTP ${response.status}.`);
     }
 
     return {
@@ -181,8 +168,7 @@ async function startReceivingSide(): Promise<{
   url: string;
   server: Server;
 }> {
-  const publicKey =
-    await new FileKeyProvider().getPublicKey("default");
+  const publicKey = await new FileKeyProvider().getPublicKey("default");
 
   const verifier = new EnvelopeVerifier({
     publicKey,
@@ -192,25 +178,18 @@ async function startReceivingSide(): Promise<{
   const app = express();
   app.use(express.json());
 
-  app.post(
-    "/execute",
-    requireParmanaAuthorization(verifier),
-    (req, res) => {
-      res.status(200).json({
-        accepted: true,
-        businessTransactionId: (
-          req.body as { businessTransactionId?: string }
-        ).businessTransactionId,
-        checks: req.parmanaAuthorization?.checks,
-      });
-    },
-  );
+  app.post("/execute", requireParmanaAuthorization(verifier), (req, res) => {
+    res.status(200).json({
+      accepted: true,
+      businessTransactionId: (req.body as { businessTransactionId?: string })
+        .businessTransactionId,
+      checks: req.parmanaAuthorization?.checks,
+    });
+  });
 
   const server = await new Promise<Server>((resolve) => {
-    const listening = app.listen(
-      RECEIVING_SIDE_PORT,
-      "127.0.0.1",
-      () => resolve(listening),
+    const listening = app.listen(RECEIVING_SIDE_PORT, "127.0.0.1", () =>
+      resolve(listening),
     );
   });
 
@@ -258,8 +237,7 @@ async function main(): Promise<void> {
     path.join(repoRoot, "policies"),
   );
 
-  const gatewayPublicKey =
-    await new FileKeyProvider().getPublicKey("default");
+  const gatewayPublicKey = await new FileKeyProvider().getPublicKey("default");
 
   const nonceStore = new MemoryNonceStore();
 
@@ -384,14 +362,12 @@ async function main(): Promise<void> {
   printHeading("RECEIVING SIDE: Scenario 4 - Missing authorization");
 
   const requestWithoutAuthorization = {
-  ...outgoingWireBody,
-};
+    ...outgoingWireBody,
+  };
 
-delete requestWithoutAuthorization.authorization;
+  delete requestWithoutAuthorization.authorization;
 
-  const missing = await postToReceivingSide(
-    requestWithoutAuthorization,
-  );
+  const missing = await postToReceivingSide(requestWithoutAuthorization);
 
   console.log(`HTTP ${missing.status}`);
   print("Response body", missing.body);

@@ -117,10 +117,15 @@ describe("documentation file references resolve to real files", () => {
       expect(referencedPaths.length).toBeGreaterThan(0);
     });
 
-    it.each(referencedPaths)(`${docPath} references %s, which exists`, (referencedPath) => {
-      const cleaned = referencedPath.endsWith("/") ? referencedPath.slice(0, -1) : referencedPath;
-      expect(existsSync(join(repoRoot, cleaned))).toBe(true);
-    });
+    it.each(referencedPaths)(
+      `${docPath} references %s, which exists`,
+      (referencedPath) => {
+        const cleaned = referencedPath.endsWith("/")
+          ? referencedPath.slice(0, -1)
+          : referencedPath;
+        expect(existsSync(join(repoRoot, cleaned))).toBe(true);
+      },
+    );
   }
 });
 
@@ -199,7 +204,10 @@ function extractSectionCitations(content: string): SectionCitation[] {
   content.split("\n").forEach((lineText, index) => {
     for (const claimsMatch of lineText.matchAll(/CLAIMS\.md/g)) {
       const windowStart = claimsMatch.index! + claimsMatch[0].length;
-      const window = lineText.slice(windowStart, windowStart + CITATION_WINDOW_CHARS);
+      const window = lineText.slice(
+        windowStart,
+        windowStart + CITATION_WINDOW_CHARS,
+      );
 
       for (const numberMatch of window.matchAll(/\d+\.\d+/g)) {
         citations.push({

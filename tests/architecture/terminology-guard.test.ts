@@ -108,7 +108,10 @@ describe("CI terminology guard (Phase 2C regression coverage)", () => {
 
     for (const doc of activeDocs) {
       const content = readFileSync(join(repoRoot, doc), "utf8");
-      expect(FORBIDDEN_PHRASE.test(content), `${doc} must not contain the retired phrase`).toBe(false);
+      expect(
+        FORBIDDEN_PHRASE.test(content),
+        `${doc} must not contain the retired phrase`,
+      ).toBe(false);
     }
   });
 
@@ -123,10 +126,16 @@ describe("CI terminology guard (Phase 2C regression coverage)", () => {
 
     for (const doc of historical) {
       const basename = doc.split("/").pop()!;
-      expect(EXCLUDED_BASENAMES.has(basename), `${doc} must be in the exclusion list`).toBe(true);
+      expect(
+        EXCLUDED_BASENAMES.has(basename),
+        `${doc} must be in the exclusion list`,
+      ).toBe(true);
 
       const content = readFileSync(join(repoRoot, doc), "utf8");
-      expect(FORBIDDEN_PHRASE.test(content), `${doc} is expected to contain the phrase (that's why it's excluded)`).toBe(true);
+      expect(
+        FORBIDDEN_PHRASE.test(content),
+        `${doc} is expected to contain the phrase (that's why it's excluded)`,
+      ).toBe(true);
     }
   });
 
@@ -138,17 +147,24 @@ describe("CI terminology guard (Phase 2C regression coverage)", () => {
 
     for (const doc of citations) {
       const basename = doc.split("/").pop()!;
-      expect(EXCLUDED_BASENAMES.has(basename), `${doc} must be in the exclusion list`).toBe(true);
+      expect(
+        EXCLUDED_BASENAMES.has(basename),
+        `${doc} must be in the exclusion list`,
+      ).toBe(true);
 
       const content = readFileSync(join(repoRoot, doc), "utf8");
-      expect(FORBIDDEN_PHRASE.test(content), `${doc} is expected to contain the phrase (that's why it's excluded)`).toBe(true);
+      expect(
+        FORBIDDEN_PHRASE.test(content),
+        `${doc} is expected to contain the phrase (that's why it's excluded)`,
+      ).toBe(true);
     }
   });
 
   it("new, unlisted legacy terminology is still detected (sanity check the guard isn't vacuous)", () => {
     // Not a real file on disk — proves the matcher itself still fires on
     // content it hasn't been told to ignore, without touching the repo.
-    const probeContent = "This document describes our Execution Governance layer.";
+    const probeContent =
+      "This document describes our Execution Governance layer.";
     expect(FORBIDDEN_PHRASE.test(probeContent)).toBe(true);
 
     const probeBasename = "not-a-real-excluded-file.md";
@@ -156,7 +172,8 @@ describe("CI terminology guard (Phase 2C regression coverage)", () => {
   });
 
   it("legitimate current terminology (Execution Trust, Policy Engine) never trips the guard", () => {
-    const benign = "This mentions Execution Trust and Policy Engine, both legitimate current terms.";
+    const benign =
+      "This mentions Execution Trust and Policy Engine, both legitimate current terms.";
     expect(FORBIDDEN_PHRASE.test(benign)).toBe(false);
   });
 });

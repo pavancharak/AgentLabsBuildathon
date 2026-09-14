@@ -10,9 +10,7 @@ import {
   RefusalRecordRepository,
 } from "@parmana/shared";
 
-import type {
-  ExecutionSystem,
-} from "@parmana/execution-system";
+import type { ExecutionSystem } from "@parmana/execution-system";
 
 import { ExecutionTrustApplication } from "./ExecutionTrustApplication.js";
 import { Runtime } from "./Runtime.js";
@@ -39,85 +37,56 @@ import { VerificationService } from "./services/verification-service.js";
  */
 export class RuntimeFactory {
   public static create(
-  transactions: BusinessTransactionRepository,
-  trustRecords: ExecutionTrustRecordRepository,
-  policyRepository: PolicyRepository,
-  executionSystem: ExecutionSystem,
-  refusalRecords?: RefusalRecordRepository,
-  signalStateVerifier?: SignalStateVerifier,
-  policyExecutionVerifier?: PolicyExecutionVerifier,
-): ExecutionTrustApplication {
+    transactions: BusinessTransactionRepository,
+    trustRecords: ExecutionTrustRecordRepository,
+    policyRepository: PolicyRepository,
+    executionSystem: ExecutionSystem,
+    refusalRecords?: RefusalRecordRepository,
+    signalStateVerifier?: SignalStateVerifier,
+    policyExecutionVerifier?: PolicyExecutionVerifier,
+  ): ExecutionTrustApplication {
     //
     // Application Services
     //
-    const transactionService =
-      new BusinessTransactionService(
-        transactions,
-      );
+    const transactionService = new BusinessTransactionService(transactions);
 
-    const executionService =
-      new ExecutionService(
-        transactions,
-        trustRecords,
-      );
+    const executionService = new ExecutionService(transactions, trustRecords);
 
-    const verificationService =
-      new VerificationService(
-        trustRecords,
-      );
+    const verificationService = new VerificationService(trustRecords);
 
-    const receiptService =
-      new ReceiptService(
-        trustRecords,
-      );
+    const receiptService = new ReceiptService(trustRecords);
 
     //
     // Execution subsystem
     //
-    const requestBuilder =
-      new ExecutionRequestBuilder();
+    const requestBuilder = new ExecutionRequestBuilder();
 
-    const evidenceBuilder =
-      new ExecutionEvidenceBuilder();
+    const evidenceBuilder = new ExecutionEvidenceBuilder();
 
     //
     // Runtime
     //
-    const builder =
-      new RuntimeBuilder()
-        .withPolicyRepository(
-          policyRepository,
-        );
+    const builder = new RuntimeBuilder().withPolicyRepository(policyRepository);
 
     if (signalStateVerifier) {
-      builder.withSignalStateVerifier(
-        signalStateVerifier,
-      );
+      builder.withSignalStateVerifier(signalStateVerifier);
     }
 
     if (policyExecutionVerifier) {
-      builder.withPolicyExecutionVerifier(
-        policyExecutionVerifier,
-      );
+      builder.withPolicyExecutionVerifier(policyExecutionVerifier);
     }
 
-    const runtime: Runtime =
-      builder
-        .addStage(
-          new TrustChainValidationComponent(),
-        )
-        .addStage(
-          new ExecutionComponent(
-            executionService,
-            requestBuilder,
-            executionSystem,
-            evidenceBuilder,
-          ),
-        )
-        .build(
-          trustRecords,
-          refusalRecords,
-        );
+    const runtime: Runtime = builder
+      .addStage(new TrustChainValidationComponent())
+      .addStage(
+        new ExecutionComponent(
+          executionService,
+          requestBuilder,
+          executionSystem,
+          evidenceBuilder,
+        ),
+      )
+      .build(trustRecords, refusalRecords);
 
     //
     // Application

@@ -81,7 +81,7 @@ describe("Caller authentication (HTTP boundary)", () => {
       expect(executionAuditSink.events).toHaveLength(0);
     });
 
-    it("records a caller.rejected event with reason \"missing credential\"", async () => {
+    it('records a caller.rejected event with reason "missing credential"', async () => {
       const { app, callerAuditSink } = buildApp();
 
       await request(app).post("/execute").send(createBusinessTransaction());
@@ -109,7 +109,7 @@ describe("Caller authentication (HTTP boundary)", () => {
       expect(executionAuditSink.events).toHaveLength(0);
     });
 
-    it("records a caller.rejected event with reason \"invalid credential\"", async () => {
+    it('records a caller.rejected event with reason "invalid credential"', async () => {
       const { app, callerAuditSink } = buildApp();
 
       await request(app)
@@ -258,9 +258,9 @@ describe("Caller authentication (HTTP boundary)", () => {
         .send(createBusinessTransaction());
 
       expect(transactionsResponse.status).toBe(201);
-      expect(transactionsResponse.body.authorization.payload.grantedCapability).toBe(
-        "test:fixture-execute",
-      );
+      expect(
+        transactionsResponse.body.authorization.payload.grantedCapability,
+      ).toBe("test:fixture-execute");
 
       const grantedEvents = callerAuditSink.events.filter(
         (event) => event.type === "caller.capability_granted",
@@ -377,16 +377,25 @@ describe("Caller authentication (HTTP boundary)", () => {
       expect(response.status).toBe(200);
     });
 
-    it.each(["/", "/version", "/policies", "/transactions", "/trust-records", "/replay", "/receipt", "/receipt/latest", "/verify", "/verification", "/callers/me"])(
-      "%s requires a credential",
-      async (route) => {
-        const { app } = buildApp();
+    it.each([
+      "/",
+      "/version",
+      "/policies",
+      "/transactions",
+      "/trust-records",
+      "/replay",
+      "/receipt",
+      "/receipt/latest",
+      "/verify",
+      "/verification",
+      "/callers/me",
+    ])("%s requires a credential", async (route) => {
+      const { app } = buildApp();
 
-        const response = await request(app).get(route);
+      const response = await request(app).get(route);
 
-        expect(response.status).toBe(401);
-      },
-    );
+      expect(response.status).toBe(401);
+    });
 
     it("POST /execute requires a credential", async () => {
       const { app } = buildApp();

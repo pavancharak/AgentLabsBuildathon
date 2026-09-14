@@ -3,14 +3,18 @@ title: "Verification"
 description: "Exactly 3 checks, always run, always reported independently."
 ---
 
-<Info>**[AVAILABLE]**, precisely scoped. `packages/runtime/src/services/verification-service.ts`. CLAIMS.md 2.15.</Info>
+<Info>
+  **[AVAILABLE]**, precisely scoped.
+  `packages/runtime/src/services/verification-service.ts`. CLAIMS.md 2.15.
+</Info>
 
 <Warning>
-An earlier six-stage verification pipeline (`@parmana/verification`) existed and was
-**deleted** ("retired in Session 5, it had no real implementation and no real test
-coverage," per CLAIMS.md §4). It is not documented here as existing. If you see references
-to Authority/Intent/Evidence verification stages elsewhere, they describe that retired
-package or a not-yet-built future addition, not current behavior.
+  An earlier six-stage verification pipeline (`@parmana/verification`) existed
+  and was **deleted** ("retired in Session 5, it had no real implementation and
+  no real test coverage," per CLAIMS.md §4). It is not documented here as
+  existing. If you see references to Authority/Intent/Evidence verification
+  stages elsewhere, they describe that retired package or a not-yet-built future
+  addition, not current behavior.
 </Warning>
 
 ## The 3 checks, exactly
@@ -32,10 +36,10 @@ first (`runChecks()` accumulates failures into an array rather than short-circui
 
 ## Two different operations, two different routes
 
-| SDK call | HTTP | What it does |
-|---|---|---|
-| `client.verification.verify(id)` | `POST /verify` | Runs a **fresh** verification; appends a new `Verification` to the record's history |
-| `client.verification.get_latest(id)` | `GET /verification/:id` | Reads back the **most recent** `Verification` without re-verifying |
+| SDK call                             | HTTP                    | What it does                                                                        |
+| ------------------------------------ | ----------------------- | ----------------------------------------------------------------------------------- |
+| `client.verification.verify(id)`     | `POST /verify`          | Runs a **fresh** verification; appends a new `Verification` to the record's history |
+| `client.verification.get_latest(id)` | `GET /verification/:id` | Reads back the **most recent** `Verification` without re-verifying                  |
 
 These are genuinely different routes (`packages/api/src/routes/verify.ts` vs.
 `verify-get.ts`), not the same endpoint called twice, a distinction the Python SDK only

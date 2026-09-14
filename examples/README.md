@@ -39,112 +39,112 @@ of this writing). New tutorials get added when a capability's own narrative — 
 exact before/after that makes this concrete" — earns the cost of a new numbered entry, not
 automatically alongside every change.
 
-| # | Topic |
-|---|-------|
-| 01 | Hello World |
-| 02 | Policy Evaluation |
-| 03 | Runtime Execution |
-| 04 | Policy Router |
-| 05 | Verification |
-| 06 | Replay |
-| 07 | Receipt Generation |
-| 08 | Human Approval |
-| 09 | REST API |
-| 10 | End-to-End |
-| 11 | Execution Authorization |
-| 12 | Envelope Verification |
-| 13 | Post-Quantum Signatures |
-| 14 | Custom Policy |
-| 15 | Custom Runtime Component |
-| 16 | Runtime Pipeline |
-| 17 | Multi Policy Routing |
-| 18 | Runtime Hooks |
-| 19 | Runtime Composition |
-| 20 | Batch Execution |
-| 21 | Partial Failure Handling |
-| 22 | Idempotent Execution |
-| 23 | Production Deployment |
-| 24 | SDK Integration Patterns |
-| 25 | Execution Permit Generation |
-| 26 | Execution Authorization Verification |
-| 27 | Authorization Expiration |
-| 28 | Envelope Replay Detection |
-| 29 | Authorization Tampering |
-| 30 | Policy Version Pinning |
-| 31 | Authorization Binding |
-| 32 | Execution Pipeline |
-| 33 | Execution Boundary |
-| 34 | Execution Gateway |
-| 35 | Replay Attack |
-| 36 | Parameter Tampering |
-| 37 | Action Substitution |
-| 38 | Target Substitution |
-| 39 | Policy Substitution |
-| 40 | Signature Forgery |
-| 41 | Expired Authorization |
-| 42 | Nonce Reuse |
-| 43 | Stolen Authorization |
-| 44 | Direct API Bypass |
-| 45 | Connector Bypass |
-| 46 | TOCTOU Protection |
-| 47 | Canonical JSON |
-| 48 | Deterministic Hashing |
-| 49 | Detached Signatures |
-| 50 | Ed25519 Signatures |
-| 51 | Dilithium3 (Post-Quantum) |
-| 52 | Hybrid Signatures |
-| 53 | Hybrid-Signed Execution Trust Record |
-| 54 | Execution Receipt |
-| 55 | Execution Receipt Verification |
-| 56 | Complete Execution Flow |
-| 57 | Credential Isolation |
-| 58 | Session Credentials |
-| 59 | Secure Connectors |
-| 60 | End-to-End Enterprise Execution |
-| 62 | Signal/Intent Binding |
-| 69 | HubSpot Deal Update Connector |
-| 70 | HubSpot Policy Denial |
-| 71 | HubSpot Signal-State Verification |
-| 72 | HubSpot Approval Artifact |
-| 73 | Refusal Records |
-| 74 | Refusal Record Fail-Open |
-| 75 | Signed Audit Events |
-| 76 | Caller Principal Scoping |
-| 77 | Caller Ownership Scoping |
-| 78 | Duplicate Transaction Race |
-| 79 | Storage Backend Selection |
-| 80 | Fail-Closed Config Validation |
-| 81 | Connector Execution Gateway |
-| 82 | Composite Signal-State Verification |
-| 83 | Capability/Policy Binding (TD-22) |
-| 84 | Caller Authentication |
-| 86 | Gateway Attestation |
-| 87 | Key Provider Path Traversal |
-| 88 | Malformed Request Handling |
-| 89 | Readiness Probe |
-| 90 | OpenAPI Self-Description |
-| 91 | Graceful Shutdown |
-| 92 | Public API Boundary |
-| 93 | Trust Record Ordering |
-| 94 | SDK HTTP Transport |
-| 95 | Generic Approval Verifier |
-| 96 | GitHub PR Merge Connector |
-| 97 | Execution Chain Integrity |
-| 98 | Signal-Freshness Enforcement (G-31) |
-| 99 | Key/Algorithm Binding Guard |
-| 100 | Authorization Is Caller-Type-Agnostic |
-| 101 | Fail-Closed Caller-Authentication Audit Writes |
+| #   | Topic                                                    |
+| --- | -------------------------------------------------------- |
+| 01  | Hello World                                              |
+| 02  | Policy Evaluation                                        |
+| 03  | Runtime Execution                                        |
+| 04  | Policy Router                                            |
+| 05  | Verification                                             |
+| 06  | Replay                                                   |
+| 07  | Receipt Generation                                       |
+| 08  | Human Approval                                           |
+| 09  | REST API                                                 |
+| 10  | End-to-End                                               |
+| 11  | Execution Authorization                                  |
+| 12  | Envelope Verification                                    |
+| 13  | Post-Quantum Signatures                                  |
+| 14  | Custom Policy                                            |
+| 15  | Custom Runtime Component                                 |
+| 16  | Runtime Pipeline                                         |
+| 17  | Multi Policy Routing                                     |
+| 18  | Runtime Hooks                                            |
+| 19  | Runtime Composition                                      |
+| 20  | Batch Execution                                          |
+| 21  | Partial Failure Handling                                 |
+| 22  | Idempotent Execution                                     |
+| 23  | Production Deployment                                    |
+| 24  | SDK Integration Patterns                                 |
+| 25  | Execution Permit Generation                              |
+| 26  | Execution Authorization Verification                     |
+| 27  | Authorization Expiration                                 |
+| 28  | Envelope Replay Detection                                |
+| 29  | Authorization Tampering                                  |
+| 30  | Policy Version Pinning                                   |
+| 31  | Authorization Binding                                    |
+| 32  | Execution Pipeline                                       |
+| 33  | Execution Boundary                                       |
+| 34  | Execution Gateway                                        |
+| 35  | Replay Attack                                            |
+| 36  | Parameter Tampering                                      |
+| 37  | Action Substitution                                      |
+| 38  | Target Substitution                                      |
+| 39  | Policy Substitution                                      |
+| 40  | Signature Forgery                                        |
+| 41  | Expired Authorization                                    |
+| 42  | Nonce Reuse                                              |
+| 43  | Stolen Authorization                                     |
+| 44  | Direct API Bypass                                        |
+| 45  | Connector Bypass                                         |
+| 46  | TOCTOU Protection                                        |
+| 47  | Canonical JSON                                           |
+| 48  | Deterministic Hashing                                    |
+| 49  | Detached Signatures                                      |
+| 50  | Ed25519 Signatures                                       |
+| 51  | Dilithium3 (Post-Quantum)                                |
+| 52  | Hybrid Signatures                                        |
+| 53  | Hybrid-Signed Execution Trust Record                     |
+| 54  | Execution Receipt                                        |
+| 55  | Execution Receipt Verification                           |
+| 56  | Complete Execution Flow                                  |
+| 57  | Credential Isolation                                     |
+| 58  | Session Credentials                                      |
+| 59  | Secure Connectors                                        |
+| 60  | End-to-End Enterprise Execution                          |
+| 62  | Signal/Intent Binding                                    |
+| 69  | HubSpot Deal Update Connector                            |
+| 70  | HubSpot Policy Denial                                    |
+| 71  | HubSpot Signal-State Verification                        |
+| 72  | HubSpot Approval Artifact                                |
+| 73  | Refusal Records                                          |
+| 74  | Refusal Record Fail-Open                                 |
+| 75  | Signed Audit Events                                      |
+| 76  | Caller Principal Scoping                                 |
+| 77  | Caller Ownership Scoping                                 |
+| 78  | Duplicate Transaction Race                               |
+| 79  | Storage Backend Selection                                |
+| 80  | Fail-Closed Config Validation                            |
+| 81  | Connector Execution Gateway                              |
+| 82  | Composite Signal-State Verification                      |
+| 83  | Capability/Policy Binding (TD-22)                        |
+| 84  | Caller Authentication                                    |
+| 86  | Gateway Attestation                                      |
+| 87  | Key Provider Path Traversal                              |
+| 88  | Malformed Request Handling                               |
+| 89  | Readiness Probe                                          |
+| 90  | OpenAPI Self-Description                                 |
+| 91  | Graceful Shutdown                                        |
+| 92  | Public API Boundary                                      |
+| 93  | Trust Record Ordering                                    |
+| 94  | SDK HTTP Transport                                       |
+| 95  | Generic Approval Verifier                                |
+| 96  | GitHub PR Merge Connector                                |
+| 97  | Execution Chain Integrity                                |
+| 98  | Signal-Freshness Enforcement (G-31)                      |
+| 99  | Key/Algorithm Binding Guard                              |
+| 100 | Authorization Is Caller-Type-Agnostic                    |
+| 101 | Fail-Closed Caller-Authentication Audit Writes           |
 | 102 | Distinguishable HTTP Status for Policy Denial and Replay |
-| 103 | Policy Governance (Maker-Checker) |
-| 104 | Policy Governance Execution Verification |
-| 105 | Tenant Key Isolation |
-| 106 | API Key Issuance (writing a new policy) |
-| 107 | Offline Verification |
-| 108 | Public-Key Discovery |
-| 109 | Durable-Evidence Key Rotation |
-| 110 | Hybrid-Signature Downgrade Protection |
-| 111 | Connect an Agent to Parmana |
-| 112 | Slack Connector |
+| 103 | Policy Governance (Maker-Checker)                        |
+| 104 | Policy Governance Execution Verification                 |
+| 105 | Tenant Key Isolation                                     |
+| 106 | API Key Issuance (writing a new policy)                  |
+| 107 | Offline Verification                                     |
+| 108 | Public-Key Discovery                                     |
+| 109 | Durable-Evidence Key Rotation                            |
+| 110 | Hybrid-Signature Downgrade Protection                    |
+| 111 | Connect an Agent to Parmana                              |
+| 112 | Slack Connector                                          |
 
 ---
 

@@ -12,6 +12,7 @@ it as an open TODO.
 ---
 
 ## Legal Review
+
 - [ ] Lawyer reviewed `FCA-SUBMISSION-PHASE2-WEEK2.md`
 - [ ] Language cleared (no liability concerns) — specifically: "hard boundary" vs. "designed to
       enforce," "post-compromise protection" vs. overreach
@@ -30,6 +31,7 @@ it as an open TODO.
   originating prompt's outreach email had a `[Name]` placeholder, not a real recipient).
 
 ## Compliance Review
+
 - [ ] Compliance expert reviewed against FCA rules (SM&CR, Consumer Duty, COBS, SYSC, and any
       emerging FCA guidance on agentic AI — this session found no evidence such guidance
       currently exists in a form specific enough to check against; that should be confirmed by
@@ -53,9 +55,10 @@ it as an open TODO.
 - **Pending because:** no compliance expert has been identified or contacted yet.
 
 ## Security Audit
+
 - [ ] Independent auditor engaged
 - [ ] Signature verification tested by a party other than Parmana itself (this session's evidence
-      package showed signature *fields* are populated in live responses but did not run a
+      package showed signature _fields_ are populated in live responses but did not run a
       separate, out-of-process verification tool against them — that gap should be closed here,
       not re-asserted as already done)
 - [ ] Audit trail tamper-resistance verified (Supabase access controls, isolation)
@@ -77,10 +80,12 @@ it as an open TODO.
 - **Pending because:** no auditor or firm has been identified or contacted yet.
 
 ## In-Scope-Merge Test (Scenario 4)
+
 **Not executed as part of this checklist-creation task.** Merging a real pull request is an
 irreversible, externally visible action (even reverted, the merge and revert both land in
 `pavancharak/parmana-exp`'s real history) and needs Pavan's explicit go-ahead at the time it's
 actually run, not a standing blanket authorization baked into a checklist.
+
 - [ ] New disposable PR created for the test
 - [ ] Full-access caller (`fca-full-access`) attempts `github:pr-merge`
 - [ ] Response documented (expect 200, signed trust record)
@@ -90,14 +95,15 @@ actually run, not a standing blanket authorization baked into a checklist.
 - Status: NOT STARTED
 - Owner: Pavan (needs to explicitly authorize the merge at execution time)
 - Timeline: [date]
-- **Why this is required:** The evidence package currently proves the *rejection* path (fetch-only
-  can't merge) three ways but never shows the *success* path for the merge capability itself. A
+- **Why this is required:** The evidence package currently proves the _rejection_ path (fetch-only
+  can't merge) three ways but never shows the _success_ path for the merge capability itself. A
   reviewer could reasonably ask "does `github:pr-merge` even work when it's supposed to?" and
   right now the honest answer is "not yet demonstrated."
 - **Pending because:** it's a real, irreversible action (merges a real PR) — deliberately not run
   without Pavan's explicit go-ahead in the moment, not a standing authorization from a plan.
 
 ## Organizational Sign-Off
+
 - [ ] Pavan (founder, Parmana) approved
 - [ ] Confirm with Pavan: is there a distinct CTO/Head of Engineering, or is that also Pavan?
       (`docs/deep-tech/06-TEAM-AND-EXPERTISE.md` currently has team/co-founder structure as an
@@ -112,6 +118,7 @@ actually run, not a standing blanket authorization baked into a checklist.
   itself still unresolved — see the note at the top of this document.
 
 ## Final Document Prep
+
 - [ ] `FCA-SUBMISSION-PHASE2-WEEK2.md` updated with legal feedback
 - [ ] Updated with compliance feedback
 - [ ] Updated with security audit findings
@@ -129,6 +136,7 @@ actually run, not a standing blanket authorization baked into a checklist.
   started.
 
 ## Ready to Submit
+
 - [ ] All sections above COMPLETE
 - [ ] Sign-off received from whoever is actually confirmed to need to give it
 - [ ] FCA contact identified

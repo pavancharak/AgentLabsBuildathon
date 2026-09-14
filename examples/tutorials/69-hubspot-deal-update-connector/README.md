@@ -6,9 +6,9 @@ Execute a real HubSpot deal update through the same production composition (`cre
 
 ## What You'll Learn
 
-* The full path from a `BusinessTransaction` with `intent.action = "hubspot:deal-update"` through policy evaluation to an actual `PATCH` call against the connector
-* That an allowed dealstage transition results in a real (mocked) side effect: the deal's `dealstage` property actually changes on the HubSpot server
-* How `NODE_ENV=test` auto-resolves the HubSpot credential to a built-in placeholder token — `.env` sets `TEST_HUBSPOT_PRIVATE_APP_TOKEN` to an empty string rather than leaving it unset, so it must be explicitly overridden or the fallback placeholder never triggers (the now-removed Razorpay connector had the identical `.env` empty-string gotcha for its own test token)
+- The full path from a `BusinessTransaction` with `intent.action = "hubspot:deal-update"` through policy evaluation to an actual `PATCH` call against the connector
+- That an allowed dealstage transition results in a real (mocked) side effect: the deal's `dealstage` property actually changes on the HubSpot server
+- How `NODE_ENV=test` auto-resolves the HubSpot credential to a built-in placeholder token — `.env` sets `TEST_HUBSPOT_PRIVATE_APP_TOKEN` to an empty string rather than leaving it unset, so it must be explicitly overridden or the fallback placeholder never triggers (the now-removed Razorpay connector had the identical `.env` empty-string gotcha for its own test token)
 
 ## Running the Tutorial
 

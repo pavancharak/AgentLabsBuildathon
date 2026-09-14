@@ -26,10 +26,13 @@ const DEFAULT_INTERVAL_MS = 5 * 60_000;
  */
 export function schedulePolicyGovernanceIntegrityCheck(): void {
   const configured = Number(
-    process.env.POLICY_GOVERNANCE_INTEGRITY_CHECK_INTERVAL_MS ?? DEFAULT_INTERVAL_MS,
+    process.env.POLICY_GOVERNANCE_INTEGRITY_CHECK_INTERVAL_MS ??
+      DEFAULT_INTERVAL_MS,
   );
 
-  const intervalMs = Number.isFinite(configured) ? configured : DEFAULT_INTERVAL_MS;
+  const intervalMs = Number.isFinite(configured)
+    ? configured
+    : DEFAULT_INTERVAL_MS;
 
   if (intervalMs <= 0) {
     return;

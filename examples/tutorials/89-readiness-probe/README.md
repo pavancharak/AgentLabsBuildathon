@@ -6,9 +6,9 @@ Exercise `GET /ready` — an operational readiness probe distinct from `GET /hea
 
 ## What You'll Learn
 
-* Under `NODE_ENV=test`, or with `PARMANA_STORAGE=memory`, `/ready` reports `READY` without ever attempting a database connection — there's nothing external to check, so it doesn't pretend to check it
-* With Supabase-backed storage that's genuinely unreachable, `/ready` reports `NOT_READY` with HTTP 503 and a specific `reason` string — not a generic error, and not a false `READY`
-* This is a *readiness* check (is this process's actual configured dependency reachable right now), not a *liveness* check (`/health`, which only proves the process is running)
+- Under `NODE_ENV=test`, or with `PARMANA_STORAGE=memory`, `/ready` reports `READY` without ever attempting a database connection — there's nothing external to check, so it doesn't pretend to check it
+- With Supabase-backed storage that's genuinely unreachable, `/ready` reports `NOT_READY` with HTTP 503 and a specific `reason` string — not a generic error, and not a false `READY`
+- This is a _readiness_ check (is this process's actual configured dependency reachable right now), not a _liveness_ check (`/health`, which only proves the process is running)
 
 ## Running the Tutorial
 

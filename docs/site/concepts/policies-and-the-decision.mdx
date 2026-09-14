@@ -89,17 +89,19 @@ fail-closed shape as any other policy rejection (see [Write your first
 policy](/guides/write-your-first-policy) for what a rejection actually does).
 
 <Warning>
-**Binding is opt-in, per field, per policy.** `boundSignals` only closes the *decoupling*
-between what a policy evaluates and what executes, for the specific fields a policy author
-declares bound. It does not independently verify that an *unbound* signal is actually true —
-`vendorVerified`, `paymentApproved`, `riskScore`, and similar remain caller-declared
-attestations with no independent verification, exactly as before. Closing that gap for real
-means fetch-verifying those signals from an independent source, the way
-`HubSpotSignalStateVerifier` already does for `currentDealStage` and a few other
-`hubspot-deal-update` signals — real, valuable, and not yet extended to policy signals
-generally. See [HubSpot](/integrations/hubspot) for the one connector where
-fetch-verification of *some* signals is real today, and its exact scope, and
-`docs/CLAIMS.md` §2.29/G-31 for the newer, execution-boundary half of the same idea.
+  **Binding is opt-in, per field, per policy.** `boundSignals` only closes the
+  *decoupling* between what a policy evaluates and what executes, for the
+  specific fields a policy author declares bound. It does not independently
+  verify that an *unbound* signal is actually true — `vendorVerified`,
+  `paymentApproved`, `riskScore`, and similar remain caller-declared
+  attestations with no independent verification, exactly as before. Closing that
+  gap for real means fetch-verifying those signals from an independent source,
+  the way `HubSpotSignalStateVerifier` already does for `currentDealStage` and a
+  few other `hubspot-deal-update` signals — real, valuable, and not yet extended
+  to policy signals generally. See [HubSpot](/integrations/hubspot) for the one
+  connector where fetch-verification of *some* signals is real today, and its
+  exact scope, and `docs/CLAIMS.md` §2.29/G-31 for the newer, execution-boundary
+  half of the same idea.
 </Warning>
 
 ## Minimal example
@@ -144,13 +146,15 @@ From `policies/vendor-payment/2.0.0/policy.json`, a real policy in this repo:
 ```
 
 <Note>
-Trimmed for this example: the real file also has an `unboundSignalReasons` field naming a
-reason for each of `vendorVerified`, `invoiceVerified`, `paymentApproved`, `sufficientFunds`,
-and `riskScore` — `PolicyValidator.validate()` now fails closed on any rule-referenced fact
-that is neither in `boundSignals` nor `unboundSignalReasons` (`docs/VERIFICATION-GAPS.md`
-G-33), so a policy shaped exactly like the excerpt above, with nothing said about those five
-facts, would refuse to load. See [Write your first policy](/guides/write-your-first-policy)
-for a complete, loadable example with both fields.
+  Trimmed for this example: the real file also has an `unboundSignalReasons`
+  field naming a reason for each of `vendorVerified`, `invoiceVerified`,
+  `paymentApproved`, `sufficientFunds`, and `riskScore` —
+  `PolicyValidator.validate()` now fails closed on any rule-referenced fact that
+  is neither in `boundSignals` nor `unboundSignalReasons`
+  (`docs/VERIFICATION-GAPS.md` G-33), so a policy shaped exactly like the
+  excerpt above, with nothing said about those five facts, would refuse to load.
+  See [Write your first policy](/guides/write-your-first-policy) for a complete,
+  loadable example with both fields.
 </Note>
 
 ## What a Decision records
@@ -161,8 +165,8 @@ export interface Decision {
   readonly decisionId: string;
   readonly intentId: string;
   readonly policy: PolicyReference;
-  readonly signals: Record<string, JsonValue>;   // captured for deterministic replay
-  readonly outcome: DecisionOutcome;              // APPROVED | REJECTED
+  readonly signals: Record<string, JsonValue>; // captured for deterministic replay
+  readonly outcome: DecisionOutcome; // APPROVED | REJECTED
   readonly reason?: string;
   readonly evaluatedAt: Date;
 }
@@ -179,10 +183,18 @@ Decision can produce a [signed execution authorization](/concepts/execution-auth
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="Execution authorization" icon="file-signature" href="/concepts/execution-authorization">
+  <Card
+    title="Execution authorization"
+    icon="file-signature"
+    href="/concepts/execution-authorization"
+  >
     What an APPROVED decision becomes: a signed, single-use envelope.
   </Card>
-  <Card title="Determinism and clocks" icon="clock" href="/concepts/determinism-and-clocks">
+  <Card
+    title="Determinism and clocks"
+    icon="clock"
+    href="/concepts/determinism-and-clocks"
+  >
     What "deterministic" means precisely, and where it does and doesn't apply.
   </Card>
 </CardGroup>

@@ -1,18 +1,10 @@
 \# Example 08 — Financial Transaction Governance
 
-
-
 \## Overview
-
-
 
 Modern financial institutions increasingly rely on Artificial Intelligence to assist with payment processing, fraud detection, sanctions screening, anti-money laundering (AML), credit decisions, and transaction monitoring.
 
-
-
 While AI can improve efficiency and accuracy, financial organizations must also ensure that every AI-assisted transaction is:
-
-
 
 \* Authorized
 
@@ -26,27 +18,15 @@ While AI can improve efficiency and accuracy, financial organizations must also 
 
 \* Auditable
 
-
-
 Parmana provides this capability through its \*\*Execution Trust Infrastructure\*\*, creating an immutable execution history for every governed financial transaction.
-
-
 
 This guide demonstrates how financial workflows are modeled using the TypeScript SDK.
 
-
-
 \---
-
-
 
 \# Learning Objectives
 
-
-
 After completing this guide you will understand:
-
-
 
 \* Why financial AI requires execution authorization
 
@@ -58,23 +38,13 @@ After completing this guide you will understand:
 
 \* How financial workflows become replayable and auditable
 
-
-
 \---
-
-
 
 \# Why Financial AI Needs Governance
 
-
-
 Financial systems routinely make high-impact decisions.
 
-
-
 Examples include:
-
-
 
 \* Payment approvals
 
@@ -92,19 +62,11 @@ Examples include:
 
 \* Insurance claims
 
-
-
 Organizations must be able to explain every decision long after the transaction has completed.
-
-
 
 \---
 
-
-
 \# Execution Trust Chain
-
-
 
 ```text id="d0r2nh"
 
@@ -156,31 +118,17 @@ Execution Trust Record
 
 ```
 
-
-
 Every stage contributes to an immutable governance record.
-
-
 
 \---
 
-
-
 \# Example Scenario
-
-
 
 A payment engine receives a request to transfer funds to a supplier.
 
-
-
 Before approving the transaction, Parmana evaluates the organization's financial policies using recorded risk signals.
 
-
-
 The Runtime verifies:
-
-
 
 \* Authorization
 
@@ -194,27 +142,15 @@ The Runtime verifies:
 
 \* Fraud score
 
-
-
 Only after successful policy evaluation is the payment approved.
-
-
 
 \---
 
-
-
 \# Authority
-
-
 
 Authority identifies the financial institution responsible for the transaction.
 
-
-
 Example:
-
-
 
 ```typescript id="0dyq9i"
 
@@ -228,27 +164,15 @@ const authority = {
 
 ```
 
-
-
 Authority establishes organizational accountability.
-
-
 
 \---
 
-
-
 \# Authorization
-
-
 
 Authorization grants permission to perform financial operations.
 
-
-
 Example:
-
-
 
 ```typescript id="77m3zd"
 
@@ -260,63 +184,33 @@ permissions: \[
 
 ```
 
-
-
 Authorization answers:
-
-
 
 > Which financial operations may this system perform?
 
-
-
 \---
-
-
 
 \# Payment Intent
 
-
-
 Intent defines the requested financial action.
-
-
 
 Example:
 
-
-
 ```typescript id="quc62m"
+operation: "APPROVE\_PAYMENT";
 
-operation: "APPROVE\_PAYMENT"
-
-
-
-target: "SUPPLIER-ACME"
-
+target: "SUPPLIER-ACME";
 ```
-
-
 
 Intent records the requested business action.
 
-
-
 \---
-
-
 
 \# Policy Reference
 
-
-
 Every Business Transaction specifies the exact financial policy to evaluate.
 
-
-
 Example:
-
-
 
 ```typescript id="aqjlwm"
 
@@ -332,31 +226,17 @@ policyVersion:
 
 ```
 
-
-
 Policy selection is deterministic.
-
-
 
 The Runtime never searches for or automatically selects policies.
 
-
-
 \---
-
-
 
 \# Risk Signals
 
-
-
 Financial policy evaluation uses recorded runtime signals.
 
-
-
 Example:
-
-
 
 ```typescript id="8bjlwm"
 
@@ -392,31 +272,17 @@ signals: {
 
 ```
 
-
-
 These signals represent the execution context used by the policy engine.
-
-
 
 They become immutable evidence for replay and audit.
 
-
-
 \---
-
-
 
 \# Decision
 
-
-
 The Runtime evaluates the financial policy.
 
-
-
 Example:
-
-
 
 ```text id="2f7zcf"
 
@@ -428,11 +294,7 @@ APPROVED
 
 ```
 
-
-
 The Decision records:
-
-
 
 \* Outcome
 
@@ -444,27 +306,15 @@ The Decision records:
 
 \* Evaluation timestamp
 
-
-
 This creates a transparent explanation for the approval.
-
-
 
 \---
 
-
-
 \# Execution
-
-
 
 Execution records the actual financial operation.
 
-
-
 Example:
-
-
 
 ```text id="b7m6to"
 
@@ -476,27 +326,15 @@ COMPLETED
 
 ```
 
-
-
 Execution documents what occurred after policy approval.
-
-
 
 \---
 
-
-
 \# Execution Evidence
-
-
 
 Execution Evidence records application-specific financial results.
 
-
-
 Example:
-
-
 
 ```typescript id="44v4mn"
 
@@ -532,11 +370,7 @@ Example:
 
 ```
 
-
-
 Evidence may also include:
-
-
 
 \* Transaction identifiers
 
@@ -548,27 +382,15 @@ Evidence may also include:
 
 \* Audit references
 
-
-
 Parmana intentionally allows financial systems to define their own evidence structure.
-
-
 
 \---
 
-
-
 \# Receipt
-
-
 
 Successful execution produces a cryptographic Receipt.
 
-
-
 Example:
-
-
 
 ```text id="s8h67q"
 
@@ -588,23 +410,13 @@ Ed25519
 
 ```
 
-
-
 The Receipt provides independently verifiable proof of execution.
-
-
 
 \---
 
-
-
 \# Execution Trust Record
 
-
-
 Every financial artifact becomes part of the immutable Execution Trust Record.
-
-
 
 ```text id="8nvf9m"
 
@@ -636,27 +448,15 @@ Replay
 
 ```
 
-
-
 The trust record becomes the canonical history of the transaction.
-
-
 
 \---
 
-
-
 \# Replay
-
-
 
 Replay reconstructs the original payment approval.
 
-
-
 Replay restores:
-
-
 
 \* Original payment request
 
@@ -666,27 +466,15 @@ Replay restores:
 
 \* Original decision
 
-
-
 Replay never evaluates current fraud scores or current sanctions lists.
-
-
 
 Historical replay always uses recorded execution evidence.
 
-
-
 \---
-
-
 
 \# Verification
 
-
-
 Verification confirms:
-
-
 
 \* Trust Record integrity
 
@@ -696,23 +484,13 @@ Verification confirms:
 
 \* Artifact consistency
 
-
-
 Verification ensures that the financial record has not been altered.
-
-
 
 \---
 
-
-
 \# Auditing
 
-
-
 Auditors can later determine:
-
-
 
 \* Which institution authorized the payment
 
@@ -728,23 +506,13 @@ Auditors can later determine:
 
 \* Whether the payment settled successfully
 
-
-
 No external logs are required to reconstruct the execution.
-
-
 
 \---
 
-
-
 \# Compliance Benefits
 
-
-
 Execution authorization supports:
-
-
 
 \* Anti-Money Laundering (AML)
 
@@ -760,19 +528,11 @@ Execution authorization supports:
 
 \* Independent assurance
 
-
-
 Parmana governs execution without replacing existing banking systems.
-
-
 
 \---
 
-
-
 \# Complete Workflow
-
-
 
 ```text id="y7gwgs"
 
@@ -816,23 +576,13 @@ Audit
 
 ```
 
-
-
 Every stage contributes to the immutable Execution Trust Record.
-
-
 
 \---
 
-
-
 \# Complete Example
 
-
-
 See:
-
-
 
 ```text id="br8v6i"
 
@@ -840,23 +590,13 @@ examples/08\_financial\_transaction.ts
 
 ```
 
-
-
 for the complete TypeScript implementation.
-
-
 
 \---
 
-
-
 \# Architectural Principles
 
-
-
 Financial execution authorization follows the same Parmana architecture used across all domains:
-
-
 
 \* Explicit Authority
 
@@ -878,53 +618,33 @@ Financial execution authorization follows the same Parmana architecture used acr
 
 \* Deterministic Replay
 
-
-
 The financial domain changes the business context—not the trust architecture.
 
-
-
 \---
-
-
 
 \# Relationship to Other Examples
 
-
-
 The same execution trust model applies across regulated industries.
 
-
-
-| Example | Domain                  |
+| Example | Domain |
 
 | ------- | ----------------------- |
 
-| 06      | Autonomous Vehicles     |
+| 06 | Autonomous Vehicles |
 
-| 07      | Medical AI              |
+| 07 | Medical AI |
 
-| 09      | Multi-Agent AI          |
+| 09 | Multi-Agent AI |
 
-| 10      | Custom Policy Selection |
-
-
+| 10 | Custom Policy Selection |
 
 Each domain records different business data while preserving the same deterministic governance model.
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 In this guide you learned how Parmana governs financial transactions by recording:
-
-
 
 \* Bank Authority
 
@@ -946,23 +666,13 @@ In this guide you learned how Parmana governs financial transactions by recordin
 
 \* Execution Trust Record
 
-
-
 This architecture enables financial institutions to deploy AI-assisted systems while preserving transparency, accountability, regulatory compliance, replayability, and independent verification.
-
-
 
 \---
 
-
-
 \# Next
 
-
-
 Continue with:
-
-
 
 ```text id="5q5d4w"
 
@@ -970,9 +680,4 @@ docs/09\_multi\_agent.md
 
 ```
 
-
-
 to learn how Parmana governs coordinated AI agent workflows, where multiple autonomous agents operate under a single Business Transaction and Execution Trust Record while preserving deterministic execution and auditability.
-
-
-

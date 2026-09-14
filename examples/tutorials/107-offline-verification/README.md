@@ -13,13 +13,13 @@ wrappers — required a live call into Parmana's own server.
 
 ## What You'll Learn
 
-* A genuinely signed `ExecutionTrustRecord` verifies against a public key supplied as a
+- A genuinely signed `ExecutionTrustRecord` verifies against a public key supplied as a
   plain PEM string, with the function never touching `FileKeyProvider` or `PARMANA_KEY_DIR`
   (Scenario 1)
-* A tampered record is caught by the recomputed `trustRecordHash` no longer matching the
+- A tampered record is caught by the recomputed `trustRecordHash` no longer matching the
   stored one, before signature verification even needs to run (Scenario 2)
-* The wrong public key is rejected outright, not silently accepted (Scenario 3)
-* `OfflineVerifier.ts` shares its canonical field mapping with the real, online
+- The wrong public key is rejected outright, not silently accepted (Scenario 3)
+- `OfflineVerifier.ts` shares its canonical field mapping with the real, online
   `VerificationCrypto` via `ExecutionTrustRecordCanonicalView.ts` — one definition, not two
   independent reimplementations that could silently drift apart
 

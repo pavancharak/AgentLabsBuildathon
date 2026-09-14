@@ -1,25 +1,15 @@
-import {
-  MemoryExecutionTrustRecordRepository,
-} from "@parmana/storage";
+import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeBuilder,
-} from "@parmana/runtime";
+import { RuntimeBuilder } from "@parmana/runtime";
 
-import transaction from "./transaction.json" with {
-  type: "json",
-};
+import transaction from "./transaction.json" with { type: "json" };
 
 async function main(): Promise<void> {
   console.log();
   console.log("==================================================");
-  console.log(
-    "Tutorial 23 - Production Deployment",
-  );
+  console.log("Tutorial 23 - Production Deployment");
   console.log("==================================================");
   console.log();
 
@@ -27,42 +17,25 @@ async function main(): Promise<void> {
   // Production configuration
   //
 
-  console.log(
-    "Loading production configuration...",
-  );
+  console.log("Loading production configuration...");
 
-  const trustRecords =
-    new MemoryExecutionTrustRecordRepository();
+  const trustRecords = new MemoryExecutionTrustRecordRepository();
 
-  const policyRepository =
-    new FilePolicyRepository(
-      "policies",
-    );
+  const policyRepository = new FilePolicyRepository("policies");
 
-  console.log(
-    "✓ Policy Repository configured.",
-  );
+  console.log("✓ Policy Repository configured.");
 
-  console.log(
-    "✓ Trust Record Repository configured.",
-  );
+  console.log("✓ Trust Record Repository configured.");
 
   //
   // Runtime
   //
 
-  const runtime =
-    new RuntimeBuilder()
-      .withPolicyRepository(
-        policyRepository,
-      )
-      .build(
-        trustRecords,
-      );
+  const runtime = new RuntimeBuilder()
+    .withPolicyRepository(policyRepository)
+    .build(trustRecords);
 
-  console.log(
-    "✓ Runtime initialized.",
-  );
+  console.log("✓ Runtime initialized.");
 
   console.log();
 
@@ -70,47 +43,25 @@ async function main(): Promise<void> {
   // Execute
   //
 
-  console.log(
-    "Executing transaction...",
-  );
+  console.log("Executing transaction...");
 
-  const {
-    context,
-    trustRecord,
-  } =
-    await runtime.execute(
-      transaction,
-    );
+  const { context, trustRecord } = await runtime.execute(transaction);
 
-  console.log(
-    `✓ ${context.decision.outcome}`,
-  );
+  console.log(`✓ ${context.decision.outcome}`);
 
   console.log();
 
-  console.log(
-    "Execution Trust Record stored.",
-  );
+  console.log("Execution Trust Record stored.");
 
-  console.log(
-    `Trust Record ID   : ${trustRecord.trustRecordId}`,
-  );
+  console.log(`Trust Record ID   : ${trustRecord.trustRecordId}`);
 
-  console.log(
-    `Trust Record Hash : ${trustRecord.trustRecordHash}`,
-  );
+  console.log(`Trust Record Hash : ${trustRecord.trustRecordHash}`);
 
   console.log();
 
-  console.log(
-    "==================================================",
-  );
-  console.log(
-    "Production Runtime completed successfully.",
-  );
-  console.log(
-    "==================================================",
-  );
+  console.log("==================================================");
+  console.log("Production Runtime completed successfully.");
+  console.log("==================================================");
 }
 
 main().catch((error) => {

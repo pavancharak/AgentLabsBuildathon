@@ -31,14 +31,10 @@ import type { RuntimeContext } from "../../src/context/RuntimeContext.js";
  * one of the hash-chain-participating arrays (executions/overrides).
  */
 
-class InMemoryExecutionTrustRecordRepository
-  implements ExecutionTrustRecordRepository
-{
+class InMemoryExecutionTrustRecordRepository implements ExecutionTrustRecordRepository {
   private readonly store = new Map<string, ExecutionTrustRecord>();
 
-  async create(
-    record: ExecutionTrustRecord,
-  ): Promise<ExecutionTrustRecord> {
+  async create(record: ExecutionTrustRecord): Promise<ExecutionTrustRecord> {
     this.store.set(record.businessTransactionId, record);
     return record;
   }
@@ -60,9 +56,7 @@ class InMemoryExecutionTrustRecordRepository
   async appendReceipt(): Promise<void> {}
 }
 
-function createTransaction(
-  businessTransactionId: string,
-): BusinessTransaction {
+function createTransaction(businessTransactionId: string): BusinessTransaction {
   const authorityId = "authority-1";
   const authorizationId = "authorization-1";
   const fixedDate = new Date("2026-01-01T00:00:00Z");
@@ -180,18 +174,14 @@ describe("VerificationService negative cases (in-memory, always-on)", () => {
 
     const service = new VerificationService(repository);
 
-    const verification = await service.verify(
-      "txn-tampered-transaction-field",
-    );
+    const verification = await service.verify("txn-tampered-transaction-field");
 
     expect(verification.status).toBe(VerificationStatus.FAILED);
     expect(verification.message).toContain("Integrity check failed");
   });
 
   it("fails signature verification when the signature value is mutated after persistence", async () => {
-    const trustRecord = await buildTrustRecord(
-      "txn-tampered-signature-value",
-    );
+    const trustRecord = await buildTrustRecord("txn-tampered-signature-value");
 
     const tamperedRecord: ExecutionTrustRecord = {
       ...trustRecord,
@@ -206,18 +196,14 @@ describe("VerificationService negative cases (in-memory, always-on)", () => {
 
     const service = new VerificationService(repository);
 
-    const verification = await service.verify(
-      "txn-tampered-signature-value",
-    );
+    const verification = await service.verify("txn-tampered-signature-value");
 
     expect(verification.status).toBe(VerificationStatus.FAILED);
     expect(verification.message).toContain("Signature check failed");
   });
 
   it("fails integrity when an element of the executions hash-chain array is mutated after persistence", async () => {
-    const trustRecord = await buildTrustRecord(
-      "txn-tampered-execution-link",
-    );
+    const trustRecord = await buildTrustRecord("txn-tampered-execution-link");
 
     //
     // Mirrors packages/api/tests/integration/verification-negative
@@ -243,9 +229,7 @@ describe("VerificationService negative cases (in-memory, always-on)", () => {
 
     const service = new VerificationService(repository);
 
-    const verification = await service.verify(
-      "txn-tampered-execution-link",
-    );
+    const verification = await service.verify("txn-tampered-execution-link");
 
     expect(verification.status).toBe(VerificationStatus.FAILED);
     expect(verification.message).toContain("Integrity check failed");

@@ -4,14 +4,16 @@ description: "What actually shipped, by commit, newest first. Not a marketing su
 ---
 
 <Info>
-Pulled directly from `git log` on `main` in `pavancharak/parmana-exp`, commit hashes are
-real and checkable. This page covers the commits that changed what a reader of this site can
-actually do or rely on, not every commit in the repository's history, run `git log` yourself
-for the complete record, 358 commits as of this page's last update. **Known gap:** entries
-between 2026-08-19 and 2026-09-06, several commits landed on 2026-09-07 before the two below,
-and everything on 2026-09-09 other than `25295ee`, `bab0981`, and the ten commits below them
-(including the changelog and validation-doc commits themselves) were not backfilled — `git
-log` for those ranges directly if you need them.
+  Pulled directly from `git log` on `main` in `pavancharak/parmana-exp`, commit
+  hashes are real and checkable. This page covers the commits that changed what
+  a reader of this site can actually do or rely on, not every commit in the
+  repository's history, run `git log` yourself for the complete record, 358
+  commits as of this page's last update. **Known gap:** entries between
+  2026-08-19 and 2026-09-06, several commits landed on 2026-09-07 before the two
+  below, and everything on 2026-09-09 other than `25295ee`, `bab0981`, and the
+  ten commits below them (including the changelog and validation-doc commits
+  themselves) were not backfilled — `git log` for those ranges directly if you
+  need them.
 </Info>
 
 ## 2026-09-11 (later same day)
@@ -65,7 +67,7 @@ the existing test suite. Full detail: `docs/VERIFICATION-GAPS.md` ("Gaps closed 
   even though `POST /execute`/`POST /transactions` write that event on every successful,
   authenticated capability check — against a real Postgres-backed audit sink with caller-auth
   enabled, this meant every successful authenticated request failed closed with `503
-  AUDIT_UNAVAILABLE` before Policy Engine ever ran. New migration
+AUDIT_UNAVAILABLE` before Policy Engine ever ran. New migration
   `supabase/migrations/20260911090000_add_capability_granted_to_caller_audit_events.sql`
   closes it, following the same widening pattern as its four predecessors.
 

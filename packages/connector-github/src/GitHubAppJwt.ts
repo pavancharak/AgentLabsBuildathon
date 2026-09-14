@@ -12,7 +12,11 @@ import { createSign, type KeyObject } from "node:crypto";
  */
 
 function base64url(input: Buffer): string {
-  return input.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return input
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
 export interface GitHubAppJwtOptions {
@@ -45,7 +49,9 @@ export function signGitHubAppJwt(options: GitHubAppJwtOptions): string {
   const encodedPayload = base64url(Buffer.from(JSON.stringify(payload)));
   const signingInput = `${encodedHeader}.${encodedPayload}`;
 
-  const signature = createSign("RSA-SHA256").update(signingInput).sign(options.privateKey);
+  const signature = createSign("RSA-SHA256")
+    .update(signingInput)
+    .sign(options.privateKey);
 
   return `${signingInput}.${base64url(signature)}`;
 }

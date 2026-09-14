@@ -9,7 +9,8 @@ export class InMemoryCredentialVault implements CredentialVault {
 
   async getCredential(connectorId: string): Promise<ExecutionCredential> {
     const credential = this.credentials.get(connectorId);
-    if (credential === undefined) throw new Error(`No credential for connector: ${connectorId}.`);
+    if (credential === undefined)
+      throw new Error(`No credential for connector: ${connectorId}.`);
     return credential;
   }
 }

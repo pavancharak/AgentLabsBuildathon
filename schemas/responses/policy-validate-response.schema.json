@@ -5,10 +5,7 @@
   "description": "Response returned by POST /policies/validate on every status code (200, 400, and 404 all use this exact shape). This endpoint does NOT use the shared Error envelope (../common/error.schema.json) for its failure responses.",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "valid",
-    "errors"
-  ],
+  "required": ["valid", "errors"],
   "properties": {
     "valid": {
       "type": "boolean",
@@ -29,15 +26,11 @@
     },
     {
       "valid": false,
-      "errors": [
-        "Policy 'does-not-exist' version '9.9.9' was not found."
-      ]
+      "errors": ["Policy 'does-not-exist' version '9.9.9' was not found."]
     },
     {
       "valid": false,
-      "errors": [
-        "policyVersion is required."
-      ]
+      "errors": ["policyVersion is required."]
     }
   ]
 }

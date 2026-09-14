@@ -1,7 +1,10 @@
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 
-import { VerificationCrypto, verifyExecutionTrustRecordOffline } from "@parmana/crypto";
+import {
+  VerificationCrypto,
+  verifyExecutionTrustRecordOffline,
+} from "@parmana/crypto";
 import type { ExecutionTrustRecord } from "@parmana/shared";
 
 import { createApplication } from "../../src/application.js";
@@ -56,7 +59,9 @@ describe("Public-key discovery (HTTP boundary)", () => {
     expect(response.status).toBe(200);
     expect(Array.isArray(response.body.keys)).toBe(true);
 
-    const keyIds = response.body.keys.map((entry: { keyId: string }) => entry.keyId);
+    const keyIds = response.body.keys.map(
+      (entry: { keyId: string }) => entry.keyId,
+    );
     expect(keyIds).toContain("default");
   });
 
@@ -114,7 +119,12 @@ describe("Public-key discovery (HTTP boundary)", () => {
     const withHash = {
       ...draft,
       trustRecordHash,
-      signature: { algorithm: "ed25519" as const, keyId: "default", value: "", signedAt: new Date() },
+      signature: {
+        algorithm: "ed25519" as const,
+        keyId: "default",
+        value: "",
+        signedAt: new Date(),
+      },
     } as ExecutionTrustRecord;
 
     const signature = await crypto.sign(withHash);

@@ -1,6 +1,10 @@
 import crypto from "node:crypto";
 
-import { CryptoBootstrap, DEFAULT_KEY_ID, RefusalCrypto } from "@parmana/crypto";
+import {
+  CryptoBootstrap,
+  DEFAULT_KEY_ID,
+  RefusalCrypto,
+} from "@parmana/crypto";
 
 import {
   Decision,
@@ -26,8 +30,7 @@ type RefusalRecordDraft = Omit<
  * semantics RFC-0021 §6 requires.
  */
 export class RefusalRecordBuilder {
-  private readonly crypto =
-    new RefusalCrypto();
+  private readonly crypto = new RefusalCrypto();
 
   async build(
     businessTransactionId: string,
@@ -55,9 +58,7 @@ export class RefusalRecordBuilder {
         ? { bindingViolations }
         : {}),
 
-      ...(submittedBy !== undefined
-        ? { submittedBy }
-        : {}),
+      ...(submittedBy !== undefined ? { submittedBy } : {}),
 
       createdAt: now,
     };
@@ -71,8 +72,7 @@ export class RefusalRecordBuilder {
       refusalRecordHash: "",
 
       signature: {
-        algorithm:
-          CryptoBootstrap.create().signature.algorithm,
+        algorithm: CryptoBootstrap.create().signature.algorithm,
 
         keyId: DEFAULT_KEY_ID,
 
@@ -82,8 +82,7 @@ export class RefusalRecordBuilder {
       },
     };
 
-    const refusalRecordHash =
-      await this.crypto.hash(refusalRecord);
+    const refusalRecordHash = await this.crypto.hash(refusalRecord);
 
     const recordWithHash = {
       ...refusalRecord,
@@ -91,8 +90,7 @@ export class RefusalRecordBuilder {
       refusalRecordHash,
     };
 
-    const signature =
-      await this.crypto.sign(recordWithHash);
+    const signature = await this.crypto.sign(recordWithHash);
 
     return {
       ...recordWithHash,

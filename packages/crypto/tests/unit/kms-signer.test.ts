@@ -96,7 +96,9 @@ describe("KmsSigner", () => {
 
     expect(signature).toBe(Buffer.from(rawSignature).toString("base64"));
 
-    const call = sendMock.mock.calls[0]![0] as { input: Record<string, unknown> };
+    const call = sendMock.mock.calls[0]![0] as {
+      input: Record<string, unknown>;
+    };
     expect(call.input).toMatchObject({
       KeyId: "test-key",
       MessageType: "RAW",
@@ -107,12 +109,16 @@ describe("KmsSigner", () => {
   it("getPublicKey() wraps the DER bytes KMS returns into a usable Ed25519 KeyObject", async () => {
     const KmsSigner = await freshKmsSigner();
 
-    sendMock.mockImplementation((command: { constructor: { name: string } }) => {
-      if (command.constructor.name === "GetPublicKeyCommand") {
-        return Promise.resolve({ PublicKey: new Uint8Array(realPublicKeyDer) });
-      }
-      throw new Error(`unexpected command: ${command.constructor.name}`);
-    });
+    sendMock.mockImplementation(
+      (command: { constructor: { name: string } }) => {
+        if (command.constructor.name === "GetPublicKeyCommand") {
+          return Promise.resolve({
+            PublicKey: new Uint8Array(realPublicKeyDer),
+          });
+        }
+        throw new Error(`unexpected command: ${command.constructor.name}`);
+      },
+    );
 
     const signer = await KmsSigner.create();
     const keyObject = await signer.getPublicKey("test-key");
@@ -126,14 +132,16 @@ describe("KmsSigner", () => {
   it("getMetadata() maps ECC_NIST_EDWARDS25519 to the ed25519 SignatureAlgorithm", async () => {
     const KmsSigner = await freshKmsSigner();
 
-    sendMock.mockImplementation((command: { constructor: { name: string } }) => {
-      if (command.constructor.name === "DescribeKeyCommand") {
-        return Promise.resolve({
-          KeyMetadata: { KeySpec: "ECC_NIST_EDWARDS25519" },
-        });
-      }
-      throw new Error(`unexpected command: ${command.constructor.name}`);
-    });
+    sendMock.mockImplementation(
+      (command: { constructor: { name: string } }) => {
+        if (command.constructor.name === "DescribeKeyCommand") {
+          return Promise.resolve({
+            KeyMetadata: { KeySpec: "ECC_NIST_EDWARDS25519" },
+          });
+        }
+        throw new Error(`unexpected command: ${command.constructor.name}`);
+      },
+    );
 
     const signer = await KmsSigner.create();
     const metadata = await signer.getMetadata("test-key");
@@ -158,7 +166,9 @@ describe("KmsSigner", () => {
   it("hasKey() returns true when DescribeKey succeeds", async () => {
     const KmsSigner = await freshKmsSigner();
 
-    sendMock.mockResolvedValue({ KeyMetadata: { KeySpec: "ECC_NIST_EDWARDS25519" } });
+    sendMock.mockResolvedValue({
+      KeyMetadata: { KeySpec: "ECC_NIST_EDWARDS25519" },
+    });
 
     const signer = await KmsSigner.create();
     expect(await signer.hasKey("test-key")).toBe(true);

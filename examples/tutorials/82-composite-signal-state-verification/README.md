@@ -6,9 +6,9 @@ Show how `CompositeSignalStateVerifier` composes multiple capability-scoped veri
 
 ## What You'll Learn
 
-* `RuntimeEngine` accepts exactly one `SignalStateVerifier`, but a real deployment can have one independent, capability-scoped verifier per connector — `CompositeSignalStateVerifier` queries each in turn and returns the first non-empty result
-* Each verifier is disciplined to recognize only its own action(s): the illustrative `balanceVerifier` returns no violations for a `hubspot:deal-update` request, and `HubSpotSignalStateVerifier` returns none for `vendor:balance-check` — a mismatched signal on the "wrong" verifier's action is silently ignored by that verifier, not misreported
-* An action neither verifier recognizes (`payments:execute`) produces no violations at all — the composite doesn't invent false positives for capabilities it has no verifier for
+- `RuntimeEngine` accepts exactly one `SignalStateVerifier`, but a real deployment can have one independent, capability-scoped verifier per connector — `CompositeSignalStateVerifier` queries each in turn and returns the first non-empty result
+- Each verifier is disciplined to recognize only its own action(s): the illustrative `balanceVerifier` returns no violations for a `hubspot:deal-update` request, and `HubSpotSignalStateVerifier` returns none for `vendor:balance-check` — a mismatched signal on the "wrong" verifier's action is silently ignored by that verifier, not misreported
+- An action neither verifier recognizes (`payments:execute`) produces no violations at all — the composite doesn't invent false positives for capabilities it has no verifier for
 
 ## Running the Tutorial
 

@@ -9,12 +9,10 @@
 //
 process.env.NODE_ENV = "test";
 
-const { createExecutionSystem } = await import(
-  "../../../packages/api/src/bootstrap/createExecutionSystem.js"
-);
-const { createApplication } = await import(
-  "../../../packages/api/src/application.js"
-);
+const { createExecutionSystem } =
+  await import("../../../packages/api/src/bootstrap/createExecutionSystem.js");
+const { createApplication } =
+  await import("../../../packages/api/src/application.js");
 const { createApp } = await import("../../../packages/api/src/app.js");
 
 console.log();
@@ -44,7 +42,9 @@ try {
   console.log(`Error  : ${malformedBody.error}`);
   console.log();
 
-  console.log("Scenario 2: An oversized request body (over express.json()'s default 100kb limit)");
+  console.log(
+    "Scenario 2: An oversized request body (over express.json()'s default 100kb limit)",
+  );
   console.log("--------------------------------------------------");
   const oversizedPayload = JSON.stringify({
     businessTransactionId: "00000000-0000-4000-8000-000000000000",
@@ -61,14 +61,31 @@ try {
   console.log(`Error        : ${oversizedBody.error}`);
   console.log();
 
-  console.log("Control: a well-formed, reasonably-sized request still reaches the route handler normally");
+  console.log(
+    "Control: a well-formed, reasonably-sized request still reaches the route handler normally",
+  );
   console.log("--------------------------------------------------");
   const now = new Date();
   const wellFormedTransaction = {
     businessTransactionId: "00000000-0000-4000-8000-000000000000",
-    metadata: { businessTransactionId: "00000000-0000-4000-8000-000000000000", createdBy: "tutorial-88", createdAt: now },
-    authority: { authorityId: "authority-1", authorityType: "SERVICE", principalId: "tutorial-88", displayName: "Tutorial 88", issuedAt: now },
-    authorization: { authorizationId: "authorization-1", authorityId: "authority-1", purpose: "Tutorial", authorizedAt: now },
+    metadata: {
+      businessTransactionId: "00000000-0000-4000-8000-000000000000",
+      createdBy: "tutorial-88",
+      createdAt: now,
+    },
+    authority: {
+      authorityId: "authority-1",
+      authorityType: "SERVICE",
+      principalId: "tutorial-88",
+      displayName: "Tutorial 88",
+      issuedAt: now,
+    },
+    authorization: {
+      authorizationId: "authorization-1",
+      authorityId: "authority-1",
+      purpose: "Tutorial",
+      authorizedAt: now,
+    },
     intent: {
       intentId: "intent-1",
       authorizationId: "authorization-1",
@@ -81,7 +98,11 @@ try {
       parameters: { paymentId: "payment-001", amount: 1000 },
       createdAt: now,
     },
-    policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+    policy: {
+      name: "vendor-payment",
+      version: "2.0.0",
+      schemaVersion: "1.0.0",
+    },
     signals: {
       vendorVerified: true,
       invoiceVerified: true,
@@ -99,7 +120,9 @@ try {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(wellFormedTransaction),
   });
-  console.log(`Status : ${wellFormed.status} (a real, well-formed transaction -- never a body-parsing error)`);
+  console.log(
+    `Status : ${wellFormed.status} (a real, well-formed transaction -- never a body-parsing error)`,
+  );
   console.log();
 
   const allPassed =
@@ -116,7 +139,9 @@ try {
       "✓ Malformed JSON returns a specific 400, an oversized body returns a specific 413 -- neither is the generic 500 a real crash would produce.",
     );
   } else {
-    console.log("✗ Expected malformed JSON -> 400, oversized body -> 413, both with named error messages.");
+    console.log(
+      "✗ Expected malformed JSON -> 400, oversized body -> 413, both with named error messages.",
+    );
   }
 
   console.log();

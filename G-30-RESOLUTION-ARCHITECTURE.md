@@ -55,7 +55,7 @@ Full option detail, corrected code samples, and effort estimates in
 ## Recommendation
 
 **Option A now.** The security-relevant fix is already shipped and verified; nothing about this
-decision reopens it. Between B and C, C is the architecturally sound target *if* this gets
+decision reopens it. Between B and C, C is the architecturally sound target _if_ this gets
 built, since it avoids the backwards dependency edge B introduces — but as scoped in the options
 document, neither B nor C fully closes the underlying risk without also touching
 `createConnectorRegistry.ts`'s registration logic, which is a bigger change than either

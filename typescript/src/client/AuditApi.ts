@@ -2,19 +2,12 @@
  * Parmana Audit Event API.
  */
 
-import type {
-  AuditEvent,
-  Signature,
-} from "../models/index.js";
+import type { AuditEvent, Signature } from "../models/index.js";
 
-import type {
-  Transport,
-} from "../config/Transport.js";
+import type { Transport } from "../config/Transport.js";
 
 export class AuditApi {
-  constructor(
-    private readonly transport: Transport,
-  ) {}
+  constructor(private readonly transport: Transport) {}
 
   /**
    * Verifies a signed caller-authentication audit event's signature.
@@ -27,12 +20,11 @@ export class AuditApi {
     event: AuditEvent,
     signature: Signature,
   ): Promise<boolean> {
-    const response =
-      await this.transport.send<{ valid: boolean }>({
-        method: "POST",
-        path: "/audit/verify",
-        body: { event, signature },
-      });
+    const response = await this.transport.send<{ valid: boolean }>({
+      method: "POST",
+      path: "/audit/verify",
+      body: { event, signature },
+    });
 
     return response.body.valid;
   }

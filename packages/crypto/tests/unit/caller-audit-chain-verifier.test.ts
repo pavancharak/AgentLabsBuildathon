@@ -72,7 +72,9 @@ describe("CallerAuditChainVerifier", () => {
     // row 2's chainHash, which no longer matches row 1's chainHash.
     const withDeletion = [rows[0]!, rows[2]!];
 
-    const result = await new CallerAuditChainVerifier().verifyChain(withDeletion);
+    const result = await new CallerAuditChainVerifier().verifyChain(
+      withDeletion,
+    );
 
     expect(result.valid).toBe(false);
     expect(result.brokenAtPosition).toBe(2);

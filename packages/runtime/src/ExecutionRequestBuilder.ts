@@ -4,9 +4,7 @@ import {
   toExecutableContent,
 } from "@parmana/shared";
 
-import {
-  ExecutionRequest,
-} from "@parmana/execution-system";
+import { ExecutionRequest } from "@parmana/execution-system";
 
 /**
  * Builds the canonical ExecutionRequest forwarded
@@ -32,21 +30,16 @@ export class ExecutionRequestBuilder {
   ): ExecutionRequest {
     return {
       ...toExecutableContent({
-        businessTransactionId:
-          transaction.businessTransactionId,
+        businessTransactionId: transaction.businessTransactionId,
 
-        action:
-          transaction.intent.action,
+        action: transaction.intent.action,
 
-        target:
-          transaction.intent.target,
+        target: transaction.intent.target,
 
-        parameters:
-          transaction.intent.parameters,
+        parameters: transaction.intent.parameters,
       }),
 
-      signals:
-        transaction.signals,
+      signals: transaction.signals,
 
       authorization,
     };

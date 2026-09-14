@@ -1,38 +1,20 @@
 \# Parmana Architecture
 
-
-
 Version: 1.0
 
-
-
 \---
-
-
 
 \# Overview
 
-
-
 Parmana is an \*\*Execution Trust Infrastructure\*\* that establishes a verifiable execution trust chain between business authorization, policy evaluation, runtime execution, and execution evidence.
-
-
 
 The architecture is designed around explicit trust artifacts rather than implicit runtime state.
 
-
-
 \---
-
-
 
 \# Architectural Goals
 
-
-
 The architecture is designed to:
-
-
 
 \* Validate business transactions before execution.
 
@@ -48,15 +30,9 @@ The architecture is designed to:
 
 \* Separate business authorization from runtime execution.
 
-
-
 \---
 
-
-
 \# High-Level Architecture
-
-
 
 ```text
 
@@ -122,19 +98,11 @@ The architecture is designed to:
 
 ```
 
-
-
 \---
-
-
 
 \# Trust Model
 
-
-
 Parmana models execution as an explicit trust chain.
-
-
 
 ```
 
@@ -186,31 +154,17 @@ Replay
 
 ```
 
-
-
 Every downstream artifact is derived from upstream trust artifacts.
-
-
 
 \---
 
-
-
 \# Major Components
-
-
 
 \## Shared
 
-
-
 Defines canonical domain models shared across all packages.
 
-
-
 Examples:
-
-
 
 \* Authority
 
@@ -228,23 +182,13 @@ Examples:
 
 \* Receipt
 
-
-
 \---
-
-
 
 \## Policy
 
-
-
 Responsible for deterministic business policy evaluation.
 
-
-
 Responsibilities:
-
-
 
 \* Policy loading
 
@@ -254,27 +198,15 @@ Responsibilities:
 
 \* Decision generation
 
-
-
 The Policy package never performs runtime execution.
-
-
 
 \---
 
-
-
 \## Runtime
-
-
 
 Coordinates execution.
 
-
-
 Responsibilities:
-
-
 
 \* Validate execution preconditions
 
@@ -286,27 +218,15 @@ Responsibilities:
 
 \* Produce execution evidence
 
-
-
 The Runtime package never discovers business policies.
-
-
 
 \---
 
-
-
 \## Crypto
-
-
 
 Provides cryptographic integrity.
 
-
-
 Responsibilities:
-
-
 
 \* Canonical hashing
 
@@ -314,27 +234,15 @@ Responsibilities:
 
 \* Trust Record verification
 
-
-
 Cryptographic algorithms are encapsulated behind provider abstractions.
-
-
 
 \---
 
-
-
 \## Replay
-
-
 
 Supports replay of recorded execution.
 
-
-
 Responsibilities:
-
-
 
 \* Load historical execution
 
@@ -344,19 +252,11 @@ Responsibilities:
 
 \* Detect differences
 
-
-
 Replay is intended for verification and analysis.
-
-
 
 \---
 
-
-
 \# Execution Lifecycle
-
-
 
 ```
 
@@ -402,99 +302,51 @@ Replay
 
 ```
 
-
-
 \---
-
-
 
 \# Architectural Principles
 
-
-
 \## Explicit Trust
-
-
 
 Every execution is linked to explicit business trust artifacts.
 
-
-
 \---
-
-
 
 \## Deterministic Policy Binding
 
-
-
 Business Transactions reference exactly one policy.
-
-
 
 The runtime does not discover or negotiate policies.
 
-
-
 \---
-
-
 
 \## Separation of Responsibilities
 
-
-
 Business authorization, policy evaluation, execution, evidence generation, verification, and replay are independent responsibilities.
 
-
-
 \---
-
-
 
 \## Immutable Evidence
 
-
-
 Execution artifacts are treated as immutable evidence.
-
-
 
 Derived evidence is generated without modifying upstream artifacts.
 
-
-
 \---
-
-
 
 \## Cryptographic Integrity
 
-
-
 Execution evidence is protected using canonical hashing and digital signatures.
 
-
-
 \---
-
-
 
 \## Independent Verification
 
-
-
 Execution evidence can be verified independently of the original runtime.
-
-
 
 \---
 
-
-
 \# Package Structure
-
-
 
 ```
 
@@ -538,15 +390,9 @@ api/
 
 ```
 
-
-
 \---
 
-
-
 \# Data Flow
-
-
 
 ```
 
@@ -608,19 +454,11 @@ Replay
 
 ```
 
-
-
 \---
-
-
 
 \# Non-Goals
 
-
-
 Parmana is not:
-
-
 
 \* an AI model
 
@@ -632,19 +470,11 @@ Parmana is not:
 
 \* a compliance framework
 
-
-
 Parmana provides execution trust infrastructure that can be integrated into those systems.
-
-
 
 \---
 
-
-
 \# Related Documents
-
-
 
 \* VISION.md
 
@@ -662,11 +492,6 @@ Parmana provides execution trust infrastructure that can be integrated into thos
 
 \* SECURITY.md
 
-
-
 ```
 
 ```
-
-
-

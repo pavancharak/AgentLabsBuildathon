@@ -3,9 +3,7 @@
   "$id": "https://schemas.parmana.ai/responses/verification-response.schema.json",
   "title": "Verification Response",
   "description": "Response returned by POST /verify and GET /verification/{businessTransactionId}: a Verification.",
-  "allOf": [
-    { "$ref": "../common/verification.schema.json" }
-  ],
+  "allOf": [{ "$ref": "../common/verification.schema.json" }],
   "examples": [
     {
       "verificationId": "0ad69d3f-7fd0-4507-ab38-e386146757ae",

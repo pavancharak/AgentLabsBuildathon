@@ -22,18 +22,18 @@ Every governance decision produces immutable trust artifacts.
 
 Traditional governance answers:
 
-* Who approved?
-* When was it approved?
+- Who approved?
+- When was it approved?
 
 Execution authorization answers:
 
-* Who authorized execution?
-* What exactly was intended?
-* Which policy applied?
-* What decision was produced?
-* What actually executed?
-* Was execution compliant?
-* Can this be independently verified?
+- Who authorized execution?
+- What exactly was intended?
+- Which policy applied?
+- What decision was produced?
+- What actually executed?
+- Was execution compliant?
+- Can this be independently verified?
 
 Parmana governs execution rather than approval alone.
 
@@ -85,10 +85,10 @@ Authority defines who is permitted to initiate execution.
 
 Examples include:
 
-* Human operators
-* Enterprise applications
-* Service accounts
-* Autonomous agents acting under delegated authority
+- Human operators
+- Enterprise applications
+- Service accounts
+- Autonomous agents acting under delegated authority
 
 Authority answers:
 
@@ -126,8 +126,8 @@ A Decision records the outcome of policy evaluation.
 
 Typical outcomes include:
 
-* Approved
-* Rejected
+- Approved
+- Rejected
 
 Every Decision references the Policy that produced it.
 
@@ -161,10 +161,10 @@ Verification determines whether execution matched approved intent.
 
 Verification evaluates:
 
-* Structural integrity
-* Policy consistency
-* Execution completeness
-* Evidence integrity
+- Structural integrity
+- Policy consistency
+- Execution completeness
+- Evidence integrity
 
 Verification never modifies execution.
 
@@ -180,11 +180,11 @@ Receipts prove that verification completed successfully.
 
 Receipts contain:
 
-* Trust Record hash
-* Receipt hash
-* Signature
-* Algorithm identifier
-* Timestamp
+- Trust Record hash
+- Receipt hash
+- Signature
+- Algorithm identifier
+- Timestamp
 
 ---
 
@@ -196,11 +196,11 @@ It represents the complete evidence package for a Business Transaction.
 
 It is the primary object used for:
 
-* Audit
-* Compliance
-* Investigation
-* Replay
-* Independent verification
+- Audit
+- Compliance
+- Investigation
+- Replay
+- Independent verification
 
 ---
 
@@ -275,15 +275,15 @@ The governance model is execution-engine independent.
 
 The same governance principles apply to:
 
-* Enterprise software
-* Cloud services
-* AI systems
-* AI agents
-* Multi-agent systems
-* Robotics
-* Distributed systems
-* Edge computing
-* Future quantum computing platforms
+- Enterprise software
+- Cloud services
+- AI systems
+- AI agents
+- Multi-agent systems
+- Robotics
+- Distributed systems
+- Edge computing
+- Future quantum computing platforms
 
 Execution technology may evolve.
 

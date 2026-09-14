@@ -10,8 +10,5 @@
   },
   "include": ["src/**/*"],
   "exclude": ["dist", "node_modules", "test"],
-  "references": [
-    { "path": "../shared" },
-    { "path": "../crypto" }
-  ]
+  "references": [{ "path": "../shared" }, { "path": "../crypto" }]
 }

@@ -52,10 +52,7 @@ describe("Execution Authorization Envelope", () => {
       JSON.stringify(signed),
     ) as SignedExecutionAuthorization;
 
-    const result = await verifier.verify(
-      transported,
-      publicKey,
-    );
+    const result = await verifier.verify(transported, publicKey);
 
     expect(result.valid).toBe(true);
     expect(result.checks.signatureVerified).toBe(true);
@@ -80,15 +77,9 @@ describe("Execution Authorization Envelope", () => {
 
     const artifactSigner = new ArtifactSigner(crypto);
 
-    const signatureOne = await artifactSigner.sign(
-      payload,
-      privateKey,
-    );
+    const signatureOne = await artifactSigner.sign(payload, privateKey);
 
-    const signatureTwo = await artifactSigner.sign(
-      payload,
-      privateKey,
-    );
+    const signatureTwo = await artifactSigner.sign(payload, privateKey);
 
     expect(signatureOne).toBe(signatureTwo);
   });
@@ -120,10 +111,7 @@ describe("Execution Authorization Envelope", () => {
       },
     };
 
-    const result = await verifier.verify(
-      tampered,
-      publicKey,
-    );
+    const result = await verifier.verify(tampered, publicKey);
 
     expect(result.valid).toBe(false);
     expect(result.checks.signatureVerified).toBe(false);
@@ -149,8 +137,7 @@ describe("Execution Authorization Envelope", () => {
     );
 
     const extendedExpiry = new Date(
-      Date.parse(signed.payload.expiresAt) +
-        365 * 24 * 60 * 60 * 1000,
+      Date.parse(signed.payload.expiresAt) + 365 * 24 * 60 * 60 * 1000,
     ).toISOString();
 
     const tampered: SignedExecutionAuthorization = {
@@ -161,10 +148,7 @@ describe("Execution Authorization Envelope", () => {
       },
     };
 
-    const result = await verifier.verify(
-      tampered,
-      publicKey,
-    );
+    const result = await verifier.verify(tampered, publicKey);
 
     expect(result.valid).toBe(false);
     expect(result.checks.signatureVerified).toBe(false);
@@ -189,15 +173,9 @@ describe("Execution Authorization Envelope", () => {
       60,
     );
 
-    const now = new Date(
-      Date.parse(signed.payload.authorizedAt) + 120_000,
-    );
+    const now = new Date(Date.parse(signed.payload.authorizedAt) + 120_000);
 
-    const result = await verifier.verify(
-      signed,
-      publicKey,
-      now,
-    );
+    const result = await verifier.verify(signed, publicKey, now);
 
     expect(result.valid).toBe(false);
     expect(result.checks.signatureVerified).toBe(true);
@@ -231,10 +209,7 @@ describe("Execution Authorization Envelope", () => {
       },
     } as unknown as SignedExecutionAuthorization;
 
-    const result = await verifier.verify(
-      tampered,
-      publicKey,
-    );
+    const result = await verifier.verify(tampered, publicKey);
 
     expect(result.valid).toBe(false);
     expect(result.checks.versionSupported).toBe(false);
@@ -262,10 +237,7 @@ describe("Execution Authorization Envelope", () => {
       60,
     );
 
-    const result = await verifier.verify(
-      signed,
-      keyPairB.publicKey,
-    );
+    const result = await verifier.verify(signed, keyPairB.publicKey);
 
     expect(result.checks.signatureVerified).toBe(false);
   });
@@ -493,4 +465,3 @@ describe("Execution Authorization Envelope", () => {
     ).rejects.toThrow();
   });
 });
-

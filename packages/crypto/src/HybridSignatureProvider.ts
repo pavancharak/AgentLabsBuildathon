@@ -39,8 +39,14 @@ export class HybridSignatureProvider {
     primaryKeyId: string,
     secondaryKeyId: string,
   ): Promise<readonly SignatureEntry[]> {
-    const primarySigner = new ArtifactSigner(this.crypto.primary, this.serializer);
-    const secondarySigner = new ArtifactSigner(this.crypto.secondary, this.serializer);
+    const primarySigner = new ArtifactSigner(
+      this.crypto.primary,
+      this.serializer,
+    );
+    const secondarySigner = new ArtifactSigner(
+      this.crypto.secondary,
+      this.serializer,
+    );
 
     const primaryPrivateKey = await this.keys.getPrivateKey(primaryKeyId);
     const secondaryPrivateKey = await this.keys.getPrivateKey(secondaryKeyId);
@@ -94,23 +100,35 @@ export class HybridSignatureProvider {
       (entry) => entry.algorithm === this.crypto.secondary.signature.algorithm,
     );
 
-    if (
-      !primaryEntry ||
-      !secondaryEntry ||
-      primaryEntry === secondaryEntry
-    ) {
+    if (!primaryEntry || !secondaryEntry || primaryEntry === secondaryEntry) {
       return false;
     }
 
-    const primaryVerifier = new SignatureVerifier(this.crypto.primary, this.serializer);
-    const secondaryVerifier = new SignatureVerifier(this.crypto.secondary, this.serializer);
+    const primaryVerifier = new SignatureVerifier(
+      this.crypto.primary,
+      this.serializer,
+    );
+    const secondaryVerifier = new SignatureVerifier(
+      this.crypto.secondary,
+      this.serializer,
+    );
 
     const primaryPublicKey = await this.keys.getPublicKey(primaryEntry.keyId);
-    const secondaryPublicKey = await this.keys.getPublicKey(secondaryEntry.keyId);
+    const secondaryPublicKey = await this.keys.getPublicKey(
+      secondaryEntry.keyId,
+    );
 
     const [primaryVerified, secondaryVerified] = await Promise.all([
-      primaryVerifier.verify(artifact, primaryEntry.signature, primaryPublicKey),
-      secondaryVerifier.verify(artifact, secondaryEntry.signature, secondaryPublicKey),
+      primaryVerifier.verify(
+        artifact,
+        primaryEntry.signature,
+        primaryPublicKey,
+      ),
+      secondaryVerifier.verify(
+        artifact,
+        secondaryEntry.signature,
+        secondaryPublicKey,
+      ),
     ]);
 
     return primaryVerified && secondaryVerified;

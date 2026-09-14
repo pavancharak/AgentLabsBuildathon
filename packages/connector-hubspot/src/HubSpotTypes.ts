@@ -35,9 +35,13 @@ export interface HubSpotDeal {
  * name present in a request's parameters is refused before any network
  * call — see HubSpotConnector.updateDeal.
  */
-export const HUBSPOT_ALLOWED_DEAL_UPDATE_PROPERTIES = Object.freeze(["dealstage", "amount"] as const);
+export const HUBSPOT_ALLOWED_DEAL_UPDATE_PROPERTIES = Object.freeze([
+  "dealstage",
+  "amount",
+] as const);
 
-export type HubSpotAllowedDealUpdateProperty = (typeof HUBSPOT_ALLOWED_DEAL_UPDATE_PROPERTIES)[number];
+export type HubSpotAllowedDealUpdateProperty =
+  (typeof HUBSPOT_ALLOWED_DEAL_UPDATE_PROPERTIES)[number];
 
 /**
  * The built-in test-mode placeholder credential (createHubSpotCredential
@@ -59,16 +63,22 @@ export type HubSpotAllowedDealUpdateProperty = (typeof HUBSPOT_ALLOWED_DEAL_UPDA
  * closes the same gap from its first version instead of after an
  * incident.
  */
-export const HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN = "hubspot-test-mode-placeholder";
+export const HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN =
+  "hubspot-test-mode-placeholder";
 
 export interface HubSpotCredentialValue {
   readonly privateAppToken: string;
 }
 
-export function isHubSpotCredentialValue(value: unknown): value is HubSpotCredentialValue {
+export function isHubSpotCredentialValue(
+  value: unknown,
+): value is HubSpotCredentialValue {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Record<string, unknown>;
-  return typeof candidate.privateAppToken === "string" && candidate.privateAppToken.length > 0;
+  return (
+    typeof candidate.privateAppToken === "string" &&
+    candidate.privateAppToken.length > 0
+  );
 }
 
 /**

@@ -66,18 +66,11 @@
       "type": "object",
       "description": "Cryptographic signature over the canonical Execution Trust Record, proving it was produced by Parmana and has not been modified since signing.",
       "additionalProperties": true,
-      "required": [
-        "algorithm",
-        "keyId",
-        "value",
-        "signedAt"
-      ],
+      "required": ["algorithm", "keyId", "value", "signedAt"],
       "properties": {
         "algorithm": {
           "type": "string",
-          "examples": [
-            "ed25519"
-          ]
+          "examples": ["ed25519"]
         },
         "keyId": {
           "type": "string",

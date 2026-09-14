@@ -1,16 +1,11 @@
-import {
-  BusinessTransaction,
-} from "@parmana/sdk";
+import { BusinessTransaction } from "@parmana/sdk";
 
 export function createTransaction(
   overrides: Partial<BusinessTransaction>,
 ): BusinessTransaction {
-
-  const businessTransactionId =
-    crypto.randomUUID();
+  const businessTransactionId = crypto.randomUUID();
 
   return {
-
     businessTransactionId,
 
     metadata: {
@@ -49,11 +44,9 @@ export function createTransaction(
 
     signals: {},
 
-    status:
-      "RECEIVED",
+    status: "RECEIVED",
 
-    createdAt:
-      new Date(),
+    createdAt: new Date(),
 
     ...overrides,
   };

@@ -3,19 +3,24 @@ title: "TypeScript SDK"
 description: "Real client code, bearer-key authentication, and a typed error taxonomy that is actually thrown."
 ---
 
-<Info>**[AVAILABLE]**, `typescript/src/`, v1.0.0. The original three gaps (no bearer-key auth, an
-unused error taxonomy, an empty test suite) were closed in an earlier pass. A follow-up full SDK
-audit found and fixed three more real issues: inaccurate model types (fields marked required that
-the real API doesn't require, and a missing `settlementConfirmations`/`signature` field), two
-missing capabilities (`POST /verify`, `GET /version`), and one capability missing from both
-maintained SDKs (`POST /transactions`). All re-verified against a real running local server. See
-the fix history at the bottom of this page.</Info>
+<Info>
+  **[AVAILABLE]**, `typescript/src/`, v1.0.0. The original three gaps (no
+  bearer-key auth, an unused error taxonomy, an empty test suite) were closed in
+  an earlier pass. A follow-up full SDK audit found and fixed three more real
+  issues: inaccurate model types (fields marked required that the real API
+  doesn't require, and a missing `settlementConfirmations`/`signature` field),
+  two missing capabilities (`POST /verify`, `GET /version`), and one capability
+  missing from both maintained SDKs (`POST /transactions`). All re-verified
+  against a real running local server. See the fix history at the bottom of this
+  page.
+</Info>
 
 <Warning>
-**The package is named `@parmana/sdk` in `typescript/package.json`**, private,
-not published to any registry a normal `npm install` could resolve. Install from
-a local path or a git reference instead. (Renamed from `@parmana/legacy-reference`, itself
-renamed from `@parmana/typescript-sdk` — see [Changelog](/changelog) for when.)
+  **The package is named `@parmana/sdk` in `typescript/package.json`**, private,
+  not published to any registry a normal `npm install` could resolve. Install
+  from a local path or a git reference instead. (Renamed from
+  `@parmana/legacy-reference`, itself renamed from `@parmana/typescript-sdk` —
+  see [Changelog](/changelog) for when.)
 </Warning>
 
 ## Bearer-key authentication
@@ -74,17 +79,17 @@ try {
 }
 ```
 
-| Status | Exception |
-|---|---|
-| 400 | `ValidationError` |
-| 401 | `AuthenticationError` |
+| Status                                                           | Exception                |
+| ---------------------------------------------------------------- | ------------------------ |
+| 400                                                              | `ValidationError`        |
+| 401                                                              | `AuthenticationError`    |
 | 403, code `POLICY_DENIED`, message starting `Execution rejected` | `ExecutionRejectedError` |
-| 403 (no `code`) | `AuthorizationError` |
-| 404 | `NotFoundError` |
-| 409 | `ConflictError` |
-| any other non-2xx | `InternalServerError` |
-| connection failure | `NetworkError` |
-| request timeout | `TimeoutError` |
+| 403 (no `code`)                                                  | `AuthorizationError`     |
+| 404                                                              | `NotFoundError`          |
+| 409                                                              | `ConflictError`          |
+| any other non-2xx                                                | `InternalServerError`    |
+| connection failure                                               | `NetworkError`           |
+| request timeout                                                  | `TimeoutError`           |
 
 All extend `ParmanaError`, which carries a stable `code` (`ErrorCode` enum) and optional
 `cause`/`requestId`. `403` (`AuthorizationError`) is a real status this API returns —
@@ -192,7 +197,8 @@ doesn't have.
 
 <CardGroup cols={2}>
   <Card title="Python SDK" icon="python" href="/sdks/python">
-    The other maintained SDK — same bearer-key model, generated (not hand-maintained) models.
+    The other maintained SDK — same bearer-key model, generated (not
+    hand-maintained) models.
   </Card>
   <Card title="Error catalog" icon="list" href="/api-reference/error-catalog">
     Every error the real API returns, independent of any SDK.

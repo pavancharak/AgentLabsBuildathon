@@ -15,7 +15,7 @@ Target Version: unset — design document only, no implementation started
 # Summary
 
 A public commenter raised a precise, correct distinction: challenge is only operationally
-valuable when it changes what an organization can *prove*, not just what it believes. They
+valuable when it changes what an organization can _prove_, not just what it believes. They
 asked how Parmana preserves the trace from "an assumption was questioned" through "evidence was
 gathered" to "what changed because of it" as a first-class, durable, checkable record — the way
 RFC-0021 made refusals as provable as approvals — rather than as scattered commit messages and
@@ -29,7 +29,7 @@ scattered across five different document shapes with no common schema, no identi
 no cross-linking), proposes a schema and lifecycle, and gives a real recommendation on whether
 this should be cryptographically signed like `RefusalRecord` and the audit-sink events (§
 Proposal 3 — recommendation: **no**, for reasons specific to what this artifact is evidence
-*of*, not a default extension of "sign everything").
+_of_, not a default extension of "sign everything").
 
 This is a design document only. No implementation code is included or should be inferred as
 approved by this document's existence, per this repository's existing RFC convention (see
@@ -41,10 +41,10 @@ RFC-0021's own framing).
 
 Parmana's central claim is that trust in what a system did should not rest on hoping it behaved
 — it should be a verifiable record (`docs/CLAIMS.md` § Mission). That standard has, so far, been
-applied to *runtime* outcomes: an execution, a refusal, a webhook receipt. The commenter's
+applied to _runtime_ outcomes: an execution, a refusal, a webhook receipt. The commenter's
 objection is that the same standard has not been applied to the organization's own epistemic
-process — the record of *how Parmana itself came to believe or disbelieve something about its
-own system*. Today, that record exists, but only as a byproduct of whatever document a given
+process — the record of _how Parmana itself came to believe or disbelieve something about its
+own system_. Today, that record exists, but only as a byproduct of whatever document a given
 session happened to produce: a paragraph in `VERIFICATION-GAPS.md`, a git commit message, a
 one-off `docs/site` page, a stale incident log. There is no single place to ask "what has Parmana
 been challenged on, what did it check, and what changed" and get a complete, structured answer.
@@ -62,8 +62,8 @@ in place is not evidence) is identical to what already governs `CLAIMS.md`, `Ref
 # Background — what already exists, informally
 
 This section surveys the actual shape of how challenges have been handled this year, honestly.
-The short version: the *investigative rigor* is often genuinely good — better than most projects
-this size produce — but the *record-keeping* is scattered, inconsistent in format, has no shared
+The short version: the _investigative rigor_ is often genuinely good — better than most projects
+this size produce — but the _record-keeping_ is scattered, inconsistent in format, has no shared
 identifier scheme, and in at least one case has gone stale without anyone noticing, which is
 itself the strongest evidence this RFC is not solving an imaginary problem.
 
@@ -88,11 +88,11 @@ codebase's own internal audit process"), method (live proof-of-concept, reproduc
 exact request payloads and before/after HTTP responses), finding (confirmed, precisely quantified
 severity), and resolution (two-part code fix, cited files, 28 new tests). **What it lacks**: a
 stable per-challenge identifier independent of "which numbered gap this happened to become" (a
-challenge that turns out *not* to be a gap — see "ruled out" below — has nowhere to go in this
+challenge that turns out _not_ to be a gap — see "ruled out" below — has nowhere to go in this
 document at all, since it's a gaps register by definition, not a challenges register); a common
 schema enforced across entries (each gap's prose is shaped by whoever wrote it that session, not
 by a template); and no distinction between "gap" (a defect VERIFICATION-GAPS.md is scoped to
-track) and "challenge" (a question that was investigated and *resolved as unfounded* — which
+track) and "challenge" (a question that was investigated and _resolved as unfounded_ — which
 never becomes a gap and currently has no home anywhere).
 
 **3. `docs/site/trust-and-claims/trl7-verification.mdx`** — the single closest existing artifact
@@ -111,7 +111,7 @@ stale.
 
 **4. Git commit messages and RFC "Motivation" sections** — RFC-0021's own Motivation section
 opens with "A public technical objection, raised twice, is precise and correct as investigated"
-— that sentence *is* a challenge record, informally: source (public, twice), claim (refusals
+— that sentence _is_ a challenge record, informally: source (public, twice), claim (refusals
 leave no durable trace), method (code-level trace through four call sites, cited by file:line),
 finding (confirmed in full), what changed (the entire rest of the RFC). This is high-quality
 content, permanently trapped inside prose that only makes sense in the context of the RFC it
@@ -127,7 +127,7 @@ no guarantee they stay consistent.
 
 **Honest characterization**: the investigation quality is real — G-24's entry and the TRL 7 page
 are not performative, they cite specific files, specific tests, specific commands run and their
-output. What's missing is not rigor, it's *durability of the record as a record*: a stable
+output. What's missing is not rigor, it's _durability of the record as a record_: a stable
 identifier per challenge, a common schema across all five shapes above, an explicit lifecycle
 (so "still investigating" is distinguishable from "silently abandoned," which is exactly what
 happened to `04-INCIDENTS-LOG.md`), and a way to ask "show me every challenge" that doesn't
@@ -155,7 +155,7 @@ require grepping five different documents and guessing at date ranges.
   existing discipline: a correction or a later update to an already-recorded investigation is a
   new entry linked to the record, never an edit of a prior one.
 - Existing documents (`VERIFICATION-GAPS.md`, `CLAIMS.md`, RFC Motivation sections, the `docs/
-  site/trust-and-claims` pages) keep doing what they already do well — this is not a proposal to
+site/trust-and-claims` pages) keep doing what they already do well — this is not a proposal to
   replace any of them.
 
 # Non-Goals
@@ -166,11 +166,11 @@ require grepping five different documents and guessing at date ranges.
 - Cryptographic signing of Challenge Records at creation time, the way `RefusalRecord` and the
   audit-sink events are signed — see § Proposal 3 for the reasoning; the recommendation is that
   this is the wrong mechanism for this artifact type, not an oversight.
-- Tracking every organizational decision ever made. Scoped narrowly to *challenges to a specific,
-  identifiable Parmana claim or assumption* — see § Practical Scope for the precise boundary,
+- Tracking every organizational decision ever made. Scoped narrowly to _challenges to a specific,
+  identifiable Parmana claim or assumption_ — see § Practical Scope for the precise boundary,
   deliberately mirroring how RFC-0021 scoped itself to policy/binding REJECTs rather than every
   possible rejection type.
-- Automating challenge *detection* (e.g., scraping public comments, monitoring a support inbox).
+- Automating challenge _detection_ (e.g., scraping public comments, monitoring a support inbox).
   This RFC assumes a human decides something is worth opening a Challenge Record for; it does not
   propose how that decision gets triggered.
 - Replacing `04-INCIDENTS-LOG.md`, `VERIFICATION-GAPS.md`, or `CLAIMS.md`. Each stays as the
@@ -221,8 +221,12 @@ export interface ChallengeRecord {
   /** How the challenge surfaced. Structured, not free text, so "where do challenges come
    *  from" is a queryable field, not something buried in prose. */
   readonly source: {
-    readonly kind: "public-comment" | "internal-review" | "customer-question" |
-                    "adversarial-exercise" | "self-identified";
+    readonly kind:
+      | "public-comment"
+      | "internal-review"
+      | "customer-question"
+      | "adversarial-exercise"
+      | "self-identified";
     /** A URL, a name, "anonymous," or an internal identifier — whatever attribution is
      *  actually available and appropriate to disclose; may be withheld (see Open Question 3). */
     readonly attribution?: string;
@@ -245,7 +249,8 @@ export interface ChallengeRecord {
   /** The finding, in a fixed, precise vocabulary — deliberately narrower than free prose so it
    *  cannot be quietly rounded up or down. */
   readonly finding?: {
-    readonly outcome: "confirmed" | "partially-confirmed" | "ruled-out" | "inconclusive";
+    readonly outcome:
+      "confirmed" | "partially-confirmed" | "ruled-out" | "inconclusive";
     /** Precise statement of what, exactly, "confirmed" or "ruled out" means here — this field
      *  is required whenever outcome is set; a bare enum value with no explanation is exactly
      *  the kind of unchecked assertion this record type exists to prevent. */
@@ -316,17 +321,17 @@ enum is grounded in what actually happens here rather than speculative.
 events are signed.** This needs a real reason, not a default, so here is the reasoning through:
 
 **What signing actually buys, in the cases where Parmana already does it.** `RefusalRecord` and
-the audit-sink events are signed because they are evidence of a *runtime transaction outcome* —
+the audit-sink events are signed because they are evidence of a _runtime transaction outcome_ —
 a specific, momentary fact ("this request was rejected at this instant, for this reason") that
 (a) happens automatically, without a human deciding what to write, (b) is adversarial by
 construction — the entity most motivated to dispute or alter the record (a caller who was
 rejected, an attacker who wants to claim they weren't) is a different party from the one who
-wrote it, and (c) needs to be verifiable by a third party *without trusting Parmana's own
-database*, because the whole point is proving something happened even if Parmana later wanted to
+wrote it, and (c) needs to be verifiable by a third party _without trusting Parmana's own
+database_, because the whole point is proving something happened even if Parmana later wanted to
 deny it.
 
-**Why that doesn't transfer here.** A Challenge Record is evidence of an *organizational
-process* — a human (or an AI agent acting on a human's behalf, as in this very task) deciding
+**Why that doesn't transfer here.** A Challenge Record is evidence of an _organizational
+process_ — a human (or an AI agent acting on a human's behalf, as in this very task) deciding
 what to investigate, how, and what it means. It is not adversarial in the same sense: the party
 with an incentive to misrepresent a Challenge Record is the same party who writes it (Parmana
 itself, choosing what counts as "confirmed" versus "ruled out"), not an external party being held
@@ -341,6 +346,7 @@ can solve, and presenting one as if it did would overstate what's actually being
 the kind of overclaim `docs/CLAIMS.md` and this project's own discipline exist to prevent.
 
 **What actually does the work here, instead:**
+
 - **Append-only storage** (§ Proposal 1's `investigationSteps` array, ADR-0005's discipline) —
   catches "was this edited after the fact," which is the property signing would have provided
   that's actually relevant, without needing key management for a process artifact.
@@ -362,7 +368,7 @@ the kind of overclaim `docs/CLAIMS.md` and this project's own discipline exist t
 **Where the recommendation could be wrong** — flagged honestly rather than glossed over: if
 Challenge Records ever become the substrate for a compliance or contractual claim ("we commit to
 disclosing every confirmed security finding within N days, verifiably"), signing plus a
-disclosure timestamp would start to matter for a different reason — proving *when* a finding was
+disclosure timestamp would start to matter for a different reason — proving _when_ a finding was
 first recorded internally, to defend against a later claim that Parmana sat on something. That is
 a real, different property than the "who wrote this and were they honest" problem above, and if
 that use case materializes, revisit this recommendation specifically for the timestamp-integrity
@@ -373,13 +379,13 @@ commitment exists today to make it load-bearing.
 
 Genuinely different purposes, precisely stated:
 
-- **`CLAIMS.md` tracks current capability state** — what Parmana claims to be true *right now*,
+- **`CLAIMS.md` tracks current capability state** — what Parmana claims to be true _right now_,
   present tense, each claim tiered (`[AVAILABLE]`/`[PARTIAL]`/`[ROADMAP]`) and cited. It answers
   "what can I rely on today."
 - **`VERIFICATION-GAPS.md` tracks currently-open (and recently-closed) defects and unverified
   edges** — a companion register scoped specifically to gaps, severity-tiered. It answers "where
   are the unproven edges right now."
-- **A `ChallengeRecord` tracks the historical *process* of how one specific doubt was raised and
+- **A `ChallengeRecord` tracks the historical _process_ of how one specific doubt was raised and
   resolved** — not the current state of anything, but the record of a single episode:
   who/what questioned it, what was checked, what was found, what changed. It answers "how did
   Parmana come to believe or disbelieve this specific thing, and when."
@@ -392,7 +398,7 @@ answer (a gap can be reopened, revised, tracked over months); the Challenge Reco
 authoritative "what was the investigation that found it" answer, frozen at the time it happened.
 Similarly, if a Challenge Record's finding changes what `CLAIMS.md` should say, `CLAIMS.md`'s own
 entry is what gets edited/promoted (it must stay present-tense and current), while the Challenge
-Record stays the historical account of *why* it changed. The Challenge Record is never a
+Record stays the historical account of _why_ it changed. The Challenge Record is never a
 substitute for updating either document — it is the audit trail explaining why an update
 happened, one level of abstraction removed from "what is currently true," the same relationship
 a commit message has to the code it changed, made structured and durable rather than prose in a
@@ -403,6 +409,7 @@ scrolling git log.
 ## 5. Practical scope for a first version
 
 **In scope for v1:**
+
 - The `ChallengeRecord` schema as specified in § Proposal 1, stored durably (mirroring
   `RefusalRecord`'s storage precedent: a dedicated table, one row per record, `investigationSteps`
   as an appendable JSON array column rather than a separate child table — simplest thing that
@@ -420,6 +427,7 @@ scrolling git log.
   a real case before anything is declared done.
 
 **Explicitly out of scope for v1, named so it isn't silently assumed:**
+
 - Any signing or cryptographic verification (§ Proposal 3).
 - A public API route or `docs/site` browsing surface over Challenge Records — records exist in
   storage and can be manually rendered into a doc page (as the TRL 7 page already does by hand
@@ -441,7 +449,7 @@ scrolling git log.
 
 **A. Extend `VERIFICATION-GAPS.md`'s existing gap format to also cover "ruled out" challenges**,
 rather than a new artifact type. Rejected: `VERIFICATION-GAPS.md`'s own stated Purpose is "every
-place a claim, a code path, or a piece of production behavior is *not* independently verified
+place a claim, a code path, or a piece of production behavior is _not_ independently verified
 today" — it is a gaps register by definition. Forcing "we checked and there is no gap here" into
 a gaps register either misrepresents a non-finding as a finding (weakening the document for
 every real gap) or requires a parallel "checked, found nothing" section that is, in effect, a

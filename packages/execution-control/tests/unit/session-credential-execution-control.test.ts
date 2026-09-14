@@ -68,13 +68,20 @@ async function fixture() {
   // attestation by the Gateway).
   const gatewayKeyPair = generateKeyPairSync("ed25519");
 
-  const authorization = await new AuthorizationSigner(CryptoBootstrap.create()).sign({
-    decisionId: "decision-1",
-    businessTransactionId: content.businessTransactionId,
-    policyName: "payments",
-    policyVersion: "1.0.0",
-    executableContent: content,
-  }, privateKey, "key-1", 60);
+  const authorization = await new AuthorizationSigner(
+    CryptoBootstrap.create(),
+  ).sign(
+    {
+      decisionId: "decision-1",
+      businessTransactionId: content.businessTransactionId,
+      policyName: "payments",
+      policyVersion: "1.0.0",
+      executableContent: content,
+    },
+    privateKey,
+    "key-1",
+    60,
+  );
 
   const gatewayIdentity: GatewayIdentity = {
     gatewayId: "gateway-1",
@@ -83,7 +90,9 @@ async function fixture() {
   };
 
   const authenticator = new SignedTokenConnectorAuthenticator(
-    gatewayIdentity, gatewayKeyPair.publicKey, [],
+    gatewayIdentity,
+    gatewayKeyPair.publicKey,
+    [],
   );
 
   const sessionIssuanceAuthentication = Object.freeze({});
@@ -101,16 +110,30 @@ async function fixture() {
     },
     async execute() {
       connectorCalls += 1;
-      return { ...content, success: true, executedAt: new Date(), metadata: {} };
+      return {
+        ...content,
+        success: true,
+        executedAt: new Date(),
+        metadata: {},
+      };
     },
   };
   const registry = new InMemoryConnectorRegistry([connector]);
 
   const inner = new ExecutionControlService({
-    gatewayIdentity, authenticator, registry, sessions, sessionIssuanceAuthentication, audit,
+    gatewayIdentity,
+    authenticator,
+    registry,
+    sessions,
+    sessionIssuanceAuthentication,
+    audit,
   });
 
-  const wrapped = new SessionCredentialExecutionControl({ gatewayIdentity, authenticator, inner });
+  const wrapped = new SessionCredentialExecutionControl({
+    gatewayIdentity,
+    authenticator,
+    inner,
+  });
 
   const signer = new GatewayAttestationSigner(
     new ManualClock(new Date("2026-01-01T00:00:00Z")),
@@ -130,7 +153,14 @@ async function fixture() {
   };
 
   return {
-    gatewayIdentity, gatewayKeyPair, wrongPrivateKey, authorization, signer, wrapped, sessions, release,
+    gatewayIdentity,
+    gatewayKeyPair,
+    wrongPrivateKey,
+    authorization,
+    signer,
+    wrapped,
+    sessions,
+    release,
     connectorCalls: () => connectorCalls,
   };
 }
@@ -139,10 +169,14 @@ describe("SessionCredentialExecutionControl", () => {
   it("creates a session and executes only after the attestation matches the request", async () => {
     const f = await fixture();
     const attestation = f.signer.sign(
-      f.gatewayIdentity.gatewayId, f.authorization.payload.authorizationId, f.gatewayKeyPair.privateKey,
+      f.gatewayIdentity.gatewayId,
+      f.authorization.payload.authorizationId,
+      f.gatewayKeyPair.privateKey,
     );
 
-    await expect(f.wrapped.execute(f.release, attestation)).resolves.toMatchObject({ success: true });
+    await expect(
+      f.wrapped.execute(f.release, attestation),
+    ).resolves.toMatchObject({ success: true });
 
     expect(f.connectorCalls()).toBe(1);
     expect(f.sessions.createCalls).toBe(1);
@@ -151,7 +185,9 @@ describe("SessionCredentialExecutionControl", () => {
   it("rejects a spoofed gateway attestation before any session is created", async () => {
     const f = await fixture();
     const spoofed = f.signer.sign(
-      f.gatewayIdentity.gatewayId, f.authorization.payload.authorizationId, f.wrongPrivateKey,
+      f.gatewayIdentity.gatewayId,
+      f.authorization.payload.authorizationId,
+      f.wrongPrivateKey,
     );
 
     await expect(f.wrapped.execute(f.release, spoofed)).rejects.toThrow(
@@ -176,11 +212,16 @@ describe("SessionCredentialExecutionControl", () => {
   it("rejects a tampered attestation before any session is created", async () => {
     const f = await fixture();
     const attestation = f.signer.sign(
-      f.gatewayIdentity.gatewayId, f.authorization.payload.authorizationId, f.gatewayKeyPair.privateKey,
+      f.gatewayIdentity.gatewayId,
+      f.authorization.payload.authorizationId,
+      f.gatewayKeyPair.privateKey,
     );
     const tampered = {
       ...attestation,
-      payload: { ...attestation.payload, authorizationId: "some-other-authorization" },
+      payload: {
+        ...attestation.payload,
+        authorizationId: "some-other-authorization",
+      },
     };
 
     await expect(f.wrapped.execute(f.release, tampered)).rejects.toThrow(

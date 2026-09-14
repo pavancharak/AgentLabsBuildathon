@@ -33,7 +33,7 @@ signature computed on the signing side and recomputed on the verifying side from
 independently-constructed but logically-identical data always match. `TrustRecordHasher`
 (`hash(value: unknown): Promise<string>`) is the generic hasher built on top of it, reused
 directly by `RuntimeEngine` for both `policyContentHash` and `signalsHash` (Chapter 5). It
-is deliberately the *same* hasher every other artifact hash in this codebase uses. There is
+is deliberately the _same_ hasher every other artifact hash in this codebase uses. There is
 exactly one canonicalization-and-hash implementation, not one per artifact type, which is
 what lets an independent verifier recompute any of these hashes without needing to know which
 subsystem originally produced it.
@@ -49,11 +49,15 @@ subsystem originally produced it.
  * holding Ed25519 PEMs on disk would silently sign with Ed25519 while
  * labeling the envelope "dilithium3".
  */
-export function assertKeyType(key: KeyObject, expected: string, operation: "sign" | "verify"): void {
+export function assertKeyType(
+  key: KeyObject,
+  expected: string,
+  operation: "sign" | "verify",
+): void {
   if (key.asymmetricKeyType !== expected) {
     throw new CryptoError(
       `${operation}() expected a "${expected}" key but received "${key.asymmetricKeyType}". ` +
-      "The configured signature algorithm does not match the supplied key material.",
+        "The configured signature algorithm does not match the supplied key material.",
     );
   }
 }
@@ -64,7 +68,7 @@ Both `Ed25519SignatureProvider` and `Dilithium3SignatureProvider` call this befo
 mode this closes is specifically a key-rotation or algorithm-migration window: a deployment
 mid-move from Ed25519 to hybrid signing could otherwise mix up which key file belongs to
 which provider with no error at all, until an independently-verifying third party, using the
-*correct* key/algorithm pairing, rejects a signature that was never produced the way its own
+_correct_ key/algorithm pairing, rejects a signature that was never produced the way its own
 metadata claimed. Failing closed at sign time, naming both the expected and actual type,
 catches the misconfiguration at the source instead of shipping a mislabeled artifact.
 Tutorial 99 (`examples/tutorials/99-key-algorithm-binding-guard/run.ts`) exercises both

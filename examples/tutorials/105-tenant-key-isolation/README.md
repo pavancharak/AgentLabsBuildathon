@@ -10,20 +10,20 @@ exactly what happens when it hasn't. Mirrors `docs/VERIFICATION-GAPS.md` G-32,
 
 ## What You'll Learn
 
-* `RuntimeAuthorizationSigner` resolves the signing keyId per-transaction via
+- `RuntimeAuthorizationSigner` resolves the signing keyId per-transaction via
   `TenantKeyResolver` (`packages/runtime/src/TenantKeyResolver.ts`) instead of a single
   hardcoded key — a transaction with `metadata.tenantId: "acme-corp"` signs under
   `tenant.acme-corp` when that key has been provisioned (Scenario 1)
-* An authorization signed under a tenant's key verifies under that tenant's own public key,
+- An authorization signed under a tenant's key verifies under that tenant's own public key,
   and **fails** signature verification under the shared default deployment's public key —
   the isolation property itself, not just a naming convention
-* A `tenantId` with no dedicated key provisioned falls back to the shared `default` key
+- A `tenantId` with no dedicated key provisioned falls back to the shared `default` key
   silently, not a failure (Scenario 2) — deliberate, so adoption is incremental per tenant,
   but it means a misspelled or unprovisioned `tenantId` produces a valid, unlabeled
   authorization under the default key with no warning (G-32's residual #3)
-* A transaction with no `tenantId` at all is completely unaffected — still signs under
+- A transaction with no `tenantId` at all is completely unaffected — still signs under
   `default`, exactly as every deployment without tenant keys already behaves (Scenario 3)
-* Per-tenant keys need no new key storage or provider: same `FileKeyProvider` /
+- Per-tenant keys need no new key storage or provider: same `FileKeyProvider` /
   `keys/<keyId>.private.pem` layout, provisioned with
   `scripts/generate-keypair.ts --key-id tenant.<tenantId>`, resolved through the same
   `KeyProvider.hasKey()` every other keyId lookup already uses

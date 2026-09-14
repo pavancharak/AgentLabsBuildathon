@@ -1,4 +1,4 @@
- import { RuntimeError } from "./RuntimeError.js";
+import { RuntimeError } from "./RuntimeError.js";
 
 /**
  * Thrown when a Business Transaction
@@ -8,12 +8,8 @@ export class BusinessTransactionValidationError extends RuntimeError {
   constructor(message: string) {
     super(message);
 
-    this.name =
-      "BusinessTransactionValidationError";
+    this.name = "BusinessTransactionValidationError";
 
-    Object.setPrototypeOf(
-      this,
-      new.target.prototype,
-    );
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 }

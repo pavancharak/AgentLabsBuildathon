@@ -128,7 +128,11 @@ describe("verifyPolicyGovernanceIntegrityAtStartup", () => {
     // The live file on disk was hand-edited after approval, never
     // going back through the pending-change API.
     const tamperedContent = { ...approvedContent, rules: [{ tampered: true }] };
-    await policyRepository.save("vendor-payment", "1.0.0", tamperedContent as never);
+    await policyRepository.save(
+      "vendor-payment",
+      "1.0.0",
+      tamperedContent as never,
+    );
 
     const result = await verifyPolicyGovernanceIntegrityAtStartup({
       policyRepository,
@@ -308,7 +312,11 @@ describe("verifyPolicyGovernanceIntegrityAtStartup", () => {
     );
 
     // The live file matches the SECOND (most recent) approval only.
-    await policyRepository.save("vendor-payment", "1.0.0", secondContent as never);
+    await policyRepository.save(
+      "vendor-payment",
+      "1.0.0",
+      secondContent as never,
+    );
 
     const result = await verifyPolicyGovernanceIntegrityAtStartup({
       policyRepository,
@@ -381,7 +389,10 @@ describe("verifyPolicyGovernanceIntegrityAtStartup", () => {
     // "missing" mismatch that must not stop policy-a from being
     // correctly reported as passing.
     await approvalRepository.create(
-      await fixtureRecord(crypto, { policyName: "policy-b", policyVersion: "1.0.0" }),
+      await fixtureRecord(crypto, {
+        policyName: "policy-b",
+        policyVersion: "1.0.0",
+      }),
     );
 
     const result = await verifyPolicyGovernanceIntegrityAtStartup({

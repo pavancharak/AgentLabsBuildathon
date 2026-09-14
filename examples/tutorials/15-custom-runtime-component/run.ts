@@ -1,125 +1,65 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeBuilder,
-} from "@parmana/runtime";
+import { RuntimeBuilder } from "@parmana/runtime";
 
-import {
-  DefaultExecutionSystem,
-} from "@parmana/execution-system";
+import { DefaultExecutionSystem } from "@parmana/execution-system";
 
-import {
-  MemoryExecutionTrustRecordRepository,
-} from "@parmana/storage";
+import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
-import type {
-  BusinessTransaction,
-} from "@parmana/shared";
+import type { BusinessTransaction } from "@parmana/shared";
 
-import {
-  LoggingRuntimeComponent,
-} from "./LoggingRuntimeComponent.js";
+import { LoggingRuntimeComponent } from "./LoggingRuntimeComponent.js";
 
-const root = path.resolve(
-  import.meta.dirname,
-);
+const root = path.resolve(import.meta.dirname);
 
 const transaction = JSON.parse(
-  readFileSync(
-    path.join(
-      root,
-      "transaction.json",
-    ),
-    "utf8",
-  ),
+  readFileSync(path.join(root, "transaction.json"), "utf8"),
 ) as BusinessTransaction;
 
-const policyRepository =
-  new FilePolicyRepository(
-    path.resolve(
-      root,
-      "../../../policies",
-    ),
-  );
+const policyRepository = new FilePolicyRepository(
+  path.resolve(root, "../../../policies"),
+);
 
-const trustRecords =
-  new MemoryExecutionTrustRecordRepository();
+const trustRecords = new MemoryExecutionTrustRecordRepository();
 
-const executionSystem =
-  new DefaultExecutionSystem();
+const executionSystem = new DefaultExecutionSystem();
 
 //
 // Build a custom runtime.
 //
-const runtime =
-  new RuntimeBuilder()
-    .withPolicyRepository(
-      policyRepository,
-    )
-    .addStage(
-      new LoggingRuntimeComponent(),
-    )
-    .build(
-      trustRecords,
-      executionSystem,
-    );
+const runtime = new RuntimeBuilder()
+  .withPolicyRepository(policyRepository)
+  .addStage(new LoggingRuntimeComponent())
+  .build(trustRecords, executionSystem);
 
 //
 // Execute.
 //
-const result =
-  await runtime.execute(
-    transaction,
-  );
+const result = await runtime.execute(transaction);
 
-const trustRecord =
-  result.trustRecord;
+const trustRecord = result.trustRecord;
 
-console.log(
-  "========================================",
-);
+console.log("========================================");
 
-console.log(
-  " Parmana Tutorial 15",
-);
+console.log(" Parmana Tutorial 15");
 
-console.log(
-  " Custom Runtime Component",
-);
+console.log(" Custom Runtime Component");
 
-console.log(
-  "========================================",
-);
+console.log("========================================");
 
 console.log();
 
-console.log(
-  "Execution Trust Record",
-);
+console.log("Execution Trust Record");
 
-console.log(
-  JSON.stringify(
-    trustRecord,
-    null,
-    2,
-  ),
-);
+console.log(JSON.stringify(trustRecord, null, 2));
 
 console.log();
 
-console.log(
-  "========================================",
-);
+console.log("========================================");
 
-console.log(
-  " CUSTOM RUNTIME COMPONENT COMPLETE",
-);
+console.log(" CUSTOM RUNTIME COMPONENT COMPLETE");
 
-console.log(
-  "========================================",
-);
+console.log("========================================");

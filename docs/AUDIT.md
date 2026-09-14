@@ -1,50 +1,26 @@
 \# Parmana Audit Guide
 
-
-
 Version: 1.0
-
-
 
 Status: Normative
 
-
-
 \---
-
-
 
 \# Purpose
 
-
-
 This document defines the audit methodology for the Parmana Execution Trust Infrastructure.
-
-
 
 Its purpose is to ensure that architectural guarantees are validated through repeatable, evidence-based review rather than assumptions.
 
-
-
 Individual audit reports are maintained separately.
-
-
 
 \---
 
-
-
 \# Audit Objectives
-
-
 
 An audit evaluates whether the implementation preserves the execution trust model defined by Parmana.
 
-
-
 Audits are intended to determine whether:
-
-
 
 \* the implementation conforms to the specification
 
@@ -54,19 +30,11 @@ Audits are intended to determine whether:
 
 \* documented claims are supported by evidence
 
-
-
 \---
-
-
 
 \# Audit Scope
 
-
-
 Audits may include review of:
-
-
 
 \* architecture
 
@@ -90,47 +58,25 @@ Audits may include review of:
 
 \* conformance tests
 
-
-
 \---
-
-
 
 \# Audit Principles
 
-
-
 \## Evidence-Based
-
-
 
 Every audit finding SHOULD be supported by implementation evidence.
 
-
-
 \---
-
-
 
 \## Reproducible
 
-
-
 Independent reviewers SHOULD be able to reproduce audit findings.
-
-
 
 \---
 
-
-
 \## Traceable
 
-
-
 Every finding SHOULD reference:
-
-
 
 \* implementation
 
@@ -142,31 +88,17 @@ Every finding SHOULD reference:
 
 \* documentation
 
-
-
 \---
-
-
 
 \## Independent
 
-
-
 Audits SHOULD evaluate observable implementation behavior rather than developer intent.
-
-
 
 \---
 
-
-
 \# Audit Lifecycle
 
-
-
 Every audit follows the same process.
-
-
 
 ```text id="9xq1rh"
 
@@ -206,23 +138,13 @@ Closure
 
 ```
 
-
-
 \---
-
-
 
 \# Audit Areas
 
-
-
 \## Architecture
 
-
-
 Verify:
-
-
 
 \* package responsibilities
 
@@ -232,35 +154,19 @@ Verify:
 
 \* execution lifecycle
 
-
-
 \---
-
-
 
 \## Specification
 
-
-
 Verify that implementation conforms to:
-
-
 
 \* SPECIFICATION.md
 
-
-
 \---
-
-
 
 \## Trust Model
 
-
-
 Verify:
-
-
 
 \* Authority relationships
 
@@ -272,19 +178,11 @@ Verify:
 
 \* execution trust chain
 
-
-
 \---
-
-
 
 \## Runtime
 
-
-
 Verify:
-
-
 
 \* validation
 
@@ -294,19 +192,11 @@ Verify:
 
 \* execution ordering
 
-
-
 \---
-
-
 
 \## Policy
 
-
-
 Verify:
-
-
 
 \* policy loading
 
@@ -314,19 +204,11 @@ Verify:
 
 \* deterministic evaluation
 
-
-
 \---
-
-
 
 \## Crypto
 
-
-
 Verify:
-
-
 
 \* hashing
 
@@ -334,19 +216,11 @@ Verify:
 
 \* verification
 
-
-
 \---
-
-
 
 \## Replay
 
-
-
 Verify:
-
-
 
 \* replay behavior
 
@@ -354,19 +228,11 @@ Verify:
 
 \* preservation of evidence
 
-
-
 \---
-
-
 
 \## API
 
-
-
 Verify:
-
-
 
 \* execution entry points
 
@@ -374,19 +240,11 @@ Verify:
 
 \* replay endpoints
 
-
-
 \---
-
-
 
 \## Documentation
 
-
-
 Verify consistency between:
-
-
 
 \* implementation
 
@@ -396,23 +254,13 @@ Verify consistency between:
 
 \* claims
 
-
-
 \---
-
-
 
 \# Guarantee Audit
 
-
-
 Every guarantee SHOULD be reviewed.
 
-
-
 The audit SHALL determine:
-
-
 
 \* implemented
 
@@ -422,23 +270,13 @@ The audit SHALL determine:
 
 \* independently verifiable
 
-
-
 Audit results SHOULD update `PROOFS.md`.
-
-
 
 \---
 
-
-
 \# Audit Evidence
 
-
-
 Evidence may include:
-
-
 
 \* source code
 
@@ -456,47 +294,25 @@ Evidence may include:
 
 \* Receipts
 
-
-
 Evidence SHOULD be referenced rather than duplicated.
 
-
-
 \---
-
-
 
 \# Audit Findings
 
-
-
 Findings SHOULD be classified.
-
-
 
 \## Proven
 
-
-
 Implementation and evidence fully support the guarantee.
-
-
 
 \---
 
-
-
 \## Partial
-
-
 
 Implementation exists but evidence is incomplete.
 
-
-
 Examples:
-
-
 
 \* missing integration tests
 
@@ -504,47 +320,25 @@ Examples:
 
 \* missing independent verification
 
-
-
 \---
-
-
 
 \## Pending
 
-
-
 Implementation or evidence is incomplete.
 
-
-
 \---
-
-
 
 \## Not Supported
 
-
-
 Implementation does not support the documented guarantee.
-
-
 
 Claims SHOULD NOT be made until the finding is resolved.
 
-
-
 \---
-
-
 
 \# Audit Report Template
 
-
-
 Each audit SHOULD include:
-
-
 
 \* Audit identifier
 
@@ -564,19 +358,11 @@ Each audit SHOULD include:
 
 \* Evidence references
 
-
-
 \---
-
-
 
 \# Audit Frequency
 
-
-
 Audits SHOULD be performed:
-
-
 
 \* before major releases
 
@@ -586,15 +372,9 @@ Audits SHOULD be performed:
 
 \* before promoting new public technical claims
 
-
-
 \---
 
-
-
 \# Relationship to Other Documents
-
-
 
 \* `SPECIFICATION.md` defines expected behavior.
 
@@ -606,11 +386,7 @@ Audits SHOULD be performed:
 
 \* `CONFORMANCE.md` defines compatibility requirements.
 
-
-
 Individual audit reports are stored separately, for example:
-
-
 
 ```text id="0s5n1m"
 
@@ -626,27 +402,15 @@ examples/
 
 ```
 
-
-
 \---
-
-
 
 \# Guiding Principle
 
-
-
 Audits do not establish trust by assertion.
-
-
 
 They establish trust by evaluating implementation against the specification, validating guarantees with evidence, and documenting findings that independent reviewers can reproduce.
 
-
-
 Every public technical claim should ultimately be traceable through:
-
-
 
 ```text id="k1q4yb"
 
@@ -670,9 +434,4 @@ Implementation
 
 ```
 
-
-
 This traceability is the foundation of evidence-backed execution trust.
-
-
-

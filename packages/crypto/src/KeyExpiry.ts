@@ -1,7 +1,4 @@
-import {
-  existsSync,
-  readFileSync,
-} from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 import { join } from "node:path";
 
@@ -38,20 +35,12 @@ export interface KeyExpiryStore {
  * external KMS/vault dependency, no env-var-encoded key material.
  */
 export class FileKeyExpiryStore implements KeyExpiryStore {
-  private readonly config =
-    loadConfig();
+  private readonly config = loadConfig();
 
-  private readonly keyDirectory =
-    this.config.keys.keyDirectory ??
-    "./keys";
+  private readonly keyDirectory = this.config.keys.keyDirectory ?? "./keys";
 
-  async get(
-    keyId: string,
-  ): Promise<KeyExpiryEntry | undefined> {
-    const path = join(
-      this.keyDirectory,
-      "key-expiry.json",
-    );
+  async get(keyId: string): Promise<KeyExpiryEntry | undefined> {
+    const path = join(this.keyDirectory, "key-expiry.json");
 
     if (!existsSync(path)) {
       return undefined;
@@ -64,9 +53,7 @@ export class FileKeyExpiryStore implements KeyExpiryStore {
     try {
       parsed = JSON.parse(raw);
     } catch {
-      throw new Error(
-        `${path} is not valid JSON.`,
-      );
+      throw new Error(`${path} is not valid JSON.`);
     }
 
     if (
@@ -74,41 +61,26 @@ export class FileKeyExpiryStore implements KeyExpiryStore {
       parsed === null ||
       Array.isArray(parsed)
     ) {
-      throw new Error(
-        `${path} must be a JSON object keyed by keyId.`,
-      );
+      throw new Error(`${path} must be a JSON object keyed by keyId.`);
     }
 
-    const entry = (
-      parsed as Record<string, unknown>
-    )[keyId];
+    const entry = (parsed as Record<string, unknown>)[keyId];
 
     if (entry === undefined) {
       return undefined;
     }
 
-    const { expiresAt, revoked } =
-      entry as {
-        expiresAt?: unknown;
-        revoked?: unknown;
-      };
+    const { expiresAt, revoked } = entry as {
+      expiresAt?: unknown;
+      revoked?: unknown;
+    };
 
-    if (
-      expiresAt !== undefined &&
-      typeof expiresAt !== "string"
-    ) {
-      throw new Error(
-        `${path}["${keyId}"].expiresAt must be a string.`,
-      );
+    if (expiresAt !== undefined && typeof expiresAt !== "string") {
+      throw new Error(`${path}["${keyId}"].expiresAt must be a string.`);
     }
 
-    if (
-      revoked !== undefined &&
-      typeof revoked !== "boolean"
-    ) {
-      throw new Error(
-        `${path}["${keyId}"].revoked must be a boolean.`,
-      );
+    if (revoked !== undefined && typeof revoked !== "boolean") {
+      throw new Error(`${path}["${keyId}"].revoked must be a boolean.`);
     }
 
     return {

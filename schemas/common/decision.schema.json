@@ -31,10 +31,7 @@
     "outcome": {
       "type": "string",
       "description": "Policy evaluation outcome. There are no intermediate states: a Decision is always exactly one of these two values.",
-      "enum": [
-        "APPROVED",
-        "REJECTED"
-      ]
+      "enum": ["APPROVED", "REJECTED"]
     },
     "reason": {
       "type": "string",

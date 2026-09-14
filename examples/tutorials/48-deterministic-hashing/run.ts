@@ -1,19 +1,10 @@
-import {
-  CanonicalSerializer,
-  CryptoBootstrap,
-} from "@parmana/crypto";
+import { CanonicalSerializer, CryptoBootstrap } from "@parmana/crypto";
 
 async function main(): Promise<void> {
   console.log();
-  console.log(
-    "==================================================",
-  );
-  console.log(
-    "Tutorial 48 - Deterministic Hashing",
-  );
-  console.log(
-    "==================================================",
-  );
+  console.log("==================================================");
+  console.log("Tutorial 48 - Deterministic Hashing");
+  console.log("==================================================");
   console.log();
 
   //
@@ -29,108 +20,62 @@ async function main(): Promise<void> {
   //
   // Canonical serialization.
   //
-  const serializer =
-    new CanonicalSerializer();
+  const serializer = new CanonicalSerializer();
 
-  const bytes =
-    serializer.serialize(
-      transaction,
-    );
+  const bytes = serializer.serialize(transaction);
 
-  const canonical =
-    new TextDecoder().decode(
-      bytes,
-    );
+  const canonical = new TextDecoder().decode(bytes);
 
   //
   // Deterministic hashing.
   //
-  const crypto =
-    CryptoBootstrap.create();
+  const crypto = CryptoBootstrap.create();
 
-  const hash1 =
-    await crypto.hash.hash(
-      bytes,
-    );
+  const hash1 = await crypto.hash.hash(bytes);
 
-  const hash2 =
-    await crypto.hash.hash(
-      bytes,
-    );
+  const hash2 = await crypto.hash.hash(bytes);
 
-  console.log(
-    "Canonical JSON",
-  );
+  console.log("Canonical JSON");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
-  console.log(
-    canonical,
-  );
+  console.log(canonical);
 
   console.log();
 
-  console.log(
-    "SHA-256",
-  );
+  console.log("SHA-256");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
-  console.log(
-    `Hash #1 : ${hash1}`,
-  );
+  console.log(`Hash #1 : ${hash1}`);
 
-  console.log(
-    `Hash #2 : ${hash2}`,
-  );
+  console.log(`Hash #2 : ${hash2}`);
 
   console.log();
 
   if (hash1 === hash2) {
-    console.log(
-      "✓ Deterministic hashing verified.",
-    );
+    console.log("✓ Deterministic hashing verified.");
   } else {
-    console.log(
-      "✗ Deterministic hashing failed.",
-    );
+    console.log("✗ Deterministic hashing failed.");
   }
 
   console.log();
 
-  console.log(
-    "Cryptographic Pipeline",
-  );
+  console.log("Cryptographic Pipeline");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
-  console.log(
-    "✓ Business Object",
-  );
+  console.log("✓ Business Object");
 
-  console.log(
-    "✓ Canonical Serialization",
-  );
+  console.log("✓ Canonical Serialization");
 
-  console.log(
-    "✓ SHA-256 Hash",
-  );
+  console.log("✓ SHA-256 Hash");
 
-  console.log(
-    "✓ Deterministic Output",
-  );
+  console.log("✓ Deterministic Output");
 
   console.log();
 
-  console.log(
-    "Tutorial completed successfully.",
-  );
+  console.log("Tutorial completed successfully.");
 }
 
 main().catch((error) => {

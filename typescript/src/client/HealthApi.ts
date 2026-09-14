@@ -17,19 +17,16 @@ export interface HealthStatus {
 }
 
 export class HealthApi {
-  constructor(
-    private readonly transport: Transport,
-  ) {}
+  constructor(private readonly transport: Transport) {}
 
   /**
    * Returns Runtime health.
    */
   public async health(): Promise<HealthStatus> {
-    const response =
-      await this.transport.send<HealthStatus>({
-        path: "/health",
-        method: "GET",
-      });
+    const response = await this.transport.send<HealthStatus>({
+      path: "/health",
+      method: "GET",
+    });
 
     return response.body;
   }

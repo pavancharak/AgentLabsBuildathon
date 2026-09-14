@@ -27,14 +27,22 @@ export class InMemorySecureConnector implements SecureConnector {
     this.connectorId = options.identity.connectorId;
     this.identity = Object.freeze({
       ...options.identity,
-      authenticationMetadata: Object.freeze({ ...options.identity.authenticationMetadata }),
+      authenticationMetadata: Object.freeze({
+        ...options.identity.authenticationMetadata,
+      }),
     });
     this.capabilities = Object.freeze([...options.capabilities]);
   }
 
   async execute(request: GatewayExecutionRequest): Promise<ExecutionResult> {
-    await this.options.policy.assertAllowed(request, this, this.options.gatewayAuthentication);
-    const credential = await this.options.credentialVault.getCredential(this.connectorId);
+    await this.options.policy.assertAllowed(
+      request,
+      this,
+      this.options.gatewayAuthentication,
+    );
+    const credential = await this.options.credentialVault.getCredential(
+      this.connectorId,
+    );
     return this.options.executor.execute(request.executableContent, credential);
   }
 }

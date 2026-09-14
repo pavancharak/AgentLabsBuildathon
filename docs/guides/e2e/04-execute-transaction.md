@@ -1,22 +1,12 @@
 \# 04 – Execute a Business Transaction
 
-
-
 This guide walks through the complete execution lifecycle in Parmana—from submitting a business transaction through execution, verification, and receipt generation.
-
-
 
 \---
 
-
-
 \## Prerequisites
 
-
-
 The API is running:
-
-
 
 ```text
 
@@ -24,11 +14,7 @@ API running on http://localhost:3000
 
 ```
 
-
-
 Authentication is configured:
-
-
 
 ```env
 
@@ -36,11 +22,7 @@ PARMANA\_API\_KEYS=\[{"callerId":"demo","keyHash":"325ededd6c3b9988f623c7f964abb
 
 ```
 
-
-
 Execution connector credential is configured:
-
-
 
 ```env
 
@@ -48,15 +30,9 @@ VENDOR\_PAYMENT\_TOKEN=integration-test-token
 
 ```
 
-
-
 \---
 
-
-
 \## Execute
-
-
 
 ```powershell
 
@@ -82,19 +58,11 @@ Invoke-RestMethod `
 
 ```
 
-
-
 \---
-
-
 
 \## Successful Response
 
-
-
 The API returned a complete Execution Trust Record.
-
-
 
 | Component | Status |
 
@@ -116,19 +84,11 @@ The API returned a complete Execution Trust Record.
 
 | Receipt | ✅ Issued |
 
-
-
 \---
-
-
 
 \## Execution Summary
 
-
-
 Business Transaction
-
-
 
 ```
 
@@ -136,11 +96,7 @@ b9404bdf-ad2a-4dce-8001-0eacd0974200
 
 ```
 
-
-
 Trust Record
-
-
 
 ```
 
@@ -148,11 +104,7 @@ Trust Record
 
 ```
 
-
-
 Execution
-
-
 
 ```
 
@@ -160,11 +112,7 @@ bf78f1c9-f007-40ab-9a14-92bc6f815f1f
 
 ```
 
-
-
 Verification
-
-
 
 ```
 
@@ -172,11 +120,7 @@ Verification
 
 ```
 
-
-
 Receipt
-
-
 
 ```
 
@@ -184,15 +128,9 @@ a677de4e-472c-4b37-8a12-4199d2510b8b
 
 ```
 
-
-
 \---
 
-
-
 \## Trust Record Hash
-
-
 
 ```
 
@@ -200,19 +138,11 @@ f6b35361c5cf90fefef039c56cacafdb9cc030f0d2c1259e6eb3b565c58cc3e4
 
 ```
 
-
-
 \---
-
-
 
 \## Digital Signature
 
-
-
 Algorithm
-
-
 
 ```
 
@@ -220,23 +150,13 @@ ed25519
 
 ```
 
-
-
 The Execution Trust Record was signed successfully.
-
-
 
 \---
 
-
-
 \## Independent Verification
 
-
-
 Verification Status
-
-
 
 ```
 
@@ -244,11 +164,7 @@ VERIFIED
 
 ```
 
-
-
 Message
-
-
 
 ```
 
@@ -256,27 +172,15 @@ Execution Trust Record verified successfully.
 
 ```
 
-
-
 This confirms that the generated Trust Record is cryptographically valid and has not been modified.
-
-
 
 \---
 
-
-
 \## Execution Receipt
-
-
 
 A signed Execution Receipt was issued.
 
-
-
 Receipt ID
-
-
 
 ```
 
@@ -284,11 +188,7 @@ a677de4e-472c-4b37-8a12-4199d2510b8b
 
 ```
 
-
-
 Receipt Hash
-
-
 
 ```
 
@@ -296,11 +196,7 @@ Receipt Hash
 
 ```
 
-
-
 Algorithm
-
-
 
 ```
 
@@ -308,15 +204,9 @@ ed25519
 
 ```
 
-
-
 \---
 
-
-
 \## Execution Lifecycle
-
-
 
 ```text
 
@@ -378,19 +268,11 @@ Issue Execution Receipt
 
 ```
 
-
-
 \---
-
-
 
 \## What This Demonstrates
 
-
-
 This walkthrough validates the complete Parmana execution pipeline:
-
-
 
 \- Caller authentication
 
@@ -410,27 +292,14 @@ This walkthrough validates the complete Parmana execution pipeline:
 
 \- Execution Receipt issuance
 
-
-
 The returned Execution Trust Record provides verifiable evidence of what was requested, what policy authorized it, what was executed, and the cryptographic proof needed to independently validate the outcome.
-
-
 
 \---
 
-
-
 \## Next Guide
-
-
 
 Continue with:
 
-
-
 \- \*\*05 – Verify an Execution Trust Record\*\*
 
-
-
 This guide demonstrates how to independently verify an existing Execution Trust Record using the `/verify` endpoint.
-

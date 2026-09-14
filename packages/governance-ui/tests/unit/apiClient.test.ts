@@ -21,16 +21,14 @@ describe("apiClient", () => {
 
   describe("fetchCallerIdentity", () => {
     it("sends the key as a Bearer token and returns the identity on success", async () => {
-      const fetchSpy = vi
-        .spyOn(globalThis, "fetch")
-        .mockResolvedValue(
-          jsonResponse(200, {
-            callerId: "human-checker-1",
-            allowedPrincipalIds: [],
-            allowedCapabilities: [],
-            unrestrictedCapabilities: false,
-          }),
-        );
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        jsonResponse(200, {
+          callerId: "human-checker-1",
+          allowedPrincipalIds: [],
+          allowedCapabilities: [],
+          unrestrictedCapabilities: false,
+        }),
+      );
 
       const identity = await fetchCallerIdentity(
         "http://api.example",
@@ -38,10 +36,9 @@ describe("apiClient", () => {
       );
 
       expect(identity.callerId).toBe("human-checker-1");
-      expect(fetchSpy).toHaveBeenCalledWith(
-        "http://api.example/callers/me",
-        { headers: { Authorization: "Bearer raw-key" } },
-      );
+      expect(fetchSpy).toHaveBeenCalledWith("http://api.example/callers/me", {
+        headers: { Authorization: "Bearer raw-key" },
+      });
     });
 
     it("throws ApiClientError with status 401 on an invalid key", async () => {

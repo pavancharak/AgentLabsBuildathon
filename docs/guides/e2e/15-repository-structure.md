@@ -1,18 +1,10 @@
 \# 15 – Repository Structure
 
-
-
 This guide describes the organization of the Parmana monorepo and the responsibility of each package.
-
-
 
 \---
 
-
-
 \# Repository Overview
-
-
 
 ```text
 
@@ -36,19 +28,11 @@ parmana-exp/
 
 ```
 
-
-
 \---
-
-
 
 \# packages/
 
-
-
 The `packages` directory contains the implementation of the Parmana platform.
-
-
 
 | Package | Responsibility |
 
@@ -72,19 +56,11 @@ The `packages` directory contains the implementation of the Parmana platform.
 
 | core | Shared runtime services |
 
-
-
 \---
-
-
 
 \# docs/
 
-
-
 Documentation for developers, operators, and users.
-
-
 
 ```text
 
@@ -102,23 +78,13 @@ docs/
 
 ```
 
-
-
 \---
-
-
 
 \# examples/
 
-
-
 Reference implementations demonstrating common workflows.
 
-
-
 Examples include:
-
-
 
 \- Hello World
 
@@ -130,27 +96,15 @@ Examples include:
 
 \- Replay
 
-
-
 These examples are intended for learning and testing.
-
-
 
 \---
 
-
-
 \# scripts/
-
-
 
 Repository automation.
 
-
-
 Typical scripts include:
-
-
 
 \- Build
 
@@ -164,35 +118,19 @@ Typical scripts include:
 
 \- CI validation
 
-
-
 \---
-
-
 
 \# keys/
 
-
-
 Development cryptographic keys used for local testing.
-
-
 
 Production deployments should replace these with secure key management solutions.
 
-
-
 \---
-
-
 
 \# .github/
 
-
-
 GitHub Actions workflows for:
-
-
 
 \- Build
 
@@ -204,15 +142,9 @@ GitHub Actions workflows for:
 
 \- Release automation
 
-
-
 \---
 
-
-
 \# Package Relationships
-
-
 
 ```text
 
@@ -246,19 +178,11 @@ Crypto  Governance  Execution
 
 ```
 
-
-
 \---
-
-
 
 \# Dependency Principles
 
-
-
 The repository follows these principles:
-
-
 
 \- Single responsibility per package
 
@@ -270,15 +194,8 @@ The repository follows these principles:
 
 \- Reusable packages for SDKs and tooling
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 The Parmana monorepo separates HTTP APIs, runtime execution, cryptographic services, governance logic, verification, and persistence into focused packages, making the platform easier to understand, maintain, and extend.
-

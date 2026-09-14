@@ -30,7 +30,9 @@ export interface GracefulShutdownOptions {
  * Idempotent: a second signal while already shutting down is a no-op,
  * not a second close() call racing the first.
  */
-export function createGracefulShutdown(options: GracefulShutdownOptions): (signal: string) => void {
+export function createGracefulShutdown(
+  options: GracefulShutdownOptions,
+): (signal: string) => void {
   const exit = options.exit ?? ((code: number) => process.exit(code));
   const log = options.log ?? console.log;
   const logError = options.logError ?? console.error;
@@ -41,10 +43,14 @@ export function createGracefulShutdown(options: GracefulShutdownOptions): (signa
     if (shuttingDown) return;
     shuttingDown = true;
 
-    log(`[SHUTDOWN] ${signal} received: closing server (no new connections; in-flight requests finish)`);
+    log(
+      `[SHUTDOWN] ${signal} received: closing server (no new connections; in-flight requests finish)`,
+    );
 
     const forceExit = setTimeout(() => {
-      logError(`[SHUTDOWN] timed out after ${options.timeoutMs}ms; forcing exit`);
+      logError(
+        `[SHUTDOWN] timed out after ${options.timeoutMs}ms; forcing exit`,
+      );
       exit(1);
     }, options.timeoutMs);
     forceExit.unref?.();

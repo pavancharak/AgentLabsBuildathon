@@ -1,70 +1,38 @@
 \# Parmana Domain Model
 
-
-
 \*\*Document:\*\* 002-DOMAIN-MODEL.md
 
 \*\*Version:\*\* 1.0.0 (Draft)
 
 \*\*Status:\*\* Architecture Lock
 
-
-
 \---
-
-
 
 \# Purpose
 
-
-
 This document defines the canonical domain model of the Parmana platform.
-
-
 
 The domain model establishes the vocabulary, ownership, relationships, and responsibilities of every core concept in the platform.
 
-
-
 Only the concepts defined in this document are considered first-class domain objects.
 
-
-
 \---
-
-
 
 \# Domain Philosophy
 
-
-
 Parmana models \*\*trusted execution\*\*.
-
-
 
 The platform does not model workflows.
 
-
-
 The platform does not model applications.
-
-
 
 The platform models the lifecycle of a single execution and the evidence required to independently verify that execution.
 
-
-
 \---
-
-
 
 \# Root Aggregate
 
-
-
 The root aggregate is:
-
-
 
 ```text
 
@@ -72,23 +40,13 @@ ExecutionTransaction
 
 ```
 
-
-
 Every domain object belongs to exactly one ExecutionTransaction.
-
-
 
 Nothing exists outside an ExecutionTransaction.
 
-
-
 \---
 
-
-
 \# Aggregate Structure
-
-
 
 ```text
 
@@ -110,35 +68,19 @@ ExecutionTransaction
 
 ```
 
-
-
 This structure is permanent.
-
-
 
 \---
 
-
-
 \# Domain Objects
-
-
 
 \## 1. ExecutionTransaction
 
-
-
 \### Purpose
-
-
 
 Represents one complete trusted execution lifecycle.
 
-
-
 \### Owns
-
-
 
 \* Authority
 
@@ -154,11 +96,7 @@ Represents one complete trusted execution lifecycle.
 
 \* Crypto Profile
 
-
-
 \### Responsibilities
-
-
 
 \* Establish aggregate boundaries.
 
@@ -166,11 +104,7 @@ Represents one complete trusted execution lifecycle.
 
 \* Provide a stable identity for every execution.
 
-
-
 \### Invariants
-
-
 
 \* Has exactly one Authority.
 
@@ -184,27 +118,15 @@ Represents one complete trusted execution lifecycle.
 
 \* Produces one Verification outcome.
 
-
-
 \---
-
-
 
 \## 2. Authority
 
-
-
 \### Purpose
-
-
 
 Identifies who is permitted to authorize execution.
 
-
-
 \### Responsibilities
-
-
 
 \* Establish execution authority.
 
@@ -214,11 +136,7 @@ Identifies who is permitted to authorize execution.
 
 \* Record approval source.
 
-
-
 \### Examples
-
-
 
 \* Human Approver
 
@@ -230,37 +148,21 @@ Identifies who is permitted to authorize execution.
 
 \* Organization
 
-
-
 \### Invariants
-
-
 
 \* Authority is immutable.
 
 \* Authority identity is verifiable.
 
-
-
 \---
-
-
 
 \## 3. Intent
 
-
-
 \### Purpose
-
-
 
 Defines what execution is expected to perform.
 
-
-
 \### Responsibilities
-
-
 
 \* Describe expected execution.
 
@@ -270,11 +172,7 @@ Defines what execution is expected to perform.
 
 \* Bind execution to authorization.
 
-
-
 \### Invariants
-
-
 
 \* Intent is immutable.
 
@@ -282,27 +180,15 @@ Defines what execution is expected to perform.
 
 \* Intent cannot change after authorization.
 
-
-
 \---
-
-
 
 \## 4. Authorization
 
-
-
 \### Purpose
-
-
 
 Determines whether execution is permitted.
 
-
-
 \### Responsibilities
-
-
 
 \* Evaluate policy.
 
@@ -310,11 +196,7 @@ Determines whether execution is permitted.
 
 \* Bind authorization to intent.
 
-
-
 \### May Produce
-
-
 
 \* Decision
 
@@ -324,37 +206,21 @@ Determines whether execution is permitted.
 
 \* Authorization Metadata
 
-
-
 \### Invariants
-
-
 
 \* Authorization references exactly one Intent.
 
 \* Authorization precedes Execution.
 
-
-
 \---
-
-
 
 \## 5. Execution
 
-
-
 \### Purpose
-
-
 
 Records what actually occurred.
 
-
-
 \### Responsibilities
-
-
 
 \* Record execution status.
 
@@ -364,11 +230,7 @@ Records what actually occurred.
 
 \* Record execution timestamp.
 
-
-
 \### Invariants
-
-
 
 \* Execution is immutable.
 
@@ -376,27 +238,15 @@ Records what actually occurred.
 
 \* Execution belongs to one ExecutionTransaction.
 
-
-
 \---
-
-
 
 \## 6. Evidence
 
-
-
 \### Purpose
-
-
 
 Preserves every artifact required for independent verification.
 
-
-
 \### May Contain
-
-
 
 \* Signals
 
@@ -414,11 +264,7 @@ Preserves every artifact required for independent verification.
 
 \* Execution Metadata
 
-
-
 \### Responsibilities
-
-
 
 \* Preserve history.
 
@@ -426,11 +272,7 @@ Preserves every artifact required for independent verification.
 
 \* Preserve provenance.
 
-
-
 \### Invariants
-
-
 
 \* Evidence is append-only.
 
@@ -438,27 +280,15 @@ Preserves every artifact required for independent verification.
 
 \* Historical evidence is never deleted.
 
-
-
 \---
-
-
 
 \## 7. Verification
 
-
-
 \### Purpose
-
-
 
 Determine whether execution matched authorized intent.
 
-
-
 \### Responsibilities
-
-
 
 \* Verify Authority
 
@@ -472,11 +302,7 @@ Determine whether execution matched authorized intent.
 
 \* Produce Trust Report
 
-
-
 \### Outputs
-
-
 
 \* PASS
 
@@ -486,11 +312,7 @@ Determine whether execution matched authorized intent.
 
 \* UNKNOWN
 
-
-
 \### Invariants
-
-
 
 \* Verification is deterministic.
 
@@ -498,27 +320,15 @@ Determine whether execution matched authorized intent.
 
 \* Verification depends on recorded evidence.
 
-
-
 \---
-
-
 
 \## 8. CryptoProfile
 
-
-
 \### Purpose
-
-
 
 Defines the cryptographic configuration used by an ExecutionTransaction.
 
-
-
 \### Components
-
-
 
 \* Canonicalization
 
@@ -530,35 +340,21 @@ Defines the cryptographic configuration used by an ExecutionTransaction.
 
 \* Version
 
-
-
 \### Responsibilities
-
-
 
 \* Enable cryptographic agility.
 
 \* Preserve historical verification.
 
-
-
 \### Invariants
-
-
 
 \* CryptoProfile is immutable.
 
 \* Every signature references one CryptoProfile.
 
-
-
 \---
 
-
-
 \# Relationships
-
-
 
 ```text
 
@@ -594,173 +390,109 @@ ExecutionTransaction
 
 ```
 
-
-
 \---
-
-
 
 \# Ownership Rules
 
-
-
-| Object        | Owner                |
+| Object | Owner |
 
 | ------------- | -------------------- |
 
-| Authority     | ExecutionTransaction |
+| Authority | ExecutionTransaction |
 
-| Intent        | ExecutionTransaction |
+| Intent | ExecutionTransaction |
 
 | Authorization | ExecutionTransaction |
 
-| Execution     | ExecutionTransaction |
+| Execution | ExecutionTransaction |
 
-| Evidence      | ExecutionTransaction |
+| Evidence | ExecutionTransaction |
 
-| Verification  | ExecutionTransaction |
+| Verification | ExecutionTransaction |
 
 | CryptoProfile | ExecutionTransaction |
 
-
-
 No domain object may be shared between ExecutionTransactions.
 
-
-
 \---
-
-
 
 \# Domain Boundaries
 
-
-
 Implementation artifacts belong to domains.
-
-
 
 They are \*\*not\*\* top-level domain objects.
 
-
-
-| Artifact         | Domain        |
+| Artifact | Domain |
 
 | ---------------- | ------------- |
 
-| Decision         | Authorization |
+| Decision | Authorization |
 
-| Policy Snapshot  | Authorization |
+| Policy Snapshot | Authorization |
 
 | Execution Permit | Authorization |
 
-| Signals          | Evidence      |
+| Signals | Evidence |
 
-| Attestation      | Evidence      |
+| Attestation | Evidence |
 
-| Receipt          | Evidence      |
+| Receipt | Evidence |
 
-| Signature        | Evidence      |
+| Signature | Evidence |
 
-| Hash             | Evidence      |
+| Hash | Evidence |
 
-| Ledger Record    | Evidence      |
+| Ledger Record | Evidence |
 
-| Trust Report     | Verification  |
+| Trust Report | Verification |
 
-| Replay           | Verification  |
+| Replay | Verification |
 
-| Integrity Check  | Verification  |
-
-
+| Integrity Check | Verification |
 
 \---
-
-
 
 \# Domain Invariants
 
-
-
 Every ExecutionTransaction must satisfy the following invariants.
-
-
 
 \### Authority
 
-
-
 Execution originates from a recognized authority.
 
-
-
 \---
-
-
 
 \### Intent
 
-
-
 Execution matches immutable intent.
 
-
-
 \---
-
-
 
 \### Authorization
 
-
-
 Execution is explicitly authorized.
 
-
-
 \---
-
-
 
 \### Execution
 
-
-
 Execution is permanently recorded.
 
-
-
 \---
-
-
 
 \### Evidence
 
-
-
 Evidence is independently verifiable.
 
-
-
 \---
-
-
 
 \### Verification
 
-
-
 Execution matches authorized intent.
-
-
 
 \---
 
-
-
 \# Aggregate Lifecycle
-
-
 
 ```text
 
@@ -792,23 +524,13 @@ Execution Trust
 
 ```
 
-
-
 This lifecycle defines every ExecutionTransaction.
-
-
 
 \---
 
-
-
 \# Evolution Rules
 
-
-
 The following objects are permanent architectural concepts.
-
-
 
 \* ExecutionTransaction
 
@@ -826,25 +548,12 @@ The following objects are permanent architectural concepts.
 
 \* CryptoProfile
 
-
-
 Implementation artifacts may evolve without changing the domain model.
-
-
 
 New domain objects require an architecture decision and an update to this document.
 
-
-
 \---
-
-
 
 \# Success Criterion
 
-
-
 The domain model succeeds when every execution can be represented by a single ExecutionTransaction whose Authority, Intent, Authorization, Execution, Evidence, and Verification are sufficient for an independent verifier to determine whether execution matched authorized intent.
-
-
-

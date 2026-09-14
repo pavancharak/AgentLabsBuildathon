@@ -1,10 +1,6 @@
-import type {
-  ConnectorMetadata,
-} from "../../ConnectorMetadata.js";
+import type { ConnectorMetadata } from "../../ConnectorMetadata.js";
 
-import {
-  healthyNow,
-} from "../../ConnectorMetadata.js";
+import { healthyNow } from "../../ConnectorMetadata.js";
 
 /**
  * Metadata describing the Oracle connector.
@@ -25,6 +21,5 @@ export const OracleMetadata: ConnectorMetadata = Object.freeze({
 
   health: healthyNow(),
 
-  description:
-    "Mock connector for Oracle purchase order execution.",
+  description: "Mock connector for Oracle purchase order execution.",
 });

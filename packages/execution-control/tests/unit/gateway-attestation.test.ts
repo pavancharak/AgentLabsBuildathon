@@ -55,47 +55,86 @@ function fixture() {
     [connectorIdentity],
   );
 
-  return { privateKey, wrongPrivateKey, gatewayIdentity, connectorIdentity, signer, authenticator };
+  return {
+    privateKey,
+    wrongPrivateKey,
+    gatewayIdentity,
+    connectorIdentity,
+    signer,
+    authenticator,
+  };
 }
 
 describe("SignedTokenConnectorAuthenticator", () => {
   it("authenticates a validly signed attestation bound to the correct authorizationId", () => {
     const f = fixture();
-    const attestation = f.signer.sign(f.gatewayIdentity.gatewayId, "authorization-1", f.privateKey);
+    const attestation = f.signer.sign(
+      f.gatewayIdentity.gatewayId,
+      "authorization-1",
+      f.privateKey,
+    );
 
     expect(
-      f.authenticator.authenticateGatewayForRequest(f.gatewayIdentity, attestation, "authorization-1"),
+      f.authenticator.authenticateGatewayForRequest(
+        f.gatewayIdentity,
+        attestation,
+        "authorization-1",
+      ),
     ).toBe(true);
   });
 
   it("rejects an attestation signed by the wrong key (spoofed gateway)", () => {
     const f = fixture();
-    const forged = f.signer.sign(f.gatewayIdentity.gatewayId, "authorization-1", f.wrongPrivateKey);
+    const forged = f.signer.sign(
+      f.gatewayIdentity.gatewayId,
+      "authorization-1",
+      f.wrongPrivateKey,
+    );
 
     expect(
-      f.authenticator.authenticateGatewayForRequest(f.gatewayIdentity, forged, "authorization-1"),
+      f.authenticator.authenticateGatewayForRequest(
+        f.gatewayIdentity,
+        forged,
+        "authorization-1",
+      ),
     ).toBe(false);
   });
 
   it("rejects a tampered attestation payload", () => {
     const f = fixture();
-    const attestation = f.signer.sign(f.gatewayIdentity.gatewayId, "authorization-1", f.privateKey);
+    const attestation = f.signer.sign(
+      f.gatewayIdentity.gatewayId,
+      "authorization-1",
+      f.privateKey,
+    );
     const tampered = {
       ...attestation,
       payload: { ...attestation.payload, authorizationId: "authorization-2" },
     };
 
     expect(
-      f.authenticator.authenticateGatewayForRequest(f.gatewayIdentity, tampered, "authorization-2"),
+      f.authenticator.authenticateGatewayForRequest(
+        f.gatewayIdentity,
+        tampered,
+        "authorization-2",
+      ),
     ).toBe(false);
   });
 
   it("rejects an attestation minted for a different authorizationId (replay across requests)", () => {
     const f = fixture();
-    const attestation = f.signer.sign(f.gatewayIdentity.gatewayId, "authorization-1", f.privateKey);
+    const attestation = f.signer.sign(
+      f.gatewayIdentity.gatewayId,
+      "authorization-1",
+      f.privateKey,
+    );
 
     expect(
-      f.authenticator.authenticateGatewayForRequest(f.gatewayIdentity, attestation, "authorization-2"),
+      f.authenticator.authenticateGatewayForRequest(
+        f.gatewayIdentity,
+        attestation,
+        "authorization-2",
+      ),
     ).toBe(false);
   });
 
@@ -103,26 +142,42 @@ describe("SignedTokenConnectorAuthenticator", () => {
     const f = fixture();
 
     expect(
-      f.authenticator.authenticateGatewayForRequest(f.gatewayIdentity, undefined, "authorization-1"),
+      f.authenticator.authenticateGatewayForRequest(
+        f.gatewayIdentity,
+        undefined,
+        "authorization-1",
+      ),
     ).toBe(false);
-    expect(f.authenticator.authenticateGateway(f.gatewayIdentity, undefined)).toBe(false);
+    expect(
+      f.authenticator.authenticateGateway(f.gatewayIdentity, undefined),
+    ).toBe(false);
   });
 
   it("authenticateGateway validates the signature without checking request binding", () => {
     const f = fixture();
-    const attestation = f.signer.sign(f.gatewayIdentity.gatewayId, "authorization-1", f.privateKey);
+    const attestation = f.signer.sign(
+      f.gatewayIdentity.gatewayId,
+      "authorization-1",
+      f.privateKey,
+    );
 
-    expect(f.authenticator.authenticateGateway(f.gatewayIdentity, attestation)).toBe(true);
+    expect(
+      f.authenticator.authenticateGateway(f.gatewayIdentity, attestation),
+    ).toBe(true);
   });
 
   it("authenticates trusted connectors and rejects unknown ones", () => {
     const f = fixture();
 
-    expect(f.authenticator.authenticateConnector(f.connectorIdentity)).toBe(true);
-    expect(f.authenticator.authenticateConnector({
-      connectorId: "oracle",
-      publicIdentity: "spiffe://parmana/connectors/oracle",
-      authenticationMetadata: {},
-    })).toBe(false);
+    expect(f.authenticator.authenticateConnector(f.connectorIdentity)).toBe(
+      true,
+    );
+    expect(
+      f.authenticator.authenticateConnector({
+        connectorId: "oracle",
+        publicIdentity: "spiffe://parmana/connectors/oracle",
+        authenticationMetadata: {},
+      }),
+    ).toBe(false);
   });
 });

@@ -1,8 +1,8 @@
 # Phase 3D — Independent Authorization Certification
 
-Certifies, from current repository state only, whether the public claim *"Even if AI
+Certifies, from current repository state only, whether the public claim _"Even if AI
 has valid credentials, it still cannot execute anything your business hasn't
-authorized. No exceptions"* is fully supported by the implemented system. This is a
+authorized. No exceptions"_ is fully supported by the implemented system. This is a
 certification pass, not an implementation phase: no production source code and no
 documentation other than this new file were changed.
 
@@ -69,23 +69,23 @@ unconditionally `createExecutionGateway()`) → `createExecutionControl()`
 `createConnectorRegistry.ts:43-168` registers a connector only when its credential
 provider factory returns non-`undefined`:
 
-| Connector | Registration gate | Production capability? |
-|---|---|---|
+| Connector        | Registration gate                                                                                                                                                                                                               | Production capability?                                                                           |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `vendor-payment` | `createVendorPaymentConnector()` returns a real connector only when `process.env.NODE_ENV === "test"` (`createVendorPaymentConnector.ts:30-32`); otherwise `undefined`, logged and skipped (`createConnectorRegistry.ts:55-64`) | **No.** Confirmed by reading the gating condition directly, not inferred from the comment alone. |
-| `razorpay` | `createRazorpayCredentialProvider()` returns `undefined` unless both `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` are set (`createRazorpayCredentialProvider.ts:85-89`) | **Yes**, conditional on operator-supplied secrets. |
-| `hubspot` | `createHubSpotCredentialProvider()` returns `undefined` unless `HUBSPOT_PRIVATE_APP_TOKEN` is set | **Yes**, conditional on operator-supplied secrets. |
+| `razorpay`       | `createRazorpayCredentialProvider()` returns `undefined` unless both `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` are set (`createRazorpayCredentialProvider.ts:85-89`)                                                          | **Yes**, conditional on operator-supplied secrets.                                               |
+| `hubspot`        | `createHubSpotCredentialProvider()` returns `undefined` unless `HUBSPOT_PRIVATE_APP_TOKEN` is set                                                                                                                               | **Yes**, conditional on operator-supplied secrets.                                               |
 
 **Capability action strings exposed** (confirmed against `GatewayRazorpayAdapter.execute()`'s
 switch, `GatewayRazorpayAdapter.ts:98-109`, and `GatewayHubSpotAdapter.execute()`'s
 switch, `GatewayHubSpotAdapter.ts:109-118`):
 
-| Capability action | Kind | Connector method |
-|---|---|---|
-| `razorpay:payment-fetch` | read | `fetchPayment` |
-| `razorpay:refund-create` | **money-moving write** | `createRefund` |
-| `razorpay:refund-fetch` | read | `fetchRefund` |
-| `hubspot:deal-fetch` | read | `fetchDeal` |
-| `hubspot:deal-update` | **record-mutating write** | `updateDeal` (deny-by-default property allowlist — `HUBSPOT_ALLOWED_DEAL_UPDATE_PROPERTIES`, `HubSpotTypes.ts:36`; any other property name throws before any network call, `GatewayHubSpotAdapter.ts:162-171`) |
+| Capability action        | Kind                      | Connector method                                                                                                                                                                                               |
+| ------------------------ | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `razorpay:payment-fetch` | read                      | `fetchPayment`                                                                                                                                                                                                 |
+| `razorpay:refund-create` | **money-moving write**    | `createRefund`                                                                                                                                                                                                 |
+| `razorpay:refund-fetch`  | read                      | `fetchRefund`                                                                                                                                                                                                  |
+| `hubspot:deal-fetch`     | read                      | `fetchDeal`                                                                                                                                                                                                    |
+| `hubspot:deal-update`    | **record-mutating write** | `updateDeal` (deny-by-default property allowlist — `HUBSPOT_ALLOWED_DEAL_UPDATE_PROPERTIES`, `HubSpotTypes.ts:36`; any other property name throws before any network call, `GatewayHubSpotAdapter.ts:162-171`) |
 
 **This certification's scope is therefore the two write capabilities,
 `razorpay:refund-create` and `hubspot:deal-update`**, since those are the only production
@@ -102,10 +102,10 @@ would **not** satisfy this claim (see §12.1).
 
 ### 3.1 Origin, storage, read, use
 
-| Capability | Credential origin (env var) | Read site | Storage at rest |
-|---|---|---|---|
-| razorpay | `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | `createRazorpayCredentialProvider.ts:34-35`, inside `resolve()`, lazily, per call | None. `CredentialHandle` is constructed fresh per resolution (`brandCredentialHandle`), wrapped in a 30-second single-use session credential (`InMemorySessionCredentialVault`, default TTL `GatewayConnectorRegistry.ts:24,124`), consumed exactly once and revoked in a `finally` block on every exit path (`SessionCredentialSecureConnector.ts:77-89`). No disk/DB persistence anywhere in this chain. |
-| hubspot | `HUBSPOT_PRIVATE_APP_TOKEN` | `createHubSpotCredentialProvider.ts:35`, inside `resolve()` | Same mechanism as above. |
+| Capability | Credential origin (env var)               | Read site                                                                         | Storage at rest                                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------- | ----------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| razorpay   | `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | `createRazorpayCredentialProvider.ts:34-35`, inside `resolve()`, lazily, per call | None. `CredentialHandle` is constructed fresh per resolution (`brandCredentialHandle`), wrapped in a 30-second single-use session credential (`InMemorySessionCredentialVault`, default TTL `GatewayConnectorRegistry.ts:24,124`), consumed exactly once and revoked in a `finally` block on every exit path (`SessionCredentialSecureConnector.ts:77-89`). No disk/DB persistence anywhere in this chain. |
+| hubspot    | `HUBSPOT_PRIVATE_APP_TOKEN`               | `createHubSpotCredentialProvider.ts:35`, inside `resolve()`                       | Same mechanism as above.                                                                                                                                                                                                                                                                                                                                                                                   |
 
 Both providers read `process.env` only inside `resolve()`, never at module scope, and
 name only the variable in thrown errors, never the value (`createRazorpayCredentialProvider.ts:38-41`).
@@ -165,7 +165,7 @@ Both adapters return a **redaction-intended prefix** of the credential in
   Razorpay credential pair; `key_secret` is never touched by this function).
 - `GatewayHubSpotAdapter.ts:145,194`: `bearerRedacted: redactHubSpotToken(token)` →
   `HubSpotTypes.ts:73-75`: first 12 characters of the **entire** HubSpot Private App
-  token — for HubSpot the bearer token *is* the whole credential, so this is a literal
+  token — for HubSpot the bearer token _is_ the whole credential, so this is a literal
   fragment of the actual secret, not a separate, less-sensitive identifier.
 
 `ConnectorEvidence.ts:31`'s generic redaction filter (`SENSITIVE_KEY_PATTERN =
@@ -190,7 +190,7 @@ genuine, verified exception to a maximally strict reading of "credential isolati
 folded silently into a blanket VERIFIED. See §12.2.
 
 **Test-coverage caveat, independently confirmed:** `credential-isolation.integration.test.ts`
-was read in full. It exercises the *generic* session-credential single-issue/single-use/
+was read in full. It exercises the _generic_ session-credential single-issue/single-use/
 always-revoked mechanism (shared by every connector via `SessionCredentialSecureConnector`)
 through a real HTTP `POST /execute` call, but does so against a synthetic, test-only
 `vendor-payment`-shaped double (`createInspectableExecutionSystem.ts`), not the real
@@ -210,11 +210,11 @@ Execution`.
 
 ### 4.1 Razorpay `razorpay:refund-create`
 
-| Authorization input | Classification | Mechanism |
-|---|---|---|
-| `paymentStatus`, `paymentCurrency`, `refundableRemainingPaise`, `requestedExceedsRemainder` | Independently verified | `RazorpaySignalStateVerifier.findViolations()` re-fetches the real payment from Razorpay (`executeRazorpayCapability` against `razorpay:payment-fetch`) and rejects on any mismatch against the caller's declared signal (`RazorpaySignalStateVerifier.ts:74-79,171-178`). Fails closed on fetch error. |
-| `requestedRefundAmountPaise` | Caller-declared, structurally bound to Intent | `policies/razorpay-refund/1.0.0/policy.json:16-18` (`boundSignals`) binds it to `parameters.amountPaise`; `SignalIntentBinder.findViolations()` (`RuntimeEngine.ts:216-226`) rejects any divergence *before* `PolicyEngine.evaluate` runs — cannot describe a different real-world action than the one that will execute. |
-| `dailyCumulativeAfterThisRefundPaise` (TD-23) | Repository-derived, atomic | `RazorpaySignalStateVerifier.reserveDailyCumulative()` atomically reserves the amount against `RazorpayDailyRefundLedger` (real DB counter) and rejects on any disagreement between the caller's declared value and the real, just-reserved total — not merely on exceeding the cap (`RazorpaySignalStateVerifier.ts:220-264`, violation logic line 245). |
+| Authorization input                                                                         | Classification                                | Mechanism                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `paymentStatus`, `paymentCurrency`, `refundableRemainingPaise`, `requestedExceedsRemainder` | Independently verified                        | `RazorpaySignalStateVerifier.findViolations()` re-fetches the real payment from Razorpay (`executeRazorpayCapability` against `razorpay:payment-fetch`) and rejects on any mismatch against the caller's declared signal (`RazorpaySignalStateVerifier.ts:74-79,171-178`). Fails closed on fetch error.                                                   |
+| `requestedRefundAmountPaise`                                                                | Caller-declared, structurally bound to Intent | `policies/razorpay-refund/1.0.0/policy.json:16-18` (`boundSignals`) binds it to `parameters.amountPaise`; `SignalIntentBinder.findViolations()` (`RuntimeEngine.ts:216-226`) rejects any divergence _before_ `PolicyEngine.evaluate` runs — cannot describe a different real-world action than the one that will execute.                                 |
+| `dailyCumulativeAfterThisRefundPaise` (TD-23)                                               | Repository-derived, atomic                    | `RazorpaySignalStateVerifier.reserveDailyCumulative()` atomically reserves the amount against `RazorpayDailyRefundLedger` (real DB counter) and rejects on any disagreement between the caller's declared value and the real, just-reserved total — not merely on exceeding the cap (`RazorpaySignalStateVerifier.ts:220-264`, violation logic line 245). |
 
 Production wiring, confirmed directly: `createRazorpaySignalStateVerifier.ts` always
 supplies `dailyRefundLedger`; `application.ts:48-52` unconditionally composes this
@@ -223,11 +223,11 @@ boot. There is no environment branch that omits it in production.
 
 ### 4.2 HubSpot `hubspot:deal-update`
 
-| Authorization input | Classification | Mechanism |
-|---|---|---|
-| `currentDealStage`, `dealStageChangeRequested`, `dealStageTransitionAllowed`, `amountChangeRequested`, `amountDeltaAbs`, `amountChangeExceedsThreshold` | Independently verified | `HubSpotSignalStateVerifier` re-fetches the real deal and rejects on mismatch (`HubSpotSignalStateVerifier.ts:61-168`). |
-| `proposedDealStage`, `proposedAmount` | Caller-declared, structurally bound to Intent | `boundSignals` in `policies/hubspot-deal-update/1.0.0/policy.json:18-21`, enforced by `SignalIntentBinder` the same way as §4.1. |
-| `preAuthorizedForAmountChange` (TD-23) | Cryptographically verified | `HubSpotSignalStateVerifier.verifyPreAuthorization()` (lines 186-241) checks `signals.approvalArtifact` via `ApprovalVerifier.verify()` — see §4.3. Only invoked when the amount change actually exceeds threshold, so requests with no bearing on this signal never needlessly consume a single-use artifact. |
+| Authorization input                                                                                                                                     | Classification                                | Mechanism                                                                                                                                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `currentDealStage`, `dealStageChangeRequested`, `dealStageTransitionAllowed`, `amountChangeRequested`, `amountDeltaAbs`, `amountChangeExceedsThreshold` | Independently verified                        | `HubSpotSignalStateVerifier` re-fetches the real deal and rejects on mismatch (`HubSpotSignalStateVerifier.ts:61-168`).                                                                                                                                                                                        |
+| `proposedDealStage`, `proposedAmount`                                                                                                                   | Caller-declared, structurally bound to Intent | `boundSignals` in `policies/hubspot-deal-update/1.0.0/policy.json:18-21`, enforced by `SignalIntentBinder` the same way as §4.1.                                                                                                                                                                               |
+| `preAuthorizedForAmountChange` (TD-23)                                                                                                                  | Cryptographically verified                    | `HubSpotSignalStateVerifier.verifyPreAuthorization()` (lines 186-241) checks `signals.approvalArtifact` via `ApprovalVerifier.verify()` — see §4.3. Only invoked when the amount change actually exceeds threshold, so requests with no bearing on this signal never needlessly consume a single-use artifact. |
 
 Directly read `packages/approval/src/ApprovalVerifier.ts:90-176` in full. It runs, in
 fixed order with no early return between independent checks (mirroring
@@ -258,7 +258,7 @@ supplies `approvalVerifier`; composed the same unconditional way as §4.1.
 This means every `preAuthorizedForAmountChange` claim is rejected today regardless of the
 artifact's genuineness (`issuerKnown` fails for everyone), confirmed by the integration
 test `hubspot-deal-update.integration.test.ts`'s `(TD-23)` case. **This is fail-closed,
-not fail-open**: it makes the system strictly *more* restrictive than the claim requires
+not fail-open**: it makes the system strictly _more_ restrictive than the claim requires
 (no over-threshold change can currently execute at all, authorized or not), so it cannot
 itself produce an unauthorized execution. It does mean the "independent business
 approval" pathway has been verified structurally and in test, but has never been
@@ -295,8 +295,8 @@ Read directly, `packages/runtime/src/RuntimeBuilder.ts:173-174,219`: `capability
 (and `signalIntentBinder`) are **unconditionally instantiated** inside `RuntimeBuilder.build()`
 — not configuration, not optional, not passed in from `application.ts` at all. There is no
 code path that constructs a production `RuntimeEngine` without them. `RuntimeEngine.execute()`
-(read directly, `RuntimeEngine.ts:210-268`) runs this check *before* `SignalIntentBinder`
-and *before* `PolicyEngine.evaluate`, with a violation short-circuiting straight to
+(read directly, `RuntimeEngine.ts:210-268`) runs this check _before_ `SignalIntentBinder`
+and _before_ `PolicyEngine.evaluate`, with a violation short-circuiting straight to
 `PolicyOutcome.REJECT` with zero rules evaluated.
 
 `CapabilityPolicyBinder.test.ts` proves the exact live-shaped exploit
@@ -415,7 +415,7 @@ retry still succeeds).
 
 `SupabaseRazorpayDailyRefundLedger.reserve()` (read directly) is a single `INSERT ...
 ON CONFLICT (refund_day) DO UPDATE SET reserved_paise = reserved_paise + EXCLUDED.reserved_paise
-RETURNING reserved_paise` — the write *is* the check, no separate read-then-decide step.
+RETURNING reserved_paise` — the write _is_ the check, no separate read-then-decide step.
 Two concurrent reservations for the same day serialize on Postgres's row lock for that
 primary key.
 
@@ -474,7 +474,7 @@ acceptance (`business_transactions.business_transaction_id TEXT PRIMARY KEY`, ma
 `23505` → `DuplicateBusinessTransactionError`) are all single-`INSERT`-plus-primary-key
 mechanisms — atomic and cross-process safe by construction, the nonce stores additionally
 proven under live concurrent Postgres load (§6.1). Business-transaction acceptance runs
-*before* `RuntimeEngine.execute()` (confirmed: `ExecutionTrustApplication.execute()` calls
+_before_ `RuntimeEngine.execute()` (confirmed: `ExecutionTrustApplication.execute()` calls
 `transactions.accept()` first), so a literal resubmission of the same
 `businessTransactionId` cannot reach the refund ledger or the approval verifier twice.
 
@@ -489,7 +489,7 @@ production implementation. Same classification as §6.3.
 
 `InMemoryGatewaySessionStore.consume()` and `InMemorySessionCredentialVault.consume()`
 (read directly) both perform their check-and-mark synchronously with no `await` between
-them — race-free *within one process* by Node's single-threaded execution, the same
+them — race-free _within one process_ by Node's single-threaded execution, the same
 pattern `MemoryNonceStore` uses. Confirmed by search: **neither has a persistent/
 Supabase-backed implementation** — `createSessionStore.ts` always constructs the in-memory
 variant, with no production/test split, unlike every other store in this codebase.
@@ -597,13 +597,13 @@ applicable, valid Razorpay/HubSpot credentials issued to the connector layer (no
 AI itself — §3 establishes the AI never possesses these), with perfect prompting, full API
 knowledge, and unrestricted ability to construct `POST /execute` request bodies.
 
-| Attempt | Prevented? | Mechanism (file:line, traced directly or independently cross-checked) |
-|---|---|---|
-| Exceed the per-refund or daily cumulative Razorpay cap by manipulating request fields | **Yes** | Amount bound to Intent via `SignalIntentBinder` (§4.1); cap enforced by atomic ledger reservation independent of any caller-declared total (§4.1, §6.3) |
-| Execute a HubSpot amount change without a valid Signed Approval Artifact (omit/forge/malformed/expired) | **Yes** | `ApprovalVerifier`'s fixed-order, no-early-return check (§4.2); malformed artifacts fail closed via `isSignedApprovalShape`; today's empty issuer registry makes this doubly true operationally (§4.2 caveat) |
-| Forge or replay an approval or execution authorization to authorize a different execution | **Yes** | Execution-authorization: `businessTransactionHash` recomputed and compared, single-use nonce (§6.1). Approval Artifact: `resourceId`/`capability`/scope bound to the independently-derived value, single-use nonce (§6.2) |
-| Point a real capability at a different, more permissive policy (policy substitution) | **Yes** | `CapabilityPolicyBinder`, unconditionally wired, runs before evaluation (§5.1, §5.3) |
-| Transfer authorization from one transaction/deal to another | **Yes** | `businessTransactionHash` binding (execution layer) and `resourceId`/scope binding against the independently-verified amount (approval layer) — both traced directly, §4.2, §6.2 |
+| Attempt                                                                                                 | Prevented? | Mechanism (file:line, traced directly or independently cross-checked)                                                                                                                                                     |
+| ------------------------------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Exceed the per-refund or daily cumulative Razorpay cap by manipulating request fields                   | **Yes**    | Amount bound to Intent via `SignalIntentBinder` (§4.1); cap enforced by atomic ledger reservation independent of any caller-declared total (§4.1, §6.3)                                                                   |
+| Execute a HubSpot amount change without a valid Signed Approval Artifact (omit/forge/malformed/expired) | **Yes**    | `ApprovalVerifier`'s fixed-order, no-early-return check (§4.2); malformed artifacts fail closed via `isSignedApprovalShape`; today's empty issuer registry makes this doubly true operationally (§4.2 caveat)             |
+| Forge or replay an approval or execution authorization to authorize a different execution               | **Yes**    | Execution-authorization: `businessTransactionHash` recomputed and compared, single-use nonce (§6.1). Approval Artifact: `resourceId`/`capability`/scope bound to the independently-derived value, single-use nonce (§6.2) |
+| Point a real capability at a different, more permissive policy (policy substitution)                    | **Yes**    | `CapabilityPolicyBinder`, unconditionally wired, runs before evaluation (§5.1, §5.3)                                                                                                                                      |
+| Transfer authorization from one transaction/deal to another                                             | **Yes**    | `businessTransactionHash` binding (execution layer) and `resourceId`/scope binding against the independently-verified amount (approval layer) — both traced directly, §4.2, §6.2                                          |
 
 **No adversarial category in this assessment succeeds against either production write
 capability under current repository evidence.**
@@ -612,8 +612,8 @@ capability under current repository evidence.**
 
 ## 11. Public Claim Assessment
 
-The literal claim string *"Even if AI has valid credentials, it still cannot execute
-anything your business hasn't authorized. No exceptions"* does **not** appear verbatim in
+The literal claim string _"Even if AI has valid credentials, it still cannot execute
+anything your business hasn't authorized. No exceptions"_ does **not** appear verbatim in
 `README.md`, `PROTOCOL.md`, `docs/CLAIMS.md`, or `docs/GUARANTEES.md` as searched in this
 session — it is tracked and re-verified as an internal governing claim across the
 `docs/architecture/phase2k` → `phase2l` → `phase3a/b/c` lineage, most recently
@@ -704,7 +704,7 @@ action the business has not authorized, under the current production wiring.
    and relies entirely on being gated behind the durable execution-authorization nonce
    upstream in the current wiring (§6.4). **Deliberately not closed.** `GatewayAttestation`
    is a shared, foundational crypto primitive (`packages/execution-control/src/
-   GatewayAttestation.ts`) whose current no-TTL design is explicitly documented in-source as
+GatewayAttestation.ts`) whose current no-TTL design is explicitly documented in-source as
    intentional, with replay handled at a different, already-durable layer. Adding an
    independent TTL is architecturally reasonable defense-in-depth, but is exactly the kind
    of new-authorization-primitive change this codebase's own established practice (see
@@ -781,6 +781,7 @@ independently closed by direct re-reading in this session (§5.2); all other fla
 were incorporated as disclosed limitations (§12) rather than dismissed.
 
 **Regression tests (run fresh in this session, not inherited):**
+
 ```
 npx tsc -b                       → clean, 0 errors
 npm test -- --maxWorkers=2       → 148 test files passed, 15 skipped (163 total)
@@ -791,19 +792,19 @@ npm test -- --maxWorkers=2       → 148 test files passed, 15 skipped (163 tota
 
 ## Final Verification
 
-| Item | Status |
-|---|---|
-| Every production capability independently verified | ✓ — §2, derived from bootstrap gating logic, not documentation |
-| Credential isolation independently verified | ✓ (with disclosed fragment-leakage exception) — §3 |
-| Independent authorization independently verified | ✓ (with disclosed HubSpot-issuer operational caveat) — §4 |
-| Canonical capability binding independently verified | ✓ — §5.1, unconditionally wired, exploit-shaped test passes |
-| Structural enforcement / no bypass independently verified | ✓ — §5.2, both open flags from the evidence pass closed directly |
-| Replay resistance independently verified | ✓ (with disclosed live-DB test-coverage gap for one ledger) — §6 |
-| Concurrency safety independently verified | ✓ (with disclosed scaling-dependent internal-layer note) — §7 |
-| Auditability independently verified | ✓ — §8 |
-| Repository searched for contradictory evidence | ✓ — §9, nothing found that materially contradicts the claim in scope |
-| No production source code changed | ✓ — this phase performed reads only |
-| No documentation modified | ✓ — this new file is the only addition |
+| Item                                                      | Status                                                               |
+| --------------------------------------------------------- | -------------------------------------------------------------------- |
+| Every production capability independently verified        | ✓ — §2, derived from bootstrap gating logic, not documentation       |
+| Credential isolation independently verified               | ✓ (with disclosed fragment-leakage exception) — §3                   |
+| Independent authorization independently verified          | ✓ (with disclosed HubSpot-issuer operational caveat) — §4            |
+| Canonical capability binding independently verified       | ✓ — §5.1, unconditionally wired, exploit-shaped test passes          |
+| Structural enforcement / no bypass independently verified | ✓ — §5.2, both open flags from the evidence pass closed directly     |
+| Replay resistance independently verified                  | ✓ (with disclosed live-DB test-coverage gap for one ledger) — §6     |
+| Concurrency safety independently verified                 | ✓ (with disclosed scaling-dependent internal-layer note) — §7        |
+| Auditability independently verified                       | ✓ — §8                                                               |
+| Repository searched for contradictory evidence            | ✓ — §9, nothing found that materially contradicts the claim in scope |
+| No production source code changed                         | ✓ — this phase performed reads only                                  |
+| No documentation modified                                 | ✓ — this new file is the only addition                               |
 
 ---
 

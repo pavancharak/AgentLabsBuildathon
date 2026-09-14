@@ -100,7 +100,11 @@ describe("PolicyValidator.findUncoveredFacts", () => {
       rules: [
         {
           id: "reject-unverified",
-          condition: { fact: "vendorVerified", operator: "is_false", value: true },
+          condition: {
+            fact: "vendorVerified",
+            operator: "is_false",
+            value: true,
+          },
           outcome: { action: "reject" as never, reason: "unverified" },
         },
       ],
@@ -123,7 +127,11 @@ describe("PolicyValidator.validate -- unboundSignalReasons", () => {
     rules: [
       {
         id: "reject-unverified",
-        condition: { fact: "vendorVerified", operator: "is_false", value: true },
+        condition: {
+          fact: "vendorVerified",
+          operator: "is_false",
+          value: true,
+        },
         outcome: { action: "reject" as never, reason: "unverified" },
       },
     ],
@@ -141,9 +149,7 @@ describe("PolicyValidator.validate -- unboundSignalReasons", () => {
   });
 
   it("fails closed -- throws naming the fact -- when a rule-referenced fact is neither bound nor acknowledged", () => {
-    expect(() => validator.validate(basePolicy)).toThrow(
-      /'vendorVerified'/,
-    );
+    expect(() => validator.validate(basePolicy)).toThrow(/'vendorVerified'/);
   });
 
   it("passes when the only uncovered fact is instead bound via boundSignals", () => {
@@ -230,7 +236,10 @@ describe("PolicyValidator.findRuleConflicts", () => {
         {
           id: "reject-default",
           condition: { always: true },
-          outcome: { action: "reject" as never, reason: "no other rule matched" },
+          outcome: {
+            action: "reject" as never,
+            reason: "no other rule matched",
+          },
         },
       ],
     };
@@ -249,7 +258,10 @@ describe("PolicyValidator.findRuleConflicts", () => {
         {
           id: "reject-default",
           condition: { always: true },
-          outcome: { action: "reject" as never, reason: "no other rule matched" },
+          outcome: {
+            action: "reject" as never,
+            reason: "no other rule matched",
+          },
         },
       ],
     };
@@ -357,7 +369,11 @@ describe("PolicyValidator.findRuleConflicts", () => {
     };
     const conflicts = validator.findRuleConflicts(policy);
     expect(conflicts).toContainEqual(
-      expect.objectContaining({ level: "WARNING", ruleId: "rule1", conflictingRuleId: "rule2" }),
+      expect.objectContaining({
+        level: "WARNING",
+        ruleId: "rule1",
+        conflictingRuleId: "rule2",
+      }),
     );
   });
 
@@ -423,7 +439,11 @@ describe("PolicyValidator.findRuleConflicts", () => {
           condition: {
             all: [
               { fact: "dealStageChangeRequested", operator: "eq", value: true },
-              { fact: "dealStageTransitionAllowed", operator: "eq", value: false },
+              {
+                fact: "dealStageTransitionAllowed",
+                operator: "eq",
+                value: false,
+              },
             ],
           },
           outcome: { action: "reject" as never, reason: "..." },
@@ -432,8 +452,16 @@ describe("PolicyValidator.findRuleConflicts", () => {
           id: "reject-amount-exceeds-threshold",
           condition: {
             all: [
-              { fact: "amountChangeExceedsThreshold", operator: "eq", value: true },
-              { fact: "preAuthorizedForAmountChange", operator: "eq", value: false },
+              {
+                fact: "amountChangeExceedsThreshold",
+                operator: "eq",
+                value: true,
+              },
+              {
+                fact: "preAuthorizedForAmountChange",
+                operator: "eq",
+                value: false,
+              },
             ],
           },
           outcome: { action: "reject" as never, reason: "..." },

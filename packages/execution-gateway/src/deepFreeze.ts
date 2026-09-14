@@ -16,11 +16,7 @@
  * Connector call.
  */
 export function deepFreeze<T>(value: T): Readonly<T> {
-  if (
-    value !== null &&
-    typeof value === "object" &&
-    !Object.isFrozen(value)
-  ) {
+  if (value !== null && typeof value === "object" && !Object.isFrozen(value)) {
     for (const property of Object.values(value)) {
       deepFreeze(property);
     }

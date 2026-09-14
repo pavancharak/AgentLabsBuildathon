@@ -1,26 +1,14 @@
 \# 16 – Runtime Architecture
 
-
-
 This guide explains how the Parmana Runtime processes Business Transactions from API request through execution, evidence collection, and Trust Record generation.
-
-
 
 \---
 
-
-
 \# Runtime Overview
-
-
 
 The Runtime is responsible for executing Business Transactions in a deterministic and auditable manner.
 
-
-
 Its responsibilities include:
-
-
 
 \- Processing Business Transactions
 
@@ -34,15 +22,9 @@ Its responsibilities include:
 
 \- Persisting immutable evidence
 
-
-
 \---
 
-
-
 \# Runtime Pipeline
-
-
 
 ```text
 
@@ -98,81 +80,43 @@ Persistence
 
 ```
 
-
-
 \---
-
-
 
 \# Step 1 – Business Transaction
 
-
-
 The Runtime receives a validated Business Transaction from the API layer.
-
-
 
 The transaction includes the information required to evaluate and perform the requested business operation.
 
-
-
 \---
-
-
 
 \# Step 2 – Policy Evaluation
 
-
-
 The Runtime evaluates the transaction against execution policies.
 
-
-
 Possible outcomes include:
-
-
 
 \- APPROVED
 
 \- REJECTED
 
-
-
 The decision determines whether execution continues.
 
-
-
 \---
-
-
 
 \# Step 3 – Execution Authorization
 
-
-
 For approved transactions, the Runtime records an authorization that binds the execution to the policy decision.
-
-
 
 This authorization is later verified during Trust Record verification.
 
-
-
 \---
-
-
 
 \# Step 4 – Connector Invocation
 
-
-
 The Runtime invokes the appropriate connector or target system to perform the approved business action.
 
-
-
 Examples include:
-
-
 
 \- Payment systems
 
@@ -182,23 +126,13 @@ Examples include:
 
 \- Identity services
 
-
-
 Execution results are captured as evidence.
-
-
 
 \---
 
-
-
 \# Step 5 – Evidence Collection
 
-
-
 The Runtime records execution evidence including:
-
-
 
 \- Execution identifiers
 
@@ -210,27 +144,15 @@ The Runtime records execution evidence including:
 
 \- Execution timestamps
 
-
-
 This evidence forms the basis of the Execution Trust Record.
-
-
 
 \---
 
-
-
 \# Step 6 – Execution Trust Record
-
-
 
 The Runtime assembles all immutable execution evidence into an Execution Trust Record.
 
-
-
 The Trust Record is then:
-
-
 
 \- Canonicalized
 
@@ -240,15 +162,9 @@ The Trust Record is then:
 
 \- Stored
 
-
-
 \---
 
-
-
 \# Runtime Components
-
-
 
 | Component | Responsibility |
 
@@ -264,19 +180,11 @@ The Trust Record is then:
 
 | Receipt Service | Generates execution receipts |
 
-
-
 \---
-
-
 
 \# Design Principles
 
-
-
 The Runtime is designed around the following principles:
-
-
 
 \- Deterministic execution
 
@@ -290,15 +198,9 @@ The Runtime is designed around the following principles:
 
 \- Separation of concerns
 
-
-
 \---
 
-
-
 \# Relationship to Other Components
-
-
 
 ```text
 
@@ -336,15 +238,8 @@ Receipt
 
 ```
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 The Parmana Runtime transforms Business Transactions into immutable Execution Trust Records through deterministic policy evaluation, controlled execution, evidence collection, and cryptographic protection. It forms the operational core of the Execution Trust Platform.
-

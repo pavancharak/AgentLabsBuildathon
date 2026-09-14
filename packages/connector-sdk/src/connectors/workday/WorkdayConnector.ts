@@ -1,10 +1,6 @@
-import {
-  MockConnector,
-} from "../../MockConnector.js";
+import { MockConnector } from "../../MockConnector.js";
 
-import {
-  connectorCapabilities,
-} from "../../ConnectorTypes.js";
+import { connectorCapabilities } from "../../ConnectorTypes.js";
 
 /**
  * Mock Workday connector.
@@ -16,8 +12,6 @@ export function createWorkdayConnector(): MockConnector {
   return new MockConnector({
     connectorId: "workday",
 
-    capabilities: connectorCapabilities([
-      "workday:submit-expense-report",
-    ]),
+    capabilities: connectorCapabilities(["workday:submit-expense-report"]),
   });
 }

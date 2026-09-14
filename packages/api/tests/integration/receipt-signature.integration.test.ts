@@ -28,87 +28,60 @@ beforeAll(() => {
 const databaseConfigured = resolveDatabaseGate("Receipt Signature");
 
 describe.skipIf(!databaseConfigured)("Receipt Signature", () => {
-  it(
-    "generates a verifiable receipt signature",
-    async () => {
-      //
-      // Arrange
-      //
-      const transaction = createBusinessTransaction();
+  it("generates a verifiable receipt signature", async () => {
+    //
+    // Arrange
+    //
+    const transaction = createBusinessTransaction();
 
-      //
-      // Execute
-      //
-      const execute = await request(app)
-        .post("/execute")
-        .send(transaction);
+    //
+    // Execute
+    //
+    const execute = await request(app).post("/execute").send(transaction);
 
-      expect(execute.status).toBe(200);
+    expect(execute.status).toBe(200);
 
-      const trustRecord = execute.body;
+    const trustRecord = execute.body;
 
-      //
-      // Verify
-      //
-      const verify = await request(app)
-        .post("/verify")
-        .send({
-          businessTransactionId:
-            trustRecord.businessTransactionId,
-        });
+    //
+    // Verify
+    //
+    const verify = await request(app).post("/verify").send({
+      businessTransactionId: trustRecord.businessTransactionId,
+    });
 
-      expect(verify.status).toBe(200);
+    expect(verify.status).toBe(200);
 
-      //
-      // Generate Receipt
-      //
-      const receipt = await request(app)
-        .post("/receipt")
-        .send({
-          businessTransactionId:
-            trustRecord.businessTransactionId,
-        });
+    //
+    // Generate Receipt
+    //
+    const receipt = await request(app).post("/receipt").send({
+      businessTransactionId: trustRecord.businessTransactionId,
+    });
 
-      expect(receipt.status).toBe(200);
+    expect(receipt.status).toBe(200);
 
-      //
-      // Verify Receipt Signature
-      //
-      const cryptoProvider =
-        CryptoBootstrap.create();
+    //
+    // Verify Receipt Signature
+    //
+    const cryptoProvider = CryptoBootstrap.create();
 
-      const verifier =
-        new SignatureVerifier(
-          cryptoProvider,
-        );
+    const verifier = new SignatureVerifier(cryptoProvider);
 
-      const keyProvider =
-        new FileKeyProvider();
+    const keyProvider = new FileKeyProvider();
 
-      const publicKey =
-        await keyProvider.getPublicKey(
-          "default",
-        );
+    const publicKey = await keyProvider.getPublicKey("default");
 
-      const receiptBody =
-        receipt.body as ReceiptResponse;
+    const receiptBody = receipt.body as ReceiptResponse;
 
-      const {
-        signature,
-        ...unsignedReceipt
-      } = receiptBody;
+    const { signature, ...unsignedReceipt } = receiptBody;
 
-      const verified =
-        await verifier.verify(
-          unsignedReceipt,
-          signature,
-          publicKey,
-        );
+    const verified = await verifier.verify(
+      unsignedReceipt,
+      signature,
+      publicKey,
+    );
 
-      expect(verified).toBe(true);
-    },
-    30000,
-  );
+    expect(verified).toBe(true);
+  }, 30000);
 });
-
-

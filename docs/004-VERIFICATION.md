@@ -1,98 +1,52 @@
 \# Verification Specification
 
-
-
 \*\*Document:\*\* 004-VERIFICATION.md
 
 \*\*Version:\*\* 1.0.0 (Draft)
 
 \*\*Status:\*\* Architecture Lock
 
-
-
 \---
-
-
 
 \# Purpose
 
-
-
 Verification is the process of independently determining whether an execution matched its authorized intent.
-
-
 
 Verification establishes \*\*Execution Trust\*\*.
 
-
-
 Verification does not create trust.
-
-
 
 Verification produces evidence that allows trust to be independently established.
 
-
-
 \---
-
-
 
 \# Definition
 
-
-
 Verification is a deterministic evaluation performed against an immutable ExecutionTransaction.
-
-
 
 Verification consumes recorded evidence.
 
-
-
 Verification never depends solely on runtime state.
 
-
-
 \---
-
-
 
 \# Verification Philosophy
 
-
-
 Runtime performs execution.
-
-
 
 Evidence preserves execution.
 
-
-
 Verification evaluates execution.
-
-
 
 These responsibilities remain permanently separated.
 
-
-
 \---
-
-
 
 \# Inputs
 
-
-
 Verification operates on exactly one ExecutionTransaction.
 
-
-
 It consumes:
-
-
 
 ```text
 
@@ -116,27 +70,15 @@ Evidence
 
 ```
 
-
-
 Verification never modifies these objects.
-
-
 
 \---
 
-
-
 \# Output
-
-
 
 Verification produces one immutable Verification Report.
 
-
-
 Possible outcomes:
-
-
 
 ```text
 
@@ -156,23 +98,13 @@ UNKNOWN
 
 ```
 
-
-
 Verification is binary.
-
-
 
 Trust is never represented as a percentage.
 
-
-
 \---
 
-
-
 \# Verification Model
-
-
 
 ```text
 
@@ -204,43 +136,23 @@ Execution Trust
 
 ```
 
-
-
 \---
-
-
 
 \# Platform Invariants
 
-
-
 Verification evaluates six platform invariants.
-
-
 
 \---
 
-
-
 \## Invariant 1
-
-
 
 \### Authority
 
-
-
 Question
-
-
 
 Who authorized execution?
 
-
-
 Verification confirms:
-
-
 
 \* Authority exists
 
@@ -248,39 +160,21 @@ Verification confirms:
 
 \* Authority was authorized to approve execution
 
-
-
 Result
-
-
 
 PASS or FAIL
 
-
-
 \---
-
-
 
 \## Invariant 2
 
-
-
 \### Intent
-
-
 
 Question
 
-
-
 What was supposed to happen?
 
-
-
 Verification confirms:
-
-
 
 \* Intent exists
 
@@ -288,39 +182,21 @@ Verification confirms:
 
 \* Intent uniquely identifies expected execution
 
-
-
 Result
-
-
 
 PASS or FAIL
 
-
-
 \---
-
-
 
 \## Invariant 3
 
-
-
 \### Authorization
-
-
 
 Question
 
-
-
 Was execution permitted?
 
-
-
 Verification confirms:
-
-
 
 \* Authorization exists
 
@@ -330,39 +206,21 @@ Verification confirms:
 
 \* Authorization preceded execution
 
-
-
 Result
-
-
 
 PASS or FAIL
 
-
-
 \---
-
-
 
 \## Invariant 4
 
-
-
 \### Execution
-
-
 
 Question
 
-
-
 What actually happened?
 
-
-
 Verification confirms:
-
-
 
 \* Execution exists
 
@@ -370,39 +228,21 @@ Verification confirms:
 
 \* Execution references Authorization
 
-
-
 Result
-
-
 
 PASS or FAIL
 
-
-
 \---
-
-
 
 \## Invariant 5
 
-
-
 \### Evidence
-
-
 
 Question
 
-
-
 Can execution be independently proven?
 
-
-
 Verification confirms:
-
-
 
 \* Evidence exists
 
@@ -414,39 +254,21 @@ Verification confirms:
 
 \* Ledger integrity is preserved
 
-
-
 Result
-
-
 
 PASS or FAIL
 
-
-
 \---
-
-
 
 \## Invariant 6
 
-
-
 \### Integrity
-
-
 
 Question
 
-
-
 Did execution match authorized intent?
 
-
-
 Verification confirms:
-
-
 
 \* Execution matches Intent
 
@@ -456,23 +278,13 @@ Verification confirms:
 
 \* No integrity violations exist
 
-
-
 Result
-
-
 
 PASS or FAIL
 
-
-
 \---
 
-
-
 \# Verification Flow
-
-
 
 ```text
 
@@ -516,19 +328,11 @@ Verification Report
 
 ```
 
-
-
 \---
-
-
 
 \# Verification Engine
 
-
-
 Responsibilities
-
-
 
 \* Load ExecutionTransaction
 
@@ -536,11 +340,7 @@ Responsibilities
 
 \* Produce immutable report
 
-
-
 The engine does not:
-
-
 
 \* modify execution
 
@@ -548,23 +348,13 @@ The engine does not:
 
 \* create evidence
 
-
-
 \---
-
-
 
 \# Verification Report
 
-
-
 Every verification produces exactly one report.
 
-
-
 Example
-
-
 
 ```text
 
@@ -640,35 +430,19 @@ PASS
 
 ```
 
-
-
 The report is immutable.
-
-
 
 \---
 
-
-
 \# Replay
-
-
 
 Verification must be reproducible.
 
-
-
 Given identical inputs,
-
-
 
 Verification must always produce identical outputs.
 
-
-
 Replay depends only on:
-
-
 
 \* ExecutionTransaction
 
@@ -678,31 +452,17 @@ Replay depends only on:
 
 \* Verification Specification Version
 
-
-
 Replay never depends on transient runtime state.
-
-
 
 \---
 
-
-
 \# Cryptographic Verification
-
-
 
 Verification delegates cryptographic operations to the crypto layer.
 
-
-
 Verification never embeds specific algorithms.
 
-
-
 Supported operations include:
-
-
 
 \* Signature Verification
 
@@ -710,31 +470,17 @@ Supported operations include:
 
 \* Canonicalization Verification
 
-
-
 Algorithm selection is determined by the associated Crypto Profile.
-
-
 
 \---
 
-
-
 \# Failure Handling
-
-
 
 Verification failures do not modify execution.
 
-
-
 Failures produce immutable reports.
 
-
-
 Possible failure reasons include:
-
-
 
 \* Missing Evidence
 
@@ -750,19 +496,11 @@ Possible failure reasons include:
 
 \* Integrity Failure
 
-
-
 \---
-
-
 
 \# Architectural Constraints
 
-
-
 Verification:
-
-
 
 \* is deterministic
 
@@ -776,19 +514,11 @@ Verification:
 
 \* is cryptographically agile
 
-
-
 \---
-
-
 
 \# Future Compatibility
 
-
-
 The Verification Engine must remain compatible with:
-
-
 
 \* new execution engines
 
@@ -800,21 +530,10 @@ The Verification Engine must remain compatible with:
 
 \* post-quantum cryptography
 
-
-
 Verification logic must remain stable even when infrastructure evolves.
-
-
 
 \---
 
-
-
 \# Success Criterion
 
-
-
 Verification succeeds when an independent verifier can determine, using recorded evidence alone, whether execution matched authorized intent and reproduce the same result without relying on the original runtime environment.
-
-
-

@@ -74,9 +74,7 @@ class RecordingConnector implements Connector {
  * verifier's result, without needing a real external-state fetch.
  */
 class FixedSignalStateVerifier implements SignalStateVerifier {
-  constructor(
-    private readonly violations: readonly SignalStateViolation[],
-  ) {}
+  constructor(private readonly violations: readonly SignalStateViolation[]) {}
 
   async findViolations(
     _request: SignalStateVerificationRequest,

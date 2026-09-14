@@ -7,7 +7,9 @@ import { PolicyChangeApprovalRecord } from "../domain/index.js";
  * at approval time, and never updated.
  */
 export interface PolicyChangeApprovalRecordRepository {
-  create(record: PolicyChangeApprovalRecord): Promise<PolicyChangeApprovalRecord>;
+  create(
+    record: PolicyChangeApprovalRecord,
+  ): Promise<PolicyChangeApprovalRecord>;
 
   findById(
     policyChangeApprovalRecordId: string,

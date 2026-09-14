@@ -43,7 +43,9 @@ class SequentialIdGenerator implements IdGenerator {
 
 function fixture(lifetimeMs = 30_000) {
   const credentials = new InMemoryCredentialVault();
-  credentials.setCredential("sap", { value: Object.freeze({ apiKey: "sap-secret" }) });
+  credentials.setCredential("sap", {
+    value: Object.freeze({ apiKey: "sap-secret" }),
+  });
 
   const clock = new ManualClock(new Date("2026-01-01T00:00:00Z"));
   const idGenerator = new SequentialIdGenerator();
@@ -176,7 +178,9 @@ describe("InMemorySessionCredentialVault", () => {
 
   it("resolves the underlying secret only at consume(), never at issue()", async () => {
     const inner = new InMemoryCredentialVault();
-    inner.setCredential("sap", { value: Object.freeze({ apiKey: "sap-secret" }) });
+    inner.setCredential("sap", {
+      value: Object.freeze({ apiKey: "sap-secret" }),
+    });
     const credentials = new CountingCredentialVault(inner);
 
     const vault = new InMemorySessionCredentialVault({

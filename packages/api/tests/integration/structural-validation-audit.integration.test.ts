@@ -159,7 +159,8 @@ describe("Structural validation audit trail (G-29, HTTP boundary)", () => {
         type: "caller.structural_rejected",
         callerId: "integration-test",
         businessTransactionId: transaction.businessTransactionId,
-        reason: "metadata.businessTransactionId must match businessTransactionId.",
+        reason:
+          "metadata.businessTransactionId must match businessTransactionId.",
       });
     });
   });

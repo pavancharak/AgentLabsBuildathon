@@ -196,14 +196,18 @@ describe("parseAllowedCapabilities", () => {
   });
 
   it("splits, trims, and drops empty values", () => {
-    expect(parseAllowedCapabilities(" razorpay:refund-create , razorpay:refund-fetch ,,hubspot:deal-update")).toEqual([
+    expect(
+      parseAllowedCapabilities(
+        " razorpay:refund-create , razorpay:refund-fetch ,,hubspot:deal-update",
+      ),
+    ).toEqual([
       "razorpay:refund-create",
       "razorpay:refund-fetch",
       "hubspot:deal-update",
     ]);
   });
 
-  it("accepts the \"*\" wildcard as an ordinary value", () => {
+  it('accepts the "*" wildcard as an ordinary value', () => {
     expect(parseAllowedCapabilities("*")).toEqual(["*"]);
   });
 
@@ -223,7 +227,9 @@ describe("parseCredentialHolderType", () => {
     expect(parseCredentialHolderType(" USER ")).toBe(AuthorityType.USER);
     expect(parseCredentialHolderType("ROLE")).toBe(AuthorityType.ROLE);
     expect(parseCredentialHolderType("SERVICE")).toBe(AuthorityType.SERVICE);
-    expect(parseCredentialHolderType("ORGANIZATION")).toBe(AuthorityType.ORGANIZATION);
+    expect(parseCredentialHolderType("ORGANIZATION")).toBe(
+      AuthorityType.ORGANIZATION,
+    );
   });
 
   it("throws naming the valid values for an unrecognized value", () => {

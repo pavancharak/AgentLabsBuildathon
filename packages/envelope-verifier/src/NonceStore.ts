@@ -22,8 +22,5 @@ export interface NonceStore {
    * Returns false if the nonce was already seen
    * (authorization MUST be rejected).
    */
-  checkAndRecord(
-    nonce: string,
-    expiresAt: string,
-  ): Promise<boolean>;
+  checkAndRecord(nonce: string, expiresAt: string): Promise<boolean>;
 }

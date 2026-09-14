@@ -4,14 +4,9 @@ import {
   ExecutionTrustRecord,
 } from "@parmana/shared";
 
-import type {
-  Policy,
-  PolicyDecision,
-} from "@parmana/policy";
+import type { Policy, PolicyDecision } from "@parmana/policy";
 
-import type {
-  RuntimeContext,
-} from "../context/RuntimeContext.js";
+import type { RuntimeContext } from "../context/RuntimeContext.js";
 
 /**
  * Runtime lifecycle hooks.
@@ -26,9 +21,7 @@ export interface RuntimeHook {
   // Policy loading
   //
 
-  beforePolicyLoad?(
-    transaction: BusinessTransaction,
-  ): Promise<void>;
+  beforePolicyLoad?(transaction: BusinessTransaction): Promise<void>;
 
   afterPolicyLoad?(
     transaction: BusinessTransaction,
@@ -59,9 +52,7 @@ export interface RuntimeHook {
     decision: PolicyDecision,
   ): Promise<void>;
 
-  afterDecision?(
-    context: RuntimeContext,
-  ): Promise<void>;
+  afterDecision?(context: RuntimeContext): Promise<void>;
 
   //
   // Authorization
@@ -82,21 +73,15 @@ export interface RuntimeHook {
   // Runtime Pipeline
   //
 
-  beforeExecution?(
-    context: RuntimeContext,
-  ): Promise<void>;
+  beforeExecution?(context: RuntimeContext): Promise<void>;
 
-  afterExecution?(
-    context: RuntimeContext,
-  ): Promise<void>;
+  afterExecution?(context: RuntimeContext): Promise<void>;
 
   //
   // Trust Pipeline
   //
 
-  beforeTrustRecord?(
-    context: RuntimeContext,
-  ): Promise<void>;
+  beforeTrustRecord?(context: RuntimeContext): Promise<void>;
 
   afterTrustRecord?(
     context: RuntimeContext,

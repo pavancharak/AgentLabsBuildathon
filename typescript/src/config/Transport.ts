@@ -29,12 +29,7 @@ export interface TransportRequest {
   /**
    * HTTP method.
    */
-  readonly method:
-    | "GET"
-    | "POST"
-    | "PUT"
-    | "PATCH"
-    | "DELETE";
+  readonly method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
   /**
    * Optional request body.
@@ -89,7 +84,5 @@ export interface Transport {
   /**
    * Sends a request to the Parmana Runtime.
    */
-  send<T = unknown>(
-    request: TransportRequest,
-  ): Promise<TransportResponse<T>>;
+  send<T = unknown>(request: TransportRequest): Promise<TransportResponse<T>>;
 }

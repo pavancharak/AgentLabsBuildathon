@@ -61,7 +61,10 @@
           { "fact": "dealStageTransitionAllowed", "operator": "is_true" },
           {
             "any": [
-              { "fact": "amountChangeExceedsThreshold", "operator": "is_false" },
+              {
+                "fact": "amountChangeExceedsThreshold",
+                "operator": "is_false"
+              },
               { "fact": "preAuthorizedForAmountChange", "operator": "is_true" }
             ]
           }

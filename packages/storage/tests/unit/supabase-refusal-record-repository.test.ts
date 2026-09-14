@@ -6,9 +6,7 @@ import type { RefusalRecord } from "@parmana/shared";
 
 import { SupabaseRefusalRecordRepository } from "../../src/supabase/SupabaseRefusalRecordRepository.js";
 
-function buildRefusalRecord(
-  businessTransactionId: string,
-): RefusalRecord {
+function buildRefusalRecord(businessTransactionId: string): RefusalRecord {
   const now = new Date("2026-08-02T00:00:00.000Z");
 
   return {
@@ -176,7 +174,9 @@ describe("SupabaseRefusalRecordRepository (RFC-0021)", () => {
 
   it("propagates a storage error rather than swallowing it", async () => {
     const repository = new SupabaseRefusalRecordRepository(
-      createFakePool({ insertError: { code: "08006", message: "connection failure" } }),
+      createFakePool({
+        insertError: { code: "08006", message: "connection failure" },
+      }),
     );
 
     await expect(

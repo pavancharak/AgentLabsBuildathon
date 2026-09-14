@@ -17,12 +17,10 @@ export class AuthorizationStage implements RuntimeComponent {
    * @returns The same immutable execution transaction.
    * @throws RuntimeError if Authorization is missing.
    */
-  public execute(
-    transaction: ExecutionTransaction
-  ): ExecutionTransaction {
+  public execute(transaction: ExecutionTransaction): ExecutionTransaction {
     if (!transaction.authorization) {
       throw new RuntimeError(
-        "ExecutionTransaction must contain an Authorization."
+        "ExecutionTransaction must contain an Authorization.",
       );
     }
 

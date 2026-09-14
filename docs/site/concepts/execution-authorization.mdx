@@ -3,13 +3,17 @@ title: "Execution Authorization"
 description: "The signed envelope: proof that Parmana authorized one specific execution request. Single use, time bounded, content bound."
 ---
 
-<Info>**[AVAILABLE]**. `packages/shared/src/domain/execution-authorization.ts`, `AuthorizationSigner`, `AuthorizationVerifier`.</Info>
+<Info>
+  **[AVAILABLE]**. `packages/shared/src/domain/execution-authorization.ts`,
+  `AuthorizationSigner`, `AuthorizationVerifier`.
+</Info>
 
 <Note>
-An earlier prototype called this concept "Execution Permit"
-(`packages/shared/src/domain/execution-permit.ts`, added then deleted the same day in favor
-of this architecture, see the [Glossary](/glossary)). If you find "Execution Permit" in
-older material, this page is the current, shipped equivalent.
+  An earlier prototype called this concept "Execution Permit"
+  (`packages/shared/src/domain/execution-permit.ts`, added then deleted the same
+  day in favor of this architecture, see the [Glossary](/glossary)). If you find
+  "Execution Permit" in older material, this page is the current, shipped
+  equivalent.
 </Note>
 
 ## What it is
@@ -35,7 +39,7 @@ authorizes, the exact `policyName`/`policyVersion` that produced the decision, a
 `authorizedAt`/`expiresAt` bounded window, `businessTransactionHash`, the content binding
 covered in depth on [The gateway](/concepts/the-gateway), and further optional fields
 covering questions content binding alone doesn't reach: `policyContentHash` (the exact
-policy *content*, not just its version string, that produced the decision), `signalsHash`
+policy _content_, not just its version string, that produced the decision), `signalsHash`
 (the runtime `PolicySignals` the decision was evaluated against — vendor status, risk
 exposure, and similar), and `submittedBy`/`grantedCapability` (the authenticated caller and
 the capability the API-edge caller-to-capability check confirmed for them, carried forward
@@ -48,7 +52,7 @@ for what `policyContentHash`/`signalsHash` close and their own scope caveats.
 ## Why it exists
 
 A decision alone isn't something a separate system can trust: it's a claim inside Parmana's
-own process. The signed authorization turns that claim into something a *different* system
+own process. The signed authorization turns that claim into something a _different_ system
 can check without trusting Parmana's runtime or database at all, using nothing but a public
 key and the envelope itself. Every property below exists so that check is meaningful.
 
@@ -108,11 +112,12 @@ rejected and does not burn the nonce; an expired envelope is rejected and does n
 nonce; a second use of the same nonce is rejected.
 
 <Note>
-**Related work.** The Execution Governance framework (Ku, 2026, EG Reference Specification
-v0.9.7.3) describes a convergent discipline of pre-effect authorization for physical AI
-systems. Parmana is a running implementation of pre-execution authorization for enterprise
-financial execution. The vocabulary on this page is Parmana's own; it does not adopt that
-framework's six-condition terminology.
+  **Related work.** The Execution Governance framework (Ku, 2026, EG Reference
+  Specification v0.9.7.3) describes a convergent discipline of pre-effect
+  authorization for physical AI systems. Parmana is a running implementation of
+  pre-execution authorization for enterprise financial execution. The vocabulary
+  on this page is Parmana's own; it does not adopt that framework's
+  six-condition terminology.
 </Note>
 
 ## Next
@@ -121,7 +126,12 @@ framework's six-condition terminology.
   <Card title="The gateway" icon="shield-check" href="/concepts/the-gateway">
     Where this envelope gets independently re-verified before anything executes.
   </Card>
-  <Card title="Gateway attestation" icon="stamp" href="/concepts/gateway-attestation">
-    A second, separate signature: proof the gateway itself released this specific request.
+  <Card
+    title="Gateway attestation"
+    icon="stamp"
+    href="/concepts/gateway-attestation"
+  >
+    A second, separate signature: proof the gateway itself released this
+    specific request.
   </Card>
 </CardGroup>

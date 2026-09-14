@@ -5,11 +5,7 @@
   "description": "Response returned by POST /replay. A deliberately small shape distinct from the Execution Trust Record it replays: it re-verifies the record's stored signature via VerificationCrypto and reports only whether that succeeded, alongside the hash it checked.",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "businessTransactionId",
-    "trustRecordHash",
-    "verified"
-  ],
+  "required": ["businessTransactionId", "trustRecordHash", "verified"],
   "properties": {
     "businessTransactionId": {
       "type": "string",

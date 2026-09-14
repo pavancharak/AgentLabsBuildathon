@@ -1,222 +1,122 @@
 \# Parmana API Design v1 (Final Locked)
 
-
-
 \## Status
-
-
 
 \*\*Version:\*\* 1.0
 
-
-
 \*\*Status:\*\* Locked
 
-
-
 \---
-
-
 
 \# Purpose
 
-
-
 Parmana is \*\*Execution Trust Infrastructure\*\*.
-
-
 
 Applications submit Business Transactions to Parmana.
 
-
-
 Parmana evaluates those transactions using organizational policies, executes approved actions, generates execution evidence, and maintains a verifiable Execution Trust Record.
-
-
 
 The public API is intentionally designed around \*\*business capabilities\*\*, not internal implementation stages.
 
-
-
 Internal concepts such as Authority, Intent, Authorization, Evidence, and Verification remain implementation details.
 
-
-
 \---
-
-
 
 \# Design Principles
 
-
-
 \## Principle 1
-
-
 
 The Business Transaction is the primary resource.
 
-
-
 Every API operation is performed on a Business Transaction.
 
-
-
 \---
-
-
 
 \## Principle 2
 
-
-
 Clients interact with business capabilities.
-
-
 
 Clients never interact directly with internal pipeline stages.
 
-
-
 \---
-
-
 
 \## Principle 3
 
-
-
 Every Business Transaction has exactly one Execution Trust Record.
 
-
-
 \---
-
-
 
 \## Principle 4
 
-
-
 The Business Transaction ID is the canonical identifier across all APIs.
 
-
-
 \---
-
-
 
 \## Principle 5
 
-
-
 Manual Review is a business workflow.
-
-
 
 It is owned by the calling application.
 
-
-
 Parmana does not manage review queues, reviewer assignment, approvals, escalations, or workflow state.
 
-
-
 \---
-
-
 
 \## Principle 6
 
-
-
 Override is an authoritative business action.
-
-
 
 Parmana verifies, records, and executes authorized overrides.
 
-
-
 \---
-
-
 
 \# API Overview
 
-
-
-| Method | Endpoint                                          | Purpose                                |
+| Method | Endpoint | Purpose |
 
 | ------ | ------------------------------------------------- | -------------------------------------- |
 
-| GET    | /health                                           | Service health                         |
+| GET | /health | Service health |
 
-| GET    | /version                                          | Runtime version                        |
+| GET | /version | Runtime version |
 
-| POST   | /transactions                                     | Submit a Business Transaction          |
+| POST | /transactions | Submit a Business Transaction |
 
-| GET    | /transactions/{businessTransactionId}             | Retrieve Execution Trust Record        |
+| GET | /transactions/{businessTransactionId} | Retrieve Execution Trust Record |
 
-| GET    | /transactions/{businessTransactionId}/receipt     | Retrieve Execution Receipt             |
+| GET | /transactions/{businessTransactionId}/receipt | Retrieve Execution Receipt |
 
-| GET    | /transactions/{businessTransactionId}/trust-chain | Retrieve Trust Chain                   |
+| GET | /transactions/{businessTransactionId}/trust-chain | Retrieve Trust Chain |
 
-| POST   | /transactions/{businessTransactionId}/override    | Submit an authorized Override Decision |
+| POST | /transactions/{businessTransactionId}/override | Submit an authorized Override Decision |
 
-| POST   | /transactions/{businessTransactionId}/verify      | Verify Execution Trust Record          |
+| POST | /transactions/{businessTransactionId}/verify | Verify Execution Trust Record |
 
-| POST   | /transactions/{businessTransactionId}/replay      | Replay Business Transaction            |
-
-
+| POST | /transactions/{businessTransactionId}/replay | Replay Business Transaction |
 
 \---
-
-
 
 \# API Details
 
-
-
 \## GET /health
-
-
 
 Returns service health for monitoring and orchestration.
 
-
-
 \---
-
-
 
 \## GET /version
 
-
-
 Returns runtime version information.
-
-
 
 \---
 
-
-
 \## POST /transactions
-
-
 
 \### Purpose
 
-
-
 Submit a Business Transaction.
 
-
-
 \### Request
-
-
 
 ```json
 
@@ -232,15 +132,9 @@ Submit a Business Transaction.
 
 ```
 
-
-
 \### Processing
 
-
-
 Parmana performs:
-
-
 
 \* Request validation
 
@@ -260,23 +154,13 @@ Parmana performs:
 
 \* Trust record persistence
 
-
-
 \---
-
-
 
 \## GET /transactions/{businessTransactionId}
 
-
-
 Retrieves the complete Execution Trust Record.
 
-
-
 Returns:
-
-
 
 \* Metadata
 
@@ -298,31 +182,17 @@ Returns:
 
 \* Trust Chain
 
-
-
 \---
-
-
 
 \## GET /transactions/{businessTransactionId}/receipt
 
-
-
 Returns a lightweight execution receipt suitable for applications, reporting, and regulatory evidence.
-
-
 
 \---
 
-
-
 \## GET /transactions/{businessTransactionId}/trust-chain
 
-
-
 Returns the complete execution trust chain including:
-
-
 
 \* Authority
 
@@ -338,39 +208,21 @@ Returns the complete execution trust chain including:
 
 \* Verification
 
-
-
 \---
-
-
 
 \## POST /transactions/{businessTransactionId}/override
 
-
-
 \### Purpose
-
-
 
 Submit an authorized Override Decision.
 
-
-
 \### Why
-
-
 
 Manual Review belongs to the business application.
 
-
-
 Once an authorized reviewer decides to change the policy decision, the application submits the final Override Decision to Parmana.
 
-
-
 Parmana does not manage:
-
-
 
 \* Review queues
 
@@ -380,15 +232,9 @@ Parmana does not manage:
 
 \* Workflow
 
-
-
 Parmana only verifies and records the authoritative override.
 
-
-
 \### Example
-
-
 
 ```json
 
@@ -410,15 +256,9 @@ Parmana only verifies and records the authoritative override.
 
 ```
 
-
-
 \### Processing
 
-
-
 Parmana performs:
-
-
 
 \* Authority verification
 
@@ -434,27 +274,15 @@ Parmana performs:
 
 \* Update Execution Trust Record
 
-
-
 The original Policy Decision is never modified or removed.
-
-
 
 \---
 
-
-
 \## POST /transactions/{businessTransactionId}/verify
-
-
 
 Verifies the integrity of the Execution Trust Record.
 
-
-
 Used during:
-
-
 
 \* Audit
 
@@ -464,19 +292,11 @@ Used during:
 
 \* Operational verification
 
-
-
 \---
-
-
 
 \## POST /transactions/{businessTransactionId}/replay
 
-
-
 Replays the Business Transaction using the recorded:
-
-
 
 \* Signals
 
@@ -484,27 +304,15 @@ Replays the Business Transaction using the recorded:
 
 \* Schema Version
 
-
-
 Replay never creates a new Business Transaction.
-
-
 
 Replay never modifies historical records.
 
-
-
 Replay demonstrates deterministic execution.
-
-
 
 \---
 
-
-
 \# API Lifecycle
-
-
 
 ```text
 
@@ -632,15 +440,9 @@ Execution Trust Record
 
 ```
 
-
-
 \---
 
-
-
 \# Resource Model
-
-
 
 ```text
 
@@ -692,23 +494,13 @@ Business Transaction
 
 ```
 
-
-
 \---
-
-
 
 \# Separation of Responsibilities
 
-
-
 \## Business Application
 
-
-
 Owns:
-
-
 
 \* Manual Review
 
@@ -720,15 +512,9 @@ Owns:
 
 \* User interface
 
-
-
 \## Parmana
 
-
-
 Owns:
-
-
 
 \* Policy evaluation
 
@@ -746,41 +532,30 @@ Owns:
 
 \* Trust Chain generation
 
-
-
 \---
-
-
 
 \# Canonical API (Final Locked)
 
-
-
-| Method | Endpoint                                          |
+| Method | Endpoint |
 
 | ------ | ------------------------------------------------- |
 
-| GET    | /health                                           |
+| GET | /health |
 
-| GET    | /version                                          |
+| GET | /version |
 
-| POST   | /transactions                                     |
+| POST | /transactions |
 
-| GET    | /transactions/{businessTransactionId}             |
+| GET | /transactions/{businessTransactionId} |
 
-| GET    | /transactions/{businessTransactionId}/receipt     |
+| GET | /transactions/{businessTransactionId}/receipt |
 
-| GET    | /transactions/{businessTransactionId}/trust-chain |
+| GET | /transactions/{businessTransactionId}/trust-chain |
 
-| POST   | /transactions/{businessTransactionId}/override    |
+| POST | /transactions/{businessTransactionId}/override |
 
-| POST   | /transactions/{businessTransactionId}/verify      |
+| POST | /transactions/{businessTransactionId}/verify |
 
-| POST   | /transactions/{businessTransactionId}/replay      |
-
-
+| POST | /transactions/{businessTransactionId}/replay |
 
 This is the canonical public API for Parmana v1. It exposes business capabilities centered on the Business Transaction while keeping manual review workflows outside Parmana and preserving a single, append-only Execution Trust Record for every transaction.
-
-
-

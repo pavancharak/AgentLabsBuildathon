@@ -10,15 +10,9 @@ import { FileKeyProvider } from "@parmana/crypto";
 
 async function main(): Promise<void> {
   console.log();
-  console.log(
-    "==================================================",
-  );
-  console.log(
-    "Tutorial 49 - Detached Signatures",
-  );
-  console.log(
-    "==================================================",
-  );
+  console.log("==================================================");
+  console.log("Tutorial 49 - Detached Signatures");
+  console.log("==================================================");
   console.log();
 
   //
@@ -34,96 +28,53 @@ async function main(): Promise<void> {
   //
   // Load Parmana signing keys.
   //
-  const keyProvider =
-    new FileKeyProvider();
+  const keyProvider = new FileKeyProvider();
 
-  const privateKey =
-    await keyProvider.getPrivateKey(
-      DEFAULT_KEY_ID,
-    );
+  const privateKey = await keyProvider.getPrivateKey(DEFAULT_KEY_ID);
 
-  const publicKey =
-    await keyProvider.getPublicKey(
-      DEFAULT_KEY_ID,
-    );
+  const publicKey = await keyProvider.getPublicKey(DEFAULT_KEY_ID);
 
   //
   // Crypto services.
   //
-  const crypto =
-    CryptoBootstrap.create();
+  const crypto = CryptoBootstrap.create();
 
-  const signer =
-    new ArtifactSigner(
-      crypto,
-    );
+  const signer = new ArtifactSigner(crypto);
 
-  const verifier =
-    new SignatureVerifier(
-      crypto,
-    );
+  const verifier = new SignatureVerifier(crypto);
 
   //
   // Detached signature.
   //
-  const signature =
-    await signer.sign(
-      artifact,
-      privateKey,
-    );
+  const signature = await signer.sign(artifact, privateKey);
 
-  const verified =
-    await verifier.verify(
-      artifact,
-      signature,
-      publicKey,
-    );
+  const verified = await verifier.verify(artifact, signature, publicKey);
 
   console.log();
 
-  console.log(
-    "Detached Signature",
-  );
+  console.log("Detached Signature");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
-  console.log(
-    "Payload",
-  );
+  console.log("Payload");
 
-  console.log(
-    JSON.stringify(
-      artifact,
-      null,
-      2,
-    ),
-  );
+  console.log(JSON.stringify(artifact, null, 2));
 
   console.log();
 
-  console.log(
-    `Signature : ${signature}`,
-  );
+  console.log(`Signature : ${signature}`);
 
   console.log();
 
   if (verified) {
-    console.log(
-      "✓ Detached signature verified.",
-    );
+    console.log("✓ Detached signature verified.");
   } else {
-    console.log(
-      "✗ Signature verification failed.",
-    );
+    console.log("✗ Signature verification failed.");
   }
 
   console.log();
 
-  console.log(
-    "Tutorial completed successfully.",
-  );
+  console.log("Tutorial completed successfully.");
 }
 
 main().catch((error) => {

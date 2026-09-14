@@ -1,70 +1,36 @@
 \# RFC-0004 — Post-Quantum Cryptography
 
-
-
 \*\*Status:\*\* Draft
-
-
 
 \*\*Author:\*\* Parmana Architecture Team
 
-
-
 \*\*Created:\*\* 2026-06-25
-
-
 
 \*\*Target Version:\*\* 0.3.0
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 Introduce support for post-quantum cryptographic providers while preserving backward compatibility with existing cryptographic algorithms.
-
-
 
 The objective is to ensure that execution records remain independently verifiable throughout the expected lifetime of the platform, even as cryptographic standards evolve.
 
-
-
 This RFC extends the Cryptographic Agility principle established in ADR-0006.
 
-
-
 \---
-
-
 
 \# Motivation
 
-
-
 Execution records may need to remain trustworthy for decades.
-
-
 
 Future advances in quantum computing may weaken or break widely deployed public-key cryptographic algorithms.
 
-
-
 Parmana should be capable of adopting new cryptographic standards without requiring changes to the Core domain model or invalidating historical execution records.
-
-
 
 \---
 
-
-
 \# Goals
-
-
 
 \* Support multiple generations of cryptographic algorithms.
 
@@ -76,19 +42,11 @@ Parmana should be capable of adopting new cryptographic standards without requir
 
 \* Maintain deterministic verification.
 
-
-
 \---
-
-
 
 \# Non-Goals
 
-
-
 This RFC does not:
-
-
 
 \* Mandate a specific post-quantum algorithm.
 
@@ -100,43 +58,23 @@ This RFC does not:
 
 \* Define hardware security modules.
 
-
-
 Those concerns remain implementation specific.
 
-
-
 \---
-
-
 
 \# Architectural Principles
 
-
-
 The Core domain remains cryptography agnostic.
-
-
 
 Cryptographic providers remain replaceable.
 
-
-
 Historical execution records remain valid.
-
-
 
 New executions may adopt newer providers without affecting previous records.
 
-
-
 \---
 
-
-
 \# Provider Architecture
-
-
 
 ```text
 
@@ -166,27 +104,15 @@ Providers Providers   Providers
 
 ```
 
-
-
 The Runtime and Verification Engine interact only with provider interfaces.
-
-
 
 \---
 
-
-
 \# Supported Provider Classes
-
-
 
 \## Classical Providers
 
-
-
 Examples include:
-
-
 
 \* SHA-256
 
@@ -198,23 +124,13 @@ Examples include:
 
 \* ECDSA
 
-
-
 \---
-
-
 
 \## Hybrid Providers
 
-
-
 Hybrid providers combine classical and post-quantum algorithms during the migration period.
 
-
-
 Example:
-
-
 
 ```text
 
@@ -226,23 +142,13 @@ ML-DSA
 
 ```
 
-
-
 Hybrid verification succeeds only when the configured verification policy is satisfied.
-
-
 
 \---
 
-
-
 \## Post-Quantum Providers
 
-
-
 Examples may include:
-
-
 
 \* ML-DSA
 
@@ -250,23 +156,13 @@ Examples may include:
 
 \* Future NIST-standardized algorithms
 
-
-
 The specification intentionally avoids hard-coding algorithm names.
-
-
 
 \---
 
-
-
 \# Cryptographic Metadata
 
-
-
 Execution records SHOULD preserve:
-
-
 
 \* Hash Algorithm
 
@@ -280,23 +176,13 @@ Execution records SHOULD preserve:
 
 \* Provider Version
 
-
-
 This metadata enables long-term verification.
-
-
 
 \---
 
-
-
 \# Migration Strategy
 
-
-
 Migration occurs gradually.
-
-
 
 ```text
 
@@ -352,23 +238,13 @@ Future Providers
 
 ```
 
-
-
 Older execution records remain verifiable.
-
-
 
 \---
 
-
-
 \# Verification
 
-
-
 The Verification Engine SHALL:
-
-
 
 \* Select the correct provider.
 
@@ -380,71 +256,37 @@ The Verification Engine SHALL:
 
 \* Preserve deterministic behavior.
 
-
-
 Verification SHALL NOT rewrite cryptographic metadata.
 
-
-
 \---
-
-
 
 \# Replay
 
-
-
 Replay SHALL use the algorithms recorded with the original execution.
-
-
 
 Replay SHALL NOT substitute newer algorithms automatically.
 
-
-
 This preserves historical correctness.
 
-
-
 \---
-
-
 
 \# Runtime
 
-
-
 The Runtime delegates all cryptographic operations to provider interfaces.
-
-
 
 The Runtime SHALL remain independent of concrete cryptographic algorithms.
 
-
-
 \---
-
-
 
 \# Storage
 
-
-
 Storage preserves cryptographic metadata exactly as recorded.
-
-
 
 Storage SHALL NOT regenerate hashes or signatures.
 
-
-
 \---
 
-
-
 \# Package Mapping
-
-
 
 ```text
 
@@ -474,87 +316,45 @@ crypto/
 
 ```
 
-
-
 No changes are required to the Core package.
 
-
-
 \---
-
-
 
 \# Compatibility
 
-
-
 This RFC is fully backward compatible.
-
-
 
 Existing execution records remain valid.
 
-
-
 Existing providers continue to function.
-
-
 
 New providers may be introduced without changing the execution model.
 
-
-
 \---
-
-
 
 \# Alternatives Considered
 
-
-
 \## Immediate Algorithm Replacement
-
-
 
 Rejected because it would invalidate historical verification workflows and complicate long-term archival.
 
-
-
 \---
-
-
 
 \## Hard-Coded Post-Quantum Algorithms
 
-
-
 Rejected because cryptographic standards continue to evolve.
-
-
 
 Parmana should depend upon provider interfaces rather than specific algorithms.
 
-
-
 \---
-
-
 
 \## Runtime-Specific Cryptography
 
-
-
 Rejected because interoperability requires a common cryptographic abstraction.
-
-
 
 \---
 
-
-
 \# Open Questions
-
-
 
 \* Should hybrid signatures become the default during migration?
 
@@ -564,15 +364,9 @@ Rejected because interoperability requires a common cryptographic abstraction.
 
 \* Should algorithm deprecation be represented within protocol metadata?
 
-
-
 \---
 
-
-
 \# Acceptance Criteria
-
-
 
 \* Provider registry supports multiple algorithm families.
 
@@ -586,15 +380,9 @@ Rejected because interoperability requires a common cryptographic abstraction.
 
 \* No Core domain changes are required.
 
-
-
 \---
 
-
-
 \# References
-
-
 
 \* 005-CRYPTOGRAPHY.md
 
@@ -607,6 +395,3 @@ Rejected because interoperability requires a common cryptographic abstraction.
 \* 016-PLATFORM-GUARANTEES.md
 
 \* ADR-0006 — Cryptographic Agility
-
-
-

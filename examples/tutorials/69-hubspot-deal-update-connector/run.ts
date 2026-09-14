@@ -1,7 +1,10 @@
 import crypto from "node:crypto";
 
 import type { BusinessTransaction } from "@parmana/shared";
-import { MockHubSpotServer, HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN } from "@parmana/connector-hubspot";
+import {
+  MockHubSpotServer,
+  HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN,
+} from "@parmana/connector-hubspot";
 
 //
 // The HubSpot sibling of Tutorial 63: approve + execute a real deal
@@ -28,12 +31,10 @@ process.env.HUBSPOT_BASE_URL = mockServer.baseUrl;
 // connector had the identical gotcha for its own test token.
 process.env.TEST_HUBSPOT_PRIVATE_APP_TOKEN = TOKEN;
 
-const { createExecutionSystem } = await import(
-  "../../../packages/api/src/bootstrap/createExecutionSystem.js"
-);
-const { createApplication } = await import(
-  "../../../packages/api/src/application.js"
-);
+const { createExecutionSystem } =
+  await import("../../../packages/api/src/bootstrap/createExecutionSystem.js");
+const { createApplication } =
+  await import("../../../packages/api/src/application.js");
 
 function dealUpdateTransaction(overrides: {
   dealId: string;
@@ -75,7 +76,9 @@ function dealUpdateTransaction(overrides: {
       target: `hubspot://deals/${overrides.dealId}`,
       parameters: Object.freeze({
         dealId: overrides.dealId,
-        ...(overrides.dealstage !== undefined ? { dealstage: overrides.dealstage } : {}),
+        ...(overrides.dealstage !== undefined
+          ? { dealstage: overrides.dealstage }
+          : {}),
         ...(overrides.amount !== undefined ? { amount: overrides.amount } : {}),
       }),
       createdAt: now,
@@ -100,7 +103,11 @@ console.log();
 try {
   mockServer.setDeal({
     id: "9001",
-    properties: { dealstage: "appointmentscheduled", amount: "5000", pipeline: "default" },
+    properties: {
+      dealstage: "appointmentscheduled",
+      amount: "5000",
+      pipeline: "default",
+    },
   });
 
   const executionSystem = createExecutionSystem();
@@ -139,10 +146,17 @@ try {
   console.log(`Deal 9001 dealstage : ${deal?.properties.dealstage}`);
   console.log();
 
-  if (decision?.outcome === "APPROVED" && deal?.properties.dealstage === "qualifiedtobuy") {
-    console.log("✓ Deal update authorized and executed against the real connector.");
+  if (
+    decision?.outcome === "APPROVED" &&
+    deal?.properties.dealstage === "qualifiedtobuy"
+  ) {
+    console.log(
+      "✓ Deal update authorized and executed against the real connector.",
+    );
   } else {
-    console.log("✗ Expected an approved decision with the deal moved to qualifiedtobuy.");
+    console.log(
+      "✗ Expected an approved decision with the deal moved to qualifiedtobuy.",
+    );
   }
 
   console.log();

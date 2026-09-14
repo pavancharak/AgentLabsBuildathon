@@ -1,42 +1,22 @@
 \# Parmana Trust Core — Architecture Milestone
 
-
-
 \## End-to-End Execution Trust Pipeline Completed
-
-
 
 \*\*Date:\*\* June 28, 2026
 
-
-
 \---
-
-
 
 \# Overview
 
-
-
 This milestone completes the first end-to-end implementation of the Parmana Execution Trust Pipeline.
-
-
 
 The entire monorepo now builds successfully with zero TypeScript compilation errors, and every package has been aligned to the canonical Execution Trust architecture.
 
-
-
 \---
-
-
 
 \# Build Status
 
-
-
 All packages compile successfully.
-
-
 
 ```
 
@@ -65,19 +45,11 @@ behind its stages. It was retired in Session 5 (docs/CLAIMS.md); integrity,
 signature, and authorization-binding verification now live directly in
 `packages/runtime/src/services/verification-service.ts`.)_
 
-
-
 \---
-
-
 
 \# Canonical Trust Chain
 
-
-
 Parmana now implements the following deterministic execution flow.
-
-
 
 ```
 
@@ -199,27 +171,15 @@ Receipt
 
 ```
 
-
-
 This establishes a cryptographically verifiable chain from organizational authority through execution and verification.
-
-
 
 \---
 
-
-
 \# Domain Model
-
-
 
 The domain model has been separated into immutable inputs, runtime artifacts, and trust artifacts.
 
-
-
 \## Immutable Inputs
-
-
 
 \* Authority
 
@@ -231,19 +191,11 @@ The domain model has been separated into immutable inputs, runtime artifacts, an
 
 \* PolicyReference
 
-
-
 These objects describe what an organization intended before any runtime evaluation occurs.
-
-
 
 \---
 
-
-
 \## Runtime Artifacts
-
-
 
 \* Decision
 
@@ -251,19 +203,11 @@ These objects describe what an organization intended before any runtime evaluati
 
 \* Override
 
-
-
 These objects are produced during deterministic execution.
-
-
 
 \---
 
-
-
 \## Trust Artifacts
-
-
 
 \* ExecutionTrustRecord
 
@@ -271,31 +215,17 @@ These objects are produced during deterministic execution.
 
 \* Receipt
 
-
-
 These provide immutable evidence of execution and verification.
-
-
 
 \---
 
-
-
 \# Architectural Changes
-
-
 
 \## BusinessTransaction
 
-
-
 BusinessTransaction now represents only the immutable input to policy evaluation.
 
-
-
 It no longer contains a Decision.
-
-
 
 ```
 
@@ -311,27 +241,15 @@ Signals
 
 ```
 
-
-
 Decision is now produced later by the runtime.
-
-
 
 \---
 
-
-
 \## DecisionService
-
-
 
 Decision construction has been extracted into its own service.
 
-
-
 Responsibilities:
-
-
 
 \* Generate Decision
 
@@ -347,27 +265,15 @@ Responsibilities:
 
 \* Timestamp evaluation
 
-
-
 DecisionService does not execute policies or persist data.
-
-
 
 \---
 
-
-
 \## ExecutionService
-
-
 
 ExecutionService is now a pure orchestration service.
 
-
-
 Responsibilities:
-
-
 
 \* Accept a previously generated Decision
 
@@ -377,27 +283,15 @@ Responsibilities:
 
 \* Update execution status
 
-
-
 ExecutionService no longer evaluates policy.
-
-
 
 \---
 
-
-
 \## ExecutionTrustRecordService
-
-
 
 ExecutionTrustRecordService creates the canonical aggregate for replay, verification, auditing, and receipt generation.
 
-
-
 The aggregate now contains:
-
-
 
 \* BusinessTransaction
 
@@ -409,19 +303,11 @@ The aggregate now contains:
 
 \* Receipts
 
-
-
 \---
-
-
 
 \## RuntimeContext
 
-
-
 RuntimeContext now accumulates immutable execution artifacts.
-
-
 
 ```
 
@@ -447,31 +333,17 @@ RuntimeContext
 
 ```
 
-
-
 BusinessTransaction remains immutable throughout execution.
-
-
 
 \---
 
-
-
 \## Replay
-
-
 
 Replay has been aligned with the runtime architecture.
 
-
-
 Replay no longer depends on embedded policy artifacts.
 
-
-
 Instead it receives:
-
-
 
 \* BusinessTransaction
 
@@ -479,31 +351,17 @@ Instead it receives:
 
 \* Resolved Policy
 
-
-
 Replay reconstructs execution through the same PolicyEngine used by runtime and compares the recorded Decision with the replayed Decision.
-
-
 
 This guarantees deterministic replay.
 
-
-
 \---
-
-
 
 \## Storage
 
-
-
 The storage schema has been aligned with the new domain model.
 
-
-
 BusinessTransaction now persists:
-
-
 
 \* Authority
 
@@ -517,23 +375,13 @@ BusinessTransaction now persists:
 
 \* Signals
 
-
-
 Decision is no longer stored as part of BusinessTransaction.
-
-
 
 \---
 
-
-
 \# Architectural Principles Established
 
-
-
 The implementation now enforces the following principles:
-
-
 
 \* BusinessTransaction is immutable.
 
@@ -549,89 +397,44 @@ The implementation now enforces the following principles:
 
 \* Receipt cryptographically attests the verified trust record.
 
-
-
 \---
-
-
 
 \# Current Architecture Status
 
-
-
 \## Domain
 
-
-
 Complete.
-
-
 
 \## Runtime
 
-
-
 Complete.
-
-
 
 \## Policy Layer
 
-
-
 Complete.
-
-
 
 \## Replay
 
-
-
 Complete.
-
-
 
 \## Storage
 
-
-
 Complete.
-
-
 
 \## Verification
 
-
-
 Complete.
-
-
 
 \## Receipt Generation
 
-
-
 Complete.
-
-
 
 \---
 
-
-
 \# Result
-
-
 
 Parmana has transitioned from a collection of independent components into a cohesive Execution Trust Infrastructure.
 
-
-
 The system now provides a deterministic, verifiable, and replayable execution pipeline in which organizational authority, policy evaluation, runtime execution, verification, and cryptographic receipt generation are connected through a single immutable trust chain.
 
-
-
 This milestone establishes the architectural foundation for future work such as distributed execution, remote verification, governance APIs, conformance testing, and enterprise integrations without requiring changes to the core trust model.
-
-
-

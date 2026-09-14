@@ -1,62 +1,34 @@
 \# Parmana Architecture
 
-
-
 \*\*Document:\*\* 001-ARCHITECTURE.md
 
 \*\*Version:\*\* 1.0.0 (Draft)
 
 \*\*Status:\*\* Architecture Lock
 
-
-
 \---
-
-
 
 \# Purpose
 
-
-
 This document defines the canonical architecture of the Parmana platform.
-
-
 
 It specifies the permanent architectural structure that all implementations, APIs, SDKs, services, and integrations must follow.
 
-
-
 Implementation details may evolve.
-
-
 
 The architecture defined here is intended to remain stable.
 
-
-
 \---
-
-
 
 \# Platform Overview
 
-
-
 Parmana is \*\*Execution Trust Infrastructure\*\*.
-
-
 
 The platform establishes a verifiable chain from authority to execution, producing evidence that allows independent verification that execution matched authorized intent.
 
-
-
 \---
 
-
-
 \# High-Level Architecture
-
-
 
 ```
 
@@ -82,35 +54,19 @@ The platform establishes a verifiable chain from authority to execution, produci
 
 ```
 
-
-
 The architecture consists of three platform pillars built around a single execution transaction.
-
-
 
 \---
 
-
-
 \# Platform Pillars
-
-
 
 \## 1. Runtime
 
-
-
 Purpose:
-
-
 
 Create trusted execution.
 
-
-
 Responsibilities:
-
-
 
 \* Capture Authority
 
@@ -120,35 +76,19 @@ Responsibilities:
 
 \* Record Execution
 
-
-
 The Runtime is responsible for executing work.
-
-
 
 It does not establish trust.
 
-
-
 \---
-
-
 
 \## 2. Evidence
 
-
-
 Purpose:
-
-
 
 Preserve immutable evidence.
 
-
-
 Responsibilities:
-
-
 
 \* Record execution evidence
 
@@ -162,35 +102,19 @@ Responsibilities:
 
 \* Maintain ledger records
 
-
-
 Evidence is append-only.
-
-
 
 Evidence never mutates.
 
-
-
 \---
-
-
 
 \## 3. Verification
 
-
-
 Purpose:
-
-
 
 Establish execution trust.
 
-
-
 Responsibilities:
-
-
 
 \* Replay evidence
 
@@ -202,27 +126,15 @@ Responsibilities:
 
 \* Produce trust reports
 
-
-
 Verification never depends solely on runtime state.
-
-
 
 Verification depends on recorded evidence.
 
-
-
 \---
-
-
 
 \# Canonical Lifecycle
 
-
-
 Every execution follows the same lifecycle.
-
-
 
 ```
 
@@ -254,27 +166,15 @@ Execution Trust
 
 ```
 
-
-
 Every execution in the platform follows this lifecycle.
-
-
 
 \---
 
-
-
 \# Execution Transaction
-
-
 
 The ExecutionTransaction is the root aggregate of the platform.
 
-
-
 Every platform capability is associated with an ExecutionTransaction.
-
-
 
 ```
 
@@ -306,95 +206,49 @@ ExecutionTransaction
 
 ```
 
-
-
 No execution exists outside an ExecutionTransaction.
 
-
-
 \---
-
-
 
 \# Runtime Domains
 
-
-
 Runtime consists of four canonical domains.
-
-
 
 \## Authority
 
-
-
 Identifies who is permitted to authorize execution.
 
-
-
 \---
-
-
 
 \## Intent
 
-
-
 Defines what execution is expected to perform.
-
-
 
 Intent is immutable.
 
-
-
 \---
-
-
 
 \## Authorization
 
-
-
 Determines whether execution is permitted.
-
-
 
 Authorization evaluates policy and produces authorization artifacts.
 
-
-
 \---
-
-
 
 \## Execution
 
-
-
 Records what actually occurred.
-
-
 
 Execution is immutable.
 
-
-
 \---
-
-
 
 \# Evidence Domain
 
-
-
 Evidence preserves every artifact required for independent verification.
 
-
-
 Evidence may include:
-
-
 
 \* Signals
 
@@ -410,43 +264,23 @@ Evidence may include:
 
 \* Policy Snapshots
 
-
-
 These are implementation artifacts.
-
-
 
 They are not top-level platform domains.
 
-
-
 \---
-
-
 
 \# Verification Domain
 
-
-
 Verification establishes execution trust.
-
-
 
 Verification consumes evidence.
 
-
-
 Verification never consumes mutable runtime state.
-
-
 
 Verification evaluates platform invariants.
 
-
-
 Verification produces:
-
-
 
 \* Verification Result
 
@@ -456,65 +290,41 @@ Verification produces:
 
 \* Integrity Result
 
-
-
 \---
-
-
 
 \# Platform Invariants
 
-
-
 The architecture guarantees six invariants.
 
-
-
-| Domain        | Invariant                                         |
+| Domain | Invariant |
 
 | ------------- | ------------------------------------------------- |
 
-| Authority     | Execution originates from a recognized authority. |
+| Authority | Execution originates from a recognized authority. |
 
-| Intent        | Execution matches immutable intent.               |
+| Intent | Execution matches immutable intent. |
 
-| Authorization | Execution is policy authorized.                   |
+| Authorization | Execution is policy authorized. |
 
-| Execution     | Execution is permanently recorded.                |
+| Execution | Execution is permanently recorded. |
 
-| Evidence      | Evidence is independently verifiable.             |
+| Evidence | Evidence is independently verifiable. |
 
-| Verification  | Execution matches authorized intent.              |
-
-
+| Verification | Execution matches authorized intent. |
 
 Every platform capability strengthens one or more invariants.
 
-
-
 \---
-
-
 
 \# Cryptographic Layer
 
-
-
 Cryptography is an infrastructure capability.
-
-
 
 It is not a platform domain.
 
-
-
 The platform supports cryptographic agility through Crypto Profiles.
 
-
-
 A Crypto Profile specifies:
-
-
 
 \* Canonicalization
 
@@ -526,27 +336,15 @@ A Crypto Profile specifies:
 
 \* Version
 
-
-
 Future cryptographic algorithms must not require architectural changes.
-
-
 
 \---
 
-
-
 \# Trust Report
-
-
 
 The Trust Report is the primary human-readable artifact produced by the platform.
 
-
-
 It summarizes:
-
-
 
 \* Authority Verification
 
@@ -560,19 +358,11 @@ It summarizes:
 
 \* Integrity Verification
 
-
-
 The Trust Report represents the outcome of verification.
-
-
 
 \---
 
-
-
 \# Package Architecture
-
-
 
 ```
 
@@ -600,63 +390,33 @@ shared/
 
 ```
 
-
-
 Responsibilities:
-
-
 
 \*\*runtime\*\*
 
-
-
 Execution lifecycle.
-
-
 
 \*\*evidence\*\*
 
-
-
 Immutable evidence generation and storage.
-
-
 
 \*\*verification\*\*
 
-
-
 Replay, invariant evaluation, and trust reporting.
-
-
 
 \*\*crypto\*\*
 
-
-
 Cryptographic providers and algorithm implementations.
-
-
 
 \*\*shared\*\*
 
-
-
 Shared domain models and platform contracts.
-
-
 
 \---
 
-
-
 \# Dependency Rules
 
-
-
 Dependencies flow in one direction.
-
-
 
 ```
 
@@ -682,27 +442,15 @@ Trust Report
 
 ```
 
-
-
 Verification depends on Runtime only through recorded evidence.
-
-
 
 Runtime must never depend on Verification.
 
-
-
 Crypto provides services to all layers but owns no business logic.
-
-
 
 \---
 
-
-
 \# Architectural Principles
-
-
 
 1\. ExecutionTransaction is the root aggregate.
 
@@ -720,17 +468,8 @@ Crypto provides services to all layers but owns no business logic.
 
 8\. Business domains are independent of cryptographic algorithms.
 
-
-
 \---
-
-
 
 \# Success Criterion
 
-
-
 The architecture succeeds when an independent verifier can determine, using recorded evidence alone, whether execution matched authorized intent without requiring access to the original runtime.
-
-
-

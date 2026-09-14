@@ -25,19 +25,12 @@
     "action": {
       "type": "string",
       "description": "Business action being requested. Required and non-empty. Parmana rejects an empty action with a 400.",
-      "examples": [
-        "VendorPayment",
-        "TransferFunds",
-        "DeployApplication"
-      ]
+      "examples": ["VendorPayment", "TransferFunds", "DeployApplication"]
     },
     "target": {
       "type": "string",
       "description": "Target of the intended action.",
-      "examples": [
-        "vendor/V-100",
-        "account/12345"
-      ]
+      "examples": ["vendor/V-100", "account/12345"]
     },
     "parameters": {
       "type": "object",

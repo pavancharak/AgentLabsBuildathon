@@ -30,13 +30,9 @@ async function main(): Promise<void> {
     authorizationId: "authorization-001",
     authorityId: authority.authorityId,
     subject: "warehouse-robot-01",
-    permissions: [
-      "MOVE_PALLET",
-    ],
+    permissions: ["MOVE_PALLET"],
     issuedAt: new Date(),
-    expiresAt: new Date(
-      Date.now() + 24 * 60 * 60 * 1000,
-    ),
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
   };
 
   const intent: Intent = {
@@ -70,48 +66,23 @@ async function main(): Promise<void> {
 
   console.log("Business Transaction");
   console.log("--------------------");
-  console.log(
-    "Transaction:",
-    transaction.businessTransactionId,
-  );
-  console.log(
-    "Authority :",
-    authority.authorityName,
-  );
-  console.log(
-    "Intent    :",
-    intent.operation,
-  );
-  console.log(
-    "Policy    :",
-    `${policy.policyName} (${policy.policyVersion})`,
-  );
+  console.log("Transaction:", transaction.businessTransactionId);
+  console.log("Authority :", authority.authorityName);
+  console.log("Intent    :", intent.operation);
+  console.log("Policy    :", `${policy.policyName} (${policy.policyVersion})`);
   console.log();
 
   try {
-    const receipt = await client.execute(
-      transaction,
-    );
+    const receipt = await client.execute(transaction);
 
     console.log("Execution Receipt");
     console.log("-----------------");
-    console.log(
-      "Receipt ID :",
-      receipt.receiptId,
-    );
-    console.log(
-      "Algorithm  :",
-      receipt.algorithm,
-    );
-    console.log(
-      "Issued At  :",
-      receipt.issuedAt,
-    );
+    console.log("Receipt ID :", receipt.receiptId);
+    console.log("Algorithm  :", receipt.algorithm);
+    console.log("Issued At  :", receipt.issuedAt);
   } catch (error) {
     console.log();
-    console.error(
-      "Runtime not available (expected during SDK development).",
-    );
+    console.error("Runtime not available (expected during SDK development).");
 
     if (error instanceof Error) {
       console.error(error.message);

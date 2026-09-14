@@ -36,9 +36,7 @@ import {
  * a demonstrated real race under genuine concurrent load, not
  * speculatively). Revisit if that usage assumption changes.
  */
-export class PostgresChallengeRecordRepository
-  implements ChallengeRecordRepository
-{
+export class PostgresChallengeRecordRepository implements ChallengeRecordRepository {
   constructor(private readonly pool: Pool) {}
 
   async create(record: ChallengeRecord): Promise<ChallengeRecord> {
@@ -85,7 +83,9 @@ export class PostgresChallengeRecordRepository
   }
 
   async findById(challengeRecordId: string): Promise<ChallengeRecord | null> {
-    const { rows } = await this.pool.query(SELECT_BY_ID_SQL, [challengeRecordId]);
+    const { rows } = await this.pool.query(SELECT_BY_ID_SQL, [
+      challengeRecordId,
+    ]);
 
     const row = rows[0] as ChallengeRecordRow | undefined;
 

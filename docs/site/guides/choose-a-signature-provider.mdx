@@ -3,7 +3,10 @@ title: "Choose a Signature Provider"
 description: "Ed25519 by default, ML-DSA-65 (post-quantum) as a configured alternative, and hybrid signing with both at once. What each one actually requires and costs."
 ---
 
-<Info>**[AVAILABLE]**, all three runs below are real output from this session, commit `651497a`, Node 24.</Info>
+<Info>
+  **[AVAILABLE]**, all three runs below are real output from this session,
+  commit `651497a`, Node 24.
+</Info>
 
 ## Goal
 
@@ -58,10 +61,11 @@ Compare the signature lengths: Ed25519's is 88 base64 characters, ML-DSA-65's is
 That's roughly 50x larger, a real bandwidth and storage cost, not just a config flag flip.
 
 <Warning>
-**Run this twice and the signature will differ both times, even with the same key and the
-same message.** ML-DSA-65 signatures are randomized, not deterministic (CLAIMS.md §5). Only
-*verification* is deterministic. Don't build tooling, caching, or dedup logic that assumes
-identical input produces an identical ML-DSA-65 signature, it won't.
+  **Run this twice and the signature will differ both times, even with the same
+  key and the same message.** ML-DSA-65 signatures are randomized, not
+  deterministic (CLAIMS.md §5). Only *verification* is deterministic. Don't
+  build tooling, caching, or dedup logic that assumes identical input produces
+  an identical ML-DSA-65 signature, it won't.
 </Warning>
 
 ### 3. Hybrid: both at once
@@ -119,9 +123,14 @@ precise scoping note.
 
 <CardGroup cols={2}>
   <Card title="Deploy patterns" icon="server" href="/guides/deploy-patterns">
-    Where these keys live in a running deployment, and how key custody works today.
+    Where these keys live in a running deployment, and how key custody works
+    today.
   </Card>
-  <Card title="Execution authorization" icon="file-signature" href="/concepts/execution-authorization">
+  <Card
+    title="Execution authorization"
+    icon="file-signature"
+    href="/concepts/execution-authorization"
+  >
     Where `algorithm` shows up in the signed envelope itself.
   </Card>
 </CardGroup>

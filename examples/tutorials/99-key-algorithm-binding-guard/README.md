@@ -6,10 +6,10 @@ Show that signing or verifying with key material of the wrong type — an Ed2551
 
 ## What You'll Learn
 
-* `node:crypto`'s `sign()`/`verify()` dispatch on the key's own `asymmetricKeyType`, not on which `SignatureProvider` happens to be configured — without a guard, a dilithium3-configured process holding Ed25519 PEMs on disk would silently sign with Ed25519 while labeling the envelope "dilithium3"
-* `assertKeyType` (`packages/crypto/src/providers/signature/assertKeyType.ts`) is the guard: both `Ed25519SignatureProvider` and `Dilithium3SignatureProvider` call it before touching `node:crypto`'s `sign()`/`verify()`, on both the signing and verifying side
-* The thrown error is a `CryptoError` naming both types (`` expected a "ml-dsa-65" key but received "ed25519" ``), not a generic or misleading message
-* A correctly matched key is completely unaffected — this is a guard, not new overhead on the working path
+- `node:crypto`'s `sign()`/`verify()` dispatch on the key's own `asymmetricKeyType`, not on which `SignatureProvider` happens to be configured — without a guard, a dilithium3-configured process holding Ed25519 PEMs on disk would silently sign with Ed25519 while labeling the envelope "dilithium3"
+- `assertKeyType` (`packages/crypto/src/providers/signature/assertKeyType.ts`) is the guard: both `Ed25519SignatureProvider` and `Dilithium3SignatureProvider` call it before touching `node:crypto`'s `sign()`/`verify()`, on both the signing and verifying side
+- The thrown error is a `CryptoError` naming both types (`expected a "ml-dsa-65" key but received "ed25519"`), not a generic or misleading message
+- A correctly matched key is completely unaffected — this is a guard, not new overhead on the working path
 
 ## Running the Tutorial
 

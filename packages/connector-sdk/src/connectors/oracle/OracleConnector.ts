@@ -1,10 +1,6 @@
-import {
-  MockConnector,
-} from "../../MockConnector.js";
+import { MockConnector } from "../../MockConnector.js";
 
-import {
-  connectorCapabilities,
-} from "../../ConnectorTypes.js";
+import { connectorCapabilities } from "../../ConnectorTypes.js";
 
 /**
  * Mock Oracle connector.
@@ -16,8 +12,6 @@ export function createOracleConnector(): MockConnector {
   return new MockConnector({
     connectorId: "oracle",
 
-    capabilities: connectorCapabilities([
-      "oracle:create-purchase-order",
-    ]),
+    capabilities: connectorCapabilities(["oracle:create-purchase-order"]),
   });
 }

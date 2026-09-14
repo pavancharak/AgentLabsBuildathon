@@ -1,66 +1,34 @@
 \# Runtime
 
-
-
 \*\*Document:\*\* `docs/02-architecture/RUNTIME.md`
-
-
 
 \## Purpose
 
-
-
 This document defines the \*\*Parmana Runtime\*\*, the execution environment responsible for processing Execution Requests and producing Authorization Decisions.
-
-
 
 The Runtime coordinates all architectural components involved in authorization while preserving the guarantees defined by the Parmana Trust Model.
 
-
-
 This document describes runtime behavior. It does not define business concepts or API contracts.
-
-
 
 This document is normative.
 
-
-
 \---
-
-
 
 \# Overview
 
-
-
 The Parmana Runtime is the central orchestration layer of the platform.
-
-
 
 Its responsibility is to transform an incoming Execution Request into a deterministic Authorization Decision using organizational policy, verified evidence, and Human Authority.
 
-
-
 The Runtime never performs business operations itself.
-
-
 
 Its sole responsibility is authorization.
 
-
-
 \---
-
-
 
 \# Responsibilities
 
-
-
 The Runtime is responsible for:
-
-
 
 \* Receiving Execution Requests.
 
@@ -80,19 +48,11 @@ The Runtime is responsible for:
 
 \* Returning authorization results.
 
-
-
 \---
-
-
 
 \# Runtime Position
 
-
-
 The Runtime sits between execution request producers and execution systems.
-
-
 
 ```text id="3t2qpb"
 
@@ -128,23 +88,13 @@ Execution Systems
 
 ```
 
-
-
 Execution systems never bypass the Runtime.
-
-
 
 \---
 
-
-
 \# Runtime Architecture
 
-
-
 The Runtime coordinates several specialized components.
-
-
 
 ```text id="9t3x5n"
 
@@ -182,23 +132,13 @@ Execution      Policy        Verification
 
 ```
 
-
-
 Each component has a single responsibility.
-
-
 
 \---
 
-
-
 \# Runtime Lifecycle
 
-
-
 Every Execution Request follows the same lifecycle.
-
-
 
 ```text id="7drzh4"
 
@@ -260,27 +200,15 @@ Return Response
 
 ```
 
-
-
 The Runtime executes these stages in order.
-
-
 
 \---
 
-
-
 \# Stage 1 — Receive Request
-
-
 
 The Runtime accepts an Execution Request from an authenticated client.
 
-
-
 Typical request sources include:
-
-
 
 \* AI Agents
 
@@ -292,23 +220,13 @@ Typical request sources include:
 
 \* Internal Services
 
-
-
 The Runtime treats every request uniformly.
-
-
 
 \---
 
-
-
 \# Stage 2 — Validate Request
 
-
-
 The Runtime validates that:
-
-
 
 \* the request is well-formed,
 
@@ -320,27 +238,15 @@ The Runtime validates that:
 
 \* authentication has succeeded.
 
-
-
 Invalid requests are rejected immediately.
-
-
 
 \---
 
-
-
 \# Stage 3 — Resolve Policy
-
-
 
 The Runtime resolves the Policy Reference contained in the Execution Request.
 
-
-
 Resolution identifies:
-
-
 
 \* governing policy,
 
@@ -352,27 +258,15 @@ Resolution identifies:
 
 \* authorization rules.
 
-
-
 Policy resolution is deterministic.
-
-
 
 \---
 
-
-
 \# Stage 4 — Collect Signals
-
-
 
 The Runtime gathers the evidence required by the resolved policy.
 
-
-
 Signal sources include:
-
-
 
 \* Enterprise systems
 
@@ -382,27 +276,15 @@ Signal sources include:
 
 \* Identity providers
 
-
-
 Only required signals are collected.
-
-
 
 \---
 
-
-
 \# Stage 5 — Validate Signals
-
-
 
 Collected signals are validated.
 
-
-
 Validation includes:
-
-
 
 \* integrity,
 
@@ -414,27 +296,15 @@ Validation includes:
 
 \* schema correctness.
 
-
-
 Invalid signals terminate authorization.
-
-
 
 \---
 
-
-
 \# Stage 6 — Authority Verification
-
-
 
 The Runtime delegates verification to the Verification Engine.
 
-
-
 Authority Verification evaluates:
-
-
 
 \* Organizational Policy
 
@@ -446,27 +316,15 @@ Authority Verification evaluates:
 
 \* Execution Context
 
-
-
 The result is an Authorization Decision.
-
-
 
 \---
 
-
-
 \# Stage 7 — Persist Execution Trust Record
-
-
 
 Following Authority Verification, the Runtime creates the canonical Execution Trust Record.
 
-
-
 The ETR contains:
-
-
 
 \* Execution Request
 
@@ -478,27 +336,15 @@ The ETR contains:
 
 \* Verification metadata
 
-
-
 The Runtime persists the ETR using the Repository.
-
-
 
 \---
 
-
-
 \# Stage 8 — Generate Execution Receipt
-
-
 
 After successfully persisting the ETR, the Runtime generates an Execution Receipt.
 
-
-
 The receipt:
-
-
 
 \* references the ETR,
 
@@ -506,23 +352,13 @@ The receipt:
 
 \* provides portable proof of authorization.
 
-
-
 The Execution Receipt is returned to the requesting client.
-
-
 
 \---
 
-
-
 \# Stage 9 — Return Authorization Result
 
-
-
 The Runtime returns:
-
-
 
 \* Authorization Decision
 
@@ -530,27 +366,15 @@ The Runtime returns:
 
 \* Status information
 
-
-
 The Runtime never performs business execution.
-
-
 
 Execution remains the responsibility of external systems.
 
-
-
 \---
-
-
 
 \# Runtime State Model
 
-
-
 Conceptually, every request progresses through a series of states.
-
-
 
 ```text id="4ej52w"
 
@@ -590,23 +414,13 @@ Completed
 
 ```
 
-
-
 State transitions are deterministic.
-
-
 
 \---
 
-
-
 \# Failure Handling
 
-
-
 The Runtime terminates processing when:
-
-
 
 \* request validation fails,
 
@@ -620,23 +434,13 @@ The Runtime terminates processing when:
 
 \* integrity protection cannot be applied.
 
-
-
 No Authorization Decision is considered complete until the Execution Trust Record has been successfully persisted.
-
-
 
 \---
 
-
-
 \# Runtime Guarantees
 
-
-
 The Runtime guarantees that:
-
-
 
 \* every request is evaluated independently,
 
@@ -652,47 +456,25 @@ The Runtime guarantees that:
 
 \* every Execution Receipt is derived from an Execution Trust Record.
 
-
-
 \---
-
-
 
 \# Concurrency
 
-
-
 The Runtime supports concurrent processing of independent Execution Requests.
-
-
 
 Each request is isolated.
 
-
-
 Processing one request must not alter the authorization outcome of another request.
-
-
 
 Determinism is preserved regardless of execution order.
 
-
-
 \---
-
-
 
 \# Error Recovery
 
-
-
 The Runtime is designed so that partially completed authorization cannot result in unauthorized execution.
 
-
-
 If processing fails:
-
-
 
 \* authorization terminates,
 
@@ -700,59 +482,39 @@ If processing fails:
 
 \* incomplete authorization is not treated as successful.
 
-
-
 Recovery mechanisms are implementation-specific.
 
-
-
 \---
-
-
 
 \# Runtime Interfaces
 
-
-
 The Runtime interacts with the following architectural components:
 
-
-
-| Component           | Responsibility                    |
+| Component | Responsibility |
 
 | ------------------- | --------------------------------- |
 
-| Execution Engine    | Orchestrates lifecycle            |
+| Execution Engine | Orchestrates lifecycle |
 
-| Policy Engine       | Evaluates organizational policies |
+| Policy Engine | Evaluates organizational policies |
 
 | Verification Engine | Implements Authority Verification |
 
-| Repository          | Persists authorization artifacts  |
+| Repository | Persists authorization artifacts |
 
-| Storage             | Physical persistence              |
+| Storage | Physical persistence |
 
-| Cryptography        | Integrity protection              |
+| Cryptography | Integrity protection |
 
-| Receipt Generation  | Produces Execution Receipts       |
-
-
+| Receipt Generation | Produces Execution Receipts |
 
 The Runtime coordinates these components without exposing their internal implementations.
 
-
-
 \---
-
-
 
 \# Design Principles
 
-
-
 The Runtime follows these principles:
-
-
 
 \* Stateless request processing.
 
@@ -768,23 +530,13 @@ The Runtime follows these principles:
 
 \* Separation of authorization and execution.
 
-
-
 \---
-
-
 
 \# Relationship to Other Documents
 
-
-
 This document defines the overall Runtime lifecycle.
 
-
-
 Detailed component behavior is specified in:
-
-
 
 \* `EXECUTION\_ENGINE.md`
 
@@ -802,25 +554,12 @@ Detailed component behavior is specified in:
 
 \* `REPLAY.md`
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 The Parmana Runtime is the orchestration layer responsible for transforming an Execution Request into a deterministic Authorization Decision.
-
-
 
 By coordinating policy evaluation, evidence collection, Authority Verification, persistence, cryptographic integrity, and receipt generation, the Runtime provides a consistent execution authorization process that is independent of AI models, enterprise applications, and storage technologies.
 
-
-
 The Runtime authorizes execution. It never performs execution itself.
-
-
-

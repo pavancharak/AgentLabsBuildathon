@@ -191,7 +191,8 @@ export async function verifyPolicyChangesApproved(
 ): Promise<VerificationResult> {
   const policyChangeCrypto = new PolicyChangeCrypto();
   const readPolicyFile =
-    options.readPolicyFile ?? ((filePath: string) => readFile(filePath, "utf8"));
+    options.readPolicyFile ??
+    ((filePath: string) => readFile(filePath, "utf8"));
 
   const unapprovedFiles: UnapprovedFile[] = [];
 
@@ -295,8 +296,7 @@ function parseArgs(args: string[]): {
 
   const changedFiles = args.filter(
     (arg, index) =>
-      !arg.startsWith("--") &&
-      args[index - 1] !== "--policies-dir",
+      !arg.startsWith("--") && args[index - 1] !== "--policies-dir",
   );
 
   return { fullScan, policiesDir, changedFiles };

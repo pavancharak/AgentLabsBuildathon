@@ -4,8 +4,8 @@ description: "The evidence a rejected transaction leaves behind: a signed, indep
 ---
 
 <Info>
-**[AVAILABLE]**, shipped commit `f779d68` (2026-08-02), RFC-0021. See `docs/CLAIMS.md` §3.11
-for the full evidence list this page draws from.
+  **[AVAILABLE]**, shipped commit `f779d68` (2026-08-02), RFC-0021. See
+  `docs/CLAIMS.md` §3.11 for the full evidence list this page draws from.
 </Info>
 
 ## The gap this closes
@@ -32,12 +32,12 @@ kind."
 export interface RefusalRecord {
   readonly refusalRecordId: string;
   readonly businessTransactionId: string;
-  readonly decision: Decision;                 // the exact rejected Decision, not summarized
+  readonly decision: Decision; // the exact rejected Decision, not summarized
   readonly evaluatedIntent: RefusalIntentSnapshot;
   readonly bindingViolations?: readonly RefusalBindingViolation[]; // present only for a SignalIntentBinder REJECT
-  readonly submittedBy?: string;                // absent when caller-auth is disabled
+  readonly submittedBy?: string; // absent when caller-auth is disabled
   readonly refusalRecordHash: string;
-  readonly signature: Signature;                // same signing stack as ExecutionTrustRecord
+  readonly signature: Signature; // same signing stack as ExecutionTrustRecord
   readonly createdAt: Date;
 }
 ```
@@ -66,28 +66,31 @@ not an append-only aggregate.
 ## Two scope caveats, both load-bearing
 
 <Warning>
-1. **Refusal Record writing fails open, deliberately — not fail-closed like caller-auth audit
-   writes.** `RuntimeEngine.writeRefusalRecord` runs after the `Decision` is built but is
-   explicitly barred from delaying or affecting the rejection response that follows it. A write
-   failure is logged (`refusal_record_write_failed`) and swallowed, never thrown. **The rejection
-   itself is unaffected either way** — a request that should be denied is still denied, correctly,
-   whether or not its evidentiary record lands. What can be silently missing is the durable proof
-   of *why*, not the correctness of the refusal. This was considered for change (making the write
-   atomic/fail-closed with the response) and explicitly rejected on 2026-08-19: it would turn a
-   correct policy rejection into an opaque `500` on a storage hiccup, a real availability
-   regression, for no corresponding security gain — the request was already unconditionally
-   denied the instant `Decision` was built.
-2. **Only production (Supabase) audit sinks sign.** `SupabaseCallerAuditSink` signs every
-   event; the in-memory test sinks (`NODE_ENV=test`) do not. Existing rows written before this capability shipped remain
-   unsigned — `signature_json` is nullable and additive, reflecting that history rather than
-   backfilling a signature that was never actually produced.
+  1. **Refusal Record writing fails open, deliberately — not fail-closed like
+  caller-auth audit writes.** `RuntimeEngine.writeRefusalRecord` runs after the
+  `Decision` is built but is explicitly barred from delaying or affecting the
+  rejection response that follows it. A write failure is logged
+  (`refusal_record_write_failed`) and swallowed, never thrown. **The rejection
+  itself is unaffected either way** — a request that should be denied is still
+  denied, correctly, whether or not its evidentiary record lands. What can be
+  silently missing is the durable proof of *why*, not the correctness of the
+  refusal. This was considered for change (making the write atomic/fail-closed
+  with the response) and explicitly rejected on 2026-08-19: it would turn a
+  correct policy rejection into an opaque `500` on a storage hiccup, a real
+  availability regression, for no corresponding security gain — the request was
+  already unconditionally denied the instant `Decision` was built. 2. **Only
+  production (Supabase) audit sinks sign.** `SupabaseCallerAuditSink` signs
+  every event; the in-memory test sinks (`NODE_ENV=test`) do not. Existing rows
+  written before this capability shipped remain unsigned — `signature_json` is
+  nullable and additive, reflecting that history rather than backfilling a
+  signature that was never actually produced.
 </Warning>
 
 ## Related
 
 - [Caller Audit Trail](/concepts/caller-audit-trail) closes the analogous gap for
   caller-authentication events — signed, durable, and, per caller, chained. `POST
-  /audit/verify` mirrors this page's `POST /refusal/verify` exactly: mounted ahead of
+/audit/verify` mirrors this page's `POST /refusal/verify` exactly: mounted ahead of
   caller-auth, structurally checks and verifies any signed audit event's signature. See
   [Error catalog](/api-reference/error-catalog) for both routes' error shapes.
 - [Execution Trust Records](/concepts/execution-trust-records) — the APPROVE-path counterpart.

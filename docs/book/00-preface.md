@@ -62,7 +62,7 @@ something consequential, especially as the codebase continues to change.
 
 Where the codebase itself is unambiguous, a check either runs before another or it doesn't,
 a field is either optional or required, this book states it plainly and cites the line.
-Where the codebase is *itself* still undecided (internal vs. external policy authoring in
+Where the codebase is _itself_ still undecided (internal vs. external policy authoring in
 Chapter 14, the human-vs-AI-agent identity problem underneath step-up authorization in
 Chapter 14, whether `@parmana/replay`/`@parmana/receipt` should be wired in or retired in
 Chapter 16), this book says so explicitly, in Chapter 18, rather than picking a side the

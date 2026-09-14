@@ -54,9 +54,7 @@ describe("Authoritative BusinessTransaction investigation", () => {
     expect(stored.status).toBe(200);
     expect(stored.body.intent.action).toBe(original.intent.action);
     expect(stored.body.intent.target).toBe(original.intent.target);
-    expect(stored.body.intent.parameters).toEqual(
-      original.intent.parameters,
-    );
+    expect(stored.body.intent.parameters).toEqual(original.intent.parameters);
     expect(stored.body.intent.action).not.toBe("delete-account");
   });
 

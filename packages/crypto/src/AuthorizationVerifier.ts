@@ -1,8 +1,6 @@
 import type { KeyObject } from "node:crypto";
 
-import type {
-  SignedExecutionAuthorization,
-} from "@parmana/shared";
+import type { SignedExecutionAuthorization } from "@parmana/shared";
 
 import { SignatureVerifier } from "./SignatureVerifier.js";
 
@@ -52,9 +50,7 @@ export interface AuthorizationVerificationResult {
 export class AuthorizationVerifier {
   private readonly verifier: SignatureVerifier;
 
-  constructor(
-    private readonly crypto: CryptoProvider,
-  ) {
+  constructor(private readonly crypto: CryptoProvider) {
     this.verifier = new SignatureVerifier(crypto);
   }
 
@@ -76,8 +72,7 @@ export class AuthorizationVerifier {
     now: Date = new Date(),
   ): Promise<AuthorizationVerificationResult> {
     const versionSupported =
-      authorization.payload.version ===
-      SUPPORTED_PAYLOAD_VERSION;
+      authorization.payload.version === SUPPORTED_PAYLOAD_VERSION;
 
     if (!versionSupported) {
       return {
@@ -91,20 +86,15 @@ export class AuthorizationVerifier {
       };
     }
 
-    const signatureVerified =
-      await this.verifier.verify(
-        authorization.payload,
-        authorization.signature,
-        publicKey,
-      );
-
-    const expiry = Date.parse(
-      authorization.payload.expiresAt,
+    const signatureVerified = await this.verifier.verify(
+      authorization.payload,
+      authorization.signature,
+      publicKey,
     );
 
-    const notExpired =
-      Number.isFinite(expiry) &&
-      now.getTime() < expiry;
+    const expiry = Date.parse(authorization.payload.expiresAt);
+
+    const notExpired = Number.isFinite(expiry) && now.getTime() < expiry;
 
     return {
       valid: signatureVerified && notExpired,

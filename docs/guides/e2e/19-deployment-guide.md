@@ -1,18 +1,10 @@
 \# 19 – Deployment Guide
 
-
-
 This guide describes how to deploy the Parmana Execution Trust Platform in development and production environments.
-
-
 
 \---
 
-
-
 \# Deployment Architecture
-
-
 
 ```text
 
@@ -60,15 +52,9 @@ This guide describes how to deploy the Parmana Execution Trust Platform in devel
 
 ```
 
-
-
 \---
 
-
-
 \# Deployment Components
-
-
 
 | Component | Purpose |
 
@@ -88,19 +74,11 @@ This guide describes how to deploy the Parmana Execution Trust Platform in devel
 
 | Connectors | Integrate with external business systems |
 
-
-
 \---
-
-
 
 \# Environment Configuration
 
-
-
 Typical configuration includes:
-
-
 
 \- API host and port
 
@@ -112,23 +90,13 @@ Typical configuration includes:
 
 \- Logging level
 
-
-
 Store sensitive values using environment variables or a secure secrets manager.
-
-
 
 \---
 
-
-
 \# Development Deployment
 
-
-
 Development deployments typically use:
-
-
 
 \- File-based keys
 
@@ -138,23 +106,13 @@ Development deployments typically use:
 
 \- Sample connectors
 
-
-
 This configuration is intended for development and testing only.
-
-
 
 \---
 
-
-
 \# Production Deployment
 
-
-
 Production deployments should use:
-
-
 
 \- HTTPS termination
 
@@ -170,19 +128,11 @@ Production deployments should use:
 
 \- High availability
 
-
-
 \---
-
-
 
 \# High Availability
 
-
-
 For resilient deployments:
-
-
 
 \- Run multiple API instances.
 
@@ -194,19 +144,11 @@ For resilient deployments:
 
 \- Automate failover where appropriate.
 
-
-
 \---
-
-
 
 \# Logging and Monitoring
 
-
-
 Monitor:
-
-
 
 \- API availability
 
@@ -222,23 +164,13 @@ Monitor:
 
 \- Database health
 
-
-
 Logs should include correlation identifiers such as the Business Transaction ID.
-
-
 
 \---
 
-
-
 \# Backup and Recovery
 
-
-
 Regularly back up:
-
-
 
 \- Trust Record repository
 
@@ -248,23 +180,13 @@ Regularly back up:
 
 \- Public keys
 
-
-
 Protect private signing keys using secure key management and recovery procedures.
-
-
 
 \---
 
-
-
 \# Security Checklist
 
-
-
 Before production:
-
-
 
 \- Enable HTTPS.
 
@@ -280,15 +202,9 @@ Before production:
 
 \- Verify backup procedures.
 
-
-
 \---
 
-
-
 \# Deployment Workflow
-
-
 
 ```text
 
@@ -326,15 +242,8 @@ Verify Deployment
 
 ```
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 A production Parmana deployment combines secure configuration, protected cryptographic keys, reliable persistence, monitoring, and high availability to provide deterministic and verifiable execution authorization for enterprise workloads.
-

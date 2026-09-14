@@ -7,59 +7,56 @@ module.exports = {
       severity: "error",
       from: {},
       to: {
-        circular: true
-      }
+        circular: true,
+      },
     },
     {
       name: "shared-must-not-import-project",
       severity: "error",
       from: {
-        path: "^packages/shared"
+        path: "^packages/shared",
       },
       to: {
-        path: "^packages/(?!shared)"
-      }
+        path: "^packages/(?!shared)",
+      },
     },
     {
       name: "policy-must-not-depend-on-runtime",
       severity: "error",
       from: {
-        path: "^packages/policy"
+        path: "^packages/policy",
       },
       to: {
-        path: "^packages/runtime"
-      }
+        path: "^packages/runtime",
+      },
     },
     {
       name: "gateway-must-not-depend-on-api",
       severity: "error",
       from: {
-        path: "^packages/execution-gateway"
+        path: "^packages/execution-gateway",
       },
       to: {
-        path: "^packages/api"
-      }
+        path: "^packages/api",
+      },
     },
     {
       name: "connector-must-not-call-api",
       severity: "error",
       from: {
-        path: "^packages/connector-sdk"
+        path: "^packages/connector-sdk",
       },
       to: {
-        path: "^packages/api"
-      }
-    }
+        path: "^packages/api",
+      },
+    },
   ],
   options: {
     tsConfig: {
-      fileName: "tsconfig.json"
+      fileName: "tsconfig.json",
     },
     exclude: {
-      path: [
-        "dist",
-        "node_modules"
-      ]
-    }
-  }
+      path: ["dist", "node_modules"],
+    },
+  },
 };

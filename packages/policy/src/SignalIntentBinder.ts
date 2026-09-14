@@ -30,15 +30,17 @@ export interface SignalIntentBindingViolation {
  * crash.
  */
 function resolveIntentPath(intent: IntentSnapshot, path: string): unknown {
-  return path
-    .split(".")
-    .reduce<unknown>((current, key) => {
-      if (current === null || current === undefined || typeof current !== "object") {
-        return undefined;
-      }
+  return path.split(".").reduce<unknown>((current, key) => {
+    if (
+      current === null ||
+      current === undefined ||
+      typeof current !== "object"
+    ) {
+      return undefined;
+    }
 
-      return (current as Record<string, unknown>)[key];
-    }, intent);
+    return (current as Record<string, unknown>)[key];
+  }, intent);
 }
 
 /**

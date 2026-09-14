@@ -1,30 +1,16 @@
 \# Tutorial 42 — Nonce Reuse
 
-
-
 \## Overview
-
-
 
 Every Execution Authorization contains a unique \*\*nonce\*\*.
 
-
-
 The nonce ensures that an authorization can be accepted \*\*only once\*\*.
-
-
 
 Even if the authorization is still valid and its signature is correct, the gateway rejects any attempt to reuse the same nonce.
 
-
-
 \---
 
-
-
 \## Attack Scenario
-
-
 
 ```text
 
@@ -108,39 +94,21 @@ Execution Rejected
 
 ```
 
-
-
 \---
-
-
 
 \## Why Nonces Exist
 
-
-
 A digital signature proves authenticity.
-
-
 
 A nonce proves uniqueness.
 
-
-
 Both are required.
-
-
 
 Without nonce validation, a valid authorization could be executed repeatedly until it expires.
 
-
-
 \---
 
-
-
 \## First Verification
-
-
 
 ```text
 
@@ -176,15 +144,9 @@ Accepted
 
 ```
 
-
-
 \---
 
-
-
 \## Second Verification
-
-
 
 ```text
 
@@ -212,15 +174,9 @@ Rejected
 
 ```
 
-
-
 \---
 
-
-
 \## Expected Output
-
-
 
 ```text
 
@@ -268,15 +224,9 @@ Tutorial completed successfully.
 
 ```
 
-
-
 \---
 
-
-
 \## Gateway Logic
-
-
 
 ```text
 
@@ -328,19 +278,11 @@ Check Nonce
 
 ```
 
-
-
 \---
-
-
 
 \## Why This Matters
 
-
-
 Nonce reuse protection prevents:
-
-
 
 \- duplicate payments
 
@@ -352,15 +294,9 @@ Nonce reuse protection prevents:
 
 \- duplicate workflow execution
 
-
-
 \---
 
-
-
 \## Running the Example
-
-
 
 ```bash
 
@@ -368,11 +304,7 @@ tsx examples/tutorials/42-nonce-reuse/run.ts
 
 ```
 
-
-
 or
-
-
 
 ```bash
 
@@ -380,35 +312,19 @@ npm run examples
 
 ```
 
-
-
 \---
-
-
 
 \## Next Tutorial
 
-
-
 \*\*Tutorial 43 — Stolen Authorization\*\*
-
-
 
 The next tutorial demonstrates that simply stealing a valid Execution Authorization is not enough to execute a different business request.
 
-
-
 \---
-
-
 
 \## Summary
 
-
-
 In this tutorial you learned:
-
-
 
 \- Every Execution Authorization contains a unique nonce.
 
@@ -417,4 +333,3 @@ In this tutorial you learned:
 \- A nonce can only be accepted once.
 
 \- Nonce reuse is rejected before enterprise execution.
-

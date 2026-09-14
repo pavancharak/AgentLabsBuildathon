@@ -1,8 +1,6 @@
 import type { SignatureAlgorithm } from "../config/CryptoAlgorithms.js";
 
-import type {
-  GatewayAuthentication,
-} from "./GatewayAuthentication.js";
+import type { GatewayAuthentication } from "./GatewayAuthentication.js";
 
 export interface SignedGatewayAuthentication {
   readonly payload: GatewayAuthentication;

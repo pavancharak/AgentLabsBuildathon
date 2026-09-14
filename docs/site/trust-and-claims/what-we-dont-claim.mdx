@@ -3,8 +3,10 @@ title: "What Parmana Does Not Claim"
 description: "Honest limitations, sourced from CLAIMS.md's own refused claims and from what this documentation effort found while verifying every page against code."
 ---
 
-<Info>Every item below is sourced, CLAIMS.md §5 for the permanent refusals, or a specific
-file/test/live run for everything else on this page.</Info>
+<Info>
+  Every item below is sourced, CLAIMS.md §5 for the permanent refusals, or a
+  specific file/test/live run for everything else on this page.
+</Info>
 
 ## Permanent refusals, CLAIMS.md §5
 
@@ -22,7 +24,7 @@ because no implementation could honestly back them:
   claim. [The gateway](/concepts/the-gateway) enforces nothing at the network level, and is
   a property of systems that route through it, not of the network Parmana runs on.
 - Deterministic signature output for ML-DSA-65. Those signatures are randomized by design,
-  only *verification* is deterministic, see [Choose a signature provider](/guides/choose-a-signature-provider).
+  only _verification_ is deterministic, see [Choose a signature provider](/guides/choose-a-signature-provider).
 
 ## Scoped claims, not absent ones
 
@@ -40,7 +42,7 @@ the whole claim is the honest reading:
   today, `hubspot`.** (Previously proven only for `vendor-payment`, a
   reference connector since removed from the repository entirely, not merely
   superseded — see `docs/VERIFICATION-GAPS.md` G-27 in the source repository.) The
-  mechanism is generic and tested, but reaching a *second* connector is still a
+  mechanism is generic and tested, but reaching a _second_ connector is still a
   bootstrap code change, not something the architecture does automatically, see
   [Credential isolation](/concepts/credential-isolation).
 
@@ -48,8 +50,8 @@ the whole claim is the honest reading:
 
 `SapConnector`, `OracleConnector`, `WorkdayConnector`, and `SalesforceConnector`
 (`packages/connector-sdk/src/connectors/`) are explicit, self-documented reference mocks,
-*"deterministic, in-memory connector used until the real enterprise connector is
-implemented."* None of them calls a real SAP, Oracle, Workday, or Salesforce system, and
+_"deterministic, in-memory connector used until the real enterprise connector is
+implemented."_ None of them calls a real SAP, Oracle, Workday, or Salesforce system, and
 none is wired into the default server. No real enterprise connector exists in this
 repository for any vendor. See [The gateway](/concepts/the-gateway) and [Add a connector
 with the Connector SDK](/guides/add-a-connector).
@@ -81,7 +83,7 @@ attestation](/concepts/gateway-attestation)'s job, on separate signatures. See
 **What it still does not cover, precisely** (updated to reflect the G-24 fix, see
 [Security](/security/overview) for the incident this closed): route access itself remains
 unscoped — any authenticated caller can call any route, there is no per-key allowlist of
-endpoints. What *is* now scoped: which `authority.principalId` a caller may assert
+endpoints. What _is_ now scoped: which `authority.principalId` a caller may assert
 (`isPrincipalAllowed`, default is "only itself," never "anything") and which
 transactions/trust-records/receipts a caller may read (`isOwnedByCaller`, cross-caller reads
 now 404). Neither of those existed before 2026-07-28. Still genuinely absent: mutual TLS by
@@ -102,7 +104,7 @@ signatures is now a real, tested capability (`PARMANA_VERIFICATION_KEY_ID`,
 does not change anything above: it is still a manual operator procedure (generate a key,
 set an env var, redeploy), not automated, and the keys themselves are still plain PEM
 files on disk, not KMS/HSM-custodied. What it closes is narrower and specific: before
-this, the *only* way to rotate at all was to overwrite the existing key file in place,
+this, the _only_ way to rotate at all was to overwrite the existing key file in place,
 which silently invalidated every signature ever issued under it.
 
 ## Error handling: one gap closed, two still open
@@ -125,7 +127,11 @@ fixed as of this pass; the second remains flagged as a product regression.
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="The CLAIMS.md discipline" icon="shield-check" href="/trust-and-claims/claims-discipline">
+  <Card
+    title="The CLAIMS.md discipline"
+    icon="shield-check"
+    href="/trust-and-claims/claims-discipline"
+  >
     How to verify any of the above yourself.
   </Card>
   <Card title="Roadmap" icon="map" href="/roadmap">

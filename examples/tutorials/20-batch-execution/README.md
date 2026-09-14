@@ -1,22 +1,12 @@
 \# Tutorial 20 — Batch Execution
 
-
-
 \## Overview
-
-
 
 This tutorial demonstrates how to execute multiple Business Transactions using a single Parmana Runtime instance.
 
-
-
 Rather than creating a new Runtime for every transaction, the Runtime is initialized once and reused to process a batch of transactions sequentially.
 
-
-
 This approach is suitable for:
-
-
 
 \- Scheduled payment processing
 
@@ -30,15 +20,9 @@ This approach is suitable for:
 
 \- Any workload involving multiple independent Business Transactions
 
-
-
 \---
 
-
-
 \## Batch Execution
-
-
 
 ```
 
@@ -88,27 +72,15 @@ This approach is suitable for:
 
 ```
 
-
-
 Each transaction is evaluated independently.
-
-
 
 A failure in one transaction does not prevent the remaining transactions from executing.
 
-
-
 \---
-
-
 
 \## Building the Runtime
 
-
-
 The Runtime is created once and reused throughout the batch.
-
-
 
 ```ts
 
@@ -126,15 +98,9 @@ const runtime =
 
 ```
 
-
-
 \---
 
-
-
 \## Processing the Batch
-
-
 
 ```ts
 
@@ -146,11 +112,7 @@ for (const transaction of transactions) {
 
 ```
 
-
-
 Each Business Transaction produces its own:
-
-
 
 \- Decision
 
@@ -158,19 +120,11 @@ Each Business Transaction produces its own:
 
 \- Execution Trust Record
 
-
-
 \---
-
-
 
 \## Error Handling
 
-
-
 Each transaction is executed inside its own `try/catch` block.
-
-
 
 ```ts
 
@@ -186,19 +140,11 @@ try {
 
 ```
 
-
-
 This allows the batch to complete even when one or more transactions fail.
-
-
 
 \---
 
-
-
 \## Expected Output
-
-
 
 ```text
 
@@ -248,23 +194,13 @@ Tutorial completed successfully.
 
 ```
 
-
-
 \---
-
-
 
 \## Design Principles
 
-
-
 Each Business Transaction remains completely independent.
 
-
-
 Every transaction has its own:
-
-
 
 \- Decision
 
@@ -278,19 +214,11 @@ Every transaction has its own:
 
 \- Receipt
 
-
-
 Batch execution is simply an orchestration pattern that reuses a Runtime instance efficiently. It does not merge or combine transaction state.
-
-
 
 \---
 
-
-
 \## Running the Example
-
-
 
 ```bash
 
@@ -298,11 +226,7 @@ tsx examples/tutorials/20-batch-execution/run.ts
 
 ```
 
-
-
 or
-
-
 
 ```bash
 
@@ -310,19 +234,11 @@ npm run examples
 
 ```
 
-
-
 \---
-
-
 
 \## Summary
 
-
-
 In this tutorial you learned how to:
-
-
 
 \- Reuse a single Runtime instance
 
@@ -332,7 +248,4 @@ In this tutorial you learned how to:
 
 \- Produce a summary of batch execution results
 
-
-
 This pattern is commonly used for scheduled jobs, financial processing, and enterprise workloads where many independent transactions must be governed consistently through the same Runtime.
-

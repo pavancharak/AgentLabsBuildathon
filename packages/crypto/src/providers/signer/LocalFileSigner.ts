@@ -23,34 +23,21 @@ export class LocalFileSigner implements Signer {
     private readonly keys: FileKeyProvider = new FileKeyProvider(),
   ) {}
 
-  async sign(
-    keyId: string,
-    data: Uint8Array,
-  ): Promise<string> {
-    const privateKey =
-      await this.keys.getPrivateKey(keyId);
+  async sign(keyId: string, data: Uint8Array): Promise<string> {
+    const privateKey = await this.keys.getPrivateKey(keyId);
 
-    return this.crypto.signature.sign(
-      data,
-      privateKey,
-    );
+    return this.crypto.signature.sign(data, privateKey);
   }
 
-  async getPublicKey(
-    keyId: string,
-  ): Promise<KeyObject> {
+  async getPublicKey(keyId: string): Promise<KeyObject> {
     return this.keys.getPublicKey(keyId);
   }
 
-  async getMetadata(
-    keyId: string,
-  ): Promise<KeyMetadata> {
+  async getMetadata(keyId: string): Promise<KeyMetadata> {
     return this.keys.getMetadata(keyId);
   }
 
-  async hasKey(
-    keyId: string,
-  ): Promise<boolean> {
+  async hasKey(keyId: string): Promise<boolean> {
     return this.keys.hasKey(keyId);
   }
 

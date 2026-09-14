@@ -15,9 +15,7 @@ export interface CallerIdentity {
 }
 
 export type PendingPolicyChangeStatus =
-  | "PENDING_APPROVAL"
-  | "APPROVED"
-  | "REJECTED";
+  "PENDING_APPROVAL" | "APPROVED" | "REJECTED";
 
 /**
  * Mirrors GET /policies/pending-changes's per-item response shape:

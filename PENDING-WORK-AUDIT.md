@@ -10,27 +10,27 @@
 
 ## Gap Status
 
-| Gap | Status | Commit | Tests |
-|-----|--------|--------|-------|
-| #1: boundSignals coverage validation | **FIXED** | `8a81dd8` | `PolicyValidator.test.ts`, `PolicyRouter-boundSignals-coverage.test.ts` |
-| #2: RuntimeEngine optional-protections logging | **FIXED** | `1f479ff` | `optional-protections-logging.test.ts` |
-| #3: Razorpay stale references | **FIXED** | `cf7909c` | N/A (cleanup, not behavior) |
-| #4: Caller re-check at connector layer | **FIXED** | `806d6aa` | `connector-policy-granted-capability.test.ts` |
-| #5: Per-caller audit chain | **FIXED** | `b752ff1` | `supabase-caller-audit-sink.test.ts`, `caller-audit-chain-verifier.test.ts`, integration test |
+| Gap                                            | Status    | Commit    | Tests                                                                                         |
+| ---------------------------------------------- | --------- | --------- | --------------------------------------------------------------------------------------------- |
+| #1: boundSignals coverage validation           | **FIXED** | `8a81dd8` | `PolicyValidator.test.ts`, `PolicyRouter-boundSignals-coverage.test.ts`                       |
+| #2: RuntimeEngine optional-protections logging | **FIXED** | `1f479ff` | `optional-protections-logging.test.ts`                                                        |
+| #3: Razorpay stale references                  | **FIXED** | `cf7909c` | N/A (cleanup, not behavior)                                                                   |
+| #4: Caller re-check at connector layer         | **FIXED** | `806d6aa` | `connector-policy-granted-capability.test.ts`                                                 |
+| #5: Per-caller audit chain                     | **FIXED** | `b752ff1` | `supabase-caller-audit-sink.test.ts`, `caller-audit-chain-verifier.test.ts`, integration test |
 
 All 5 verified directly against current code this pass (not from memory): `findUncoveredFacts` exists in `PolicyValidator.ts` and is called from `PolicyRouter.ts`; `runtime_engine_constructed` log line exists in `RuntimeEngine.ts`; zero stale Razorpay references remain in source (3 hits found are deliberate historical "why" narration citing real incidents, not stale claims); `grantedCapability` check exists in `ConnectorPolicy.ts` (4 references); `pg_advisory_xact_lock` and `CallerAuditChainVerifier` both exist and are wired.
 
-**Note on Gap #4's real location:** the prompt that originally described this gap assumed a `ConnectorExecutionGateway.ts`/`packages/execution-authority-gate` architecture that does not exist in this repo. The actual, correctly-scoped fix lives in `packages/execution-control/src/ConnectorPolicy.ts` (`DefaultConnectorPolicy.assertAllowed()`), checking a `grantedCapability` field signed into `ExecutionAuthorizationPayload` — see `docs/CLAIMS.md` §2.31 for the full, honestly-scoped design (explicitly framed as defense-in-depth against a *future* code path, not a fix for a live exploit).
+**Note on Gap #4's real location:** the prompt that originally described this gap assumed a `ConnectorExecutionGateway.ts`/`packages/execution-authority-gate` architecture that does not exist in this repo. The actual, correctly-scoped fix lives in `packages/execution-control/src/ConnectorPolicy.ts` (`DefaultConnectorPolicy.assertAllowed()`), checking a `grantedCapability` field signed into `ExecutionAuthorizationPayload` — see `docs/CLAIMS.md` §2.31 for the full, honestly-scoped design (explicitly framed as defense-in-depth against a _future_ code path, not a fix for a live exploit).
 
 ---
 
 ## Documentation Status
 
-| Document | Status | Completeness |
-|----------|--------|--------------|
-| `docs/CLAIMS.md` | **COMPLETE** | 48 numbered `§X.Y` sections; citation-integrity test (`documentation-references.test.ts`) passes **276/276** checks (this count grows as content is added — 276 is current, not a fixed target of 274) |
-| `docs/site/trust-and-claims/objections-and-evidence.mdx` | **EXISTS, COMPLETE** | ~48 table rows across 5 domains (Authorization, Credentials, Audit Trail, Fail-Closed Behavior, Performance), each following objection → evidence → test citation, with explicit "Honest limit" rows where nothing closes the objection |
-| `docs/site/trust-and-claims/what-we-dont-claim.mdx` | **EXISTS, COMPLETE** | Documents permanent refusals (§5: no guaranteed regulatory compliance, no absolute unauthorized-execution prevention, etc.), scoped-claim caveats (envelope verification, single-use nonce scope, credential isolation scope), and no-KMS/HSM key management — honest about limitations, not new content this pass |
+| Document                                                 | Status               | Completeness                                                                                                                                                                                                                                                                                                       |
+| -------------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `docs/CLAIMS.md`                                         | **COMPLETE**         | 48 numbered `§X.Y` sections; citation-integrity test (`documentation-references.test.ts`) passes **276/276** checks (this count grows as content is added — 276 is current, not a fixed target of 274)                                                                                                             |
+| `docs/site/trust-and-claims/objections-and-evidence.mdx` | **EXISTS, COMPLETE** | ~48 table rows across 5 domains (Authorization, Credentials, Audit Trail, Fail-Closed Behavior, Performance), each following objection → evidence → test citation, with explicit "Honest limit" rows where nothing closes the objection                                                                            |
+| `docs/site/trust-and-claims/what-we-dont-claim.mdx`      | **EXISTS, COMPLETE** | Documents permanent refusals (§5: no guaranteed regulatory compliance, no absolute unauthorized-execution prevention, etc.), scoped-claim caveats (envelope verification, single-use nonce scope, credential isolation scope), and no-KMS/HSM key management — honest about limitations, not new content this pass |
 
 No broken citations found. No sections lack test citations in a way the automated check would miss (the check validates every backtick-quoted file path and every `CLAIMS.md §X.Y` cross-reference across `CLAIMS.md`, `README.md`, `DEPLOYMENT.md`, `SECURITY.md`, and the full `docs/site/**/*.mdx` tree).
 
@@ -47,6 +47,7 @@ No broken citations found. No sections lack test citations in a way the automate
 ## Actually Pending Work
 
 ### Work to Do
+
 - Nothing from the 5 gaps above — all fixed, tested, documented, committed, pushed.
 - Two items explicitly identified and left open by design, not oversight:
   1. `CallerAuditEvent` chain doesn't catch an entire caller's history deleted at once, or cross-caller reordering (stated limit of the per-caller design, `docs/CLAIMS.md` §2.32).
@@ -54,6 +55,7 @@ No broken citations found. No sections lack test citations in a way the automate
 - **Phase 1/2 requirements mapping** (`regulatory.md`, commit `eaf373e`) is blocked on real FCA/NFRA/investor requirements documents, which do not exist in this repo or conversation yet.
 
 ### Work Already Done
+
 - All 5 gaps above (commits `8a81dd8`, `1f479ff`, `cf7909c`, `806d6aa`, `b752ff1`).
 - `docs/CLAIMS.md` §2.30, §2.31, §2.32 documenting the above.
 - `docs/site/trust-and-claims/objections-and-evidence.mdx` — full evidence index built from 4 parallel research passes across ~41 real objections (not the fabricated 52-scenario plan originally proposed).
@@ -66,8 +68,9 @@ No broken citations found. No sections lack test citations in a way the automate
 ## Recommendation
 
 **Next steps:**
+
 1. Nothing blocking from a code/documentation standpoint — the 5 known gaps are closed.
-2. If Series A or regulatory conversations need a live coverage matrix against *specific* requirements: provide the actual FCA Supercharged Sandbox criteria, NFRA requirements, or investor checklist (see `regulatory.md`'s blocking condition) — nothing can be honestly mapped without them.
+2. If Series A or regulatory conversations need a live coverage matrix against _specific_ requirements: provide the actual FCA Supercharged Sandbox criteria, NFRA requirements, or investor checklist (see `regulatory.md`'s blocking condition) — nothing can be honestly mapped without them.
 3. Optional, not blocking: decide whether to invest in the two explicitly-accepted-risk items above (cross-caller audit chain reordering detection; KMS/HSM key management) — both are real, both are non-trivial (schema/architecture changes), neither is currently claimed as solved.
 
 **Series A readiness (engineering-evidence angle):** the codebase's own claims are internally consistent, tested, and honestly scoped — CLAIMS.md and the evidence-index page are real, checkable artifacts an investor's technical diligence could verify by cloning and running `npm test`. Whether that satisfies a specific investor's checklist is unknowable without that checklist.

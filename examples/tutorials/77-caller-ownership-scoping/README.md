@@ -6,9 +6,9 @@ Exercise `isOwnedByCaller()` directly: the check that stops one authenticated ca
 
 ## What You'll Learn
 
-* Ownership is checked against `metadata.submittedBy` — server-set from the authenticated caller at submission time, never trusted from client input
-* A different caller looking up someone else's transaction is denied
-* A **missing** transaction id returns `true`, not `false` — deliberately: a nonexistent id is not an ownership question, so the route's own 404 handling runs unchanged, and a non-owner probing random ids can't distinguish "not yours" from "doesn't exist"
+- Ownership is checked against `metadata.submittedBy` — server-set from the authenticated caller at submission time, never trusted from client input
+- A different caller looking up someone else's transaction is denied
+- A **missing** transaction id returns `true`, not `false` — deliberately: a nonexistent id is not an ownership question, so the route's own 404 handling runs unchanged, and a non-owner probing random ids can't distinguish "not yours" from "doesn't exist"
 
 ## Running the Tutorial
 

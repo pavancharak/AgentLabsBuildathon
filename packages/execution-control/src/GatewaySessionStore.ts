@@ -16,12 +16,9 @@ interface SessionRecord extends GatewaySession {
 }
 
 export class InMemoryGatewaySessionStore {
-  private readonly sessions =
-    new Map<string, SessionRecord>();
+  private readonly sessions = new Map<string, SessionRecord>();
 
-  constructor(
-    private readonly issuanceAuthentication: unknown,
-  ) {}
+  constructor(private readonly issuanceAuthentication: unknown) {}
 
   create(
     release: ExecutionRelease,
@@ -30,63 +27,41 @@ export class InMemoryGatewaySessionStore {
     issuanceAuthentication: unknown,
     now = new Date(),
   ): GatewaySession {
-
-    if (
-      issuanceAuthentication !==
-      this.issuanceAuthentication
-    ) {
+    if (issuanceAuthentication !== this.issuanceAuthentication) {
       throw new Error(
         "Gateway session issuance rejected unauthenticated caller.",
       );
     }
 
-    const authorizationExpiry =
-      Date.parse(
-        release.authorization.payload.expiresAt,
-      );
+    const authorizationExpiry = Date.parse(
+      release.authorization.payload.expiresAt,
+    );
 
     const expiresAt = new Date(
-      Math.min(
-        now.getTime() + lifetimeMs,
-        authorizationExpiry,
-      ),
+      Math.min(now.getTime() + lifetimeMs, authorizationExpiry),
     );
 
     const record: SessionRecord = {
       sessionId: randomUUID(),
 
-      createdAt:
-        now.toISOString(),
+      createdAt: now.toISOString(),
 
-      expiresAt:
-        expiresAt.toISOString(),
+      expiresAt: expiresAt.toISOString(),
 
-      authorizationId:
-        release.authorization.payload.authorizationId,
+      authorizationId: release.authorization.payload.authorizationId,
 
       connectorId,
 
-      contentBinding:
-        bindingHash(
-          release.executableContent,
-        ),
+      contentBinding: bindingHash(release.executableContent),
 
-      authorizationBinding:
-        bindingHash(
-          release.authorization,
-        ),
+      authorizationBinding: bindingHash(release.authorization),
 
       used: false,
     };
 
-    this.sessions.set(
-      record.sessionId,
-      record,
-    );
+    this.sessions.set(record.sessionId, record);
 
-    return this.publicSession(
-      record,
-    );
+    return this.publicSession(record);
   }
 
   consume(
@@ -94,38 +69,20 @@ export class InMemoryGatewaySessionStore {
     connectorId: string,
     now = new Date(),
   ): boolean {
-
-    const record =
-      this.sessions.get(
-        request.gatewaySession.sessionId,
-      );
+    const record = this.sessions.get(request.gatewaySession.sessionId);
 
     const valid =
       record !== undefined &&
       !record.used &&
-      Date.parse(record.expiresAt) >
-        now.getTime() &&
-      record.connectorId ===
-        connectorId &&
+      Date.parse(record.expiresAt) > now.getTime() &&
+      record.connectorId === connectorId &&
       record.authorizationId ===
         request.authorization.payload.authorizationId &&
-      record.contentBinding ===
-        bindingHash(
-          request.executableContent,
-        ) &&
-      record.authorizationBinding ===
-        bindingHash(
-          request.authorization,
-        ) &&
-      this.sameSession(
-        record,
-        request.gatewaySession,
-      );
+      record.contentBinding === bindingHash(request.executableContent) &&
+      record.authorizationBinding === bindingHash(request.authorization) &&
+      this.sameSession(record, request.gatewaySession);
 
-    if (
-      !valid ||
-      record === undefined
-    ) {
+    if (!valid || record === undefined) {
       return false;
     }
 
@@ -134,35 +91,24 @@ export class InMemoryGatewaySessionStore {
     return true;
   }
 
-  private sameSession(
-    a: GatewaySession,
-    b: GatewaySession,
-  ): boolean {
+  private sameSession(a: GatewaySession, b: GatewaySession): boolean {
     return (
       a.sessionId === b.sessionId &&
       a.createdAt === b.createdAt &&
       a.expiresAt === b.expiresAt &&
-      a.authorizationId ===
-        b.authorizationId
+      a.authorizationId === b.authorizationId
     );
   }
 
-  private publicSession(
-    record: SessionRecord,
-  ): GatewaySession {
-
+  private publicSession(record: SessionRecord): GatewaySession {
     return Object.freeze({
-      sessionId:
-        record.sessionId,
+      sessionId: record.sessionId,
 
-      createdAt:
-        record.createdAt,
+      createdAt: record.createdAt,
 
-      expiresAt:
-        record.expiresAt,
+      expiresAt: record.expiresAt,
 
-      authorizationId:
-        record.authorizationId,
+      authorizationId: record.authorizationId,
     });
   }
 }

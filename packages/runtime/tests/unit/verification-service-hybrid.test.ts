@@ -17,10 +17,7 @@ import {
   type ExecutionTrustRecordRepository,
   type Verification,
 } from "@parmana/shared";
-import {
-  isMlDsa65Supported,
-  ML_DSA_65_SKIP_REASON,
-} from "@parmana/crypto";
+import { isMlDsa65Supported, ML_DSA_65_SKIP_REASON } from "@parmana/crypto";
 
 import { BusinessTrustRecordBuilder } from "../../src/BusinessTrustRecordBuilder.js";
 import { VerificationService } from "../../src/services/verification-service.js";
@@ -40,14 +37,10 @@ import type { RuntimeContext } from "../../src/context/RuntimeContext.js";
  * alongside the "default" Ed25519 keypair vitest.setup.ts already
  * provisions in PARMANA_KEY_DIR.
  */
-class InMemoryExecutionTrustRecordRepository
-  implements ExecutionTrustRecordRepository
-{
+class InMemoryExecutionTrustRecordRepository implements ExecutionTrustRecordRepository {
   private readonly store = new Map<string, ExecutionTrustRecord>();
 
-  async create(
-    record: ExecutionTrustRecord,
-  ): Promise<ExecutionTrustRecord> {
+  async create(record: ExecutionTrustRecord): Promise<ExecutionTrustRecord> {
     this.store.set(record.businessTransactionId, record);
     return record;
   }
@@ -68,9 +61,7 @@ class InMemoryExecutionTrustRecordRepository
   async appendReceipt(): Promise<void> {}
 }
 
-function createTransaction(
-  businessTransactionId: string,
-): BusinessTransaction {
+function createTransaction(businessTransactionId: string): BusinessTransaction {
   const authorityId = "authority-1";
   const authorizationId = "authorization-1";
   const fixedDate = new Date("2026-01-01T00:00:00Z");
@@ -170,7 +161,10 @@ describe.skipIf(!isMlDsa65Supported())(
         );
       }
 
-      const secondaryPrivatePath = join(keyDir, "default-secondary.private.pem");
+      const secondaryPrivatePath = join(
+        keyDir,
+        "default-secondary.private.pem",
+      );
       const secondaryPublicPath = join(keyDir, "default-secondary.public.pem");
 
       if (!existsSync(secondaryPrivatePath)) {
@@ -212,8 +206,11 @@ describe.skipIf(!isMlDsa65Supported())(
 
       // Simulate a record persisted before this milestone: strip the
       // new fields, keep only the always-present legacy `signature`.
-      const { schemaVersion: _schemaVersion, signatures: _signatures, ...legacyRecord } =
-        hybridRecord;
+      const {
+        schemaVersion: _schemaVersion,
+        signatures: _signatures,
+        ...legacyRecord
+      } = hybridRecord;
 
       const repository = new InMemoryExecutionTrustRecordRepository();
       await repository.create(legacyRecord as ExecutionTrustRecord);
@@ -281,8 +278,11 @@ describe.skipIf(!isMlDsa65Supported())(
         // ACCEPTED under the default (off) policy -- additive, not
         // breaking. This test proves a deployment that opts in via
         // HYBRID_SIGNATURE_REQUIRED correctly REJECTS the identical input.
-        const { schemaVersion: _schemaVersion, signatures: _signatures, ...fullyStripped } =
-          trustRecord;
+        const {
+          schemaVersion: _schemaVersion,
+          signatures: _signatures,
+          ...fullyStripped
+        } = trustRecord;
 
         const repository = new InMemoryExecutionTrustRecordRepository();
         await repository.create(fullyStripped as ExecutionTrustRecord);

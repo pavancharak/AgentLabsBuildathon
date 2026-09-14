@@ -18,9 +18,7 @@ import type { PolicySignals } from "./types/PolicySignals.js";
  * verifiers as the production route needs.
  */
 export class CompositeSignalStateVerifier implements SignalStateVerifier {
-  constructor(
-    private readonly verifiers: readonly SignalStateVerifier[],
-  ) {}
+  constructor(private readonly verifiers: readonly SignalStateVerifier[]) {}
 
   async findViolations(
     request: SignalStateVerificationRequest,

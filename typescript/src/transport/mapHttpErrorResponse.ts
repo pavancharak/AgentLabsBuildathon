@@ -58,11 +58,7 @@ interface ErrorEnvelope {
 }
 
 function extractMessage(status: number, body: unknown): string {
-  if (
-    body !== null &&
-    typeof body === "object" &&
-    "error" in body
-  ) {
+  if (body !== null && typeof body === "object" && "error" in body) {
     const message = (body as ErrorEnvelope).error;
 
     if (typeof message === "string" && message.length > 0) {
@@ -74,11 +70,7 @@ function extractMessage(status: number, body: unknown): string {
 }
 
 function extractCode(body: unknown): string | undefined {
-  if (
-    body !== null &&
-    typeof body === "object" &&
-    "code" in body
-  ) {
+  if (body !== null && typeof body === "object" && "code" in body) {
     const code = (body as ErrorEnvelope).code;
 
     return typeof code === "string" ? code : undefined;

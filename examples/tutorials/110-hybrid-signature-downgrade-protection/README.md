@@ -14,16 +14,16 @@ constraints ruled out.
 
 ## What You'll Learn
 
-* A genuinely hybrid-signed record (`schemaVersion: 2`, both an Ed25519 and a ML-DSA-65
+- A genuinely hybrid-signed record (`schemaVersion: 2`, both an Ed25519 and a ML-DSA-65
   entry in `signatures`) verifies (Scenario 1)
-* Under the **default** policy (`HYBRID_SIGNATURE_REQUIRED` unset), stripping
+- Under the **default** policy (`HYBRID_SIGNATURE_REQUIRED` unset), stripping
   `schemaVersion`/`signatures` entirely still verifies — this is deliberate, additive
   backward compatibility for records signed before a deployment ever turned hybrid mode
   on, proven by this codebase's own pre-existing test (Scenario 2)
-* Under the **strict** policy (`HYBRID_SIGNATURE_REQUIRED=true`), the identical stripped
+- Under the **strict** policy (`HYBRID_SIGNATURE_REQUIRED=true`), the identical stripped
   record is now rejected outright — the downgrade a deployment can close by opting in
   (Scenario 3)
-* A genuinely complete hybrid record still verifies under the strict policy — the fix adds
+- A genuinely complete hybrid record still verifies under the strict policy — the fix adds
   no false rejections (Scenario 4)
 
 ## Running the Tutorial

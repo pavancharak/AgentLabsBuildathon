@@ -1,4 +1,9 @@
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from "node:http";
 import type { AddressInfo } from "node:net";
 
 import type { HubSpotDeal, HubSpotDealProperties } from "./HubSpotTypes.js";
@@ -48,10 +53,17 @@ export class MockHubSpotServer {
     this.server = createServer((req, res) => {
       this.handle(req, res).catch((error: unknown) => {
         res.writeHead(500, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ status: "error", message: error instanceof Error ? error.message : "unknown error" }));
+        res.end(
+          JSON.stringify({
+            status: "error",
+            message: error instanceof Error ? error.message : "unknown error",
+          }),
+        );
       });
     });
-    await new Promise<void>((resolve) => this.server!.listen(0, "127.0.0.1", resolve));
+    await new Promise<void>((resolve) =>
+      this.server!.listen(0, "127.0.0.1", resolve),
+    );
     const address = this.server!.address() as AddressInfo;
     this.baseUrlValue = `http://127.0.0.1:${address.port}`;
   }
@@ -61,12 +73,16 @@ export class MockHubSpotServer {
     await new Promise<void>((resolve) => this.server!.close(() => resolve()));
   }
 
-  private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  private async handle(
+    req: IncomingMessage,
+    res: ServerResponse,
+  ): Promise<void> {
     if (!this.authenticates(req)) {
       this.respond(res, 401, {
         status: "error",
         category: "INVALID_AUTHENTICATION",
-        message: "Authentication credentials not found. This API supports OAuth 2.0 authentication.",
+        message:
+          "Authentication credentials not found. This API supports OAuth 2.0 authentication.",
       });
       return;
     }
@@ -108,7 +124,11 @@ export class MockHubSpotServer {
     this.respond(res, 200, deal);
   }
 
-  private handleUpdateDeal(res: ServerResponse, dealId: string, body: Record<string, unknown>): void {
+  private handleUpdateDeal(
+    res: ServerResponse,
+    dealId: string,
+    body: Record<string, unknown>,
+  ): void {
     const deal = this.deals.get(dealId);
     if (deal === undefined) {
       this.respond(res, 404, {
@@ -119,7 +139,8 @@ export class MockHubSpotServer {
       return;
     }
 
-    const incomingProperties = (body.properties as HubSpotDealProperties | undefined) ?? {};
+    const incomingProperties =
+      (body.properties as HubSpotDealProperties | undefined) ?? {};
     const updated: HubSpotDeal = {
       ...deal,
       properties: { ...deal.properties, ...incomingProperties },
@@ -135,7 +156,9 @@ export class MockHubSpotServer {
     return header.slice("Bearer ".length) === this.options.token;
   }
 
-  private async readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
+  private async readJsonBody(
+    req: IncomingMessage,
+  ): Promise<Record<string, unknown>> {
     const chunks: Buffer[] = [];
     for await (const chunk of req as AsyncIterable<Buffer>) chunks.push(chunk);
     const raw = Buffer.concat(chunks).toString("utf8");

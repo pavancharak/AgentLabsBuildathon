@@ -16,7 +16,10 @@ export {
 
 export { SlackMetadata } from "./SlackMetadata.js";
 
-export { MockSlackServer, type MockSlackServerOptions } from "./MockSlackServer.js";
+export {
+  MockSlackServer,
+  type MockSlackServerOptions,
+} from "./MockSlackServer.js";
 
 export {
   SLACK_ALLOWED_POST_MESSAGE_PARAMETERS,

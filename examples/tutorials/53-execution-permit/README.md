@@ -10,10 +10,10 @@ Build a real **Execution Trust Record** — the actual artifact `POST /execute` 
 
 ## What You'll Learn
 
-* How `CRYPTO_MODE=hybrid` is enabled (a single environment variable, read once, before the runtime is constructed)
-* That the legacy `signature` field is computed exactly as it always was — hybrid mode is purely additive
-* The additive `schemaVersion`/`signatures[]` shape, and which two algorithms appear
-* That this runs through the real production pipeline (`RuntimeFactory.create()` → `application.execute()`), the same code path `POST /execute` uses — not a hand-rolled stand-in for it
+- How `CRYPTO_MODE=hybrid` is enabled (a single environment variable, read once, before the runtime is constructed)
+- That the legacy `signature` field is computed exactly as it always was — hybrid mode is purely additive
+- The additive `schemaVersion`/`signatures[]` shape, and which two algorithms appear
+- That this runs through the real production pipeline (`RuntimeFactory.create()` → `application.execute()`), the same code path `POST /execute` uses — not a hand-rolled stand-in for it
 
 ## Running the Tutorial
 

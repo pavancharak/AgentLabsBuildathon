@@ -4,7 +4,9 @@ import { isCapabilityAllowed } from "../../src/auth/isCapabilityAllowed.js";
 
 describe("isCapabilityAllowed", () => {
   it("rejects an undefined action", () => {
-    expect(isCapabilityAllowed(undefined, ["razorpay:refund-create"])).toBe(false);
+    expect(isCapabilityAllowed(undefined, ["razorpay:refund-create"])).toBe(
+      false,
+    );
   });
 
   it("rejects an empty action", () => {
@@ -12,7 +14,9 @@ describe("isCapabilityAllowed", () => {
   });
 
   it("fail-closed default: denies every capability when allowedCapabilities is unset", () => {
-    expect(isCapabilityAllowed("razorpay:refund-create", undefined)).toBe(false);
+    expect(isCapabilityAllowed("razorpay:refund-create", undefined)).toBe(
+      false,
+    );
   });
 
   it("fail-closed default: denies every capability when allowedCapabilities is empty", () => {
@@ -33,16 +37,19 @@ describe("isCapabilityAllowed", () => {
 
   it("blocks the exact gap this closes: a caller scoped to one capability cannot invoke an unrelated one", () => {
     expect(
-      isCapabilityAllowed("hubspot:deal-update", ["razorpay:refund-create", "razorpay:refund-fetch"]),
+      isCapabilityAllowed("hubspot:deal-update", [
+        "razorpay:refund-create",
+        "razorpay:refund-fetch",
+      ]),
     ).toBe(false);
   });
 
-  it("honors the explicit \"*\" wildcard convention", () => {
+  it('honors the explicit "*" wildcard convention', () => {
     expect(isCapabilityAllowed("razorpay:refund-create", ["*"])).toBe(true);
     expect(isCapabilityAllowed("hubspot:deal-update", ["*"])).toBe(true);
   });
 
-  it("honors \"*\" alongside other explicit entries", () => {
+  it('honors "*" alongside other explicit entries', () => {
     expect(
       isCapabilityAllowed("anything:at-all", ["razorpay:refund-create", "*"]),
     ).toBe(true);

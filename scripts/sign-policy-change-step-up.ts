@@ -61,18 +61,13 @@ function main(args = process.argv.slice(2)): void {
   const signer = new PolicyChangeStepUpAuthorizationSigner();
 
   signer
-    .sign(
-      { pendingPolicyChangeId, action },
-      privateKey,
-      keyId,
-      ttlSeconds,
-    )
+    .sign({ pendingPolicyChangeId, action }, privateKey, keyId, ttlSeconds)
     .then((envelope) => {
       console.log();
       console.log(`Signed step-up authorization (expires in ${ttlSeconds}s)`);
       console.log("--------------------------------");
       console.log(
-        "Paste this into the request body's \"stepUpAuthorization\" field:",
+        'Paste this into the request body\'s "stepUpAuthorization" field:',
       );
       console.log(JSON.stringify(envelope));
       console.log();

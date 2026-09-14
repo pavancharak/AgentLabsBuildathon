@@ -4,18 +4,12 @@
  * Verification API.
  */
 
-import type {
-  Verification,
-} from "../models/index.js";
+import type { Verification } from "../models/index.js";
 
-import type {
-  Transport,
-} from "../config/Transport.js";
+import type { Transport } from "../config/Transport.js";
 
 export class VerificationApi {
-  constructor(
-    private readonly transport: Transport,
-  ) {}
+  constructor(private readonly transport: Transport) {}
 
   /**
    * Runs a fresh verification of an Execution Trust Record. Maps to
@@ -24,17 +18,14 @@ export class VerificationApi {
    * /verification/:id), which reads the most recent one without
    * re-verifying.
    */
-  public async verify(
-    businessTransactionId: string,
-  ): Promise<Verification> {
-    const response =
-      await this.transport.send<Verification>({
-        method: "POST",
-        path: "/verify",
-        body: {
-          businessTransactionId,
-        },
-      });
+  public async verify(businessTransactionId: string): Promise<Verification> {
+    const response = await this.transport.send<Verification>({
+      method: "POST",
+      path: "/verify",
+      body: {
+        businessTransactionId,
+      },
+    });
 
     return response.body;
   }
@@ -45,14 +36,11 @@ export class VerificationApi {
    * fresh verification. Maps to GET
    * /verification/:id.
    */
-  public async getLatest(
-    businessTransactionId: string,
-  ): Promise<Verification> {
-    const response =
-      await this.transport.send<Verification>({
-        path: `/verification/${businessTransactionId}`,
-        method: "GET",
-      });
+  public async getLatest(businessTransactionId: string): Promise<Verification> {
+    const response = await this.transport.send<Verification>({
+      path: `/verification/${businessTransactionId}`,
+      method: "GET",
+    });
 
     return response.body;
   }

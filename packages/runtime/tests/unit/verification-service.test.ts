@@ -24,16 +24,12 @@ import type { RuntimeContext } from "../../src/context/RuntimeContext.js";
 // In-memory repository test double, matching the
 // conventions of execution-authorization-wiring.test.ts.
 //
-class InMemoryExecutionTrustRecordRepository
-  implements ExecutionTrustRecordRepository
-{
+class InMemoryExecutionTrustRecordRepository implements ExecutionTrustRecordRepository {
   private readonly store = new Map<string, ExecutionTrustRecord>();
 
   public readonly appendedVerifications: Verification[] = [];
 
-  async create(
-    record: ExecutionTrustRecord,
-  ): Promise<ExecutionTrustRecord> {
+  async create(record: ExecutionTrustRecord): Promise<ExecutionTrustRecord> {
     this.store.set(record.businessTransactionId, record);
     return record;
   }
@@ -60,9 +56,7 @@ class InMemoryExecutionTrustRecordRepository
   async appendReceipt(): Promise<void> {}
 }
 
-function createTransaction(
-  businessTransactionId: string,
-): BusinessTransaction {
+function createTransaction(businessTransactionId: string): BusinessTransaction {
   const authorityId = "authority-1";
   const authorizationId = "authorization-1";
   const fixedDate = new Date("2026-01-01T00:00:00Z");
@@ -123,9 +117,7 @@ async function buildTrustRecord(options: {
   decisionOutcome: DecisionOutcome;
   authorizationId?: string;
 }): Promise<ExecutionTrustRecord> {
-  const transaction = createTransaction(
-    options.businessTransactionId,
-  );
+  const transaction = createTransaction(options.businessTransactionId);
 
   const fixedDate = new Date("2026-01-01T00:00:00Z");
 
@@ -172,9 +164,7 @@ async function buildChainedTrustRecord(options: {
   businessTransactionId: string;
   corruptPreviousChainHash?: boolean;
 }): Promise<ExecutionTrustRecord> {
-  const transaction = createTransaction(
-    options.businessTransactionId,
-  );
+  const transaction = createTransaction(options.businessTransactionId);
 
   const fixedDate = new Date("2026-01-01T00:00:00Z");
 
@@ -199,10 +189,7 @@ async function buildChainedTrustRecord(options: {
     metadata: { authorizationId: "authorization-xyz" },
   };
 
-  const chainFields = await new ExecutionChainCrypto().chain(
-    draft,
-    null,
-  );
+  const chainFields = await new ExecutionChainCrypto().chain(draft, null);
 
   const execution: Execution = {
     ...draft,
@@ -319,9 +306,7 @@ describe("VerificationService (live path)", () => {
 
     const service = new VerificationService(repository);
 
-    const verification = await service.verify(
-      "txn-missing-authorization",
-    );
+    const verification = await service.verify("txn-missing-authorization");
 
     expect(verification.status).toBe(VerificationStatus.FAILED);
     expect(verification.message).toContain(
@@ -433,4 +418,3 @@ describe("VerificationService (live path)", () => {
     );
   });
 });
-

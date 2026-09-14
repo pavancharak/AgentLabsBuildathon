@@ -1,12 +1,25 @@
 import type { CryptoProvider } from "@parmana/crypto";
-import type { ConnectorExecutor, ExecutionCredential } from "@parmana/execution-control";
+import type {
+  ConnectorExecutor,
+  ExecutionCredential,
+} from "@parmana/execution-control";
 import type { ExecutableContent, ExecutionResult } from "@parmana/shared";
 
 import { buildConnectorEvidence } from "./ConnectorEvidence.js";
-import type { Connector, ConnectorExecutionContext, ConnectorRequest } from "@parmana/connector-sdk";
+import type {
+  Connector,
+  ConnectorExecutionContext,
+  ConnectorRequest,
+} from "@parmana/connector-sdk";
 import { isCredentialHandle } from "@parmana/connector-sdk";
-import type { ConnectorMetadata, ConnectorVersion } from "@parmana/connector-sdk";
-import { connectorVersionsEqual, formatConnectorVersion } from "@parmana/connector-sdk";
+import type {
+  ConnectorMetadata,
+  ConnectorVersion,
+} from "@parmana/connector-sdk";
+import {
+  connectorVersionsEqual,
+  formatConnectorVersion,
+} from "@parmana/connector-sdk";
 
 export interface SdkConnectorExecutorOptions {
   readonly connector: Connector;
@@ -44,12 +57,14 @@ export class SdkConnectorExecutor implements ConnectorExecutor {
   ): Promise<ExecutionResult> {
     const { connector, metadata } = this.options;
 
-    if (this.options.expectedVersion !== undefined &&
-      !connectorVersionsEqual(metadata.version, this.options.expectedVersion)) {
+    if (
+      this.options.expectedVersion !== undefined &&
+      !connectorVersionsEqual(metadata.version, this.options.expectedVersion)
+    ) {
       throw new Error(
         `Connector version mismatch for "${connector.connectorId}": expected ` +
-        `${formatConnectorVersion(this.options.expectedVersion)}, found ` +
-        `${formatConnectorVersion(metadata.version)}.`,
+          `${formatConnectorVersion(this.options.expectedVersion)}, found ` +
+          `${formatConnectorVersion(metadata.version)}.`,
       );
     }
 
@@ -69,7 +84,7 @@ export class SdkConnectorExecutor implements ConnectorExecutor {
     if (!isCredentialHandle(credential.value)) {
       throw new Error(
         `Connector "${connector.connectorId}" rejected a raw credential; only a resolved ` +
-        `CredentialHandle produced by a CredentialProvider is accepted.`,
+          `CredentialHandle produced by a CredentialProvider is accepted.`,
       );
     }
 

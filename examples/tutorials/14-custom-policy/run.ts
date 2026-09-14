@@ -1,82 +1,53 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeFactory,
-} from "@parmana/runtime";
+import { RuntimeFactory } from "@parmana/runtime";
 
-import {
-  DefaultExecutionSystem,
-} from "@parmana/execution-system";
+import { DefaultExecutionSystem } from "@parmana/execution-system";
 
 import {
   MemoryBusinessTransactionRepository,
   MemoryExecutionTrustRecordRepository,
 } from "@parmana/storage";
 
-import type {
-  BusinessTransaction,
-} from "@parmana/shared";
+import type { BusinessTransaction } from "@parmana/shared";
 
 const root = path.resolve(import.meta.dirname);
 
 const transaction = JSON.parse(
-  readFileSync(
-    path.join(
-      root,
-      "transaction.json",
-    ),
-    "utf8",
-  ),
+  readFileSync(path.join(root, "transaction.json"), "utf8"),
 ) as BusinessTransaction;
 
 //
 // Load the custom policy repository for this
 // tutorial instead of the shared repository.
 //
-const policyRepository =
-  new FilePolicyRepository(
-    path.join(
-      root,
-      "policies",
-    ),
-  );
+const policyRepository = new FilePolicyRepository(path.join(root, "policies"));
 
-const transactions =
-  new MemoryBusinessTransactionRepository();
+const transactions = new MemoryBusinessTransactionRepository();
 
-const trustRecords =
-  new MemoryExecutionTrustRecordRepository();
+const trustRecords = new MemoryExecutionTrustRecordRepository();
 
-const executionSystem =
-  new DefaultExecutionSystem();
+const executionSystem = new DefaultExecutionSystem();
 
-const application =
-  RuntimeFactory.create(
-    transactions,
-    trustRecords,
-    policyRepository,
-    executionSystem,
-  );
+const application = RuntimeFactory.create(
+  transactions,
+  trustRecords,
+  policyRepository,
+  executionSystem,
+);
 
 //
 // Execute the Business Transaction using the
 // custom High Value Payment policy.
 //
-const trustRecord =
-  await application.execute(
-    transaction,
-  );
+const trustRecord = await application.execute(transaction);
 
-const verification =
-  trustRecord.verifications.at(-1);
+const verification = trustRecord.verifications.at(-1);
 
-const receipt =
-  trustRecord.receipts.at(-1);
+const receipt = trustRecord.receipts.at(-1);
 
 console.log("========================================");
 console.log(" Parmana Tutorial 14");
@@ -87,57 +58,31 @@ console.log();
 
 console.log("Policy");
 
-console.log(
-  `${transaction.policy.name}@${transaction.policy.version}`,
-);
+console.log(`${transaction.policy.name}@${transaction.policy.version}`);
 
 console.log();
 
 console.log("Business Transaction");
 
-console.log(
-  JSON.stringify(
-    transaction,
-    null,
-    2,
-  ),
-);
+console.log(JSON.stringify(transaction, null, 2));
 
 console.log();
 
 console.log("Execution Trust Record");
 
-console.log(
-  JSON.stringify(
-    trustRecord,
-    null,
-    2,
-  ),
-);
+console.log(JSON.stringify(trustRecord, null, 2));
 
 console.log();
 
 console.log("Verification");
 
-console.log(
-  JSON.stringify(
-    verification,
-    null,
-    2,
-  ),
-);
+console.log(JSON.stringify(verification, null, 2));
 
 console.log();
 
 console.log("Receipt");
 
-console.log(
-  JSON.stringify(
-    receipt,
-    null,
-    2,
-  ),
-);
+console.log(JSON.stringify(receipt, null, 2));
 
 console.log();
 

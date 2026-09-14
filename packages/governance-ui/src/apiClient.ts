@@ -51,9 +51,9 @@ async function authenticatedGet(
   }
 
   if (!response.ok) {
-    const body = (await response
-      .json()
-      .catch(() => ({}))) as { error?: unknown };
+    const body = (await response.json().catch(() => ({}))) as {
+      error?: unknown;
+    };
 
     throw new ApiClientError(
       typeof body.error === "string"

@@ -195,8 +195,7 @@ function parseEnum(stmt: ts.EnumDeclaration): EnumSpec {
   const members = stmt.members.map((member) => {
     const name = (member.name as ts.Identifier).text;
     const init = member.initializer;
-    const value =
-      init && ts.isStringLiteral(init) ? init.text : name;
+    const value = init && ts.isStringLiteral(init) ? init.text : name;
 
     return { name, value };
   });
@@ -246,12 +245,7 @@ function parseSignatureAlgorithm(sourceFile: ts.SourceFile): EnumSpec {
 function loadSourceFile(filePath: string): ts.SourceFile {
   const text = fs.readFileSync(filePath, "utf-8");
 
-  return ts.createSourceFile(
-    filePath,
-    text,
-    ts.ScriptTarget.Latest,
-    true,
-  );
+  return ts.createSourceFile(filePath, text, ts.ScriptTarget.Latest, true);
 }
 
 function registerDomainFile(fileName: string): void {
@@ -347,7 +341,8 @@ const MODULES: ModuleSpec[] = [
   {
     file: "signature",
     types: ["SignatureAlgorithm", "Signature", "SignatureEntry"],
-    docSource: "config/CryptoAlgorithms.ts, domain/signature.ts, domain/signature-entry.ts",
+    docSource:
+      "config/CryptoAlgorithms.ts, domain/signature.ts, domain/signature-entry.ts",
   },
   {
     file: "execution_evidence",
@@ -435,10 +430,7 @@ function emitInterface(spec: InterfaceSpec): string {
   const required = spec.fields.filter((f) => !f.optional);
   const optional = spec.fields.filter((f) => f.optional);
 
-  const lines = [
-    "@dataclass(frozen=True)",
-    `class ${pyClassName(spec.name)}:`,
-  ];
+  const lines = ["@dataclass(frozen=True)", `class ${pyClassName(spec.name)}:`];
 
   const bodyLines: string[] = [];
 
@@ -548,14 +540,14 @@ function buildModule(mod: ModuleSpec): string {
     for (const [homeModule, names] of [...crossImports.entries()].sort(
       ([a], [b]) => a.localeCompare(b),
     )) {
-      header.push(
-        `from .${homeModule} import ${[...names].sort().join(", ")}`,
-      );
+      header.push(`from .${homeModule} import ${[...names].sort().join(", ")}`);
     }
   }
 
   const body = specs
-    .map((spec) => (spec.kind === "enum" ? emitEnum(spec) : emitInterface(spec)))
+    .map((spec) =>
+      spec.kind === "enum" ? emitEnum(spec) : emitInterface(spec),
+    )
     .join("\n\n\n");
 
   return `${header.join("\n")}\n\n\n${body}\n`;
@@ -656,7 +648,9 @@ if (CHECK_MODE) {
     process.exit(1);
   }
 
-  console.log("generate_models --check: python/parmana/models/*.py are up to date.");
+  console.log(
+    "generate_models --check: python/parmana/models/*.py are up to date.",
+  );
 } else {
   fs.mkdirSync(OUT_DIR, { recursive: true });
 
@@ -664,5 +658,7 @@ if (CHECK_MODE) {
     fs.writeFileSync(path.join(OUT_DIR, fileName), content, "utf-8");
   }
 
-  console.log(`generate_models: wrote ${outputs.size} files to python/parmana/models/`);
+  console.log(
+    `generate_models: wrote ${outputs.size} files to python/parmana/models/`,
+  );
 }

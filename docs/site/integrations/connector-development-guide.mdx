@@ -3,7 +3,11 @@ title: "Connector Development Guide"
 description: "How to implement a Connector against @parmana/connector-sdk, every example uses MockConnector or HttpConnector, no enterprise-specific example."
 ---
 
-<Info>**[AVAILABLE] as a library**, `packages/connector-sdk`, **[AVAILABLE] wired into the default server for HubSpot specifically**, a code change for anything beyond that one today, see the warning below.</Info>
+<Info>
+  **[AVAILABLE] as a library**, `packages/connector-sdk`, **[AVAILABLE] wired
+  into the default server for HubSpot specifically**, a code change for anything
+  beyond that one today, see the warning below.
+</Info>
 
 ## Connector responsibilities, and what a Connector must never do
 
@@ -26,7 +30,10 @@ class ExampleConnector implements Connector {
   readonly connectorId = "example";
   readonly capabilities = connectorCapabilities(["crm:read"]);
 
-  async execute(request: ConnectorRequest, context: ConnectorExecutionContext): Promise<ConnectorResponse> {
+  async execute(
+    request: ConnectorRequest,
+    context: ConnectorExecutionContext,
+  ): Promise<ConnectorResponse> {
     if (!this.capabilities.includes(request.capability)) {
       throw new Error(`does not declare capability "${request.capability}"`);
     }
@@ -41,13 +48,17 @@ class ExampleConnector implements Connector {
 `ConnectorCapability` is a plain string, validated eagerly by `connectorCapabilities()`
 against `namespace:verb` (e.g. `http:get`, `crm:read`, `payments:refund`), a malformed
 capability throws at connector construction, not at execution time. By convention,
-`ExecutableContent.action` *is* the capability string; this is what
+`ExecutableContent.action` _is_ the capability string; this is what
 `execution-control`'s `DefaultConnectorPolicy` already checks unchanged.
 
 ## Registering a connector
 
 ```typescript
-import { ConnectorSdkRegistry, StaticCredentialProvider, healthyNow } from "@parmana/connector-sdk";
+import {
+  ConnectorSdkRegistry,
+  StaticCredentialProvider,
+  healthyNow,
+} from "@parmana/connector-sdk";
 
 const registry = new ConnectorSdkRegistry();
 
@@ -59,8 +70,14 @@ registry.register({
     version: { major: 1, minor: 0, patch: 0 },
     health: healthyNow(),
   },
-  connectorIdentity: { connectorId: "example", publicIdentity: "spiffe://parmana/connectors/example", authenticationMetadata: {} },
-  credentialProvider: new StaticCredentialProvider({ example: { token: "..." } }),
+  connectorIdentity: {
+    connectorId: "example",
+    publicIdentity: "spiffe://parmana/connectors/example",
+    authenticationMetadata: {},
+  },
+  credentialProvider: new StaticCredentialProvider({
+    example: { token: "..." },
+  }),
   policy, // a ConnectorPolicy, e.g. CapabilityConnectorPolicy(new DefaultConnectorPolicy(...))
   gatewayAuthentication,
   crypto, // @parmana/crypto CryptoProvider, reused for evidence hashing, not reimplemented
@@ -81,11 +98,19 @@ import { MockConnector, connectorCapabilities } from "@parmana/connector-sdk";
 const mock = new MockConnector({
   connectorId: "example",
   capabilities: connectorCapabilities(["crm:read"]),
-  script: { respond: () => ({ success: true, metadata: { recordId: "example-1" } }) },
+  script: {
+    respond: () => ({ success: true, metadata: { recordId: "example-1" } }),
+  },
 });
 
 const result = await mock.execute(
-  { capability: "crm:read", businessTransactionId: "t1", action: "crm:read", target: "crm://record/1", parameters: {} },
+  {
+    capability: "crm:read",
+    businessTransactionId: "t1",
+    action: "crm:read",
+    target: "crm://record/1",
+    parameters: {},
+  },
   { credential: undefined as never },
 );
 ```
@@ -145,7 +170,11 @@ if (hubspotCredentialProvider === undefined) {
   registrations.push({
     connector: createHubSpotConnector(),
     metadata: HubSpotMetadata,
-    connectorIdentity: { connectorId: "hubspot", publicIdentity: "spiffe://parmana/connectors/hubspot", authenticationMetadata: {} },
+    connectorIdentity: {
+      connectorId: "hubspot",
+      publicIdentity: "spiffe://parmana/connectors/hubspot",
+      authenticationMetadata: {},
+    },
     credentialProvider: hubspotCredentialProvider,
     policy: new DefaultConnectorPolicy(authenticator, sessions),
     gatewayAuthentication,
@@ -170,16 +199,18 @@ actually reachable in the default production server today (GitHub is also regist
 connector specifically. See
 [the Phase 2A production-connectors report](/../architecture/phase2a-production-connectors.md)
 for the vendor-payment before/after this superseded.
+
 </Warning>
 
 ## The pattern, proven twice: Razorpay and HubSpot
 
 <Note>
-Razorpay was deliberately removed from the codebase in full, 2026-08-12 (see
-`docs/CLAIMS.md`'s "Key Compromise Notice" section and the connector-removal history in the
-source repository). The lessons below are kept as a historical, worked example — a second
-real connector, built after HubSpot's own lessons already existed to apply — not a claim
-that Razorpay is still registered anywhere in this codebase today.
+  Razorpay was deliberately removed from the codebase in full, 2026-08-12 (see
+  `docs/CLAIMS.md`'s "Key Compromise Notice" section and the connector-removal
+  history in the source repository). The lessons below are kept as a historical,
+  worked example — a second real connector, built after HubSpot's own lessons
+  already existed to apply — not a claim that Razorpay is still registered
+  anywhere in this codebase today.
 </Note>
 
 Both connectors implemented everything above, but the two builds themselves are the more
@@ -196,16 +227,16 @@ delete. Widen scope in a later milestone, once the first one is fully proven, se
 
 **Two structural guards belong in a connector's first version, not a follow-up fix.**
 
-- *Refuse a placeholder test credential against the real endpoint, before any network
-  call.* Don't rely on the vendor happening to reject it, that's an accident of their
+- _Refuse a placeholder test credential against the real endpoint, before any network
+  call._ Don't rely on the vendor happening to reject it, that's an accident of their
   behavior, not something this codebase controls. `RazorpayConnector` didn't have this
   check originally, it survived only because Razorpay's real API happened to reject an
   unrecognized key — a defense-in-depth fix was added after the fact.
   `HubSpotConnector` refuses its own placeholder token against
   `https://api.hubapi.com` from its first commit, see [HubSpot](/integrations/hubspot) and
   `packages/connector-hubspot/src/HubSpotConnector.ts`.
-- *Read the documented test-credential environment variable name directly, never through a
-  bridge variable.* `createRazorpayCredentialProvider.ts`'s test-mode branch originally read
+- _Read the documented test-credential environment variable name directly, never through a
+  bridge variable._ `createRazorpayCredentialProvider.ts`'s test-mode branch originally read
   a word-order-swapped bridge variable instead of the name `.env.example` actually
   documented, fixed only after it drifted out of sync.
   `createHubSpotCredentialProvider.ts` reads `TEST_HUBSPOT_PRIVATE_APP_TOKEN`, the exact
@@ -264,10 +295,18 @@ in `docs/CLAIMS.md` §3.10 rather than quietly fixed and left undocumented.
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="Issue and verify session credentials" icon="key" href="/guides/session-credentials">
+  <Card
+    title="Issue and verify session credentials"
+    icon="key"
+    href="/guides/session-credentials"
+  >
     What your connector's `context.credential` actually is, and its lifecycle.
   </Card>
-  <Card title="Credential isolation" icon="shield" href="/concepts/credential-isolation">
+  <Card
+    title="Credential isolation"
+    icon="shield"
+    href="/concepts/credential-isolation"
+  >
     The concept this guide's credential handling exercises.
   </Card>
 </CardGroup>

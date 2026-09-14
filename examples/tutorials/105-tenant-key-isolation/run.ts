@@ -20,8 +20,14 @@ const keyDir = mkdtempSync(join(tmpdir(), "parmana-tutorial-105-keys-"));
 
 function writeKeyPair(keyId: string): void {
   const { privateKey, publicKey } = generateKeyPairSync("ed25519");
-  writeFileSync(join(keyDir, `${keyId}.private.pem`), privateKey.export({ format: "pem", type: "pkcs8" }));
-  writeFileSync(join(keyDir, `${keyId}.public.pem`), publicKey.export({ format: "pem", type: "spki" }));
+  writeFileSync(
+    join(keyDir, `${keyId}.private.pem`),
+    privateKey.export({ format: "pem", type: "pkcs8" }),
+  );
+  writeFileSync(
+    join(keyDir, `${keyId}.public.pem`),
+    publicKey.export({ format: "pem", type: "spki" }),
+  );
 }
 
 writeKeyPair("default");
@@ -32,16 +38,22 @@ process.env.PARMANA_KEY_DIR = keyDir;
 
 const { FilePolicyRepository } = await import("@parmana/policy");
 const { RuntimeBuilder } = await import("@parmana/runtime");
-const { MemoryExecutionTrustRecordRepository } = await import("@parmana/storage");
-const { AuthorizationVerifier, CryptoBootstrap, FileKeyProvider } = await import("@parmana/crypto");
+const { MemoryExecutionTrustRecordRepository } =
+  await import("@parmana/storage");
+const { AuthorizationVerifier, CryptoBootstrap, FileKeyProvider } =
+  await import("@parmana/crypto");
 const path = await import("node:path");
 
 const root = path.resolve(import.meta.dirname);
 
-const policyRepository = new FilePolicyRepository(path.resolve(root, "../../../policies"));
+const policyRepository = new FilePolicyRepository(
+  path.resolve(root, "../../../policies"),
+);
 const trustRecords = new MemoryExecutionTrustRecordRepository();
 
-const runtime = new RuntimeBuilder().withPolicyRepository(policyRepository).build(trustRecords);
+const runtime = new RuntimeBuilder()
+  .withPolicyRepository(policyRepository)
+  .build(trustRecords);
 
 function transactionFor(businessTransactionId: string, tenantId?: string) {
   return {
@@ -80,7 +92,11 @@ function transactionFor(businessTransactionId: string, tenantId?: string) {
       createdAt: new Date(),
     },
 
-    policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+    policy: {
+      name: "vendor-payment",
+      version: "2.0.0",
+      schemaVersion: "1.0.0",
+    },
 
     signals: {
       vendorVerified: true,
@@ -105,43 +121,68 @@ console.log("==================================================");
 console.log();
 
 try {
-  console.log("Scenario 1: transaction with metadata.tenantId = \"acme-corp\", a provisioned tenant key exists");
+  console.log(
+    'Scenario 1: transaction with metadata.tenantId = "acme-corp", a provisioned tenant key exists',
+  );
   console.log("--------------------------------------------------");
-  const { context: acmeContext } = await runtime.execute(transactionFor("tx-105-acme", "acme-corp"));
+  const { context: acmeContext } = await runtime.execute(
+    transactionFor("tx-105-acme", "acme-corp"),
+  );
   const acmeAuthorization = acmeContext.authorization!;
   console.log(`Signed under keyId : ${acmeAuthorization.keyId}`);
   console.log();
 
-  console.log("Scenario 2: transaction with metadata.tenantId = \"globex-corp\", NO tenant key provisioned");
+  console.log(
+    'Scenario 2: transaction with metadata.tenantId = "globex-corp", NO tenant key provisioned',
+  );
   console.log("--------------------------------------------------");
-  const { context: globexContext } = await runtime.execute(transactionFor("tx-105-globex", "globex-corp"));
+  const { context: globexContext } = await runtime.execute(
+    transactionFor("tx-105-globex", "globex-corp"),
+  );
   const globexAuthorization = globexContext.authorization!;
-  console.log(`Signed under keyId : ${globexAuthorization.keyId} (fell back to the shared default key)`);
+  console.log(
+    `Signed under keyId : ${globexAuthorization.keyId} (fell back to the shared default key)`,
+  );
   console.log();
 
-  console.log("Scenario 3: transaction with no tenantId at all (metadata carries none)");
+  console.log(
+    "Scenario 3: transaction with no tenantId at all (metadata carries none)",
+  );
   console.log("--------------------------------------------------");
-  const { context: noTenantContext } = await runtime.execute(transactionFor("tx-105-no-tenant"));
+  const { context: noTenantContext } = await runtime.execute(
+    transactionFor("tx-105-no-tenant"),
+  );
   const noTenantAuthorization = noTenantContext.authorization!;
-  console.log(`Signed under keyId : ${noTenantAuthorization.keyId} (unchanged, single-tenant path)`);
+  console.log(
+    `Signed under keyId : ${noTenantAuthorization.keyId} (unchanged, single-tenant path)`,
+  );
   console.log();
 
-  console.log("Isolation check: acme-corp's authorization verifies under its own key, NOT under the shared default key");
+  console.log(
+    "Isolation check: acme-corp's authorization verifies under its own key, NOT under the shared default key",
+  );
   console.log("--------------------------------------------------");
   const crypto = CryptoBootstrap.create();
   const verifier = new AuthorizationVerifier(crypto);
   const keys = new FileKeyProvider();
 
   const verifiesUnderOwnKey = (
-    await verifier.verify(acmeAuthorization, await keys.getPublicKey("tenant.acme-corp"))
+    await verifier.verify(
+      acmeAuthorization,
+      await keys.getPublicKey("tenant.acme-corp"),
+    )
   ).valid;
 
   const verifiesUnderDefaultKey = (
     await verifier.verify(acmeAuthorization, await keys.getPublicKey("default"))
   ).checks.signatureVerified;
 
-  console.log(`Verifies under tenant.acme-corp's public key : ${verifiesUnderOwnKey}`);
-  console.log(`Verifies under the shared default public key : ${verifiesUnderDefaultKey}`);
+  console.log(
+    `Verifies under tenant.acme-corp's public key : ${verifiesUnderOwnKey}`,
+  );
+  console.log(
+    `Verifies under the shared default public key : ${verifiesUnderDefaultKey}`,
+  );
   console.log();
 
   const allPassed =
@@ -156,7 +197,9 @@ try {
       "✓ A tenant with a provisioned key signs, and is only verifiable, under that key -- an unprovisioned or absent tenantId both fall back to the shared default key, exactly as G-32 documents.",
     );
   } else {
-    console.log("✗ Expected all three scenarios and the isolation check to behave exactly as documented.");
+    console.log(
+      "✗ Expected all three scenarios and the isolation check to behave exactly as documented.",
+    );
   }
 
   console.log();

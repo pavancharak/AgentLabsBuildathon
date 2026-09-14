@@ -21,11 +21,11 @@ export interface ExecutionAuthorizationPayload {
   readonly businessTransactionId: string;
   readonly policyName: string;
   readonly policyVersion: string;
-  readonly authorizedAt: string;   // ISO-8601 UTC string, never a Date
-  readonly expiresAt: string;      // required
+  readonly authorizedAt: string; // ISO-8601 UTC string, never a Date
+  readonly expiresAt: string; // required
   readonly businessTransactionHash: string;
-  readonly policyContentHash?: string;   // optional, §2.27
-  readonly signalsHash?: string;         // optional, §2.29 / G-31
+  readonly policyContentHash?: string; // optional, §2.27
+  readonly signalsHash?: string; // optional, §2.29 / G-31
 }
 ```
 
@@ -45,10 +45,10 @@ to be tamper-evident:
   for execution, computed identically by the signing side (from the runtime's in-memory
   transaction) and the verifying side (from the JSON-parsed request) via the same
   `ExecutableContentHasher`. Without this, an authorization naming only an ID
-  (`businessTransactionId: "tx-001"`) could accompany *any* payload carrying that same ID.
+  (`businessTransactionId: "tx-001"`) could accompany _any_ payload carrying that same ID.
   A receiving gateway recomputes this hash from the exact content it's about to forward and
   rejects any mismatch.
-- **`policyContentHash`** (optional): proves *which policy content*, not merely which
+- **`policyContentHash`** (optional): proves _which policy content_, not merely which
   version string, produced this decision. Policy governance (Chapter 14) permits in-place
   content edits to an existing version string, so a version-string comparison alone can't
   detect every real policy change. Optional so every authorization signed before this field
@@ -56,9 +56,9 @@ to be tamper-evident:
   is stale."
 - **`signalsHash`** (optional, newest field): the direct sibling of `policyContentHash`, one
   layer further out. A canonical hash of the runtime `PolicySignals` the decision was
-  evaluated against. `businessTransactionHash` proves *what* gets executed hasn't changed;
-  `policyContentHash` proves *which rules* approved it haven't changed; `signalsHash` proves
-  the *real-world facts* those rules were evaluated against haven't changed either. Chapter 8
+  evaluated against. `businessTransactionHash` proves _what_ gets executed hasn't changed;
+  `policyContentHash` proves _which rules_ approved it haven't changed; `signalsHash` proves
+  the _real-world facts_ those rules were evaluated against haven't changed either. Chapter 8
   covers the check that actually uses it.
 
 ## Signing
@@ -84,8 +84,8 @@ already used to sign trust records and receipts, keyId `"default"`.
 2. **`versionSupported`**, **`signatureVerified`**, **`notExpired`**: delegated to
    `AuthorizationVerifier.verify()` using whichever key resolved in step 1.
 3. **`ttlWithinPolicy`**: recomputed independently, `(expiresAt - authorizedAt) / 1000 <=
-   maxTtlSeconds` (default 300s). This isn't redundant with `notExpired`. An authorization
-   can be unexpired *and* have been issued with a TTL a receiving system's own policy
+maxTtlSeconds` (default 300s). This isn't redundant with `notExpired`. An authorization
+   can be unexpired _and_ have been issued with a TTL a receiving system's own policy
    considers too long, and this check catches that case specifically.
 4. **`nonceUnseen`**: deliberately isolated into its own method, `consumeNonce()`, called
    only if every check above passed. The reasoning is explicit in the source: running nonce
@@ -96,7 +96,7 @@ already used to sign trust records and receipts, keyId `"default"`.
    independently, for the same reason each time.
 
 `verifyChecks()` exposes the four side-effect-free checks without consuming the nonce,
-specifically so a caller like `ExecutionGateway` can insert its *own* additional checks
+specifically so a caller like `ExecutionGateway` can insert its _own_ additional checks
 (`businessTransactionHash`, `policyStillCurrent`, `signalsStillCurrent`, Chapter 8) into the
 sequence before the one side-effecting step runs. `NonceStore` (interface: a single
 `checkAndRecord(nonce, expiresAt): Promise<boolean>`) carries its own explicit production

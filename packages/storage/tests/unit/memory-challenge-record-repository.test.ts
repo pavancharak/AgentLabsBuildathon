@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { ChallengeRecordNotFoundError, type ChallengeRecord } from "@parmana/shared";
+import {
+  ChallengeRecordNotFoundError,
+  type ChallengeRecord,
+} from "@parmana/shared";
 
 import { MemoryChallengeRecordRepository } from "../../src/memory/MemoryChallengeRecordRepository.js";
 
@@ -60,7 +63,8 @@ describe("MemoryChallengeRecordRepository", () => {
       step: {
         performedAt: new Date("2026-08-03T01:00:00.000Z"),
         method: "grep for signature_json across packages/api/src",
-        observation: "PostgREST schema cache confirmed stuck at the REST layer only",
+        observation:
+          "PostgREST schema cache confirmed stuck at the REST layer only",
       },
     });
 
@@ -68,7 +72,9 @@ describe("MemoryChallengeRecordRepository", () => {
     expect(updated.investigationSteps[0]!.observation).toBe(
       "PostgREST schema cache confirmed stuck at the REST layer only",
     );
-    expect(updated.updatedAt.getTime()).toBeGreaterThan(updated.createdAt.getTime());
+    expect(updated.updatedAt.getTime()).toBeGreaterThan(
+      updated.createdAt.getTime(),
+    );
   });
 
   it("throws ChallengeRecordNotFoundError when appending to an unknown id", async () => {

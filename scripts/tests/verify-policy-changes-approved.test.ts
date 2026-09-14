@@ -345,6 +345,8 @@ describe("verifyPolicyChangesApproved", () => {
         approvalLookup: lookupFrom(repository),
         readPolicyFile: fakeReadPolicyFile,
       }),
-    ).rejects.toThrow("does not look like a policies/{name}/{version}/policy.json path");
+    ).rejects.toThrow(
+      "does not look like a policies/{name}/{version}/policy.json path",
+    );
   });
 });

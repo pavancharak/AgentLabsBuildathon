@@ -1,9 +1,6 @@
 import type { Pool } from "pg";
 
-import type {
-  RefusalRecord,
-  RefusalRecordRepository,
-} from "@parmana/shared";
+import type { RefusalRecord, RefusalRecordRepository } from "@parmana/shared";
 
 /**
  * Postgres-backed implementation of RefusalRecordRepository (RFC-0021).
@@ -18,22 +15,18 @@ import type {
  * that broke first (see SupabaseCallerAuditSink for the originating
  * incident).
  */
-export class SupabaseRefusalRecordRepository
-  implements RefusalRecordRepository
-{
-  constructor(
-    private readonly pool: Pool,
-  ) {}
+export class SupabaseRefusalRecordRepository implements RefusalRecordRepository {
+  constructor(private readonly pool: Pool) {}
 
-  async create(
-    record: RefusalRecord,
-  ): Promise<RefusalRecord> {
+  async create(record: RefusalRecord): Promise<RefusalRecord> {
     await this.pool.query(INSERT_REFUSAL_RECORD_SQL, [
       record.refusalRecordId,
       record.businessTransactionId,
       JSON.stringify(record.decision),
       JSON.stringify(record.evaluatedIntent),
-      record.bindingViolations ? JSON.stringify(record.bindingViolations) : null,
+      record.bindingViolations
+        ? JSON.stringify(record.bindingViolations)
+        : null,
       record.submittedBy ?? null,
       record.refusalRecordHash,
       JSON.stringify(record.signature),
@@ -62,7 +55,9 @@ export class SupabaseRefusalRecordRepository
       decision: row.decision_json,
       evaluatedIntent: row.evaluated_intent_json,
 
-      ...(row.binding_violations_json ? { bindingViolations: row.binding_violations_json } : {}),
+      ...(row.binding_violations_json
+        ? { bindingViolations: row.binding_violations_json }
+        : {}),
       ...(row.submitted_by !== null ? { submittedBy: row.submitted_by } : {}),
 
       refusalRecordHash: row.refusal_record_hash,

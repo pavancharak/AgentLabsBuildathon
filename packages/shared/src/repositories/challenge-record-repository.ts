@@ -17,11 +17,17 @@ import { ConflictError } from "../errors/index.js";
  * one-entry-at-a-time shape.
  */
 export type ChallengeRecordAppendOperation =
-  | { readonly kind: "investigation-step"; readonly step: ChallengeRecordInvestigationStep }
+  | {
+      readonly kind: "investigation-step";
+      readonly step: ChallengeRecordInvestigationStep;
+    }
   | { readonly kind: "status"; readonly status: ChallengeRecordStatus }
   | { readonly kind: "finding"; readonly finding: ChallengeRecordFinding }
   | { readonly kind: "outcome"; readonly outcome: ChallengeRecordOutcome }
-  | { readonly kind: "disclosure"; readonly disclosure: ChallengeRecordDisclosure };
+  | {
+      readonly kind: "disclosure";
+      readonly disclosure: ChallengeRecordDisclosure;
+    };
 
 /**
  * Repository for Challenge Records (RFC-0022).
@@ -145,7 +151,11 @@ export function applyChallengeRecordAppend(
         );
       }
 
-      return { ...record, disclosure: operation.disclosure, updatedAt: appliedAt };
+      return {
+        ...record,
+        disclosure: operation.disclosure,
+        updatedAt: appliedAt,
+      };
     }
   }
 }

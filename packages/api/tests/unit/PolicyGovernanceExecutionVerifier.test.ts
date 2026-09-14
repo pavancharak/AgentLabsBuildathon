@@ -42,7 +42,11 @@ describe("PolicyGovernanceExecutionVerifier", () => {
       new PolicyChangeCrypto(),
     );
 
-    const violation = await verifier.verify("never-approved", "1.0.0", "hash123");
+    const violation = await verifier.verify(
+      "never-approved",
+      "1.0.0",
+      "hash123",
+    );
 
     expect(violation?.reason).toContain("has no PolicyChangeApprovalRecord");
   });
@@ -58,7 +62,11 @@ describe("PolicyGovernanceExecutionVerifier", () => {
 
     const verifier = new PolicyGovernanceExecutionVerifier(repository, crypto);
 
-    const violation = await verifier.verify("vendor-payment", "1.0.0", "hash123");
+    const violation = await verifier.verify(
+      "vendor-payment",
+      "1.0.0",
+      "hash123",
+    );
 
     expect(violation?.reason).toContain("signature does not verify");
   });
@@ -73,9 +81,15 @@ describe("PolicyGovernanceExecutionVerifier", () => {
 
     const verifier = new PolicyGovernanceExecutionVerifier(repository, crypto);
 
-    const violation = await verifier.verify("vendor-payment", "1.0.0", "different-live-hash");
+    const violation = await verifier.verify(
+      "vendor-payment",
+      "1.0.0",
+      "different-live-hash",
+    );
 
-    expect(violation?.reason).toContain("does not match its most recent approval record");
+    expect(violation?.reason).toContain(
+      "does not match its most recent approval record",
+    );
   });
 
   it("returns undefined (clean) when the record exists, verifies, and content matches", async () => {
@@ -88,7 +102,11 @@ describe("PolicyGovernanceExecutionVerifier", () => {
 
     const verifier = new PolicyGovernanceExecutionVerifier(repository, crypto);
 
-    const violation = await verifier.verify("vendor-payment", "1.0.0", "matching-hash");
+    const violation = await verifier.verify(
+      "vendor-payment",
+      "1.0.0",
+      "matching-hash",
+    );
 
     expect(violation).toBeUndefined();
   });

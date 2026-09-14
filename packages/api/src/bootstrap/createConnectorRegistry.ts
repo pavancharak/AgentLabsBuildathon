@@ -170,10 +170,14 @@ export function createConnectorRegistry(
   if (paytmCredentialProvider === undefined) {
     console.warn({
       event: "paytm_connector_unavailable",
-      reason: "PAYTM_CONNECTOR_URL / PAYTM_CONNECTOR_SHARED_SECRET are not configured.",
+      reason:
+        "PAYTM_CONNECTOR_URL / PAYTM_CONNECTOR_SHARED_SECRET are not configured.",
     });
   } else {
-    const paytmTimeoutMs = Number(process.env.PAYTM_CONNECTOR_TIMEOUT_MS ?? DEFAULT_PAYTM_CONNECTOR_TIMEOUT_MS);
+    const paytmTimeoutMs = Number(
+      process.env.PAYTM_CONNECTOR_TIMEOUT_MS ??
+        DEFAULT_PAYTM_CONNECTOR_TIMEOUT_MS,
+    );
 
     registrations.push({
       connector: createPaytmConnector(),
@@ -196,9 +200,10 @@ export function createConnectorRegistry(
 
       audit,
 
-      timeoutMs: Number.isFinite(paytmTimeoutMs) && paytmTimeoutMs > 0
-        ? paytmTimeoutMs
-        : DEFAULT_PAYTM_CONNECTOR_TIMEOUT_MS,
+      timeoutMs:
+        Number.isFinite(paytmTimeoutMs) && paytmTimeoutMs > 0
+          ? paytmTimeoutMs
+          : DEFAULT_PAYTM_CONNECTOR_TIMEOUT_MS,
     });
   }
 

@@ -4,7 +4,10 @@ import type { NextFunction, Request, Response } from "express";
 import { createCallerAuthMiddleware } from "../../../src/middleware/caller-auth.js";
 import { AuditUnavailableError } from "../../../src/auth/AuditUnavailableError.js";
 import type { CallerAuthenticator } from "../../../src/auth/CallerAuthenticator.js";
-import type { CallerAuditEvent, CallerAuditSink } from "../../../src/auth/CallerAuditSink.js";
+import type {
+  CallerAuditEvent,
+  CallerAuditSink,
+} from "../../../src/auth/CallerAuditSink.js";
 
 function createMockReq(authorization: string | undefined): Request {
   return {
@@ -72,7 +75,10 @@ describe("createCallerAuthMiddleware — audit fail-closed", () => {
     await middleware(req, res, next);
 
     expect(next).not.toHaveBeenCalled();
-    expect(res.setHeader).toHaveBeenCalledWith("WWW-Authenticate", 'Bearer realm="Parmana"');
+    expect(res.setHeader).toHaveBeenCalledWith(
+      "WWW-Authenticate",
+      'Bearer realm="Parmana"',
+    );
     expect(res.status).toHaveBeenCalledWith(401);
     expect(events).toHaveLength(1);
     expect(events[0].type).toBe("caller.rejected");

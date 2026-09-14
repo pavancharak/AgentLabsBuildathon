@@ -1,38 +1,38 @@
 # \# Tutorial 03 — Runtime Execution
 
-# 
+#
 
 # \## Overview
 
-# 
+#
 
 # This tutorial executes a complete Business Transaction using the Parmana Runtime.
 
-# 
+#
 
 # The Runtime loads the referenced policy, evaluates it, creates a decision, and produces an Execution Trust Record.
 
-# 
+#
 
 # Unlike Tutorial 02, this tutorial executes the full Runtime.
 
-# 
+#
 
 # Verification and Receipt Generation are covered in later tutorials.
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Learning Objectives
 
-# 
+#
 
 # After completing this tutorial you will understand:
 
-# 
+#
 
 # \- RuntimeBuilder
 
@@ -44,15 +44,15 @@
 
 # \- Execution Trust Record
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Files
 
-# 
+#
 
 # | File | Purpose |
 
@@ -62,61 +62,61 @@
 
 # | `run.ts` | Executes the Runtime |
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Architecture
 
-# 
+#
 
 # ```
 
 # Business Transaction
 
-# &#x20;       │
+# &#x20; │
 
-# &#x20;       ▼
+# &#x20; ▼
 
 # Runtime
 
-# &#x20;       │
+# &#x20; │
 
-# &#x20;       ▼
+# &#x20; ▼
 
 # Policy Router
 
-# &#x20;       │
+# &#x20; │
 
-# &#x20;       ▼
+# &#x20; ▼
 
 # Policy Engine
 
-# &#x20;       │
+# &#x20; │
 
-# &#x20;       ▼
+# &#x20; ▼
 
 # Decision
 
-# &#x20;       │
+# &#x20; │
 
-# &#x20;       ▼
+# &#x20; ▼
 
 # Execution Trust Record
 
 # ```
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Run
 
-# 
+#
 
 # ```bash
 
@@ -124,11 +124,11 @@
 
 # ```
 
-# 
+#
 
 # or
 
-# 
+#
 
 # ```bash
 
@@ -136,19 +136,19 @@
 
 # ```
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Expected Output
 
-# 
+#
 
 # The tutorial prints:
 
-# 
+#
 
 # \- Business Transaction
 
@@ -156,19 +156,18 @@
 
 # \- Execution Trust Record
 
-# 
+#
 
 # Verification and Receipt Generation are demonstrated in later tutorials.
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Next Tutorial
 
-# 
+#
 
 # Continue to \*\*Tutorial 04 – Policy Router\*\*.
-

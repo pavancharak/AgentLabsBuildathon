@@ -5,10 +5,7 @@
   "description": "Request payload for POST /policies/validate. policyId and policyVersion are each required non-empty strings, checked in that order; each missing/empty field is rejected with its own 400 and a distinct message.",
   "type": "object",
   "additionalProperties": true,
-  "required": [
-    "policyId",
-    "policyVersion"
-  ],
+  "required": ["policyId", "policyVersion"],
   "properties": {
     "policyId": {
       "type": "string",

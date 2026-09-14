@@ -65,22 +65,31 @@ export class GatewayAttestationSigner {
       issuedAt: this.clock.now().toISOString(),
     });
 
-    const signature = sign(null, serializer.serialize(payload), privateKey).toString("base64");
+    const signature = sign(
+      null,
+      serializer.serialize(payload),
+      privateKey,
+    ).toString("base64");
 
     return Object.freeze({ payload, signature });
   }
 }
 
-export function isGatewayAttestation(value: unknown): value is GatewayAttestation {
+export function isGatewayAttestation(
+  value: unknown,
+): value is GatewayAttestation {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Partial<GatewayAttestation>;
   if (typeof candidate.signature !== "string") return false;
-  if (typeof candidate.payload !== "object" || candidate.payload === null) return false;
+  if (typeof candidate.payload !== "object" || candidate.payload === null)
+    return false;
   const payload = candidate.payload as Partial<GatewayAttestationPayload>;
-  return typeof payload.gatewayId === "string" &&
+  return (
+    typeof payload.gatewayId === "string" &&
     typeof payload.authorizationId === "string" &&
     typeof payload.nonce === "string" &&
-    typeof payload.issuedAt === "string";
+    typeof payload.issuedAt === "string"
+  );
 }
 
 export function verifyGatewayAttestationSignature(

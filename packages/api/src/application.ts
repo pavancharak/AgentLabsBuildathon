@@ -2,28 +2,19 @@ import path from "node:path";
 import dotenv from "dotenv";
 
 dotenv.config({
-  path: path.resolve(
-    process.cwd(),
-    "../../.env",
-  ),
+  path: path.resolve(process.cwd(), "../../.env"),
 });
 
-import {
-  loadConfig,
-} from "@parmana/shared";
+import { loadConfig } from "@parmana/shared";
 
 import {
   CompositeSignalStateVerifier,
   FilePolicyRepository,
 } from "@parmana/policy";
 
-import {
-  RuntimeFactory,
-} from "@parmana/runtime";
+import { RuntimeFactory } from "@parmana/runtime";
 
-import type {
-  ExecutionSystem,
-} from "@parmana/execution-system";
+import type { ExecutionSystem } from "@parmana/execution-system";
 
 import {
   businessTransactionRepository,
@@ -35,21 +26,16 @@ import { createHubSpotSignalStateVerifier } from "./bootstrap/createHubSpotSigna
 import { executionGatewaySignalStateVerifier } from "./bootstrap/executionGatewaySignalStateVerifier.js";
 import { createPolicyExecutionVerifier } from "./bootstrap/createPolicyExecutionVerifier.js";
 
-const config =
-  loadConfig();
+const config = loadConfig();
 
-export const policyRepository =
-  new FilePolicyRepository(
-    config.policy.directory,
-  );
+export const policyRepository = new FilePolicyRepository(
+  config.policy.directory,
+);
 
-export function createApplication(
-  executionSystem: ExecutionSystem,
-) {
-  const signalStateVerifier =
-    new CompositeSignalStateVerifier([
-      createHubSpotSignalStateVerifier(executionSystem),
-    ]);
+export function createApplication(executionSystem: ExecutionSystem) {
+  const signalStateVerifier = new CompositeSignalStateVerifier([
+    createHubSpotSignalStateVerifier(executionSystem),
+  ]);
 
   //
   // G-31: binds the same composite verifier into the Execution
@@ -70,4 +56,3 @@ export function createApplication(
     createPolicyExecutionVerifier(),
   );
 }
-

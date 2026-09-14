@@ -1,18 +1,10 @@
 \# Tutorial 38 — Target Substitution
 
-
-
 \## Overview
-
-
 
 Target substitution is an attack where a valid Execution Authorization is reused against a different execution target than the one Parmana originally approved.
 
-
-
 For example, an authorization issued for:
-
-
 
 ```
 
@@ -20,11 +12,7 @@ sap.payment.release
 
 ```
 
-
-
 must never be accepted for:
-
-
 
 ```
 
@@ -32,19 +20,11 @@ oracle.payment.release
 
 ```
 
-
-
 Parmana prevents this by including the execution target in the executable content hash.
-
-
 
 \---
 
-
-
 \## Attack Scenario
-
-
 
 ```text
 
@@ -128,15 +108,9 @@ Execution Rejected
 
 ```
 
-
-
 \---
 
-
-
 \## Original Request
-
-
 
 ```text
 
@@ -170,15 +144,9 @@ currency
 
 ```
 
-
-
 \---
 
-
-
 \## Modified Request
-
-
 
 ```text
 
@@ -212,23 +180,13 @@ currency
 
 ```
 
-
-
 Only the execution target changed.
-
-
 
 That single modification changes the executable content hash.
 
-
-
 \---
 
-
-
 \## Expected Output
-
-
 
 ```text
 
@@ -284,23 +242,13 @@ Tutorial completed successfully.
 
 ```
 
-
-
 \---
-
-
 
 \## Why This Matters
 
-
-
 A valid authorization for one enterprise system must never be accepted by another.
 
-
-
 Examples include:
-
-
 
 \- SAP → Oracle
 
@@ -310,23 +258,13 @@ Examples include:
 
 \- Production → Sandbox
 
-
-
 Execution Authorization prevents these attacks because the execution target is cryptographically bound to the authorization.
-
-
 
 \---
 
-
-
 \## Protected Fields
 
-
-
 The executable content includes:
-
-
 
 \- businessTransactionId
 
@@ -336,19 +274,11 @@ The executable content includes:
 
 \- parameters
 
-
-
 Changing any field changes the executable content hash.
-
-
 
 \---
 
-
-
 \## Running the Example
-
-
 
 ```bash
 
@@ -356,11 +286,7 @@ tsx examples/tutorials/38-target-substitution/run.ts
 
 ```
 
-
-
 or
-
-
 
 ```bash
 
@@ -368,35 +294,19 @@ npm run examples
 
 ```
 
-
-
 \---
-
-
 
 \## Next Tutorial
 
-
-
 \*\*Tutorial 39 — Policy Substitution\*\*
-
-
 
 The next tutorial demonstrates why a valid authorization issued under one policy version cannot be reused under another policy.
 
-
-
 \---
-
-
 
 \## Summary
 
-
-
 In this tutorial you learned:
-
-
 
 \- Execution Authorization is bound to the execution target.
 
@@ -405,4 +315,3 @@ In this tutorial you learned:
 \- The gateway detects the mismatch.
 
 \- Target substitution is rejected before enterprise execution.
-

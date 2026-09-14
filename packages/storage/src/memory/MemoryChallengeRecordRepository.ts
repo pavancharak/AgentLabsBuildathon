@@ -10,9 +10,7 @@ import {
  * In-memory Challenge Record repository (RFC-0022). Test wiring only
  * — mirrors MemoryRefusalRecordRepository's shape.
  */
-export class MemoryChallengeRecordRepository
-  implements ChallengeRecordRepository
-{
+export class MemoryChallengeRecordRepository implements ChallengeRecordRepository {
   private readonly records = new Map<string, ChallengeRecord>();
 
   async create(record: ChallengeRecord): Promise<ChallengeRecord> {

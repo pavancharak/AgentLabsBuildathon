@@ -21,13 +21,7 @@
  *    assumption about what it would return.
  */
 
-import {
-  afterAll,
-  beforeAll,
-  describe,
-  expect,
-  it,
-} from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
@@ -88,8 +82,7 @@ function buildTransaction(
     authority: {
       authorityId,
       authorityType: "SERVICE",
-      principalId:
-        overrides.principalId ?? "typescript-sdk-integration-test",
+      principalId: overrides.principalId ?? "typescript-sdk-integration-test",
       displayName: "TypeScript SDK Integration Test",
       issuedAt: now,
     },
@@ -167,9 +160,8 @@ beforeAll(async () => {
   // policyRepository singleton (via application.js's module-level
   // `loadConfig()`) just as early as importing application.js directly,
   // silently reintroducing the exact same bug through a different path.
-  const { createApplication } = await import(
-    "../../../packages/api/src/application.js"
-  );
+  const { createApplication } =
+    await import("../../../packages/api/src/application.js");
   const { createApp } = await import("../../../packages/api/src/app.js");
 
   const executionSystem = createExecutionSystem();
@@ -357,7 +349,9 @@ describe("ParmanaClient against a real local @parmana/api instance", () => {
       const trustRecord = await client.execute(transaction);
       expect(trustRecord.verifications).toHaveLength(1);
 
-      const verification = await client.verify(transaction.businessTransactionId);
+      const verification = await client.verify(
+        transaction.businessTransactionId,
+      );
 
       expect(verification.status).toBe("VERIFIED");
       expect(verification.businessTransactionId).toBe(

@@ -3,12 +3,15 @@ title: "An Independent TRL 7 Verification Session"
 description: "What was re-derived from code and a fresh test run, what remains prior-session evidence only, and a full account of two things that didn't go as planned along the way."
 ---
 
-<Info>This page is sourced from one verification session run against commit `b9e3348` on
-`main` (2026-08-01). Every claim below either cites a file/test from that session's own
-inspection, or says plainly that it rests on prior-session evidence it did not re-check.
-Where something in this session didn't go as intended, it's described here in full, not
-smoothed over, for the same reason [The CLAIMS.md discipline](/trust-and-claims/claims-discipline)
-treats a citation as the only thing that makes a claim checkable.</Info>
+<Info>
+  This page is sourced from one verification session run against commit
+  `b9e3348` on `main` (2026-08-01). Every claim below either cites a file/test
+  from that session's own inspection, or says plainly that it rests on
+  prior-session evidence it did not re-check. Where something in this session
+  didn't go as intended, it's described here in full, not smoothed over, for the
+  same reason [The CLAIMS.md discipline](/trust-and-claims/claims-discipline)
+  treats a citation as the only thing that makes a claim checkable.
+</Info>
 
 ## Why this page exists
 
@@ -39,20 +42,20 @@ The table below separates two categories precisely, because collapsing them into
 "verified" bucket is exactly the kind of rounding-up this site's [Contributing
 discipline](/contributing) exists to prevent.
 
-| Area | This session | Status |
-|---|---|---|
-| Repository state (branch, clean working tree, commit) | Checked directly via `git status`/`git log` | `[AVAILABLE]` |
-| Type checking | `tsc --noEmit -p tsconfig.json`, exit 0, zero output | `[AVAILABLE]` |
-| Lint | `eslint . --ext .ts`, exit 0, zero output | `[AVAILABLE]` |
-| Hermetic test run | `vitest run` with every live gate (`ALLOW_LIVE_RAZORPAY`, `ALLOW_LIVE_SUPABASE`, `ALLOW_LIVE_HUBSPOT`) confirmed unset: 707 passed, 0 failed, 37 skipped, 5 further "pending" (a distinct vitest status the plain summary line omits, surfaced by re-running with a JSON reporter) — 749 tests total across 139 files, all three live-gated suites skipping cleanly with a logged reason each | `[AVAILABLE]` |
-| Nonce consumption ordering | Read directly: `ExecutionGateway.verify()` runs signature/expiry/TTL/hash checks first, calls `consumeNonce()` only when every prior check passed (`packages/execution-gateway/src/ExecutionGateway.ts`) | `[AVAILABLE]` |
-| Policy rejection behavior | Read directly: `ExecutionGate.enforce()` throws a `403`/`POLICY_DENIED` error whenever the Decision isn't approved, unconditionally (`packages/runtime/src/ExecutionGate.ts`) | `[AVAILABLE]` |
-| Webhook signature verification | Read directly: HMAC-SHA256 over the raw request body, `crypto.timingSafeEqual` comparison, no re-serialization (`packages/api/src/webhooks/verifyRazorpayWebhookSignature.ts`) | `[AVAILABLE]` |
-| Settlement confirmation logic | Read directly: correlation by a `notes.parmana_txn` tag, fetch-verify against Razorpay before any confirmation is signed, fetched status wins over the webhook's own claimed type (`packages/api/src/webhooks/RazorpaySettlementProcessor.ts`) | `[AVAILABLE]` |
-| Signal-to-intent binding | Read directly: `SignalIntentBinder` and the `razorpay-refund/1.0.0` policy's declared `boundSignals` (`packages/policy/src/SignalIntentBinder.ts`, `policies/razorpay-refund/1.0.0/policy.json`) | `[AVAILABLE]` |
-| The original live-money proof (a real Razorpay test-mode refund, idempotency, policy denial) | Not re-run. Rested on a `CLAIMS.md` section documenting the original Razorpay proof, removed in full along with the connector on 2026-08-12 — see `docs/site/changelog.mdx` for the dated commit record; no current `CLAIMS.md` section describes this specific evidence | attested, not re-verified |
-| Deployed-environment behavior (real webhook delivery, settlement closure, live-mode operation on Fly.io) | Not re-checked. Rests on `CLAIMS.md`'s historical §3.8/§3.9 (marked "Historical: Razorpay connector removed 2026-08-12") — the intermediate milestones §3.6/§3.7 were removed in full, not merely marked historical; see `docs/site/changelog.mdx` for their dated record | attested, not re-verified |
-| The TRL 7 assessment itself | An interpretation layered on the two rows above; inherits the same limitation | attested, not re-verified |
+| Area                                                                                                     | This session                                                                                                                                                                                                                                                                                                                                                                                  | Status                    |
+| -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| Repository state (branch, clean working tree, commit)                                                    | Checked directly via `git status`/`git log`                                                                                                                                                                                                                                                                                                                                                   | `[AVAILABLE]`             |
+| Type checking                                                                                            | `tsc --noEmit -p tsconfig.json`, exit 0, zero output                                                                                                                                                                                                                                                                                                                                          | `[AVAILABLE]`             |
+| Lint                                                                                                     | `eslint . --ext .ts`, exit 0, zero output                                                                                                                                                                                                                                                                                                                                                     | `[AVAILABLE]`             |
+| Hermetic test run                                                                                        | `vitest run` with every live gate (`ALLOW_LIVE_RAZORPAY`, `ALLOW_LIVE_SUPABASE`, `ALLOW_LIVE_HUBSPOT`) confirmed unset: 707 passed, 0 failed, 37 skipped, 5 further "pending" (a distinct vitest status the plain summary line omits, surfaced by re-running with a JSON reporter) — 749 tests total across 139 files, all three live-gated suites skipping cleanly with a logged reason each | `[AVAILABLE]`             |
+| Nonce consumption ordering                                                                               | Read directly: `ExecutionGateway.verify()` runs signature/expiry/TTL/hash checks first, calls `consumeNonce()` only when every prior check passed (`packages/execution-gateway/src/ExecutionGateway.ts`)                                                                                                                                                                                      | `[AVAILABLE]`             |
+| Policy rejection behavior                                                                                | Read directly: `ExecutionGate.enforce()` throws a `403`/`POLICY_DENIED` error whenever the Decision isn't approved, unconditionally (`packages/runtime/src/ExecutionGate.ts`)                                                                                                                                                                                                                 | `[AVAILABLE]`             |
+| Webhook signature verification                                                                           | Read directly: HMAC-SHA256 over the raw request body, `crypto.timingSafeEqual` comparison, no re-serialization (`packages/api/src/webhooks/verifyRazorpayWebhookSignature.ts`)                                                                                                                                                                                                                | `[AVAILABLE]`             |
+| Settlement confirmation logic                                                                            | Read directly: correlation by a `notes.parmana_txn` tag, fetch-verify against Razorpay before any confirmation is signed, fetched status wins over the webhook's own claimed type (`packages/api/src/webhooks/RazorpaySettlementProcessor.ts`)                                                                                                                                                | `[AVAILABLE]`             |
+| Signal-to-intent binding                                                                                 | Read directly: `SignalIntentBinder` and the `razorpay-refund/1.0.0` policy's declared `boundSignals` (`packages/policy/src/SignalIntentBinder.ts`, `policies/razorpay-refund/1.0.0/policy.json`)                                                                                                                                                                                              | `[AVAILABLE]`             |
+| The original live-money proof (a real Razorpay test-mode refund, idempotency, policy denial)             | Not re-run. Rested on a `CLAIMS.md` section documenting the original Razorpay proof, removed in full along with the connector on 2026-08-12 — see `docs/site/changelog.mdx` for the dated commit record; no current `CLAIMS.md` section describes this specific evidence                                                                                                                      | attested, not re-verified |
+| Deployed-environment behavior (real webhook delivery, settlement closure, live-mode operation on Fly.io) | Not re-checked. Rests on `CLAIMS.md`'s historical §3.8/§3.9 (marked "Historical: Razorpay connector removed 2026-08-12") — the intermediate milestones §3.6/§3.7 were removed in full, not merely marked historical; see `docs/site/changelog.mdx` for their dated record                                                                                                                     | attested, not re-verified |
+| The TRL 7 assessment itself                                                                              | An interpretation layered on the two rows above; inherits the same limitation                                                                                                                                                                                                                                                                                                                 | attested, not re-verified |
 
 ## An unplanned live event: a leftover test flag
 
@@ -152,10 +155,20 @@ it, and everything else says exactly what it is instead.
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="The CLAIMS.md discipline" icon="shield-check" href="/trust-and-claims/claims-discipline">
-    How every claim on this site maps back to a source, and how to check one yourself.
+  <Card
+    title="The CLAIMS.md discipline"
+    icon="shield-check"
+    href="/trust-and-claims/claims-discipline"
+  >
+    How every claim on this site maps back to a source, and how to check one
+    yourself.
   </Card>
-  <Card title="What Parmana does not claim" icon="circle-minus" href="/trust-and-claims/what-we-dont-claim">
-    The permanent boundaries and scoped claims this same discipline has already produced.
+  <Card
+    title="What Parmana does not claim"
+    icon="circle-minus"
+    href="/trust-and-claims/what-we-dont-claim"
+  >
+    The permanent boundaries and scoped claims this same discipline has already
+    produced.
   </Card>
 </CardGroup>

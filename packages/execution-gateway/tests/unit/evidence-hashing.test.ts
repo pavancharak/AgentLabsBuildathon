@@ -19,7 +19,8 @@ function fixtureRequest(): ConnectorRequest {
     capability: "http:post",
     businessTransactionId: "txn-1",
     action: "http:post",
-    target: "https://user:sk_live_secret@api.stripe.com/v1/charges?api_key=sk_live_secret",
+    target:
+      "https://user:sk_live_secret@api.stripe.com/v1/charges?api_key=sk_live_secret",
     parameters: { amount: 1000, currency: "usd" },
   };
 }
@@ -30,8 +31,11 @@ function fixtureResponse(): ConnectorResponse {
 
 describe("ConnectorEvidence", () => {
   it("sanitizes credentials and query parameters out of URL-shaped endpoints", () => {
-    expect(sanitizeEndpoint("https://user:sk_live_secret@api.stripe.com/v1/charges?api_key=sk_live_secret"))
-      .toBe("https://api.stripe.com/v1/charges");
+    expect(
+      sanitizeEndpoint(
+        "https://user:sk_live_secret@api.stripe.com/v1/charges?api_key=sk_live_secret",
+      ),
+    ).toBe("https://api.stripe.com/v1/charges");
   });
 
   it("passes through non-URL targets unchanged (minus any query suffix)", () => {
@@ -40,8 +44,16 @@ describe("ConnectorEvidence", () => {
   });
 
   it("redacts credential-shaped response metadata keys", () => {
-    const redacted = redactSensitiveKeys({ status: 200, apiKey: "sk_live_leaked", recordId: "abc" });
-    expect(redacted).toEqual({ status: 200, apiKey: "[REDACTED]", recordId: "abc" });
+    const redacted = redactSensitiveKeys({
+      status: 200,
+      apiKey: "sk_live_leaked",
+      recordId: "abc",
+    });
+    expect(redacted).toEqual({
+      status: 200,
+      apiKey: "[REDACTED]",
+      recordId: "abc",
+    });
   });
 
   it("builds evidence whose hash is produced by the existing TrustRecordHasher, not an alternative hash", async () => {
@@ -60,7 +72,9 @@ describe("ConnectorEvidence", () => {
     });
 
     const { connectorEvidenceHash, ...unhashed } = evidence;
-    const independentlyComputed = await new TrustRecordHasher(crypto).hash(unhashed);
+    const independentlyComputed = await new TrustRecordHasher(crypto).hash(
+      unhashed,
+    );
     expect(connectorEvidenceHash).toBe(independentlyComputed);
   });
 

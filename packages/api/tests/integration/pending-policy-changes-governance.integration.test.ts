@@ -9,7 +9,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AuthorityType } from "@parmana/shared";
 import type { PolicyChangeStepUpAuthorization } from "@parmana/shared";
-import { PolicyChangeStepUpAuthorizationSigner, PolicyChangeCrypto } from "@parmana/crypto";
+import {
+  PolicyChangeStepUpAuthorizationSigner,
+  PolicyChangeCrypto,
+} from "@parmana/crypto";
 import { FilePolicyRepository } from "@parmana/policy";
 import { MemoryNonceStore } from "@parmana/envelope-verifier";
 import { MemoryPolicyChangeApprovalRecordRepository } from "@parmana/storage";
@@ -71,7 +74,8 @@ describe("Policy Governance: isHumanCaller, maker != checker, step-up (HTTP boun
       ([entry]) =>
         typeof entry === "object" &&
         entry !== null &&
-        (entry as { event?: unknown }).event === "step_up_authorization_invalid",
+        (entry as { event?: unknown }).event ===
+          "step_up_authorization_invalid",
     );
 
     if (call === undefined) {
@@ -339,7 +343,9 @@ describe("Policy Governance: isHumanCaller, maker != checker, step-up (HTTP boun
       const { app } = buildApp();
       const id = await proposeChange(app, "governance-approve-missing-step-up");
 
-      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const consoleError = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
 
       try {
         const response = await request(app)
@@ -361,13 +367,23 @@ describe("Policy Governance: isHumanCaller, maker != checker, step-up (HTTP boun
     it("denies approval with an expired step-up envelope", async () => {
       vi.useFakeTimers();
 
-      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const consoleError = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
 
       try {
         const { app } = buildApp();
-        const id = await proposeChange(app, "governance-approve-expired-step-up");
+        const id = await proposeChange(
+          app,
+          "governance-approve-expired-step-up",
+        );
 
-        const stepUpAuthorization = await signStepUp(id, "approve", undefined, 1);
+        const stepUpAuthorization = await signStepUp(
+          id,
+          "approve",
+          undefined,
+          1,
+        );
 
         // Advance real clock time past the envelope's 1-second TTL.
         vi.advanceTimersByTime(2_000);
@@ -390,11 +406,16 @@ describe("Policy Governance: isHumanCaller, maker != checker, step-up (HTTP boun
     it("denies a step-up envelope bound to a different pendingPolicyChangeId", async () => {
       const { app } = buildApp();
       const id = await proposeChange(app, "governance-approve-wrong-id");
-      const otherId = await proposeChange(app, "governance-approve-wrong-id-other");
+      const otherId = await proposeChange(
+        app,
+        "governance-approve-wrong-id-other",
+      );
 
       const stepUpAuthorization = await signStepUp(otherId, "approve");
 
-      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const consoleError = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
 
       try {
         const response = await request(app)
@@ -419,7 +440,9 @@ describe("Policy Governance: isHumanCaller, maker != checker, step-up (HTTP boun
 
       const stepUpAuthorization = await signStepUp(id, "reject");
 
-      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const consoleError = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
 
       try {
         const response = await request(app)
@@ -430,7 +453,9 @@ describe("Policy Governance: isHumanCaller, maker != checker, step-up (HTTP boun
         expect(response.status).toBe(403);
         expect(response.body.code).toBe("STEP_UP_AUTHORIZATION_INVALID");
         expect(response.body.checks).toBeUndefined();
-        expect(loggedChecks(consoleError)).toMatchObject({ actionMatches: false });
+        expect(loggedChecks(consoleError)).toMatchObject({
+          actionMatches: false,
+        });
       } finally {
         consoleError.mockRestore();
       }
@@ -447,7 +472,9 @@ describe("Policy Governance: isHumanCaller, maker != checker, step-up (HTTP boun
         impostorKeyPair.privateKey,
       );
 
-      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const consoleError = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
 
       try {
         const response = await request(app)
@@ -458,7 +485,9 @@ describe("Policy Governance: isHumanCaller, maker != checker, step-up (HTTP boun
         expect(response.status).toBe(403);
         expect(response.body.code).toBe("STEP_UP_AUTHORIZATION_INVALID");
         expect(response.body.checks).toBeUndefined();
-        expect(loggedChecks(consoleError)).toMatchObject({ signatureVerified: false });
+        expect(loggedChecks(consoleError)).toMatchObject({
+          signatureVerified: false,
+        });
       } finally {
         consoleError.mockRestore();
       }
@@ -466,7 +495,10 @@ describe("Policy Governance: isHumanCaller, maker != checker, step-up (HTTP boun
 
     it("allows a distinct human checker to approve with a valid step-up envelope", async () => {
       const { app } = buildApp();
-      const id = await proposeChange(app, "governance-approve-distinct-checker");
+      const id = await proposeChange(
+        app,
+        "governance-approve-distinct-checker",
+      );
 
       const stepUpAuthorization = await signStepUp(id, "approve");
 
@@ -518,9 +550,9 @@ describe("Policy Governance: isHumanCaller, maker != checker, step-up (HTTP boun
 
       const crypto = new PolicyChangeCrypto();
       await expect(crypto.verify(record)).resolves.toBe(true);
-      await expect(
-        crypto.hashPolicyContent(policyBody(name)),
-      ).resolves.toBe(record.contentHashAfter);
+      await expect(crypto.hashPolicyContent(policyBody(name))).resolves.toBe(
+        record.contentHashAfter,
+      );
     });
 
     it("computes contentHashBefore from the version being replaced when re-approving the same version", async () => {
@@ -629,7 +661,9 @@ describe("Policy Governance: isHumanCaller, maker != checker, step-up (HTTP boun
       const id = await proposeChange(app, name);
       const stepUpAuthorization = await signStepUp(id, "approve");
 
-      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const consoleError = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
 
       try {
         const response = await request(app)
@@ -683,7 +717,9 @@ describe("Policy Governance: isHumanCaller, maker != checker, step-up (HTTP boun
 
       expect(first.status).toBe(200);
 
-      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const consoleError = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
 
       try {
         const second = await request(app)
@@ -694,7 +730,9 @@ describe("Policy Governance: isHumanCaller, maker != checker, step-up (HTTP boun
         expect(second.status).toBe(403);
         expect(second.body.code).toBe("STEP_UP_AUTHORIZATION_INVALID");
         expect(second.body.checks).toBeUndefined();
-        expect(loggedChecks(consoleError)).toMatchObject({ nonceUnseen: false });
+        expect(loggedChecks(consoleError)).toMatchObject({
+          nonceUnseen: false,
+        });
       } finally {
         consoleError.mockRestore();
       }

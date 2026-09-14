@@ -3,7 +3,10 @@ title: "Execution Trust Records"
 description: "The canonical, immutable, cryptographically signed record of everything Parmana knows about a Business Transaction."
 ---
 
-<Info>**[AVAILABLE]**. `packages/shared/src/domain/execution-trust-record.ts`, `BusinessTrustRecordBuilder` (`@parmana/runtime`). CLAIMS.md 2.5.</Info>
+<Info>
+  **[AVAILABLE]**. `packages/shared/src/domain/execution-trust-record.ts`,
+  `BusinessTrustRecordBuilder` (`@parmana/runtime`). CLAIMS.md 2.5.
+</Info>
 
 ## What it is
 
@@ -56,10 +59,10 @@ export interface ExecutionTrustRecord {
   readonly trustRecordId: string;
   readonly businessTransactionId: string;
   readonly transaction: BusinessTransaction;
-  readonly overrides: readonly Override[];        // append-only
-  readonly executions: readonly Execution[];       // append-only
+  readonly overrides: readonly Override[]; // append-only
+  readonly executions: readonly Execution[]; // append-only
   readonly verifications: readonly Verification[]; // append-only
-  readonly receipts: readonly Receipt[];           // append-only
+  readonly receipts: readonly Receipt[]; // append-only
   readonly trustRecordHash: string;
   readonly signature: Signature;
   readonly createdAt: Date;
@@ -87,15 +90,17 @@ builds the exact object that gets hashed and signed. It includes six fields:
 `trustRecordHash` and `signature` cover precisely this content, no more and no less.
 
 <Warning>
-`verifications` and `receipts` are **not** part of the hashed content, even though they are
-append-only fields on the same record (CLAIMS.md 2.5). This is intentional, not an
-oversight: a `Verification` (`packages/shared/src/domain/verification.ts:44`) carries the
-`trustRecordHash` it checked as one of its own fields. If verifications were inside the hash
-they verify, appending a new verification would change the hash, invalidating every
-verification that came before it. Keeping them outside is what lets the signed content stay
-stable while an unbounded number of verifications and receipts accumulate against it. The
-append-only guarantee for `verifications` and `receipts` comes from repository API
-convention, not from being under the signature.
+  `verifications` and `receipts` are **not** part of the hashed content, even
+  though they are append-only fields on the same record (CLAIMS.md 2.5). This is
+  intentional, not an oversight: a `Verification`
+  (`packages/shared/src/domain/verification.ts:44`) carries the
+  `trustRecordHash` it checked as one of its own fields. If verifications were
+  inside the hash they verify, appending a new verification would change the
+  hash, invalidating every verification that came before it. Keeping them
+  outside is what lets the signed content stay stable while an unbounded number
+  of verifications and receipts accumulate against it. The append-only guarantee
+  for `verifications` and `receipts` comes from repository API convention, not
+  from being under the signature.
 </Warning>
 
 `execution.metadata.authorizationId` **is** inside the canonically-hashed content, because
@@ -124,19 +129,29 @@ run for this update; illustrative of the shape, not a value you'll reproduce run
   "executions": [
     {
       "execution_id": "8f5605e9-19ee-48e7-9863-132aa565b037",
-      "decision": { "outcome": "APPROVED", "reason": "Vendor payment authorized. ..." },
+      "decision": {
+        "outcome": "APPROVED",
+        "reason": "Vendor payment authorized. ..."
+      },
       "status": "COMPLETED",
       "evidence": {
         "action": "payments:execute",
         "target": "vendor://payments",
         "parameters": { "amount": 1000, "currency": "USD" },
         "success": true,
-        "attributes": { "connector": { "connectorId": "vendor-payment", "capability": "payments:execute" } }
+        "attributes": {
+          "connector": {
+            "connectorId": "vendor-payment",
+            "capability": "payments:execute"
+          }
+        }
       },
       "metadata": { "authorizationId": "7824fffb-dbb2-4046-9436-fbbd0ea777fa" }
     }
   ],
-  "verifications": [{ "status": "VERIFIED", "trust_record_hash": "fdb313e8..." }],
+  "verifications": [
+    { "status": "VERIFIED", "trust_record_hash": "fdb313e8..." }
+  ],
   "receipts": [{ "algorithm": "ed25519", "receipt_hash": "5e0ab23f..." }],
   "trust_record_hash": "fdb313e82c7cd86cf5f1dfb0ab90ac72f550a67a91891ebfce9462a73e9da103",
   "signature": { "algorithm": "ed25519", "key_id": "default" }
@@ -163,10 +178,18 @@ records verify identically against their own stored hash.
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="Verify a trust record independently" icon="check-double" href="/verification/overview">
+  <Card
+    title="Verify a trust record independently"
+    icon="check-double"
+    href="/verification/overview"
+  >
     The third-party verification story, no Parmana runtime required.
   </Card>
-  <Card title="Detect tampering" icon="bug" href="/concepts/content-binding-toctou">
+  <Card
+    title="Detect tampering"
+    icon="bug"
+    href="/concepts/content-binding-toctou"
+  >
     Mutate a record, verify, watch it fail: the negative path.
   </Card>
 </CardGroup>

@@ -3,7 +3,10 @@ title: "@parmana/execution-gateway"
 description: "The sole boundary through which Parmana releases approved execution requests to connectors. Includes two deprecated fields, documented here with their replacements."
 ---
 
-<Info>**[AVAILABLE]**. `packages/execution-gateway`, 25 tests. Wired into the default server unconditionally, see [The gateway](/concepts/the-gateway).</Info>
+<Info>
+  **[AVAILABLE]**. `packages/execution-gateway`, 25 tests. Wired into the
+  default server unconditionally, see [The gateway](/concepts/the-gateway).
+</Info>
 
 ## Purpose
 
@@ -19,13 +22,13 @@ npm install @parmana/execution-gateway
 
 ## Key exports
 
-| Export | Stability |
-|---|---|
-| `ExecutionGateway` | [AVAILABLE]. `new ExecutionGateway(options: ExecutionGatewayOptions)`, `.execute(request)`, `.verify(request)`. |
-| `Connector` (interface) | [AVAILABLE]. `{ connectorId, execute(request, context) }` |
-| `HttpConnector` | [AVAILABLE]. Forwards `{ ...transaction, authorization }` to `${baseUrl}/execute` via POST. A different, older class from `@parmana/connector-sdk`'s `HttpConnector`, see that package's reference page. |
-| `GatewayVerificationResult` | [AVAILABLE]. Per-check breakdown: `versionSupported`, `signatureVerified`, `notExpired`, `ttlWithinPolicy`, `businessTransactionHashMatches`, `nonceUnseen`. |
-| `deepFreeze` | [AVAILABLE]. Freezes executable content before it reaches a connector, so nothing downstream can mutate what was verified. |
+| Export                      | Stability                                                                                                                                                                                                |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ExecutionGateway`          | [AVAILABLE]. `new ExecutionGateway(options: ExecutionGatewayOptions)`, `.execute(request)`, `.verify(request)`.                                                                                          |
+| `Connector` (interface)     | [AVAILABLE]. `{ connectorId, execute(request, context) }`                                                                                                                                                |
+| `HttpConnector`             | [AVAILABLE]. Forwards `{ ...transaction, authorization }` to `${baseUrl}/execute` via POST. A different, older class from `@parmana/connector-sdk`'s `HttpConnector`, see that package's reference page. |
+| `GatewayVerificationResult` | [AVAILABLE]. Per-check breakdown: `versionSupported`, `signatureVerified`, `notExpired`, `ttlWithinPolicy`, `businessTransactionHashMatches`, `nonceUnseen`.                                             |
+| `deepFreeze`                | [AVAILABLE]. Freezes executable content before it reaches a connector, so nothing downstream can mutate what was verified.                                                                               |
 
 ## `ExecutionGatewayOptions`
 
@@ -33,8 +36,8 @@ npm install @parmana/execution-gateway
 interface ExecutionGatewayOptions {
   readonly publicKey: KeyObject;
   readonly nonceStore: NonceStore;
-  readonly connector?: Connector;                      // direct mode
-  readonly executionControl?: ExecutionControlOptions;  // controlled-execution mode
+  readonly connector?: Connector; // direct mode
+  readonly executionControl?: ExecutionControlOptions; // controlled-execution mode
 }
 ```
 
@@ -46,11 +49,11 @@ Supply either `connector` (direct) or `executionControl` (routes through
 
 ```typescript
 interface ExecutionControlOptions {
-  readonly service?: ExecutionControl;                 // [AVAILABLE], current
-  readonly gatewayAuthentication?: unknown;             // [AVAILABLE], current
+  readonly service?: ExecutionControl; // [AVAILABLE], current
+  readonly gatewayAuthentication?: unknown; // [AVAILABLE], current
   readonly mintGatewayAuthentication?: (authorizationId: string) => unknown; // [AVAILABLE], current, preferred
-  readonly channel?: ExecutionChannel;                  // deprecated
-  readonly gatewayIdentity?: GatewayIdentityProvider;    // deprecated
+  readonly channel?: ExecutionChannel; // deprecated
+  readonly gatewayIdentity?: GatewayIdentityProvider; // deprecated
   readonly route: (content: Readonly<ExecutableContent>) => string;
 }
 ```
@@ -61,17 +64,18 @@ interface ExecutionControlOptions {
 omitted:
 
 - **`channel?: ExecutionChannel`**, `@deprecated Embedded prototype retained for backward
-  compatibility.` Replacement: `service` (an `ExecutionControl` from
+compatibility.` Replacement: `service` (an `ExecutionControl` from
   `@parmana/execution-control`), combined with `gatewayAuthentication` or
   `mintGatewayAuthentication`.
 - **`gatewayIdentity?: GatewayIdentityProvider`**, `@deprecated Use gatewayAuthentication
-  with service.` Replacement: `gatewayAuthentication` (a static value) or, preferred,
+with service.` Replacement: `gatewayAuthentication` (a static value) or, preferred,
   `mintGatewayAuthentication` (a per-request minting function, see [Gateway
   attestation](/concepts/gateway-attestation)).
 
 Neither deprecated field is used by the default server's own bootstrap
 (`packages/api/src/bootstrap/createExecutionGateway.ts`), which uses `service` and
 `mintGatewayAuthentication` exclusively.
+
 </Warning>
 
 ## Minimal example
@@ -90,7 +94,12 @@ const gateway = new ExecutionGateway({
   },
 });
 
-const application = RuntimeFactory.create(transactions, trustRecords, policies, gateway);
+const application = RuntimeFactory.create(
+  transactions,
+  trustRecords,
+  policies,
+  gateway,
+);
 ```
 
 ## Next
@@ -99,7 +108,11 @@ const application = RuntimeFactory.create(transactions, trustRecords, policies, 
   <Card title="The gateway" icon="shield-check" href="/concepts/the-gateway">
     The concept this package implements, plus what's actually wired today.
   </Card>
-  <Card title="@parmana/execution-control" icon="lock" href="/reference/execution-control">
+  <Card
+    title="@parmana/execution-control"
+    icon="lock"
+    href="/reference/execution-control"
+  >
     What `service` and `gatewayAuthentication` actually are.
   </Card>
 </CardGroup>

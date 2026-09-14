@@ -29,154 +29,149 @@ import {
 describe.skipIf(!isMlDsa65Supported())(
   `Dilithium3 cross-instance signing (R6)${isMlDsa65Supported() ? "" : ` [SKIPPED: ${ML_DSA_65_SKIP_REASON}]`}`,
   () => {
-  let keyDir: string;
-  let previousPrimarySignatureProvider: string | undefined;
-  let previousKeyDir: string | undefined;
+    let keyDir: string;
+    let previousPrimarySignatureProvider: string | undefined;
+    let previousKeyDir: string | undefined;
 
-  beforeEach(() => {
-    keyDir = mkdtempSync(join(tmpdir(), "parmana-dilithium3-keys-"));
+    beforeEach(() => {
+      keyDir = mkdtempSync(join(tmpdir(), "parmana-dilithium3-keys-"));
 
-    const { privateKey, publicKey } =
-      generateKeyPairSync("ml-dsa-65");
+      const { privateKey, publicKey } = generateKeyPairSync("ml-dsa-65");
 
-    writeFileSync(
-      join(keyDir, "default.private.pem"),
-      privateKey.export({ format: "pem", type: "pkcs8" }),
-    );
+      writeFileSync(
+        join(keyDir, "default.private.pem"),
+        privateKey.export({ format: "pem", type: "pkcs8" }),
+      );
 
-    writeFileSync(
-      join(keyDir, "default.public.pem"),
-      publicKey.export({ format: "pem", type: "spki" }),
-    );
+      writeFileSync(
+        join(keyDir, "default.public.pem"),
+        publicKey.export({ format: "pem", type: "spki" }),
+      );
 
-    previousPrimarySignatureProvider =
-  process.env.PRIMARY_SIGNATURE_PROVIDER;
-    previousKeyDir = process.env.PARMANA_KEY_DIR;
+      previousPrimarySignatureProvider = process.env.PRIMARY_SIGNATURE_PROVIDER;
+      previousKeyDir = process.env.PARMANA_KEY_DIR;
 
-    process.env.PRIMARY_SIGNATURE_PROVIDER =
-  "dilithium3";
-    process.env.PARMANA_KEY_DIR = keyDir;
-  });
+      process.env.PRIMARY_SIGNATURE_PROVIDER = "dilithium3";
+      process.env.PARMANA_KEY_DIR = keyDir;
+    });
 
-  afterEach(() => {
-  if (previousPrimarySignatureProvider === undefined) {
-    delete process.env.PRIMARY_SIGNATURE_PROVIDER;
-  } else {
-    process.env.PRIMARY_SIGNATURE_PROVIDER =
-      previousPrimarySignatureProvider;
-  }
+    afterEach(() => {
+      if (previousPrimarySignatureProvider === undefined) {
+        delete process.env.PRIMARY_SIGNATURE_PROVIDER;
+      } else {
+        process.env.PRIMARY_SIGNATURE_PROVIDER =
+          previousPrimarySignatureProvider;
+      }
 
-  if (previousKeyDir === undefined) {
-    delete process.env.PARMANA_KEY_DIR;
-  } else {
-    process.env.PARMANA_KEY_DIR = previousKeyDir;
-  }
+      if (previousKeyDir === undefined) {
+        delete process.env.PARMANA_KEY_DIR;
+      } else {
+        process.env.PARMANA_KEY_DIR = previousKeyDir;
+      }
 
-  rmSync(keyDir, { recursive: true, force: true });
+      rmSync(keyDir, { recursive: true, force: true });
 
-  vi.resetModules();
-});
+      vi.resetModules();
+    });
 
-  it("signs with one bootstrap instance and verifies with a second, sharing only the key directory", async () => {
-    vi.resetModules();
+    it("signs with one bootstrap instance and verifies with a second, sharing only the key directory", async () => {
+      vi.resetModules();
 
-    const signerModule = await import("../../src/index.js");
+      const signerModule = await import("../../src/index.js");
 
-    const signerCrypto = signerModule.CryptoBootstrap.create();
+      const signerCrypto = signerModule.CryptoBootstrap.create();
 
-    expect(signerCrypto.signature.algorithm).toBe("dilithium3");
+      expect(signerCrypto.signature.algorithm).toBe("dilithium3");
 
-    const signerKeys = new signerModule.FileKeyProvider();
-    const signingKey = await signerKeys.getPrivateKey("default");
+      const signerKeys = new signerModule.FileKeyProvider();
+      const signingKey = await signerKeys.getPrivateKey("default");
 
-    const signer = new signerModule.AuthorizationSigner(signerCrypto);
+      const signer = new signerModule.AuthorizationSigner(signerCrypto);
 
-    const signed = await signer.sign(
-      {
-        decisionId: "decision-1",
-        businessTransactionId: "txn-1",
-        policyName: "policy-a",
-        policyVersion: "1.0.0",
-      },
-      signingKey,
-      "default",
-      60,
-    );
+      const signed = await signer.sign(
+        {
+          decisionId: "decision-1",
+          businessTransactionId: "txn-1",
+          policyName: "policy-a",
+          policyVersion: "1.0.0",
+        },
+        signingKey,
+        "default",
+        60,
+      );
 
-    expect(signed.algorithm).toBe("dilithium3");
+      expect(signed.algorithm).toBe("dilithium3");
 
-    //
-    // Force a completely fresh module graph: fresh CryptoBootstrap
-    // static cache, fresh FileKeyProvider instance. This is the
-    // "second freshly-constructed verifier stack" — it shares
-    // nothing with the signer above except the key directory.
-    //
-    vi.resetModules();
+      //
+      // Force a completely fresh module graph: fresh CryptoBootstrap
+      // static cache, fresh FileKeyProvider instance. This is the
+      // "second freshly-constructed verifier stack" — it shares
+      // nothing with the signer above except the key directory.
+      //
+      vi.resetModules();
 
-    const verifierModule = await import("../../src/index.js");
+      const verifierModule = await import("../../src/index.js");
 
-    expect(verifierModule.CryptoBootstrap).not.toBe(
-      signerModule.CryptoBootstrap,
-    );
+      expect(verifierModule.CryptoBootstrap).not.toBe(
+        signerModule.CryptoBootstrap,
+      );
 
-    const verifierCrypto = verifierModule.CryptoBootstrap.create();
-    const verifierKeys = new verifierModule.FileKeyProvider();
-    const verificationKey = await verifierKeys.getPublicKey("default");
+      const verifierCrypto = verifierModule.CryptoBootstrap.create();
+      const verifierKeys = new verifierModule.FileKeyProvider();
+      const verificationKey = await verifierKeys.getPublicKey("default");
 
-    const verifier = new verifierModule.AuthorizationVerifier(
-      verifierCrypto,
-    );
+      const verifier = new verifierModule.AuthorizationVerifier(verifierCrypto);
 
-    const result = await verifier.verify(signed, verificationKey);
+      const result = await verifier.verify(signed, verificationKey);
 
-    expect(result.valid).toBe(true);
-    expect(result.checks.signatureVerified).toBe(true);
-    expect(result.checks.notExpired).toBe(true);
-  });
+      expect(result.valid).toBe(true);
+      expect(result.checks.signatureVerified).toBe(true);
+      expect(result.checks.notExpired).toBe(true);
+    });
 
-  it("a tampered payload fails verification across the same two instances", async () => {
-    vi.resetModules();
-    const signerModule = await import("../../src/index.js");
+    it("a tampered payload fails verification across the same two instances", async () => {
+      vi.resetModules();
+      const signerModule = await import("../../src/index.js");
 
-    const signer = new signerModule.AuthorizationSigner(
-      signerModule.CryptoBootstrap.create(),
-    );
+      const signer = new signerModule.AuthorizationSigner(
+        signerModule.CryptoBootstrap.create(),
+      );
 
-    const signingKey = await new signerModule.FileKeyProvider().getPrivateKey(
-      "default",
-    );
+      const signingKey = await new signerModule.FileKeyProvider().getPrivateKey(
+        "default",
+      );
 
-    const signed = await signer.sign(
-      {
-        decisionId: "decision-1",
-        businessTransactionId: "txn-1",
-        policyName: "policy-a",
-        policyVersion: "1.0.0",
-      },
-      signingKey,
-      "default",
-      60,
-    );
+      const signed = await signer.sign(
+        {
+          decisionId: "decision-1",
+          businessTransactionId: "txn-1",
+          policyName: "policy-a",
+          policyVersion: "1.0.0",
+        },
+        signingKey,
+        "default",
+        60,
+      );
 
-    const tampered = {
-      ...signed,
-      payload: { ...signed.payload, decisionId: "decision-2" },
-    };
+      const tampered = {
+        ...signed,
+        payload: { ...signed.payload, decisionId: "decision-2" },
+      };
 
-    vi.resetModules();
-    const verifierModule = await import("../../src/index.js");
+      vi.resetModules();
+      const verifierModule = await import("../../src/index.js");
 
-    const verifier = new verifierModule.AuthorizationVerifier(
-      verifierModule.CryptoBootstrap.create(),
-    );
+      const verifier = new verifierModule.AuthorizationVerifier(
+        verifierModule.CryptoBootstrap.create(),
+      );
 
-    const verificationKey =
-      await new verifierModule.FileKeyProvider().getPublicKey("default");
+      const verificationKey =
+        await new verifierModule.FileKeyProvider().getPublicKey("default");
 
-    const result = await verifier.verify(tampered, verificationKey);
+      const result = await verifier.verify(tampered, verificationKey);
 
-    expect(result.valid).toBe(false);
-    expect(result.checks.signatureVerified).toBe(false);
-  });
-});
-
+      expect(result.valid).toBe(false);
+      expect(result.checks.signatureVerified).toBe(false);
+    });
+  },
+);

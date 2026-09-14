@@ -2,7 +2,11 @@ import { Router } from "express";
 import type { NextFunction, Request, Response } from "express";
 
 import "../session.js";
-import { fetchPendingChanges, ApiClientError, ApiUnreachableError } from "../apiClient.js";
+import {
+  fetchPendingChanges,
+  ApiClientError,
+  ApiUnreachableError,
+} from "../apiClient.js";
 import { requireSession } from "../middleware/requireSession.js";
 import { renderPendingChangesList } from "../views/list.js";
 import { renderDiffPage } from "../views/diff.js";

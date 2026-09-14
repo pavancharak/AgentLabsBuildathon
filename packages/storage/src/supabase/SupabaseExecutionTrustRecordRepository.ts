@@ -37,19 +37,13 @@ import type { Pool } from "pg";
  * hybrid verification to single-signature for anything reloaded from
  * Supabase.
  */
-export class SupabaseExecutionTrustRecordRepository
-  implements ExecutionTrustRecordRepository
-{
-  constructor(
-    private readonly pool: Pool,
-  ) {}
+export class SupabaseExecutionTrustRecordRepository implements ExecutionTrustRecordRepository {
+  constructor(private readonly pool: Pool) {}
 
   /**
    * Creates the Trust Record header.
    */
-  async create(
-    record: ExecutionTrustRecord,
-  ): Promise<ExecutionTrustRecord> {
+  async create(record: ExecutionTrustRecord): Promise<ExecutionTrustRecord> {
     await this.pool.query(INSERT_TRUST_RECORD_SQL, [
       record.trustRecordId,
       record.businessTransactionId,
@@ -107,9 +101,9 @@ export class SupabaseExecutionTrustRecordRepository
         (row) => row.override_json,
       ),
 
-      verifications: (verificationRows.rows as { verification_json: Verification }[]).map(
-        (row) => row.verification_json,
-      ),
+      verifications: (
+        verificationRows.rows as { verification_json: Verification }[]
+      ).map((row) => row.verification_json),
 
       receipts: (receiptRows.rows as { receipt_json: Receipt }[]).map(
         (row) => row.receipt_json,
@@ -153,9 +147,7 @@ export class SupabaseExecutionTrustRecordRepository
    *
    * @deprecated
    */
-  async replaceExecution(
-    execution: Execution,
-  ): Promise<void> {
+  async replaceExecution(execution: Execution): Promise<void> {
     await this.pool.query(UPDATE_EXECUTION_SQL, [
       JSON.stringify(execution),
       execution.executionId,
@@ -218,9 +210,7 @@ export class SupabaseExecutionTrustRecordRepository
   /**
    * Updates the Trust Record timestamp.
    */
-  private async touch(
-    businessTransactionId: string,
-  ): Promise<void> {
+  private async touch(businessTransactionId: string): Promise<void> {
     await this.pool.query(TOUCH_TRUST_RECORD_SQL, [
       new Date().toISOString(),
       businessTransactionId,

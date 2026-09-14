@@ -1,18 +1,10 @@
 \# 12 – Architecture Overview
 
-
-
 This guide provides an end-to-end view of the Parmana Execution Trust Platform, showing how a Business Transaction moves from request to cryptographically verifiable execution evidence.
-
-
 
 \---
 
-
-
 \## End-to-End Architecture
-
-
 
 ```text
 
@@ -86,19 +78,11 @@ This guide provides an end-to-end view of the Parmana Execution Trust Platform, 
 
 ```
 
-
-
 \---
-
-
 
 \# Execution Lifecycle
 
-
-
 Every Business Transaction follows the same deterministic lifecycle.
-
-
 
 1\. Authenticate the caller.
 
@@ -120,15 +104,9 @@ Every Business Transaction follows the same deterministic lifecycle.
 
 10\. Support deterministic replay.
 
-
-
 \---
 
-
-
 \# Core Components
-
-
 
 | Component | Responsibility |
 
@@ -148,15 +126,9 @@ Every Business Transaction follows the same deterministic lifecycle.
 
 | Verification Crypto | Provides hashing, signing, and signature verification. |
 
-
-
 \---
 
-
-
 \# Cryptographic Pipeline
-
-
 
 ```text
 
@@ -206,19 +178,11 @@ Receipt
 
 ```
 
-
-
 \---
-
-
 
 \# Verification Pipeline
 
-
-
 Verification performs three independent checks.
-
-
 
 ```text
 
@@ -244,27 +208,15 @@ Execution Trust Record
 
 ```
 
-
-
 All verification checks execute independently. Every detected failure is reported.
-
-
 
 \---
 
-
-
 \# Replay Pipeline
-
-
 
 Replay does not execute the Business Transaction again.
 
-
-
 Instead it:
-
-
 
 1\. Loads the stored Execution Trust Record.
 
@@ -276,19 +228,11 @@ Instead it:
 
 5\. Returns the verification result.
 
-
-
 \---
-
-
 
 \# Trust Model
 
-
-
 Parmana establishes trust through:
-
-
 
 \- Authenticated callers
 
@@ -304,15 +248,9 @@ Parmana establishes trust through:
 
 \- Replayable audit evidence
 
-
-
 \---
 
-
-
 \# End-to-End Flow
-
-
 
 ```text
 
@@ -364,15 +302,9 @@ Auditable, Replayable, Cryptographically Verifiable Evidence
 
 ```
 
-
-
 \---
 
-
-
 \# Related Guides
-
-
 
 \- 01 – Starting the API
 
@@ -396,19 +328,10 @@ Auditable, Replayable, Cryptographically Verifiable Evidence
 
 \- 11 – Cryptographic Architecture
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 Parmana transforms Business Transactions into immutable, cryptographically verifiable Execution Trust Records.
 
-
-
 Every execution can be independently verified, replayed, and audited without relying on the original execution environment, providing deterministic execution evidence suitable for enterprise governance, compliance, and forensic investigation.
-

@@ -42,7 +42,8 @@ export function connectorCapabilities(
   const frozen = Object.freeze([...declared]);
   return Object.freeze({
     declared: frozen,
-    includes: (capability: ConnectorCapability): boolean => frozen.includes(capability),
+    includes: (capability: ConnectorCapability): boolean =>
+      frozen.includes(capability),
   });
 }
 
@@ -103,5 +104,8 @@ export interface ConnectorExecutionContext {
 export interface Connector {
   readonly connectorId: string;
   readonly capabilities: ConnectorCapabilities;
-  execute(request: ConnectorRequest, context: ConnectorExecutionContext): Promise<ConnectorResponse>;
+  execute(
+    request: ConnectorRequest,
+    context: ConnectorExecutionContext,
+  ): Promise<ConnectorResponse>;
 }

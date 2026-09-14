@@ -1,10 +1,6 @@
-import type {
-  JsonValue,
-} from "@parmana/shared";
+import type { JsonValue } from "@parmana/shared";
 
-import type {
-  PolicyOperator,
-} from "./types/Policy.js";
+import type { PolicyOperator } from "./types/Policy.js";
 
 /**
  * Canonical deterministic operator evaluator.
@@ -28,9 +24,7 @@ export class OperatorEvaluator {
     operator: PolicyOperator,
     expected?: JsonValue,
   ): boolean {
-
     switch (operator) {
-
       //
       // Equality
       //
@@ -47,30 +41,22 @@ export class OperatorEvaluator {
 
       case "gt":
         return (
-          this.isNumber(actual) &&
-          this.isNumber(expected) &&
-          actual > expected
+          this.isNumber(actual) && this.isNumber(expected) && actual > expected
         );
 
       case "gte":
         return (
-          this.isNumber(actual) &&
-          this.isNumber(expected) &&
-          actual >= expected
+          this.isNumber(actual) && this.isNumber(expected) && actual >= expected
         );
 
       case "lt":
         return (
-          this.isNumber(actual) &&
-          this.isNumber(expected) &&
-          actual < expected
+          this.isNumber(actual) && this.isNumber(expected) && actual < expected
         );
 
       case "lte":
         return (
-          this.isNumber(actual) &&
-          this.isNumber(expected) &&
-          actual <= expected
+          this.isNumber(actual) && this.isNumber(expected) && actual <= expected
         );
 
       case "between":
@@ -89,16 +75,10 @@ export class OperatorEvaluator {
       //
 
       case "in":
-        return (
-          Array.isArray(expected) &&
-          expected.includes(actual)
-        );
+        return Array.isArray(expected) && expected.includes(actual);
 
       case "not_in":
-        return (
-          Array.isArray(expected) &&
-          !expected.includes(actual)
-        );
+        return Array.isArray(expected) && !expected.includes(actual);
 
       case "contains":
         return (
@@ -118,18 +98,14 @@ export class OperatorEvaluator {
         return (
           Array.isArray(actual) &&
           Array.isArray(expected) &&
-          expected.every(
-            (value) => actual.includes(value),
-          )
+          expected.every((value) => actual.includes(value))
         );
 
       case "contains_any":
         return (
           Array.isArray(actual) &&
           Array.isArray(expected) &&
-          expected.some(
-            (value) => actual.includes(value),
-          )
+          expected.some((value) => actual.includes(value))
         );
 
       //
@@ -162,16 +138,10 @@ export class OperatorEvaluator {
       //
 
       case "exists":
-        return (
-          actual !== undefined &&
-          actual !== null
-        );
+        return actual !== undefined && actual !== null;
 
       case "not_exists":
-        return (
-          actual === undefined ||
-          actual === null
-        );
+        return actual === undefined || actual === null;
 
       //
       // Boolean
@@ -198,51 +168,31 @@ export class OperatorEvaluator {
       //
 
       case "length_eq":
-        return (
-          this.isNumber(expected) &&
-          this.length(actual) === expected
-        );
+        return this.isNumber(expected) && this.length(actual) === expected;
 
       case "length_gt":
-        return (
-          this.isNumber(expected) &&
-          this.length(actual) > expected
-        );
+        return this.isNumber(expected) && this.length(actual) > expected;
 
       case "length_gte":
-        return (
-          this.isNumber(expected) &&
-          this.length(actual) >= expected
-        );
+        return this.isNumber(expected) && this.length(actual) >= expected;
 
       case "length_lt":
-        return (
-          this.isNumber(expected) &&
-          this.length(actual) < expected
-        );
+        return this.isNumber(expected) && this.length(actual) < expected;
 
       case "length_lte":
-        return (
-          this.isNumber(expected) &&
-          this.length(actual) <= expected
-        );
+        return this.isNumber(expected) && this.length(actual) <= expected;
 
       //
       // Type
       //
 
       case "type_is":
-        return (
-          this.isString(expected) &&
-          this.typeOf(actual) === expected
-        );
+        return this.isString(expected) && this.typeOf(actual) === expected;
 
       default: {
         const unsupported: never = operator;
 
-        throw new Error(
-          `Unsupported policy operator: ${unsupported}`,
-        );
+        throw new Error(`Unsupported policy operator: ${unsupported}`);
       }
     }
   }
@@ -254,20 +204,14 @@ export class OperatorEvaluator {
    * Regex syntax should already have been validated
    * by PolicyValidator.
    */
-  private matches(
-    actual: string,
-    pattern: string,
-  ): boolean {
+  private matches(actual: string, pattern: string): boolean {
     return new RegExp(pattern).test(actual);
   }
 
   /**
    * Returns deterministic length.
    */
-  private length(
-    value: JsonValue,
-  ): number {
-
+  private length(value: JsonValue): number {
     if (this.isString(value)) {
       return value.length;
     }
@@ -276,10 +220,7 @@ export class OperatorEvaluator {
       return value.length;
     }
 
-    if (
-      value !== null &&
-      typeof value === "object"
-    ) {
+    if (value !== null && typeof value === "object") {
       return Object.keys(value).length;
     }
 
@@ -289,10 +230,7 @@ export class OperatorEvaluator {
   /**
    * Returns canonical JSON type.
    */
-  private typeOf(
-    value: JsonValue,
-  ): string {
-
+  private typeOf(value: JsonValue): string {
     if (value === null) {
       return "null";
     }
@@ -302,7 +240,6 @@ export class OperatorEvaluator {
     }
 
     switch (typeof value) {
-
       case "string":
         return "string";
 
@@ -323,18 +260,14 @@ export class OperatorEvaluator {
   /**
    * Type guard.
    */
-  private isNumber(
-    value: JsonValue | undefined,
-  ): value is number {
+  private isNumber(value: JsonValue | undefined): value is number {
     return typeof value === "number";
   }
 
   /**
    * Type guard.
    */
-  private isString(
-    value: JsonValue | undefined,
-  ): value is string {
+  private isString(value: JsonValue | undefined): value is string {
     return typeof value === "string";
   }
 }

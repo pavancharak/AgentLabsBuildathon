@@ -1,83 +1,47 @@
-import {
-  CryptoBootstrap,
-  ExecutableContentHasher,
-} from "@parmana/crypto";
+import { CryptoBootstrap, ExecutableContentHasher } from "@parmana/crypto";
 
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeBuilder,
-} from "@parmana/runtime";
+import { RuntimeBuilder } from "@parmana/runtime";
 
-import {
-  MemoryExecutionTrustRecordRepository,
-} from "@parmana/storage";
+import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
-import type {
-  ExecutableContent,
-} from "@parmana/shared";
+import type { ExecutableContent } from "@parmana/shared";
 
-import transaction from "./transaction.json" with {
-  type: "json",
-};
+import transaction from "./transaction.json" with { type: "json" };
 
 async function main(): Promise<void> {
   console.log();
-  console.log(
-    "==================================================",
-  );
-  console.log(
-    "Tutorial 43 - Stolen Authorization",
-  );
-  console.log(
-    "==================================================",
-  );
+  console.log("==================================================");
+  console.log("Tutorial 43 - Stolen Authorization");
+  console.log("==================================================");
   console.log();
 
   //
   // Generate a legitimate authorization.
   //
-  const runtime =
-    new RuntimeBuilder()
-      .withPolicyRepository(
-        new FilePolicyRepository(
-          "policies",
-        ),
-      )
-      .build(
-        new MemoryExecutionTrustRecordRepository(),
-      );
+  const runtime = new RuntimeBuilder()
+    .withPolicyRepository(new FilePolicyRepository("policies"))
+    .build(new MemoryExecutionTrustRecordRepository());
 
-  const { context } =
-    await runtime.execute(
-      transaction,
-    );
+  const { context } = await runtime.execute(transaction);
 
   if (!context.authorization) {
-    throw new Error(
-      "Execution Authorization missing.",
-    );
+    throw new Error("Execution Authorization missing.");
   }
 
-  console.log(
-    "✓ Valid Execution Authorization generated.",
-  );
+  console.log("✓ Valid Execution Authorization generated.");
 
   //
   // Simulate a stolen authorization being reused
   // for a different request.
   //
   const stolenRequest: ExecutableContent = {
-    businessTransactionId:
-      transaction.businessTransactionId,
+    businessTransactionId: transaction.businessTransactionId,
 
-    action:
-      transaction.intent.action,
+    action: transaction.intent.action,
 
-    target:
-      transaction.intent.target,
+    target: transaction.intent.target,
 
     parameters: {
       ...transaction.intent.parameters,
@@ -85,60 +49,33 @@ async function main(): Promise<void> {
     },
   };
 
-  const hasher =
-    new ExecutableContentHasher(
-      CryptoBootstrap.create(),
-    );
+  const hasher = new ExecutableContentHasher(CryptoBootstrap.create());
 
-  const stolenHash =
-    await hasher.hash(
-      stolenRequest,
-    );
+  const stolenHash = await hasher.hash(stolenRequest);
 
-  const authorizedHash =
-    context.authorization.payload
-      .businessTransactionHash;
+  const authorizedHash = context.authorization.payload.businessTransactionHash;
 
   console.log();
-  console.log(
-    "Authorization Binding",
-  );
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("Authorization Binding");
+  console.log("--------------------------------------------------");
 
-  console.log(
-    `Authorized Hash : ${authorizedHash}`,
-  );
+  console.log(`Authorized Hash : ${authorizedHash}`);
 
-  console.log(
-    `Presented Hash  : ${stolenHash}`,
-  );
+  console.log(`Presented Hash  : ${stolenHash}`);
 
   console.log();
 
-  if (
-    authorizedHash !==
-    stolenHash
-  ) {
-    console.log(
-      "✓ Stolen authorization detected.",
-    );
+  if (authorizedHash !== stolenHash) {
+    console.log("✓ Stolen authorization detected.");
 
-    console.log(
-      "Execution rejected.",
-    );
+    console.log("Execution rejected.");
   } else {
-    console.log(
-      "✗ Stolen authorization accepted.",
-    );
+    console.log("✗ Stolen authorization accepted.");
   }
 
   console.log();
 
-  console.log(
-    "Tutorial completed successfully.",
-  );
+  console.log("Tutorial completed successfully.");
 }
 
 main().catch((error) => {

@@ -29,11 +29,7 @@
         "groups": [
           {
             "group": "Get Started",
-            "pages": [
-              "index",
-              "quickstart",
-              "how-parmana-thinks"
-            ]
+            "pages": ["index", "quickstart", "how-parmana-thinks"]
           },
           {
             "group": "Core Concepts",
@@ -75,25 +71,15 @@
           },
           {
             "group": "Runtime",
-            "pages": [
-              "verification/overview",
-              "replay/overview"
-            ]
+            "pages": ["verification/overview", "replay/overview"]
           },
           {
             "group": "Cryptography & Storage",
-            "pages": [
-              "cryptography/overview",
-              "storage/overview"
-            ]
+            "pages": ["cryptography/overview", "storage/overview"]
           },
           {
             "group": "SDKs",
-            "pages": [
-              "sdks/python",
-              "sdks/typescript",
-              "sdks/other-languages"
-            ]
+            "pages": ["sdks/python", "sdks/typescript", "sdks/other-languages"]
           },
           {
             "group": "REST API",
@@ -142,9 +128,7 @@
           },
           {
             "group": "Tutorials",
-            "pages": [
-              "tutorials/index"
-            ]
+            "pages": ["tutorials/index"]
           },
           {
             "group": "Trust and Claims",
@@ -168,22 +152,41 @@
           },
           {
             "group": "Changelog",
-            "pages": [
-              "changelog"
-            ]
+            "pages": ["changelog"]
           }
         ]
       }
     ]
   },
   "redirects": [
-    { "source": "/runtime/policy-evaluation", "destination": "/concepts/policies-and-the-decision" },
-    { "source": "/authorization/signed-execution-authorization", "destination": "/concepts/execution-authorization" },
-    { "source": "/authorization/execution-gateway", "destination": "/concepts/the-gateway" },
-    { "source": "/integrations/credentials", "destination": "/concepts/credential-isolation" },
-    { "source": "/trust-record/overview", "destination": "/concepts/execution-trust-records" },
-    { "source": "/concepts/execution-trust", "destination": "/concepts/execution-trust-records" },
-    { "source": "/api-reference/endpoints", "destination": "/api-reference/introduction" }
+    {
+      "source": "/runtime/policy-evaluation",
+      "destination": "/concepts/policies-and-the-decision"
+    },
+    {
+      "source": "/authorization/signed-execution-authorization",
+      "destination": "/concepts/execution-authorization"
+    },
+    {
+      "source": "/authorization/execution-gateway",
+      "destination": "/concepts/the-gateway"
+    },
+    {
+      "source": "/integrations/credentials",
+      "destination": "/concepts/credential-isolation"
+    },
+    {
+      "source": "/trust-record/overview",
+      "destination": "/concepts/execution-trust-records"
+    },
+    {
+      "source": "/concepts/execution-trust",
+      "destination": "/concepts/execution-trust-records"
+    },
+    {
+      "source": "/api-reference/endpoints",
+      "destination": "/api-reference/introduction"
+    }
   ],
   "navbar": {
     "links": [

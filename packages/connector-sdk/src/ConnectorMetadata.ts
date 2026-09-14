@@ -11,7 +11,10 @@ export function formatConnectorVersion(version: ConnectorVersion): string {
   return `${version.major}.${version.minor}.${version.patch}`;
 }
 
-export function connectorVersionsEqual(a: ConnectorVersion, b: ConnectorVersion): boolean {
+export function connectorVersionsEqual(
+  a: ConnectorVersion,
+  b: ConnectorVersion,
+): boolean {
   return a.major === b.major && a.minor === b.minor && a.patch === b.patch;
 }
 

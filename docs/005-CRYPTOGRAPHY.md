@@ -1,70 +1,38 @@
 \# Cryptography Specification
 
-
-
 \*\*Document:\*\* 005-CRYPTOGRAPHY.md
 
 \*\*Version:\*\* 1.0.0 (Draft)
 
 \*\*Status:\*\* Architecture Lock
 
-
-
 \---
-
-
 
 \# Purpose
 
-
-
 This document defines the cryptographic architecture of the Parmana platform.
-
-
 
 Cryptography protects the integrity, authenticity, and verifiability of execution evidence.
 
-
-
 Cryptography is infrastructure.
-
-
 
 It is not part of the business domain.
 
-
-
 \---
-
-
 
 \# Design Principle
 
-
-
 Parmana depends on cryptographic properties, not cryptographic algorithms.
-
-
 
 Algorithms may change.
 
-
-
 Architecture must not.
-
-
 
 \---
 
-
-
 \# Objectives
 
-
-
 The cryptographic layer must provide:
-
-
 
 \* Integrity
 
@@ -78,15 +46,9 @@ The cryptographic layer must provide:
 
 \* Cryptographic agility
 
-
-
 \---
 
-
-
 \# Platform Boundary
-
-
 
 ```text
 
@@ -126,23 +88,13 @@ Cryptographic Layer
 
 ```
 
-
-
 Business domains never depend directly on specific cryptographic algorithms.
-
-
 
 \---
 
-
-
 \# Cryptographic Responsibilities
 
-
-
 The cryptographic layer is responsible for:
-
-
 
 \* Canonical serialization
 
@@ -156,11 +108,7 @@ The cryptographic layer is responsible for:
 
 \* Algorithm selection
 
-
-
 The cryptographic layer is \*\*not\*\* responsible for:
-
-
 
 \* Authorization
 
@@ -170,27 +118,15 @@ The cryptographic layer is \*\*not\*\* responsible for:
 
 \* Business decisions
 
-
-
 \---
-
-
 
 \# Canonicalization
 
-
-
 All cryptographic operations must operate on canonical representations.
-
-
 
 Canonicalization ensures identical input produces identical cryptographic output.
 
-
-
 Requirements:
-
-
 
 \* Deterministic
 
@@ -200,11 +136,7 @@ Requirements:
 
 \* Versioned
 
-
-
 Canonicalization is mandatory before:
-
-
 
 \* Hash generation
 
@@ -212,27 +144,15 @@ Canonicalization is mandatory before:
 
 \* Verification
 
-
-
 \---
-
-
 
 \# Hashing
 
-
-
 Hashes provide integrity.
-
-
 
 Every evidence artifact may contain one or more hashes.
 
-
-
 Each hash records:
-
-
 
 \* Algorithm
 
@@ -240,27 +160,15 @@ Each hash records:
 
 \* Canonicalization Version
 
-
-
 The architecture does not mandate a specific hash algorithm.
-
-
 
 \---
 
-
-
 \# Digital Signatures
-
-
 
 Signatures provide authenticity.
 
-
-
 Every signature records:
-
-
 
 \* Algorithm
 
@@ -270,27 +178,15 @@ Every signature records:
 
 \* Timestamp
 
-
-
 The architecture does not mandate a specific signature algorithm.
-
-
 
 \---
 
-
-
 \# Crypto Profile
-
-
 
 Every ExecutionTransaction is associated with one Crypto Profile through its evidence.
 
-
-
 A Crypto Profile defines:
-
-
 
 \* Profile Identifier
 
@@ -304,11 +200,7 @@ A Crypto Profile defines:
 
 \* Key Policy
 
-
-
 Example:
-
-
 
 ```text
 
@@ -344,85 +236,47 @@ Version
 
 ```
 
-
-
 A future profile may use different algorithms while preserving the same domain model.
-
-
 
 \---
 
-
-
 \# Cryptographic Providers
-
-
 
 The cryptographic layer exposes abstract providers.
 
-
-
 \## Hash Provider
 
-
-
 Responsibilities:
-
-
 
 \* Generate hash
 
 \* Verify hash
 
-
-
 \---
-
-
 
 \## Signature Provider
 
-
-
 Responsibilities:
-
-
 
 \* Sign
 
 \* Verify
 
-
-
 \---
-
-
 
 \## Canonicalization Provider
 
-
-
 Responsibilities:
-
-
 
 \* Canonicalize data
 
 \* Validate canonical representation
 
-
-
 \---
-
-
 
 \## Key Provider
 
-
-
 Responsibilities:
-
-
 
 \* Resolve key identifiers
 
@@ -430,23 +284,13 @@ Responsibilities:
 
 \* Rotate keys
 
-
-
 \---
-
-
 
 \# Algorithm Independence
 
-
-
 Business code must never reference specific algorithms.
 
-
-
 Incorrect:
-
-
 
 ```text
 
@@ -454,11 +298,7 @@ verifyEd25519()
 
 ```
 
-
-
 Correct:
-
-
 
 ```text
 
@@ -466,27 +306,15 @@ signatureProvider.verify()
 
 ```
 
-
-
 The provider determines the appropriate implementation.
-
-
 
 \---
 
-
-
 \# Cryptographic Agility
-
-
 
 Cryptographic algorithms will evolve.
 
-
-
 The platform must support:
-
-
 
 \* Algorithm replacement
 
@@ -496,11 +324,7 @@ The platform must support:
 
 \* Future migration
 
-
-
 Algorithm changes must not require changes to:
-
-
 
 \* ExecutionTransaction
 
@@ -510,23 +334,13 @@ Algorithm changes must not require changes to:
 
 \* Public API
 
-
-
 \---
-
-
 
 \# Hybrid Cryptography
 
-
-
 The platform supports multiple algorithms during migration.
 
-
-
 Example:
-
-
 
 ```text
 
@@ -544,77 +358,41 @@ Evidence
 
 ```
 
-
-
 Verification succeeds when the configured Crypto Profile requirements are satisfied.
-
-
 
 \---
 
-
-
 \# Key Management
-
-
 
 Keys are identified, never embedded.
 
-
-
 Every signature references:
-
-
 
 \* Key Identifier
 
 \* Key Version
 
-
-
 Key material remains external to the business domain.
 
-
-
 \---
-
-
 
 \# Replay
 
-
-
 Historical transactions must remain verifiable.
-
-
 
 Verification selects the appropriate Crypto Profile based on the recorded evidence.
 
-
-
 Replay never assumes the latest algorithm.
-
-
 
 Replay uses the algorithm originally associated with the transaction.
 
-
-
 \---
-
-
 
 \# Post-Quantum Readiness
 
-
-
 The architecture is designed for cryptographic evolution.
 
-
-
 Future algorithms may replace existing algorithms without changing:
-
-
 
 \* Domain Model
 
@@ -626,19 +404,11 @@ Future algorithms may replace existing algorithms without changing:
 
 \* SDKs
 
-
-
 Only the cryptographic providers and Crypto Profiles evolve.
-
-
 
 \---
 
-
-
 \# Security Principles
-
-
 
 1\. Canonicalize before hashing.
 
@@ -654,15 +424,9 @@ Only the cryptographic providers and Crypto Profiles evolve.
 
 7\. Historical evidence remains verifiable.
 
-
-
 \---
 
-
-
 \# Package Structure
-
-
 
 ```text
 
@@ -698,19 +462,11 @@ crypto/
 
 ```
 
-
-
 The crypto package is the only location that contains algorithm-specific implementations.
-
-
 
 \---
 
-
-
 \# Dependency Rules
-
-
 
 ```text
 
@@ -734,25 +490,12 @@ Provider Implementations
 
 ```
 
-
-
 Business domains depend only on cryptographic interfaces.
-
-
 
 Provider implementations remain isolated.
 
-
-
 \---
-
-
 
 \# Success Criterion
 
-
-
 The cryptographic architecture succeeds when Parmana can adopt new cryptographic algorithms, including post-quantum algorithms, without requiring changes to its domain model, execution model, verification model, public APIs, or business logic.
-
-
-

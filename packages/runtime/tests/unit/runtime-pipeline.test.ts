@@ -4,9 +4,7 @@ import { RuntimePipeline } from "../../src/RuntimePipeline.js";
 import type { RuntimeComponent } from "../../src/RuntimeComponent.js";
 import type { RuntimeContext } from "../../src/context/RuntimeContext.js";
 
-function stage(
-  mark: string,
-): RuntimeComponent {
+function stage(mark: string): RuntimeComponent {
   return {
     async execute(context: RuntimeContext): Promise<RuntimeContext> {
       return {
@@ -62,4 +60,3 @@ describe("RuntimePipeline", () => {
     expect(pipeline.size()).toBe(1);
   });
 });
-

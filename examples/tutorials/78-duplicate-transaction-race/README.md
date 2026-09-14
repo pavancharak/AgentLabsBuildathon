@@ -6,9 +6,9 @@ Prove that two concurrent `create()` calls for the identical `businessTransactio
 
 ## What You'll Learn
 
-* `MemoryBusinessTransactionRepository.create()`'s check-then-write is a single synchronous operation on its underlying `Map` — no `await` between the existence check and the write, so no other `create()` call can interleave between them
-* A sequential duplicate and a genuinely concurrent one (`Promise.allSettled`) produce the same guarantee: one fulfilled, one rejected with `DuplicateBusinessTransactionError`
-* The stored record after a race is byte-for-byte the winning call's own return value — never a merge of both, never silently replaced by whichever write happened to land second
+- `MemoryBusinessTransactionRepository.create()`'s check-then-write is a single synchronous operation on its underlying `Map` — no `await` between the existence check and the write, so no other `create()` call can interleave between them
+- A sequential duplicate and a genuinely concurrent one (`Promise.allSettled`) produce the same guarantee: one fulfilled, one rejected with `DuplicateBusinessTransactionError`
+- The stored record after a race is byte-for-byte the winning call's own return value — never a merge of both, never silently replaced by whichever write happened to land second
 
 ## Running the Tutorial
 

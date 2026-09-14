@@ -18,7 +18,10 @@ export {
 
 export { HubSpotMetadata } from "./HubSpotMetadata.js";
 
-export { MockHubSpotServer, type MockHubSpotServerOptions } from "./MockHubSpotServer.js";
+export {
+  MockHubSpotServer,
+  type MockHubSpotServerOptions,
+} from "./MockHubSpotServer.js";
 
 export {
   HUBSPOT_ALLOWED_DEAL_UPDATE_PROPERTIES,

@@ -1,14 +1,14 @@
 # R&D Evidence Dossier
 
-*Draft — DPIIT Deep Tech recognition application*
-*Status: DRAFT. This is an index of citable, checkable artifacts already in the repository —
+_Draft — DPIIT Deep Tech recognition application_
+_Status: DRAFT. This is an index of citable, checkable artifacts already in the repository —
 not a spend statement (that's a separate, still-TODO deliverable requiring real ₹/headcount
 figures from Pavan/finance). Every line below names a file, commit, or section a DPIIT reviewer
-can open and verify directly.*
+can open and verify directly._
 
 ## Purpose
 
-DPIIT's Deep Tech scrutiny looks for R&D *intensity* and iterative technical refinement, not
+DPIIT's Deep Tech scrutiny looks for R&D _intensity_ and iterative technical refinement, not
 just a finished product. This document collects the evidence already sitting in the repository
 that speaks to that — organized so a reviewer (or Pavan, assembling the final application) can
 go straight to the source rather than take a narrative's word for it.

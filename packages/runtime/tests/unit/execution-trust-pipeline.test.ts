@@ -46,5 +46,3 @@ describe("BusinessTrustPipeline", () => {
     expect(r1.executions[0].executionId).toBe(r2.executions[0].executionId);
   });
 });
-
-

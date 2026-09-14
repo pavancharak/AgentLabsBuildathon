@@ -9,7 +9,11 @@ import {
   type SignalStateViolation,
 } from "@parmana/policy";
 import type { ExecutionSystem } from "@parmana/execution-system";
-import { HUBSPOT_DEAL_UPDATE_CAPABILITY, HubSpotSignalStateVerifier, type HubSpotDeal } from "@parmana/connector-hubspot";
+import {
+  HUBSPOT_DEAL_UPDATE_CAPABILITY,
+  HubSpotSignalStateVerifier,
+  type HubSpotDeal,
+} from "@parmana/connector-hubspot";
 
 //
 // RuntimeEngine accepts exactly one SignalStateVerifier -- but a real
@@ -43,7 +47,10 @@ const FAKE_KEYS: KeyProvider = {
 };
 
 // A stub gateway for HubSpot: any fetch returns a fixed, real deal.
-const hubspotDeal: HubSpotDeal = { id: "9007", properties: { dealstage: "appointmentscheduled", amount: "10000" } };
+const hubspotDeal: HubSpotDeal = {
+  id: "9007",
+  properties: { dealstage: "appointmentscheduled", amount: "10000" },
+};
 const hubspotGateway: ExecutionSystem = {
   async execute() {
     return {
@@ -53,7 +60,9 @@ const hubspotGateway: ExecutionSystem = {
       parameters: {},
       success: true,
       executedAt: new Date(),
-      metadata: { connector: { responseSummary: { metadata: { deal: hubspotDeal } } } },
+      metadata: {
+        connector: { responseSummary: { metadata: { deal: hubspotDeal } } },
+      },
     } as never;
   },
 };
@@ -88,7 +97,10 @@ const balanceVerifier: SignalStateVerifier = {
   },
 };
 
-const composite = new CompositeSignalStateVerifier([balanceVerifier, hubspotVerifier]);
+const composite = new CompositeSignalStateVerifier([
+  balanceVerifier,
+  hubspotVerifier,
+]);
 
 console.log();
 console.log("==================================================");
@@ -96,7 +108,9 @@ console.log("Tutorial 82 - Composite Signal-State Verification");
 console.log("==================================================");
 console.log();
 
-console.log("Scenario 1: A vendor:balance-check request with a mismatched signal");
+console.log(
+  "Scenario 1: A vendor:balance-check request with a mismatched signal",
+);
 console.log("--------------------------------------------------");
 
 const balanceRequest: SignalStateVerificationRequest = {
@@ -108,12 +122,19 @@ const balanceSignals: PolicySignals = {
   declaredBalance: 9_999, // real state (from balanceVerifier) is 5,000
 };
 
-const balanceViolations = await composite.findViolations(balanceRequest, balanceSignals);
+const balanceViolations = await composite.findViolations(
+  balanceRequest,
+  balanceSignals,
+);
 console.log(`Violations found : ${JSON.stringify(balanceViolations)}`);
-console.log(`(Caught by balanceVerifier -- HubSpotSignalStateVerifier never even recognized this action)`);
+console.log(
+  `(Caught by balanceVerifier -- HubSpotSignalStateVerifier never even recognized this action)`,
+);
 console.log();
 
-console.log("Scenario 2: A hubspot:deal-update request with a mismatched signal");
+console.log(
+  "Scenario 2: A hubspot:deal-update request with a mismatched signal",
+);
 console.log("--------------------------------------------------");
 
 const hubspotRequest: SignalStateVerificationRequest = {
@@ -131,9 +152,14 @@ const hubspotSignals: PolicySignals = {
   preAuthorizedForAmountChange: false,
 };
 
-const hubspotViolations = await composite.findViolations(hubspotRequest, hubspotSignals);
+const hubspotViolations = await composite.findViolations(
+  hubspotRequest,
+  hubspotSignals,
+);
 console.log(`Violations found : ${JSON.stringify(hubspotViolations)}`);
-console.log(`(Caught by HubSpotSignalStateVerifier -- balanceVerifier never even recognized this action)`);
+console.log(
+  `(Caught by HubSpotSignalStateVerifier -- balanceVerifier never even recognized this action)`,
+);
 console.log();
 
 console.log("Scenario 3: An unrelated action neither verifier recognizes");
@@ -144,8 +170,12 @@ const unrelatedRequest: SignalStateVerificationRequest = {
   businessTransactionId: "tutorial-82-unrelated",
   intentParameters: {},
 };
-const unrelatedViolations = await composite.findViolations(unrelatedRequest, { anything: true });
-console.log(`Violations found : ${JSON.stringify(unrelatedViolations)} (neither verifier claims this action)`);
+const unrelatedViolations = await composite.findViolations(unrelatedRequest, {
+  anything: true,
+});
+console.log(
+  `Violations found : ${JSON.stringify(unrelatedViolations)} (neither verifier claims this action)`,
+);
 console.log();
 
 const allPassed =
@@ -160,7 +190,9 @@ if (allPassed) {
     "✓ Each request was checked only by the verifier that actually understands its action -- no cross-contamination, no false positives.",
   );
 } else {
-  console.log("✗ Expected each request to be caught by exactly its own capability-scoped verifier.");
+  console.log(
+    "✗ Expected each request to be caught by exactly its own capability-scoped verifier.",
+  );
 }
 
 console.log();

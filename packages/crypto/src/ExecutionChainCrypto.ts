@@ -1,7 +1,4 @@
-import type {
-  Execution,
-  Signature,
-} from "@parmana/shared";
+import type { Execution, Signature } from "@parmana/shared";
 
 import { CryptoBootstrap } from "./CryptoBootstrap.js";
 import { TrustRecordHasher } from "./TrustRecordHasher.js";
@@ -46,22 +43,17 @@ export interface ChainVerificationResult {
  * not the private key cannot forge a replacement chain link.
  */
 export class ExecutionChainCrypto {
-  private readonly crypto =
-    CryptoBootstrap.create();
+  private readonly crypto = CryptoBootstrap.create();
 
-  private readonly signerPromise =
-    SignerBootstrap.create();
+  private readonly signerPromise = SignerBootstrap.create();
 
-  private readonly chainHasher =
-    new ExecutionChainHasher(
-      new TrustRecordHasher(this.crypto),
-    );
+  private readonly chainHasher = new ExecutionChainHasher(
+    new TrustRecordHasher(this.crypto),
+  );
 
-  private readonly signer =
-    new ArtifactSigner(this.crypto);
+  private readonly signer = new ArtifactSigner(this.crypto);
 
-  private readonly verifier =
-    new SignatureVerifier(this.crypto);
+  private readonly verifier = new SignatureVerifier(this.crypto);
 
   /**
    * Creates the canonical immutable view of one Execution chain
@@ -81,32 +73,23 @@ export class ExecutionChainCrypto {
     previousChainHash: string | null,
   ) {
     return {
-      executionId:
-        execution.executionId,
+      executionId: execution.executionId,
 
-      businessTransactionId:
-        execution.businessTransactionId,
+      businessTransactionId: execution.businessTransactionId,
 
-      decision:
-        execution.decision,
+      decision: execution.decision,
 
-      status:
-        execution.status,
+      status: execution.status,
 
-      mode:
-        execution.mode,
+      mode: execution.mode,
 
-      startedAt:
-        execution.startedAt,
+      startedAt: execution.startedAt,
 
-      completedAt:
-        execution.completedAt ?? null,
+      completedAt: execution.completedAt ?? null,
 
-      evidence:
-        execution.evidence ?? null,
+      evidence: execution.evidence ?? null,
 
-      metadata:
-        execution.metadata ?? null,
+      metadata: execution.metadata ?? null,
 
       previousChainHash,
     };
@@ -121,29 +104,18 @@ export class ExecutionChainCrypto {
     execution: Execution,
     previousChainHash: string | null,
   ): Promise<ExecutionChainFields> {
-    const entry =
-      this.canonicalChainEntry(
-        execution,
-        previousChainHash,
-      );
+    const entry = this.canonicalChainEntry(execution, previousChainHash);
 
-    const chainHash =
-      await this.chainHasher.hash(entry);
+    const chainHash = await this.chainHasher.hash(entry);
 
     const keyId = DEFAULT_KEY_ID;
 
     const signer = await this.signerPromise;
 
-    const value =
-      await this.signer.signWithSigner(
-        entry,
-        keyId,
-        signer,
-      );
+    const value = await this.signer.signWithSigner(entry, keyId, signer);
 
     const chainSignature: Signature = {
-      algorithm:
-        this.crypto.signature.algorithm,
+      algorithm: this.crypto.signature.algorithm,
 
       keyId,
 
@@ -164,9 +136,7 @@ export class ExecutionChainCrypto {
    * its recomputed canonical content. Does not check chain linkage --
    * see verifyChain() for that.
    */
-  async verifyEntry(
-    execution: Execution,
-  ): Promise<boolean> {
+  async verifyEntry(execution: Execution): Promise<boolean> {
     if (
       execution.chainHash === undefined ||
       execution.chainSignature === undefined
@@ -174,17 +144,11 @@ export class ExecutionChainCrypto {
       return false;
     }
 
-    const previousChainHash =
-      execution.previousChainHash ?? null;
+    const previousChainHash = execution.previousChainHash ?? null;
 
-    const entry =
-      this.canonicalChainEntry(
-        execution,
-        previousChainHash,
-      );
+    const entry = this.canonicalChainEntry(execution, previousChainHash);
 
-    const expectedHash =
-      await this.chainHasher.hash(entry);
+    const expectedHash = await this.chainHasher.hash(entry);
 
     if (expectedHash !== execution.chainHash) {
       return false;
@@ -192,10 +156,7 @@ export class ExecutionChainCrypto {
 
     const signer = await this.signerPromise;
 
-    const publicKey =
-      await signer.getPublicKey(
-        execution.chainSignature.keyId,
-      );
+    const publicKey = await signer.getPublicKey(execution.chainSignature.keyId);
 
     return this.verifier.verify(
       entry,
@@ -225,8 +186,7 @@ export class ExecutionChainCrypto {
         execution.chainSignature !== undefined;
 
       if (isChained) {
-        const entryValid =
-          await this.verifyEntry(execution);
+        const entryValid = await this.verifyEntry(execution);
 
         if (!entryValid) {
           return {
@@ -237,13 +197,9 @@ export class ExecutionChainCrypto {
           };
         }
 
-        const expectedPrevious =
-          previous?.chainHash ?? null;
+        const expectedPrevious = previous?.chainHash ?? null;
 
-        if (
-          (execution.previousChainHash ?? null) !==
-          expectedPrevious
-        ) {
+        if ((execution.previousChainHash ?? null) !== expectedPrevious) {
           return {
             valid: false,
             brokenAt: execution.executionId,

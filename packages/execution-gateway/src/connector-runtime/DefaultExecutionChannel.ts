@@ -30,7 +30,8 @@ export class DefaultExecutionChannel implements ExecutionChannel {
       throw new Error("Execution Channel requires a verified Gateway request.");
     }
     const connector = this.options.registry.get(request.connectorId);
-    if (!connector) throw new Error(`Unknown connector: ${request.connectorId}.`);
+    if (!connector)
+      throw new Error(`Unknown connector: ${request.connectorId}.`);
 
     const session = await this.options.sessions.open(request);
     await this.options.audit.record({

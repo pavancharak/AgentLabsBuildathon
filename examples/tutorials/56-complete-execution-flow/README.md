@@ -10,9 +10,9 @@ Run the complete hybrid-signing flow against a real business transaction: execut
 
 ## What You'll Learn
 
-* How the pieces from Tutorials 53–55 compose into one flow, using nothing but the real `RuntimeFactory`/`ExecutionTrustApplication` classes `POST /execute` and `POST /verify` are themselves built on
-* That hybrid signing is applied consistently across both artifacts (Trust Record and Receipt) produced by a single execution
-* That the tamper-rejection property from Tutorial 55 holds in the context of a full flow, not just in isolation
+- How the pieces from Tutorials 53–55 compose into one flow, using nothing but the real `RuntimeFactory`/`ExecutionTrustApplication` classes `POST /execute` and `POST /verify` are themselves built on
+- That hybrid signing is applied consistently across both artifacts (Trust Record and Receipt) produced by a single execution
+- That the tamper-rejection property from Tutorial 55 holds in the context of a full flow, not just in isolation
 
 ## Running the Tutorial
 

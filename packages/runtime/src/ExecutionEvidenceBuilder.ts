@@ -1,34 +1,23 @@
-import {
-  ExecutionEvidence,
-  ExecutionResult,
-} from "@parmana/shared";
+import { ExecutionEvidence, ExecutionResult } from "@parmana/shared";
 
 /**
  * Builds canonical ExecutionEvidence from an
  * Enterprise ExecutionResult.
  */
 export class ExecutionEvidenceBuilder {
-  public build(
-    result: ExecutionResult,
-  ): ExecutionEvidence {
+  public build(result: ExecutionResult): ExecutionEvidence {
     return {
-      businessTransactionId:
-        result.businessTransactionId,
+      businessTransactionId: result.businessTransactionId,
 
-      action:
-        result.action,
+      action: result.action,
 
-      target:
-        result.target,
+      target: result.target,
 
-      parameters:
-        result.parameters,
+      parameters: result.parameters,
 
-      success:
-        result.success,
+      success: result.success,
 
-      executedAt:
-        result.executedAt,
+      executedAt: result.executedAt,
 
       ...(result.metadata && {
         attributes: result.metadata,

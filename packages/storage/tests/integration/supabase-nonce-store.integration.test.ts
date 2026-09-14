@@ -54,37 +54,34 @@ describe.skipIf(!databaseConfigured)("SupabaseNonceStore (live)", () => {
     expect([a, b].filter(Boolean)).toHaveLength(1);
   });
 
-  it(
-    "(restart simulation — proves G-13 closed) a nonce consumed through one store instance is still consumed by a fresh instance against the same backing",
-    async () => {
-      // Two independently constructed clients and store instances,
-      // sharing nothing except the Supabase project they both point
-      // at — standing in for "process A consumes the nonce, process A
-      // restarts (or process B, a second gateway instance, checks the
-      // same nonce)". MemoryNonceStore cannot pass this test at all:
-      // a fresh MemoryNonceStore has an empty Map and would accept the
-      // same nonce again. That gap is exactly G-13.
-      const firstInstancePool = PostgresPoolFactory.create();
-      const firstInstance = new SupabaseNonceStore(firstInstancePool);
+  it("(restart simulation — proves G-13 closed) a nonce consumed through one store instance is still consumed by a fresh instance against the same backing", async () => {
+    // Two independently constructed clients and store instances,
+    // sharing nothing except the Supabase project they both point
+    // at — standing in for "process A consumes the nonce, process A
+    // restarts (or process B, a second gateway instance, checks the
+    // same nonce)". MemoryNonceStore cannot pass this test at all:
+    // a fresh MemoryNonceStore has an empty Map and would accept the
+    // same nonce again. That gap is exactly G-13.
+    const firstInstancePool = PostgresPoolFactory.create();
+    const firstInstance = new SupabaseNonceStore(firstInstancePool);
 
-      const nonce = `test-nonce-restart-${crypto.randomUUID()}`;
-      const expiresAt = new Date(Date.now() + 60_000).toISOString();
+    const nonce = `test-nonce-restart-${crypto.randomUUID()}`;
+    const expiresAt = new Date(Date.now() + 60_000).toISOString();
 
-      const consumedByFirstInstance = await firstInstance.checkAndRecord(
-        nonce,
-        expiresAt,
-      );
-      expect(consumedByFirstInstance).toBe(true);
+    const consumedByFirstInstance = await firstInstance.checkAndRecord(
+      nonce,
+      expiresAt,
+    );
+    expect(consumedByFirstInstance).toBe(true);
 
-      const freshInstancePool = PostgresPoolFactory.create();
-      const freshInstance = new SupabaseNonceStore(freshInstancePool);
+    const freshInstancePool = PostgresPoolFactory.create();
+    const freshInstance = new SupabaseNonceStore(freshInstancePool);
 
-      const consumedByFreshInstance = await freshInstance.checkAndRecord(
-        nonce,
-        expiresAt,
-      );
+    const consumedByFreshInstance = await freshInstance.checkAndRecord(
+      nonce,
+      expiresAt,
+    );
 
-      expect(consumedByFreshInstance).toBe(false);
-    },
-  );
+    expect(consumedByFreshInstance).toBe(false);
+  });
 });

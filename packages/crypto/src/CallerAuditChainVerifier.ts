@@ -54,9 +54,7 @@ export interface CallerAuditChainVerificationResult {
 export class CallerAuditChainVerifier {
   private readonly crypto = new AuditEventCrypto();
 
-  private readonly hasher = new TrustRecordHasher(
-    CryptoBootstrap.create(),
-  );
+  private readonly hasher = new TrustRecordHasher(CryptoBootstrap.create());
 
   async verifyChain(
     rows: readonly ChainedCallerAuditEventRow[],
@@ -67,8 +65,7 @@ export class CallerAuditChainVerifier {
     for (const row of rows) {
       position++;
 
-      const isChained =
-        row.chainHash !== null && row.chainPosition !== null;
+      const isChained = row.chainHash !== null && row.chainPosition !== null;
 
       const signedContent = isChained
         ? {

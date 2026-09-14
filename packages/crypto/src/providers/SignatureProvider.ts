@@ -19,10 +19,7 @@ export interface SignatureProvider {
   /**
    * Creates a signature using the supplied private key.
    */
-  sign(
-    data: Uint8Array,
-    privateKey: KeyObject,
-  ): Promise<string>;
+  sign(data: Uint8Array, privateKey: KeyObject): Promise<string>;
 
   /**
    * Verifies a signature using the supplied public key.

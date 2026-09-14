@@ -6,9 +6,9 @@ Prove that a Refusal Record write failure — a storage outage, a signing error,
 
 ## What You'll Learn
 
-* Two runtimes built with `RuntimeBuilder` — one whose `RefusalRecordRepository.create()` always throws, one with no repository configured at all — reject the identical transaction with byte-for-byte identical `RuntimeError` (same message, status 403, code `POLICY_DENIED`)
-* The write is genuinely attempted (`createCallCount === 1`), not silently skipped — this proves fail-*open*, not merely fail-*absent*
-* The failure doesn't retry or hang: the reject returns in milliseconds either way
+- Two runtimes built with `RuntimeBuilder` — one whose `RefusalRecordRepository.create()` always throws, one with no repository configured at all — reject the identical transaction with byte-for-byte identical `RuntimeError` (same message, status 403, code `POLICY_DENIED`)
+- The write is genuinely attempted (`createCallCount === 1`), not silently skipped — this proves fail-_open_, not merely fail-_absent_
+- The failure doesn't retry or hang: the reject returns in milliseconds either way
 
 ## Running the Tutorial
 

@@ -7,15 +7,9 @@ import {
 
 async function main(): Promise<void> {
   console.log();
-  console.log(
-    "==================================================",
-  );
-  console.log(
-    "Tutorial 57 - Credential Isolation",
-  );
-  console.log(
-    "==================================================",
-  );
+  console.log("==================================================");
+  console.log("Tutorial 57 - Credential Isolation");
+  console.log("==================================================");
   console.log();
 
   //
@@ -24,29 +18,19 @@ async function main(): Promise<void> {
   // This is the ONLY place the real secret ever appears in
   // this tutorial's own code.
   //
-  const credentials =
-    new InMemoryCredentialVault();
+  const credentials = new InMemoryCredentialVault();
 
-  credentials.setCredential(
-    "sap",
-    {
-      value: Object.freeze({
-        apiKey: "sap-secret-1234",
-      }),
-    },
-  );
+  credentials.setCredential("sap", {
+    value: Object.freeze({
+      apiKey: "sap-secret-1234",
+    }),
+  });
 
-  console.log(
-    "Underlying Credential Vault",
-  );
+  console.log("Underlying Credential Vault");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
-  console.log(
-    "✓ Enterprise credential stored for connector \"sap\".",
-  );
+  console.log('✓ Enterprise credential stored for connector "sap".');
 
   console.log();
 
@@ -57,52 +41,33 @@ async function main(): Promise<void> {
   // time-bounded leases. Nothing here reads or
   // stores the secret ahead of time.
   //
-  const sessionCredentials =
-    new InMemorySessionCredentialVault({
-      credentials,
-      clock: new SystemClock(),
-      idGenerator: new RandomIdGenerator(),
-      lifetimeMs: 30_000,
-    });
+  const sessionCredentials = new InMemorySessionCredentialVault({
+    credentials,
+    clock: new SystemClock(),
+    idGenerator: new RandomIdGenerator(),
+    lifetimeMs: 30_000,
+  });
 
-  console.log(
-    "Issuing A Session Credential",
-  );
+  console.log("Issuing A Session Credential");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
   //
   // This is what an AI caller, the Runtime, or the
   // Gateway ever sees: identifiers and timestamps.
   // No secret value.
   //
-  const session =
-    await sessionCredentials.issue(
-      "sap",
-      "authorization-001",
-    );
+  const session = await sessionCredentials.issue("sap", "authorization-001");
 
-  console.log(
-    `Session Credential ID : ${session.sessionCredentialId}`,
-  );
+  console.log(`Session Credential ID : ${session.sessionCredentialId}`);
 
-  console.log(
-    `Connector              : ${session.connectorId}`,
-  );
+  console.log(`Connector              : ${session.connectorId}`);
 
-  console.log(
-    `Authorization           : ${session.authorizationId}`,
-  );
+  console.log(`Authorization           : ${session.authorizationId}`);
 
-  console.log(
-    `Issued At               : ${session.issuedAt}`,
-  );
+  console.log(`Issued At               : ${session.issuedAt}`);
 
-  console.log(
-    `Expires At              : ${session.expiresAt}`,
-  );
+  console.log(`Expires At              : ${session.expiresAt}`);
 
   console.log();
 
@@ -120,22 +85,15 @@ async function main(): Promise<void> {
   // once, immediately before the Secure Connector invokes
   // the enterprise system.
   //
-  console.log(
-    "Consuming The Session Credential (inside the Secure Connector)",
+  console.log("Consuming The Session Credential (inside the Secure Connector)");
+
+  console.log("--------------------------------------------------");
+
+  const resolved = await sessionCredentials.consume(
+    session.sessionCredentialId,
   );
 
-  console.log(
-    "--------------------------------------------------",
-  );
-
-  const resolved =
-    await sessionCredentials.consume(
-      session.sessionCredentialId,
-    );
-
-  console.log(
-    "✓ Secret resolved for exactly this execution.",
-  );
+  console.log("✓ Secret resolved for exactly this execution.");
 
   console.log(
     `  Resolved value keys: ${Object.keys(resolved.value as object).join(", ")}`,
@@ -146,30 +104,18 @@ async function main(): Promise<void> {
   //
   // Reuse is rejected.
   //
-  console.log(
-    "Reuse Rejection",
-  );
+  console.log("Reuse Rejection");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
   try {
-    await sessionCredentials.consume(
-      session.sessionCredentialId,
-    );
+    await sessionCredentials.consume(session.sessionCredentialId);
 
-    console.log(
-      "✗ Unexpected: reuse succeeded.",
-    );
+    console.log("✗ Unexpected: reuse succeeded.");
   } catch (error) {
-    console.log(
-      "✓ Reuse rejected:",
-    );
+    console.log("✓ Reuse rejected:");
 
-    console.log(
-      `  ${(error as Error).message}`,
-    );
+    console.log(`  ${(error as Error).message}`);
   }
 
   console.log();
@@ -177,47 +123,27 @@ async function main(): Promise<void> {
   //
   // Revocation destroys a session credential outright.
   //
-  console.log(
-    "Explicit Revocation",
-  );
+  console.log("Explicit Revocation");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
-  const second =
-    await sessionCredentials.issue(
-      "sap",
-      "authorization-002",
-    );
+  const second = await sessionCredentials.issue("sap", "authorization-002");
 
-  await sessionCredentials.revoke(
-    second.sessionCredentialId,
-  );
+  await sessionCredentials.revoke(second.sessionCredentialId);
 
   try {
-    await sessionCredentials.consume(
-      second.sessionCredentialId,
-    );
+    await sessionCredentials.consume(second.sessionCredentialId);
 
-    console.log(
-      "✗ Unexpected: consumption succeeded after revocation.",
-    );
+    console.log("✗ Unexpected: consumption succeeded after revocation.");
   } catch (error) {
-    console.log(
-      "✓ Consumption after revocation rejected:",
-    );
+    console.log("✓ Consumption after revocation rejected:");
 
-    console.log(
-      `  ${(error as Error).message}`,
-    );
+    console.log(`  ${(error as Error).message}`);
   }
 
   console.log();
 
-  console.log(
-    "Tutorial completed successfully.",
-  );
+  console.log("Tutorial completed successfully.");
 }
 
 main().catch((error) => {

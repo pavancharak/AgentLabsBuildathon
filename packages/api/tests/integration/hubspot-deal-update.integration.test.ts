@@ -1,7 +1,10 @@
 import request from "supertest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { BusinessTransaction } from "@parmana/shared";
-import { MockHubSpotServer, HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN } from "@parmana/connector-hubspot";
+import {
+  MockHubSpotServer,
+  HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN,
+} from "@parmana/connector-hubspot";
 
 import { createApplication } from "../../src/application.js";
 import { createApp } from "../../src/app.js";
@@ -59,7 +62,10 @@ describe("HubSpot deal update (HTTP boundary)", () => {
 
   const TOKEN = HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN;
 
-  async function buildApp(): Promise<{ app: ReturnType<typeof createApp>; server: MockHubSpotServer }> {
+  async function buildApp(): Promise<{
+    app: ReturnType<typeof createApp>;
+    server: MockHubSpotServer;
+  }> {
     const mockServer = new MockHubSpotServer({ token: TOKEN });
     await mockServer.listen();
     server = mockServer;
@@ -124,8 +130,12 @@ describe("HubSpot deal update (HTTP boundary)", () => {
         target: `hubspot://deals/${overrides.dealId}`,
         parameters: Object.freeze({
           dealId: overrides.dealId,
-          ...(overrides.dealstage !== undefined ? { dealstage: overrides.dealstage } : {}),
-          ...(overrides.amount !== undefined ? { amount: overrides.amount } : {}),
+          ...(overrides.dealstage !== undefined
+            ? { dealstage: overrides.dealstage }
+            : {}),
+          ...(overrides.amount !== undefined
+            ? { amount: overrides.amount }
+            : {}),
         }),
         createdAt: new Date(),
       },
@@ -149,7 +159,11 @@ describe("HubSpot deal update (HTTP boundary)", () => {
 
     mockServer.setDeal({
       id: "9001",
-      properties: { dealstage: "appointmentscheduled", amount: "5000", pipeline: "default" },
+      properties: {
+        dealstage: "appointmentscheduled",
+        amount: "5000",
+        pipeline: "default",
+      },
     });
 
     const transaction = dealUpdateTransaction({
@@ -174,7 +188,9 @@ describe("HubSpot deal update (HTTP boundary)", () => {
     // The strongest proof this went through the real HTTP surface end to
     // end: the deal actually moved on the (mock) HubSpot server, not
     // just that the API returned 200.
-    expect(mockServer.getDeal("9001")?.properties.dealstage).toBe("qualifiedtobuy");
+    expect(mockServer.getDeal("9001")?.properties.dealstage).toBe(
+      "qualifiedtobuy",
+    );
   });
 
   it("rejects by policy through POST /execute and never calls HubSpot when the dealstage transition is not on an allowed path", async () => {
@@ -182,7 +198,11 @@ describe("HubSpot deal update (HTTP boundary)", () => {
 
     mockServer.setDeal({
       id: "9002",
-      properties: { dealstage: "closedlost", amount: "5000", pipeline: "default" },
+      properties: {
+        dealstage: "closedlost",
+        amount: "5000",
+        pipeline: "default",
+      },
     });
 
     const fetchSpy = vi.spyOn(globalThis, "fetch");
@@ -218,7 +238,9 @@ describe("HubSpot deal update (HTTP boundary)", () => {
     // a network call was made to the mock server for this denial — the
     // policy REJECTED decision is caught in ExecutionGate.enforce before
     // ExecutionComponent ever dispatches to the connector.
-    const hubspotCalls = fetchSpy.mock.calls.filter((call) => String(call[0]).startsWith(mockServer.baseUrl));
+    const hubspotCalls = fetchSpy.mock.calls.filter((call) =>
+      String(call[0]).startsWith(mockServer.baseUrl),
+    );
     expect(hubspotCalls).toHaveLength(0);
 
     fetchSpy.mockRestore();
@@ -229,7 +251,11 @@ describe("HubSpot deal update (HTTP boundary)", () => {
 
     mockServer.setDeal({
       id: "9003",
-      properties: { dealstage: "appointmentscheduled", amount: "5000", pipeline: "default" },
+      properties: {
+        dealstage: "appointmentscheduled",
+        amount: "5000",
+        pipeline: "default",
+      },
     });
 
     const fetchSpy = vi.spyOn(globalThis, "fetch");
@@ -264,7 +290,9 @@ describe("HubSpot deal update (HTTP boundary)", () => {
 
     expect(mockServer.getDeal("9003")?.properties.amount).toBe("5000");
 
-    const hubspotCalls = fetchSpy.mock.calls.filter((call) => String(call[0]).startsWith(mockServer.baseUrl));
+    const hubspotCalls = fetchSpy.mock.calls.filter((call) =>
+      String(call[0]).startsWith(mockServer.baseUrl),
+    );
     expect(hubspotCalls).toHaveLength(0);
 
     fetchSpy.mockRestore();
@@ -276,7 +304,11 @@ describe("HubSpot deal update (HTTP boundary)", () => {
     // Real deal: already closedlost (terminal) -- no forward transition is ever allowed out of it.
     mockServer.setDeal({
       id: "9004",
-      properties: { dealstage: "closedlost", amount: "5000", pipeline: "default" },
+      properties: {
+        dealstage: "closedlost",
+        amount: "5000",
+        pipeline: "default",
+      },
     });
 
     // Caller-declared signals falsely claim the deal is still at an early, non-terminal
@@ -312,7 +344,11 @@ describe("HubSpot deal update (HTTP boundary)", () => {
 
     mockServer.setDeal({
       id: "9005",
-      properties: { dealstage: "closedlost", amount: "5000", pipeline: "default" },
+      properties: {
+        dealstage: "closedlost",
+        amount: "5000",
+        pipeline: "default",
+      },
     });
 
     const fetchSpy = vi.spyOn(globalThis, "fetch");
@@ -356,7 +392,9 @@ describe("HubSpot deal update (HTTP boundary)", () => {
     // The deal is untouched, and not even a network call was made -- the
     // mismatched policy never even reaches PolicyEngine.evaluate.
     expect(mockServer.getDeal("9005")?.properties.dealstage).toBe("closedlost");
-    const hubspotCalls = fetchSpy.mock.calls.filter((call) => String(call[0]).startsWith(mockServer.baseUrl));
+    const hubspotCalls = fetchSpy.mock.calls.filter((call) =>
+      String(call[0]).startsWith(mockServer.baseUrl),
+    );
     expect(hubspotCalls).toHaveLength(0);
 
     fetchSpy.mockRestore();
@@ -367,7 +405,11 @@ describe("HubSpot deal update (HTTP boundary)", () => {
 
     mockServer.setDeal({
       id: "9006",
-      properties: { dealstage: "appointmentscheduled", amount: "5000", pipeline: "default" },
+      properties: {
+        dealstage: "appointmentscheduled",
+        amount: "5000",
+        pipeline: "default",
+      },
     });
 
     const fetchSpy = vi.spyOn(globalThis, "fetch");
@@ -403,7 +445,11 @@ describe("HubSpot deal update (HTTP boundary)", () => {
             expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
             capability: "hubspot:deal-update",
             resourceId: "9006",
-            scope: { field: "amountDeltaAbs", comparator: "lte", value: 50_000 },
+            scope: {
+              field: "amountDeltaAbs",
+              comparator: "lte",
+              value: 50_000,
+            },
             nonce: "integration-test-nonce-1",
           },
           signature: {
@@ -433,7 +479,9 @@ describe("HubSpot deal update (HTTP boundary)", () => {
     expect(mockServer.getDeal("9006")?.properties.amount).toBe("5000");
 
     const hubspotPatchCalls = fetchSpy.mock.calls.filter(
-      (call) => String(call[0]).startsWith(mockServer.baseUrl) && (call[1] as RequestInit | undefined)?.method === "PATCH",
+      (call) =>
+        String(call[0]).startsWith(mockServer.baseUrl) &&
+        (call[1] as RequestInit | undefined)?.method === "PATCH",
     );
     expect(hubspotPatchCalls).toHaveLength(0);
 

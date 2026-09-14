@@ -1,54 +1,28 @@
 \# 015 — Platform Architecture
 
-
-
 \## Status
-
-
 
 \*\*Version:\*\* 0.1.0
 
-
-
 \*\*Status:\*\* Draft
 
-
-
 \---
-
-
 
 \# Purpose
 
-
-
 This document defines the logical architecture of the Parmana platform.
-
-
 
 It describes the major platform components, their responsibilities, and the boundaries between them.
 
-
-
 This document is normative.
-
-
 
 \---
 
-
-
 \# Platform Overview
-
-
 
 Parmana is an Execution Trust Platform.
 
-
-
 It establishes a verifiable trust chain between:
-
-
 
 \* Authority
 
@@ -62,19 +36,11 @@ It establishes a verifiable trust chain between:
 
 \* Verification
 
-
-
 The platform is organized as a set of independent packages that collaborate through immutable domain models.
-
-
 
 \---
 
-
-
 \# High-Level Architecture
-
-
 
 ```text
 
@@ -124,23 +90,13 @@ The platform is organized as a set of independent packages that collaborate thro
 
 ```
 
-
-
 \---
-
-
 
 \# Core Package
 
-
-
 The Core package defines the canonical domain model.
 
-
-
 Responsibilities:
-
-
 
 \* Domain entities
 
@@ -150,27 +106,15 @@ Responsibilities:
 
 \* Shared types
 
-
-
 The Core package contains no business execution logic.
-
-
 
 \---
 
-
-
 \# Runtime Package
-
-
 
 The Runtime orchestrates execution.
 
-
-
 Responsibilities:
-
-
 
 \* Runtime pipeline
 
@@ -178,27 +122,15 @@ Responsibilities:
 
 \* Transaction lifecycle
 
-
-
 The Runtime does not perform verification.
-
-
 
 \---
 
-
-
 \# Verification Package
-
-
 
 The Verification package independently evaluates completed transactions.
 
-
-
 Responsibilities:
-
-
 
 \* Verification pipeline
 
@@ -206,27 +138,15 @@ Responsibilities:
 
 \* Verification reports
 
-
-
 The Verification package never executes transactions.
-
-
 
 \---
 
-
-
 \# Evidence Package
-
-
 
 The Evidence package manages immutable execution artifacts.
 
-
-
 Responsibilities:
-
-
 
 \* Evidence artifacts
 
@@ -234,23 +154,13 @@ Responsibilities:
 
 \* Evidence serialization
 
-
-
 \---
-
-
 
 \# Cryptography Package
 
-
-
 The Cryptography package provides integrity services.
 
-
-
 Responsibilities:
-
-
 
 \* Hashing
 
@@ -260,27 +170,15 @@ Responsibilities:
 
 \* Cryptographic providers
 
-
-
 Cryptographic algorithms remain replaceable.
-
-
 
 \---
 
-
-
 \# Storage Package
-
-
 
 The Storage package persists immutable artifacts.
 
-
-
 Responsibilities:
-
-
 
 \* Transaction persistence
 
@@ -288,27 +186,15 @@ Responsibilities:
 
 \* Verification persistence
 
-
-
 Storage implementations remain independent of the Runtime.
-
-
 
 \---
 
-
-
 \# SDK Package
-
-
 
 The SDK provides the public developer API.
 
-
-
 Responsibilities:
-
-
 
 \* Client APIs
 
@@ -316,27 +202,15 @@ Responsibilities:
 
 \* Convenience abstractions
 
-
-
 The SDK hides internal implementation details.
-
-
 
 \---
 
-
-
 \# API Package
-
-
 
 The API exposes Parmana over HTTP.
 
-
-
 Responsibilities:
-
-
 
 \* REST endpoints
 
@@ -344,27 +218,15 @@ Responsibilities:
 
 \* Response serialization
 
-
-
 The API delegates execution to the Runtime.
-
-
 
 \---
 
-
-
 \# CLI Package
-
-
 
 The CLI provides command-line access to the platform.
 
-
-
 Responsibilities:
-
-
 
 \* Local execution
 
@@ -374,19 +236,11 @@ Responsibilities:
 
 \* Administration
 
-
-
 \---
-
-
 
 \# Dependency Rules
 
-
-
 Dependencies flow inward.
-
-
 
 ```text
 
@@ -418,31 +272,17 @@ Core
 
 ```
 
-
-
 Core has no dependency on higher-level packages.
-
-
 
 Verification never depends on Runtime internals.
 
-
-
 Runtime never depends on Verification.
-
-
 
 \---
 
-
-
 \# Architectural Principles
 
-
-
 The platform is governed by the following principles:
-
-
 
 \* Immutability
 
@@ -456,25 +296,12 @@ The platform is governed by the following principles:
 
 \* Technology independence
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 Parmana is organized as a layered execution trust platform.
-
-
 
 Each package has a single responsibility.
 
-
-
 Together, they provide deterministic execution, immutable evidence, and independently verifiable trust.
-
-
-

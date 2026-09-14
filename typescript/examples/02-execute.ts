@@ -14,21 +14,16 @@ import {
  * this exact example actually works against a real running server,
  * not just that it compiles.
  */
-export async function runExecuteExample(
-  endpoint = "http://localhost:3000",
-) {
-  const client =
-    new ParmanaClient({
+export async function runExecuteExample(endpoint = "http://localhost:3000") {
+  const client = new ParmanaClient({
+    endpoint,
+
+    transport: new HttpTransport({
       endpoint,
+    }),
+  });
 
-      transport:
-        new HttpTransport({
-          endpoint,
-        }),
-    });
-
-  const businessTransactionId =
-    crypto.randomUUID();
+  const businessTransactionId = crypto.randomUUID();
 
   const transaction: BusinessTransaction = {
     businessTransactionId,
@@ -36,59 +31,43 @@ export async function runExecuteExample(
     metadata: {
       businessTransactionId,
 
-      correlationId:
-        "corr-001",
+      correlationId: "corr-001",
 
-      tenantId:
-        "tenant-001",
+      tenantId: "tenant-001",
 
-      sourceSystem:
-        "typescript-sdk-example",
+      sourceSystem: "typescript-sdk-example",
 
-      submittedBy:
-        "demo-user",
+      submittedBy: "demo-user",
 
-      submittedAt:
-        new Date(),
+      submittedAt: new Date(),
     },
 
     authority: {
-      authorityId:
-        "authority-001",
+      authorityId: "authority-001",
 
-      authorityType:
-        "USER",
+      authorityType: "USER",
 
-      principalId:
-        "alice@example.com",
+      principalId: "alice@example.com",
 
-      displayName:
-        "Alice",
+      displayName: "Alice",
 
-      issuedAt:
-        new Date(),
+      issuedAt: new Date(),
     },
 
     authorization: {
-      authorizationId:
-        "authorization-001",
+      authorizationId: "authorization-001",
 
-      authorityId:
-        "authority-001",
+      authorityId: "authority-001",
 
-      purpose:
-        "Vendor payment approval",
+      purpose: "Vendor payment approval",
 
-      issuedAt:
-        new Date(),
+      issuedAt: new Date(),
     },
 
     intent: {
-      intentId:
-        "intent-001",
+      intentId: "intent-001",
 
-      authorizationId:
-        "authorization-001",
+      authorizationId: "authorization-001",
 
       // test:fixture-execute, not TransferFunds/payments:execute: the
       // capability this example originally targeted was never
@@ -100,30 +79,24 @@ export async function runExecuteExample(
       // (excluded from typescript/tsconfig.json's own include list),
       // had never actually been run against a real server before this
       // pass proved it.
-      action:
-        "test:fixture-execute",
+      action: "test:fixture-execute",
 
-      target:
-        "vendor/vendor-123",
+      target: "vendor/vendor-123",
 
       parameters: {
         amount: 100,
         currency: "USD",
       },
 
-      createdAt:
-        new Date(),
+      createdAt: new Date(),
     },
 
     policy: {
-      name:
-        "vendor-payment",
+      name: "vendor-payment",
 
-      version:
-        "2.0.0",
+      version: "2.0.0",
 
-      schemaVersion:
-        "1.0.0",
+      schemaVersion: "1.0.0",
     },
 
     signals: {
@@ -140,11 +113,9 @@ export async function runExecuteExample(
       vendorId: "vendor/vendor-123",
     },
 
-    status:
-      "RECEIVED",
+    status: "RECEIVED",
 
-    createdAt:
-      new Date(),
+    createdAt: new Date(),
   };
 
   return client.execute(transaction);
@@ -155,16 +126,9 @@ const isMainModule =
   import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isMainModule) {
-  const trustRecord =
-    await runExecuteExample(
-      process.env.PARMANA_EXAMPLE_ENDPOINT,
-    );
-
-  console.log(
-    JSON.stringify(
-      trustRecord,
-      null,
-      2,
-    ),
+  const trustRecord = await runExecuteExample(
+    process.env.PARMANA_EXAMPLE_ENDPOINT,
   );
+
+  console.log(JSON.stringify(trustRecord, null, 2));
 }

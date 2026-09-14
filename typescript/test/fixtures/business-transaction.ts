@@ -31,9 +31,7 @@ export const businessTransaction: BusinessTransaction = {
 
     authorityId: "authority-001",
 
-    authorizedAt: new Date(
-      "2026-01-01T00:00:00Z",
-    ),
+    authorizedAt: new Date("2026-01-01T00:00:00Z"),
   },
 
   intent: {
@@ -47,24 +45,23 @@ export const businessTransaction: BusinessTransaction = {
 
     resource: "invoice",
 
-    description:
-      "Approve vendor payment.",
+    description: "Approve vendor payment.",
   },
 
-policy: {
-  name: "vendor-payment",
-  version: "2.0.0",
-  schemaVersion: "1.0.0",
-},
+  policy: {
+    name: "vendor-payment",
+    version: "2.0.0",
+    schemaVersion: "1.0.0",
+  },
 
-signals: {
-  vendorVerified: true,
-  invoiceVerified: true,
-  paymentApproved: true,
-  sufficientFunds: true,
-  paymentAmount: 100,
-  riskScore: 10,
-},
+  signals: {
+    vendorVerified: true,
+    invoiceVerified: true,
+    paymentApproved: true,
+    sufficientFunds: true,
+    paymentAmount: 100,
+    riskScore: 10,
+  },
 
   metadata: {
     executionMode: "SYNC",
@@ -74,10 +71,7 @@ signals: {
     environment: "test",
   },
 
-  status:
-    BusinessTransactionStatus.RECEIVED,
+  status: BusinessTransactionStatus.RECEIVED,
 
-  createdAt: new Date(
-    "2026-01-01T00:00:00Z",
-  ),
+  createdAt: new Date("2026-01-01T00:00:00Z"),
 };

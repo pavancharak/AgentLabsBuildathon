@@ -1,166 +1,162 @@
 {
-    "trustRecordId":  "3280db24-fdd3-4feb-ac04-97c3b07c8c41",
-    "businessTransactionId":  "b9404bdf-ad2a-4dce-8001-0eacd0974200",
-    "transaction":  {
-                        "intent":  {
-                                       "action":  "payments:execute",
-                                       "target":  "vendor/V-100",
-                                       "intentId":  "f92bb2c3-5d96-45a7-b8f7-3a527f1b7e0d",
-                                       "createdAt":  "2026-07-07T16:38:59.285Z",
-                                       "parameters":  {
-                                                          "amount":  4500,
-                                                          "currency":  "USD"
-                                                      },
-                                       "authorizationId":  "2e87f670-631b-48a0-b278-835419841486"
-                                   },
-                        "policy":  {
-                                       "name":  "vendor-payment",
-                                       "version":  "2.0.0",
-                                       "schemaVersion":  "1.0.0"
-                                   },
-                        "status":  "RECEIVED",
-                        "signals":  {
-                                        "riskScore":  10,
-                                        "paymentAmount":  4500,
-                                        "vendorVerified":  true,
-                                        "invoiceVerified":  true,
-                                        "paymentApproved":  true,
-                                        "sufficientFunds":  true
-                                    },
-                        "metadata":  {
-                                         "submittedAt":  "2026-07-07T16:38:59.285Z",
-                                         "submittedBy":  "ap-automation",
-                                         "sourceSystem":  "vendor-payment-service",
-                                         "correlationId":  "bfe321d7-d9e7-4cef-a6da-eaeeba1c1d5b",
-                                         "businessTransactionId":  "b9404bdf-ad2a-4dce-8001-0eacd0974200"
-                                     },
-                        "authority":  {
-                                          "issuedAt":  "2026-07-07T16:38:59.285Z",
-                                          "authorityId":  "f5636910-84db-41d8-9a38-09e5b0181392",
-                                          "displayName":  "Accounts Payable Automation",
-                                          "principalId":  "ap-automation-svc",
-                                          "authorityType":  "SERVICE"
-                                      },
-                        "createdAt":  "2026-07-18T03:59:40.676Z",
-                        "authorization":  {
-                                              "purpose":  "Authorize vendor payment disbursement",
-                                              "issuedAt":  "2026-07-07T16:38:59.285Z",
-                                              "authorityId":  "f5636910-84db-41d8-9a38-09e5b0181392",
-                                              "authorizationId":  "2e87f670-631b-48a0-b278-835419841486"
-                                          },
-                        "businessTransactionId":  "b9404bdf-ad2a-4dce-8001-0eacd0974200"
-                    },
-    "executions":  [
-                       {
-                           "mode":  "SYNC",
-                           "status":  "COMPLETED",
-                           "decision":  {
-                                            "policy":  {
-                                                           "name":  "vendor-payment",
-                                                           "version":  "2.0.0",
-                                                           "schemaVersion":  "1.0.0"
-                                                       },
-                                            "reason":  "Vendor payment authorized. Vendor verification, invoice verification, payment approval, funding, and risk assessment requirements were satisfied.",
-                                            "outcome":  "APPROVED",
-                                            "signals":  {
-                                                            "riskScore":  10,
-                                                            "paymentAmount":  4500,
-                                                            "vendorVerified":  true,
-                                                            "invoiceVerified":  true,
-                                                            "paymentApproved":  true,
-                                                            "sufficientFunds":  true
-                                                        },
-                                            "intentId":  "f92bb2c3-5d96-45a7-b8f7-3a527f1b7e0d",
-                                            "decisionId":  "8e942c3e-6e4d-4929-b20b-961b646143f2",
-                                            "evaluatedAt":  "2026-07-18T03:59:41.196Z"
-                                        },
-                           "evidence":  {
-                                            "action":  "payments:execute",
-                                            "target":  "vendor/V-100",
-                                            "success":  true,
-                                            "attributes":  {
-                                                               "connector":  {
-                                                                                 "startedAt":  "2026-07-18T03:59:42.425Z",
-                                                                                 "capability":  "payments:execute",
-                                                                                 "completedAt":  "2026-07-18T03:59:42.425Z",
-                                                                                 "connectorId":  "vendor-payment",
-                                                                                 "requestSummary":  {
-                                                                                                        "action":  "payments:execute",
-                                                                                                        "target":  "vendor/V-100",
-                                                                                                        "parameters":  {
-                                                                                                                           "amount":  4500,
-                                                                                                                           "currency":  "USD"
-                                                                                                                       },
-                                                                                                        "businessTransactionId":  "b9404bdf-ad2a-4dce-8001-0eacd0974200"
-                                                                                                    },
-                                                                                 "responseSummary":  {
-                                                                                                         "success":  true,
-                                                                                                         "metadata":  {
-
-                                                                                                                      }
-                                                                                                     },
-                                                                                 "connectorVersion":  "1.0.0",
-                                                                                 "sanitizedEndpoint":  "vendor/V-100",
-                                                                                 "credentialProviderId":  "environment",
-                                                                                 "connectorEvidenceHash":  "af3a14cfa844fba1336463a0146771720ed6378ef3d7c513c5ffddc1972c2db6"
-                                                                             }
-                                                           },
-                                            "executedAt":  "2026-07-18T03:59:42.425Z",
-                                            "parameters":  {
-                                                               "amount":  4500,
-                                                               "currency":  "USD"
-                                                           },
-                                            "businessTransactionId":  "b9404bdf-ad2a-4dce-8001-0eacd0974200"
-                                        },
-                           "metadata":  {
-                                            "authorizationId":  "180499d2-5f44-4838-8709-e92d07b04394"
-                                        },
-                           "startedAt":  "2026-07-18T03:59:41.509Z",
-                           "completedAt":  "2026-07-18T03:59:43.541Z",
-                           "executionId":  "bf78f1c9-f007-40ab-9a14-92bc6f815f1f",
-                           "businessTransactionId":  "b9404bdf-ad2a-4dce-8001-0eacd0974200"
-                       }
-                   ],
-    "overrides":  [
-
-                  ],
-    "verifications":  [
-                          {
-                              "status":  "VERIFIED",
-                              "message":  "Execution Trust Record verified successfully.",
-                              "verifiedAt":  "2026-07-18T03:59:45.798Z",
-                              "verificationId":  "999bedec-876d-4fdf-b1a3-91d01866ffcd",
-                              "trustRecordHash":  "f6b35361c5cf90fefef039c56cacafdb9cc030f0d2c1259e6eb3b565c58cc3e4",
-                              "businessTransactionId":  "b9404bdf-ad2a-4dce-8001-0eacd0974200"
-                          }
-                      ],
-    "receipts":  [
-                     {
-                         "issuedAt":  "2026-07-18T03:59:47.535Z",
-                         "algorithm":  "ed25519",
-                         "receiptId":  "a677de4e-472c-4b37-8a12-4199d2510b8b",
-                         "signature":  "ToH2J0UNANM4RfJeoV0BVbE5G3G3eh6BoOErQuacXpal7RpcvhRMg4tVG2ENITUCrF+TfNsrZIg3WsIg1E1rBg==",
-                         "receiptHash":  "562410a8687a2771d2f50ae71811cff2822340c52f485cb58eed918823a67de1",
-                         "trustRecordHash":  "f6b35361c5cf90fefef039c56cacafdb9cc030f0d2c1259e6eb3b565c58cc3e4",
-                         "businessTransactionId":  "b9404bdf-ad2a-4dce-8001-0eacd0974200"
-                     },
-                     {
-                         "issuedAt":  "2026-07-18T04:05:47.378Z",
-                         "algorithm":  "ed25519",
-                         "receiptId":  "6f1e7586-ae5d-4718-8d06-36aa541bdb8b",
-                         "signature":  "r4+YxAtVIL7BHJhEr5bPZSq1lvAKf50C3umPmIrMwfb9wAGks5Oxs4A+Ohae/6H7qddb3QxTvxcNtVR4Uo75CQ==",
-                         "receiptHash":  "bd1280f038f0e9257b86f006fb023d90ae1f00d0b9f12451c72bf7d06c469ac6",
-                         "trustRecordHash":  "f6b35361c5cf90fefef039c56cacafdb9cc030f0d2c1259e6eb3b565c58cc3e4",
-                         "businessTransactionId":  "b9404bdf-ad2a-4dce-8001-0eacd0974200"
-                     }
-                 ],
-    "trustRecordHash":  "f6b35361c5cf90fefef039c56cacafdb9cc030f0d2c1259e6eb3b565c58cc3e4",
-    "signature":  {
-                      "keyId":  "default",
-                      "value":  "tMSQwuuXt7S4niSj6Z4Su8ThzbQwGtRHQ13CBL/ukHSGKnCyUHYz3USfDlcc9C9xXdjk9nHrqI+UWg9Bgy6OBQ==",
-                      "signedAt":  "2026-07-18T03:59:44.057Z",
-                      "algorithm":  "ed25519"
-                  },
-    "createdAt":  "2026-07-18T03:59:44.053Z",
-    "updatedAt":  "2026-07-18T04:05:47.680Z"
+  "trustRecordId": "3280db24-fdd3-4feb-ac04-97c3b07c8c41",
+  "businessTransactionId": "b9404bdf-ad2a-4dce-8001-0eacd0974200",
+  "transaction": {
+    "intent": {
+      "action": "payments:execute",
+      "target": "vendor/V-100",
+      "intentId": "f92bb2c3-5d96-45a7-b8f7-3a527f1b7e0d",
+      "createdAt": "2026-07-07T16:38:59.285Z",
+      "parameters": {
+        "amount": 4500,
+        "currency": "USD"
+      },
+      "authorizationId": "2e87f670-631b-48a0-b278-835419841486"
+    },
+    "policy": {
+      "name": "vendor-payment",
+      "version": "2.0.0",
+      "schemaVersion": "1.0.0"
+    },
+    "status": "RECEIVED",
+    "signals": {
+      "riskScore": 10,
+      "paymentAmount": 4500,
+      "vendorVerified": true,
+      "invoiceVerified": true,
+      "paymentApproved": true,
+      "sufficientFunds": true
+    },
+    "metadata": {
+      "submittedAt": "2026-07-07T16:38:59.285Z",
+      "submittedBy": "ap-automation",
+      "sourceSystem": "vendor-payment-service",
+      "correlationId": "bfe321d7-d9e7-4cef-a6da-eaeeba1c1d5b",
+      "businessTransactionId": "b9404bdf-ad2a-4dce-8001-0eacd0974200"
+    },
+    "authority": {
+      "issuedAt": "2026-07-07T16:38:59.285Z",
+      "authorityId": "f5636910-84db-41d8-9a38-09e5b0181392",
+      "displayName": "Accounts Payable Automation",
+      "principalId": "ap-automation-svc",
+      "authorityType": "SERVICE"
+    },
+    "createdAt": "2026-07-18T03:59:40.676Z",
+    "authorization": {
+      "purpose": "Authorize vendor payment disbursement",
+      "issuedAt": "2026-07-07T16:38:59.285Z",
+      "authorityId": "f5636910-84db-41d8-9a38-09e5b0181392",
+      "authorizationId": "2e87f670-631b-48a0-b278-835419841486"
+    },
+    "businessTransactionId": "b9404bdf-ad2a-4dce-8001-0eacd0974200"
+  },
+  "executions": [
+    {
+      "mode": "SYNC",
+      "status": "COMPLETED",
+      "decision": {
+        "policy": {
+          "name": "vendor-payment",
+          "version": "2.0.0",
+          "schemaVersion": "1.0.0"
+        },
+        "reason": "Vendor payment authorized. Vendor verification, invoice verification, payment approval, funding, and risk assessment requirements were satisfied.",
+        "outcome": "APPROVED",
+        "signals": {
+          "riskScore": 10,
+          "paymentAmount": 4500,
+          "vendorVerified": true,
+          "invoiceVerified": true,
+          "paymentApproved": true,
+          "sufficientFunds": true
+        },
+        "intentId": "f92bb2c3-5d96-45a7-b8f7-3a527f1b7e0d",
+        "decisionId": "8e942c3e-6e4d-4929-b20b-961b646143f2",
+        "evaluatedAt": "2026-07-18T03:59:41.196Z"
+      },
+      "evidence": {
+        "action": "payments:execute",
+        "target": "vendor/V-100",
+        "success": true,
+        "attributes": {
+          "connector": {
+            "startedAt": "2026-07-18T03:59:42.425Z",
+            "capability": "payments:execute",
+            "completedAt": "2026-07-18T03:59:42.425Z",
+            "connectorId": "vendor-payment",
+            "requestSummary": {
+              "action": "payments:execute",
+              "target": "vendor/V-100",
+              "parameters": {
+                "amount": 4500,
+                "currency": "USD"
+              },
+              "businessTransactionId": "b9404bdf-ad2a-4dce-8001-0eacd0974200"
+            },
+            "responseSummary": {
+              "success": true,
+              "metadata": {}
+            },
+            "connectorVersion": "1.0.0",
+            "sanitizedEndpoint": "vendor/V-100",
+            "credentialProviderId": "environment",
+            "connectorEvidenceHash": "af3a14cfa844fba1336463a0146771720ed6378ef3d7c513c5ffddc1972c2db6"
+          }
+        },
+        "executedAt": "2026-07-18T03:59:42.425Z",
+        "parameters": {
+          "amount": 4500,
+          "currency": "USD"
+        },
+        "businessTransactionId": "b9404bdf-ad2a-4dce-8001-0eacd0974200"
+      },
+      "metadata": {
+        "authorizationId": "180499d2-5f44-4838-8709-e92d07b04394"
+      },
+      "startedAt": "2026-07-18T03:59:41.509Z",
+      "completedAt": "2026-07-18T03:59:43.541Z",
+      "executionId": "bf78f1c9-f007-40ab-9a14-92bc6f815f1f",
+      "businessTransactionId": "b9404bdf-ad2a-4dce-8001-0eacd0974200"
+    }
+  ],
+  "overrides": [],
+  "verifications": [
+    {
+      "status": "VERIFIED",
+      "message": "Execution Trust Record verified successfully.",
+      "verifiedAt": "2026-07-18T03:59:45.798Z",
+      "verificationId": "999bedec-876d-4fdf-b1a3-91d01866ffcd",
+      "trustRecordHash": "f6b35361c5cf90fefef039c56cacafdb9cc030f0d2c1259e6eb3b565c58cc3e4",
+      "businessTransactionId": "b9404bdf-ad2a-4dce-8001-0eacd0974200"
+    }
+  ],
+  "receipts": [
+    {
+      "issuedAt": "2026-07-18T03:59:47.535Z",
+      "algorithm": "ed25519",
+      "receiptId": "a677de4e-472c-4b37-8a12-4199d2510b8b",
+      "signature": "ToH2J0UNANM4RfJeoV0BVbE5G3G3eh6BoOErQuacXpal7RpcvhRMg4tVG2ENITUCrF+TfNsrZIg3WsIg1E1rBg==",
+      "receiptHash": "562410a8687a2771d2f50ae71811cff2822340c52f485cb58eed918823a67de1",
+      "trustRecordHash": "f6b35361c5cf90fefef039c56cacafdb9cc030f0d2c1259e6eb3b565c58cc3e4",
+      "businessTransactionId": "b9404bdf-ad2a-4dce-8001-0eacd0974200"
+    },
+    {
+      "issuedAt": "2026-07-18T04:05:47.378Z",
+      "algorithm": "ed25519",
+      "receiptId": "6f1e7586-ae5d-4718-8d06-36aa541bdb8b",
+      "signature": "r4+YxAtVIL7BHJhEr5bPZSq1lvAKf50C3umPmIrMwfb9wAGks5Oxs4A+Ohae/6H7qddb3QxTvxcNtVR4Uo75CQ==",
+      "receiptHash": "bd1280f038f0e9257b86f006fb023d90ae1f00d0b9f12451c72bf7d06c469ac6",
+      "trustRecordHash": "f6b35361c5cf90fefef039c56cacafdb9cc030f0d2c1259e6eb3b565c58cc3e4",
+      "businessTransactionId": "b9404bdf-ad2a-4dce-8001-0eacd0974200"
+    }
+  ],
+  "trustRecordHash": "f6b35361c5cf90fefef039c56cacafdb9cc030f0d2c1259e6eb3b565c58cc3e4",
+  "signature": {
+    "keyId": "default",
+    "value": "tMSQwuuXt7S4niSj6Z4Su8ThzbQwGtRHQ13CBL/ukHSGKnCyUHYz3USfDlcc9C9xXdjk9nHrqI+UWg9Bgy6OBQ==",
+    "signedAt": "2026-07-18T03:59:44.057Z",
+    "algorithm": "ed25519"
+  },
+  "createdAt": "2026-07-18T03:59:44.053Z",
+  "updatedAt": "2026-07-18T04:05:47.680Z"
 }

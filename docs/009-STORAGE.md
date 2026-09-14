@@ -1,50 +1,28 @@
 \# Storage Specification
 
-
-
 \*\*Document:\*\* 009-STORAGE.md
 
 \*\*Version:\*\* 1.0.0 (Draft)
 
 \*\*Status:\*\* Implementation Specification
 
-
-
 \---
-
-
 
 \# Purpose
 
-
-
 This document defines the storage architecture of the Parmana platform.
-
-
 
 Storage preserves the complete history of trusted execution.
 
-
-
 Storage is responsible for persistence.
-
-
 
 Storage is not responsible for business semantics.
 
-
-
 \---
-
-
 
 \# Design Principles
 
-
-
 The storage layer must satisfy the following principles.
-
-
 
 1\. Persistence
 
@@ -60,39 +38,21 @@ The storage layer must satisfy the following principles.
 
 7\. Technology Independence
 
-
-
 \---
-
-
 
 \# Storage Philosophy
 
-
-
 Storage exists to preserve execution history.
-
-
 
 Business logic must never depend on a specific storage technology.
 
-
-
 The platform depends on storage interfaces.
-
-
 
 Storage implementations remain replaceable.
 
-
-
 \---
 
-
-
 \# Storage Architecture
-
-
 
 ```text
 
@@ -116,23 +76,13 @@ Storage implementations remain replaceable.
 
 ```
 
-
-
 The Runtime never depends directly on a database.
-
-
 
 \---
 
-
-
 \# Storage Responsibilities
 
-
-
 Storage is responsible for:
-
-
 
 \* Persisting ExecutionTransactions
 
@@ -146,11 +96,7 @@ Storage is responsible for:
 
 \* Supporting audit
 
-
-
 Storage is \*\*not\*\* responsible for:
-
-
 
 \* Authorization
 
@@ -160,19 +106,11 @@ Storage is \*\*not\*\* responsible for:
 
 \* Policy evaluation
 
-
-
 \---
-
-
 
 \# Storage Units
 
-
-
 The primary storage unit is:
-
-
 
 ```text
 
@@ -180,11 +118,7 @@ ExecutionTransaction
 
 ```
 
-
-
 Supporting storage units include:
-
-
 
 ```text
 
@@ -204,51 +138,27 @@ ReplayArtifact
 
 ```
 
-
-
 Storage implementations may organize these differently.
-
-
 
 The logical model remains unchanged.
 
-
-
 \---
-
-
 
 \# Repository Interfaces
 
-
-
 The platform exposes abstract repositories.
 
-
-
 ```typescript
+ExecutionTransactionRepository;
 
-ExecutionTransactionRepository
+EvidenceRepository;
 
+VerificationRepository;
 
-
-EvidenceRepository
-
-
-
-VerificationRepository
-
-
-
-MetadataRepository
-
+MetadataRepository;
 ```
 
-
-
 Implementations may use:
-
-
 
 \* PostgreSQL
 
@@ -262,23 +172,13 @@ Implementations may use:
 
 \* Other storage systems
 
-
-
 The Runtime depends only on repository interfaces.
-
-
 
 \---
 
-
-
 \# ExecutionTransaction Storage
 
-
-
 Every ExecutionTransaction stores:
-
-
 
 \* Transaction Identifier
 
@@ -292,35 +192,19 @@ Every ExecutionTransaction stores:
 
 \* References to Evidence
 
-
-
 ExecutionTransactions are immutable after completion.
-
-
 
 Historical state is preserved.
 
-
-
 \---
-
-
 
 \# Evidence Storage
 
-
-
 Evidence storage is append-only.
-
-
 
 Evidence is never modified.
 
-
-
 Evidence may contain:
-
-
 
 \* Attestations
 
@@ -336,31 +220,17 @@ Evidence may contain:
 
 \* Ledger References
 
-
-
 Evidence always references an ExecutionTransaction.
-
-
 
 \---
 
-
-
 \# Verification Report Storage
-
-
 
 Verification Reports are immutable snapshots.
 
-
-
 A transaction may have multiple Verification Reports.
 
-
-
 Each report records:
-
-
 
 \* Verification Specification Version
 
@@ -370,27 +240,15 @@ Each report records:
 
 \* Verification Result
 
-
-
 Historical reports are preserved.
-
-
 
 \---
 
-
-
 \# Metadata Storage
-
-
 
 Metadata stores operational information.
 
-
-
 Examples:
-
-
 
 \* Labels
 
@@ -402,27 +260,15 @@ Examples:
 
 \* Retention Policies
 
-
-
 Metadata must never change execution semantics.
-
-
 
 \---
 
-
-
 \# Replay Requirements
-
-
 
 Storage must preserve enough information to reconstruct an ExecutionTransaction exactly as it existed during execution.
 
-
-
 Replay requires:
-
-
 
 \* Authority
 
@@ -438,23 +284,13 @@ Replay requires:
 
 \* Crypto Profile Reference
 
-
-
 Replay must not depend on transient runtime state.
-
-
 
 \---
 
-
-
 \# Immutability Rules
 
-
-
 The following records are immutable:
-
-
 
 \* Authority
 
@@ -468,31 +304,17 @@ The following records are immutable:
 
 \* Verification Reports
 
-
-
 Updates create new records.
-
-
 
 Historical records remain available.
 
-
-
 \---
-
-
 
 \# Retention
 
-
-
 Retention is implementation-defined.
 
-
-
 The architecture supports:
-
-
 
 \* Permanent retention
 
@@ -502,23 +324,13 @@ The architecture supports:
 
 \* Archive storage
 
-
-
 Retention policies must not violate replay or audit requirements.
-
-
 
 \---
 
-
-
 \# Backup and Recovery
 
-
-
 Storage implementations must support:
-
-
 
 \* Backup
 
@@ -528,27 +340,15 @@ Storage implementations must support:
 
 \* Disaster recovery
 
-
-
 Recovery must preserve immutability.
-
-
 
 \---
 
-
-
 \# Portability
-
-
 
 Storage implementations must support migration.
 
-
-
 Migration must preserve:
-
-
 
 \* Transaction Identity
 
@@ -558,19 +358,11 @@ Migration must preserve:
 
 \* Cryptographic Metadata
 
-
-
 Migration must not alter execution history.
-
-
 
 \---
 
-
-
 \# Dependency Rules
-
-
 
 ```text
 
@@ -590,23 +382,13 @@ Storage Implementations
 
 ```
 
-
-
 The Runtime never imports database-specific libraries.
-
-
 
 \---
 
-
-
 \# Future Compatibility
 
-
-
 The storage architecture supports:
-
-
 
 \* Single-node deployments
 
@@ -620,21 +402,10 @@ The storage architecture supports:
 
 \* Offline verification
 
-
-
 Storage technology may evolve without changing the Domain Model or Verification Model.
-
-
 
 \---
 
-
-
 \# Success Criterion
 
-
-
 The storage architecture succeeds when every ExecutionTransaction, its associated Evidence, and all Verification Reports can be reconstructed, replayed, and independently verified regardless of the underlying storage technology used to persist them.
-
-
-

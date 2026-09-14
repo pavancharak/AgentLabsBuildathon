@@ -117,15 +117,22 @@ function materializeFromEnvIfConfigured(keyDirectory: string): void {
   }
 
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    throw new Error("PARMANA_KEY_MATERIAL_JSON must be a JSON object keyed by keyId.");
+    throw new Error(
+      "PARMANA_KEY_MATERIAL_JSON must be a JSON object keyed by keyId.",
+    );
   }
 
   mkdirSync(keyDirectory, { recursive: true });
 
-  for (const [keyId, value] of Object.entries(parsed as Record<string, unknown>)) {
+  for (const [keyId, value] of Object.entries(
+    parsed as Record<string, unknown>,
+  )) {
     const entry = value as { privateKeyPem?: unknown; publicKeyPem?: unknown };
 
-    if (typeof entry.privateKeyPem !== "string" || typeof entry.publicKeyPem !== "string") {
+    if (
+      typeof entry.privateKeyPem !== "string" ||
+      typeof entry.publicKeyPem !== "string"
+    ) {
       throw new Error(
         `PARMANA_KEY_MATERIAL_JSON["${keyId}"] must have string "privateKeyPem" ` +
           'and "publicKeyPem" fields.',

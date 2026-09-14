@@ -32,9 +32,9 @@ Once authenticated, a caller is checked against two independent grants, in a spe
 that matters.
 
 1. **Principal scoping** (`isPrincipalAllowed`, §2.16/G-24): is this caller permitted to
-   *assert* the transaction's `authority.principalId`? Checked first.
+   _assert_ the transaction's `authority.principalId`? Checked first.
 2. **Capability scoping** (`isCapabilityAllowed`, §3.16): is this caller permitted to
-   *invoke* the transaction's `intent.action`? Checked second, only if principal scoping
+   _invoke_ the transaction's `intent.action`? Checked second, only if principal scoping
    already passed.
 
 Tutorial 84 (`examples/tutorials/84-caller-authentication`) proves the ordering directly: a
@@ -68,7 +68,7 @@ This is the property with no obvious counterpart in most systems, and it's worth
 precisely because it's counter to how audit logging is usually built: `recordCallerAuditEvent`
 wraps every `CallerAuditSink.record()` call, and **on failure, the request is rejected**
 (`AuditUnavailableError`, `503 AUDIT_UNAVAILABLE`) rather than proceeding unaudited. This
-applies to *both* outcomes of authentication, not just denials: a missing credential whose
+applies to _both_ outcomes of authentication, not just denials: a missing credential whose
 `caller.rejected` audit write fails still gets `503`, not the `401` it would otherwise get,
 and a perfectly valid, well-authenticated credential whose `caller.authenticated` audit write
 fails **also** gets `503`, not `200`. There is no retry, buffering, or queueing. A failure

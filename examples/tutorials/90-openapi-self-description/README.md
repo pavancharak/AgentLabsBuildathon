@@ -6,9 +6,9 @@ Prove `GET /openapi.yaml` serves a valid, unauthenticated OpenAPI 3.1 document, 
 
 ## What You'll Learn
 
-* `GET /openapi.yaml` is exempt from caller authentication for the same reason `GET /health` is: a caller can't discover how to obtain an API key from documentation it isn't allowed to read
-* Fully dereferencing the bundled spec leaves zero `$ref` strings anywhere in the output — including the Execution Trust Record's composite fields (`transaction`, `overrides`, `executions`, `verifications`, `receipts`), each of which fully expands to a real object schema
-* No bundled component schema carries a stray `$id`/`$schema` from its source file — the actual root cause of a real historical bug: under JSON Schema 2020-12 / OAS 3.1's strict resolution rules, a leftover `$id` rebases every `$ref` inside that schema onto a different base URI, breaking tools like Swagger UI even though this codebase's own redocly lint step never caught it
+- `GET /openapi.yaml` is exempt from caller authentication for the same reason `GET /health` is: a caller can't discover how to obtain an API key from documentation it isn't allowed to read
+- Fully dereferencing the bundled spec leaves zero `$ref` strings anywhere in the output — including the Execution Trust Record's composite fields (`transaction`, `overrides`, `executions`, `verifications`, `receipts`), each of which fully expands to a real object schema
+- No bundled component schema carries a stray `$id`/`$schema` from its source file — the actual root cause of a real historical bug: under JSON Schema 2020-12 / OAS 3.1's strict resolution rules, a leftover `$id` rebases every `$ref` inside that schema onto a different base URI, breaking tools like Swagger UI even though this codebase's own redocly lint step never caught it
 
 ## Running the Tutorial
 

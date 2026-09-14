@@ -9,9 +9,7 @@ import type {
   ExecutionTrustRecord,
 } from "../models/index.js";
 
-import type {
-  Transport,
-} from "../config/Transport.js";
+import type { Transport } from "../config/Transport.js";
 
 /**
  * Execution API.
@@ -28,19 +26,16 @@ import type {
  * - validate policies
  */
 export class ExecutionApi {
-  constructor(
-    private readonly transport: Transport,
-  ) {}
+  constructor(private readonly transport: Transport) {}
 
   /**
    * Returns the Runtime health status.
    */
   public async health(): Promise<unknown> {
-    const response =
-      await this.transport.send({
-        method: "GET",
-        path: "/health",
-      });
+    const response = await this.transport.send({
+      method: "GET",
+      path: "/health",
+    });
 
     return response.body;
   }
@@ -50,11 +45,10 @@ export class ExecutionApi {
    * authentication, unlike GET /health.
    */
   public async version(): Promise<unknown> {
-    const response =
-      await this.transport.send({
-        method: "GET",
-        path: "/version",
-      });
+    const response = await this.transport.send({
+      method: "GET",
+      path: "/version",
+    });
 
     return response.body;
   }
@@ -65,12 +59,11 @@ export class ExecutionApi {
   public async execute(
     transaction: BusinessTransaction,
   ): Promise<ExecutionTrustRecord> {
-    const response =
-      await this.transport.send<ExecutionTrustRecord>({
-        method: "POST",
-        path: "/execute",
-        body: transaction,
-      });
+    const response = await this.transport.send<ExecutionTrustRecord>({
+      method: "POST",
+      path: "/execute",
+      body: transaction,
+    });
 
     return response.body;
   }

@@ -62,7 +62,10 @@ describe("assertConnectorCapabilitiesBound", () => {
 
   it("every INTENTIONALLY_UNBOUND_CAPABILITIES entry carries a non-empty reason", () => {
     for (const [capability, reason] of INTENTIONALLY_UNBOUND_CAPABILITIES) {
-      expect(reason.trim().length, `capability "${capability}"`).toBeGreaterThan(0);
+      expect(
+        reason.trim().length,
+        `capability "${capability}"`,
+      ).toBeGreaterThan(0);
     }
   });
 });

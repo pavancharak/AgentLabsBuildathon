@@ -1,13 +1,6 @@
-import {
-  createPrivateKey,
-  createPublicKey,
-  type KeyObject,
-} from "node:crypto";
+import { createPrivateKey, createPublicKey, type KeyObject } from "node:crypto";
 
-import {
-  existsSync,
-  readFileSync,
-} from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 import { join } from "node:path";
 
@@ -43,13 +36,10 @@ export function createGatewayKeyPair(): GatewayKeyPair {
   const config = loadConfig();
 
   if (!config.keys.keyDirectory) {
-    throw new Error(
-      "PARMANA_KEY_DIR is not configured.",
-    );
+    throw new Error("PARMANA_KEY_DIR is not configured.");
   }
 
-  const keyId =
-    process.env.PARMANA_GATEWAY_KEY_ID ?? DEFAULT_GATEWAY_KEY_ID;
+  const keyId = process.env.PARMANA_GATEWAY_KEY_ID ?? DEFAULT_GATEWAY_KEY_ID;
 
   if (!VALID_KEY_ID.test(keyId)) {
     throw new Error(
@@ -57,15 +47,9 @@ export function createGatewayKeyPair(): GatewayKeyPair {
     );
   }
 
-  const privateKeyPath = join(
-    config.keys.keyDirectory,
-    `${keyId}.private.pem`,
-  );
+  const privateKeyPath = join(config.keys.keyDirectory, `${keyId}.private.pem`);
 
-  const publicKeyPath = join(
-    config.keys.keyDirectory,
-    `${keyId}.public.pem`,
-  );
+  const publicKeyPath = join(config.keys.keyDirectory, `${keyId}.public.pem`);
 
   if (!existsSync(privateKeyPath)) {
     throw new Error(
@@ -81,13 +65,9 @@ export function createGatewayKeyPair(): GatewayKeyPair {
     );
   }
 
-  const privateKey = createPrivateKey(
-    readFileSync(privateKeyPath, "utf8"),
-  );
+  const privateKey = createPrivateKey(readFileSync(privateKeyPath, "utf8"));
 
-  const publicKey = createPublicKey(
-    readFileSync(publicKeyPath, "utf8"),
-  );
+  const publicKey = createPublicKey(readFileSync(publicKeyPath, "utf8"));
 
   return { privateKey, publicKey };
 }

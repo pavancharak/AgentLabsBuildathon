@@ -18,45 +18,35 @@ import { createGatewayKeyPair } from "./createGatewayKeyPair.js";
  * instead of comparing an opaque shared value by reference.
  */
 export function createConnectorAuthenticator(): RequestBoundConnectorAuthenticator {
-  const gatewayIdentity =
-    createGatewayIdentity();
+  const gatewayIdentity = createGatewayIdentity();
 
   const { publicKey } = createGatewayKeyPair();
 
-  return new SignedTokenConnectorAuthenticator(
-    gatewayIdentity,
-    publicKey,
-    [
-      {
-        connectorId: "test-fixture",
-        publicIdentity:
-          "spiffe://parmana/connectors/test-fixture",
-        authenticationMetadata: {},
-      },
-      {
-        connectorId: "hubspot",
-        publicIdentity:
-          "spiffe://parmana/connectors/hubspot",
-        authenticationMetadata: {},
-      },
-      {
-        connectorId: "github",
-        publicIdentity:
-          "spiffe://parmana/connectors/github",
-        authenticationMetadata: {},
-      },
-      {
-        connectorId: "paytm",
-        publicIdentity:
-          "spiffe://parmana/connectors/paytm-refund",
-        authenticationMetadata: {},
-      },
-      {
-        connectorId: "slack",
-        publicIdentity:
-          "spiffe://parmana/connectors/slack",
-        authenticationMetadata: {},
-      },
-    ],
-  );
+  return new SignedTokenConnectorAuthenticator(gatewayIdentity, publicKey, [
+    {
+      connectorId: "test-fixture",
+      publicIdentity: "spiffe://parmana/connectors/test-fixture",
+      authenticationMetadata: {},
+    },
+    {
+      connectorId: "hubspot",
+      publicIdentity: "spiffe://parmana/connectors/hubspot",
+      authenticationMetadata: {},
+    },
+    {
+      connectorId: "github",
+      publicIdentity: "spiffe://parmana/connectors/github",
+      authenticationMetadata: {},
+    },
+    {
+      connectorId: "paytm",
+      publicIdentity: "spiffe://parmana/connectors/paytm-refund",
+      authenticationMetadata: {},
+    },
+    {
+      connectorId: "slack",
+      publicIdentity: "spiffe://parmana/connectors/slack",
+      authenticationMetadata: {},
+    },
+  ]);
 }

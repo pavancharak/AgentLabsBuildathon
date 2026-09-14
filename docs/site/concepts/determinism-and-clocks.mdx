@@ -1,9 +1,12 @@
 ---
 title: "Determinism and Clocks"
-description: "Two different things share the word \"deterministic\" on this site. This page is about the narrower one: injected Clock and IdGenerator, and exactly where that pattern is and isn't used."
+description: 'Two different things share the word "deterministic" on this site. This page is about the narrower one: injected Clock and IdGenerator, and exactly where that pattern is and isn''t used.'
 ---
 
-<Info>**[AVAILABLE], narrowly scoped.** `packages/execution-control/src/Clock.ts`, `IdGenerator.ts`.</Info>
+<Info>
+  **[AVAILABLE], narrowly scoped.** `packages/execution-control/src/Clock.ts`,
+  `IdGenerator.ts`.
+</Info>
 
 ## What it is
 
@@ -16,7 +19,9 @@ export interface Clock {
   now(): Date;
 }
 export class SystemClock implements Clock {
-  now(): Date { return new Date(); }
+  now(): Date {
+    return new Date();
+  }
 }
 ```
 
@@ -26,7 +31,9 @@ export interface IdGenerator {
   generate(): string;
 }
 export class RandomIdGenerator implements IdGenerator {
-  generate(): string { return randomUUID(); }
+  generate(): string {
+    return randomUUID();
+  }
 }
 ```
 
@@ -60,8 +67,9 @@ rule evaluation, not about clock injection. `packages/runtime` builders
 `crypto.randomUUID()` directly, they do not take an injected `Clock` or `IdGenerator`. A
 Decision's `evaluatedAt` and an Execution Trust Record's `createdAt` are real wall-clock
 timestamps, not reproducible across runs, and that's fine: what has to be reproducible is
-the *outcome* of policy evaluation given the same recorded signals, which is what
+the _outcome_ of policy evaluation given the same recorded signals, which is what
 [replay](/replay/overview) checks, not the timestamps.
+
 </Warning>
 
 ## Minimal example
@@ -73,19 +81,32 @@ shared, exported fixed-clock or sequential-ID implementation in the package itse
 // packages/execution-control/tests/unit/gateway-attestation.test.ts
 class SequentialIdGenerator implements IdGenerator {
   private n = 0;
-  generate(): string { return `id-${++this.n}`; }
+  generate(): string {
+    return `id-${++this.n}`;
+  }
 }
 
-const signer = new GatewayAttestationSigner(fixedClock, new SequentialIdGenerator());
+const signer = new GatewayAttestationSigner(
+  fixedClock,
+  new SequentialIdGenerator(),
+);
 ```
 
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="Gateway attestation" icon="stamp" href="/concepts/gateway-attestation">
+  <Card
+    title="Gateway attestation"
+    icon="stamp"
+    href="/concepts/gateway-attestation"
+  >
     Where injected Clock and IdGenerator are actually used.
   </Card>
-  <Card title="Policies and the decision" icon="scale-balanced" href="/concepts/policies-and-the-decision">
+  <Card
+    title="Policies and the decision"
+    icon="scale-balanced"
+    href="/concepts/policies-and-the-decision"
+  >
     The other, more load-bearing sense of "deterministic" on this site.
   </Card>
 </CardGroup>

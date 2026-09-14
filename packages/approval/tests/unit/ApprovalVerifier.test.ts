@@ -38,7 +38,9 @@ async function signPayload(
   };
 }
 
-function buildPayload(overrides: Partial<ApprovalPayload> = {}): ApprovalPayload {
+function buildPayload(
+  overrides: Partial<ApprovalPayload> = {},
+): ApprovalPayload {
   const now = new Date("2026-08-05T12:00:00.000Z");
   const later = new Date(now.getTime() + 60 * 60 * 1000);
 
@@ -61,7 +63,12 @@ describe("ApprovalVerifier", () => {
     const { privateKey, publicKey } = generateKeyPair();
 
     const registry = new StaticApprovalIssuerRegistry([
-      { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey, revoked: false },
+      {
+        approverId: "manager-jane",
+        keyId: "manager-jane-key-1",
+        publicKey,
+        revoked: false,
+      },
     ]);
 
     const verifier = new ApprovalVerifier({
@@ -74,7 +81,11 @@ describe("ApprovalVerifier", () => {
 
     const result = await verifier.verify(
       artifact,
-      { action: "hubspot:deal-update", resourceId: "9005", requestedValue: 40_000 },
+      {
+        action: "hubspot:deal-update",
+        resourceId: "9005",
+        requestedValue: 40_000,
+      },
       new Date("2026-08-05T12:30:00.000Z"),
     );
 
@@ -96,7 +107,12 @@ describe("ApprovalVerifier", () => {
     const { privateKey, publicKey } = generateKeyPair();
 
     const registry = new StaticApprovalIssuerRegistry([
-      { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey, revoked: false },
+      {
+        approverId: "manager-jane",
+        keyId: "manager-jane-key-1",
+        publicKey,
+        revoked: false,
+      },
     ]);
 
     const verifier = new ApprovalVerifier({
@@ -148,7 +164,12 @@ describe("ApprovalVerifier", () => {
     const { privateKey, publicKey } = generateKeyPair();
 
     const registry = new StaticApprovalIssuerRegistry([
-      { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey, revoked: true },
+      {
+        approverId: "manager-jane",
+        keyId: "manager-jane-key-1",
+        publicKey,
+        revoked: true,
+      },
     ]);
 
     const verifier = new ApprovalVerifier({
@@ -161,7 +182,11 @@ describe("ApprovalVerifier", () => {
 
     const result = await verifier.verify(
       artifact,
-      { action: "hubspot:deal-update", resourceId: "9005", requestedValue: 40_000 },
+      {
+        action: "hubspot:deal-update",
+        resourceId: "9005",
+        requestedValue: 40_000,
+      },
       new Date("2026-08-05T12:30:00.000Z"),
     );
 
@@ -176,7 +201,12 @@ describe("ApprovalVerifier", () => {
     const { privateKey, publicKey } = generateKeyPair();
 
     const registry = new StaticApprovalIssuerRegistry([
-      { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey, revoked: false },
+      {
+        approverId: "manager-jane",
+        keyId: "manager-jane-key-1",
+        publicKey,
+        revoked: false,
+      },
     ]);
 
     const verifier = new ApprovalVerifier({
@@ -189,12 +219,19 @@ describe("ApprovalVerifier", () => {
 
     const tampered: SignedApproval = {
       ...artifact,
-      payload: { ...artifact.payload, scope: { ...artifact.payload.scope, value: 999_999_999 } },
+      payload: {
+        ...artifact.payload,
+        scope: { ...artifact.payload.scope, value: 999_999_999 },
+      },
     };
 
     const result = await verifier.verify(
       tampered,
-      { action: "hubspot:deal-update", resourceId: "9005", requestedValue: 40_000 },
+      {
+        action: "hubspot:deal-update",
+        resourceId: "9005",
+        requestedValue: 40_000,
+      },
       new Date("2026-08-05T12:30:00.000Z"),
     );
 
@@ -207,7 +244,12 @@ describe("ApprovalVerifier", () => {
     const forger = generateKeyPair();
 
     const registry = new StaticApprovalIssuerRegistry([
-      { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey: legitimate.publicKey, revoked: false },
+      {
+        approverId: "manager-jane",
+        keyId: "manager-jane-key-1",
+        publicKey: legitimate.publicKey,
+        revoked: false,
+      },
     ]);
 
     const verifier = new ApprovalVerifier({
@@ -222,7 +264,11 @@ describe("ApprovalVerifier", () => {
 
     const result = await verifier.verify(
       forged,
-      { action: "hubspot:deal-update", resourceId: "9005", requestedValue: 40_000 },
+      {
+        action: "hubspot:deal-update",
+        resourceId: "9005",
+        requestedValue: 40_000,
+      },
       new Date("2026-08-05T12:30:00.000Z"),
     );
 
@@ -234,7 +280,12 @@ describe("ApprovalVerifier", () => {
     const { privateKey, publicKey } = generateKeyPair();
 
     const registry = new StaticApprovalIssuerRegistry([
-      { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey, revoked: false },
+      {
+        approverId: "manager-jane",
+        keyId: "manager-jane-key-1",
+        publicKey,
+        revoked: false,
+      },
     ]);
 
     const verifier = new ApprovalVerifier({
@@ -247,7 +298,11 @@ describe("ApprovalVerifier", () => {
 
     const result = await verifier.verify(
       artifact,
-      { action: "hubspot:deal-update", resourceId: "9005", requestedValue: 40_000 },
+      {
+        action: "hubspot:deal-update",
+        resourceId: "9005",
+        requestedValue: 40_000,
+      },
       new Date("2026-08-05T14:00:00.000Z"), // one hour after expiresAt
     );
 
@@ -259,7 +314,12 @@ describe("ApprovalVerifier", () => {
     const { privateKey, publicKey } = generateKeyPair();
 
     const registry = new StaticApprovalIssuerRegistry([
-      { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey, revoked: false },
+      {
+        approverId: "manager-jane",
+        keyId: "manager-jane-key-1",
+        publicKey,
+        revoked: false,
+      },
     ]);
 
     const verifier = new ApprovalVerifier({
@@ -272,7 +332,11 @@ describe("ApprovalVerifier", () => {
 
     const result = await verifier.verify(
       artifact,
-      { action: "razorpay:refund-create", resourceId: "9005", requestedValue: 40_000 },
+      {
+        action: "razorpay:refund-create",
+        resourceId: "9005",
+        requestedValue: 40_000,
+      },
       new Date("2026-08-05T12:30:00.000Z"),
     );
 
@@ -284,7 +348,12 @@ describe("ApprovalVerifier", () => {
     const { privateKey, publicKey } = generateKeyPair();
 
     const registry = new StaticApprovalIssuerRegistry([
-      { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey, revoked: false },
+      {
+        approverId: "manager-jane",
+        keyId: "manager-jane-key-1",
+        publicKey,
+        revoked: false,
+      },
     ]);
 
     const verifier = new ApprovalVerifier({
@@ -297,7 +366,11 @@ describe("ApprovalVerifier", () => {
 
     const result = await verifier.verify(
       artifact,
-      { action: "hubspot:deal-update", resourceId: "SOME-OTHER-DEAL", requestedValue: 40_000 },
+      {
+        action: "hubspot:deal-update",
+        resourceId: "SOME-OTHER-DEAL",
+        requestedValue: 40_000,
+      },
       new Date("2026-08-05T12:30:00.000Z"),
     );
 
@@ -309,7 +382,12 @@ describe("ApprovalVerifier", () => {
     const { privateKey, publicKey } = generateKeyPair();
 
     const registry = new StaticApprovalIssuerRegistry([
-      { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey, revoked: false },
+      {
+        approverId: "manager-jane",
+        keyId: "manager-jane-key-1",
+        publicKey,
+        revoked: false,
+      },
     ]);
 
     const verifier = new ApprovalVerifier({
@@ -325,7 +403,11 @@ describe("ApprovalVerifier", () => {
 
     const result = await verifier.verify(
       artifact,
-      { action: "hubspot:deal-update", resourceId: "9005", requestedValue: 999_999 },
+      {
+        action: "hubspot:deal-update",
+        resourceId: "9005",
+        requestedValue: 999_999,
+      },
       new Date("2026-08-05T12:30:00.000Z"),
     );
 
@@ -337,7 +419,12 @@ describe("ApprovalVerifier", () => {
     const { privateKey, publicKey } = generateKeyPair();
 
     const registry = new StaticApprovalIssuerRegistry([
-      { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey, revoked: false },
+      {
+        approverId: "manager-jane",
+        keyId: "manager-jane-key-1",
+        publicKey,
+        revoked: false,
+      },
     ]);
 
     const verifier = new ApprovalVerifier({
@@ -347,13 +434,23 @@ describe("ApprovalVerifier", () => {
     });
 
     const artifact = await signPayload(
-      buildPayload({ scope: { field: "amountDeltaAbs", comparator: "between", value: { min: 10_000, max: 60_000 } } }),
+      buildPayload({
+        scope: {
+          field: "amountDeltaAbs",
+          comparator: "between",
+          value: { min: 10_000, max: 60_000 },
+        },
+      }),
       privateKey,
     );
 
     const within = await verifier.verify(
       artifact,
-      { action: "hubspot:deal-update", resourceId: "9005", requestedValue: 40_000 },
+      {
+        action: "hubspot:deal-update",
+        resourceId: "9005",
+        requestedValue: 40_000,
+      },
       new Date("2026-08-05T12:30:00.000Z"),
     );
     expect(within.checks.scopeSatisfied).toBe(true);
@@ -363,7 +460,12 @@ describe("ApprovalVerifier", () => {
     const { privateKey, publicKey } = generateKeyPair();
 
     const registry = new StaticApprovalIssuerRegistry([
-      { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey, revoked: false },
+      {
+        approverId: "manager-jane",
+        keyId: "manager-jane-key-1",
+        publicKey,
+        revoked: false,
+      },
     ]);
 
     const verifier = new ApprovalVerifier({
@@ -373,7 +475,11 @@ describe("ApprovalVerifier", () => {
     });
 
     const artifact = await signPayload(buildPayload(), privateKey);
-    const request = { action: "hubspot:deal-update", resourceId: "9005", requestedValue: 40_000 };
+    const request = {
+      action: "hubspot:deal-update",
+      resourceId: "9005",
+      requestedValue: 40_000,
+    };
     const now = new Date("2026-08-05T12:30:00.000Z");
 
     const first = await verifier.verify(artifact, request, now);
@@ -388,7 +494,12 @@ describe("ApprovalVerifier", () => {
     const { privateKey, publicKey } = generateKeyPair();
 
     const registry = new StaticApprovalIssuerRegistry([
-      { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey, revoked: false },
+      {
+        approverId: "manager-jane",
+        keyId: "manager-jane-key-1",
+        publicKey,
+        revoked: false,
+      },
     ]);
 
     const verifier = new ApprovalVerifier({
@@ -404,7 +515,11 @@ describe("ApprovalVerifier", () => {
     // never reaches the nonce check.
     const rejected = await verifier.verify(
       artifact,
-      { action: "hubspot:deal-update", resourceId: "WRONG-DEAL", requestedValue: 40_000 },
+      {
+        action: "hubspot:deal-update",
+        resourceId: "WRONG-DEAL",
+        requestedValue: 40_000,
+      },
       now,
     );
     expect(rejected.valid).toBe(false);
@@ -414,7 +529,11 @@ describe("ApprovalVerifier", () => {
     // proving the first rejection never consumed the nonce.
     const corrected = await verifier.verify(
       artifact,
-      { action: "hubspot:deal-update", resourceId: "9005", requestedValue: 40_000 },
+      {
+        action: "hubspot:deal-update",
+        resourceId: "9005",
+        requestedValue: 40_000,
+      },
       now,
     );
     expect(corrected.valid).toBe(true);
@@ -424,7 +543,12 @@ describe("ApprovalVerifier", () => {
     const { privateKey, publicKey } = generateKeyPair();
 
     const registry = new StaticApprovalIssuerRegistry([
-      { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey, revoked: false },
+      {
+        approverId: "manager-jane",
+        keyId: "manager-jane-key-1",
+        publicKey,
+        revoked: false,
+      },
     ]);
 
     // Simulates two separate processes/requests, each constructing
@@ -434,11 +558,23 @@ describe("ApprovalVerifier", () => {
     // of any single verifier instance's in-process state.
     const sharedNonceStore = new MemoryNonceStore();
     const artifact = await signPayload(buildPayload(), privateKey);
-    const request = { action: "hubspot:deal-update", resourceId: "9005", requestedValue: 40_000 };
+    const request = {
+      action: "hubspot:deal-update",
+      resourceId: "9005",
+      requestedValue: 40_000,
+    };
     const now = new Date("2026-08-05T12:30:00.000Z");
 
-    const verifierProcessA = new ApprovalVerifier({ crypto, issuerRegistry: registry, nonceStore: sharedNonceStore });
-    const verifierProcessB = new ApprovalVerifier({ crypto, issuerRegistry: registry, nonceStore: sharedNonceStore });
+    const verifierProcessA = new ApprovalVerifier({
+      crypto,
+      issuerRegistry: registry,
+      nonceStore: sharedNonceStore,
+    });
+    const verifierProcessB = new ApprovalVerifier({
+      crypto,
+      issuerRegistry: registry,
+      nonceStore: sharedNonceStore,
+    });
 
     const first = await verifierProcessA.verify(artifact, request, now);
     expect(first.valid).toBe(true);
@@ -452,19 +588,36 @@ describe("ApprovalVerifier", () => {
     const { privateKey, publicKey } = generateKeyPair();
 
     const registry = new StaticApprovalIssuerRegistry([
-      { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey, revoked: false },
+      {
+        approverId: "manager-jane",
+        keyId: "manager-jane-key-1",
+        publicKey,
+        revoked: false,
+      },
     ]);
 
     const artifact = await signPayload(buildPayload(), privateKey);
-    const request = { action: "hubspot:deal-update", resourceId: "9005", requestedValue: 40_000 };
+    const request = {
+      action: "hubspot:deal-update",
+      resourceId: "9005",
+      requestedValue: 40_000,
+    };
     const now = new Date("2026-08-05T12:30:00.000Z");
 
     // Two independent verifiers, each with their own fresh nonce
     // store, verifying the same inputs once each -- since nonce state
     // is the only stateful exception, a single verification against
     // two fresh stores must agree exactly.
-    const verifierA = new ApprovalVerifier({ crypto, issuerRegistry: registry, nonceStore: new MemoryNonceStore() });
-    const verifierB = new ApprovalVerifier({ crypto, issuerRegistry: registry, nonceStore: new MemoryNonceStore() });
+    const verifierA = new ApprovalVerifier({
+      crypto,
+      issuerRegistry: registry,
+      nonceStore: new MemoryNonceStore(),
+    });
+    const verifierB = new ApprovalVerifier({
+      crypto,
+      issuerRegistry: registry,
+      nonceStore: new MemoryNonceStore(),
+    });
 
     const resultA = await verifierA.verify(artifact, request, now);
     const resultB = await verifierB.verify(artifact, request, now);

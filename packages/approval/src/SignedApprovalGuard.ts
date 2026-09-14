@@ -2,7 +2,9 @@ import type { ApprovalScope, SignedApproval } from "@parmana/shared";
 
 const SUPPORTED_PAYLOAD_VERSION = 1;
 
-function isApprovalScopeShape(value: unknown): value is Pick<ApprovalScope, "field" | "comparator" | "value"> {
+function isApprovalScopeShape(
+  value: unknown,
+): value is Pick<ApprovalScope, "field" | "comparator" | "value"> {
   if (typeof value !== "object" || value === null) {
     return false;
   }

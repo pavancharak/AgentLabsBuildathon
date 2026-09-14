@@ -1,8 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createGracefulShutdown, type CloseableServer } from "../../../src/bootstrap/createGracefulShutdown.js";
+import {
+  createGracefulShutdown,
+  type CloseableServer,
+} from "../../../src/bootstrap/createGracefulShutdown.js";
 
-function fakeServer(behavior: (callback: (error?: Error) => void) => void): CloseableServer & { closeCalls: number } {
+function fakeServer(
+  behavior: (callback: (error?: Error) => void) => void,
+): CloseableServer & { closeCalls: number } {
   const server = {
     closeCalls: 0,
     close(callback: (error?: Error) => void) {
@@ -27,12 +32,19 @@ describe("createGracefulShutdown", () => {
     const exit = vi.fn();
     const log = vi.fn();
 
-    const shutdown = createGracefulShutdown({ server, timeoutMs: 10_000, exit, log });
+    const shutdown = createGracefulShutdown({
+      server,
+      timeoutMs: 10_000,
+      exit,
+      log,
+    });
     shutdown("SIGTERM");
 
     expect(server.closeCalls).toBe(1);
     expect(exit).toHaveBeenCalledWith(0);
-    expect(log).toHaveBeenCalledWith(expect.stringContaining("SIGTERM received"));
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining("SIGTERM received"),
+    );
     expect(log).toHaveBeenCalledWith(expect.stringContaining("closed cleanly"));
   });
 
@@ -41,11 +53,20 @@ describe("createGracefulShutdown", () => {
     const exit = vi.fn();
     const logError = vi.fn();
 
-    const shutdown = createGracefulShutdown({ server, timeoutMs: 10_000, exit, logError, log: vi.fn() });
+    const shutdown = createGracefulShutdown({
+      server,
+      timeoutMs: 10_000,
+      exit,
+      logError,
+      log: vi.fn(),
+    });
     shutdown("SIGTERM");
 
     expect(exit).toHaveBeenCalledWith(1);
-    expect(logError).toHaveBeenCalledWith(expect.stringContaining("error while closing server"), expect.any(Error));
+    expect(logError).toHaveBeenCalledWith(
+      expect.stringContaining("error while closing server"),
+      expect.any(Error),
+    );
   });
 
   it("is idempotent: a second signal while already shutting down never calls close() twice", () => {
@@ -53,7 +74,13 @@ describe("createGracefulShutdown", () => {
     const server = fakeServer(() => {});
     const exit = vi.fn();
 
-    const shutdown = createGracefulShutdown({ server, timeoutMs: 10_000, exit, log: vi.fn(), logError: vi.fn() });
+    const shutdown = createGracefulShutdown({
+      server,
+      timeoutMs: 10_000,
+      exit,
+      log: vi.fn(),
+      logError: vi.fn(),
+    });
     shutdown("SIGTERM");
     shutdown("SIGINT");
 
@@ -67,7 +94,13 @@ describe("createGracefulShutdown", () => {
     const exit = vi.fn();
     const logError = vi.fn();
 
-    const shutdown = createGracefulShutdown({ server, timeoutMs: 5_000, exit, logError, log: vi.fn() });
+    const shutdown = createGracefulShutdown({
+      server,
+      timeoutMs: 5_000,
+      exit,
+      logError,
+      log: vi.fn(),
+    });
     shutdown("SIGTERM");
 
     expect(exit).not.toHaveBeenCalled();
@@ -75,14 +108,22 @@ describe("createGracefulShutdown", () => {
     vi.advanceTimersByTime(5_000);
 
     expect(exit).toHaveBeenCalledWith(1);
-    expect(logError).toHaveBeenCalledWith(expect.stringContaining("timed out after 5000ms"));
+    expect(logError).toHaveBeenCalledWith(
+      expect.stringContaining("timed out after 5000ms"),
+    );
   });
 
   it("clears the force-exit timer once close() succeeds in time, so it never also force-exits later", () => {
     const server = fakeServer((callback) => callback());
     const exit = vi.fn();
 
-    const shutdown = createGracefulShutdown({ server, timeoutMs: 5_000, exit, log: vi.fn(), logError: vi.fn() });
+    const shutdown = createGracefulShutdown({
+      server,
+      timeoutMs: 5_000,
+      exit,
+      log: vi.fn(),
+      logError: vi.fn(),
+    });
     shutdown("SIGTERM");
 
     expect(exit).toHaveBeenCalledTimes(1);

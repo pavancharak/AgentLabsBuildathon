@@ -41,9 +41,8 @@ describe("CryptoProvider registries select by algorithm", () => {
   it("SignatureRegistry throws for an unregistered algorithm", () => {
     const registry = new SignatureRegistry();
 
-    expect(() =>
-      registry.get(SignatureAlgorithms.ED25519),
-    ).toThrow(/Unknown signature provider/);
+    expect(() => registry.get(SignatureAlgorithms.ED25519)).toThrow(
+      /Unknown signature provider/,
+    );
   });
 });
-

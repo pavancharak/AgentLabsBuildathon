@@ -58,10 +58,10 @@ Parmana's process and exactly what the receiving side saw.
 
 ## Files
 
-| File | Purpose |
-|------|---------|
+| File               | Purpose                                                   |
+| ------------------ | --------------------------------------------------------- |
 | `transaction.json` | An approved `BusinessTransaction` (vendor-payment policy) |
-| `run.ts` | Runs both roles end to end |
+| `run.ts`           | Runs both roles end to end                                |
 
 ---
 
@@ -138,7 +138,7 @@ The script prints, in order:
     naming both the expected and actual hash. Never reaches the Connector.
 11. A one-line summary of all five outcomes.
 
-## What this does *not* prove
+## What this does _not_ prove
 
 This example does not demonstrate persistent (cross-restart) nonce storage
 — it uses `MemoryNonceStore`, which is explicitly unsafe for production (see

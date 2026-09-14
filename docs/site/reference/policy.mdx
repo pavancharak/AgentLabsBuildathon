@@ -12,12 +12,13 @@ one `Decision`. See [Policies and the decision](/concepts/policies-and-the-decis
 concept, this page is the export reference.
 
 <Note>
-`PolicyEngine.evaluate()` alone does **not** check `Policy.boundSignals` — that binding is
-enforced one layer up, by `SignalIntentBinder`, which `RuntimeEngine` (`@parmana/runtime`)
-invokes immediately before calling `PolicyEngine.evaluate()`. Calling `PolicyEngine.evaluate()`
-directly, as the minimal example below does, bypasses signal/intent binding entirely — verified
-by actually running it. See [Policies and the decision](/concepts/policies-and-the-decision)
-for why this split exists.
+  `PolicyEngine.evaluate()` alone does **not** check `Policy.boundSignals` —
+  that binding is enforced one layer up, by `SignalIntentBinder`, which
+  `RuntimeEngine` (`@parmana/runtime`) invokes immediately before calling
+  `PolicyEngine.evaluate()`. Calling `PolicyEngine.evaluate()` directly, as the
+  minimal example below does, bypasses signal/intent binding entirely — verified
+  by actually running it. See [Policies and the
+  decision](/concepts/policies-and-the-decision) for why this split exists.
 </Note>
 
 ## Install
@@ -30,38 +31,40 @@ npm install @parmana/policy
 
 ### Engine, [AVAILABLE]
 
-| Export | Signature |
-|---|---|
+| Export         | Signature                                                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `PolicyEngine` | `.evaluate(policy: Policy, input: PolicyInput): PolicyDecision`, first-match-wins over `policy.rules`, unmatched input rejects |
 
 ### Routing and loading, [AVAILABLE]
 
-| Export | Purpose |
-|---|---|
-| `PolicyRouter` | Resolves a `PolicyReference { name, version, schemaVersion }` to a loaded `Policy` |
-| `PolicyRegistry` | In-memory policy lookup by name/version |
-| `PolicyRepository` (type) | The interface `FilePolicyRepository` and any custom repository implement |
-| `FilePolicyRepository` | `new FilePolicyRepository(directory: string)`, resolves `<directory>/<name>/<version>/policy.json` |
+| Export                    | Purpose                                                                                            |
+| ------------------------- | -------------------------------------------------------------------------------------------------- |
+| `PolicyRouter`            | Resolves a `PolicyReference { name, version, schemaVersion }` to a loaded `Policy`                 |
+| `PolicyRegistry`          | In-memory policy lookup by name/version                                                            |
+| `PolicyRepository` (type) | The interface `FilePolicyRepository` and any custom repository implement                           |
+| `FilePolicyRepository`    | `new FilePolicyRepository(directory: string)`, resolves `<directory>/<name>/<version>/policy.json` |
 
 ### Validation, [AVAILABLE]
 
-| Export | Purpose |
-|---|---|
-| `PolicyValidator` | `.validate(policy)` checks a `Policy` document's structural integrity (`policyId`/`policyVersion`/`schemaVersion` present, `rules` well-formed, `boundSignals`/`unboundSignalReasons` shape, operators supported) **and now fails closed** on `boundSignals` coverage — see the note below. Invoked by `PolicyRouter.load()`. `.findUncoveredFacts(policy)` returns every fact a rule condition references that is neither in `boundSignals` nor `unboundSignalReasons` |
-| `SignalValidator` | Validates submitted signals against a policy's `signalsSchema` |
-| `SignalIntentBinder` | `.findViolations(policy, signals, intent)`, checks every `Policy.boundSignals` entry by strict equality against `intent`. Invoked by `RuntimeEngine`, not by `PolicyEngine` itself — see the note above |
+| Export               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PolicyValidator`    | `.validate(policy)` checks a `Policy` document's structural integrity (`policyId`/`policyVersion`/`schemaVersion` present, `rules` well-formed, `boundSignals`/`unboundSignalReasons` shape, operators supported) **and now fails closed** on `boundSignals` coverage — see the note below. Invoked by `PolicyRouter.load()`. `.findUncoveredFacts(policy)` returns every fact a rule condition references that is neither in `boundSignals` nor `unboundSignalReasons` |
+| `SignalValidator`    | Validates submitted signals against a policy's `signalsSchema`                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `SignalIntentBinder` | `.findViolations(policy, signals, intent)`, checks every `Policy.boundSignals` entry by strict equality against `intent`. Invoked by `RuntimeEngine`, not by `PolicyEngine` itself — see the note above                                                                                                                                                                                                                                                                 |
 
 <Note>
-**boundSignals coverage is fail-closed, not advisory.** A rule can decide on a fact (e.g.
-`amount`) that isn't declared in `boundSignals`, silently forfeiting `SignalIntentBinder`'s
-protection for that fact. `PolicyValidator.validate()` now throws `PolicyValidationError`
-for any such fact unless it's explicitly acknowledged in `unboundSignalReasons` with a
-reason — this used to be only a `policy_boundSignals_coverage_incomplete` console warning at
-`PolicyRouter.load()` that never blocked anything; it changed after a production-readiness
-audit found every real policy in this repo had unreviewed uncovered facts. A fact with no
-genuine Intent-side equivalent (`vendorVerified`, `riskScore`) still doesn't belong in
-`boundSignals` — it now belongs in `unboundSignalReasons` instead, with a reason. See
-`docs/CLAIMS.md` §2.30 and `docs/VERIFICATION-GAPS.md` G-33.
+  **boundSignals coverage is fail-closed, not advisory.** A rule can decide on a
+  fact (e.g. `amount`) that isn't declared in `boundSignals`, silently
+  forfeiting `SignalIntentBinder`'s protection for that fact.
+  `PolicyValidator.validate()` now throws `PolicyValidationError` for any such
+  fact unless it's explicitly acknowledged in `unboundSignalReasons` with a
+  reason — this used to be only a `policy_boundSignals_coverage_incomplete`
+  console warning at `PolicyRouter.load()` that never blocked anything; it
+  changed after a production-readiness audit found every real policy in this
+  repo had unreviewed uncovered facts. A fact with no genuine Intent-side
+  equivalent (`vendorVerified`, `riskScore`) still doesn't belong in
+  `boundSignals` — it now belongs in `unboundSignalReasons` instead, with a
+  reason. See `docs/CLAIMS.md` §2.30 and `docs/VERIFICATION-GAPS.md` G-33.
 </Note>
 
 ### Types
@@ -73,9 +76,10 @@ genuine Intent-side equivalent (`vendorVerified`, `riskScore`) still doesn't bel
 `SignalIntentBindingViolation` (`{ signalKey, intentPath, signalValue, intentValue }`).
 
 <Note>
-Both enums previously also had a third value, `REQUIRE_OVERRIDE` — defined but never used by
-any real policy, and `DecisionBuilder` collapsed it to the same `DecisionOutcome.REJECTED` as
-an ordinary `REJECT` in any case. Removed as dead code (`docs/VERIFICATION-GAPS.md` G-38).
+  Both enums previously also had a third value, `REQUIRE_OVERRIDE` — defined but
+  never used by any real policy, and `DecisionBuilder` collapsed it to the same
+  `DecisionOutcome.REJECTED` as an ordinary `REJECT` in any case. Removed as
+  dead code (`docs/VERIFICATION-GAPS.md` G-38).
 </Note>
 
 ## Minimal example
@@ -88,8 +92,12 @@ const policy = await repository.load("vendor-payment", "2.0.0");
 
 const engine = new PolicyEngine();
 const decision = engine.evaluate(policy, {
-  vendorVerified: true, invoiceVerified: true, paymentApproved: true,
-  sufficientFunds: true, paymentAmount: 1000, riskScore: 5,
+  vendorVerified: true,
+  invoiceVerified: true,
+  paymentApproved: true,
+  sufficientFunds: true,
+  paymentAmount: 1000,
+  riskScore: 5,
 });
 // decision.outcome === "APPROVE"
 ```
@@ -99,7 +107,11 @@ Full runnable version: [Write your first policy](/guides/write-your-first-policy
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="Write your first policy" icon="scale-balanced" href="/guides/write-your-first-policy">
+  <Card
+    title="Write your first policy"
+    icon="scale-balanced"
+    href="/guides/write-your-first-policy"
+  >
     Write a policy and confirm both the approve and reject paths.
   </Card>
   <Card title="@parmana/runtime" icon="cog" href="/reference/runtime">

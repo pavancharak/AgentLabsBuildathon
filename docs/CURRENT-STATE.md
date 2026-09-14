@@ -157,7 +157,7 @@ handed to this session, and none of them are:
   mistake.
 - Capability→policy binding coverage is 4 of 12 policies/capabilities. A
   fail-closed startup check (`assertConnectorCapabilitiesBound`) stops a
-  *newly registered* capability from shipping unbound, but does not
+  _newly registered_ capability from shipping unbound, but does not
   retroactively bind the 8 currently-unreachable policies.
 - Signing keys are read from disk files (`FileKeyProvider`) at a fixed
   default key ID; there is no key-rotation mechanism in code.

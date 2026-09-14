@@ -42,11 +42,11 @@ recorded (§2.26).**
 
 - `scripts/verify-policy-changes-approved.ts` and `.github/workflows/ci.yml`'s
   `verify-policy-approvals` job already existed and were already fail-closed (exit 1 on any
-  unapproved file *or* any failure to complete the check) — real, but not previously cited as
+  unapproved file _or_ any failure to complete the check) — real, but not previously cited as
   evidence in `§2.26`; added.
 - Attempted to enable GitHub branch protection on `main` (`gh` admin-authenticated,
   `PUT /repos/.../branches/main/protection`) — failed with a live `403 Upgrade to GitHub Pro
-  or make this repository public to enable this feature`. Branch protection is not available
+or make this repository public to enable this feature`. Branch protection is not available
   on a private repo under this account's current GitHub plan. Not worked around (would require
   a paid-plan upgrade or making this proprietary, evaluation-only repo public — both
   account-level decisions, neither made this session).
@@ -111,7 +111,7 @@ doesn't exist, or — twice — a commit hash that was never created). Before ac
    correctness/security argument, not just a plausible-sounding label like "atomic" or
    "fail-closed" — those words don't automatically make a change safer.
 4. **Re-derive facts for any summary from source, not from a prior draft.** `git log
-   --oneline` for commit hashes; `find`/`ls` for file paths and names. Never carry forward a
+--oneline` for commit hashes; `find`/`ls` for file paths and names. Never carry forward a
    citation without checking it, even one written earlier in the same session.
 5. **Treat GitHub/infra-level asks as needing explicit confirmation, and actually attempt them
    live** (e.g. via `gh api`) rather than assuming a written plan's checkbox is achievable —
@@ -138,14 +138,14 @@ claims were already accurately documented; the fifth doesn't exist.
   different amount to a different target."
 - **"Claim 3" (no PENDING decision state) — true, not separately claimed under its own
   heading.** `packages/shared/src/domain/decision.ts`: `enum DecisionOutcome { APPROVED =
-  "APPROVED", REJECTED = "REJECTED" }` — exactly two members, no `PENDING`. Not every true
+"APPROVED", REJECTED = "REJECTED" }` — exactly two members, no `PENDING`. Not every true
   architectural fact has its own `CLAIMS.md` entry; this one doesn't need one to be accurate.
 - **"Claim 7" (independent verifiability, public key only) = real `§3.11`/`§2.9`, already
   covered.** `packages/api/src/routes/refusal-verify.ts`: `POST /refusal/verify` takes the
   artifact directly (no id lookup), mounted ahead of caller-auth, "no database access, no
   ownership check, nothing but the artifact and Parmana's public key" (its own comment,
   confirmed accurate by reading the handler). One nuance the prompt's framing missed: the
-  *envelope* verifier (`packages/envelope-verifier/src/EnvelopeVerifier.ts`, real path — not
+  _envelope_ verifier (`packages/envelope-verifier/src/EnvelopeVerifier.ts`, real path — not
   `packages/shared/src/services/EnvelopeVerifier.ts` as the prompt guessed) does consult a
   `NonceStore` for replay protection, which is Supabase-backed in production — that's a
   separate property (single-use enforcement) from signature validity, and doesn't weaken the
@@ -164,10 +164,10 @@ claims were already accurately documented; the fifth doesn't exist.
   exist anywhere in `docs/CLAIMS.md`** (checked, zero matches for "PII" or that framing) **and,
   as stated, would be inaccurate to write.** Parmana does operate its own central,
   Supabase-backed store for its own data — `§3.18`'s own evidence: the caller-auth audit trail
-  and replay nonce store are *always* Supabase-backed in production, and business-transaction/
+  and replay nonce store are _always_ Supabase-backed in production, and business-transaction/
   execution-trust-record data is too whenever `PARMANA_STORAGE=supabase`. What's actually true,
-  already documented (`§3.18`): Parmana never reads, writes, or stores an *integrated business's
-  own operational database* — a narrower and different claim than "no central PII repository,"
+  already documented (`§3.18`): Parmana never reads, writes, or stores an _integrated business's
+  own operational database_ — a narrower and different claim than "no central PII repository,"
   which this prompt's own wording ("full JSONB stored... in the customer's own database, not
   Parmana's") directly contradicts the real architecture on. Not added to `CLAIMS.md`.
 
@@ -184,7 +184,7 @@ in this repository, checked before starting). Investigated from scratch instead.
   `§2.17`/`§2.18`.
 - **Policy** (a transaction referencing a `(name, version)` with no matching `policy.json`) —
   real, correct, fail-closed (`PolicyNotFoundError` -> `404`, `packages/policy/src/
-  FilePolicyRepository.ts`, no evaluation/dispatch/refusal-write occurs), backed by a real
+FilePolicyRepository.ts`, no evaluation/dispatch/refusal-write occurs), backed by a real
   passing test (`packages/api/tests/unit/execute-api.test.ts`) — but never cited anywhere in
   `CLAIMS.md`. Added to `§2.2`. Commit: `ef1cc04`.
 
@@ -199,8 +199,8 @@ them). All six were either already accurately documented or correctly out of sco
 - **"Claim 14" (nonce verify-before-consume) = real `§2.10`, already fully documented, exact
   match.** `packages/envelope-verifier/src/EnvelopeVerifier.ts`; evidence already cites the
   precise tests that prove it: `"a forged envelope does not burn the nonce"`, `"an expired
-  envelope does not burn the nonce"`, `"rejects a second use of the same nonce"`, `"under two
-  concurrent verify() calls with one nonce, exactly one succeeds"`. Reran this pass: 16 tests,
+envelope does not burn the nonce"`, `"rejects a second use of the same nonce"`, `"under two
+concurrent verify() calls with one nonce, exactly one succeeds"`. Reran this pass: 16 tests,
   all passing.
 - **"Claim 15" (webhook verify-before-consume) — out of scope. The webhook subsystem doesn't
   exist in this repository.** `find packages/api/src -iname "*webhook*"` returns nothing — no
@@ -228,7 +228,7 @@ them). All six were either already accurately documented or correctly out of sco
   incremental claims exactly, step for step.
 - **"Claim 18" (Razorpay settlement FETCH-VERIFY is source of truth) — out of scope, same reason
   as "Claim 15": the Razorpay connector is fully removed** (`find packages -maxdepth 1 -iname
-  "*razorpay*"` returns nothing). Historically true and historically documented at `§3.8`/`§3.9`
+"*razorpay*"` returns nothing). Historically true and historically documented at `§3.8`/`§3.9`
   while the connector existed; not a current-capability claim.
 - **"Claim 19" (only authorized actions become real, zero side effects on denial) — already
   documented, both generally and per-connector.** General mechanism: `§2.4` ("Authorized

@@ -17,13 +17,9 @@ export class AuthorityStage implements RuntimeComponent {
    * @returns The same immutable execution transaction.
    * @throws RuntimeError if Authority is missing.
    */
-  public execute(
-    transaction: ExecutionTransaction
-  ): ExecutionTransaction {
+  public execute(transaction: ExecutionTransaction): ExecutionTransaction {
     if (!transaction.authority) {
-      throw new RuntimeError(
-        "ExecutionTransaction must contain an Authority."
-      );
+      throw new RuntimeError("ExecutionTransaction must contain an Authority.");
     }
 
     return transaction;

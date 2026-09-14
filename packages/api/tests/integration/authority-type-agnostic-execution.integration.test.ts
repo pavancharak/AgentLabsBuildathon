@@ -74,9 +74,7 @@ describe("Authorization is authority-type-agnostic (AI/human/application/third-p
     expect(novelResponse.body.executions[0].decision.matchedRuleId).toBe(
       userResponse.body.executions[0].decision.matchedRuleId,
     );
-    expect(novelResponse.body.executions[0].decision.outcome).toBe(
-      "APPROVED",
-    );
+    expect(novelResponse.body.executions[0].decision.outcome).toBe("APPROVED");
   });
 
   it("produces an identical REJECT decision (same matchedRuleId, same reason shape) regardless of authority.authorityType", async () => {

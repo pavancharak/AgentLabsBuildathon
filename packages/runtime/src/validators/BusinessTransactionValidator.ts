@@ -3,9 +3,7 @@ import { BusinessTransaction } from "@parmana/shared";
 import { BusinessTransactionValidationError } from "../errors/BusinessTransactionValidationError.js";
 
 export class BusinessTransactionValidator {
-  public static validate(
-    transaction: BusinessTransaction,
-  ): void {
+  public static validate(transaction: BusinessTransaction): void {
     //
     // Trust-chain invariants
     //
@@ -40,9 +38,7 @@ export class BusinessTransactionValidator {
     // Required fields
     //
     if (!transaction.policy.name.trim()) {
-      throw new BusinessTransactionValidationError(
-        "policy.name is required.",
-      );
+      throw new BusinessTransactionValidationError("policy.name is required.");
     }
 
     if (!transaction.policy.version.trim()) {
@@ -56,9 +52,5 @@ export class BusinessTransactionValidator {
         "intent.action is required.",
       );
     }
-
-    
-
-    
   }
 }

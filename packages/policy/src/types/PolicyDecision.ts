@@ -1,6 +1,4 @@
-import {
-  PolicyOutcome,
-} from "./PolicyOutcome.js";
+import { PolicyOutcome } from "./PolicyOutcome.js";
 
 /**
  * Deterministic result returned by PolicyEngine.
@@ -18,7 +16,6 @@ import {
  * not the Policy Engine.
  */
 export interface PolicyDecision {
-
   /**
    * Evaluated policy identifier.
    */

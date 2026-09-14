@@ -13,7 +13,9 @@ describe("isPrincipalAllowed", () => {
 
   it("defaults to requiring principalId === callerId when allowedPrincipalIds is unset", () => {
     expect(isPrincipalAllowed("caller-a", "caller-a", undefined)).toBe(true);
-    expect(isPrincipalAllowed("someone-else", "caller-a", undefined)).toBe(false);
+    expect(isPrincipalAllowed("someone-else", "caller-a", undefined)).toBe(
+      false,
+    );
   });
 
   it("blocks the exact live exploit: an unrelated self-declared principalId with no grant", () => {

@@ -22,7 +22,10 @@ export { signGitHubAppJwt, type GitHubAppJwtOptions } from "./GitHubAppJwt.js";
 
 export { GitHubMetadata } from "./GitHubMetadata.js";
 
-export { MockGitHubServer, type MockGitHubServerOptions } from "./MockGitHubServer.js";
+export {
+  MockGitHubServer,
+  type MockGitHubServerOptions,
+} from "./MockGitHubServer.js";
 
 export {
   GITHUB_ALLOWED_MERGE_METHODS,

@@ -1,58 +1,30 @@
 \# RFC-0003 — Human Approval
 
-
-
 \*\*Status:\*\* Draft
-
-
 
 \*\*Author:\*\* Parmana Architecture Team
 
-
-
 \*\*Created:\*\* 2026-06-25
-
-
 
 \*\*Target Version:\*\* 0.3.0
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 Introduce a Human Approval capability that allows execution to pause until one or more authorized humans explicitly approve or reject execution.
-
-
 
 Human Approval integrates into the Runtime Pipeline while preserving deterministic execution and immutable execution records.
 
-
-
 Approval decisions become part of the immutable execution evidence.
-
-
 
 \---
 
-
-
 \# Motivation
-
-
 
 Many regulated and high-impact systems require human oversight before execution.
 
-
-
 Examples include:
-
-
 
 \* Financial transactions
 
@@ -66,19 +38,11 @@ Examples include:
 
 \* Infrastructure changes
 
-
-
 Execution Trust should include evidence that required human approvals were obtained before execution.
-
-
 
 \---
 
-
-
 \# Goals
-
-
 
 \* Support single and multiple approvers.
 
@@ -90,19 +54,11 @@ Execution Trust should include evidence that required human approvals were obtai
 
 \* Preserve independent verification.
 
-
-
 \---
-
-
 
 \# Non-Goals
 
-
-
 This RFC does not define:
-
-
 
 \* Identity management.
 
@@ -114,19 +70,11 @@ This RFC does not define:
 
 \* Workflow management.
 
-
-
 These concerns remain external to Parmana.
-
-
 
 \---
 
-
-
 \# Architecture
-
-
 
 ```text
 
@@ -164,23 +112,13 @@ Evidence
 
 ```
 
-
-
 Execution SHALL NOT proceed until required approvals have been satisfied.
-
-
 
 \---
 
-
-
 \# Human Approval Model
 
-
-
 A Human Approval contains:
-
-
 
 \* Approval Identifier
 
@@ -194,23 +132,13 @@ A Human Approval contains:
 
 \* Metadata
 
-
-
 Approval objects are immutable.
-
-
 
 \---
 
-
-
 \# Runtime Integration
 
-
-
 The Runtime Pipeline introduces an optional HumanApprovalStage.
-
-
 
 ```text
 
@@ -248,27 +176,15 @@ EvidenceStage
 
 ```
 
-
-
 The stage is configurable.
-
-
 
 If approval is not required, execution continues without entering the approval state.
 
-
-
 \---
-
-
 
 \# Approval States
 
-
-
 The following states are defined:
-
-
 
 \* Pending
 
@@ -280,27 +196,15 @@ The following states are defined:
 
 \* Cancelled
 
-
-
 State transitions produce new immutable records.
-
-
 
 Historical approval decisions remain preserved.
 
-
-
 \---
-
-
 
 \# Approval Policies
 
-
-
 Implementations MAY support:
-
-
 
 \* Single approver
 
@@ -314,27 +218,15 @@ Implementations MAY support:
 
 \* Parallel approval
 
-
-
 These policies are implementation concerns and do not alter the Core domain model.
-
-
 
 \---
 
-
-
 \# Evidence
-
-
 
 Approval decisions SHALL become immutable evidence.
 
-
-
 Typical evidence includes:
-
-
 
 \* Approver Identifier
 
@@ -346,23 +238,13 @@ Typical evidence includes:
 
 \* Optional Comments
 
-
-
 Approval evidence SHALL be append-only.
-
-
 
 \---
 
-
-
 \# Verification
 
-
-
 The Verification Engine validates:
-
-
 
 \* Required approvals exist.
 
@@ -372,47 +254,25 @@ The Verification Engine validates:
 
 \* Approval evidence has not been modified.
 
-
-
 Verification SHALL NOT request new approvals or alter approval decisions.
 
-
-
 \---
-
-
 
 \# Replay
 
-
-
 Replay reconstructs approval decisions using recorded evidence.
-
-
 
 Replay SHALL NOT request user interaction.
 
-
-
 Historical approval decisions are treated as immutable execution facts.
-
-
 
 \---
 
-
-
 \# Determinism
-
-
 
 Human approval introduces a non-deterministic event at execution time.
 
-
-
 To preserve deterministic replay:
-
-
 
 \* The approval outcome SHALL be recorded.
 
@@ -422,15 +282,9 @@ To preserve deterministic replay:
 
 \* Replay SHALL consume the recorded approval rather than request a new decision.
 
-
-
 \---
 
-
-
 \# Package Mapping
-
-
 
 ```text
 
@@ -454,87 +308,45 @@ approval/
 
 ```
 
-
-
 The Approval package remains independent of Runtime, Verification, and Storage.
 
-
-
 \---
-
-
 
 \# Alternatives Considered
 
-
-
 \## Approval Inside Policy Engine
-
-
 
 Rejected because policy evaluation determines whether approval is required, while human approval records a human decision.
 
-
-
 Keeping these responsibilities separate improves clarity and auditability.
 
-
-
 \---
-
-
 
 \## Approval Inside Runtime
 
-
-
 Rejected because approval is a domain capability rather than an orchestration concern.
-
-
 
 The Runtime invokes the approval stage but does not own approval logic.
 
-
-
 \---
-
-
 
 \## Approval Inside Verification
 
-
-
 Rejected because verification evaluates completed execution rather than interacting with humans.
 
-
-
 \---
-
-
 
 \# Compatibility
 
-
-
 This RFC is backward compatible.
-
-
 
 Implementations that do not require human approval continue to operate unchanged.
 
-
-
 The HumanApprovalStage is optional and configurable.
-
-
 
 \---
 
-
-
 \# Open Questions
-
-
 
 \* Should delegated approvals be supported?
 
@@ -546,15 +358,9 @@ The HumanApprovalStage is optional and configurable.
 
 \* Should approval evidence support external attestations?
 
-
-
 \---
 
-
-
 \# Acceptance Criteria
-
-
 
 \* A `HumanApprovalStage` exists.
 
@@ -568,15 +374,9 @@ The HumanApprovalStage is optional and configurable.
 
 \* Verification validates approval evidence without requesting new approvals.
 
-
-
 \---
 
-
-
 \# References
-
-
 
 \* 003-EXECUTION-TRANSACTION.md
 
@@ -597,6 +397,3 @@ The HumanApprovalStage is optional and configurable.
 \* ADR-0004 — Runtime Pipeline
 
 \* ADR-0007 — Deterministic Execution
-
-
-

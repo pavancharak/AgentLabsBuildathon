@@ -26,13 +26,10 @@ import {
  */
 describe("ExecutionTrustRecordRepository ordering (in-memory)", () => {
   it("round-trips a Trust Record with 2+ items per collection without breaking hash or signature", async () => {
-    const transaction = buildBusinessTransaction(
-      crypto.randomUUID(),
-    );
+    const transaction = buildBusinessTransaction(crypto.randomUUID());
 
-    const signedRecord = await buildSignedMultiExecutionOverrideRecord(
-      transaction,
-    );
+    const signedRecord =
+      await buildSignedMultiExecutionOverrideRecord(transaction);
 
     const repository = new MemoryExecutionTrustRecordRepository();
 
@@ -57,14 +54,8 @@ describe("ExecutionTrustRecordRepository ordering (in-memory)", () => {
       signedRecord.trustRecordHash,
     );
 
-    await repository.appendReceipt(
-      transaction.businessTransactionId,
-      receipt1,
-    );
-    await repository.appendReceipt(
-      transaction.businessTransactionId,
-      receipt2,
-    );
+    await repository.appendReceipt(transaction.businessTransactionId, receipt1);
+    await repository.appendReceipt(transaction.businessTransactionId, receipt2);
 
     const reloaded = await repository.findByTransactionId(
       transaction.businessTransactionId,

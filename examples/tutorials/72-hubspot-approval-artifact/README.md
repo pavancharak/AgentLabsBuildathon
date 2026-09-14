@@ -6,9 +6,9 @@ Show that an over-threshold HubSpot amount change requires more than a caller's 
 
 ## What You'll Learn
 
-* A well-formed, validly-signed artifact from an issuer nobody trusts is worth exactly as much as no artifact at all
-* An artifact scoped to a smaller amount than what's actually being requested (`amountDeltaAbs`) doesn't cover the request — scope is checked, not just the signature
-* The production API starts with **zero** trusted issuers configured by default (fail-closed) — this tutorial constructs `HubSpotSignalStateVerifier` directly with its own locally trusted issuer key to demonstrate the mechanism, the same way its own unit test suite does
+- A well-formed, validly-signed artifact from an issuer nobody trusts is worth exactly as much as no artifact at all
+- An artifact scoped to a smaller amount than what's actually being requested (`amountDeltaAbs`) doesn't cover the request — scope is checked, not just the signature
+- The production API starts with **zero** trusted issuers configured by default (fail-closed) — this tutorial constructs `HubSpotSignalStateVerifier` directly with its own locally trusted issuer key to demonstrate the mechanism, the same way its own unit test suite does
 
 ## Running the Tutorial
 

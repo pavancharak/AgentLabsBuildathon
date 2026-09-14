@@ -237,18 +237,18 @@ These initiatives are exploratory and are not part of the current roadmap.
 
 # Roadmap Summary
 
-| Phase | Status |
-|--------|--------|
-| v1 Foundation | Complete |
-| Trust Services | Planned |
-| Policy Engine | Planned |
-| Human Authority | Planned |
-| Authorization | Planned |
-| Governance | Planned |
-| Enterprise Security | Planned |
-| Observability | Planned |
-| Scalability | Planned |
-| Enterprise Platform | Planned |
+| Phase               | Status   |
+| ------------------- | -------- |
+| v1 Foundation       | Complete |
+| Trust Services      | Planned  |
+| Policy Engine       | Planned  |
+| Human Authority     | Planned  |
+| Authorization       | Planned  |
+| Governance          | Planned  |
+| Enterprise Security | Planned  |
+| Observability       | Planned  |
+| Scalability         | Planned  |
+| Enterprise Platform | Planned  |
 
 ---
 

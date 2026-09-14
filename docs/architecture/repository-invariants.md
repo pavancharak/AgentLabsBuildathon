@@ -48,13 +48,13 @@ All of the above already run automatically in CI on every push and pull request 
 
 **Rationale:** Phase 1E's core invariant: `RuntimeEngine → ExecutionGateway.execute() → ExecutionControlService → SecureConnector → SdkConnectorExecutor → Gateway-owned Adapter → Business System` must be the only path a business action can take. A stray direct call to a connector's `.execute()` anywhere else bypasses authorization, signal verification, replay protection, and audit generation entirely.
 
-**Enforcement:** `tests/architecture/execution-boundary.test.ts`, describe block `"no direct connector.execute()/adapter.execute() call outside approved gateway-owned components"`. Scans all `packages/*/src` for the call-site pattern `connector.execute(`/`adapter.execute(` (distinct from method *definitions*) and checks the result against a closed, three-entry, named allowlist:
+**Enforcement:** `tests/architecture/execution-boundary.test.ts`, describe block `"no direct connector.execute()/adapter.execute() call outside approved gateway-owned components"`. Scans all `packages/*/src` for the call-site pattern `connector.execute(`/`adapter.execute(` (distinct from method _definitions_) and checks the result against a closed, three-entry, named allowlist:
 
-| File | Why it's approved |
-|---|---|
-| `packages/execution-control/src/ExecutionControlService.ts` | Canonical dispatch stage 1 — resolves a `SecureConnector` and calls its `.execute()` |
-| `packages/execution-gateway/src/connector-execution/SdkConnectorExecutor.ts` | Canonical dispatch stage 2 — calls the raw vendor `Connector` after all checks pass |
-| `packages/api/src/webhooks/RazorpaySettlementProcessor.ts` | Named worker exception — read-only fetch-verify of webhook-claimed settlement state, not business-action execution (see Invariant 5) |
+| File                                                                         | Why it's approved                                                                                                                    |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `packages/execution-control/src/ExecutionControlService.ts`                  | Canonical dispatch stage 1 — resolves a `SecureConnector` and calls its `.execute()`                                                 |
+| `packages/execution-gateway/src/connector-execution/SdkConnectorExecutor.ts` | Canonical dispatch stage 2 — calls the raw vendor `Connector` after all checks pass                                                  |
+| `packages/api/src/webhooks/RazorpaySettlementProcessor.ts`                   | Named worker exception — read-only fetch-verify of webhook-claimed settlement state, not business-action execution (see Invariant 5) |
 
 **Expected failure mode:** A fourth call site anywhere in `packages/*/src` fails the "every call site is on the approved list" assertion, naming the new file.
 
@@ -83,6 +83,7 @@ All of the above already run automatically in CI on every push and pull request 
 **Rationale:** HTTP routes should only ever call `application.execute(...)` (the top-level `ExecutionTrustApplication` entry point); bootstrap composition should only construct objects, never call `.execute(`; and out-of-band workers (currently just the Razorpay settlement poller) may only touch a connector directly through the one documented, read-only, non-authorizing exception.
 
 **Enforcement:** `tests/architecture/execution-boundary.test.ts`, three describe blocks:
+
 - `"API routes never execute adapters directly"` — scans `packages/api/src/routes/` generically for adapter imports/construction/`fetch(`.
 - `"bootstrap composes but never executes business actions"` — scans `packages/api/src/bootstrap/` generically for any `.execute(` call.
 - `"workers never execute adapters directly unless named as gateway-owned verification infrastructure"` — scans `packages/api/src/webhooks/` generically for `fetch(`, with `RazorpaySettlementProcessor.ts` as the one named, approved exception (also covered by Invariant 3's allowlist).
@@ -97,9 +98,10 @@ All of the above already run automatically in CI on every push and pull request 
 
 ## Invariant 6 — Package-level ownership: only `execution-gateway`/`api` may depend on `execution-control`/`execution-gateway`
 
-**Rationale:** Invariants 1–5 check source *content* (import statements, call sites) inside specific, named files or directories. This invariant checks the same guarantee at the *package* level, generically, so a brand-new package — one that doesn't exist yet and therefore isn't named anywhere in this file — is covered automatically the moment it imports `@parmana/execution-control` or `@parmana/execution-gateway` from somewhere it shouldn't.
+**Rationale:** Invariants 1–5 check source _content_ (import statements, call sites) inside specific, named files or directories. This invariant checks the same guarantee at the _package_ level, generically, so a brand-new package — one that doesn't exist yet and therefore isn't named anywhere in this file — is covered automatically the moment it imports `@parmana/execution-control` or `@parmana/execution-gateway` from somewhere it shouldn't.
 
 **Enforcement:** `tests/architecture/execution-boundary.test.ts`, describe block `"package-level ownership: execution-control and execution-gateway have a closed dependent set"`. Scans every file across every package's `src/` for `from "@parmana/execution-control"` / `from "@parmana/execution-gateway"` import statements and checks the importing package against an allowlist:
+
 - `@parmana/execution-control` may be imported by: `execution-control` itself, `execution-gateway`, and `api`.
 - `@parmana/execution-gateway` may be imported by: `execution-gateway` itself and `api`.
 - A separate, generic assertion additionally confirms no package whose name starts with `connector-` (present or future) imports either.
@@ -121,10 +123,11 @@ All of the above already run automatically in CI on every push and pull request 
 **Rationale:** Phase 1D internalized `GatewayConnectorRegistry`, `GatewayCapabilityConnectorPolicy`, `SdkConnectorExecutor`, `CredentialVaultAdapter`, `GatewayRazorpayAdapter`, `GatewayHubSpotAdapter`, `GatewayHttpAdapter`, and `ConnectorEvidence` behind three stable factory functions (`createGatewayConnectorRegistry`, `createGatewayRazorpayConnector`, `createGatewayHubSpotConnector`). If any of these classes leak back into the public package barrel (`packages/execution-gateway/src/index.ts`), external packages regain the ability to construct raw adapters directly, silently reopening Invariant 2/3's bypass surface.
 
 **Enforcement — two complementary layers:**
-1. `packages/execution-gateway/tests/unit/public-api-boundary.test.ts` (Phase 1D) — imports the package's public entry point (`src/index.ts`, resolved directly by Vitest — not the built `dist/index.js`) at runtime and asserts a named list of 10 internal symbols is absent (`Object.prototype.hasOwnProperty`), and that the 3 factories + `ExecutionGateway` are present.
-2. `tests/architecture/execution-boundary.test.ts`, describe block `"Phase 1D public API boundary stays generically enforced"` (added Phase 1F, closing a gap identified in Task 1's inventory: layer 1's list is hardcoded, so a *new* internal class added to `connector-execution/` later wouldn't be covered until someone remembered to add its name). This layer derives the "must stay internal" symbol set *from `connector-execution/index.ts` itself* (every file it re-exports, minus the three factory files) rather than from a hardcoded list, then asserts none of those symbol names appear in the public barrel's source text (comments stripped, to avoid false positives from explanatory prose).
 
-**Expected failure mode:** Re-adding `export * from "./connector-execution/index.js"` to `packages/execution-gateway/src/index.ts` (undoing Phase 1D), or individually re-exporting any one internal class, fails both layers — layer 1 immediately for the 10 named classes, layer 2 for any of them *and* for any new implementation class added later.
+1. `packages/execution-gateway/tests/unit/public-api-boundary.test.ts` (Phase 1D) — imports the package's public entry point (`src/index.ts`, resolved directly by Vitest — not the built `dist/index.js`) at runtime and asserts a named list of 10 internal symbols is absent (`Object.prototype.hasOwnProperty`), and that the 3 factories + `ExecutionGateway` are present.
+2. `tests/architecture/execution-boundary.test.ts`, describe block `"Phase 1D public API boundary stays generically enforced"` (added Phase 1F, closing a gap identified in Task 1's inventory: layer 1's list is hardcoded, so a _new_ internal class added to `connector-execution/` later wouldn't be covered until someone remembered to add its name). This layer derives the "must stay internal" symbol set _from `connector-execution/index.ts` itself_ (every file it re-exports, minus the three factory files) rather than from a hardcoded list, then asserts none of those symbol names appear in the public barrel's source text (comments stripped, to avoid false positives from explanatory prose).
+
+**Expected failure mode:** Re-adding `export * from "./connector-execution/index.js"` to `packages/execution-gateway/src/index.ts` (undoing Phase 1D), or individually re-exporting any one internal class, fails both layers — layer 1 immediately for the 10 named classes, layer 2 for any of them _and_ for any new implementation class added later.
 
 **Regression example:** A future contributor adds a ninth implementation class, `GatewayStripeAdapter`, to `connector-execution/`, and — out of habit, mirroring the existing `export *` lines — adds `export { GatewayStripeAdapter } from "./connector-execution/GatewayStripeAdapter.js"` directly to the public `index.ts` instead of following the factory pattern. Layer 1 doesn't know this class exists yet and passes. Layer 2 derives its expected-internal set from `connector-execution/index.ts` at test-run time, sees `GatewayStripeAdapter` in the re-exported-files list, and fails.
 

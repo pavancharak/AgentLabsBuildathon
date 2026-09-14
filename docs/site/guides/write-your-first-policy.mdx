@@ -3,7 +3,10 @@ title: "Write Your First Policy"
 description: "Write a custom Policy, evaluate a transaction against it, and confirm both the approve and reject paths."
 ---
 
-<Info>**[AVAILABLE]**, every command below was run in this session against the repo's actual code, commit `651497a`.</Info>
+<Info>
+  **[AVAILABLE]**, every command below was run in this session against the
+  repo's actual code, commit `651497a`.
+</Info>
 
 ## Goal
 
@@ -59,26 +62,43 @@ A Policy is a JSON file at `<policyDir>/<name>/<version>/policy.json`. Create
           { "fact": "paymentApproved", "operator": "eq", "value": true },
           { "fact": "sufficientFunds", "operator": "eq", "value": true },
           { "fact": "paymentAmount", "operator": "gt", "value": 10000 },
-          { "fact": "financeDirectorApproved", "operator": "eq", "value": true },
+          {
+            "fact": "financeDirectorApproved",
+            "operator": "eq",
+            "value": true
+          },
           { "fact": "riskScore", "operator": "lte", "value": 20 }
         ]
       },
-      "outcome": { "action": "approve", "reason": "High-value vendor payment authorized after Finance Director approval." }
+      "outcome": {
+        "action": "approve",
+        "reason": "High-value vendor payment authorized after Finance Director approval."
+      }
     },
     {
       "id": "reject-high-value-without-director-approval",
       "condition": {
         "all": [
           { "fact": "paymentAmount", "operator": "gt", "value": 10000 },
-          { "fact": "financeDirectorApproved", "operator": "eq", "value": false }
+          {
+            "fact": "financeDirectorApproved",
+            "operator": "eq",
+            "value": false
+          }
         ]
       },
-      "outcome": { "action": "reject", "reason": "High-value vendor payment rejected because Finance Director approval is required." }
+      "outcome": {
+        "action": "reject",
+        "reason": "High-value vendor payment rejected because Finance Director approval is required."
+      }
     },
     {
       "id": "reject-default",
       "condition": { "always": true },
-      "outcome": { "action": "reject", "reason": "One or more required policy conditions were not satisfied." }
+      "outcome": {
+        "action": "reject",
+        "reason": "One or more required policy conditions were not satisfied."
+      }
     }
   ]
 }
@@ -90,28 +110,39 @@ but writing it explicitly documents the reject-by-default behavior for anyone re
 policy file itself.
 
 <Note>
-`PolicyValidator.validate()` fails closed on any rule-referenced fact that is neither in
-`boundSignals` nor `unboundSignalReasons` — an uncovered, unacknowledged fact throws
-`PolicyValidationError` and the policy never loads at all, it does not merely warn. This
-policy has one fact with a genuine Intent-side equivalent, `paymentAmount` (an amount, bound
-to `parameters.amount` above), so it belongs in `boundSignals`, where `SignalIntentBinder`
-checks it before evaluation runs rather than trusting a caller's declaration unchecked. Every
-other fact here — `vendorVerified`, `invoiceVerified`, `paymentApproved`, `sufficientFunds`,
-`riskScore`, `financeDirectorApproved` — is an independently-attested boolean or score with
-no Intent-side equivalent, so each needs its own `unboundSignalReasons` entry explaining why,
-not silence. See [Policies and the decision](/concepts/policies-and-the-decision) for the
-mechanism and why it exists, and `docs/VERIFICATION-GAPS.md` G-33 for why this became
-fail-closed rather than an easily-missed load-time warning.
+  `PolicyValidator.validate()` fails closed on any rule-referenced fact that is
+  neither in `boundSignals` nor `unboundSignalReasons` — an uncovered,
+  unacknowledged fact throws `PolicyValidationError` and the policy never loads
+  at all, it does not merely warn. This policy has one fact with a genuine
+  Intent-side equivalent, `paymentAmount` (an amount, bound to
+  `parameters.amount` above), so it belongs in `boundSignals`, where
+  `SignalIntentBinder` checks it before evaluation runs rather than trusting a
+  caller's declaration unchecked. Every other fact here — `vendorVerified`,
+  `invoiceVerified`, `paymentApproved`, `sufficientFunds`, `riskScore`,
+  `financeDirectorApproved` — is an independently-attested boolean or score with
+  no Intent-side equivalent, so each needs its own `unboundSignalReasons` entry
+  explaining why, not silence. See [Policies and the
+  decision](/concepts/policies-and-the-decision) for the mechanism and why it
+  exists, and `docs/VERIFICATION-GAPS.md` G-33 for why this became fail-closed
+  rather than an easily-missed load-time warning.
 </Note>
 
 ### 2. Reference it from a Business Transaction
 
 ```json
 {
-  "policy": { "name": "high-value-payment", "version": "1.0.0", "schemaVersion": "1.0.0" },
+  "policy": {
+    "name": "high-value-payment",
+    "version": "1.0.0",
+    "schemaVersion": "1.0.0"
+  },
   "signals": {
-    "vendorVerified": true, "invoiceVerified": true, "paymentApproved": true,
-    "sufficientFunds": true, "paymentAmount": 25000, "riskScore": 10,
+    "vendorVerified": true,
+    "invoiceVerified": true,
+    "paymentApproved": true,
+    "sufficientFunds": true,
+    "paymentAmount": 25000,
+    "riskScore": 10,
     "financeDirectorApproved": true
   }
 }
@@ -178,11 +209,11 @@ policy author opts into. You don't have to remember a catch-all rule for the eng
 closed; it already does.
 
 **So why write explicit rejection rules at all?** Because the audit trail records a specific,
-human-readable reason for every rejection — *"the vendor has not been verified"*, not a
-generic *"no rule matched."* For a system whose refusals are independently, cryptographically
+human-readable reason for every rejection — _"the vendor has not been verified"_, not a
+generic _"no rule matched."_ For a system whose refusals are independently, cryptographically
 verifiable (see [Refusal records](/concepts/refusal-records)), a specific reason is the whole
-point: compliance, debugging, and customer communication all need to know *why*, not just
-*that*.
+point: compliance, debugging, and customer communication all need to know _why_, not just
+_that_.
 
 **First-match-wins means rule order matters.** `PolicyEngine.findFirstMatch()` evaluates rules
 in the order they appear in the JSON file and returns on the first one whose condition is
@@ -191,16 +222,18 @@ rules' conditions can both be true for the same input: whichever is listed first
 wins, with nothing surfacing that the second rule is partly or wholly shadowed.
 
 <Note>
-`PolicyValidator.findRuleConflicts(policy)` checks for exactly this — pairs of rules whose
-conditions can be true simultaneously — and `PolicyRouter.load()` logs a
-`policy_rule_conflict_detected` warning naming them. It is **advisory, not fail-closed**
-(unlike `boundSignals` coverage): a flagged pair might be a genuine bug, or might be an
-intentional priority ordering between two violation reasons that can legitimately co-occur
-(this repo's own `hubspot-deal-update` policy has exactly one such case). It also only proves
-`NO_OVERLAP` for condition shapes it can fully reason about (same-fact `eq`/`neq`/numeric
-comparisons, and `all` conjunctions where at least one conjunct is provably disjoint from the
-other side) — anything more complex is reported as `NEEDS_REVIEW`, an honest "can't tell,"
-never a guessed answer. See `docs/VERIFICATION-GAPS.md` G-38 and G-39.
+  `PolicyValidator.findRuleConflicts(policy)` checks for exactly this — pairs of
+  rules whose conditions can be true simultaneously — and `PolicyRouter.load()`
+  logs a `policy_rule_conflict_detected` warning naming them. It is **advisory,
+  not fail-closed** (unlike `boundSignals` coverage): a flagged pair might be a
+  genuine bug, or might be an intentional priority ordering between two
+  violation reasons that can legitimately co-occur (this repo's own
+  `hubspot-deal-update` policy has exactly one such case). It also only proves
+  `NO_OVERLAP` for condition shapes it can fully reason about (same-fact
+  `eq`/`neq`/numeric comparisons, and `all` conjunctions where at least one
+  conjunct is provably disjoint from the other side) — anything more complex is
+  reported as `NEEDS_REVIEW`, an honest "can't tell," never a guessed answer.
+  See `docs/VERIFICATION-GAPS.md` G-38 and G-39.
 </Note>
 
 ## Troubleshoot
@@ -212,10 +245,19 @@ never a guessed answer. See `docs/VERIFICATION-GAPS.md` G-38 and G-39.
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="Authorize and execute an action end to end" icon="play" href="/guides/authorize-and-execute">
-    What happens after a policy approves: signing, gateway verification, execution.
+  <Card
+    title="Authorize and execute an action end to end"
+    icon="play"
+    href="/guides/authorize-and-execute"
+  >
+    What happens after a policy approves: signing, gateway verification,
+    execution.
   </Card>
-  <Card title="Policies and the decision" icon="scale-balanced" href="/concepts/policies-and-the-decision">
+  <Card
+    title="Policies and the decision"
+    icon="scale-balanced"
+    href="/concepts/policies-and-the-decision"
+  >
     The concept this guide exercises.
   </Card>
 </CardGroup>

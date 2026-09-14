@@ -3,10 +3,10 @@
 Submits a Business Transaction, then exercises both Verification entry
 points side by side:
 
-| SDK call | HTTP | Behavior |
-|---|---|---|
-| `client.verification.verify(id)` | `POST /verify` | Runs a fresh verification; appends a new `Verification` to the Trust Record's history. |
-| `client.verification.get_latest(id)` | `GET /verification/:id` | Reads back the most recent `Verification` without re-verifying. |
+| SDK call                             | HTTP                    | Behavior                                                                               |
+| ------------------------------------ | ----------------------- | -------------------------------------------------------------------------------------- |
+| `client.verification.verify(id)`     | `POST /verify`          | Runs a fresh verification; appends a new `Verification` to the Trust Record's history. |
+| `client.verification.get_latest(id)` | `GET /verification/:id` | Reads back the most recent `Verification` without re-verifying.                        |
 
 ## What this proves
 

@@ -1,173 +1,87 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeBuilder,
-} from "@parmana/runtime";
+import { RuntimeBuilder } from "@parmana/runtime";
 
-import {
-  DefaultExecutionSystem,
-} from "@parmana/execution-system";
+import { DefaultExecutionSystem } from "@parmana/execution-system";
 
-import {
-  MemoryExecutionTrustRecordRepository,
-} from "@parmana/storage";
+import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
-import type {
-  BusinessTransaction,
-} from "@parmana/shared";
+import type { BusinessTransaction } from "@parmana/shared";
 
-import {
-  LoggingComponent,
-} from "./LoggingComponent.js";
+import { LoggingComponent } from "./LoggingComponent.js";
 
-import {
-  MetricsComponent,
-} from "./MetricsComponent.js";
+import { MetricsComponent } from "./MetricsComponent.js";
 
-import {
-  NotificationComponent,
-} from "./NotificationComponent.js";
+import { NotificationComponent } from "./NotificationComponent.js";
 
-const root = path.resolve(
-  import.meta.dirname,
-);
+const root = path.resolve(import.meta.dirname);
 
 const transaction = JSON.parse(
-  readFileSync(
-    path.join(
-      root,
-      "transaction.json",
-    ),
-    "utf8",
-  ),
+  readFileSync(path.join(root, "transaction.json"), "utf8"),
 ) as BusinessTransaction;
 
-const policyRepository =
-  new FilePolicyRepository(
-    path.resolve(
-      root,
-      "../../../policies",
-    ),
-  );
+const policyRepository = new FilePolicyRepository(
+  path.resolve(root, "../../../policies"),
+);
 
-const trustRecords =
-  new MemoryExecutionTrustRecordRepository();
+const trustRecords = new MemoryExecutionTrustRecordRepository();
 
-const executionSystem =
-  new DefaultExecutionSystem();
+const executionSystem = new DefaultExecutionSystem();
 
 //
 // Build a custom Runtime Pipeline.
 //
-const runtime =
-  new RuntimeBuilder()
-    .withPolicyRepository(
-      policyRepository,
-    )
-    .addStage(
-      new LoggingComponent(),
-    )
-    .addStage(
-      new MetricsComponent(),
-    )
-    .addStage(
-      new NotificationComponent(),
-    )
-    .build(
-      trustRecords,
-      executionSystem,
-    );
+const runtime = new RuntimeBuilder()
+  .withPolicyRepository(policyRepository)
+  .addStage(new LoggingComponent())
+  .addStage(new MetricsComponent())
+  .addStage(new NotificationComponent())
+  .build(trustRecords, executionSystem);
 
 //
 // Execute.
 //
-const result =
-  await runtime.execute(
-    transaction,
-  );
+const result = await runtime.execute(transaction);
 
-const trustRecord =
-  result.trustRecord;
+const trustRecord = result.trustRecord;
 
-const verification =
-  trustRecord.verifications.at(-1);
+const verification = trustRecord.verifications.at(-1);
 
-const receipt =
-  trustRecord.receipts.at(-1);
+const receipt = trustRecord.receipts.at(-1);
 
-console.log(
-  "========================================",
-);
+console.log("========================================");
 
-console.log(
-  " Parmana Tutorial 16",
-);
+console.log(" Parmana Tutorial 16");
 
-console.log(
-  " Runtime Pipeline",
-);
+console.log(" Runtime Pipeline");
 
-console.log(
-  "========================================",
-);
+console.log("========================================");
 
 console.log();
 
-console.log(
-  "Execution Trust Record",
-);
+console.log("Execution Trust Record");
 
-console.log(
-  JSON.stringify(
-    trustRecord,
-    null,
-    2,
-  ),
-);
+console.log(JSON.stringify(trustRecord, null, 2));
 
 console.log();
 
-console.log(
-  "Verification",
-);
+console.log("Verification");
 
-console.log(
-  JSON.stringify(
-    verification,
-    null,
-    2,
-  ),
-);
+console.log(JSON.stringify(verification, null, 2));
 
 console.log();
 
-console.log(
-  "Receipt",
-);
+console.log("Receipt");
 
-console.log(
-  JSON.stringify(
-    receipt,
-    null,
-    2,
-  ),
-);
+console.log(JSON.stringify(receipt, null, 2));
 
 console.log();
 
-console.log(
-  "========================================",
-);
+console.log("========================================");
 
-console.log(
-  " RUNTIME PIPELINE COMPLETED",
-);
+console.log(" RUNTIME PIPELINE COMPLETED");
 
-console.log(
-  "========================================",
-);
+console.log("========================================");

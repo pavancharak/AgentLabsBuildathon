@@ -1,7 +1,4 @@
-import type {
-  RefusalRecord,
-  Signature,
-} from "@parmana/shared";
+import type { RefusalRecord, Signature } from "@parmana/shared";
 
 import { CryptoBootstrap } from "./CryptoBootstrap.js";
 import { TrustRecordHasher } from "./TrustRecordHasher.js";
@@ -20,83 +17,61 @@ import { currentVerificationKeyId } from "./KeyProvider.js";
  * refusals, not a second key to manage.
  */
 export class RefusalCrypto {
-  private readonly crypto =
-    CryptoBootstrap.create();
+  private readonly crypto = CryptoBootstrap.create();
 
-  private readonly signerPromise =
-    SignerBootstrap.create();
+  private readonly signerPromise = SignerBootstrap.create();
 
-  private readonly hasher =
-    new TrustRecordHasher(this.crypto);
+  private readonly hasher = new TrustRecordHasher(this.crypto);
 
-  private readonly signer =
-    new ArtifactSigner(this.crypto);
+  private readonly signer = new ArtifactSigner(this.crypto);
 
-  private readonly verifier =
-    new SignatureVerifier(this.crypto);
+  private readonly verifier = new SignatureVerifier(this.crypto);
 
   /**
    * Creates the canonical immutable view of a Refusal Record used
    * for hashing and signing. Excludes the signature itself.
    */
-  private canonicalRecord(
-    refusalRecord: RefusalRecord,
-  ) {
+  private canonicalRecord(refusalRecord: RefusalRecord) {
     return {
-      refusalRecordId:
-        refusalRecord.refusalRecordId,
+      refusalRecordId: refusalRecord.refusalRecordId,
 
-      businessTransactionId:
-        refusalRecord.businessTransactionId,
+      businessTransactionId: refusalRecord.businessTransactionId,
 
-      decision:
-        refusalRecord.decision,
+      decision: refusalRecord.decision,
 
-      evaluatedIntent:
-        refusalRecord.evaluatedIntent,
+      evaluatedIntent: refusalRecord.evaluatedIntent,
 
-      bindingViolations:
-        refusalRecord.bindingViolations,
+      bindingViolations: refusalRecord.bindingViolations,
 
-      submittedBy:
-        refusalRecord.submittedBy,
+      submittedBy: refusalRecord.submittedBy,
 
-      createdAt:
-        refusalRecord.createdAt,
+      createdAt: refusalRecord.createdAt,
     };
   }
 
   /**
    * Computes the canonical Refusal Record hash.
    */
-  async hash(
-    refusalRecord: RefusalRecord,
-  ): Promise<string> {
-    return this.hasher.hash(
-      this.canonicalRecord(refusalRecord),
-    );
+  async hash(refusalRecord: RefusalRecord): Promise<string> {
+    return this.hasher.hash(this.canonicalRecord(refusalRecord));
   }
 
   /**
    * Creates a digital signature over the canonical Refusal Record.
    */
-  async sign(
-    refusalRecord: RefusalRecord,
-  ): Promise<Signature> {
+  async sign(refusalRecord: RefusalRecord): Promise<Signature> {
     const keyId = currentVerificationKeyId();
 
     const signer = await this.signerPromise;
 
-    const value =
-      await this.signer.signWithSigner(
-        this.canonicalRecord(refusalRecord),
-        keyId,
-        signer,
-      );
+    const value = await this.signer.signWithSigner(
+      this.canonicalRecord(refusalRecord),
+      keyId,
+      signer,
+    );
 
     return {
-      algorithm:
-        this.crypto.signature.algorithm,
+      algorithm: this.crypto.signature.algorithm,
 
       keyId,
 
@@ -109,25 +84,16 @@ export class RefusalCrypto {
   /**
    * Verifies integrity and authenticity of a Refusal Record.
    */
-  async verify(
-    refusalRecord: RefusalRecord,
-  ): Promise<boolean> {
-    const expectedHash =
-      await this.hash(refusalRecord);
+  async verify(refusalRecord: RefusalRecord): Promise<boolean> {
+    const expectedHash = await this.hash(refusalRecord);
 
-    if (
-      expectedHash !==
-      refusalRecord.refusalRecordHash
-    ) {
+    if (expectedHash !== refusalRecord.refusalRecordHash) {
       return false;
     }
 
     const signer = await this.signerPromise;
 
-    const publicKey =
-      await signer.getPublicKey(
-        refusalRecord.signature.keyId,
-      );
+    const publicKey = await signer.getPublicKey(refusalRecord.signature.keyId);
 
     return this.verifier.verify(
       this.canonicalRecord(refusalRecord),

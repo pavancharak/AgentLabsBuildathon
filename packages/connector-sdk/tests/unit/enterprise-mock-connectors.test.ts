@@ -6,9 +6,18 @@ import {
   type ConnectorRequest,
 } from "../../src/index.js";
 
-import { createSapConnector, SapMetadata } from "../../src/connectors/sap/index.js";
-import { createOracleConnector, OracleMetadata } from "../../src/connectors/oracle/index.js";
-import { createWorkdayConnector, WorkdayMetadata } from "../../src/connectors/workday/index.js";
+import {
+  createSapConnector,
+  SapMetadata,
+} from "../../src/connectors/sap/index.js";
+import {
+  createOracleConnector,
+  OracleMetadata,
+} from "../../src/connectors/oracle/index.js";
+import {
+  createWorkdayConnector,
+  WorkdayMetadata,
+} from "../../src/connectors/workday/index.js";
 import {
   createSalesforceConnector,
   SalesforceMetadata,
@@ -16,7 +25,11 @@ import {
 
 function context(): ConnectorExecutionContext {
   return {
-    credential: brandCredentialHandle({ providerId: "static", credentialId: "erp", value: { token: "x" } }),
+    credential: brandCredentialHandle({
+      providerId: "static",
+      credentialId: "erp",
+      value: { token: "x" },
+    }),
     timeoutMs: 1_000,
     requestedAt: new Date(),
   };
@@ -33,10 +46,30 @@ function request(capability: string): ConnectorRequest {
 }
 
 describe.each([
-  { name: "SAP", create: createSapConnector, metadata: SapMetadata, capability: "sap:post-invoice" },
-  { name: "Oracle", create: createOracleConnector, metadata: OracleMetadata, capability: "oracle:create-purchase-order" },
-  { name: "Workday", create: createWorkdayConnector, metadata: WorkdayMetadata, capability: "workday:submit-expense-report" },
-  { name: "Salesforce", create: createSalesforceConnector, metadata: SalesforceMetadata, capability: "salesforce:update-opportunity" },
+  {
+    name: "SAP",
+    create: createSapConnector,
+    metadata: SapMetadata,
+    capability: "sap:post-invoice",
+  },
+  {
+    name: "Oracle",
+    create: createOracleConnector,
+    metadata: OracleMetadata,
+    capability: "oracle:create-purchase-order",
+  },
+  {
+    name: "Workday",
+    create: createWorkdayConnector,
+    metadata: WorkdayMetadata,
+    capability: "workday:submit-expense-report",
+  },
+  {
+    name: "Salesforce",
+    create: createSalesforceConnector,
+    metadata: SalesforceMetadata,
+    capability: "salesforce:update-opportunity",
+  },
 ])("$name mock connector", ({ create, metadata, capability }) => {
   it("declares the expected connectorId and capability", () => {
     const connector = create();
@@ -52,7 +85,8 @@ describe.each([
 
   it("rejects a capability it did not declare", async () => {
     const connector = create();
-    await expect(connector.execute(request("other:capability"), context()))
-      .rejects.toThrow("does not declare capability");
+    await expect(
+      connector.execute(request("other:capability"), context()),
+    ).rejects.toThrow("does not declare capability");
   });
 });

@@ -38,7 +38,7 @@ trustworthy as that policy document itself. If a single actor holds unilateral e
 policy, execution-time enforcement is not a meaningful control: that actor can simply redefine
 what "authorized" means, and every downstream enforcement mechanism will faithfully enforce the
 new, potentially compromised, definition. Existing "maker-checker" or dual-control approval
-workflows address this at the *application* layer — a proposal must pass through a distinct
+workflows address this at the _application_ layer — a proposal must pass through a distinct
 approver before taking effect — but application-layer approval alone does not address a second,
 subtler failure mode: if the underlying policy artifact (a file, a database row) can be modified
 directly, outside the application that enforces the approval workflow, the approval workflow is
@@ -88,8 +88,8 @@ the request body supplies — is compared against the proposal's `proposedBy`. A
 `SameActorCannotApproveOwnChangeError`
 (`packages/shared/src/errors/same-actor-cannot-approve-own-change-error.ts`), enforced at both the
 approve and reject handlers in `packages/api/src/routes/pending-policy-changes.ts`, before any
-resolution is written. Because this check compares the *caller-authenticated* identity of the
-resolving request against the *caller-authenticated* identity recorded at proposal time — neither
+resolution is written. Because this check compares the _caller-authenticated_ identity of the
+resolving request against the _caller-authenticated_ identity recorded at proposal time — neither
 of which is itself part of the governed policy content — the check cannot be weakened by any
 change to the policy the workflow governs; the separation-of-duties guarantee sits structurally
 outside the artifact it protects.
@@ -127,22 +127,22 @@ unreachable) is itself logged as a distinct, loud event
 (`policy_governance_integrity_check_unavailable`) rather than silently treated as "no mismatches
 found" — so that "nothing to report" and "the check itself could not run" are never
 indistinguishable in operational logs. This is a deliberate departure from this system's
-otherwise fail-*closed* configuration-validation discipline elsewhere: a governance-tooling
+otherwise fail-_closed_ configuration-validation discipline elsewhere: a governance-tooling
 inconsistency here is treated as an operator-investigation signal, not a reason to take the
 execution pipeline down.
 
 ### Structural separation from execution-time policy evaluation
 
-[0010] The governance mechanism of paragraphs [0005]–[0009] governs *changes to* the policy
+[0010] The governance mechanism of paragraphs [0005]–[0009] governs _changes to_ the policy
 artifact. It is structurally distinct from, and connected only through the governed artifact
-itself to, the *per-request evaluation* of that policy: `PolicyEngine.evaluate(policy, signals)`
+itself to, the _per-request evaluation_ of that policy: `PolicyEngine.evaluate(policy, signals)`
 (`packages/policy/src/PolicyEngine.ts`) deterministically evaluates the current policy against an
 individual execution request's signals, using first-match rule semantics over a rule list, and is
 explicitly documented (in the class's own governing comment) to never authorize execution, execute
 business actions, access external systems, create trust records, perform replay, or generate
-timestamps. The governance mechanism decides *what the rules are allowed to be*; `PolicyEngine`
-decides, independently and at a different time, *what a specific request does under whatever rules
-are currently in force*.
+timestamps. The governance mechanism decides _what the rules are allowed to be_; `PolicyEngine`
+decides, independently and at a different time, _what a specific request does under whatever rules
+are currently in force_.
 
 ## Independent Claims (informal — for attorney refinement)
 
@@ -212,7 +212,7 @@ requests are checked against under claim 3.
   provably execution-inert, execution-time policy-evaluation mechanism (Claim 3) — not the
   maker-checker concept itself, which is not novel.
 - Whether Claim 3 is better prosecuted as part of this application or filed entirely separately
-  from policy-*change* governance, since `PolicyEngine.evaluate()` is a general mechanism not
+  from policy-_change_ governance, since `PolicyEngine.evaluate()` is a general mechanism not
   intrinsically tied to how the policy it evaluates was authored or approved.
 - Formal drawings: a state diagram of the `PendingPolicyChangeStatus` transitions of paragraph
   [0005], and a sequence diagram of the deploy-time integrity check of paragraph [0008].

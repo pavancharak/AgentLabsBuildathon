@@ -6,12 +6,13 @@ description: "The sole boundary through which Parmana releases approved executio
 <Info>**[AVAILABLE]**. `packages/execution-gateway`, 25 tests.</Info>
 
 <Warning>
-**This page corrects a claim this site made through 2026-07-08**: earlier material says the
-gateway is "a library you wire in, not a default," and that a stock `packages/api` server
-gets no content-binding enforcement. That was true then. As of commit `651497a`
-(2026-07-11), `packages/api/src/bootstrap/createExecutionSystem.ts` unconditionally returns
-`createExecutionGateway()`, there is no server code path that skips it. See
-[Quickstart](/quickstart) for a verified live run.
+  **This page corrects a claim this site made through 2026-07-08**: earlier
+  material says the gateway is "a library you wire in, not a default," and that
+  a stock `packages/api` server gets no content-binding enforcement. That was
+  true then. As of commit `651497a` (2026-07-11),
+  `packages/api/src/bootstrap/createExecutionSystem.ts` unconditionally returns
+  `createExecutionGateway()`, there is no server code path that skips it. See
+  [Quickstart](/quickstart) for a verified live run.
 </Warning>
 
 ## What it is
@@ -23,7 +24,7 @@ re-derives the content hash itself before anything reaches a connector.
 
 ## Why it exists
 
-An authorization envelope proves that Parmana *decided* to approve something. It doesn't by
+An authorization envelope proves that Parmana _decided_ to approve something. It doesn't by
 itself stop a receiving system from executing something else under that approval, or from
 skipping verification altogether. The gateway is the one place designed to say no even if
 every earlier stage said yes: the last point before a real system state changes.
@@ -35,7 +36,7 @@ it plugs into `RuntimeFactory.create()` exactly like any other execution system,
 to `RuntimeEngine` or `RuntimePipeline` is required to use it. It composes
 `@parmana/envelope-verifier`'s checks (version, signature, expiry, TTL, nonce) and adds
 three more, each optional and additive: recomputing the executable content hash and
-comparing it to `businessTransactionHash` (always attempted); recomputing the *current*
+comparing it to `businessTransactionHash` (always attempted); recomputing the _current_
 policy content hash and comparing it to `policyContentHash`, when a `PolicyRepository` is
 supplied (`policyStillCurrent`, CLAIMS.md §2.27); and independently re-verifying the
 authorization's declared runtime signals against real-world state, when a
@@ -68,7 +69,7 @@ version → signature → expiry → TTL policy → businessTransactionHash reco
 
 The nonce (single-use) check runs **last**, and only if every prior check, including the
 content hash, passed. This matters: a forged or mismatched request must never burn a nonce,
-or an attacker who observes a nonce in transit could poison it and get the *legitimate*
+or an attacker who observes a nonce in transit could poison it and get the _legitimate_
 request rejected instead (`ExecutionGateway.ts:170-180`).
 
 `ExecutableContentHasher` delegates to the same `TrustRecordHasher` used elsewhere in the
@@ -77,18 +78,19 @@ side run identical canonical serialization and hashing, never two parallel imple
 of the same computation.
 
 <Note>
-**Nonce single-use is scoped to whichever `NonceStore` instance checks it.** Multiple
-independent gateway instances each using their own `MemoryNonceStore` can each accept the
-same authorization once. Fleet-wide single-use requires one shared store (CLAIMS.md 3.2).
+  **Nonce single-use is scoped to whichever `NonceStore` instance checks it.**
+  Multiple independent gateway instances each using their own `MemoryNonceStore`
+  can each accept the same authorization once. Fleet-wide single-use requires
+  one shared store (CLAIMS.md 3.2).
 </Note>
 
 ## Minimal example
 
 ```typescript
 const gateway = new ExecutionGateway({
-  publicKey,          // Parmana's public key
-  nonceStore,          // shared across instances for fleet-wide single-use
-  connector,           // e.g. new HttpConnector({ baseUrl, headers })
+  publicKey, // Parmana's public key
+  nonceStore, // shared across instances for fleet-wide single-use
+  connector, // e.g. new HttpConnector({ baseUrl, headers })
   // or: executionControl: { service: executionControlService, route }
 });
 
@@ -111,8 +113,8 @@ registered here too; it was deliberately removed from the repository entirely, 2
 see `docs/CLAIMS.md`'s "Key Compromise Notice" section in the source repository. Four
 enterprise-named mocks also exist in the codebase
 (`packages/connector-sdk/src/connectors/{sap,oracle,workday,salesforce}/`), each an explicit
-`MockConnector` wrapper, self-documented as *"deterministic, in-memory, used until the real
-enterprise connector is implemented."* These are reference mocks, not integrations, are
+`MockConnector` wrapper, self-documented as _"deterministic, in-memory, used until the real
+enterprise connector is implemented."_ These are reference mocks, not integrations, are
 never registered by `packages/api/src/bootstrap`, and should not be represented as SAP,
 Oracle, Workday, or Salesforce connectivity.
 
@@ -139,6 +141,7 @@ further here.
 Adding a real connector to the running server is a bootstrap code change today
 (`createConnectorRegistry.ts`, `createConnectorAuthenticator.ts`), not configuration. See
 [Add a connector with the Connector SDK](/integrations/connector-development-guide).
+
 </Warning>
 
 ## Failure reporting
@@ -156,10 +159,20 @@ businessTransactionHash mismatch: expected <hash>, got <hash>.
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="Gateway attestation" icon="stamp" href="/concepts/gateway-attestation">
-    The gateway's own signature: what it proves about a release, and what it doesn't.
+  <Card
+    title="Gateway attestation"
+    icon="stamp"
+    href="/concepts/gateway-attestation"
+  >
+    The gateway's own signature: what it proves about a release, and what it
+    doesn't.
   </Card>
-  <Card title="Credential isolation" icon="key" href="/concepts/credential-isolation">
-    What happens to the credential a connector needs, once the gateway releases execution.
+  <Card
+    title="Credential isolation"
+    icon="key"
+    href="/concepts/credential-isolation"
+  >
+    What happens to the credential a connector needs, once the gateway releases
+    execution.
   </Card>
 </CardGroup>

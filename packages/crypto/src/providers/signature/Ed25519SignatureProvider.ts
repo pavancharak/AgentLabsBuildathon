@@ -1,13 +1,6 @@
-import {
-  sign,
-  verify,
-  type KeyObject,
-} from "node:crypto";
+import { sign, verify, type KeyObject } from "node:crypto";
 
-import {
-  SignatureAlgorithms,
-  type SignatureAlgorithm,
-} from "@parmana/shared";
+import { SignatureAlgorithms, type SignatureAlgorithm } from "@parmana/shared";
 
 import type { SignatureProvider } from "../SignatureProvider.js";
 import { assertKeyType } from "./assertKeyType.js";
@@ -21,31 +14,17 @@ const NODE_KEY_TYPE = "ed25519";
  *
  * Key management is delegated to a KeyProvider.
  */
-export class Ed25519SignatureProvider
-  implements SignatureProvider
-{
-  public readonly algorithm: SignatureAlgorithm =
-    SignatureAlgorithms.ED25519;
+export class Ed25519SignatureProvider implements SignatureProvider {
+  public readonly algorithm: SignatureAlgorithm = SignatureAlgorithms.ED25519;
 
   constructor() {
     Object.freeze(this);
   }
 
-  async sign(
-    data: Uint8Array,
-    privateKey: KeyObject,
-  ): Promise<string> {
-    assertKeyType(
-      privateKey,
-      NODE_KEY_TYPE,
-      "sign",
-    );
+  async sign(data: Uint8Array, privateKey: KeyObject): Promise<string> {
+    assertKeyType(privateKey, NODE_KEY_TYPE, "sign");
 
-    const signature = sign(
-      null,
-      Buffer.from(data),
-      privateKey,
-    );
+    const signature = sign(null, Buffer.from(data), privateKey);
 
     return signature.toString("base64");
   }
@@ -55,11 +34,7 @@ export class Ed25519SignatureProvider
     signature: string,
     publicKey: KeyObject,
   ): Promise<boolean> {
-    assertKeyType(
-      publicKey,
-      NODE_KEY_TYPE,
-      "verify",
-    );
+    assertKeyType(publicKey, NODE_KEY_TYPE, "verify");
 
     return verify(
       null,

@@ -11,7 +11,9 @@
  * the seam is defined here; no cloud SDK integration is implemented.
  */
 
-const CREDENTIAL_HANDLE_BRAND = Symbol("parmana.connector-sdk.credential-handle");
+const CREDENTIAL_HANDLE_BRAND = Symbol(
+  "parmana.connector-sdk.credential-handle",
+);
 
 /**
  * Opaque credential material resolved by a CredentialProvider.
@@ -32,7 +34,9 @@ export interface CredentialHandle {
  * rejects any credential that is not branded this way, closing the "raw
  * credential supplied" gap the Gateway must fail closed on.
  */
-export function brandCredentialHandle(handle: CredentialHandle): CredentialHandle {
+export function brandCredentialHandle(
+  handle: CredentialHandle,
+): CredentialHandle {
   const branded = { ...handle } as CredentialHandle & Record<symbol, unknown>;
   branded[CREDENTIAL_HANDLE_BRAND] = true;
   return Object.freeze(branded);
@@ -66,14 +70,20 @@ export class EnvironmentCredentialProvider implements CredentialProvider {
   readonly providerId = "environment";
 
   constructor(
-    private readonly connectorEnvironmentVariable: Readonly<Record<string, string>>,
-    private readonly environment: Readonly<Record<string, string | undefined>> = process.env,
+    private readonly connectorEnvironmentVariable: Readonly<
+      Record<string, string>
+    >,
+    private readonly environment: Readonly<
+      Record<string, string | undefined>
+    > = process.env,
   ) {}
 
   async resolve(connectorId: string): Promise<CredentialHandle> {
     const variableName = this.connectorEnvironmentVariable[connectorId];
     if (variableName === undefined) {
-      throw new Error(`No environment credential mapping configured for connector: ${connectorId}.`);
+      throw new Error(
+        `No environment credential mapping configured for connector: ${connectorId}.`,
+      );
     }
     const value = this.environment[variableName];
     if (value === undefined) {
@@ -111,7 +121,9 @@ export class StaticCredentialProvider implements CredentialProvider {
 
   async resolve(connectorId: string): Promise<CredentialHandle> {
     if (!this.credentials.has(connectorId)) {
-      throw new Error(`No static credential configured for connector: ${connectorId}.`);
+      throw new Error(
+        `No static credential configured for connector: ${connectorId}.`,
+      );
     }
     return brandCredentialHandle({
       providerId: this.providerId,

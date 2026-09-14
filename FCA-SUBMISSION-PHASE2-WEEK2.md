@@ -1,4 +1,5 @@
 # Parmana: Authorization Layer for Agentic AI in Regulated Finance
+
 ## Evidence Package: Phase 2 Week 2 (Aug 26, 2026)
 
 **A note on framing, before anything else.** This document is titled per the originating
@@ -7,7 +8,7 @@ this session has no authority or expertise to certify that it satisfies the Fina
 Authority's actual requirements for agentic-AI systems in regulated finance. What follows is
 accurately an **evidence package** — real architecture, real code citations, real live test
 results — assembled honestly from what exists in this repository today. Whether it is
-*sufficient* for an actual FCA submission is a determination for Pavan and, before this goes to a
+_sufficient_ for an actual FCA submission is a determination for Pavan and, before this goes to a
 real regulator, qualified legal/compliance counsel. Treat the "Ready for FCA Submission"
 question at the end accordingly.
 
@@ -23,7 +24,7 @@ document cites the real filenames and only the specific evidence actually gather
 Parmana is an execution-authorization layer that sits between an AI agent and the external
 systems it tries to act on (currently: GitHub, HubSpot). Every action an agent attempts is routed
 through a single, mandatory checkpoint: the caller's credential is checked against an explicit,
-fail-closed allowlist of capabilities *before* any connector is invoked and *before* policy
+fail-closed allowlist of capabilities _before_ any connector is invoked and _before_ policy
 evaluation runs. A caller with no capability grant, or the wrong one, is rejected — deterministically,
 with no code path that lets a client-supplied field override the check. Every action that does
 execute produces a cryptographically signed record (ed25519) covering who requested it, what was
@@ -71,7 +72,7 @@ Authorization: Bearer fca-fetch-only-...
 
 The request never reached the GitHub connector — no credential-mint exchange, no call to GitHub's
 API. Scenario 3 (same repo/commit) repeated the same attempt with every policy signal set to the
-value that would make the request maximally *policy*-favorable, and got the identical rejection —
+value that would make the request maximally _policy_-favorable, and got the identical rejection —
 demonstrating the boundary's outcome does not depend on anything the caller controls in the
 request body, only on the credential's own configured grant.
 
@@ -91,12 +92,14 @@ timestamps) and a separate ed25519-signed `receipt`. From Scenario 1's live resp
 ```json
 {
   "trustRecordId": "2f1321b1-021f-4e95-8179-7eb7c282de3a",
-  "executions": [{
-    "status": "COMPLETED",
-    "decision": { "outcome": "APPROVED" },
-    "evidence": { "action": "github:pr-fetch", "success": true },
-    "chainSignature": { "algorithm": "ed25519", "value": "H90RG..." }
-  }],
+  "executions": [
+    {
+      "status": "COMPLETED",
+      "decision": { "outcome": "APPROVED" },
+      "evidence": { "action": "github:pr-fetch", "success": true },
+      "chainSignature": { "algorithm": "ed25519", "value": "H90RG..." }
+    }
+  ],
   "receipts": [{ "algorithm": "ed25519", "signature": "lwEdz..." }]
 }
 ```
@@ -107,7 +110,7 @@ Parmana's own systems, and not trust in Parmana's own after-the-fact account of 
 This repository ships a dedicated `/verify` route (`packages/api/src/routes/verify.ts`) and a
 `verify-get`/`refusal-verify` pair for the same purpose on rejected/refused transactions.
 
-**Caveat, stated plainly:** this session confirmed the signature *fields exist and are populated*
+**Caveat, stated plainly:** this session confirmed the signature _fields exist and are populated_
 in a real response; it did not independently re-verify the signature bytes against the public key
 using a separate tool outside Parmana (e.g., a standalone `parmana-sign --verify` run), because no
 such standalone verification was exercised in this session. That is a real, distinct next step
@@ -149,7 +152,7 @@ Request → Bearer-token authentication (StaticKeyAuthenticator, SHA-256 hash, t
 ```
 
 **Correction to an earlier internal draft:** `SCOPED-CREDENTIAL-ARCHITECTURE.md` (commit
-`c6844bd`, written 2026-08-25) noted that neither HubSpot's nor GitHub's *integration test*
+`c6844bd`, written 2026-08-25) noted that neither HubSpot's nor GitHub's _integration test_
 harness had caller-auth enabled (`callerAuth: "disabled"`, used deliberately for hermetic test
 isolation — confirmed still true in `hubspot-deal-update.integration.test.ts` and
 `github-pr-merge.integration.test.ts`). That is a statement about test harness configuration, not
@@ -159,6 +162,7 @@ production. Production (`packages/api/src/server.ts`) derives `callerAuth` from 
 if caller-auth were disabled in production.
 
 **Key components:**
+
 - `packages/api/src/auth/isCapabilityAllowed.ts` — the scope check itself
 - `packages/shared/src/config/ApiKeyEntry.ts` — scope/credential shape
 - `packages/api/src/auth/StaticKeyAuthenticator.ts` — key hashing/comparison
@@ -176,11 +180,11 @@ if caller-auth were disabled in production.
 Full detail, including complete request/response bodies, real PR data, and signature values, is
 in `GITHUB-CALLER-SCOPING-PHASE2-WEEK2-RESULTS.md` (commit `9993940`). Summary:
 
-| Scenario | Caller scope | Action attempted | Result | Evidence |
-|---|---|---|---|---|
-| 1 — in-scope | `github:pr-fetch` | `github:pr-fetch` | 200, signed trust record | Real PR #1 data returned (headSha matches actual GitHub commit) |
-| 2 — out-of-scope | `github:pr-fetch` only | `github:pr-merge` | 403 `CAPABILITY_NOT_ALLOWED` | Rejected before connector dispatch |
-| 3 — "jailbreak"-framed | `github:pr-fetch` only | `github:pr-merge`, fully policy-favorable signals | 403 `CAPABILITY_NOT_ALLOWED` | Identical rejection — outcome independent of request content |
+| Scenario               | Caller scope           | Action attempted                                  | Result                       | Evidence                                                        |
+| ---------------------- | ---------------------- | ------------------------------------------------- | ---------------------------- | --------------------------------------------------------------- |
+| 1 — in-scope           | `github:pr-fetch`      | `github:pr-fetch`                                 | 200, signed trust record     | Real PR #1 data returned (headSha matches actual GitHub commit) |
+| 2 — out-of-scope       | `github:pr-fetch` only | `github:pr-merge`                                 | 403 `CAPABILITY_NOT_ALLOWED` | Rejected before connector dispatch                              |
+| 3 — "jailbreak"-framed | `github:pr-fetch` only | `github:pr-merge`, fully policy-favorable signals | 403 `CAPABILITY_NOT_ALLOWED` | Identical rejection — outcome independent of request content    |
 
 **Not tested (disclosed, not silently omitted):** an actual successful merge using a
 full-access-scoped key. Doing so would irreversibly merge a real pull request and was judged out
@@ -192,6 +196,7 @@ mutating capability" if that control case is wanted.
 ### Conclusion
 
 The evidence gathered this session supports three specific, narrow claims:
+
 1. Scope enforcement is a real, fail-closed, pre-execution check — not a policy suggestion.
 2. The check's outcome does not depend on any value the calling agent controls in the request.
 3. Successful executions produce cryptographically signed records with independently verifiable

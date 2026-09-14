@@ -1,4 +1,5 @@
 # Integrating Parmana
+
 ### A Practitioner's Guide to Wiring Execution Authorization into Real Systems
 
 ---
@@ -356,7 +357,7 @@ An authorized action, as it actually arrives at an executing system, is two thin
 traveling together: the **content** — what is to be done — and the
 **authorization** — the proof that Parmana permitted it. They are separable in the
 type system and inseparable in practice, because the entire point of the artifact is
-that the authorization is a statement about *this specific content* and no other. Take
+that the authorization is a statement about _this specific content_ and no other. Take
 them in turn.
 
 **The content: ExecutableContent.** What an executing system is actually asked to do
@@ -379,7 +380,7 @@ environment, `"http:post"` against an endpoint. `parameters` carries whatever th
 action needs — an amount, a build number, a payload — as an opaque record Parmana does
 not interpret.
 
-Notice what is *not* here. A `BusinessTransaction` inside Parmana carries a great deal
+Notice what is _not_ here. A `BusinessTransaction` inside Parmana carries a great deal
 more: an `Authority`, an `Authorization`, an `Intent`, a `PolicyReference`, runtime
 `signals`, a lifecycle `status`, a `createdAt`. None of that crosses the executing
 seam. `ExecutableContent` is deliberately narrower than the full trust chain that
@@ -435,7 +436,7 @@ computed, on the signing side, from the runtime's in-memory transaction, and
 recomputed, on the verifying side, from the exact JSON-parsed content about to be
 executed, using the same hasher on both ends. This is what closes a gap that an
 authorization naming only an ID cannot close: if an authorization said only "execute
-whatever is filed under transaction `tx-001`," nothing would stop a *different*
+whatever is filed under transaction `tx-001`," nothing would stop a _different_
 payload — a changed amount, a changed target — from being substituted under that same
 ID between the moment of authorization and the moment of execution. A gateway that
 recomputes the hash of the content it is about to forward, and rejects any mismatch
@@ -464,7 +465,7 @@ against, so key rotation (Chapter 11) doesn't require every verifier to guess. A
 `algorithm` names the signature scheme — the reference implementation uses a
 post-quantum scheme (ML-DSA-65) by default, which carries one practical consequence an
 integrator should know before writing tooling around this artifact: the signature is
-*randomized*, not deterministic. Signing the identical payload twice with the identical
+_randomized_, not deterministic. Signing the identical payload twice with the identical
 key produces two different, both-valid signatures. Verification is deterministic;
 signing is not. If you are tempted to deduplicate authorizations by comparing
 signature bytes, or to write a test that asserts a specific signature value, this is
@@ -507,14 +508,14 @@ worth having, and worth knowing about before you write your first connector.
 wrapped in a payload that says who approved it, under what policy, until when, bound
 by hash to this exact content and nothing else, signed and keyed so any holder can
 verify — and delivered frozen, so the executing side's own code cannot undermine the
-guarantee by accident. What you do not yet have is *why* an executing system can trust
+guarantee by accident. What you do not yet have is _why_ an executing system can trust
 this artifact without trusting Parmana or the proposing system that wanted the action
 in the first place. That is the "trust nobody" property named in Chapter 1, and it is
 the whole subject of Chapter 3.
 
 ---
 
-*[RESUME POINT: Chapter 3 — "Trust Nobody: The Verification Contract." Chapters 1 and
+_[RESUME POINT: Chapter 3 — "Trust Nobody: The Verification Contract." Chapters 1 and
 2 complete at full publishable depth, grounded against repository HEAD `4740aee`. Both
 `packages/execution-gateway/src/Connector.ts` (gateway-level, receives
 `{ transaction, authorization, verification }`) and the newer
@@ -532,4 +533,4 @@ verification order (version → signature → expiry → TTL → businessTransac
 recompute-and-compare → nonce last) and states plainly that the default local API
 server (`packages/api/src/application.ts`) does NOT wire an `ExecutionGateway` by
 default — zero enforcement out of the box, a fact Chapter 4 and Chapter 11 must state
-without softening.]*
+without softening.]_

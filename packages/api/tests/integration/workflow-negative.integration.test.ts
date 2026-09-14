@@ -13,30 +13,22 @@ const databaseConfigured = resolveDatabaseGate("Negative Workflow Integration");
 
 describe.skipIf(!databaseConfigured)("Negative Workflow Integration", () => {
   it("fails verification for an unknown Business Transaction", async () => {
-    const response = await request(app)
-      .post("/verify")
-      .send({
-        businessTransactionId: crypto.randomUUID(),
-      });
+    const response = await request(app).post("/verify").send({
+      businessTransactionId: crypto.randomUUID(),
+    });
 
     expect(response.status).toBe(404);
 
-    expect(response.body.error).toContain(
-      "Execution Trust Record not found.",
-    );
+    expect(response.body.error).toContain("Execution Trust Record not found.");
   });
 
   it("returns the generated receipt after execution", async () => {
     //
     // Execute a Business Transaction.
     //
-    const transaction =
-      createBusinessTransaction();
+    const transaction = createBusinessTransaction();
 
-    const execute =
-      await request(app)
-        .post("/execute")
-        .send(transaction);
+    const execute = await request(app).post("/execute").send(transaction);
 
     expect(execute.status).toBe(200);
 
@@ -44,13 +36,9 @@ describe.skipIf(!databaseConfigured)("Negative Workflow Integration", () => {
     // The canonical runtime automatically performs
     // verification and generates a receipt.
     //
-    const receipt =
-      await request(app)
-        .post("/receipt")
-        .send({
-          businessTransactionId:
-            execute.body.businessTransactionId,
-        });
+    const receipt = await request(app).post("/receipt").send({
+      businessTransactionId: execute.body.businessTransactionId,
+    });
 
     expect(receipt.status).toBe(200);
 
@@ -66,34 +54,24 @@ describe.skipIf(!databaseConfigured)("Negative Workflow Integration", () => {
   });
 
   it("fails for an unknown Trust Record", async () => {
-    const response =
-      await request(app).get(
-        `/trust-records/${crypto.randomUUID()}`,
-      );
+    const response = await request(app).get(
+      `/trust-records/${crypto.randomUUID()}`,
+    );
 
     expect(response.status).toBe(404);
   });
 
   it("fails verification when Business Transaction ID is missing", async () => {
-    const response =
-      await request(app)
-        .post("/verify")
-        .send({});
+    const response = await request(app).post("/verify").send({});
 
     expect(response.status).toBe(400);
   });
 
   it("fails verification for an invalid Business Transaction ID", async () => {
-    const response =
-      await request(app)
-        .post("/verify")
-        .send({
-          businessTransactionId:
-            "not-a-uuid",
-        });
+    const response = await request(app).post("/verify").send({
+      businessTransactionId: "not-a-uuid",
+    });
 
     expect(response.status).toBe(400);
   });
 });
-
-

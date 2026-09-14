@@ -23,7 +23,7 @@ it switches on `PARMANA_STORAGE` (`memory` | `supabase`; `postgres`/`sqlite` are
 unimplemented).
 
 That test-mode short-circuit is not incidental convenience; it closes a real gap. Before it
-existed, `PARMANA_STORAGE`'s value was resolved as an *import-time side effect* in
+existed, `PARMANA_STORAGE`'s value was resolved as an _import-time side effect_ in
 `packages/api/src/repositories.ts`, which meant test collection itself could crash with
 supabase-js's generic `"supabaseUrl is required."` error on any machine that hadn't set
 `SUPABASE_*`, with no connection to the actual test being run. Making the test-mode

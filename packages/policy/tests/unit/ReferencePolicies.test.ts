@@ -1,34 +1,21 @@
 import { describe, expect, it } from "vitest";
-import {
-  readFileSync,
-  readdirSync,
-} from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
 import { PolicyValidator } from "../../src/PolicyValidator.js";
 import type { Policy } from "../../src/types/Policy.js";
 
-function findPolicyFiles(
-  directory: string,
-): string[] {
+function findPolicyFiles(directory: string): string[] {
   const files: string[] = [];
 
   for (const entry of readdirSync(directory, {
     withFileTypes: true,
   })) {
-    const fullPath = path.join(
-      directory,
-      entry.name,
-    );
+    const fullPath = path.join(directory, entry.name);
 
     if (entry.isDirectory()) {
-      files.push(
-        ...findPolicyFiles(fullPath),
-      );
-    } else if (
-      entry.isFile() &&
-      entry.name === "policy.json"
-    ) {
+      files.push(...findPolicyFiles(fullPath));
+    } else if (entry.isFile() && entry.name === "policy.json") {
       files.push(fullPath);
     }
   }
@@ -44,27 +31,17 @@ describe("Reference Policy Library", () => {
     "../../../../policies",
   );
 
-  const policyFiles =
-    findPolicyFiles(policiesRoot);
+  const policyFiles = findPolicyFiles(policiesRoot);
 
   expect(policyFiles.length).toBeGreaterThan(0);
 
   for (const file of policyFiles) {
-    const relativePath = path.relative(
-      policiesRoot,
-      file,
-    );
+    const relativePath = path.relative(policiesRoot, file);
 
     it(relativePath, () => {
-      console.log(
-        "Validating:",
-        relativePath,
-      );
+      console.log("Validating:", relativePath);
 
-      const text = readFileSync(
-        file,
-        "utf8",
-      );
+      const text = readFileSync(file, "utf8");
 
       expect(text.trim().length).toBeGreaterThan(0);
 
@@ -73,18 +50,12 @@ describe("Reference Policy Library", () => {
       try {
         policy = JSON.parse(text) as Policy;
       } catch (error) {
-  throw new Error(
-    `Failed to parse JSON in ${relativePath}`,
-    {
-      cause: error,
-    },
-  );
-}
+        throw new Error(`Failed to parse JSON in ${relativePath}`, {
+          cause: error,
+        });
+      }
 
-      expect(() =>
-        validator.validate(policy),
-      ).not.toThrow();
+      expect(() => validator.validate(policy)).not.toThrow();
     });
   }
 });
-

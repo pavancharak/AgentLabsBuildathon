@@ -145,10 +145,15 @@ export async function verifyPolicyGovernanceIntegrityAtStartup(
         continue;
       }
 
-      const signatureValid = await options.policyChangeCrypto.verify(mostRecent);
+      const signatureValid =
+        await options.policyChangeCrypto.verify(mostRecent);
 
       if (!signatureValid) {
-        mismatches.push({ policyName, policyVersion, reason: "signature-invalid" });
+        mismatches.push({
+          policyName,
+          policyVersion,
+          reason: "signature-invalid",
+        });
         continue;
       }
 
@@ -207,7 +212,11 @@ export async function verifyPolicyGovernanceIntegrityAtStartup(
     }
   }
 
-  for (const { policyName, policyVersion, records: pairRecords } of recordsByPair.values()) {
+  for (const {
+    policyName,
+    policyVersion,
+    records: pairRecords,
+  } of recordsByPair.values()) {
     if (pairRecords.length < 2) {
       continue;
     }
@@ -225,10 +234,15 @@ export async function verifyPolicyGovernanceIntegrityAtStartup(
       }
 
       try {
-        const expectedHash = await options.policyChangeCrypto.hashPolicyContent(previous);
+        const expectedHash =
+          await options.policyChangeCrypto.hashPolicyContent(previous);
 
         if (current.previousRecordHash !== expectedHash) {
-          mismatches.push({ policyName, policyVersion, reason: "chain-broken" });
+          mismatches.push({
+            policyName,
+            policyVersion,
+            reason: "chain-broken",
+          });
           break;
         }
       } catch (error) {

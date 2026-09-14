@@ -24,15 +24,9 @@ import type { ExecutableContent, ExecutionResult } from "@parmana/shared";
 
 async function main(): Promise<void> {
   console.log();
-  console.log(
-    "==================================================",
-  );
-  console.log(
-    "Tutorial 59 - Secure Connectors",
-  );
-  console.log(
-    "==================================================",
-  );
+  console.log("==================================================");
+  console.log("Tutorial 59 - Secure Connectors");
+  console.log("==================================================");
   console.log();
 
   //
@@ -40,8 +34,7 @@ async function main(): Promise<void> {
   // separation: the Runtime signs authorizations, the Gateway
   // signs attestations. Neither is read from disk.
   //
-  const { privateKey: runtimePrivateKey } =
-    generateKeyPairSync("ed25519");
+  const { privateKey: runtimePrivateKey } = generateKeyPairSync("ed25519");
 
   const { privateKey: gatewayPrivateKey, publicKey: gatewayPublicKey } =
     generateKeyPairSync("ed25519");
@@ -65,68 +58,59 @@ async function main(): Promise<void> {
     parameters: { amount: 5000 },
   };
 
-  const authorization =
-    await new AuthorizationSigner(CryptoBootstrap.create()).sign(
-      {
-        decisionId: "decision-1",
-        businessTransactionId: content.businessTransactionId,
-        policyName: "payments",
-        policyVersion: "1.0.0",
-        executableContent: content,
-      },
-      runtimePrivateKey,
-      "key-1",
-      60,
-    );
+  const authorization = await new AuthorizationSigner(
+    CryptoBootstrap.create(),
+  ).sign(
+    {
+      decisionId: "decision-1",
+      businessTransactionId: content.businessTransactionId,
+      policyName: "payments",
+      policyVersion: "1.0.0",
+      executableContent: content,
+    },
+    runtimePrivateKey,
+    "key-1",
+    60,
+  );
 
-  const attestationSigner =
-    new GatewayAttestationSigner(new SystemClock(), new RandomIdGenerator());
+  const attestationSigner = new GatewayAttestationSigner(
+    new SystemClock(),
+    new RandomIdGenerator(),
+  );
 
-  const authenticator =
-    new SignedTokenConnectorAuthenticator(
-      gatewayIdentity,
-      gatewayPublicKey,
-      [connectorIdentity],
-    );
+  const authenticator = new SignedTokenConnectorAuthenticator(
+    gatewayIdentity,
+    gatewayPublicKey,
+    [connectorIdentity],
+  );
 
   //
   // Gateway Attestation
   //
-  console.log(
-    "Gateway Attestation",
+  console.log("Gateway Attestation");
+
+  console.log("--------------------------------------------------");
+
+  const attestation = attestationSigner.sign(
+    gatewayIdentity.gatewayId,
+    authorization.payload.authorizationId,
+    gatewayPrivateKey,
   );
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log(`Gateway ID       : ${attestation.payload.gatewayId}`);
 
-  const attestation =
-    attestationSigner.sign(
-      gatewayIdentity.gatewayId,
-      authorization.payload.authorizationId,
-      gatewayPrivateKey,
-    );
+  console.log(`Authorization ID : ${attestation.payload.authorizationId}`);
 
-  console.log(
-    `Gateway ID       : ${attestation.payload.gatewayId}`,
-  );
+  console.log(`Nonce            : ${attestation.payload.nonce}`);
 
-  console.log(
-    `Authorization ID : ${attestation.payload.authorizationId}`,
-  );
-
-  console.log(
-    `Nonce            : ${attestation.payload.nonce}`,
-  );
-
-  console.log(
-    `Issued At        : ${attestation.payload.issuedAt}`,
-  );
+  console.log(`Issued At        : ${attestation.payload.issuedAt}`);
 
   console.log(
     "✓ Authenticates for its own authorizationId:",
     authenticator.authenticateGatewayForRequest(
-      gatewayIdentity, attestation, authorization.payload.authorizationId,
+      gatewayIdentity,
+      attestation,
+      authorization.payload.authorizationId,
     ),
   );
 
@@ -135,28 +119,24 @@ async function main(): Promise<void> {
   //
   // Spoofed attestation.
   //
-  console.log(
-    "Spoofed Attestation Rejected",
+  console.log("Spoofed Attestation Rejected");
+
+  console.log("--------------------------------------------------");
+
+  const { privateKey: attackerPrivateKey } = generateKeyPairSync("ed25519");
+
+  const spoofed = attestationSigner.sign(
+    gatewayIdentity.gatewayId,
+    authorization.payload.authorizationId,
+    attackerPrivateKey,
   );
-
-  console.log(
-    "--------------------------------------------------",
-  );
-
-  const { privateKey: attackerPrivateKey } =
-    generateKeyPairSync("ed25519");
-
-  const spoofed =
-    attestationSigner.sign(
-      gatewayIdentity.gatewayId,
-      authorization.payload.authorizationId,
-      attackerPrivateKey,
-    );
 
   console.log(
     "✗ Accepted:",
     authenticator.authenticateGatewayForRequest(
-      gatewayIdentity, spoofed, authorization.payload.authorizationId,
+      gatewayIdentity,
+      spoofed,
+      authorization.payload.authorizationId,
     ),
   );
 
@@ -167,18 +147,16 @@ async function main(): Promise<void> {
   // authorizationId — a replay attempt against a
   // different request.
   //
-  console.log(
-    "Attestation Replayed Against A Different Request",
-  );
+  console.log("Attestation Replayed Against A Different Request");
+
+  console.log("--------------------------------------------------");
 
   console.log(
-    "--------------------------------------------------",
-  );
-
-  console.log(
-    "✗ Accepted for \"authorization-999\":",
+    '✗ Accepted for "authorization-999":',
     authenticator.authenticateGatewayForRequest(
-      gatewayIdentity, attestation, "authorization-999",
+      gatewayIdentity,
+      attestation,
+      "authorization-999",
     ),
   );
 
@@ -187,35 +165,30 @@ async function main(): Promise<void> {
   //
   // Secure Connector setup.
   //
-  const sessionIssuanceAuthentication =
-    Object.freeze({ capability: "session-issuer" });
+  const sessionIssuanceAuthentication = Object.freeze({
+    capability: "session-issuer",
+  });
 
-  const sessions =
-    new InMemoryGatewaySessionStore(
-      sessionIssuanceAuthentication,
-    );
-
-  const policy =
-    new DefaultConnectorPolicy(authenticator, sessions);
-
-  const rawCredentials =
-    new InMemoryCredentialVault();
-
-  rawCredentials.setCredential(
-    "sap",
-    { value: Object.freeze({ apiKey: "sap-secret-4242" }) },
+  const sessions = new InMemoryGatewaySessionStore(
+    sessionIssuanceAuthentication,
   );
 
-  const sessionCredentials =
-    new InMemorySessionCredentialVault({
-      credentials: rawCredentials,
-      clock: new SystemClock(),
-      idGenerator: new RandomIdGenerator(),
-      lifetimeMs: 30_000,
-    });
+  const policy = new DefaultConnectorPolicy(authenticator, sessions);
 
-  const audit =
-    new MemoryExecutionAuditSink();
+  const rawCredentials = new InMemoryCredentialVault();
+
+  rawCredentials.setCredential("sap", {
+    value: Object.freeze({ apiKey: "sap-secret-4242" }),
+  });
+
+  const sessionCredentials = new InMemorySessionCredentialVault({
+    credentials: rawCredentials,
+    clock: new SystemClock(),
+    idGenerator: new RandomIdGenerator(),
+    lifetimeMs: 30_000,
+  });
+
+  const audit = new MemoryExecutionAuditSink();
 
   const executor: ConnectorExecutor = {
     async execute(executableContent): Promise<ExecutionResult> {
@@ -228,17 +201,16 @@ async function main(): Promise<void> {
     },
   };
 
-  const connector =
-    new SessionCredentialSecureConnector({
-      identity: connectorIdentity,
-      capabilities: ["sap:post-invoice"],
-      policy,
-      gatewayAuthentication: attestation,
-      sessionCredentials,
-      executor,
-      audit,
-      clock: new SystemClock(),
-    });
+  const connector = new SessionCredentialSecureConnector({
+    identity: connectorIdentity,
+    capabilities: ["sap:post-invoice"],
+    policy,
+    gatewayAuthentication: attestation,
+    sessionCredentials,
+    executor,
+    audit,
+    clock: new SystemClock(),
+  });
 
   const release: ExecutionRelease = {
     connectorName: "sap",
@@ -273,13 +245,9 @@ async function main(): Promise<void> {
   //
   // Direct invocation without a genuine session.
   //
-  console.log(
-    "Direct Invocation Without A Genuine Session",
-  );
+  console.log("Direct Invocation Without A Genuine Session");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
   try {
     await connector.execute({
@@ -296,17 +264,11 @@ async function main(): Promise<void> {
       },
     });
 
-    console.log(
-      "✗ Unexpected: execution succeeded.",
-    );
+    console.log("✗ Unexpected: execution succeeded.");
   } catch (error) {
-    console.log(
-      "✓ Rejected:",
-    );
+    console.log("✓ Rejected:");
 
-    console.log(
-      `  ${(error as Error).message}`,
-    );
+    console.log(`  ${(error as Error).message}`);
   }
 
   console.log();
@@ -314,80 +276,50 @@ async function main(): Promise<void> {
   //
   // Successful execution.
   //
-  console.log(
-    "Successful Execution",
-  );
+  console.log("Successful Execution");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
-  const result =
-    await connector.execute(requestWithSession());
+  const result = await connector.execute(requestWithSession());
 
-  console.log(
-    `Result: ${result.success ? "SUCCESS" : "FAILURE"}`,
-  );
+  console.log(`Result: ${result.success ? "SUCCESS" : "FAILURE"}`);
 
-  const completedEvent =
-    audit.events[audit.events.length - 1];
+  const completedEvent = audit.events[audit.events.length - 1];
 
-  console.log(
-    "Audit Record:",
-  );
+  console.log("Audit Record:");
 
-  console.log(
-    `  type          : ${completedEvent?.type}`,
-  );
+  console.log(`  type          : ${completedEvent?.type}`);
 
-  console.log(
-    `  connectorId   : ${completedEvent?.connectorId}`,
-  );
+  console.log(`  connectorId   : ${completedEvent?.connectorId}`);
 
-  console.log(
-    `  credentialId  : ${completedEvent?.credentialId}`,
-  );
+  console.log(`  credentialId  : ${completedEvent?.credentialId}`);
 
-  console.log(
-    `  gatewayId     : ${completedEvent?.gatewayId}`,
-  );
+  console.log(`  gatewayId     : ${completedEvent?.gatewayId}`);
 
   console.log();
 
   //
   // Credential destroyed after execution.
   //
-  console.log(
-    "Credential Destroyed After Execution",
-  );
+  console.log("Credential Destroyed After Execution");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
   try {
-    await sessionCredentials.consume(
-      completedEvent!.credentialId!,
-    );
+    await sessionCredentials.consume(completedEvent!.credentialId!);
 
-    console.log(
-      "✗ Unexpected: the same session credential resolved again.",
-    );
+    console.log("✗ Unexpected: the same session credential resolved again.");
   } catch (error) {
     console.log(
       "✓ The session credential the connector used is already destroyed:",
     );
 
-    console.log(
-      `  ${(error as Error).message}`,
-    );
+    console.log(`  ${(error as Error).message}`);
   }
 
   console.log();
 
-  console.log(
-    "Tutorial completed successfully.",
-  );
+  console.log("Tutorial completed successfully.");
 }
 
 main().catch((error) => {

@@ -114,6 +114,7 @@ leaking existence). Used by `/verify*`, `/receipt*`, `/refusal-get`, `/trust-rec
 `/replay`.
 
 **Auth layers** (independent, non-substitutable):
+
 1. Caller auth (`middleware/caller-auth.ts`) — Bearer token, SHA-256(key) via
    `timingSafeEqual` (`auth/StaticKeyAuthenticator.ts`), sets `req.callerId` +
    `req.callerAllowedPrincipalIds`/`callerAllowedCapabilities`.
@@ -142,6 +143,7 @@ ordering). `verifyPolicyGovernanceIntegrityAtStartup.ts` is fail-open (never blo
 startup), detects live-file-vs-approval-record drift.
 
 **Bootstrap gotchas** (`src/bootstrap/`):
+
 - **Update 2026-09-10:** `createGatewayIdentity.ts`'s `gatewayId` is now configurable via
   `PARMANA_GATEWAY_ID` (defaults to the same `"parmana-gateway"` literal), and
   `createSessionStore.ts`'s session-issuance token is `Object.freeze({ token: randomUUID() })`
@@ -255,6 +257,7 @@ configured) -> nonce consumption.
 
 **Three mutually exclusive dispatch paths**, chosen at construction (constructor throws
 if not exactly one is configured):
+
 1. `executionControl.service` (from `@parmana/execution-control`) — the real,
    production-wired path (`createExecutionGateway.ts` only passes `service` + `route`;
    `route` ends up unused in practice, see next point).
@@ -336,7 +339,7 @@ writes atomically (temp file + rename). `CapabilityPolicyBinder`/
 `@parmana/policy`'s `index.ts` — most consumers (including `packages/api`) import it via
 `@parmana/policy`, not the capability-registry package directly. Only 4 entries in the
 map (the 4 real capabilities, §1) — the other 8 policies are unbound; see §7 gap 34 for
-the startup guardrail that now catches *future* unbound registrations (does not
+the startup guardrail that now catches _future_ unbound registrations (does not
 retroactively protect the 8 unused policies, since nothing registers their capabilities
 today).
 
@@ -487,7 +490,7 @@ strict `!== undefined` check server-side. Fixed; regression test in `test_encode
   policies have a canonical binding (`CANONICAL_CAPABILITY_POLICY_BINDINGS`, 4 entries).
   No live exploitable surface today (the other 8 policies have no registered connector),
   but `assertConnectorCapabilitiesBound()` (commit `672aee6`) now fails startup if a
-  *newly registered* capability is unbound and not on the
+  _newly registered_ capability is unbound and not on the
   `INTENTIONALLY_UNBOUND_CAPABILITIES` allowlist — closes the recurrence risk, does not
   retroactively bind the 8 unused policies.
 - **NF-005 (HubSpot approval issuers)**: `TRUSTED_APPROVAL_ISSUERS` empty by design,

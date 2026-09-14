@@ -90,7 +90,11 @@ describe("verifyExecutionTrustRecordOffline", () => {
       .export({ format: "pem", type: "spki" })
       .toString();
 
-    const record = await buildSignedRecord("txn-offline-valid", privateKey, "offline-test-key");
+    const record = await buildSignedRecord(
+      "txn-offline-valid",
+      privateKey,
+      "offline-test-key",
+    );
 
     const result = await verifyExecutionTrustRecordOffline(record, {
       "offline-test-key": publicKeyPem,
@@ -105,9 +109,15 @@ describe("verifyExecutionTrustRecordOffline", () => {
 
   it("fails when the payload is tampered with after signing", async () => {
     const { privateKey, publicKey } = generateKeyPairSync("ed25519");
-    const publicKeyPem = publicKey.export({ format: "pem", type: "spki" }).toString();
+    const publicKeyPem = publicKey
+      .export({ format: "pem", type: "spki" })
+      .toString();
 
-    const record = await buildSignedRecord("txn-offline-tampered", privateKey, "offline-test-key");
+    const record = await buildSignedRecord(
+      "txn-offline-tampered",
+      privateKey,
+      "offline-test-key",
+    );
 
     const tampered: ExecutionTrustRecord = {
       ...record,
@@ -131,9 +141,15 @@ describe("verifyExecutionTrustRecordOffline", () => {
   it("fails against the wrong public key", async () => {
     const { privateKey } = generateKeyPairSync("ed25519");
     const { publicKey: wrongPublicKey } = generateKeyPairSync("ed25519");
-    const wrongPem = wrongPublicKey.export({ format: "pem", type: "spki" }).toString();
+    const wrongPem = wrongPublicKey
+      .export({ format: "pem", type: "spki" })
+      .toString();
 
-    const record = await buildSignedRecord("txn-offline-wrong-key", privateKey, "offline-test-key");
+    const record = await buildSignedRecord(
+      "txn-offline-wrong-key",
+      privateKey,
+      "offline-test-key",
+    );
 
     const result = await verifyExecutionTrustRecordOffline(record, {
       "offline-test-key": wrongPem,
@@ -145,23 +161,39 @@ describe("verifyExecutionTrustRecordOffline", () => {
 
   it("fails closed when no public key is supplied for the record's keyId", async () => {
     const { privateKey } = generateKeyPairSync("ed25519");
-    const record = await buildSignedRecord("txn-offline-no-key", privateKey, "offline-test-key");
+    const record = await buildSignedRecord(
+      "txn-offline-no-key",
+      privateKey,
+      "offline-test-key",
+    );
 
     const result = await verifyExecutionTrustRecordOffline(record, {});
 
     expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.includes("no public key supplied"))).toBe(true);
+    expect(
+      result.errors.some((e) => e.includes("no public key supplied")),
+    ).toBe(true);
   });
 
   it("fails closed for an unsupported algorithm rather than silently skipping it", async () => {
     const { privateKey, publicKey } = generateKeyPairSync("ed25519");
-    const publicKeyPem = publicKey.export({ format: "pem", type: "spki" }).toString();
+    const publicKeyPem = publicKey
+      .export({ format: "pem", type: "spki" })
+      .toString();
 
-    const record = await buildSignedRecord("txn-offline-bad-alg", privateKey, "offline-test-key");
+    const record = await buildSignedRecord(
+      "txn-offline-bad-alg",
+      privateKey,
+      "offline-test-key",
+    );
 
     const withBadAlgorithm: ExecutionTrustRecord = {
       ...record,
-      signature: { ...record.signature, algorithm: "sphincs-plus" as ExecutionTrustRecord["signature"]["algorithm"] },
+      signature: {
+        ...record.signature,
+        algorithm:
+          "sphincs-plus" as ExecutionTrustRecord["signature"]["algorithm"],
+      },
     };
 
     const result = await verifyExecutionTrustRecordOffline(withBadAlgorithm, {
@@ -169,7 +201,9 @@ describe("verifyExecutionTrustRecordOffline", () => {
     });
 
     expect(result.valid).toBe(false);
-    expect(result.errors.some((e) => e.includes("unsupported algorithm"))).toBe(true);
+    expect(result.errors.some((e) => e.includes("unsupported algorithm"))).toBe(
+      true,
+    );
   });
 
   describe.skipIf(!isMlDsa65Supported())(
@@ -216,28 +250,46 @@ describe("verifyExecutionTrustRecordOffline", () => {
           schemaVersion,
         };
 
-        const ed25519HybridValue = await legacySigner.sign(hybridArtifact, ed25519Keys.privateKey);
+        const ed25519HybridValue = await legacySigner.sign(
+          hybridArtifact,
+          ed25519Keys.privateKey,
+        );
 
         const dilithiumSigner = new ArtifactSigner({
           hash: new SHA256HashProvider(),
           signature: new Dilithium3SignatureProvider(),
         });
 
-        const dilithiumValue = await dilithiumSigner.sign(hybridArtifact, mldsaKeys.privateKey);
+        const dilithiumValue = await dilithiumSigner.sign(
+          hybridArtifact,
+          mldsaKeys.privateKey,
+        );
 
         const record: ExecutionTrustRecord = {
           ...withHash,
           signature: { ...withHash.signature, value: legacyValue },
           schemaVersion,
           signatures: [
-            { algorithm: "ed25519", keyId: "hybrid-primary", signature: ed25519HybridValue },
-            { algorithm: "dilithium3", keyId: "hybrid-secondary", signature: dilithiumValue },
+            {
+              algorithm: "ed25519",
+              keyId: "hybrid-primary",
+              signature: ed25519HybridValue,
+            },
+            {
+              algorithm: "dilithium3",
+              keyId: "hybrid-secondary",
+              signature: dilithiumValue,
+            },
           ],
         };
 
         const result = await verifyExecutionTrustRecordOffline(record, {
-          "hybrid-primary": ed25519Keys.publicKey.export({ format: "pem", type: "spki" }).toString(),
-          "hybrid-secondary": mldsaKeys.publicKey.export({ format: "pem", type: "spki" }).toString(),
+          "hybrid-primary": ed25519Keys.publicKey
+            .export({ format: "pem", type: "spki" })
+            .toString(),
+          "hybrid-secondary": mldsaKeys.publicKey
+            .export({ format: "pem", type: "spki" })
+            .toString(),
         });
 
         expect(result.valid).toBe(true);
@@ -293,7 +345,9 @@ describe("verifyExecutionTrustRecordOffline", () => {
         };
 
         const result = await verifyExecutionTrustRecordOffline(record, {
-          "hybrid-primary": ed25519Keys.publicKey.export({ format: "pem", type: "spki" }).toString(),
+          "hybrid-primary": ed25519Keys.publicKey
+            .export({ format: "pem", type: "spki" })
+            .toString(),
         });
 
         // The offline verifier reports facts, not policy: with no

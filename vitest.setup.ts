@@ -36,12 +36,9 @@ dotenv.config({
  * Both the Runtime signer and the Execution Gateway verifier
  * are configured to use this same keypair.
  */
-const keyDir = mkdtempSync(
-  join(tmpdir(), "parmana-vitest-keys-"),
-);
+const keyDir = mkdtempSync(join(tmpdir(), "parmana-vitest-keys-"));
 
-const { privateKey, publicKey } =
-  generateKeyPairSync("ed25519");
+const { privateKey, publicKey } = generateKeyPairSync("ed25519");
 
 writeFileSync(
   join(keyDir, "default.private.pem"),
@@ -95,10 +92,7 @@ process.env.KEY_DIRECTORY = keyDir;
 /**
  * Execution Gateway
  */
-process.env.PUBLIC_KEY_PATH = join(
-  keyDir,
-  "default.public.pem",
-);
+process.env.PUBLIC_KEY_PATH = join(keyDir, "default.public.pem");
 
 afterAll(() => {
   rmSync(keyDir, {

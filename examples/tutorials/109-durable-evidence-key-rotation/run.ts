@@ -31,7 +31,11 @@ async function signRecord(
   const draft = {
     trustRecordId: businessTransactionId,
     businessTransactionId,
-    transaction: { businessTransactionId, status: "RECEIVED", createdAt: new Date() },
+    transaction: {
+      businessTransactionId,
+      status: "RECEIVED",
+      createdAt: new Date(),
+    },
     overrides: [],
     executions: [],
     verifications: [],
@@ -45,7 +49,12 @@ async function signRecord(
   const withHash: ExecutionTrustRecord = {
     ...draft,
     trustRecordHash,
-    signature: { algorithm: "ed25519", keyId: "placeholder", value: "", signedAt: new Date() },
+    signature: {
+      algorithm: "ed25519",
+      keyId: "placeholder",
+      value: "",
+      signedAt: new Date(),
+    },
   };
 
   const signature = await crypto.sign(withHash);
@@ -62,17 +71,24 @@ async function main(): Promise<void> {
 
   delete process.env.PARMANA_VERIFICATION_KEY_ID;
 
-  console.log("Scenario 1: Sign a record before any rotation -- uses the 'default' keyId");
+  console.log(
+    "Scenario 1: Sign a record before any rotation -- uses the 'default' keyId",
+  );
   console.log("--------------------------------------------------");
 
   const beforeRotation = new VerificationCrypto();
-  const originalRecord = await signRecord(beforeRotation, "rotation-tutorial-original");
+  const originalRecord = await signRecord(
+    beforeRotation,
+    "rotation-tutorial-original",
+  );
 
   console.log(`keyId  : ${originalRecord.signature.keyId}`);
   console.log(`verify : ${await beforeRotation.verify(originalRecord)}`);
   console.log();
 
-  console.log("Scenario 2: Rotate -- generate a new keyId's key pair, touch nothing else");
+  console.log(
+    "Scenario 2: Rotate -- generate a new keyId's key pair, touch nothing else",
+  );
   console.log("--------------------------------------------------");
 
   const keyDir = process.env.PARMANA_KEY_DIR ?? "./keys";
@@ -82,8 +98,14 @@ async function main(): Promise<void> {
 
   if (!existsSync(privatePath)) {
     const { privateKey, publicKey } = generateKeyPairSync("ed25519");
-    writeFileSync(privatePath, privateKey.export({ format: "pem", type: "pkcs8" }));
-    writeFileSync(publicPath, publicKey.export({ format: "pem", type: "spki" }));
+    writeFileSync(
+      privatePath,
+      privateKey.export({ format: "pem", type: "pkcs8" }),
+    );
+    writeFileSync(
+      publicPath,
+      publicKey.export({ format: "pem", type: "spki" }),
+    );
   }
 
   process.env.PARMANA_VERIFICATION_KEY_ID = rotatedKeyId;
@@ -91,7 +113,9 @@ async function main(): Promise<void> {
   console.log(`default.*.pem       : untouched`);
   console.log();
 
-  console.log("Scenario 3: Sign a second record after rotation -- uses the new keyId");
+  console.log(
+    "Scenario 3: Sign a second record after rotation -- uses the new keyId",
+  );
   console.log("--------------------------------------------------");
 
   // A fresh VerificationCrypto, simulating a new process after
@@ -104,11 +128,15 @@ async function main(): Promise<void> {
   console.log(`verify : ${await afterRotation.verify(newRecord)}`);
   console.log();
 
-  console.log("Scenario 4: The pre-rotation record still verifies -- rotation did not break history");
+  console.log(
+    "Scenario 4: The pre-rotation record still verifies -- rotation did not break history",
+  );
   console.log("--------------------------------------------------");
 
   const originalStillVerifies = await afterRotation.verify(originalRecord);
-  console.log(`verify(originalRecord) after rotation : ${originalStillVerifies}`);
+  console.log(
+    `verify(originalRecord) after rotation : ${originalStillVerifies}`,
+  );
   console.log();
 
   delete process.env.PARMANA_VERIFICATION_KEY_ID;
@@ -124,7 +152,9 @@ async function main(): Promise<void> {
       "✓ Rotation produced a genuinely new signing key, and every record -- pre- and post-rotation -- still verifies correctly.",
     );
   } else {
-    console.log("✗ Expected both records to verify under their own distinct keys.");
+    console.log(
+      "✗ Expected both records to verify under their own distinct keys.",
+    );
   }
 
   console.log();

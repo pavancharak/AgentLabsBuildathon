@@ -24,7 +24,8 @@ import { PolicyGovernanceExecutionVerifier } from "../governance/PolicyGovernanc
  * policyExecutionVerifier describes exactly what changes once this
  * returns a real verifier instead.
  */
-export function createPolicyExecutionVerifier(): PolicyExecutionVerifier | undefined {
+export function createPolicyExecutionVerifier():
+  PolicyExecutionVerifier | undefined {
   if (process.env.POLICY_EXECUTION_VERIFICATION_ENFORCED !== "true") {
     return undefined;
   }

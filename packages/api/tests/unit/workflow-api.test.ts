@@ -17,20 +17,20 @@ describe("Execution Trust Workflow", () => {
         businessTransactionId: "txn-workflow-001",
       },
 
-policy: TEST_POLICY,
+      policy: TEST_POLICY,
 
       signals: {
-  amount: 1000,
-  vendorVerified: true,
-  paymentApproved: true,
-},
+        amount: 1000,
+        vendorVerified: true,
+        paymentApproved: true,
+      },
 
       decision: {
         decisionId: "dec-001",
         outcome: "APPROVED",
         evaluatedAt: new Date(),
 
-policy: TEST_POLICY,
+        policy: TEST_POLICY,
       },
 
       status: "APPROVED",
@@ -49,6 +49,3 @@ policy: TEST_POLICY,
     expect(execute.status).toBeDefined();
   });
 });
-
-
-

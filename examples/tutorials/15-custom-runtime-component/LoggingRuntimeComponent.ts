@@ -1,10 +1,6 @@
-import type {
-  RuntimeComponent,
-} from "@parmana/runtime";
+import type { RuntimeComponent } from "@parmana/runtime";
 
-import type {
-  RuntimeContext,
-} from "@parmana/runtime";
+import type { RuntimeContext } from "@parmana/runtime";
 
 /**
  * Logging Runtime Component.
@@ -16,41 +12,25 @@ import type {
  * logs useful execution information, and passes
  * the context to the next runtime stage unchanged.
  */
-export class LoggingRuntimeComponent
-  implements RuntimeComponent
-{
-  public async execute(
-    context: RuntimeContext,
-  ): Promise<RuntimeContext> {
+export class LoggingRuntimeComponent implements RuntimeComponent {
+  public async execute(context: RuntimeContext): Promise<RuntimeContext> {
     console.log();
 
-    console.log(
-      "----------------------------------------",
-    );
+    console.log("----------------------------------------");
 
-    console.log(
-      " Logging Runtime Component",
-    );
+    console.log(" Logging Runtime Component");
 
-    console.log(
-      "----------------------------------------",
-    );
+    console.log("----------------------------------------");
 
     console.log();
 
-    console.log(
-      "Business Transaction",
-    );
+    console.log("Business Transaction");
 
-    console.log(
-      context.transaction.businessTransactionId,
-    );
+    console.log(context.transaction.businessTransactionId);
 
     console.log();
 
-    console.log(
-      "Policy",
-    );
+    console.log("Policy");
 
     console.log(
       `${context.transaction.policy.name}@${context.transaction.policy.version}`,
@@ -58,29 +38,19 @@ export class LoggingRuntimeComponent
 
     console.log();
 
-    console.log(
-      "Action",
-    );
+    console.log("Action");
 
-    console.log(
-      context.transaction.intent.action,
-    );
+    console.log(context.transaction.intent.action);
 
     console.log();
 
-    console.log(
-      "Target",
-    );
+    console.log("Target");
 
-    console.log(
-      context.transaction.intent.target,
-    );
+    console.log(context.transaction.intent.target);
 
     console.log();
 
-    console.log(
-      "----------------------------------------",
-    );
+    console.log("----------------------------------------");
 
     console.log();
 

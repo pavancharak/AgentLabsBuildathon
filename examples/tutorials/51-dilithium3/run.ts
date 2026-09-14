@@ -13,15 +13,9 @@ import {
 
 async function main(): Promise<void> {
   console.log();
-  console.log(
-    "==================================================",
-  );
-  console.log(
-    "Tutorial 51 - Dilithium3 Signatures",
-  );
-  console.log(
-    "==================================================",
-  );
+  console.log("==================================================");
+  console.log("Tutorial 51 - Dilithium3 Signatures");
+  console.log("==================================================");
   console.log();
 
   //
@@ -50,8 +44,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  const crypto =
-    CryptoBootstrap.create();
+  const crypto = CryptoBootstrap.create();
 
   //
   // Load signing keys. Self-provisions the "pq" key pair if this
@@ -65,105 +58,66 @@ async function main(): Promise<void> {
   if (!existsSync(pqPrivatePath)) {
     const { privateKey, publicKey } = generateKeyPairSync("ml-dsa-65");
 
-    writeFileSync(pqPrivatePath, privateKey.export({ format: "pem", type: "pkcs8" }));
-    writeFileSync(pqPublicPath, publicKey.export({ format: "pem", type: "spki" }));
+    writeFileSync(
+      pqPrivatePath,
+      privateKey.export({ format: "pem", type: "pkcs8" }),
+    );
+    writeFileSync(
+      pqPublicPath,
+      publicKey.export({ format: "pem", type: "spki" }),
+    );
   }
 
-  const keyProvider =
-    new FileKeyProvider();
+  const keyProvider = new FileKeyProvider();
 
-  const metadata =
-  await keyProvider.getMetadata(
-    "pq",
-  );
+  const metadata = await keyProvider.getMetadata("pq");
 
-const privateKey =
-  await keyProvider.getPrivateKey(
-    "pq",
-  );
+  const privateKey = await keyProvider.getPrivateKey("pq");
 
-const publicKey =
-  await keyProvider.getPublicKey(
-    "pq",
-  );
+  const publicKey = await keyProvider.getPublicKey("pq");
 
-  console.log(
-    `Algorithm : ${metadata.algorithm}`,
-  );
+  console.log(`Algorithm : ${metadata.algorithm}`);
 
-  console.log(
-    `Key ID    : ${metadata.keyId}`,
-  );
+  console.log(`Key ID    : ${metadata.keyId}`);
 
   console.log();
 
   //
   // Sign.
   //
-  const signer =
-    new ArtifactSigner(
-      crypto,
-    );
+  const signer = new ArtifactSigner(crypto);
 
-  const signature =
-    await signer.sign(
-      artifact,
-      privateKey,
-    );
+  const signature = await signer.sign(artifact, privateKey);
 
   //
   // Verify.
   //
-  const verifier =
-    new SignatureVerifier(
-      crypto,
-    );
+  const verifier = new SignatureVerifier(crypto);
 
-  const verified =
-    await verifier.verify(
-      artifact,
-      signature,
-      publicKey,
-    );
+  const verified = await verifier.verify(artifact, signature, publicKey);
 
   console.log();
 
-  console.log(
-    "Dilithium3 Verification",
-  );
+  console.log("Dilithium3 Verification");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
-console.log(
-  `Signature Length : ${signature.length} characters`,
-);
+  console.log(`Signature Length : ${signature.length} characters`);
 
-console.log(
-  `Signature Preview : ${signature.substring(0, 80)}...`,
-);
-  console.log(
-    `Verified : ${verified}`,
-  );
+  console.log(`Signature Preview : ${signature.substring(0, 80)}...`);
+  console.log(`Verified : ${verified}`);
 
   console.log();
 
   if (verified) {
-    console.log(
-      "✓ Dilithium3 signature verified.",
-    );
+    console.log("✓ Dilithium3 signature verified.");
   } else {
-    console.log(
-      "✗ Verification failed.",
-    );
+    console.log("✗ Verification failed.");
   }
 
   console.log();
 
-  console.log(
-    "Tutorial completed successfully.",
-  );
+  console.log("Tutorial completed successfully.");
 }
 
 main().catch((error) => {

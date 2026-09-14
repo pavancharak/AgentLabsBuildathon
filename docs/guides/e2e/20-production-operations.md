@@ -1,26 +1,14 @@
 \# 20 – Production Operations
 
-
-
 This guide describes the operational practices for running the Parmana Execution Trust Platform in production.
-
-
 
 \---
 
-
-
 \# Overview
-
-
 
 Production operations focus on maintaining the availability, integrity, security, and auditability of the platform.
 
-
-
 Operational responsibilities include:
-
-
 
 \- Monitoring
 
@@ -36,15 +24,9 @@ Operational responsibilities include:
 
 \- Capacity planning
 
-
-
 \---
 
-
-
 \# Operational Architecture
-
-
 
 ```text
 
@@ -84,19 +66,11 @@ Operational responsibilities include:
 
 ```
 
-
-
 \---
-
-
 
 \# Health Monitoring
 
-
-
 Monitor the health of:
-
-
 
 \- API availability
 
@@ -110,23 +84,13 @@ Monitor the health of:
 
 \- Cryptographic services
 
-
-
 Health checks should be integrated with enterprise monitoring platforms.
-
-
 
 \---
 
-
-
 \# Metrics
 
-
-
 Recommended metrics include:
-
-
 
 | Metric | Description |
 
@@ -148,19 +112,11 @@ Recommended metrics include:
 
 | Database Latency | Repository response time |
 
-
-
 \---
-
-
 
 \# Logging
 
-
-
 Application logs should include:
-
-
 
 \- Business Transaction ID
 
@@ -178,23 +134,13 @@ Application logs should include:
 
 \- Log level
 
-
-
 Avoid logging sensitive business data or private cryptographic material.
-
-
 
 \---
 
-
-
 \# Alerting
 
-
-
 Configure alerts for:
-
-
 
 \- API downtime
 
@@ -210,19 +156,11 @@ Configure alerts for:
 
 \- Resource exhaustion
 
-
-
 \---
-
-
 
 \# Incident Response
 
-
-
 When an incident occurs:
-
-
 
 1\. Identify the affected component.
 
@@ -240,19 +178,11 @@ When an incident occurs:
 
 8\. Document the incident.
 
-
-
 \---
-
-
 
 \# Backup Strategy
 
-
-
 Regularly back up:
-
-
 
 \- Trust Record repository
 
@@ -264,23 +194,13 @@ Regularly back up:
 
 \- Operational documentation
 
-
-
 Private signing keys should follow the organization's secure backup and recovery procedures.
-
-
 
 \---
 
-
-
 \# Key Rotation
 
-
-
 When rotating signing keys:
-
-
 
 1\. Generate a new key pair.
 
@@ -294,23 +214,13 @@ When rotating signing keys:
 
 6\. Monitor verification results.
 
-
-
 Historical Trust Records remain verifiable because they reference the key used when they were signed.
-
-
 
 \---
 
-
-
 \# Software Upgrades
 
-
-
 Before upgrading:
-
-
 
 \- Review release notes.
 
@@ -324,19 +234,11 @@ Before upgrading:
 
 \- Confirm successful deployment with health checks.
 
-
-
 \---
-
-
 
 \# Capacity Planning
 
-
-
 Monitor:
-
-
 
 \- Request throughput
 
@@ -352,23 +254,13 @@ Monitor:
 
 \- Connector response times
 
-
-
 Scale infrastructure proactively based on observed trends.
-
-
 
 \---
 
-
-
 \# Operational Checklist
 
-
-
 Daily:
-
-
 
 \- Review health dashboards.
 
@@ -378,11 +270,7 @@ Daily:
 
 \- Review authentication failures.
 
-
-
 Weekly:
-
-
 
 \- Review execution metrics.
 
@@ -392,11 +280,7 @@ Weekly:
 
 \- Inspect storage growth.
 
-
-
 Monthly:
-
-
 
 \- Review security configuration.
 
@@ -406,15 +290,9 @@ Monthly:
 
 \- Review capacity forecasts.
 
-
-
 \---
 
-
-
 \# Operational Workflow
-
-
 
 ```text
 
@@ -452,15 +330,8 @@ Document
 
 ```
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 Operating Parmana in production requires continuous monitoring, structured incident response, secure key management, reliable backup procedures, and regular operational reviews. These practices help ensure that execution authorization remains available, trustworthy, and auditable throughout the platform's lifecycle.
-

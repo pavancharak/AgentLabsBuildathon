@@ -1,10 +1,10 @@
 # Why Parmana Is Deep Tech, Not a Regular Startup
 
-*Draft innovation narrative — DPIIT Deep Tech recognition application*
-*Status: DRAFT, grounded only in verified repo evidence (README.md, docs/CLAIMS.md). Sections
+_Draft innovation narrative — DPIIT Deep Tech recognition application_
+_Status: DRAFT, grounded only in verified repo evidence (README.md, docs/CLAIMS.md). Sections
 marked TODO require figures/facts that don't yet exist in this repo or session memory and must
 come from Pavan directly — see the verification note in
-[DEEP-TECH-APPLICATION-PROMPT.md](./DEEP-TECH-APPLICATION-PROMPT.md).*
+[DEEP-TECH-APPLICATION-PROMPT.md](./DEEP-TECH-APPLICATION-PROMPT.md)._
 
 ---
 
@@ -13,8 +13,8 @@ come from Pavan directly — see the verification note in
 Connecting an AI agent to a real system (a payment API, a CRM, a banking rail) creates a gap
 that conventional access control doesn't close: granting an agent permission to act is not the
 same as controlling what it actually does at the moment it acts. Role-based access and API
-scopes decide *who may ask*; they say nothing about *whether the specific action requested at
-execution time was the one actually authorized*, and they give the caller the underlying
+scopes decide _who may ask_; they say nothing about _whether the specific action requested at
+execution time was the one actually authorized_, and they give the caller the underlying
 credential directly, which means every connector integration becomes a new place a long-lived
 secret can leak or be replayed.
 

@@ -20,61 +20,40 @@ import { Dilithium3SignatureProvider } from "./providers/signature/Dilithium3Sig
  * Composition root for the Parmana crypto subsystem.
  */
 export class CryptoBootstrap {
-  private static provider:
-    | CryptoProvider
-    | undefined;
+  private static provider: CryptoProvider | undefined;
 
-  private static hybrid:
-    | HybridCryptoProvider
-    | undefined;
+  private static hybrid: HybridCryptoProvider | undefined;
 
   /**
    * Builds a CryptoProvider for a specific
    * signature algorithm.
    */
-private static buildProvider(
-  signatureAlgorithm: SignatureAlgorithm,
-): CryptoProvider {
-    const config =
-      loadConfig();
+  private static buildProvider(
+    signatureAlgorithm: SignatureAlgorithm,
+  ): CryptoProvider {
+    const config = loadConfig();
 
-    const hashRegistry =
-      new HashRegistry();
+    const hashRegistry = new HashRegistry();
 
-    const signatureRegistry =
-      new SignatureRegistry();
+    const signatureRegistry = new SignatureRegistry();
 
     //
     // Register built-in hash providers.
     //
-    hashRegistry.register(
-      new SHA256HashProvider(),
-    );
+    hashRegistry.register(new SHA256HashProvider());
 
     //
     // Register built-in signature providers.
     //
-    signatureRegistry.register(
-      new Ed25519SignatureProvider(),
-    );
+    signatureRegistry.register(new Ed25519SignatureProvider());
 
-    signatureRegistry.register(
-      new Dilithium3SignatureProvider(),
-    );
+    signatureRegistry.register(new Dilithium3SignatureProvider());
 
     return new CryptoBuilder()
 
-      .withHash(
-        hashRegistry.get(
-          config.crypto.hashProvider,
-        ),
-      )
+      .withHash(hashRegistry.get(config.crypto.hashProvider))
 
-      .withSignature(
-        signatureRegistry.get(
-          signatureAlgorithm,
-        ),
-      )
+      .withSignature(signatureRegistry.get(signatureAlgorithm))
 
       .build();
   }
@@ -87,14 +66,9 @@ private static buildProvider(
       return this.provider;
     }
 
-    const config =
-      loadConfig();
+    const config = loadConfig();
 
-    this.provider =
-      this.buildProvider(
-        config.crypto
-          .primarySignatureProvider,
-      );
+    this.provider = this.buildProvider(config.crypto.primarySignatureProvider);
 
     return this.provider;
   }
@@ -109,27 +83,16 @@ private static buildProvider(
       return this.hybrid;
     }
 
-    const config =
-      loadConfig();
+    const config = loadConfig();
 
-    if (
-      !config.crypto.secondarySignatureProvider
-    ) {
-      throw new Error(
-        "Secondary signature provider is not configured.",
-      );
+    if (!config.crypto.secondarySignatureProvider) {
+      throw new Error("Secondary signature provider is not configured.");
     }
 
     this.hybrid = {
-      primary: this.buildProvider(
-        config.crypto
-          .primarySignatureProvider,
-      ),
+      primary: this.buildProvider(config.crypto.primarySignatureProvider),
 
-      secondary: this.buildProvider(
-        config.crypto
-          .secondarySignatureProvider,
-      ),
+      secondary: this.buildProvider(config.crypto.secondarySignatureProvider),
     };
 
     return this.hybrid;

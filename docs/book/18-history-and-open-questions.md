@@ -37,8 +37,8 @@ of the same underlying question: the caller declared X; is X actually true, and 
 true?
 
 - **G-24** (RFC-0022, "residual closure"): established that `SignalIntentBinder` proves a
-  declared signal describes the same *action* as Intent, but never proves the signal is
-  *true*, and introduced the `SignalStateVerifier` port (Chapter 3) as the deliberately
+  declared signal describes the same _action_ as Intent, but never proves the signal is
+  _true_, and introduced the `SignalStateVerifier` port (Chapter 3) as the deliberately
   separate, optional mechanism for that.
 - **G-27**: `payments:execute`/vendor-payment, a mock connector registered unconditionally
   in an earlier build, was never on the actual product roadmap as a real capability. Rather
@@ -48,7 +48,7 @@ true?
 - **G-30**: the capability-coverage test asserting "every registered capability is bound"
   didn't actually read the registry (Chapter 4); a real connector went unbound for six days
   before an unrelated audit noticed.
-- **G-31**: the newest, closing the *temporal* half of the same question: a decision's
+- **G-31**: the newest, closing the _temporal_ half of the same question: a decision's
   signals were verified once, at decision time, but never re-checked at the moment of
   execution, meaningful specifically for a `SignedExecutionAuthorization` handed to a
   decoupled downstream receiver, verified independently, possibly much later (Chapter 8).
@@ -71,8 +71,8 @@ that even the fix's own coverage test remains a hand-maintained literal, not ful
 ## Open questions this codebase has deliberately not resolved
 
 **Internal vs. external policy authoring** (Chapter 14). Maker-checker governance answers
-*how* a policy change gets approved, given Parmana is the system of record. It doesn't
-answer whether Parmana *should* be that system of record. An architecture where policies
+_how_ a policy change gets approved, given Parmana is the system of record. It doesn't
+answer whether Parmana _should_ be that system of record. An architecture where policies
 are authored and approved externally, with Parmana staying strictly enforcement-only, remains
 undecided, not rejected.
 
@@ -106,7 +106,7 @@ a required condition for merging into `main`. Enabling branch protection was att
 directly and failed with an externally-imposed constraint: `403 Upgrade to GitHub Pro or make
 this repository public`, not a code or configuration gap on this project's side. Precise
 current state: an unapproved edit landing directly on `main` will be caught and reported by
-CI, visibly, but is not currently *prevented* from landing. Detection is real and automatic;
+CI, visibly, but is not currently _prevented_ from landing. Detection is real and automatic;
 prevention needs either a paid plan or a visibility change, and neither decision has been
 made.
 
@@ -118,7 +118,7 @@ specific gap someone found. The check ordering in Chapters 7 and 8 (side-effect-
 nonce last) isn't an arbitrary style choice; it's a direct response to a named
 replay-poisoning risk. The sign-before-write ordering in Chapter 14 isn't a preference; it's
 proven by a test that injects failure at each step specifically because the alternative
-ordering was considered and rejected as unsafe. Understanding *why* the code is shaped the
+ordering was considered and rejected as unsafe. Understanding _why_ the code is shaped the
 way it is, which is the whole premise of this book, requires knowing what it used to look
 like, and what went wrong the one time it didn't look like this.
 
@@ -126,4 +126,4 @@ like, and what went wrong the one time it didn't look like this.
 
 [← Book Index](README.md) · [← Previous: Chapter 17, Testing Philosophy](17-testing-philosophy.md)
 
-*This is the final chapter.*
+_This is the final chapter._

@@ -3,7 +3,10 @@ title: "Idempotency and Nonces"
 description: "There is no Idempotency-Key header. businessTransactionId is the API-layer idempotency mechanism, and it behaves differently from Stripe's: a duplicate is a 409, not a replayed response. Nonces are a separate, internal concept."
 ---
 
-<Info>**[AVAILABLE]** for what's described below. No `Idempotency-Key` header exists anywhere in this API, this page is describing the real mechanism, not a gap.</Info>
+<Info>
+  **[AVAILABLE]** for what's described below. No `Idempotency-Key` header exists
+  anywhere in this API, this page is describing the real mechanism, not a gap.
+</Info>
 
 ## businessTransactionId is the idempotency key, but not Stripe's kind
 
@@ -12,7 +15,9 @@ description: "There is no Idempotency-Key header. businessTransactionId is the A
 Stripe's `Idempotency-Key` does. It fails:
 
 ```json
-{ "error": "Business Transaction 'a1a1a1a1-1111-4111-8111-111111111111' already exists." }
+{
+  "error": "Business Transaction 'a1a1a1a1-1111-4111-8111-111111111111' already exists."
+}
 ```
 
 with a 409, from `DuplicateBusinessTransactionError`. If your integration retries a timed-out
@@ -37,9 +42,10 @@ See [Execution Authorization](/concepts/execution-authorization) for the full me
 this protects.
 
 <Warning>
-This nonce check is scoped to whichever `NonceStore` instance verifies it. A fleet of API
-processes with no shared store would each accept the same authorization once, not once
-fleet-wide, see [Deploy patterns](/guides/deploy-patterns#what-this-deployment-does-not-give-you).
+  This nonce check is scoped to whichever `NonceStore` instance verifies it. A
+  fleet of API processes with no shared store would each accept the same
+  authorization once, not once fleet-wide, see [Deploy
+  patterns](/guides/deploy-patterns#what-this-deployment-does-not-give-you).
 </Warning>
 
 ## What this means together
@@ -47,10 +53,10 @@ fleet-wide, see [Deploy patterns](/guides/deploy-patterns#what-this-deployment-d
 Two independent replay defenses exist at two different layers, and neither is an
 `Idempotency-Key` header:
 
-| Layer | Mechanism | What repeating gets you |
-|---|---|---|
-| REST API (`businessTransactionId`) | Uniqueness check against storage | 409, not the original response |
-| Internal authorization (`nonce`) | Single-use check in `NonceStore` | Rejected authorization, execution never runs |
+| Layer                              | Mechanism                        | What repeating gets you                      |
+| ---------------------------------- | -------------------------------- | -------------------------------------------- |
+| REST API (`businessTransactionId`) | Uniqueness check against storage | 409, not the original response               |
+| Internal authorization (`nonce`)   | Single-use check in `NonceStore` | Rejected authorization, execution never runs |
 
 Neither layer is configurable per-request, and there is no way to opt out of the
 `businessTransactionId` uniqueness check from the API.

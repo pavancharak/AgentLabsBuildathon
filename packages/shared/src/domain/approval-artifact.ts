@@ -46,7 +46,8 @@ import type { Signature } from "./signature.js";
  * approval bounds one numeric or exact-match fact, not an arbitrary
  * policy condition tree.
  */
-export type ApprovalScopeComparator = "eq" | "lte" | "gte" | "lt" | "gt" | "between";
+export type ApprovalScopeComparator =
+  "eq" | "lte" | "gte" | "lt" | "gt" | "between";
 
 /**
  * The bound being approved. `value`'s shape depends on `comparator`:
@@ -64,7 +65,8 @@ export interface ApprovalScope {
 
   readonly comparator: ApprovalScopeComparator;
 
-  readonly value: number | string | { readonly min: number; readonly max: number };
+  readonly value:
+    number | string | { readonly min: number; readonly max: number };
 }
 
 /**

@@ -1,6 +1,10 @@
 import { CryptoBootstrap } from "@parmana/crypto";
 import type { ConnectorIdentity } from "@parmana/execution-control";
-import { DefaultConnectorPolicy, InMemoryConnectorAuthenticator, InMemoryGatewaySessionStore } from "@parmana/execution-control";
+import {
+  DefaultConnectorPolicy,
+  InMemoryConnectorAuthenticator,
+  InMemoryGatewaySessionStore,
+} from "@parmana/execution-control";
 import {
   MockConnector,
   StaticCredentialProvider,
@@ -43,11 +47,17 @@ function fixtureRegistration(connectorId: string) {
   };
   const gatewayAuthentication = Object.freeze({ token: "gw-token" });
   const authenticator = new InMemoryConnectorAuthenticator(
-    gatewayIdentity, gatewayAuthentication, [connectorIdentity],
+    gatewayIdentity,
+    gatewayAuthentication,
+    [connectorIdentity],
   );
-  const sessions = new InMemoryGatewaySessionStore(Object.freeze({ capability: "session-issuer" }));
+  const sessions = new InMemoryGatewaySessionStore(
+    Object.freeze({ capability: "session-issuer" }),
+  );
   const policy = new DefaultConnectorPolicy(authenticator, sessions);
-  const credentialProvider = new StaticCredentialProvider({ [connectorId]: { token: "secret" } });
+  const credentialProvider = new StaticCredentialProvider({
+    [connectorId]: { token: "secret" },
+  });
 
   return {
     connector: fixtureConnector(connectorId),
@@ -93,8 +103,9 @@ describe("GatewayConnectorRegistry", () => {
   it("rejects duplicate registration", () => {
     const registry = new GatewayConnectorRegistry();
     registry.register(fixtureRegistration("stripe"));
-    expect(() => registry.register(fixtureRegistration("stripe")))
-      .toThrow("Connector already registered: stripe.");
+    expect(() => registry.register(fixtureRegistration("stripe"))).toThrow(
+      "Connector already registered: stripe.",
+    );
   });
 
   it("rejects lookups of unknown connectors", () => {

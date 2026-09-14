@@ -39,18 +39,31 @@
     },
     {
       "id": "reject-missing-receipt",
-      "condition": { "fact": "receiptAttached", "operator": "eq", "value": false },
-      "outcome": { "action": "reject", "reason": "Expense rejected: no receipt attached." }
+      "condition": {
+        "fact": "receiptAttached",
+        "operator": "eq",
+        "value": false
+      },
+      "outcome": {
+        "action": "reject",
+        "reason": "Expense rejected: no receipt attached."
+      }
     },
     {
       "id": "reject-excessive-amount",
       "condition": { "fact": "expenseAmount", "operator": "gt", "value": 5000 },
-      "outcome": { "action": "reject", "reason": "Expense rejected: amount exceeds the $5,000 auto-approval limit." }
+      "outcome": {
+        "action": "reject",
+        "reason": "Expense rejected: amount exceeds the $5,000 auto-approval limit."
+      }
     },
     {
       "id": "reject-default",
       "condition": { "always": true },
-      "outcome": { "action": "reject", "reason": "Expense rejected: one or more required conditions were not satisfied." }
+      "outcome": {
+        "action": "reject",
+        "reason": "Expense rejected: one or more required conditions were not satisfied."
+      }
     }
   ]
 }

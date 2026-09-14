@@ -1,7 +1,4 @@
-import type {
-  PolicyChangeApprovalRecord,
-  Signature,
-} from "@parmana/shared";
+import type { PolicyChangeApprovalRecord, Signature } from "@parmana/shared";
 
 import { CryptoBootstrap } from "./CryptoBootstrap.js";
 import { TrustRecordHasher } from "./TrustRecordHasher.js";
@@ -22,62 +19,44 @@ import { DEFAULT_KEY_ID } from "./KeyProvider.js";
  * to manage.
  */
 export class PolicyChangeCrypto {
-  private readonly crypto =
-    CryptoBootstrap.create();
+  private readonly crypto = CryptoBootstrap.create();
 
-  private readonly signerPromise =
-    SignerBootstrap.create();
+  private readonly signerPromise = SignerBootstrap.create();
 
-  private readonly hasher =
-    new TrustRecordHasher(this.crypto);
+  private readonly hasher = new TrustRecordHasher(this.crypto);
 
-  private readonly signer =
-    new ArtifactSigner(this.crypto);
+  private readonly signer = new ArtifactSigner(this.crypto);
 
-  private readonly verifier =
-    new SignatureVerifier(this.crypto);
+  private readonly verifier = new SignatureVerifier(this.crypto);
 
   /**
    * Creates the canonical immutable view of a Policy Change Approval
    * Record used for signing/verification. Excludes the signature
    * itself.
    */
-  private canonicalRecord(
-    record: PolicyChangeApprovalRecord,
-  ) {
+  private canonicalRecord(record: PolicyChangeApprovalRecord) {
     return {
-      policyChangeApprovalRecordId:
-        record.policyChangeApprovalRecordId,
+      policyChangeApprovalRecordId: record.policyChangeApprovalRecordId,
 
-      pendingPolicyChangeId:
-        record.pendingPolicyChangeId,
+      pendingPolicyChangeId: record.pendingPolicyChangeId,
 
-      policyName:
-        record.policyName,
+      policyName: record.policyName,
 
-      policyVersion:
-        record.policyVersion,
+      policyVersion: record.policyVersion,
 
-      proposedBy:
-        record.proposedBy,
+      proposedBy: record.proposedBy,
 
-      approvedBy:
-        record.approvedBy,
+      approvedBy: record.approvedBy,
 
-      proposedAt:
-        record.proposedAt,
+      proposedAt: record.proposedAt,
 
-      approvedAt:
-        record.approvedAt,
+      approvedAt: record.approvedAt,
 
-      contentHashBefore:
-        record.contentHashBefore,
+      contentHashBefore: record.contentHashBefore,
 
-      contentHashAfter:
-        record.contentHashAfter,
+      contentHashAfter: record.contentHashAfter,
 
-      previousRecordHash:
-        record.previousRecordHash,
+      previousRecordHash: record.previousRecordHash,
     };
   }
 
@@ -89,9 +68,7 @@ export class PolicyChangeCrypto {
    * content immediately before/after an approval, not the approval
    * record itself).
    */
-  async hashPolicyContent(
-    content: unknown,
-  ): Promise<string> {
+  async hashPolicyContent(content: unknown): Promise<string> {
     return this.hasher.hash(content);
   }
 
@@ -99,23 +76,19 @@ export class PolicyChangeCrypto {
    * Creates a digital signature over the canonical Policy Change
    * Approval Record.
    */
-  async sign(
-    record: PolicyChangeApprovalRecord,
-  ): Promise<Signature> {
+  async sign(record: PolicyChangeApprovalRecord): Promise<Signature> {
     const keyId = DEFAULT_KEY_ID;
 
     const signer = await this.signerPromise;
 
-    const value =
-      await this.signer.signWithSigner(
-        this.canonicalRecord(record),
-        keyId,
-        signer,
-      );
+    const value = await this.signer.signWithSigner(
+      this.canonicalRecord(record),
+      keyId,
+      signer,
+    );
 
     return {
-      algorithm:
-        this.crypto.signature.algorithm,
+      algorithm: this.crypto.signature.algorithm,
 
       keyId,
 
@@ -128,15 +101,10 @@ export class PolicyChangeCrypto {
   /**
    * Verifies the signature of a Policy Change Approval Record.
    */
-  async verify(
-    record: PolicyChangeApprovalRecord,
-  ): Promise<boolean> {
+  async verify(record: PolicyChangeApprovalRecord): Promise<boolean> {
     const signer = await this.signerPromise;
 
-    const publicKey =
-      await signer.getPublicKey(
-        record.signature.keyId,
-      );
+    const publicKey = await signer.getPublicKey(record.signature.keyId);
 
     return this.verifier.verify(
       this.canonicalRecord(record),

@@ -163,7 +163,10 @@ export async function verifyExecutionTrustRecordOffline(
 
   let hybridSignaturesValid: boolean | undefined;
 
-  if (trustRecord.signatures !== undefined && trustRecord.signatures.length > 0) {
+  if (
+    trustRecord.signatures !== undefined &&
+    trustRecord.signatures.length > 0
+  ) {
     const schemaVersion = trustRecord.schemaVersion ?? 2;
     const hybridArtifact = hybridCanonicalExecutionTrustRecord(
       trustRecord,
@@ -181,7 +184,9 @@ export async function verifyExecutionTrustRecordOffline(
 
     for (const entry of trustRecord.signatures) {
       if (seenAlgorithms.has(entry.algorithm)) {
-        errors.push(`duplicate algorithm in signatures array: ${entry.algorithm}.`);
+        errors.push(
+          `duplicate algorithm in signatures array: ${entry.algorithm}.`,
+        );
         allValid = false;
         continue;
       }
@@ -203,9 +208,7 @@ export async function verifyExecutionTrustRecordOffline(
   }
 
   const valid =
-    hashValid &&
-    legacySignatureValid &&
-    (hybridSignaturesValid ?? true);
+    hashValid && legacySignatureValid && (hybridSignaturesValid ?? true);
 
   return {
     valid,

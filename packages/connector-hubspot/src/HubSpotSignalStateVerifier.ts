@@ -8,8 +8,14 @@ import type {
   SignalStateViolation,
 } from "@parmana/policy";
 
-import { executeHubSpotCapability, hubSpotConnectorResponseMetadata } from "./HubSpotCapabilityExecution.js";
-import { HUBSPOT_DEAL_FETCH_CAPABILITY, HUBSPOT_DEAL_UPDATE_CAPABILITY } from "./HubSpotCapabilities.js";
+import {
+  executeHubSpotCapability,
+  hubSpotConnectorResponseMetadata,
+} from "./HubSpotCapabilityExecution.js";
+import {
+  HUBSPOT_DEAL_FETCH_CAPABILITY,
+  HUBSPOT_DEAL_UPDATE_CAPABILITY,
+} from "./HubSpotCapabilities.js";
 import { buildHubSpotDealUpdateSignals } from "./HubSpotDealUpdateSignals.js";
 import type { HubSpotDeal } from "./HubSpotTypes.js";
 
@@ -99,7 +105,8 @@ export class HubSpotSignalStateVerifier implements SignalStateVerifier {
         {
           signalKey: "dealId",
           declaredValue: dealId,
-          actualValue: "<missing: parameters.dealId is required to verify deal state>",
+          actualValue:
+            "<missing: parameters.dealId is required to verify deal state>",
         },
       ];
     }
@@ -107,7 +114,9 @@ export class HubSpotSignalStateVerifier implements SignalStateVerifier {
     let deal: HubSpotDeal;
 
     try {
-      const signerPrivateKey = await this.options.keys.getPrivateKey(this.options.signerKeyId);
+      const signerPrivateKey = await this.options.keys.getPrivateKey(
+        this.options.signerKeyId,
+      );
 
       const fetchResult = await executeHubSpotCapability(
         {
@@ -150,7 +159,9 @@ export class HubSpotSignalStateVerifier implements SignalStateVerifier {
       ...(this.options.amountChangeThreshold !== undefined
         ? { amountChangeThreshold: this.options.amountChangeThreshold }
         : {}),
-      ...(this.options.stageOrder !== undefined ? { stageOrder: this.options.stageOrder } : {}),
+      ...(this.options.stageOrder !== undefined
+        ? { stageOrder: this.options.stageOrder }
+        : {}),
     });
 
     const violations: SignalStateViolation[] = [];
@@ -179,7 +190,11 @@ export class HubSpotSignalStateVerifier implements SignalStateVerifier {
     // so no real approval could ever have been required for it, and
     // none should be consumed.
     //
-    if (violations.length === 0 && this.options.approvalVerifier !== undefined && verified.amountChangeExceedsThreshold) {
+    if (
+      violations.length === 0 &&
+      this.options.approvalVerifier !== undefined &&
+      verified.amountChangeExceedsThreshold
+    ) {
       const preAuthorizationViolation = await this.verifyPreAuthorization(
         signals,
         dealId,
@@ -230,7 +245,11 @@ export class HubSpotSignalStateVerifier implements SignalStateVerifier {
       : false;
 
     if (declaredValue !== actualValue) {
-      return { signalKey: "preAuthorizedForAmountChange", declaredValue, actualValue };
+      return {
+        signalKey: "preAuthorizedForAmountChange",
+        declaredValue,
+        actualValue,
+      };
     }
 
     return undefined;

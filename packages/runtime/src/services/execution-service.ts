@@ -30,8 +30,7 @@ import { ExecutionChainCrypto } from "@parmana/crypto";
  * - Generate trust records.
  */
 export class ExecutionService {
-  private readonly chainCrypto =
-    new ExecutionChainCrypto();
+  private readonly chainCrypto = new ExecutionChainCrypto();
 
   constructor(
     private readonly transactions: BusinessTransactionRepository,
@@ -49,15 +48,10 @@ export class ExecutionService {
     mode: ExecutionMode,
     metadata?: Readonly<Record<string, unknown>>,
   ): Promise<Execution> {
-    const transaction =
-      await this.transactions.findById(
-        businessTransactionId,
-      );
+    const transaction = await this.transactions.findById(businessTransactionId);
 
     if (!transaction) {
-      throw new BusinessTransactionNotFoundError(
-        businessTransactionId,
-      );
+      throw new BusinessTransactionNotFoundError(businessTransactionId);
     }
 
     const draft: Execution = {
@@ -85,18 +79,14 @@ export class ExecutionService {
     // The chain-computation logic itself is fully general and will
     // link correctly whenever a genuine predecessor exists.
     //
-    const chainFields =
-      await this.chainCrypto.chain(draft, null);
+    const chainFields = await this.chainCrypto.chain(draft, null);
 
     const execution: Execution = {
       ...draft,
       ...chainFields,
     };
 
-    await this.trustRecords.appendExecution(
-      businessTransactionId,
-      execution,
-    );
+    await this.trustRecords.appendExecution(businessTransactionId, execution);
 
     return execution;
   }
@@ -114,12 +104,9 @@ export class ExecutionService {
       evidence,
     };
 
-    const updated =
-      await this.rechain(execution, draft);
+    const updated = await this.rechain(execution, draft);
 
-    await this.trustRecords.replaceExecution(
-      updated,
-    );
+    await this.trustRecords.replaceExecution(updated);
 
     return updated;
   }
@@ -127,9 +114,7 @@ export class ExecutionService {
   /**
    * Marks an Execution as completed.
    */
-  public async complete(
-    execution: Execution,
-  ): Promise<Execution> {
+  public async complete(execution: Execution): Promise<Execution> {
     const draft: Execution = {
       ...execution,
 
@@ -138,12 +123,9 @@ export class ExecutionService {
       completedAt: new Date(),
     };
 
-    const completed =
-      await this.rechain(execution, draft);
+    const completed = await this.rechain(execution, draft);
 
-    await this.trustRecords.replaceExecution(
-      completed,
-    );
+    await this.trustRecords.replaceExecution(completed);
 
     return completed;
   }
@@ -151,9 +133,7 @@ export class ExecutionService {
   /**
    * Marks an Execution as failed.
    */
-  public async fail(
-    execution: Execution,
-  ): Promise<Execution> {
+  public async fail(execution: Execution): Promise<Execution> {
     const draft: Execution = {
       ...execution,
 
@@ -162,12 +142,9 @@ export class ExecutionService {
       completedAt: new Date(),
     };
 
-    const failed =
-      await this.rechain(execution, draft);
+    const failed = await this.rechain(execution, draft);
 
-    await this.trustRecords.replaceExecution(
-      failed,
-    );
+    await this.trustRecords.replaceExecution(failed);
 
     return failed;
   }
@@ -182,11 +159,10 @@ export class ExecutionService {
     original: Execution,
     draft: Execution,
   ): Promise<Execution> {
-    const chainFields =
-      await this.chainCrypto.chain(
-        draft,
-        original.previousChainHash ?? null,
-      );
+    const chainFields = await this.chainCrypto.chain(
+      draft,
+      original.previousChainHash ?? null,
+    );
 
     return {
       ...draft,

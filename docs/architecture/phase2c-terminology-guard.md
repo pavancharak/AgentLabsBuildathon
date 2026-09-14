@@ -19,11 +19,11 @@ grep -rIn --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist \
 
 **Confirmed TD-2 still exists, and its blast radius had grown to three files** (not the one originally documented in Phase 1H):
 
-| File | Line | Status before this phase |
-|---|---|---|
-| `docs/site/changelog.mdx` | 93 | Original finding (Phase 1H) |
-| `docs/architecture/repository-certification.md` | 172 | New — quotes the phrase describing TD-2 itself |
-| `docs/architecture/phase2b-technical-debt-assessment.md` | 49 | New — quotes the phrase describing TD-2 itself |
+| File                                                     | Line | Status before this phase                       |
+| -------------------------------------------------------- | ---- | ---------------------------------------------- |
+| `docs/site/changelog.mdx`                                | 93   | Original finding (Phase 1H)                    |
+| `docs/architecture/repository-certification.md`          | 172  | New — quotes the phrase describing TD-2 itself |
+| `docs/architecture/phase2b-technical-debt-assessment.md` | 49   | New — quotes the phrase describing TD-2 itself |
 
 A full, unfiltered repo-wide search (no `--exclude` at all) for the exact phrase, case-insensitive, found **exactly 8 files total** — the 3 above, plus the 5 already correctly excluded (`ci.yml` itself, `ROADMAP-v1.md`, `VERIFICATION-GAPS.md`, `how-parmana-thinks.mdx`, `execution-authorization.mdx`). No file containing the phrase was unaccounted for; no silent false negative existed alongside the known false positives.
 
@@ -36,9 +36,9 @@ The guard's `if grep ...; then ... exit 1; fi` step, run against commit `17c4b2f
 The guard's only exemption mechanism is a fixed, per-file `--exclude=basename` list. This has two compounding weaknesses:
 
 1. **Incompleteness at the time it was written** — `changelog.mdx` legitimately narrates the same terminology history `ROADMAP-v1.md`/`VERIFICATION-GAPS.md` already do, in the same past-tense, self-referential way, but was never added to the list.
-2. **Structural tendency to keep growing** — any document whose job is to *describe* this exact guard, its history, or the retired term it protects against (an audit report, a certification, a technical-debt register entry) must quote the phrase to do so accurately, and immediately becomes a new false positive the moment it's committed. This happened twice, independently, in one day (Phase 1H's certification report and Phase 2B's assessment report each rediscovered and described the same underlying bug, and each commit that added that description silently became a new violation).
+2. **Structural tendency to keep growing** — any document whose job is to _describe_ this exact guard, its history, or the retired term it protects against (an audit report, a certification, a technical-debt register entry) must quote the phrase to do so accurately, and immediately becomes a new false positive the moment it's committed. This happened twice, independently, in one day (Phase 1H's certification report and Phase 2B's assessment report each rediscovered and described the same underlying bug, and each commit that added that description silently became a new violation).
 
-The root cause is not that the exclusion mechanism is *wrong* — file-based exclusion is a legitimate, low-risk approach (and this phase's preferred-fix guidance names it explicitly) — but that it was maintained reactively, one omission at a time, rather than documented as a pattern maintainers should recognize and extend proactively.
+The root cause is not that the exclusion mechanism is _wrong_ — file-based exclusion is a legitimate, low-risk approach (and this phase's preferred-fix guidance names it explicitly) — but that it was maintained reactively, one omission at a time, rather than documented as a pattern maintainers should recognize and extend proactively.
 
 ## 3. Guard Architecture
 
@@ -50,18 +50,18 @@ The root cause is not that the exclusion mechanism is *wrong* — file-based exc
 
 **File exclusions, after repair** (basename-matched, same mechanism as before, now complete):
 
-| File | Category | Reason |
-|---|---|---|
-| `ci.yml` | Self-reference | Its own comment and grep pattern must name the phrase to check for it |
-| `tests/architecture/terminology-guard.test.ts` | Self-reference | New this phase (§6) — its own matching pattern and test fixtures must name the phrase for the same reason |
-| `docs/ROADMAP-v1.md` | (1) Historical self-narration | Narrates the terminology sweep itself |
-| `docs/VERIFICATION-GAPS.md` | (1) Historical self-narration | Documents this repo's own terminology history |
-| `docs/architecture/repository-certification.md` | (1) Historical self-narration | Phase 1H's certification report, discovered and described this exact gap |
-| `docs/architecture/phase2b-technical-debt-assessment.md` | (1) Historical self-narration | Phase 2B's reassessment, independently rediscovered and described this exact gap |
-| `docs/architecture/phase2c-terminology-guard.md` | (1) Historical self-narration | This document — necessarily quotes the phrase throughout to document the fix |
-| `docs/site/changelog.mdx` | (1) Historical self-narration | The original false positive — this repo's public changelog, narrating the same history in past tense |
-| `docs/site/how-parmana-thinks.mdx` | (2) Third-party citation | Cites an unrelated academic framework actually named "Execution Governance" (Ku, 2026) |
-| `docs/site/concepts/execution-authorization.mdx` | (2) Third-party citation | Same third-party citation |
+| File                                                     | Category                      | Reason                                                                                                    |
+| -------------------------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `ci.yml`                                                 | Self-reference                | Its own comment and grep pattern must name the phrase to check for it                                     |
+| `tests/architecture/terminology-guard.test.ts`           | Self-reference                | New this phase (§6) — its own matching pattern and test fixtures must name the phrase for the same reason |
+| `docs/ROADMAP-v1.md`                                     | (1) Historical self-narration | Narrates the terminology sweep itself                                                                     |
+| `docs/VERIFICATION-GAPS.md`                              | (1) Historical self-narration | Documents this repo's own terminology history                                                             |
+| `docs/architecture/repository-certification.md`          | (1) Historical self-narration | Phase 1H's certification report, discovered and described this exact gap                                  |
+| `docs/architecture/phase2b-technical-debt-assessment.md` | (1) Historical self-narration | Phase 2B's reassessment, independently rediscovered and described this exact gap                          |
+| `docs/architecture/phase2c-terminology-guard.md`         | (1) Historical self-narration | This document — necessarily quotes the phrase throughout to document the fix                              |
+| `docs/site/changelog.mdx`                                | (1) Historical self-narration | The original false positive — this repo's public changelog, narrating the same history in past tense      |
+| `docs/site/how-parmana-thinks.mdx`                       | (2) Third-party citation      | Cites an unrelated academic framework actually named "Execution Governance" (Ku, 2026)                    |
+| `docs/site/concepts/execution-authorization.mdx`         | (2) Third-party citation      | Same third-party citation                                                                                 |
 
 ## 4. Matching Algorithm (detail)
 
@@ -138,17 +138,17 @@ grep ... (the guard, run directly, full updated exclude list) → clean, 0 viola
 
 ## Task 7.5 — Before/After Behavior Comparison
 
-| Metric | Before this phase | After this phase |
-|---|---|---|
-| Total files containing the phrase (unfiltered) | 8 | 10 (the 8 original, plus this document and the new regression test, both of which necessarily quote the phrase to document/check for it) |
-| Files in the exclude list | 5 | 10 |
-| **Violations (guard would fail)** | **3** | **0** |
-| Valid violations (genuine regressions requiring a doc fix) | 0 | 0 |
-| False positives | 3 (`changelog.mdx`, `repository-certification.md`, `phase2b-technical-debt-assessment.md`) | 0 |
-| Files newly excluded this phase | — | `repository-certification.md`, `phase2b-technical-debt-assessment.md`, `phase2c-terminology-guard.md`, `changelog.mdx`, `terminology-guard.test.ts` (5) |
-| Files newly checked (scope narrowed) | — | **None.** `--exclude-dir` set unchanged (`node_modules`, `.git`, `dist`, `coverage`); every file outside the exclude list, before and after, is still scanned. Nothing that was protected before is unprotected now |
-| New legacy terminology (disposable probe) | — | Still detected (Task 5, probe 1) |
-| Legitimate current terms (Execution Trust / Policy Engine) | — | Still never flagged (Task 5, probe 2) |
+| Metric                                                     | Before this phase                                                                          | After this phase                                                                                                                                                                                                    |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Total files containing the phrase (unfiltered)             | 8                                                                                          | 10 (the 8 original, plus this document and the new regression test, both of which necessarily quote the phrase to document/check for it)                                                                            |
+| Files in the exclude list                                  | 5                                                                                          | 10                                                                                                                                                                                                                  |
+| **Violations (guard would fail)**                          | **3**                                                                                      | **0**                                                                                                                                                                                                               |
+| Valid violations (genuine regressions requiring a doc fix) | 0                                                                                          | 0                                                                                                                                                                                                                   |
+| False positives                                            | 3 (`changelog.mdx`, `repository-certification.md`, `phase2b-technical-debt-assessment.md`) | 0                                                                                                                                                                                                                   |
+| Files newly excluded this phase                            | —                                                                                          | `repository-certification.md`, `phase2b-technical-debt-assessment.md`, `phase2c-terminology-guard.md`, `changelog.mdx`, `terminology-guard.test.ts` (5)                                                             |
+| Files newly checked (scope narrowed)                       | —                                                                                          | **None.** `--exclude-dir` set unchanged (`node_modules`, `.git`, `dist`, `coverage`); every file outside the exclude list, before and after, is still scanned. Nothing that was protected before is unprotected now |
+| New legacy terminology (disposable probe)                  | —                                                                                          | Still detected (Task 5, probe 1)                                                                                                                                                                                    |
+| Legitimate current terms (Execution Trust / Policy Engine) | —                                                                                          | Still never flagged (Task 5, probe 2)                                                                                                                                                                               |
 
 **✓ False positives eliminated (3 → 0). ✓ No legitimate violation became silently accepted (0 valid violations existed before or after — every one of the 3 originally-failing files was independently classified False Positive / Historical Documentation, never Valid Failure). ✓ No new false negative introduced (disposable probe still fails; Task 4's active-documentation sweep found nothing newly missed).**
 
@@ -166,21 +166,22 @@ Summarized from Tasks 4–7.5 above: independent re-verification of the original
 
 ## Final Verification
 
-| Item | Status |
-|---|---|
-| CI terminology guard repaired | ✓ |
-| Original false positives eliminated | ✓ — all 3 confirmed gone (Task 7.5) |
-| No false negatives introduced | ✓ — disposable probe still fails; false-negative audit clean (Task 4, 5) |
-| Historical documentation preserved | ✓ — zero documentation files edited; only `.github/workflows/ci.yml` and the new test file were touched |
-| Active documentation protected | ✓ — still fully in scope of the guard; explicitly re-verified clean (Task 4) |
-| CI enforcement remains effective | ✓ — same scan scope, same trigger, same failure behavior; only the exclude list's completeness changed |
-| No production code changed | ✓ — `git diff --stat` confirms only `.github/workflows/ci.yml` and `tests/architecture/terminology-guard.test.ts` changed; zero files under any `packages/*/src` |
+| Item                                | Status                                                                                                                                                           |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CI terminology guard repaired       | ✓                                                                                                                                                                |
+| Original false positives eliminated | ✓ — all 3 confirmed gone (Task 7.5)                                                                                                                              |
+| No false negatives introduced       | ✓ — disposable probe still fails; false-negative audit clean (Task 4, 5)                                                                                         |
+| Historical documentation preserved  | ✓ — zero documentation files edited; only `.github/workflows/ci.yml` and the new test file were touched                                                          |
+| Active documentation protected      | ✓ — still fully in scope of the guard; explicitly re-verified clean (Task 4)                                                                                     |
+| CI enforcement remains effective    | ✓ — same scan scope, same trigger, same failure behavior; only the exclude list's completeness changed                                                           |
+| No production code changed          | ✓ — `git diff --stat` confirms only `.github/workflows/ci.yml` and `tests/architecture/terminology-guard.test.ts` changed; zero files under any `packages/*/src` |
 
 ## Final Recommendation
 
 **TD-2 CLOSED.**
 
 All five required conditions are demonstrated with repository evidence, not asserted:
+
 - The original false positives (`changelog.mdx`, plus the two newly-discovered ones) no longer occur — confirmed by re-running the exact guard command (§ Independent Verification, Task 7.5).
 - Disposable probes still fail as expected — confirmed directly (Task 5), not inferred.
 - Active documentation remains protected — confirmed by an explicit sweep finding zero instances anywhere outside the classified exclusion list (Task 4).

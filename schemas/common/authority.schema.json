@@ -5,12 +5,7 @@
   "description": "Entity empowered to authorize execution within a trust domain. Immutable once issued.",
   "type": "object",
   "additionalProperties": true,
-  "required": [
-    "authorityId",
-    "authorityType",
-    "principalId",
-    "issuedAt"
-  ],
+  "required": ["authorityId", "authorityType", "principalId", "issuedAt"],
   "properties": {
     "authorityId": {
       "type": "string",
@@ -19,12 +14,7 @@
     "authorityType": {
       "type": "string",
       "description": "Type of authority.",
-      "enum": [
-        "USER",
-        "ROLE",
-        "SERVICE",
-        "ORGANIZATION"
-      ]
+      "enum": ["USER", "ROLE", "SERVICE", "ORGANIZATION"]
     },
     "principalId": {
       "type": "string",

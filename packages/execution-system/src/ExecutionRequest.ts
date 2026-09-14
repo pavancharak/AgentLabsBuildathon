@@ -1,6 +1,4 @@
-import type {
-  SignedExecutionAuthorization,
-} from "@parmana/shared";
+import type { SignedExecutionAuthorization } from "@parmana/shared";
 
 /**
  * Canonical request sent by Parmana to an

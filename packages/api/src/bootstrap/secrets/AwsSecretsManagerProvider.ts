@@ -32,9 +32,7 @@ interface CacheEntry {
 export class AwsSecretsManagerProvider implements SecretsProvider {
   private readonly cache = new Map<string, CacheEntry>();
 
-  private constructor(
-    private readonly client: SecretsManagerClient,
-  ) {}
+  private constructor(private readonly client: SecretsManagerClient) {}
 
   /**
    * Async factory, not a plain constructor: resolving credentials may
@@ -87,9 +85,7 @@ function requireRegion(): string {
   const region = process.env.AWS_REGION;
 
   if (!region) {
-    throw new Error(
-      "AwsSecretsManagerProvider requires AWS_REGION to be set.",
-    );
+    throw new Error("AwsSecretsManagerProvider requires AWS_REGION to be set.");
   }
 
   return region;
@@ -100,11 +96,12 @@ function requireRegion(): string {
  * -- see that function's doc comment for the full reasoning.
  */
 async function resolveCredentials(): Promise<
-  ReturnType<
-    Awaited<
-      typeof import("@vercel/oidc-aws-credentials-provider")
-    >["awsCredentialsProvider"]
-  > | undefined
+  | ReturnType<
+      Awaited<
+        typeof import("@vercel/oidc-aws-credentials-provider")
+      >["awsCredentialsProvider"]
+    >
+  | undefined
 > {
   const roleArn = process.env.AWS_ROLE_ARN;
 
@@ -112,9 +109,8 @@ async function resolveCredentials(): Promise<
     return undefined;
   }
 
-  const { awsCredentialsProvider } = await import(
-    "@vercel/oidc-aws-credentials-provider"
-  );
+  const { awsCredentialsProvider } =
+    await import("@vercel/oidc-aws-credentials-provider");
 
   return awsCredentialsProvider({ roleArn });
 }

@@ -1,12 +1,12 @@
 # Latency & Voice-AI Readiness Investigation — 2026-08-10
 
-*Investigation session. Snapshot: 2026-08-10, `main` @ `d04ba88`. One source
+_Investigation session. Snapshot: 2026-08-10, `main` @ `d04ba88`. One source
 change from this documentation pass: `fly.toml`'s stale `primary_region`
 corrected to match the app's actual deployed region (see §3 and the closing
 config note). The Postgres pool fix described in §Finding 1 was implemented
 and tested earlier the same day, as a working-tree change at the time of
 writing; it lands in the same commit as this document per this repo's
-"one session, one commit" convention.*
+"one session, one commit" convention._
 
 ---
 
@@ -50,11 +50,12 @@ TCP+TLS handshake to Postgres before its audit `INSERT` could even run.
 real request to pay that cost.
 
 **Evidence:**
+
 - `packages/storage/src/postgres/PostgresPoolFactory.ts` — the fix itself, with the reasoning recorded in the file's own header comment
 - `packages/storage/tests/unit/postgres-pool-factory.test.ts` — 5 tests, confirmed passing this session (`min`/`keepAlive` options are actually passed to `Pool`; the pool is a process-wide singleton; the priming connect+release happens; a priming failure doesn't throw or block the factory)
 
 **What this claim does and doesn't cover:** the fix eliminates the specific
-cost of a *cold connection setup* — confirmed by the code path and unit
+cost of a _cold connection setup_ — confirmed by the code path and unit
 tests, not by a fresh live re-measurement against the deployed app as part
 of this documentation pass. It does not, and was never intended to, remove
 the audit write itself from the request's critical path (see Finding 2) —
@@ -77,15 +78,15 @@ should be changed to fire-and-forget to cut latency.
 
 **Finding:** this is not incidental — it's documented, deliberate design,
 already covered by `docs/CLAIMS.md` §2.19 ("Fail-Closed
-Caller-Authentication Audit Writes"): *"A caller-authentication event
+Caller-Authentication Audit Writes"): _"A caller-authentication event
 (accepted or rejected) that fails to be recorded fails the request... This
 is a deliberate design decision (an action that executes without an audit
 record contradicts independently verifiable execution), not an incidental
-side effect; the availability cost is accepted."*
+side effect; the availability cost is accepted."_
 
 **Why fire-and-forget was rejected as a latency fix:** making the audit
 write asynchronous would mean a request could be authorized (or
-rejected) and return to the caller *before* Parmana knows whether that
+rejected) and return to the caller _before_ Parmana knows whether that
 decision was durably recorded. If the write then failed, there would be no
 mechanism to retroactively fail a response that had already gone out — the
 core guarantee §2.19 exists to provide (every authorization decision is
@@ -95,6 +96,7 @@ did not find, and did not go looking for, a reason to revisit that
 trade-off — it's treated here as settled prior art, not re-litigated.
 
 **Evidence:**
+
 - `docs/CLAIMS.md` §2.19
 - `packages/api/src/middleware/caller-auth.ts` (`recordOrFailClosed`)
 - `packages/api/tests/unit/middleware/caller-auth.test.ts`
@@ -110,6 +112,7 @@ of anything else — a physical-distance cost, not a code or connection-pool
 issue, and not fixable by anything in Finding 1.
 
 **Confirmed region mismatch:**
+
 - App: `flyctl status -a parmana-api` (this session) shows both running
   machines in `lhr` (London). `flyctl regions list -a parmana-api` confirms
   `lhr` as the only configured region.
@@ -134,6 +137,7 @@ real-data environment, is not something to move without a deliberate
 migration plan, which is out of scope for a documentation pass.
 
 **Evidence:**
+
 - `docs/operations/phase2a-deployment-verification.md` (Supabase project region)
 - `flyctl status -a parmana-api`, `flyctl regions list -a parmana-api` (this session, app region)
 - Direct network round-trip measurement, this session (~267ms, London↔Sydney)
@@ -155,14 +159,14 @@ located in GB and SG.
 
 **Results:**
 
-| Probe → edge reached | Fraction of requests | Mean total latency |
-|---|---|---|
-| GB → `lhr` (direct, 1 hop) | 4/12 (33%) | 126ms |
-| GB → `ams` (relayed, 2 hops) | 8/12 (67%) | 240ms |
-| SG → `sin` (relayed, 2 hops) | 12/12 (100%) | 388ms (max 827ms) |
+| Probe → edge reached         | Fraction of requests | Mean total latency |
+| ---------------------------- | -------------------- | ------------------ |
+| GB → `lhr` (direct, 1 hop)   | 4/12 (33%)           | 126ms              |
+| GB → `ams` (relayed, 2 hops) | 8/12 (67%)           | 240ms              |
+| SG → `sin` (relayed, 2 hops) | 12/12 (100%)         | 388ms (max 827ms)  |
 
 The relay is not an occasional fluke for either probe location — it's the
-majority path for GB (67%) and the *only* observed path for SG (100% over
+majority path for GB (67%) and the _only_ observed path for SG (100% over
 12 consecutive rounds) — and it roughly doubles GB's latency when it
 occurs, while dominating SG's number entirely.
 
@@ -178,7 +182,7 @@ app's real region, adding on the order of 100–150ms), not a Parmana-specific
 misconfiguration.
 
 **Why a dedicated IPv4 was ruled out without spending the $2/mo to test
-it:** the mechanism above is anycast edge *selection*, driven by the
+it:** the mechanism above is anycast edge _selection_, driven by the
 client's network path to Fly's announced IP block — it is the same
 mechanism regardless of whether that IP is shared among multiple Fly
 apps or dedicated to this one. Fly's dedicated-IPv4 offering does not, per
@@ -192,6 +196,7 @@ pattern in earlier ad hoc testing, which is consistent with, though not
 sufficient on its own to fully prove, this reasoning.)
 
 **Evidence:**
+
 - Sustained sampling results, this session: 24 data points (12 rounds × GB + SG) via the Globalping HTTP API against `/health`, correlating `via` hop count, `fly-request-id` edge suffix, and total latency per request
 - `flyctl ips list -a parmana-api`, `flyctl regions list -a parmana-api` (this session)
 - Fly community forum threads on anycast edge selection and ISP BGP routing (referenced for architectural context, not independently re-verified against Parmana's specific traffic)
@@ -210,7 +215,7 @@ largest remaining unknown in this investigation, not a minor gap: the
 actual number a voice-AI integration would experience — full authorization
 envelope verification, policy evaluation, the audit write, and (for a
 connector-backed action) the downstream connector call — has not been
-measured at all. Everything above establishes *components* of the budget,
+measured at all. Everything above establishes _components_ of the budget,
 not the total.
 
 ---
@@ -255,9 +260,9 @@ Scope note below). In order:
    already implements for settlement confirmations — write locally and
    durably first, return to the caller, then drain to the audit store
    out-of-band (`RazorpaySettlementProcessor`'s own header comment:
-   *"Out-of-band from the webhook request cycle by design — M4a's 200 has
-   already returned by the time this runs"*). This is explicitly the
-   *last* resort in this plan, not the first, because it's the only item
+   _"Out-of-band from the webhook request cycle by design — M4a's 200 has
+   already returned by the time this runs"_). This is explicitly the
+   _last_ resort in this plan, not the first, because it's the only item
    here that would touch §2.19's fail-closed guarantee and would need its
    own design session to preserve that guarantee's intent under a
    different execution shape, rather than removing it.

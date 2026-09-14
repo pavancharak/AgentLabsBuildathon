@@ -17,8 +17,14 @@ interface PackageJson {
   version: string;
 }
 
-const packageJsonPath = join(dirname(fileURLToPath(import.meta.url)), "..", "package.json");
+const packageJsonPath = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "package.json",
+);
 
-const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as PackageJson;
+const packageJson = JSON.parse(
+  readFileSync(packageJsonPath, "utf8"),
+) as PackageJson;
 
 export const VERSION: string = packageJson.version;

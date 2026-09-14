@@ -1,38 +1,20 @@
 \# RFC-0008: Generic Policy Runtime Architecture
 
-
-
 \*\*Status:\*\* Accepted
-
-
 
 \## Purpose
 
-
-
 This RFC defines the canonical architecture of the Parmana Policy Runtime.
-
-
 
 The runtime is responsible for loading, validating, and executing the exact policy referenced by a BusinessTransaction. It is deterministic, domain-independent, and does not contain business-specific logic.
 
-
-
 This RFC complements RFC-0007 (Canonical Trust Chain Domain Model) by defining the runtime responsibilities for policy execution.
-
-
 
 \---
 
-
-
 \# Goals
 
-
-
 The Policy Runtime SHALL:
-
-
 
 \* Execute exactly one policy.
 
@@ -48,15 +30,9 @@ The Policy Runtime SHALL:
 
 \* Produce verifiable execution evidence.
 
-
-
 \---
 
-
-
 \# Architecture
-
-
 
 ```text
 
@@ -108,19 +84,11 @@ Decision
 
 ```
 
-
-
 \---
-
-
 
 \# Policy Reference
 
-
-
 Every BusinessTransaction SHALL contain exactly one PolicyReference.
-
-
 
 ```ts
 
@@ -136,23 +104,13 @@ interface PolicyReference {
 
 ```
 
-
-
 The PolicyReference uniquely identifies the policy artifact to execute.
-
-
 
 \---
 
-
-
 \# Policy Artifact
 
-
-
 Every policy artifact SHALL declare:
-
-
 
 ```json
 
@@ -188,11 +146,7 @@ Every policy artifact SHALL declare:
 
 ```
 
-
-
 The runtime SHALL validate:
-
-
 
 \* policyId
 
@@ -200,23 +154,13 @@ The runtime SHALL validate:
 
 \* schemaVersion
 
-
-
 before execution.
-
-
 
 \---
 
-
-
 \# Runtime Transaction
 
-
-
 The runtime SHALL remain domain independent.
-
-
 
 ```ts
 
@@ -228,23 +172,13 @@ interface RuntimeTransaction {
 
 ```
 
-
-
 The runtime SHALL NOT contain payment-specific, healthcare-specific, or any other business-specific fields.
-
-
 
 \---
 
-
-
 \# Policy Signals
 
-
-
 The Policy Engine evaluates generic runtime signals.
-
-
 
 ```ts
 
@@ -260,23 +194,13 @@ type PolicyInput = PolicySignals;
 
 ```
 
-
-
 Signals are supplied by the runtime and interpreted by the policy.
-
-
 
 \---
 
-
-
 \# Policy Adapter
 
-
-
 The PolicyAdapter converts a RuntimeTransaction into the PolicyInput consumed by the PolicyEngine.
-
-
 
 ```text
 
@@ -296,27 +220,15 @@ PolicySignals
 
 ```
 
-
-
 The adapter SHALL NOT contain domain-specific mapping logic.
-
-
 
 \---
 
-
-
 \# Policy Registry
-
-
 
 The PolicyRegistry manages policy metadata.
 
-
-
 Responsibilities:
-
-
 
 \* register policy metadata
 
@@ -324,27 +236,15 @@ Responsibilities:
 
 \* resolve policy metadata
 
-
-
 The PolicyRegistry SHALL NOT execute policies.
-
-
 
 \---
 
-
-
 \# Policy Router
-
-
 
 The PolicyRouter loads the exact policy artifact referenced by the BusinessTransaction.
 
-
-
 Responsibilities:
-
-
 
 \* locate policy artifact
 
@@ -356,11 +256,7 @@ Responsibilities:
 
 \* validate schema version
 
-
-
 The PolicyRouter SHALL NOT:
-
-
 
 \* scan policies to determine applicability
 
@@ -368,27 +264,15 @@ The PolicyRouter SHALL NOT:
 
 \* choose among multiple policies
 
-
-
 Policy selection occurs before runtime execution.
-
-
 
 \---
 
-
-
 \# Policy Engine
-
-
 
 The PolicyEngine evaluates exactly one loaded policy.
 
-
-
 Responsibilities:
-
-
 
 \* evaluate rules deterministically
 
@@ -396,11 +280,7 @@ Responsibilities:
 
 \* record evaluation trace
 
-
-
 The PolicyEngine SHALL NOT:
-
-
 
 \* load policies
 
@@ -408,27 +288,15 @@ The PolicyEngine SHALL NOT:
 
 \* modify runtime state
 
-
-
 \---
-
-
 
 \# Domain Independence
 
-
-
 The runtime supports any policy domain.
-
-
 
 Examples:
 
-
-
 Payment
-
-
 
 ```json
 
@@ -446,11 +314,7 @@ Payment
 
 ```
 
-
-
 Loan
-
-
 
 ```json
 
@@ -468,11 +332,7 @@ Loan
 
 ```
 
-
-
 Healthcare
-
-
 
 ```json
 
@@ -490,11 +350,7 @@ Healthcare
 
 ```
 
-
-
 Cybersecurity
-
-
 
 ```json
 
@@ -512,23 +368,13 @@ Cybersecurity
 
 ```
 
-
-
 No runtime code changes are required to support new domains.
-
-
 
 \---
 
-
-
 \# Determinism
 
-
-
 For identical:
-
-
 
 \* PolicyReference
 
@@ -536,55 +382,37 @@ For identical:
 
 \* Runtime Signals
 
-
-
 the PolicyEngine SHALL always produce the same Decision.
-
-
 
 Determinism is a fundamental invariant of Parmana.
 
-
-
 \---
-
-
 
 \# Separation of Responsibilities
 
-
-
-| Component           | Responsibility                            |
+| Component | Responsibility |
 
 | ------------------- | ----------------------------------------- |
 
-| BusinessTransaction | References the policy                     |
+| BusinessTransaction | References the policy |
 
-| PolicyReference     | Identifies the exact policy               |
+| PolicyReference | Identifies the exact policy |
 
-| PolicyRegistry      | Maintains policy metadata                 |
+| PolicyRegistry | Maintains policy metadata |
 
-| PolicyRouter        | Loads the exact policy artifact           |
+| PolicyRouter | Loads the exact policy artifact |
 
-| PolicyAdapter       | Converts runtime data into policy signals |
+| PolicyAdapter | Converts runtime data into policy signals |
 
-| PolicyEngine        | Evaluates one policy                      |
+| PolicyEngine | Evaluates one policy |
 
-| Decision            | Records evaluation result                 |
-
-
+| Decision | Records evaluation result |
 
 No component performs another component's responsibility.
 
-
-
 \---
 
-
-
 \# Architectural Invariants
-
-
 
 \* Exactly one policy SHALL be executed.
 
@@ -602,33 +430,16 @@ No component performs another component's responsibility.
 
 \* New policy domains SHALL require no runtime code changes.
 
-
-
 \---
-
-
 
 \# Relationship to RFC-0007
 
-
-
 RFC-0007 defines the canonical trust-chain domain model.
-
-
 
 RFC-0008 defines how the runtime executes the PolicyReference contained within the BusinessTransaction while preserving determinism and execution trust.
 
-
-
 \---
-
-
 
 \# Status
 
-
-
 This document defines the canonical Generic Policy Runtime Architecture for Parmana Phase 1.
-
-
-

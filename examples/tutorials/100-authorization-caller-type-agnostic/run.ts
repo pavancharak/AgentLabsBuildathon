@@ -53,7 +53,11 @@ function buildTransaction(
       parameters: { vendorId: "VENDOR-1001", amount: 25000 },
       createdAt: fixedDate,
     },
-    policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+    policy: {
+      name: "vendor-payment",
+      version: "2.0.0",
+      schemaVersion: "1.0.0",
+    },
     signals: {
       vendorVerified: true,
       invoiceVerified: true,
@@ -81,7 +85,9 @@ console.log("Tutorial 100 - Authorization Is Caller-Type-Agnostic");
 console.log("==================================================");
 console.log();
 
-console.log("Scenario 1: An APPROVE-shaped transaction, authorityType 'USER' vs. a nonsense value");
+console.log(
+  "Scenario 1: An APPROVE-shaped transaction, authorityType 'USER' vs. a nonsense value",
+);
 console.log("--------------------------------------------------");
 
 const userApprove = await buildRuntime().execute(buildTransaction("USER"));
@@ -92,11 +98,17 @@ const novelApprove = await buildRuntime().execute(
 const userApproveDecision = userApprove.trustRecord.executions[0]!.decision;
 const novelApproveDecision = novelApprove.trustRecord.executions[0]!.decision;
 
-console.log(`USER            -> outcome: ${userApproveDecision.outcome}, reason: ${userApproveDecision.reason}`);
-console.log(`Nonsense caller -> outcome: ${novelApproveDecision.outcome}, reason: ${novelApproveDecision.reason}`);
+console.log(
+  `USER            -> outcome: ${userApproveDecision.outcome}, reason: ${userApproveDecision.reason}`,
+);
+console.log(
+  `Nonsense caller -> outcome: ${novelApproveDecision.outcome}, reason: ${novelApproveDecision.reason}`,
+);
 console.log();
 
-console.log("Scenario 2: A REJECT-shaped transaction (insufficient funds), same authorityType comparison");
+console.log(
+  "Scenario 2: A REJECT-shaped transaction (insufficient funds), same authorityType comparison",
+);
 console.log("--------------------------------------------------");
 
 const rejectingSignals = { sufficientFunds: false };
@@ -117,7 +129,10 @@ let novelRejectStatus: number | undefined;
 let novelRejectCode: string | undefined;
 try {
   await buildRuntime().execute(
-    buildTransaction("FULLY_AUTONOMOUS_AI_AGENT_NEVER_SEEN_BEFORE", rejectingSignals),
+    buildTransaction(
+      "FULLY_AUTONOMOUS_AI_AGENT_NEVER_SEEN_BEFORE",
+      rejectingSignals,
+    ),
   );
 } catch (error) {
   novelRejectReason = (error as { message?: string }).message;
@@ -125,8 +140,12 @@ try {
   novelRejectCode = (error as { code?: string }).code;
 }
 
-console.log(`USER            -> rejected (${userRejectStatus}/${userRejectCode}): ${userRejectReason}`);
-console.log(`Nonsense caller -> rejected (${novelRejectStatus}/${novelRejectCode}): ${novelRejectReason}`);
+console.log(
+  `USER            -> rejected (${userRejectStatus}/${userRejectCode}): ${userRejectReason}`,
+);
+console.log(
+  `Nonsense caller -> rejected (${novelRejectStatus}/${novelRejectCode}): ${novelRejectReason}`,
+);
 console.log();
 
 const allPassed =
@@ -143,9 +162,13 @@ if (allPassed) {
     "✓ Identical outcome and reason regardless of authorityType -- including a value outside the AuthorityType enum entirely.",
   );
 } else {
-  console.log("✗ Expected byte-identical decisions across both authorityType values, on both the APPROVE and REJECT paths.");
+  console.log(
+    "✗ Expected byte-identical decisions across both authorityType values, on both the APPROVE and REJECT paths.",
+  );
 }
 
 console.log();
 console.log("Tutorial Complete");
-console.log("Next: Tutorial 101 - Fail-Closed Caller-Authentication Audit Writes");
+console.log(
+  "Next: Tutorial 101 - Fail-Closed Caller-Authentication Audit Writes",
+);

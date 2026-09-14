@@ -14,12 +14,8 @@ import type {
  * SupabaseRefusalRecordRepository. Writes via a direct Postgres
  * connection (PostgresPoolFactory), not supabase-js/PostgREST.
  */
-export class SupabasePolicyChangeApprovalRecordRepository
-  implements PolicyChangeApprovalRecordRepository
-{
-  constructor(
-    private readonly pool: Pool,
-  ) {}
+export class SupabasePolicyChangeApprovalRecordRepository implements PolicyChangeApprovalRecordRepository {
+  constructor(private readonly pool: Pool) {}
 
   async create(
     record: PolicyChangeApprovalRecord,
@@ -57,7 +53,9 @@ export class SupabasePolicyChangeApprovalRecordRepository
   async list(): Promise<readonly PolicyChangeApprovalRecord[]> {
     const { rows } = await this.pool.query(SELECT_ALL_SQL);
 
-    return (rows as PolicyChangeApprovalRecordRow[]).map(toPolicyChangeApprovalRecord);
+    return (rows as PolicyChangeApprovalRecordRow[]).map(
+      toPolicyChangeApprovalRecord,
+    );
   }
 
   /**
@@ -133,7 +131,9 @@ function toPolicyChangeApprovalRecord(
     proposedAt: new Date(row.proposed_at),
     approvedAt: new Date(row.approved_at),
 
-    ...(row.content_hash_before !== null ? { contentHashBefore: row.content_hash_before } : {}),
+    ...(row.content_hash_before !== null
+      ? { contentHashBefore: row.content_hash_before }
+      : {}),
 
     contentHashAfter: row.content_hash_after,
 

@@ -4,13 +4,9 @@
  * Generate cryptographic execution receipts.
  */
 
-import type {
-  Receipt,
-} from "../models/index.js";
+import type { Receipt } from "../models/index.js";
 
-import type {
-  Transport,
-} from "../config/Transport.js";
+import type { Transport } from "../config/Transport.js";
 
 /**
  * Receipt API.
@@ -26,24 +22,19 @@ import type {
  * - validate policies
  */
 export class ReceiptApi {
-  constructor(
-    private readonly transport: Transport,
-  ) {}
+  constructor(private readonly transport: Transport) {}
 
   /**
    * Generate an execution receipt.
    */
-  public async generate(
-    businessTransactionId: string,
-  ): Promise<Receipt> {
-    const response =
-      await this.transport.send<Receipt>({
-        method: "POST",
-        path: "/receipt",
-        body: {
-          businessTransactionId,
-        },
-      });
+  public async generate(businessTransactionId: string): Promise<Receipt> {
+    const response = await this.transport.send<Receipt>({
+      method: "POST",
+      path: "/receipt",
+      body: {
+        businessTransactionId,
+      },
+    });
 
     return response.body;
   }

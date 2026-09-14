@@ -8,7 +8,11 @@ import {
   type KeyProvider,
 } from "@parmana/crypto";
 
-import type { PolicyRepository, PolicySignals, SignalStateVerifier } from "@parmana/policy";
+import type {
+  PolicyRepository,
+  PolicySignals,
+  SignalStateVerifier,
+} from "@parmana/policy";
 
 import { EnvelopeVerifier, type NonceStore } from "@parmana/envelope-verifier";
 
@@ -29,7 +33,10 @@ import {
 import type { Connector } from "./Connector.js";
 import { deepFreeze } from "./deepFreeze.js";
 import type { GatewayVerificationResult } from "./GatewayVerificationResult.js";
-import type { ExecutionChannel, GatewayIdentityProvider } from "./connector-runtime/types.js";
+import type {
+  ExecutionChannel,
+  GatewayIdentityProvider,
+} from "./connector-runtime/types.js";
 
 export interface ExecutionControlOptions {
   /** New package-level control service. */
@@ -198,26 +205,30 @@ export class ExecutionGateway implements ExecutionSystem {
         : { maxTtlSeconds: options.maxTtlSeconds }),
     });
 
-    this.contentHasher = new ExecutableContentHasher(
-      CryptoBootstrap.create(),
-    );
+    this.contentHasher = new ExecutableContentHasher(CryptoBootstrap.create());
 
-    this.policyContentHasher = new TrustRecordHasher(
-      CryptoBootstrap.create(),
-    );
+    this.policyContentHasher = new TrustRecordHasher(CryptoBootstrap.create());
 
-    this.signalsHasher = new TrustRecordHasher(
-      CryptoBootstrap.create(),
-    );
+    this.signalsHasher = new TrustRecordHasher(CryptoBootstrap.create());
 
     this.policyRepository = options.policyRepository;
     this.signalStateVerifier = options.signalStateVerifier;
 
-    if (options.connector === undefined && options.executionControl === undefined) {
-      throw new Error("ExecutionGateway requires a connector or executionControl.");
+    if (
+      options.connector === undefined &&
+      options.executionControl === undefined
+    ) {
+      throw new Error(
+        "ExecutionGateway requires a connector or executionControl.",
+      );
     }
-    if (options.connector !== undefined && options.executionControl !== undefined) {
-      throw new Error("ExecutionGateway accepts connector or executionControl, not both.");
+    if (
+      options.connector !== undefined &&
+      options.executionControl !== undefined
+    ) {
+      throw new Error(
+        "ExecutionGateway accepts connector or executionControl, not both.",
+      );
     }
 
     this.connector = options.connector;
@@ -236,21 +247,18 @@ export class ExecutionGateway implements ExecutionSystem {
     result: GatewayVerificationResult;
     executableContent: ExecutableContent;
   }> {
-    const executableContent: ExecutableContent =
-      toExecutableContent(request);
+    const executableContent: ExecutableContent = toExecutableContent(request);
 
-    const { passed, checks } =
-      await this.envelopeVerifier.verifyChecks(
-        request.authorization,
-        now,
-      );
+    const { passed, checks } = await this.envelopeVerifier.verifyChecks(
+      request.authorization,
+      now,
+    );
 
     let businessTransactionHashMatches = false;
     let hashMismatch: GatewayVerificationResult["hashMismatch"];
 
     if (passed) {
-      const actualHash =
-        await this.contentHasher.hash(executableContent);
+      const actualHash = await this.contentHasher.hash(executableContent);
 
       const expectedHash =
         request.authorization.payload.businessTransactionHash;
@@ -283,8 +291,7 @@ export class ExecutionGateway implements ExecutionSystem {
           policyVersion,
         );
 
-        const currentHash =
-          await this.policyContentHasher.hash(currentPolicy);
+        const currentHash = await this.policyContentHasher.hash(currentPolicy);
 
         policyStillCurrent = currentHash === policyContentHash;
 
@@ -323,8 +330,7 @@ export class ExecutionGateway implements ExecutionSystem {
       signalsHash !== undefined &&
       request.signals !== undefined
     ) {
-      const currentSignalsHash =
-        await this.signalsHasher.hash(request.signals);
+      const currentSignalsHash = await this.signalsHasher.hash(request.signals);
 
       if (currentSignalsHash !== signalsHash) {
         signalsStillCurrent = false;
@@ -333,15 +339,14 @@ export class ExecutionGateway implements ExecutionSystem {
           actual: currentSignalsHash,
         };
       } else {
-        const violations =
-          await this.signalStateVerifier.findViolations(
-            {
-              action: executableContent.action,
-              businessTransactionId: executableContent.businessTransactionId,
-              intentParameters: executableContent.parameters,
-            },
-            request.signals as PolicySignals,
-          );
+        const violations = await this.signalStateVerifier.findViolations(
+          {
+            action: executableContent.action,
+            businessTransactionId: executableContent.businessTransactionId,
+            intentParameters: executableContent.parameters,
+          },
+          request.signals as PolicySignals,
+        );
 
         signalsStillCurrent = violations.length === 0;
 
@@ -364,9 +369,7 @@ export class ExecutionGateway implements ExecutionSystem {
     // mismatched or forged request must not burn a nonce.
     //
     const nonceUnseen = priorChecksPassed
-      ? await this.envelopeVerifier.consumeNonce(
-          request.authorization,
-        )
+      ? await this.envelopeVerifier.consumeNonce(request.authorization)
       : false;
 
     const result: GatewayVerificationResult = {
@@ -396,15 +399,14 @@ export class ExecutionGateway implements ExecutionSystem {
    * mismatch — so the caller (ExecutionComponent) marks the
    * Execution failed rather than silently dropping it.
    */
-  async execute(
-    request: ExecutionRequest,
-  ): Promise<ExecutionResult> {
-    const { result, executableContent } =
-      await this.verify(request);
+  async execute(request: ExecutionRequest): Promise<ExecutionResult> {
+    const { result, executableContent } = await this.verify(request);
 
     if (!result.valid) {
       if (this.isSoleFailureNonceReplay(result)) {
-        throw new NonceAlreadyConsumedError(executableContent.businessTransactionId);
+        throw new NonceAlreadyConsumedError(
+          executableContent.businessTransactionId,
+        );
       }
       throw new Error(this.describeFailure(result));
     }
@@ -420,28 +422,36 @@ export class ExecutionGateway implements ExecutionSystem {
               )
             : this.executionControl.gatewayAuthentication;
 
-  return this.executionControl.service.execute({
-  authorization: request.authorization,
-          executableContent: transaction,
-          verifiedTransaction: {
-            authorizationVerified: true,
-            executableContentVerified: true,
-            replayCheckPassed: true,
+        return this.executionControl.service.execute(
+          {
+            authorization: request.authorization,
+            executableContent: transaction,
+            verifiedTransaction: {
+              authorizationVerified: true,
+              executableContentVerified: true,
+              replayCheckPassed: true,
+            },
+            executionTimestamp: new Date().toISOString(),
           },
-          executionTimestamp: new Date().toISOString(),
-        }, gatewayAuthentication);
+          gatewayAuthentication,
+        );
       }
-      if (this.executionControl.channel === undefined ||
-        this.executionControl.gatewayIdentity === undefined) {
+      if (
+        this.executionControl.channel === undefined ||
+        this.executionControl.gatewayIdentity === undefined
+      ) {
         throw new Error("Execution Gateway executionControl is incomplete.");
       }
-      return this.executionControl.channel.release({
-        executionId: request.authorization.payload.authorizationId,
-        connectorId: this.executionControl.route(transaction),
-        transaction,
-        authorization: request.authorization,
-        verification: result,
-      }, this.executionControl.gatewayIdentity.present());
+      return this.executionControl.channel.release(
+        {
+          executionId: request.authorization.payload.authorizationId,
+          connectorId: this.executionControl.route(transaction),
+          transaction,
+          authorization: request.authorization,
+          verification: result,
+        },
+        this.executionControl.gatewayIdentity.present(),
+      );
     }
 
     return this.connector!.execute({
@@ -465,9 +475,7 @@ export class ExecutionGateway implements ExecutionSystem {
    * authorization), not that it failed, so undefined counts as passing
    * here exactly like an absent check always has.
    */
-  private isSoleFailureNonceReplay(
-    result: GatewayVerificationResult,
-  ): boolean {
+  private isSoleFailureNonceReplay(result: GatewayVerificationResult): boolean {
     const { nonceUnseen, ...otherChecks } = result.checks;
 
     return (
@@ -478,9 +486,7 @@ export class ExecutionGateway implements ExecutionSystem {
     );
   }
 
-  private describeFailure(
-    result: GatewayVerificationResult,
-  ): string {
+  private describeFailure(result: GatewayVerificationResult): string {
     const failedChecks = Object.entries(result.checks)
       .filter(([, checkPassed]) => checkPassed === false)
       .map(([name]) => name);

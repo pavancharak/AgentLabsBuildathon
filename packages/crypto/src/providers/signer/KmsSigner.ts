@@ -1,7 +1,4 @@
-import {
-  createPublicKey,
-  type KeyObject,
-} from "node:crypto";
+import { createPublicKey, type KeyObject } from "node:crypto";
 
 import {
   DescribeKeyCommand,
@@ -11,10 +8,7 @@ import {
   SignCommand,
 } from "@aws-sdk/client-kms";
 
-import {
-  SignatureAlgorithms,
-  type SignatureAlgorithm,
-} from "@parmana/shared";
+import { SignatureAlgorithms, type SignatureAlgorithm } from "@parmana/shared";
 
 import type { KeyMetadata } from "../../KeyProvider.js";
 import type { Signer } from "../../Signer.js";
@@ -30,9 +24,7 @@ import { CryptoError } from "../../errors/CryptoError.js";
 const SUPPORTED_KEY_SPEC = "ECC_NIST_EDWARDS25519";
 const SIGNING_ALGORITHM = "ED25519_SHA_512";
 
-function algorithmFromKeySpec(
-  keySpec: string | undefined,
-): SignatureAlgorithm {
+function algorithmFromKeySpec(keySpec: string | undefined): SignatureAlgorithm {
   if (keySpec === SUPPORTED_KEY_SPEC) {
     return SignatureAlgorithms.ED25519;
   }
@@ -61,9 +53,7 @@ function algorithmFromKeySpec(
  * or accepts a static access key/secret pair.
  */
 export class KmsSigner implements Signer {
-  private constructor(
-    private readonly client: KMSClient,
-  ) {}
+  private constructor(private readonly client: KMSClient) {}
 
   /**
    * Async factory, not a plain constructor: resolving credentials may
@@ -72,9 +62,7 @@ export class KmsSigner implements Signer {
    * package is ESM; there is no synchronous `require()` available to
    * load it lazily).
    */
-  static async create(
-    region: string = requireRegion(),
-  ): Promise<KmsSigner> {
+  static async create(region: string = requireRegion()): Promise<KmsSigner> {
     const credentials = await resolveCredentials();
 
     return new KmsSigner(
@@ -85,10 +73,7 @@ export class KmsSigner implements Signer {
     );
   }
 
-  async sign(
-    keyId: string,
-    data: Uint8Array,
-  ): Promise<string> {
+  async sign(keyId: string, data: Uint8Array): Promise<string> {
     const response = await this.client.send(
       new SignCommand({
         KeyId: keyId,
@@ -99,17 +84,13 @@ export class KmsSigner implements Signer {
     );
 
     if (!response.Signature) {
-      throw new CryptoError(
-        `KMS Sign returned no signature for key ${keyId}.`,
-      );
+      throw new CryptoError(`KMS Sign returned no signature for key ${keyId}.`);
     }
 
     return Buffer.from(response.Signature).toString("base64");
   }
 
-  async getPublicKey(
-    keyId: string,
-  ): Promise<KeyObject> {
+  async getPublicKey(keyId: string): Promise<KeyObject> {
     const response = await this.client.send(
       new GetPublicKeyCommand({ KeyId: keyId }),
     );
@@ -127,9 +108,7 @@ export class KmsSigner implements Signer {
     });
   }
 
-  async getMetadata(
-    keyId: string,
-  ): Promise<KeyMetadata> {
+  async getMetadata(keyId: string): Promise<KeyMetadata> {
     const response = await this.client.send(
       new DescribeKeyCommand({ KeyId: keyId }),
     );
@@ -140,13 +119,9 @@ export class KmsSigner implements Signer {
     };
   }
 
-  async hasKey(
-    keyId: string,
-  ): Promise<boolean> {
+  async hasKey(keyId: string): Promise<boolean> {
     try {
-      await this.client.send(
-        new DescribeKeyCommand({ KeyId: keyId }),
-      );
+      await this.client.send(new DescribeKeyCommand({ KeyId: keyId }));
 
       return true;
     } catch (error) {
@@ -169,9 +144,7 @@ function requireRegion(): string {
   const region = process.env.AWS_REGION;
 
   if (!region) {
-    throw new CryptoError(
-      "KmsSigner requires AWS_REGION to be set.",
-    );
+    throw new CryptoError("KmsSigner requires AWS_REGION to be set.");
   }
 
   return region;
@@ -187,11 +160,12 @@ function requireRegion(): string {
  * affected.
  */
 async function resolveCredentials(): Promise<
-  ReturnType<
-    Awaited<
-      typeof import("@vercel/oidc-aws-credentials-provider")
-    >["awsCredentialsProvider"]
-  > | undefined
+  | ReturnType<
+      Awaited<
+        typeof import("@vercel/oidc-aws-credentials-provider")
+      >["awsCredentialsProvider"]
+    >
+  | undefined
 > {
   const roleArn = process.env.AWS_ROLE_ARN;
 
@@ -202,9 +176,8 @@ async function resolveCredentials(): Promise<
     return undefined;
   }
 
-  const { awsCredentialsProvider } = await import(
-    "@vercel/oidc-aws-credentials-provider"
-  );
+  const { awsCredentialsProvider } =
+    await import("@vercel/oidc-aws-credentials-provider");
 
   return awsCredentialsProvider({ roleArn });
 }

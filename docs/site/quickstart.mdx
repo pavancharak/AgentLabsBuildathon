@@ -4,15 +4,16 @@ description: "Install to your first authorized execution in under 10 minutes, us
 ---
 
 <Info>
-**[AVAILABLE]**, commands re-run against a live local server on 2026-07-29 (commit
-`0e69ed4`), including `python/examples/quickstart/run.py` itself. **Updated (2026-08-09,
-not re-run live as part of this specific update):** the example capability below was
-changed from `payments:execute` to `test:fixture-execute` because `payments:execute`
-(vendor-payment) was removed from the repository entirely, not merely renamed — see the
-note in step 6. The code below was checked against current source for accuracy, but this
-specific pass did not itself start a live server and re-capture output; treat step 7's
-captured hash as illustrative of the shape of a real response, not a value you'll
-reproduce.
+  **[AVAILABLE]**, commands re-run against a live local server on 2026-07-29
+  (commit `0e69ed4`), including `python/examples/quickstart/run.py` itself.
+  **Updated (2026-08-09, not re-run live as part of this specific update):** the
+  example capability below was changed from `payments:execute` to
+  `test:fixture-execute` because `payments:execute` (vendor-payment) was removed
+  from the repository entirely, not merely renamed — see the note in step 6. The
+  code below was checked against current source for accuracy, but this specific
+  pass did not itself start a live server and re-capture output; treat step 7's
+  captured hash as illustrative of the shape of a real response, not a value
+  you'll reproduce.
 </Info>
 
 <Warning>
@@ -79,11 +80,13 @@ curl http://localhost:3000/health
 ```
 
 <Note>
-**The Execution Gateway is wired into this server unconditionally** (`createExecutionSystem()`
-always returns `createExecutionGateway()`, `packages/api/src/bootstrap/createExecutionSystem.ts`).
-Every `POST /execute` is independently re-verified and routed through a real Connector. An
-action with no registered connector fails closed with `"No connector registered for action"`,
-it does not silently skip enforcement. See [The gateway](/concepts/the-gateway).
+  **The Execution Gateway is wired into this server unconditionally**
+  (`createExecutionSystem()` always returns `createExecutionGateway()`,
+  `packages/api/src/bootstrap/createExecutionSystem.ts`). Every `POST /execute`
+  is independently re-verified and routed through a real Connector. An action
+  with no registered connector fails closed with `"No connector registered for
+  action"`, it does not silently skip enforcement. See [The
+  gateway](/concepts/the-gateway).
 </Note>
 
 ## 4. Every other route requires a bearer key
@@ -129,6 +132,7 @@ restart or `PARMANA_AUTH_DISABLED` workaround needed:
 ```python
 client = ParmanaClient(endpoint="http://localhost:3000", api_key="my-secret-api-key")
 ```
+
 </Note>
 
 ## 6. Execute a Business Transaction
@@ -221,12 +225,22 @@ complete shape.
 
 <CardGroup cols={2}>
   <Card title="How Parmana thinks" icon="brain" href="/how-parmana-thinks">
-    The concepts behind what just happened: policy, authorization, the gateway, trust records.
+    The concepts behind what just happened: policy, authorization, the gateway,
+    trust records.
   </Card>
-  <Card title="Verify & replay" icon="check-double" href="/verification/overview">
+  <Card
+    title="Verify & replay"
+    icon="check-double"
+    href="/verification/overview"
+  >
     Read back or re-run verification against the record you just created.
   </Card>
-  <Card title="Live API and demos" icon="server" href="/guides/live-api-and-demos">
-    Skip the local setup entirely — call a real, already-deployed instance directly.
+  <Card
+    title="Live API and demos"
+    icon="server"
+    href="/guides/live-api-and-demos"
+  >
+    Skip the local setup entirely — call a real, already-deployed instance
+    directly.
   </Card>
 </CardGroup>

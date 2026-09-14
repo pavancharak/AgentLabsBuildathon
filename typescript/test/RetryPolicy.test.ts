@@ -9,13 +9,7 @@
  * object round-trips.
  */
 
-import {
-  afterEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { HttpTransport } from "../src/transport/HttpTransport.js";
 import type { Configuration } from "../src/config/Configuration.js";
@@ -39,9 +33,7 @@ function fakeResponse(init: FakeResponseInit): Response {
   } as unknown as Response;
 }
 
-function baseConfiguration(
-  overrides?: Partial<Configuration>,
-): Configuration {
+function baseConfiguration(overrides?: Partial<Configuration>): Configuration {
   return {
     endpoint: "http://localhost:3000",
     ...overrides,
@@ -347,7 +339,10 @@ describe("HttpTransport retry logic", () => {
       const fetchMock = vi.fn(async () => {
         callCount += 1;
         if (callCount < 2) {
-          return fakeResponse({ status: 429, body: { error: "Too many requests." } });
+          return fakeResponse({
+            status: 429,
+            body: { error: "Too many requests." },
+          });
         }
         return fakeResponse({ status: 200, body: { status: "UP" } });
       });

@@ -33,19 +33,15 @@ export class ExecutionBuilder {
     return {
       executionId: crypto.randomUUID(),
 
-      businessTransactionId:
-        transaction.businessTransactionId,
+      businessTransactionId: transaction.businessTransactionId,
 
       decision,
 
-      status:
-        ExecutionStatus.PROCESSING,
+      status: ExecutionStatus.PROCESSING,
 
-      mode:
-        ExecutionMode.SYNC,
+      mode: ExecutionMode.SYNC,
 
-      startedAt:
-        new Date(),
+      startedAt: new Date(),
     };
   }
 }

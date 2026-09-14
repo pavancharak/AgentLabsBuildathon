@@ -51,6 +51,3 @@ describe("GET /receipt/latest/:id", () => {
     expect(response.body.trustRecordHash).toBe(execute.body.trustRecordHash);
   });
 });
-
-
-

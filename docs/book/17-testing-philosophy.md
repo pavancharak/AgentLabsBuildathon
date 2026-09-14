@@ -28,7 +28,7 @@ applies consistently: hermetic tests first (`packages/connector-hubspot/tests/un
 network calls beyond localhost, run on every `npm test`), then a gated live suite second
 (`hubspot-live.integration.test.ts`), behind an explicit opt-in env var
 (`ALLOW_LIVE_HUBSPOT=1`) plus a credential shape check (`TEST_HUBSPOT_PRIVATE_APP_TOKEN` must
-start with `pat-`, checked *before* any network call), skipped by default so it never
+start with `pat-`, checked _before_ any network call), skipped by default so it never
 becomes part of ordinary `npm test` behavior. The Razorpay connector's own now-historical
 test suite mirrored this exact structure (`RAZORPAY_TEST_KEY_ID`'s `rzp_test_` check, the
 same idea). Live tests exist and are run periodically, deliberately, not as a substitute for
@@ -49,8 +49,8 @@ actually exists in `docs/CLAIMS.md` today (read live, never a hardcoded copy tha
 itself drift).
 
 It maintains two deliberate exemption sets rather than trying to be exhaustive:
-`HYPOTHETICAL_EXAMPLE_PATHS` (paths that were *never* real, a worked "how you'd add a Stripe
-connector" walkthrough) and `HISTORICALLY_REAL_NOW_REMOVED_PATHS` (paths that *were* real,
+`HYPOTHETICAL_EXAMPLE_PATHS` (paths that were _never_ real, a worked "how you'd add a Stripe
+connector" walkthrough) and `HISTORICALLY_REAL_NOW_REMOVED_PATHS` (paths that _were_ real,
 are cited as an accurate historical record of something later deliberately removed, and
 whose citation is explicitly self-caveated in the surrounding prose as historical). The
 distinction matters: a hypothetical was never a claim about the present; a historical

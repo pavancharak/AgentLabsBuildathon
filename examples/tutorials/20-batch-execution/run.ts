@@ -1,26 +1,14 @@
-import {
-  MemoryExecutionTrustRecordRepository,
-} from "@parmana/storage";
+import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeBuilder,
-} from "@parmana/runtime";
+import { RuntimeBuilder } from "@parmana/runtime";
 
-import transaction1 from "./transaction-1.json" with {
-  type: "json",
-};
+import transaction1 from "./transaction-1.json" with { type: "json" };
 
-import transaction2 from "./transaction-2.json" with {
-  type: "json",
-};
+import transaction2 from "./transaction-2.json" with { type: "json" };
 
-import transaction3 from "./transaction-3.json" with {
-  type: "json",
-};
+import transaction3 from "./transaction-3.json" with { type: "json" };
 
 async function main(): Promise<void> {
   console.log();
@@ -33,55 +21,32 @@ async function main(): Promise<void> {
   // Repository
   //
 
-  const repository =
-    new MemoryExecutionTrustRecordRepository();
+  const repository = new MemoryExecutionTrustRecordRepository();
 
   //
   // Runtime
   //
 
-  const runtime =
-    new RuntimeBuilder()
-      .withPolicyRepository(
-        new FilePolicyRepository(
-          "policies",
-        ),
-      )
-      .build(repository);
+  const runtime = new RuntimeBuilder()
+    .withPolicyRepository(new FilePolicyRepository("policies"))
+    .build(repository);
 
-  const transactions = [
-    transaction1,
-    transaction2,
-    transaction3,
-  ];
+  const transactions = [transaction1, transaction2, transaction3];
 
   let successful = 0;
   let failed = 0;
 
-  for (
-    const [index, transaction]
-    of transactions.entries()
-  ) {
-    console.log(
-      `Processing transaction ${index + 1}...`,
-    );
+  for (const [index, transaction] of transactions.entries()) {
+    console.log(`Processing transaction ${index + 1}...`);
 
     try {
-      const {
-        context,
-      } = await runtime.execute(
-        transaction,
-      );
+      const { context } = await runtime.execute(transaction);
 
-      console.log(
-        `✓ ${context.decision.outcome}`,
-      );
+      console.log(`✓ ${context.decision.outcome}`);
 
       successful++;
     } catch (error) {
-      console.log(
-        `✗ ${(error as Error).message}`,
-      );
+      console.log(`✗ ${(error as Error).message}`);
 
       failed++;
     }
@@ -94,23 +59,15 @@ async function main(): Promise<void> {
   console.log("==================================================");
   console.log();
 
-  console.log(
-    `Total Transactions : ${transactions.length}`,
-  );
+  console.log(`Total Transactions : ${transactions.length}`);
 
-  console.log(
-    `Successful         : ${successful}`,
-  );
+  console.log(`Successful         : ${successful}`);
 
-  console.log(
-    `Failed             : ${failed}`,
-  );
+  console.log(`Failed             : ${failed}`);
 
   console.log();
 
-  console.log(
-    "Tutorial completed successfully.",
-  );
+  console.log("Tutorial completed successfully.");
 }
 
 main().catch((error) => {

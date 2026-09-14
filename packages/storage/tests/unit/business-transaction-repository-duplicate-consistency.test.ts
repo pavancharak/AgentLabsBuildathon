@@ -21,7 +21,10 @@ function createFakePool(): Pool {
         const [id] = values as [string];
 
         if (rows.has(id)) {
-          return Promise.reject({ code: "23505", message: "duplicate key value" });
+          return Promise.reject({
+            code: "23505",
+            message: "duplicate key value",
+          });
         }
 
         rows.add(id);
@@ -41,7 +44,10 @@ function createFakePool(): Pool {
  * duplicate from the shape of the error alone.
  */
 describe.each<[string, () => BusinessTransactionRepository]>([
-  ["MemoryBusinessTransactionRepository", () => new MemoryBusinessTransactionRepository()],
+  [
+    "MemoryBusinessTransactionRepository",
+    () => new MemoryBusinessTransactionRepository(),
+  ],
   [
     "SupabaseBusinessTransactionRepository",
     () => new SupabaseBusinessTransactionRepository(createFakePool()),

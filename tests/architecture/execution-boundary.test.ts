@@ -25,7 +25,9 @@ const repoRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const packagesDir = join(repoRoot, "packages");
 
 function listPackages(): string[] {
-  return readdirSync(packagesDir).filter((name) => statSync(join(packagesDir, name)).isDirectory());
+  return readdirSync(packagesDir).filter((name) =>
+    statSync(join(packagesDir, name)).isDirectory(),
+  );
 }
 
 /** Recursively lists .ts source files under `dir`, skipping node_modules/dist. */
@@ -128,13 +130,19 @@ describe("execution boundary — exactly one production execution pipeline", () 
       .map(([path]) => path);
 
     it("every `implements Connector` in packages/*/src is on the approved list", () => {
-      const unapproved = implementors.filter((path) => !allowedImplementors.has(path));
+      const unapproved = implementors.filter(
+        (path) => !allowedImplementors.has(path),
+      );
       expect(unapproved).toEqual([]);
     });
 
     it("every file outside packages/execution-gateway implementing Connector is the named MockConnector exception", () => {
-      const outsideGateway = implementors.filter((path) => !path.startsWith("packages/execution-gateway/"));
-      expect(outsideGateway).toEqual(["packages/connector-sdk/src/MockConnector.ts"]);
+      const outsideGateway = implementors.filter(
+        (path) => !path.startsWith("packages/execution-gateway/"),
+      );
+      expect(outsideGateway).toEqual([
+        "packages/connector-sdk/src/MockConnector.ts",
+      ]);
     });
   });
 
@@ -205,21 +213,28 @@ describe("execution boundary — exactly one production execution pipeline", () 
   });
 
   describe("API routes never execute adapters directly", () => {
-    const routeFiles = [...srcFiles.entries()].filter(([path]) => path.startsWith("packages/api/src/routes/"));
+    const routeFiles = [...srcFiles.entries()].filter(([path]) =>
+      path.startsWith("packages/api/src/routes/"),
+    );
 
     it("found route files to scan", () => {
       expect(routeFiles.length).toBeGreaterThan(0);
     });
 
-    it.each(routeFiles)("%s does not import or construct an adapter", (path, content) => {
-      expect(content).not.toMatch(/from ["']@parmana\/execution-gateway["']/);
-      expect(content).not.toMatch(/new (Gateway|HubSpot)\w*Adapter\(/);
-      expect(content).not.toMatch(/\bfetch\(/);
-    });
+    it.each(routeFiles)(
+      "%s does not import or construct an adapter",
+      (path, content) => {
+        expect(content).not.toMatch(/from ["']@parmana\/execution-gateway["']/);
+        expect(content).not.toMatch(/new (Gateway|HubSpot)\w*Adapter\(/);
+        expect(content).not.toMatch(/\bfetch\(/);
+      },
+    );
   });
 
   describe("bootstrap composes but never executes business actions", () => {
-    const bootstrapFiles = [...srcFiles.entries()].filter((entry) => entry[0].startsWith("packages/api/src/bootstrap/"));
+    const bootstrapFiles = [...srcFiles.entries()].filter((entry) =>
+      entry[0].startsWith("packages/api/src/bootstrap/"),
+    );
 
     it("found bootstrap files to scan", () => {
       expect(bootstrapFiles.length).toBeGreaterThan(0);
@@ -231,18 +246,25 @@ describe("execution boundary — exactly one production execution pipeline", () 
   });
 
   describe("connector packages own no production execution", () => {
-    const connectorPackages = listPackages().filter((name) => name.startsWith("connector-"));
+    const connectorPackages = listPackages().filter((name) =>
+      name.startsWith("connector-"),
+    );
 
     it("found at least the known connector packages", () => {
       expect(connectorPackages.length).toBeGreaterThanOrEqual(2);
     });
 
     for (const pkg of connectorPackages) {
-      const files = [...srcFiles.entries()].filter(([path]) => path.startsWith(`packages/${pkg}/src/`));
+      const files = [...srcFiles.entries()].filter(([path]) =>
+        path.startsWith(`packages/${pkg}/src/`),
+      );
 
-      it.each(files)(`packages/${pkg}: %s makes no fetch() call`, (_path, content) => {
-        expect(content).not.toMatch(/\bfetch\(/);
-      });
+      it.each(files)(
+        `packages/${pkg}: %s makes no fetch() call`,
+        (_path, content) => {
+          expect(content).not.toMatch(/\bfetch\(/);
+        },
+      );
     }
   });
 
@@ -281,7 +303,8 @@ describe("execution boundary — exactly one production execution pipeline", () 
       path.startsWith("packages/api/");
 
     const gatewayAllowed = (path: string): boolean =>
-      path.startsWith("packages/execution-gateway/") || path.startsWith("packages/api/");
+      path.startsWith("packages/execution-gateway/") ||
+      path.startsWith("packages/api/");
 
     const controlImporters = [...srcFiles.entries()]
       .filter(([, content]) => controlImportPattern.test(content))
@@ -300,19 +323,26 @@ describe("execution boundary — exactly one production execution pipeline", () 
     });
 
     it("only execution-control, execution-gateway, or api import @parmana/execution-control", () => {
-      const unapproved = controlImporters.filter((path) => !controlAllowed(path));
+      const unapproved = controlImporters.filter(
+        (path) => !controlAllowed(path),
+      );
       expect(unapproved).toEqual([]);
     });
 
     it("only execution-gateway or api import @parmana/execution-gateway", () => {
-      const unapproved = gatewayImporters.filter((path) => !gatewayAllowed(path));
+      const unapproved = gatewayImporters.filter(
+        (path) => !gatewayAllowed(path),
+      );
       expect(unapproved).toEqual([]);
     });
 
     it("no connector package (present or future) imports execution-control or execution-gateway", () => {
-      const connectorPackages = listPackages().filter((name) => name.startsWith("connector-"));
-      const violators = [...controlImporters, ...gatewayImporters].filter((path) =>
-        connectorPackages.some((pkg) => path.startsWith(`packages/${pkg}/`)),
+      const connectorPackages = listPackages().filter((name) =>
+        name.startsWith("connector-"),
+      );
+      const violators = [...controlImporters, ...gatewayImporters].filter(
+        (path) =>
+          connectorPackages.some((pkg) => path.startsWith(`packages/${pkg}/`)),
       );
       expect(violators).toEqual([]);
     });
@@ -327,7 +357,8 @@ describe("execution boundary — exactly one production execution pipeline", () 
     // internal" set from connector-execution/index.ts itself (minus the
     // three factory files, which are the intended public surface), so it
     // covers symbols that don't exist yet.
-    const internalBarrelPath = "packages/execution-gateway/src/connector-execution/index.ts";
+    const internalBarrelPath =
+      "packages/execution-gateway/src/connector-execution/index.ts";
     const publicBarrelPath = "packages/execution-gateway/src/index.ts";
 
     /** Strips /* *\/ block comments and // line comments so prose mentioning a class name (e.g. explaining why it's NOT exported) doesn't false-positive as an export. */
@@ -337,7 +368,10 @@ describe("execution boundary — exactly one production execution pipeline", () 
 
     const internalBarrel = srcFiles.get(internalBarrelPath);
     const publicBarrelRaw = srcFiles.get(publicBarrelPath);
-    const publicBarrel = publicBarrelRaw === undefined ? undefined : stripComments(publicBarrelRaw);
+    const publicBarrel =
+      publicBarrelRaw === undefined
+        ? undefined
+        : stripComments(publicBarrelRaw);
 
     const publicFactoryFiles = new Set([
       "createGatewayConnectorRegistry",
@@ -353,15 +387,19 @@ describe("execution boundary — exactly one production execution pipeline", () 
       expect(publicBarrel).toBeDefined();
     });
 
-    const reExportedFiles = [...(internalBarrel ?? "").matchAll(/export \* from ["']\.\/([\w-]+)\.js["']/g)].map(
-      (m) => m[1]!,
-    );
+    const reExportedFiles = [
+      ...(internalBarrel ?? "").matchAll(
+        /export \* from ["']\.\/([\w-]+)\.js["']/g,
+      ),
+    ].map((m) => m[1]!);
 
     it("found files re-exported by the internal connector-execution barrel (sanity check)", () => {
       expect(reExportedFiles.length).toBeGreaterThan(0);
     });
 
-    const implementationFiles = reExportedFiles.filter((name) => !publicFactoryFiles.has(name));
+    const implementationFiles = reExportedFiles.filter(
+      (name) => !publicFactoryFiles.has(name),
+    );
 
     it("at least one implementation file (non-factory) is present to check (sanity check)", () => {
       expect(implementationFiles.length).toBeGreaterThan(0);
@@ -372,12 +410,17 @@ describe("execution boundary — exactly one production execution pipeline", () 
       const fileContent = srcFiles.get(filePath);
 
       const exportedNames = [
-        ...(fileContent ?? "").matchAll(/^export (?:class|interface|function|const|type)\s+(\w+)/gm),
+        ...(fileContent ?? "").matchAll(
+          /^export (?:class|interface|function|const|type)\s+(\w+)/gm,
+        ),
       ].map((m) => m[1]!);
 
-      it.each(exportedNames)(`${fileName}.ts's exported symbol %s does not leak into the public package barrel`, (name) => {
-        expect(publicBarrel).not.toMatch(new RegExp(`\\b${name}\\b`));
-      });
+      it.each(exportedNames)(
+        `${fileName}.ts's exported symbol %s does not leak into the public package barrel`,
+        (name) => {
+          expect(publicBarrel).not.toMatch(new RegExp(`\\b${name}\\b`));
+        },
+      );
     }
   });
 });

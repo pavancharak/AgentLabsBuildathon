@@ -7,7 +7,11 @@ import {
   MockGitHubServer,
   redactGitHubToken,
 } from "@parmana/connector-github";
-import { brandCredentialHandle, connectorCapabilities, type ConnectorExecutionContext } from "@parmana/connector-sdk";
+import {
+  brandCredentialHandle,
+  connectorCapabilities,
+  type ConnectorExecutionContext,
+} from "@parmana/connector-sdk";
 
 import { GatewayGitHubAdapter } from "../../src/connector-execution/index.js";
 
@@ -24,7 +28,9 @@ afterEach(async () => {
   await server.close();
 });
 
-function context(overrides: Partial<ConnectorExecutionContext> = {}): ConnectorExecutionContext {
+function context(
+  overrides: Partial<ConnectorExecutionContext> = {},
+): ConnectorExecutionContext {
   return {
     credential: brandCredentialHandle({
       providerId: "github-app",
@@ -40,12 +46,21 @@ function context(overrides: Partial<ConnectorExecutionContext> = {}): ConnectorE
 function connector(): GatewayGitHubAdapter {
   return new GatewayGitHubAdapter({
     connectorId: "github",
-    capabilities: connectorCapabilities([GITHUB_PR_FETCH_CAPABILITY, GITHUB_PR_MERGE_CAPABILITY]),
+    capabilities: connectorCapabilities([
+      GITHUB_PR_FETCH_CAPABILITY,
+      GITHUB_PR_MERGE_CAPABILITY,
+    ]),
     baseUrl: server.baseUrl,
   });
 }
 
-function seedPr(overrides: Partial<{ mergeable: boolean | null; headSha: string; baseRef: string }> = {}) {
+function seedPr(
+  overrides: Partial<{
+    mergeable: boolean | null;
+    headSha: string;
+    baseRef: string;
+  }> = {},
+) {
   server.setPullRequest("acme", "widgets", {
     number: 42,
     mergeable: true,
@@ -72,7 +87,11 @@ describe("GatewayGitHubAdapter", () => {
     );
 
     expect(result.success).toBe(true);
-    const pr = result.metadata?.pullRequest as { number: number; mergeable: boolean | null; headSha: string };
+    const pr = result.metadata?.pullRequest as {
+      number: number;
+      mergeable: boolean | null;
+      headSha: string;
+    };
     expect(pr.number).toBe(42);
     expect(pr.mergeable).toBe(true);
     expect(pr.headSha).toBe("abc123");
@@ -93,7 +112,9 @@ describe("GatewayGitHubAdapter", () => {
     );
 
     expect(result.success).toBe(true);
-    expect(server.getPullRequest("acme", "widgets", 42)?.mergedAt).not.toBeNull();
+    expect(
+      server.getPullRequest("acme", "widgets", 42)?.mergedAt,
+    ).not.toBeNull();
     expect(server.mergeCalls).toBe(1);
   });
 
@@ -107,7 +128,10 @@ describe("GatewayGitHubAdapter", () => {
           businessTransactionId: "txn-stale-head",
           action: GITHUB_PR_MERGE_CAPABILITY,
           target: "acme/widgets#42",
-          parameters: { mergeMethod: "squash", expectedHeadSha: "stale-sha-999" },
+          parameters: {
+            mergeMethod: "squash",
+            expectedHeadSha: "stale-sha-999",
+          },
         },
         context(),
       ),
@@ -332,12 +356,27 @@ describe("GatewayGitHubAdapter", () => {
       };
 
       await expect(
-        instance.execute(request, context({ credential: brandCredentialHandle({ providerId: "github-app", credentialId: "installation:154863462", value: { installationToken: tokenA } }) })),
+        instance.execute(
+          request,
+          context({
+            credential: brandCredentialHandle({
+              providerId: "github-app",
+              credentialId: "installation:154863462",
+              value: { installationToken: tokenA },
+            }),
+          }),
+        ),
       ).rejects.toThrow("HTTP 401");
 
       const result = await instance.execute(
         request,
-        context({ credential: brandCredentialHandle({ providerId: "github-app", credentialId: "installation:154863462", value: { installationToken: tokenB } }) }),
+        context({
+          credential: brandCredentialHandle({
+            providerId: "github-app",
+            credentialId: "installation:154863462",
+            value: { installationToken: tokenB },
+          }),
+        }),
       );
 
       expect(result.success).toBe(true);

@@ -1,151 +1,84 @@
-import {
-  FileKeyProvider,
-} from "@parmana/crypto";
+import { FileKeyProvider } from "@parmana/crypto";
 
-import {
-  EnvelopeVerifier,
-  MemoryNonceStore,
-} from "@parmana/envelope-verifier";
+import { EnvelopeVerifier, MemoryNonceStore } from "@parmana/envelope-verifier";
 
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeBuilder,
-} from "@parmana/runtime";
+import { RuntimeBuilder } from "@parmana/runtime";
 
-import {
-  MemoryExecutionTrustRecordRepository,
-} from "@parmana/storage";
+import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
-import transaction from "./transaction.json" with {
-  type: "json",
-};
+import transaction from "./transaction.json" with { type: "json" };
 
 async function main(): Promise<void> {
   console.log();
-  console.log(
-    "==================================================",
-  );
-  console.log(
-    "Tutorial 42 - Nonce Reuse",
-  );
-  console.log(
-    "==================================================",
-  );
+  console.log("==================================================");
+  console.log("Tutorial 42 - Nonce Reuse");
+  console.log("==================================================");
   console.log();
 
   //
   // Generate Authorization
   //
-  const runtime =
-    new RuntimeBuilder()
-      .withPolicyRepository(
-        new FilePolicyRepository(
-          "policies",
-        ),
-      )
-      .build(
-        new MemoryExecutionTrustRecordRepository(),
-      );
+  const runtime = new RuntimeBuilder()
+    .withPolicyRepository(new FilePolicyRepository("policies"))
+    .build(new MemoryExecutionTrustRecordRepository());
 
-  const { context } =
-    await runtime.execute(
-      transaction,
-    );
+  const { context } = await runtime.execute(transaction);
 
   if (!context.authorization) {
-    throw new Error(
-      "Execution Authorization missing.",
-    );
+    throw new Error("Execution Authorization missing.");
   }
 
-  const keyProvider =
-    new FileKeyProvider();
+  const keyProvider = new FileKeyProvider();
 
-  const publicKey =
-    await keyProvider.getPublicKey(
-      context.authorization.keyId,
-    );
+  const publicKey = await keyProvider.getPublicKey(context.authorization.keyId);
 
   //
   // Shared nonce store
   //
-  const nonceStore =
-    new MemoryNonceStore();
+  const nonceStore = new MemoryNonceStore();
 
-  const verifier =
-    new EnvelopeVerifier({
-      publicKey,
-      nonceStore,
-    });
+  const verifier = new EnvelopeVerifier({
+    publicKey,
+    nonceStore,
+  });
 
-  console.log(
-    "First Verification",
-  );
+  console.log("First Verification");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
-  const first =
-    await verifier.verify(
-      context.authorization,
-    );
+  const first = await verifier.verify(context.authorization);
 
-  console.log(
-    `Accepted     : ${first.valid}`,
-  );
+  console.log(`Accepted     : ${first.valid}`);
 
-  console.log(
-    `Nonce Unseen : ${first.checks.nonceUnseen}`,
-  );
+  console.log(`Nonce Unseen : ${first.checks.nonceUnseen}`);
 
   console.log();
 
-  console.log(
-    "Second Verification",
-  );
+  console.log("Second Verification");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
-  const second =
-    await verifier.verify(
-      context.authorization,
-    );
+  const second = await verifier.verify(context.authorization);
 
-  console.log(
-    `Accepted     : ${second.valid}`,
-  );
+  console.log(`Accepted     : ${second.valid}`);
 
-  console.log(
-    `Nonce Unseen : ${second.checks.nonceUnseen}`,
-  );
+  console.log(`Nonce Unseen : ${second.checks.nonceUnseen}`);
 
   console.log();
 
   if (!second.checks.nonceUnseen) {
-    console.log(
-      "✓ Nonce reuse detected.",
-    );
+    console.log("✓ Nonce reuse detected.");
 
-    console.log(
-      "Execution rejected.",
-    );
+    console.log("Execution rejected.");
   } else {
-    console.log(
-      "✗ Nonce reuse not detected.",
-    );
+    console.log("✗ Nonce reuse not detected.");
   }
 
   console.log();
 
-  console.log(
-    "Tutorial completed successfully.",
-  );
+  console.log("Tutorial completed successfully.");
 }
 
 main().catch((error) => {

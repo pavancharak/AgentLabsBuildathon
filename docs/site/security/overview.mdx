@@ -3,7 +3,10 @@ title: "Security"
 description: "What Parmana actually guarantees, precisely scoped, and, as important, what it explicitly does not claim."
 ---
 
-<Info>This page is a direct mirror of `docs/CLAIMS.md` sections 3 and 5, read that file for the authoritative version.</Info>
+<Info>
+  This page is a direct mirror of `docs/CLAIMS.md` sections 3 and 5, read that
+  file for the authoritative version.
+</Info>
 
 ## Claims that hold, with their scope
 
@@ -103,7 +106,7 @@ transaction/trust-record/receipt history). 28 new regression tests reproduce the
 exploit shapes and assert they're now rejected, plus positive controls proving legitimate
 requests are unaffected. Deliberately **not** fixed by this session, flagged rather than
 silently left unmentioned: `boundSignals` only binds the specific fields a policy author
-declares — it does not independently verify that an *unbound* signal (`vendorVerified`,
+declares — it does not independently verify that an _unbound_ signal (`vendorVerified`,
 `riskScore`, and similar) is actually true; those remain caller-declared attestations. Full
 detail, exact file citations, and the complete regression-test list: `docs/VERIFICATION-GAPS.md`
 G-24, the authoritative source for this incident.

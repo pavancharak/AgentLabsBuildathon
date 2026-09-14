@@ -3,15 +3,18 @@ title: "Cryptography"
 description: "Ed25519 default, ML-DSA-65 (post-quantum) configurable. Local PEM keys today; KMS/HSM is roadmap."
 ---
 
-<Info>**[AVAILABLE]** for the core primitives below. **[ROADMAP]** for KMS/HSM key custody, clearly separated.</Info>
+<Info>
+  **[AVAILABLE]** for the core primitives below. **[ROADMAP]** for KMS/HSM key
+  custody, clearly separated.
+</Info>
 
 ## Signature algorithms
 
-| Algorithm | Status | Notes |
-|---|---|---|
-| Ed25519 | [AVAILABLE], default | Deterministic signatures. `Ed25519SignatureProvider`. |
-| ML-DSA-65 (FIPS 204, historically called "dilithium3" in this codebase) | [AVAILABLE], opt-in | Selectable via `PRIMARY_SIGNATURE_PROVIDER=dilithium3` **or** the equivalent, accepted alias `PRIMARY_SIGNATURE_PROVIDER=ml-dsa-65` (either resolves to the same provider; the internal identifier itself is `dilithium3` and stays that way for backward compatibility). Requires **Node ≥ 24** for native `node:crypto` ml-dsa-65 support. **Signatures are randomized, not deterministic**, signing the same message twice produces two different, both-valid signatures. Only verification is deterministic (CLAIMS.md §5). |
-| ECDSA P-256 | Declared in `SignatureAlgorithms` enum | No dedicated provider class confirmed in this audit, treat as unimplemented until checked. |
+| Algorithm                                                               | Status                                 | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ed25519                                                                 | [AVAILABLE], default                   | Deterministic signatures. `Ed25519SignatureProvider`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ML-DSA-65 (FIPS 204, historically called "dilithium3" in this codebase) | [AVAILABLE], opt-in                    | Selectable via `PRIMARY_SIGNATURE_PROVIDER=dilithium3` **or** the equivalent, accepted alias `PRIMARY_SIGNATURE_PROVIDER=ml-dsa-65` (either resolves to the same provider; the internal identifier itself is `dilithium3` and stays that way for backward compatibility). Requires **Node ≥ 24** for native `node:crypto` ml-dsa-65 support. **Signatures are randomized, not deterministic**, signing the same message twice produces two different, both-valid signatures. Only verification is deterministic (CLAIMS.md §5). |
+| ECDSA P-256                                                             | Declared in `SignatureAlgorithms` enum | No dedicated provider class confirmed in this audit, treat as unimplemented until checked.                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 CLAIMS.md 2.13/2.14. Evidence: `packages/crypto/test/SignatureProvider.test.ts`,
 `Dilithium3SignatureProvider.test.ts`, `dilithium3-cross-instance.test.ts`.
@@ -55,34 +58,39 @@ binding guard above, and 2.28's `keyProvider`/`keyExpiryStore` options), so a te
 needs to exist — no verifier-side configuration change.
 
 <Note>
-This is naming-convention key **selection**, not KMS/HSM custody: the tenant's private key
-still lives as a local PEM file, provisioned by hand, one `generate-keypair` run per tenant.
-An unprovisioned or malformed `tenantId` falls back to the shared `default` key rather than
-failing closed — deliberate, so adoption is incremental, but worth knowing before relying on
-it for isolation. CLAIMS.md §2.28 ("Update 2026-09-09"), `docs/VERIFICATION-GAPS.md` G-32.
+  This is naming-convention key **selection**, not KMS/HSM custody: the tenant's
+  private key still lives as a local PEM file, provisioned by hand, one
+  `generate-keypair` run per tenant. An unprovisioned or malformed `tenantId`
+  falls back to the shared `default` key rather than failing closed —
+  deliberate, so adoption is incremental, but worth knowing before relying on it
+  for isolation. CLAIMS.md §2.28 ("Update 2026-09-09"),
+  `docs/VERIFICATION-GAPS.md` G-32.
 </Note>
 
 <Warning>
-`KeyProviders` (`packages/shared/src/config/KeyProviders.ts`) declares `aws-kms`,
-`azure-key-vault`, `gcp-kms`, and `hsm` as valid **config values**, but no provider class
-implements any of them yet, a declared config surface for planned work, not a
-working integration. Setting `KEY_PROVIDER` to one of these now **fails startup loudly**
-(`KeyBootstrap.create()` throws, naming the value) rather than silently falling back to
-`FileKeyProvider`. Before 2026-09-10 it did the latter, a real gap since fixed
-(`docs/VERIFICATION-GAPS.md` G-40). See [Roadmap](/roadmap) for the KMS custody plan.
+  `KeyProviders` (`packages/shared/src/config/KeyProviders.ts`) declares
+  `aws-kms`, `azure-key-vault`, `gcp-kms`, and `hsm` as valid **config values**,
+  but no provider class implements any of them yet, a declared config surface
+  for planned work, not a working integration. Setting `KEY_PROVIDER` to one of
+  these now **fails startup loudly** (`KeyBootstrap.create()` throws, naming the
+  value) rather than silently falling back to `FileKeyProvider`. Before
+  2026-09-10 it did the latter, a real gap since fixed
+  (`docs/VERIFICATION-GAPS.md` G-40). See [Roadmap](/roadmap) for the KMS
+  custody plan.
 </Warning>
 
 <Note>
-There is a live incident on record: the default signing key committed to this repository
-before 2026-07-05 was publicly exposed and is permanently compromised; it was rotated on
-2026-07-05 (`docs/CLAIMS.md`, "Key Compromise Notice"). This is exactly the kind of
-exposure KMS/HSM custody is designed to prevent, see [Roadmap](/roadmap), Move 1.
+  There is a live incident on record: the default signing key committed to this
+  repository before 2026-07-05 was publicly exposed and is permanently
+  compromised; it was rotated on 2026-07-05 (`docs/CLAIMS.md`, "Key Compromise
+  Notice"). This is exactly the kind of exposure KMS/HSM custody is designed to
+  prevent, see [Roadmap](/roadmap), Move 1.
 </Note>
 
 ## Key rotation, same algorithm (added 2026-09-11)
 
-Distinct from the algorithm-migration gap below: rotating to a *new key pair under the
-same algorithm* — because a key may be compromised, or on a routine schedule — is built
+Distinct from the algorithm-migration gap below: rotating to a _new key pair under the
+same algorithm_ — because a key may be compromised, or on a routine schedule — is built
 and tested for every durable evidence signer (Trust Records, Refusal Records, Audit
 Events), mirroring the pattern the Authorization/Gateway envelope already had via
 `keyProvider`/`keyExpiryStore` (2.28). `PARMANA_VERIFICATION_KEY_ID` /
@@ -100,6 +108,6 @@ field, a verifying process supports exactly one configured `PRIMARY_SIGNATURE_PR
 time. Re-keying from Ed25519 to ML-DSA-65 while retaining the ability to verify
 previously-signed records is an explicit Future Claim, not yet built (CLAIMS.md §4). The
 key rotation above is same-algorithm only (a new Ed25519 key replacing an old Ed25519 key,
-for example) — it does not close this gap, which is specifically about *changing which
-algorithm* a verifying process trusts while old records under the previous algorithm
+for example) — it does not close this gap, which is specifically about _changing which
+algorithm_ a verifying process trusts while old records under the previous algorithm
 remain verifiable.

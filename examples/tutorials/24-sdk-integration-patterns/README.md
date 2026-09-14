@@ -1,30 +1,16 @@
 \# Tutorial 24 — SDK Integration Patterns
 
-
-
 \## Overview
-
-
 
 This tutorial demonstrates the recommended way to integrate Parmana into an application.
 
-
-
 Rather than exposing the Runtime throughout the application, Parmana should be encapsulated behind a business-oriented service.
-
-
 
 This approach keeps application code independent of Runtime implementation details while centralizing pre-execution authorization.
 
-
-
 \---
 
-
-
 \## Recommended Architecture
-
-
 
 ```
 
@@ -100,63 +86,33 @@ This approach keeps application code independent of Runtime implementation detai
 
 ```
 
-
-
 Only the service layer interacts with Parmana.
 
-
-
 \---
-
-
 
 \## Why Use a Service Layer?
 
-
-
 Instead of calling the Runtime directly from controllers:
 
-
-
 ```ts
-
 // Avoid
 
-
-
 await runtime.execute(transaction);
-
 ```
-
-
 
 wrap Parmana behind an application service:
 
-
-
 ```ts
-
 await paymentService.releasePayment(transaction);
-
 ```
-
-
 
 This keeps business logic independent from Runtime implementation.
 
-
-
 \---
-
-
 
 \## Payment Service
 
-
-
 The tutorial introduces a simple application service.
-
-
 
 ```ts
 
@@ -184,23 +140,13 @@ export class PaymentService {
 
 ```
 
-
-
 Application code depends on the service—not on Parmana itself.
-
-
 
 \---
 
-
-
 \## Building the Runtime
 
-
-
 Infrastructure is configured once.
-
-
 
 ```ts
 
@@ -222,23 +168,13 @@ const runtime =
 
 ```
 
-
-
 The Runtime is then injected into the application service.
-
-
 
 \---
 
-
-
 \## Benefits
 
-
-
 Separating the Runtime behind a service provides:
-
-
 
 \- Clear architecture
 
@@ -252,15 +188,9 @@ Separating the Runtime behind a service provides:
 
 \- Reusable business services
 
-
-
 \---
 
-
-
 \## Running the Example
-
-
 
 ```bash
 
@@ -268,11 +198,7 @@ tsx examples/tutorials/24-sdk-integration-patterns/run.ts
 
 ```
 
-
-
 or execute the complete tutorial suite:
-
-
 
 ```bash
 
@@ -280,15 +206,9 @@ npm run examples
 
 ```
 
-
-
 \---
 
-
-
 \## Expected Output
-
-
 
 ```text
 
@@ -322,15 +242,9 @@ SDK Integration completed successfully.
 
 ```
 
-
-
 \---
 
-
-
 \## Typical Enterprise Structure
-
-
 
 ```
 
@@ -356,47 +270,25 @@ src/
 
 ```
 
-
-
 The Runtime is initialized during application startup and shared with application services.
 
-
-
 \---
-
-
 
 \## Design Principles
 
-
-
 Parmana should be treated as infrastructure, not business logic.
-
-
 
 Business services express application intent.
 
-
-
 Parmana provides deterministic policy evaluation, execution authorization, and Execution Trust generation.
-
-
 
 This separation keeps application code clean while ensuring every sensitive action is governed consistently.
 
-
-
 \---
-
-
 
 \## Summary
 
-
-
 In this tutorial you learned how to:
-
-
 
 \- Integrate Parmana into an application
 
@@ -408,11 +300,6 @@ In this tutorial you learned how to:
 
 \- Apply a clean, maintainable enterprise architecture
 
-
-
 This concludes the tutorial series.
 
-
-
 You now have a complete progression from basic Runtime usage through governance, extensibility, execution patterns, production configuration, and enterprise SDK integration.
-

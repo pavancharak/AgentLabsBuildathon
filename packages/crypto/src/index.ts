@@ -6,7 +6,6 @@
 export * from "./models/HybridCryptoProvider.js";
 export * from "./HybridSignatureProvider.js";
 
-
 // -----------------------------------------------------------------------------
 // Serialization
 // -----------------------------------------------------------------------------

@@ -24,26 +24,19 @@ export function canonicalExecutionTrustRecord(
   trustRecord: ExecutionTrustRecord,
 ) {
   return {
-    trustRecordId:
-      trustRecord.trustRecordId,
+    trustRecordId: trustRecord.trustRecordId,
 
-    businessTransactionId:
-      trustRecord.businessTransactionId,
+    businessTransactionId: trustRecord.businessTransactionId,
 
-    transaction:
-      trustRecord.transaction,
+    transaction: trustRecord.transaction,
 
-    authorization:
-      trustRecord.authorization,
+    authorization: trustRecord.authorization,
 
-    overrides:
-      trustRecord.overrides,
+    overrides: trustRecord.overrides,
 
-    executions:
-      trustRecord.executions,
+    executions: trustRecord.executions,
 
-    createdAt:
-      trustRecord.createdAt,
+    createdAt: trustRecord.createdAt,
   };
 }
 

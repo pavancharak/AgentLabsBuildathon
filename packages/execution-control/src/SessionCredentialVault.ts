@@ -16,7 +16,10 @@ export interface SessionCredential {
 }
 
 export interface SessionCredentialVault {
-  issue(connectorId: string, authorizationId: string): Promise<SessionCredential>;
+  issue(
+    connectorId: string,
+    authorizationId: string,
+  ): Promise<SessionCredential>;
   consume(sessionCredentialId: string): Promise<ExecutionCredential>;
   revoke(sessionCredentialId: string): Promise<void>;
 }
@@ -54,7 +57,10 @@ export class InMemorySessionCredentialVault implements SessionCredentialVault {
     }
   }
 
-  async issue(connectorId: string, authorizationId: string): Promise<SessionCredential> {
+  async issue(
+    connectorId: string,
+    authorizationId: string,
+  ): Promise<SessionCredential> {
     //
     // Fail fast if the connector has no underlying credential, but
     // discard the resolved value — issue() must not hold the secret.
@@ -89,13 +95,19 @@ export class InMemorySessionCredentialVault implements SessionCredentialVault {
       throw new Error(`Unknown session credential: ${sessionCredentialId}.`);
     }
     if (record.revoked) {
-      throw new Error(`Session credential has been revoked: ${sessionCredentialId}.`);
+      throw new Error(
+        `Session credential has been revoked: ${sessionCredentialId}.`,
+      );
     }
     if (record.used) {
-      throw new Error(`Session credential has already been used: ${sessionCredentialId}.`);
+      throw new Error(
+        `Session credential has already been used: ${sessionCredentialId}.`,
+      );
     }
     if (this.options.clock.now().getTime() >= record.expiresAt.getTime()) {
-      throw new Error(`Session credential has expired: ${sessionCredentialId}.`);
+      throw new Error(
+        `Session credential has expired: ${sessionCredentialId}.`,
+      );
     }
 
     record.used = true;

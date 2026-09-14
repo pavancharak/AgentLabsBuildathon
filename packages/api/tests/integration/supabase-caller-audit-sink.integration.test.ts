@@ -101,8 +101,14 @@ describe.skipIf(!databaseConfigured)("SupabaseCallerAuditSink (live)", () => {
 
     const readingPool = PostgresPoolFactory.create();
 
-    const first = await readingPool.query(SELECT_CALLER_AUDIT_EVENT_BY_ROUTE_SQL, [routeOne]);
-    const second = await readingPool.query(SELECT_CALLER_AUDIT_EVENT_BY_ROUTE_SQL, [routeTwo]);
+    const first = await readingPool.query(
+      SELECT_CALLER_AUDIT_EVENT_BY_ROUTE_SQL,
+      [routeOne],
+    );
+    const second = await readingPool.query(
+      SELECT_CALLER_AUDIT_EVENT_BY_ROUTE_SQL,
+      [routeTwo],
+    );
 
     expect(first.rows[0].previous_chain_hash).toBeNull();
     expect(second.rows[0].previous_chain_hash).toBe(first.rows[0].chain_hash);

@@ -11,14 +11,14 @@ import type { BusinessTransaction } from "@parmana/shared";
 //
 process.env.NODE_ENV = "test";
 
-const { createExecutionSystem } = await import(
-  "../../../packages/api/src/bootstrap/createExecutionSystem.js"
-);
-const { createApplication } = await import(
-  "../../../packages/api/src/application.js"
-);
+const { createExecutionSystem } =
+  await import("../../../packages/api/src/bootstrap/createExecutionSystem.js");
+const { createApplication } =
+  await import("../../../packages/api/src/application.js");
 
-function vendorPaymentTransaction(overrides: { riskScore: number }): BusinessTransaction {
+function vendorPaymentTransaction(overrides: {
+  riskScore: number;
+}): BusinessTransaction {
   const businessTransactionId = crypto.randomUUID();
   const authorityId = crypto.randomUUID();
   const authorizationId = crypto.randomUUID();
@@ -54,7 +54,11 @@ function vendorPaymentTransaction(overrides: { riskScore: number }): BusinessTra
       parameters: Object.freeze({ paymentId: "payment-001", amount: 1000 }),
       createdAt: now,
     },
-    policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+    policy: {
+      name: "vendor-payment",
+      version: "2.0.0",
+      schemaVersion: "1.0.0",
+    },
     signals: {
       vendorVerified: true,
       invoiceVerified: true,
@@ -89,14 +93,18 @@ try {
   await application.execute(transaction);
   console.log("✗ Expected this transaction to be rejected by policy.");
 } catch (error) {
-  console.log(`Rejected as expected : ${error instanceof Error ? error.message : String(error)}`);
+  console.log(
+    `Rejected as expected : ${error instanceof Error ? error.message : String(error)}`,
+  );
 }
 console.log();
 
 console.log("Retrieving the durable Refusal Record produced by that rejection");
 console.log("--------------------------------------------------");
 
-const refusalRecord = await application.getRefusalRecord(transaction.businessTransactionId);
+const refusalRecord = await application.getRefusalRecord(
+  transaction.businessTransactionId,
+);
 
 console.log(`Refusal Record found     : ${refusalRecord !== null}`);
 console.log(`decision.outcome         : ${refusalRecord?.decision.outcome}`);
@@ -107,7 +115,9 @@ console.log();
 console.log("Independently verifying the Refusal Record's signature");
 console.log("--------------------------------------------------");
 
-const genuineValid = refusalRecord !== null && (await application.verifyRefusalRecord(refusalRecord));
+const genuineValid =
+  refusalRecord !== null &&
+  (await application.verifyRefusalRecord(refusalRecord));
 console.log(`Genuine record verifies as valid : ${genuineValid}`);
 
 // Tamper with the reason after the fact -- exactly what an attacker
@@ -115,16 +125,29 @@ console.log(`Genuine record verifies as valid : ${genuineValid}`);
 // refused would attempt.
 const tamperedRecord = refusalRecord && {
   ...refusalRecord,
-  decision: { ...refusalRecord.decision, reason: "forged: this was actually approved" },
+  decision: {
+    ...refusalRecord.decision,
+    reason: "forged: this was actually approved",
+  },
 };
-const tamperedValid = tamperedRecord !== null && (await application.verifyRefusalRecord(tamperedRecord!));
+const tamperedValid =
+  tamperedRecord !== null &&
+  (await application.verifyRefusalRecord(tamperedRecord!));
 console.log(`Tampered record verifies as valid : ${tamperedValid}`);
 console.log();
 
-if (refusalRecord !== null && genuineValid === true && tamperedValid === false) {
-  console.log("✓ A durable, signed Refusal Record was produced, verifies genuinely, and rejects tampering.");
+if (
+  refusalRecord !== null &&
+  genuineValid === true &&
+  tamperedValid === false
+) {
+  console.log(
+    "✓ A durable, signed Refusal Record was produced, verifies genuinely, and rejects tampering.",
+  );
 } else {
-  console.log("✗ Expected a genuine Refusal Record that verifies true, and a tampered one that verifies false.");
+  console.log(
+    "✗ Expected a genuine Refusal Record that verifies true, and a tampered one that verifies false.",
+  );
 }
 
 console.log();

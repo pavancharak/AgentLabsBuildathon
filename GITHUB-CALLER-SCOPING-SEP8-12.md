@@ -77,7 +77,7 @@ not something to simulate here.
 
 **No connector code, config, or `createConnectorRegistry.ts` wiring was changed.** GitHub was
 already conditionally registered in production per its existing (real) credential-gating logic;
-what this milestone added is a test proving the *scoping* mechanism protects it when caller-auth
+what this milestone added is a test proving the _scoping_ mechanism protects it when caller-auth
 is turned on, using the same production wiring that would apply in a real deployment.
 
 ## Commit

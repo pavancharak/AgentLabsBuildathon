@@ -60,7 +60,8 @@ describe("createCallerAuditSink", () => {
 
   it("returns SupabaseCallerAuditSink when NODE_ENV is not test and DATABASE_URL is configured", () => {
     process.env.NODE_ENV = "production";
-    process.env.DATABASE_URL = "postgresql://user:pass@example.supabase.co:5432/postgres";
+    process.env.DATABASE_URL =
+      "postgresql://user:pass@example.supabase.co:5432/postgres";
 
     expect(createCallerAuditSink()).toBeInstanceOf(SupabaseCallerAuditSink);
   });

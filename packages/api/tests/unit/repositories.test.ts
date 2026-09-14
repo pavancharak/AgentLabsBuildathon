@@ -18,9 +18,10 @@ describe("repositories.ts", () => {
     const createFromEnvironment = vi.fn();
 
     vi.doMock("@parmana/storage", async () => {
-      const actual = await vi.importActual<typeof import("@parmana/storage")>(
-        "@parmana/storage",
-      );
+      const actual =
+        await vi.importActual<typeof import("@parmana/storage")>(
+          "@parmana/storage",
+        );
 
       return {
         ...actual,
@@ -43,9 +44,10 @@ describe("repositories.ts", () => {
     const createFromEnvironment = vi.fn(() => provider);
 
     vi.doMock("@parmana/storage", async () => {
-      const actual = await vi.importActual<typeof import("@parmana/storage")>(
-        "@parmana/storage",
-      );
+      const actual =
+        await vi.importActual<typeof import("@parmana/storage")>(
+          "@parmana/storage",
+        );
 
       return {
         ...actual,
@@ -61,14 +63,12 @@ describe("repositories.ts", () => {
     expect(createFromEnvironment).not.toHaveBeenCalled();
 
     expect(
-      (businessTransactionRepository as unknown as { marker: string })
-        .marker,
+      (businessTransactionRepository as unknown as { marker: string }).marker,
     ).toBe("business-transactions");
     expect(createFromEnvironment).toHaveBeenCalledTimes(1);
 
     expect(
-      (executionTrustRecordRepository as unknown as { marker: string })
-        .marker,
+      (executionTrustRecordRepository as unknown as { marker: string }).marker,
     ).toBe("trust-records");
     expect(createFromEnvironment).toHaveBeenCalledTimes(1);
   });

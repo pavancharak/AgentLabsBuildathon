@@ -6,10 +6,10 @@ Exercise `createGracefulShutdown()` directly: the SIGTERM/SIGINT handler that st
 
 ## What You'll Learn
 
-* A clean `server.close()` exits `0`; a `close()` that reports an error exits `1` — the process's own exit code reflects whether shutdown was actually clean
-* A second signal arriving while already shutting down is a no-op — `close()` is never called twice, so an impatient orchestrator sending SIGTERM then SIGINT can't trigger a double-close race
-* A server that never calls its `close()` callback (a permanently hung request) force-exits after the configured timeout — guarding against shutdown blocking forever
-* The force-exit timer is genuinely cleared on a clean close, not just "superseded" — waiting past the timeout afterward proves `exit()` was never called a second time
+- A clean `server.close()` exits `0`; a `close()` that reports an error exits `1` — the process's own exit code reflects whether shutdown was actually clean
+- A second signal arriving while already shutting down is a no-op — `close()` is never called twice, so an impatient orchestrator sending SIGTERM then SIGINT can't trigger a double-close race
+- A server that never calls its `close()` callback (a permanently hung request) force-exits after the configured timeout — guarding against shutdown blocking forever
+- The force-exit timer is genuinely cleared on a clean close, not just "superseded" — waiting past the timeout afterward proves `exit()` was never called a second time
 
 ## Running the Tutorial
 

@@ -16,12 +16,15 @@ import type { BusinessTransaction } from "@parmana/shared";
 //
 process.env.NODE_ENV = "test";
 
-const { MockPaytmConnectorServer, PAYTM_CONNECTOR_TEST_MODE_PLACEHOLDER_SECRET } = await import(
-  "@parmana/connector-paytm"
-);
+const {
+  MockPaytmConnectorServer,
+  PAYTM_CONNECTOR_TEST_MODE_PLACEHOLDER_SECRET,
+} = await import("@parmana/connector-paytm");
 
 const CONNECTOR_SECRET = PAYTM_CONNECTOR_TEST_MODE_PLACEHOLDER_SECRET;
-const mockPaytm = new MockPaytmConnectorServer({ sharedSecret: CONNECTOR_SECRET });
+const mockPaytm = new MockPaytmConnectorServer({
+  sharedSecret: CONNECTOR_SECRET,
+});
 await mockPaytm.listen();
 
 // These must be set before createExecutionSystem/createApp are ever
@@ -30,18 +33,17 @@ await mockPaytm.listen();
 process.env.PAYTM_CONNECTOR_URL = mockPaytm.baseUrl;
 process.env.TEST_PAYTM_CONNECTOR_SHARED_SECRET = CONNECTOR_SECRET;
 
-const { createExecutionSystem } = await import(
-  "../../../packages/api/src/bootstrap/createExecutionSystem.js"
-);
-const { createApplication } = await import("../../../packages/api/src/application.js");
+const { createExecutionSystem } =
+  await import("../../../packages/api/src/bootstrap/createExecutionSystem.js");
+const { createApplication } =
+  await import("../../../packages/api/src/application.js");
 const { createApp } = await import("../../../packages/api/src/app.js");
-const { hashApiKey } = await import("../../../packages/api/src/auth/hashApiKey.js");
-const { StaticKeyAuthenticator } = await import(
-  "../../../packages/api/src/auth/StaticKeyAuthenticator.js"
-);
-const { InMemoryCallerAuditSink } = await import(
-  "../../../packages/api/src/auth/InMemoryCallerAuditSink.js"
-);
+const { hashApiKey } =
+  await import("../../../packages/api/src/auth/hashApiKey.js");
+const { StaticKeyAuthenticator } =
+  await import("../../../packages/api/src/auth/StaticKeyAuthenticator.js");
+const { InMemoryCallerAuditSink } =
+  await import("../../../packages/api/src/auth/InMemoryCallerAuditSink.js");
 
 // The exact caller shape docs/connectors/CONNECTING_AN_AGENT.md documents:
 // scoped to exactly one capability, no wildcard.
@@ -80,7 +82,12 @@ function refundTransaction(overrides: {
 
   return {
     businessTransactionId,
-    metadata: { businessTransactionId, correlationId: crypto.randomUUID(), createdBy: "tutorial-111", createdAt: now },
+    metadata: {
+      businessTransactionId,
+      correlationId: crypto.randomUUID(),
+      createdBy: "tutorial-111",
+      createdAt: now,
+    },
     authority: {
       authorityId,
       authorityType: "SERVICE",
@@ -88,7 +95,12 @@ function refundTransaction(overrides: {
       displayName: "Tutorial 111 Refund Agent",
       issuedAt: now,
     },
-    authorization: { authorizationId, authorityId, purpose: "Authorize Paytm customer refund", authorizedAt: now },
+    authorization: {
+      authorizationId,
+      authorityId,
+      purpose: "Authorize Paytm customer refund",
+      authorizedAt: now,
+    },
     intent: {
       intentId,
       authorizationId,
@@ -97,7 +109,11 @@ function refundTransaction(overrides: {
       parameters: Object.freeze({ orderId, transactionId, amount }),
       createdAt: now,
     },
-    policy: { name: "customer-refund", version: "1.0.0", schemaVersion: "1.0.0" },
+    policy: {
+      name: "customer-refund",
+      version: "1.0.0",
+      schemaVersion: "1.0.0",
+    },
     signals: overrides.signals ?? {
       refundEligible: true,
       managerApproved: true,
@@ -124,7 +140,9 @@ console.log();
 const executionSystem = createExecutionSystem();
 const application = createApplication(executionSystem);
 const auditSink = new InMemoryCallerAuditSink();
-const app = createApp(application, { callerAuth: { authenticator: AUTHENTICATOR, auditSink } });
+const app = createApp(application, {
+  callerAuth: { authenticator: AUTHENTICATOR, auditSink },
+});
 
 const server = app.listen(0);
 const address = server.address();
@@ -132,14 +150,21 @@ const port = typeof address === "object" && address !== null ? address.port : 0;
 const baseUrl = `http://127.0.0.1:${port}`;
 
 try {
-  console.log("Scenario 1: Well-formed request, correct capability -- APPROVED and really dispatched");
+  console.log(
+    "Scenario 1: Well-formed request, correct capability -- APPROVED and really dispatched",
+  );
   console.log("--------------------------------------------------");
   const approved = await fetch(`${baseUrl}/execute`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${AGENT_API_KEY}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${AGENT_API_KEY}`,
+    },
     body: JSON.stringify(refundTransaction({})),
   });
-  const approvedBody = (await approved.json()) as { executions?: Array<{ decision?: { outcome?: string; reason?: string } }> };
+  const approvedBody = (await approved.json()) as {
+    executions?: Array<{ decision?: { outcome?: string; reason?: string } }>;
+  };
   const approvedDecision = approvedBody.executions?.at(-1)?.decision;
   console.log(`Status  : ${approved.status}`);
   console.log(`Outcome : ${approvedDecision?.outcome}`);
@@ -147,26 +172,44 @@ try {
   console.log(`Connector service calls received : ${mockPaytm.calls.length}`);
   console.log();
 
-  console.log('Scenario 2: Wrong capability ("refund" instead of "paytm:refund") -- the real bug found in parmana-phinite-agent');
+  console.log(
+    'Scenario 2: Wrong capability ("refund" instead of "paytm:refund") -- the real bug found in parmana-phinite-agent',
+  );
   console.log("--------------------------------------------------");
   const wrongCapability = await fetch(`${baseUrl}/execute`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${AGENT_API_KEY}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${AGENT_API_KEY}`,
+    },
     body: JSON.stringify(refundTransaction({ action: "refund" })),
   });
-  const wrongCapabilityBody = (await wrongCapability.json()) as { code?: string; error?: string };
+  const wrongCapabilityBody = (await wrongCapability.json()) as {
+    code?: string;
+    error?: string;
+  };
   console.log(`Status : ${wrongCapability.status}`);
   console.log(`Code   : ${wrongCapabilityBody.code}`);
   console.log();
 
-  console.log("Scenario 3: Correct capability, policy denies (managerApproved: false) -- a real, correct decision, not a bug");
+  console.log(
+    "Scenario 3: Correct capability, policy denies (managerApproved: false) -- a real, correct decision, not a bug",
+  );
   console.log("--------------------------------------------------");
   const denied = await fetch(`${baseUrl}/execute`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${AGENT_API_KEY}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${AGENT_API_KEY}`,
+    },
     body: JSON.stringify(
       refundTransaction({
-        signals: { refundEligible: true, managerApproved: false, fraudCheckPassed: true, refundAmount: 500 },
+        signals: {
+          refundEligible: true,
+          managerApproved: false,
+          fraudCheckPassed: true,
+          refundAmount: 500,
+        },
       }),
     ),
   });
@@ -176,18 +219,28 @@ try {
   console.log(`Reason : ${deniedBody.error}`);
   console.log();
 
-  console.log("Scenario 4: Malformed businessTransactionId -- rejected before any auth/policy logic runs");
+  console.log(
+    "Scenario 4: Malformed businessTransactionId -- rejected before any auth/policy logic runs",
+  );
   console.log("--------------------------------------------------");
-  const malformed = { ...refundTransaction({}), businessTransactionId: "not-a-uuid" };
+  const malformed = {
+    ...refundTransaction({}),
+    businessTransactionId: "not-a-uuid",
+  };
   const badRequest = await fetch(`${baseUrl}/execute`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${AGENT_API_KEY}` },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${AGENT_API_KEY}`,
+    },
     body: JSON.stringify(malformed),
   });
   console.log(`Status : ${badRequest.status}`);
   console.log();
 
-  console.log("Scenario 5: GET /callers/me -- the agent's own resolved identity and scope");
+  console.log(
+    "Scenario 5: GET /callers/me -- the agent's own resolved identity and scope",
+  );
   console.log("--------------------------------------------------");
   const callersMe = await fetch(`${baseUrl}/callers/me`, {
     headers: { Authorization: `Bearer ${AGENT_API_KEY}` },
@@ -196,7 +249,9 @@ try {
   console.log(JSON.stringify(callersMeBody, null, 2));
   console.log();
 
-  console.log("Scenario 6: Missing credential -- rejected before anything else runs");
+  console.log(
+    "Scenario 6: Missing credential -- rejected before anything else runs",
+  );
   console.log("--------------------------------------------------");
   const noAuth = await fetch(`${baseUrl}/execute`, {
     method: "POST",
@@ -224,14 +279,26 @@ try {
     noAuth.status === 401;
 
   if (allPassed) {
-    console.log("✓ Every scenario matched CONNECTING_AN_AGENT.md's documented contract:");
-    console.log("  APPROVED really dispatched to the connector service, the exact");
-    console.log('  capability-mismatch bug ("refund" vs "paytm:refund") was rejected');
-    console.log("  before reaching policy, a real policy denial produced a uniform");
-    console.log("  403 POLICY_DENIED, and structural/auth failures were rejected");
+    console.log(
+      "✓ Every scenario matched CONNECTING_AN_AGENT.md's documented contract:",
+    );
+    console.log(
+      "  APPROVED really dispatched to the connector service, the exact",
+    );
+    console.log(
+      '  capability-mismatch bug ("refund" vs "paytm:refund") was rejected',
+    );
+    console.log(
+      "  before reaching policy, a real policy denial produced a uniform",
+    );
+    console.log(
+      "  403 POLICY_DENIED, and structural/auth failures were rejected",
+    );
     console.log("  before any of that ever ran.");
   } else {
-    console.log("✗ Expected every scenario above to match the documented contract.");
+    console.log(
+      "✗ Expected every scenario above to match the documented contract.",
+    );
   }
 
   console.log();

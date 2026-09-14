@@ -14,12 +14,13 @@ Parmana currently trusts the caller's own authority/authorization assertion. An 
 This design spec defines an optional **upstream authorization verification layer** that validates authorization from external sources (compliance systems, risk services, external providers) before Parmana policy evaluation.
 
 **This is NOT a security bug in current Parmana.** It is a delegation pattern needed when:
+
 - Multi-party approval is required (risk team, compliance officer must independently authorize)
 - External authorization sources are integrated (OAuth, SAML, external risk service)
 - Regulatory compliance requires proof of independent approval
 - Cross-organization delegation is in scope
 
-Parmana's actual current trust model does not have this gap by omission — it's a deliberate simplification for the caller-authenticated-directly threat model already in place: caller identity (API key → `callerId`) plus `isPrincipalAllowed`/`isCapabilityAllowed` scoping (`packages/api/src/auth/`) is the real authorization boundary today. `Authority`/`Authorization`/`Intent` are structured metadata describing what an already-authenticated caller is asking for, not an independent second credential. NF-001 is what you'd add on top of that if a request needs to prove someone *other than the authenticated caller* approved it.
+Parmana's actual current trust model does not have this gap by omission — it's a deliberate simplification for the caller-authenticated-directly threat model already in place: caller identity (API key → `callerId`) plus `isPrincipalAllowed`/`isCapabilityAllowed` scoping (`packages/api/src/auth/`) is the real authorization boundary today. `Authority`/`Authorization`/`Intent` are structured metadata describing what an already-authenticated caller is asking for, not an independent second credential. NF-001 is what you'd add on top of that if a request needs to prove someone _other than the authenticated caller_ approved it.
 
 ---
 
@@ -56,12 +57,14 @@ POST /execute {
 ### When This Matters
 
 **Scenario 1: Multi-Party Approval**
+
 - Payment amount $1M requires approval from risk team
 - Risk team issues signed approval: "OK for $1M transfer to account-X"
 - Caller includes risk team's signature in request
 - Parmana must verify: risk team actually issued this, it's still valid, amount matches
 
 **Scenario 2: External Authorization Source**
+
 - User authenticates via OAuth provider
 - Provider issues scoped authorization token (JWT, signed)
 - Token says: "user can do action:transfer, amount <=$500k, valid until 2026-09-08"
@@ -69,6 +72,7 @@ POST /execute {
 - Parmana must verify: token signature is valid, not expired, scope matches request
 
 **Scenario 3: Regulated Finance Audit Trail**
+
 - Compliance officer must independently sign off on payment
 - Compliance signature must be persisted in trust record
 - Audit shows: "compliance officer approved this specific payment on this date"
@@ -116,7 +120,7 @@ If verification succeeds -> proceed to policy evaluation with verified upstream 
 
 ### Architecture Components
 
-Note on placement: `BusinessTransactionValidator` — the actual current linkage-check class this would extend — lives in `packages/runtime/src/validators/`, not `packages/api/src/services/` (`packages/api` has no `services/` directory). `packages/runtime` has no HTTP/JWT-parsing dependencies today; a real implementation should decide deliberately whether upstream-authorization *parsing* (JWT/envelope format, network calls to fetch issuer keys) belongs at the `packages/api` HTTP boundary (verify before ever constructing a `BusinessTransaction`) or inside `packages/runtime` alongside the linkage check it would extend. The sketch below assumes the HTTP-boundary placement, matching where caller-auth's own `isPrincipalAllowed`/`isCapabilityAllowed` already run (`packages/api/src/routes/execute.ts`).
+Note on placement: `BusinessTransactionValidator` — the actual current linkage-check class this would extend — lives in `packages/runtime/src/validators/`, not `packages/api/src/services/` (`packages/api` has no `services/` directory). `packages/runtime` has no HTTP/JWT-parsing dependencies today; a real implementation should decide deliberately whether upstream-authorization _parsing_ (JWT/envelope format, network calls to fetch issuer keys) belongs at the `packages/api` HTTP boundary (verify before ever constructing a `BusinessTransaction`) or inside `packages/runtime` alongside the linkage check it would extend. The sketch below assumes the HTTP-boundary placement, matching where caller-auth's own `isPrincipalAllowed`/`isCapabilityAllowed` already run (`packages/api/src/routes/execute.ts`).
 
 #### 1. UpstreamAuthorizationVerifier
 
@@ -160,7 +164,7 @@ export class UpstreamAuthorizationVerifier {
     token: string,
     requestedAction: string,
     requestedTarget?: string,
-    requestedAmount?: number
+    requestedAmount?: number,
   ): Promise<VerifiedUpstreamAuthorization> {
     const parsed = this.parseToken(token);
 
@@ -169,7 +173,9 @@ export class UpstreamAuthorizationVerifier {
       throw new Error(`Upstream issuer '${parsed.issuer}' not recognized`);
     }
 
-    if (!this.verifySignature(parsed.payload, parsed.signature, issuer.publicKey)) {
+    if (
+      !this.verifySignature(parsed.payload, parsed.signature, issuer.publicKey)
+    ) {
       throw new Error("Upstream authorization signature verification failed");
     }
 
@@ -180,7 +186,7 @@ export class UpstreamAuthorizationVerifier {
     if (parsed.scope.action !== requestedAction) {
       throw new Error(
         `Upstream authorization action '${parsed.scope.action}' ` +
-        `does not match requested action '${requestedAction}'`
+          `does not match requested action '${requestedAction}'`,
       );
     }
 
@@ -191,7 +197,7 @@ export class UpstreamAuthorizationVerifier {
     if (parsed.scope.amount && parsed.scope.amount < (requestedAmount || 0)) {
       throw new Error(
         `Upstream authorization amount limit (${parsed.scope.amount}) ` +
-        `below requested amount (${requestedAmount})`
+          `below requested amount (${requestedAmount})`,
       );
     }
 
@@ -210,7 +216,11 @@ export class UpstreamAuthorizationVerifier {
     throw new Error("not implemented");
   }
 
-  private verifySignature(payload: string, signature: string, publicKey: string): boolean {
+  private verifySignature(
+    payload: string,
+    signature: string,
+    publicKey: string,
+  ): boolean {
     // Should reuse @parmana/crypto's SignatureVerifier / AuthorizationVerifier
     // primitives rather than a bespoke verify path, if the chosen token
     // format allows it.
@@ -237,7 +247,7 @@ export class UpstreamAuthorizationIssuerRegistry {
   private issuers: Map<string, UpstreamAuthorizationIssuer>;
 
   constructor(issuers: UpstreamAuthorizationIssuer[]) {
-    this.issuers = new Map(issuers.map(i => [i.id, i]));
+    this.issuers = new Map(issuers.map((i) => [i.id, i]));
   }
 
   public getIssuer(id: string): UpstreamAuthorizationIssuer | undefined {
@@ -285,7 +295,7 @@ Following NF-003's precedent exactly (`ExecutionTrustRecord.authorization`, `pac
 ```typescript
 export interface ExecutionTrustRecord {
   // ... existing fields ...
-  readonly authorization?: SignedExecutionAuthorization;   // NF-003, implemented (commit 6303801)
+  readonly authorization?: SignedExecutionAuthorization; // NF-003, implemented (commit 6303801)
   readonly upstreamAuthorization?: VerifiedUpstreamAuthorization; // NF-001, this spec
 }
 ```
@@ -299,6 +309,7 @@ export interface ExecutionTrustRecord {
 **Triggers:** Customer request, regulatory requirement, or architectural decision
 
 **Questions:**
+
 - Are you doing multi-party approval (risk team, compliance, etc.)?
 - Are you integrating with external authorization sources?
 - Do you need independent proof of approval in audit trail?
@@ -312,6 +323,7 @@ export interface ExecutionTrustRecord {
 **Scope:** Determine actual issuers and get their keys/certificates; decide token format (JWT vs. a Parmana-native signed envelope matching `SignedExecutionAuthorization`'s own shape, which would let this reuse `@parmana/crypto`'s existing verifier primitives instead of a new JWT-parsing dependency).
 
 **Examples:**
+
 - Risk service (internal or vendor)
 - Compliance system
 - OAuth/SAML provider
@@ -324,6 +336,7 @@ export interface ExecutionTrustRecord {
 **Triggers:** After Gate 2
 
 **Decision:**
+
 - **Mandatory:** All requests require upstream authorization (fail if missing)
 - **Optional:** Some requests have upstream auth, some don't (verification only if present)
 
@@ -332,15 +345,18 @@ export interface ExecutionTrustRecord {
 ## Implementation Roadmap (When Needed)
 
 **Phase 1:**
+
 - Create `UpstreamAuthorizationVerifier` (`packages/api/src/auth/`)
 - Create issuer registry (new, or extend `@parmana/approval`'s — decide at Gate 2)
 - Wire into `execute.ts` and `transactions.ts` at the caller-auth boundary
 - Add `upstreamAuthorization` field to the request body / schema
 
 **Phase 2:**
+
 - Add `upstreamAuthorization` to `ExecutionTrustRecord`, following NF-003's exact precedent (canonical-record inclusion, Supabase migration + repository update)
 
 **Phase 3:**
+
 - Wire issuer provisioning and key management
 - Add issuer rotation/revocation logic (mirroring `TrustedApprovalIssuer.revoked`)
 - Integration tests for all failure modes
@@ -380,13 +396,13 @@ Load trust record from storage -> includes verified issuer/scope/expiry
 
 ## Risks and Mitigations
 
-| Risk | Mitigation |
-|------|-----------|
-| Upstream issuer key compromise | Issuer rotation, revocation, key versioning |
-| Clock skew (expiry validation) | Clock tolerance window (e.g., +/-5 min) |
-| Authorization scope creep | Strict scope validation (action, target, amount boundaries) |
-| Issuer proliferation | Documented issuer registry, audit trail |
-| Integration complexity | Gradual rollout (optional first, then mandatory) |
+| Risk                           | Mitigation                                                  |
+| ------------------------------ | ----------------------------------------------------------- |
+| Upstream issuer key compromise | Issuer rotation, revocation, key versioning                 |
+| Clock skew (expiry validation) | Clock tolerance window (e.g., +/-5 min)                     |
+| Authorization scope creep      | Strict scope validation (action, target, amount boundaries) |
+| Issuer proliferation           | Documented issuer registry, audit trail                     |
+| Integration complexity         | Gradual rollout (optional first, then mandatory)            |
 
 ---
 
@@ -412,11 +428,13 @@ Load trust record from storage -> includes verified issuer/scope/expiry
 ## Decision Log
 
 **Sep 7, 2026 — Decision: Table NF-001 (not implemented now)**
+
 - Rationale: No current customer delegation scenario
 - Next trigger: Real customer request, regulatory requirement, or architectural decision
 - Reference: this file
 
 **Sep 7, 2026 — Related work landed the same day, for context:**
+
 - NF-003 (persist signed execution authorization in trust records) — implemented, commit `6303801`
 - NF-004 (POST /transactions capability-grant parity with POST /execute) — implemented, commit `7da8f0d`
 - NF-005 (HubSpot approval issuer provisioning) — **not implemented**; `TRUSTED_APPROVAL_ISSUERS` remains an empty array by design (`packages/api/src/bootstrap/createApprovalIssuerRegistry.ts`). A dev-only issuer was proposed and declined in this session because it would have required committing a private key into source, used by real verification logic — inconsistent with this repo's existing convention of generating ephemeral test keys at test-run time (see `vitest.setup.ts`). Provisioning a real issuer, or a safely-ephemeral dev one, remains an open decision.

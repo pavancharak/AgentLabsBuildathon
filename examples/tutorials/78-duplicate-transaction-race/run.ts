@@ -1,6 +1,9 @@
 import crypto from "node:crypto";
 
-import { DuplicateBusinessTransactionError, type BusinessTransaction } from "@parmana/shared";
+import {
+  DuplicateBusinessTransactionError,
+  type BusinessTransaction,
+} from "@parmana/shared";
 import { MemoryBusinessTransactionRepository } from "@parmana/storage";
 
 //
@@ -10,7 +13,10 @@ import { MemoryBusinessTransactionRepository } from "@parmana/storage";
 // never silently overwritten by whichever write happened to land
 // second.
 //
-function buildTransaction(businessTransactionId: string, amount: number): BusinessTransaction {
+function buildTransaction(
+  businessTransactionId: string,
+  amount: number,
+): BusinessTransaction {
   const authorityId = crypto.randomUUID();
   const authorizationId = crypto.randomUUID();
   const intentId = crypto.randomUUID();
@@ -45,7 +51,11 @@ function buildTransaction(businessTransactionId: string, amount: number): Busine
       parameters: Object.freeze({ paymentId: "payment-001", amount }),
       createdAt: now,
     },
-    policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+    policy: {
+      name: "vendor-payment",
+      version: "2.0.0",
+      schemaVersion: "1.0.0",
+    },
     signals: { amount },
     status: "RECEIVED",
     createdAt: now,
@@ -77,11 +87,17 @@ try {
   );
 }
 
-const storedSequential = await repository.findById("txn-tutorial-78-sequential");
-console.log(`Stored amount : ${(storedSequential?.intent as { parameters: { amount: number } }).parameters.amount} (the first write, never overwritten)`);
+const storedSequential = await repository.findById(
+  "txn-tutorial-78-sequential",
+);
+console.log(
+  `Stored amount : ${(storedSequential?.intent as { parameters: { amount: number } }).parameters.amount} (the first write, never overwritten)`,
+);
 console.log();
 
-console.log("Scenario 2: Two genuinely concurrent create() calls for the same id");
+console.log(
+  "Scenario 2: Two genuinely concurrent create() calls for the same id",
+);
 console.log("--------------------------------------------------");
 
 const concurrentFirst = buildTransaction("txn-tutorial-78-race", 1000);
@@ -92,18 +108,27 @@ const results = await Promise.allSettled([
   repository.create(concurrentSecond),
 ]);
 
-const fulfilled = results.filter((r): r is PromiseFulfilledResult<BusinessTransaction> => r.status === "fulfilled");
-const rejected = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
+const fulfilled = results.filter(
+  (r): r is PromiseFulfilledResult<BusinessTransaction> =>
+    r.status === "fulfilled",
+);
+const rejected = results.filter(
+  (r): r is PromiseRejectedResult => r.status === "rejected",
+);
 
 console.log(`Fulfilled : ${fulfilled.length}`);
 console.log(`Rejected  : ${rejected.length}`);
-console.log(`Rejection is DuplicateBusinessTransactionError : ${rejected[0]?.reason instanceof DuplicateBusinessTransactionError}`);
+console.log(
+  `Rejection is DuplicateBusinessTransactionError : ${rejected[0]?.reason instanceof DuplicateBusinessTransactionError}`,
+);
 
 const storedRace = await repository.findById("txn-tutorial-78-race");
 const storedMatchesWinner =
   fulfilled[0] !== undefined &&
   JSON.stringify(storedRace) === JSON.stringify(fulfilled[0].value);
-console.log(`Stored transaction exactly matches the winning create() call's return value : ${storedMatchesWinner}`);
+console.log(
+  `Stored transaction exactly matches the winning create() call's return value : ${storedMatchesWinner}`,
+);
 console.log();
 
 const allPassed =
@@ -113,9 +138,13 @@ const allPassed =
   storedMatchesWinner;
 
 if (allPassed) {
-  console.log("✓ Exactly one of the two concurrent create() calls succeeded -- never a silent overwrite, never both.");
+  console.log(
+    "✓ Exactly one of the two concurrent create() calls succeeded -- never a silent overwrite, never both.",
+  );
 } else {
-  console.log("✗ Expected exactly one fulfilled create() and one DuplicateBusinessTransactionError rejection.");
+  console.log(
+    "✗ Expected exactly one fulfilled create() and one DuplicateBusinessTransactionError rejection.",
+  );
 }
 
 console.log();

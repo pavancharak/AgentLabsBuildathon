@@ -21,17 +21,28 @@ import { ParmanaError } from "../../../typescript/src/errors/ParmanaError.js";
 //
 const originalFetch = globalThis.fetch;
 
-function stubFetch(implementation: (url: string, init: RequestInit) => Promise<Response>): void {
+function stubFetch(
+  implementation: (url: string, init: RequestInit) => Promise<Response>,
+): void {
   globalThis.fetch = implementation as typeof fetch;
 }
 
-function fakeResponse(init: { status: number; body?: unknown; headers?: Record<string, string>; unparseable?: boolean }): Response {
+function fakeResponse(init: {
+  status: number;
+  body?: unknown;
+  headers?: Record<string, string>;
+  unparseable?: boolean;
+}): Response {
   const headerEntries = Object.entries(init.headers ?? {});
   return {
     status: init.status,
-    headers: { forEach: (cb: (value: string, key: string) => void) => headerEntries.forEach(([k, v]) => cb(v, k)) },
+    headers: {
+      forEach: (cb: (value: string, key: string) => void) =>
+        headerEntries.forEach(([k, v]) => cb(v, k)),
+    },
     json: async () => {
-      if (init.unparseable === true) throw new SyntaxError("Unexpected end of JSON input");
+      if (init.unparseable === true)
+        throw new SyntaxError("Unexpected end of JSON input");
       return init.body;
     },
   } as unknown as Response;
@@ -62,9 +73,14 @@ try {
       captured = init.headers as Record<string, string>;
       return fakeResponse({ status: 200, body: { status: "UP" } });
     });
-    const transport = new HttpTransport(baseConfig({ apiKey: "my-secret-api-key" }));
+    const transport = new HttpTransport(
+      baseConfig({ apiKey: "my-secret-api-key" }),
+    );
     await transport.send({ method: "GET", path: "/version" });
-    check("attaches Authorization: Bearer <apiKey> when configured", captured?.Authorization === "Bearer my-secret-api-key");
+    check(
+      "attaches Authorization: Bearer <apiKey> when configured",
+      captured?.Authorization === "Bearer my-secret-api-key",
+    );
   }
   {
     let captured: Record<string, string> | undefined;
@@ -74,14 +90,21 @@ try {
     });
     const transport = new HttpTransport(baseConfig());
     await transport.send({ method: "GET", path: "/health" });
-    check("omits Authorization entirely when no apiKey configured", captured?.Authorization === undefined);
+    check(
+      "omits Authorization entirely when no apiKey configured",
+      captured?.Authorization === undefined,
+    );
   }
   console.log();
 
-  console.log("Error taxonomy -- real, documented response shapes mapped to typed errors");
+  console.log(
+    "Error taxonomy -- real, documented response shapes mapped to typed errors",
+  );
   console.log("--------------------------------------------------");
   {
-    stubFetch(async () => fakeResponse({ status: 401, body: { error: "authentication required" } }));
+    stubFetch(async () =>
+      fakeResponse({ status: 401, body: { error: "authentication required" } }),
+    );
     const transport = new HttpTransport(baseConfig());
     let caught: unknown;
     try {
@@ -92,7 +115,12 @@ try {
     check("401 -> AuthenticationError", caught instanceof AuthenticationError);
   }
   {
-    stubFetch(async () => fakeResponse({ status: 400, body: { error: "businessTransactionId must be a valid UUID." } }));
+    stubFetch(async () =>
+      fakeResponse({
+        status: 400,
+        body: { error: "businessTransactionId must be a valid UUID." },
+      }),
+    );
     const transport = new HttpTransport(baseConfig());
     let caught: unknown;
     try {
@@ -103,21 +131,13 @@ try {
     check("400 -> ValidationError", caught instanceof ValidationError);
   }
   {
-    stubFetch(async () => fakeResponse({ status: 403, body: { error: "Caller is not permitted to assert this authority.principalId." } }));
-    const transport = new HttpTransport(baseConfig());
-    let caught: unknown;
-    try {
-      await transport.send({ method: "POST", path: "/execute" });
-    } catch (e) {
-      caught = e;
-    }
-    check("403, no code (caller-identity mismatch) -> AuthorizationError", caught instanceof AuthorizationError);
-  }
-  {
     stubFetch(async () =>
       fakeResponse({
         status: 403,
-        body: { error: "Execution rejected: risk exceeds threshold.", code: "POLICY_DENIED" },
+        body: {
+          error:
+            "Caller is not permitted to assert this authority.principalId.",
+        },
       }),
     );
     const transport = new HttpTransport(baseConfig());
@@ -127,10 +147,41 @@ try {
     } catch (e) {
       caught = e;
     }
-    check("403 + code POLICY_DENIED -> ExecutionRejectedError, NOT AuthorizationError", caught instanceof ExecutionRejectedError && !(caught instanceof AuthorizationError));
+    check(
+      "403, no code (caller-identity mismatch) -> AuthorizationError",
+      caught instanceof AuthorizationError,
+    );
   }
   {
-    stubFetch(async () => fakeResponse({ status: 404, body: { error: "Execution Trust Record not found." } }));
+    stubFetch(async () =>
+      fakeResponse({
+        status: 403,
+        body: {
+          error: "Execution rejected: risk exceeds threshold.",
+          code: "POLICY_DENIED",
+        },
+      }),
+    );
+    const transport = new HttpTransport(baseConfig());
+    let caught: unknown;
+    try {
+      await transport.send({ method: "POST", path: "/execute" });
+    } catch (e) {
+      caught = e;
+    }
+    check(
+      "403 + code POLICY_DENIED -> ExecutionRejectedError, NOT AuthorizationError",
+      caught instanceof ExecutionRejectedError &&
+        !(caught instanceof AuthorizationError),
+    );
+  }
+  {
+    stubFetch(async () =>
+      fakeResponse({
+        status: 404,
+        body: { error: "Execution Trust Record not found." },
+      }),
+    );
     const transport = new HttpTransport(baseConfig());
     let caught: unknown;
     try {
@@ -141,7 +192,12 @@ try {
     check("404 -> NotFoundError", caught instanceof NotFoundError);
   }
   {
-    stubFetch(async () => fakeResponse({ status: 409, body: { error: "Business Transaction already exists." } }));
+    stubFetch(async () =>
+      fakeResponse({
+        status: 409,
+        body: { error: "Business Transaction already exists." },
+      }),
+    );
     const transport = new HttpTransport(baseConfig());
     let caught: unknown;
     try {
@@ -152,7 +208,9 @@ try {
     check("409 -> ConflictError", caught instanceof ConflictError);
   }
   {
-    stubFetch(async () => fakeResponse({ status: 500, body: { error: "Internal Server Error" } }));
+    stubFetch(async () =>
+      fakeResponse({ status: 500, body: { error: "Internal Server Error" } }),
+    );
     const transport = new HttpTransport(baseConfig());
     let caught: unknown;
     try {
@@ -160,7 +218,10 @@ try {
     } catch (e) {
       caught = e;
     }
-    check("500, uncoded -> InternalServerError", caught instanceof InternalServerError);
+    check(
+      "500, uncoded -> InternalServerError",
+      caught instanceof InternalServerError,
+    );
   }
   {
     stubFetch(async () => fakeResponse({ status: 500, unparseable: true }));
@@ -171,17 +232,33 @@ try {
     } catch (e) {
       caught = e;
     }
-    check("unparseable error body -> falls back to InternalServerError, doesn't crash", caught instanceof InternalServerError);
+    check(
+      "unparseable error body -> falls back to InternalServerError, doesn't crash",
+      caught instanceof InternalServerError,
+    );
   }
   console.log();
 
   console.log("nonThrowingStatuses (POST /policies/validate's own shape)");
   console.log("--------------------------------------------------");
   {
-    stubFetch(async () => fakeResponse({ status: 404, body: { valid: false, errors: ["Policy not found."] } }));
+    stubFetch(async () =>
+      fakeResponse({
+        status: 404,
+        body: { valid: false, errors: ["Policy not found."] },
+      }),
+    );
     const transport = new HttpTransport(baseConfig());
-    const response = await transport.send({ method: "POST", path: "/policies/validate", nonThrowingStatuses: [400, 404] });
-    check("a listed status (404) returns normally instead of throwing", response.status === 404 && (response.body as { valid: boolean }).valid === false);
+    const response = await transport.send({
+      method: "POST",
+      path: "/policies/validate",
+      nonThrowingStatuses: [400, 404],
+    });
+    check(
+      "a listed status (404) returns normally instead of throwing",
+      response.status === 404 &&
+        (response.body as { valid: boolean }).valid === false,
+    );
   }
   console.log();
 
@@ -198,14 +275,19 @@ try {
     } catch (e) {
       caught = e;
     }
-    check("a fetch rejection wraps as NetworkError", caught instanceof NetworkError);
+    check(
+      "a fetch rejection wraps as NetworkError",
+      caught instanceof NetworkError,
+    );
   }
   {
     stubFetch(
       (_url, init) =>
         new Promise((_resolve, reject) => {
           const signal = init.signal as AbortSignal;
-          signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+          signal.addEventListener("abort", () =>
+            reject(new DOMException("Aborted", "AbortError")),
+          );
         }),
     );
     const transport = new HttpTransport(baseConfig({ timeout: 5 }));
@@ -215,14 +297,22 @@ try {
     } catch (e) {
       caught = e;
     }
-    check("an aborted (timed-out) request raises TimeoutError", caught instanceof TimeoutError);
+    check(
+      "an aborted (timed-out) request raises TimeoutError",
+      caught instanceof TimeoutError,
+    );
   }
   console.log();
 
   console.log("ParmanaError base class");
   console.log("--------------------------------------------------");
   {
-    stubFetch(async () => fakeResponse({ status: 400, body: { error: "businessTransactionId is required." } }));
+    stubFetch(async () =>
+      fakeResponse({
+        status: 400,
+        body: { error: "businessTransactionId is required." },
+      }),
+    );
     const transport = new HttpTransport(baseConfig());
     let caught: unknown;
     try {
@@ -230,15 +320,23 @@ try {
     } catch (e) {
       caught = e;
     }
-    check("every thrown error is a ParmanaError with a stable code", caught instanceof ParmanaError && (caught as ParmanaError).code === "VALIDATION_ERROR");
+    check(
+      "every thrown error is a ParmanaError with a stable code",
+      caught instanceof ParmanaError &&
+        (caught as ParmanaError).code === "VALIDATION_ERROR",
+    );
   }
   console.log();
 
   const allPassed = results.every((r) => r.passed);
   if (allPassed) {
-    console.log("✓ Every SDK transport behavior above matched its documented contract.");
+    console.log(
+      "✓ Every SDK transport behavior above matched its documented contract.",
+    );
   } else {
-    console.log(`✗ ${results.filter((r) => !r.passed).length} of ${results.length} checks failed.`);
+    console.log(
+      `✗ ${results.filter((r) => !r.passed).length} of ${results.length} checks failed.`,
+    );
   }
 
   console.log();

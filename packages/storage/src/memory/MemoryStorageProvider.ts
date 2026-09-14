@@ -44,7 +44,8 @@ export class MemoryStorageProvider implements StorageProvider {
 
     this.pendingPolicyChanges = new MemoryPendingPolicyChangeRepository();
 
-    this.policyChangeApprovalRecords = new MemoryPolicyChangeApprovalRecordRepository();
+    this.policyChangeApprovalRecords =
+      new MemoryPolicyChangeApprovalRecordRepository();
 
     Object.freeze(this);
   }

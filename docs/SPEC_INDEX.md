@@ -1,124 +1,78 @@
 \# Parmana Specification Index
 
-
-
 \*\*Project:\*\* Parmana — Execution Trust Infrastructure
-
-
 
 \*\*Version:\*\* 1.0.0
 
-
-
 \*\*Status:\*\* Architecture Locked
 
-
-
 \---
-
-
 
 \# Overview
 
-
-
 This specification defines the architecture, domain model, implementation contracts, and engineering principles of the Parmana platform.
-
-
 
 The specification is organized into three layers.
 
-
-
 \---
-
-
 
 \# Part I — Foundation
 
-
-
 These documents define the permanent architecture of Parmana.
-
-
 
 They change rarely.
 
-
-
-| Document                     | Purpose                                        |
+| Document | Purpose |
 
 | ---------------------------- | ---------------------------------------------- |
 
-| 000-CONSTITUTION.md          | Core principles and architectural constitution |
+| 000-CONSTITUTION.md | Core principles and architectural constitution |
 
-| 001-ARCHITECTURE.md          | Overall platform architecture                  |
+| 001-ARCHITECTURE.md | Overall platform architecture |
 
-| 002-DOMAIN-MODEL.md          | Canonical business domain model                |
+| 002-DOMAIN-MODEL.md | Canonical business domain model |
 
-| 003-EXECUTION-TRANSACTION.md | Root aggregate specification                   |
+| 003-EXECUTION-TRANSACTION.md | Root aggregate specification |
 
-| 004-VERIFICATION.md          | Verification model and trust invariants        |
-
-
+| 004-VERIFICATION.md | Verification model and trust invariants |
 
 \---
 
-
-
 \# Part II — Platform Contracts
-
-
 
 These documents define the public interfaces of the platform.
 
-
-
-| Document            | Purpose                                |
+| Document | Purpose |
 
 | ------------------- | -------------------------------------- |
 
 | 005-CRYPTOGRAPHY.md | Cryptographic architecture and agility |
 
-| 006-API.md          | Public REST API specification          |
+| 006-API.md | Public REST API specification |
 
-| 007-SDK.md          | SDK architecture                       |
+| 007-SDK.md | SDK architecture |
 
-| 008-CLI.md          | Command-line interface                 |
-
-
+| 008-CLI.md | Command-line interface |
 
 \---
-
-
 
 \# Part III — Runtime Contracts
 
-
-
 These documents define execution behavior.
 
-
-
-| Document        | Purpose                             |
+| Document | Purpose |
 
 | --------------- | ----------------------------------- |
 
-| 009-STORAGE.md  | Storage abstraction and persistence |
+| 009-STORAGE.md | Storage abstraction and persistence |
 
-| 010-EVIDENCE.md | Evidence architecture               |
+| 010-EVIDENCE.md | Evidence architecture |
 
-| 011-RUNTIME.md  | Runtime orchestration               |
-
-
+| 011-RUNTIME.md | Runtime orchestration |
 
 \---
 
-
-
 \# Canonical Execution Lifecycle
-
-
 
 ```text
 
@@ -162,23 +116,13 @@ Execution Trust
 
 ```
 
-
-
 Every ExecutionTransaction follows this lifecycle.
-
-
 
 \---
 
-
-
 \# Core Domains
 
-
-
 The platform defines six canonical business domains.
-
-
 
 \* Authority
 
@@ -192,19 +136,11 @@ The platform defines six canonical business domains.
 
 \* Verification
 
-
-
 These domains are owned by the ExecutionTransaction aggregate.
-
-
 
 \---
 
-
-
 \# Architectural Layers
-
-
 
 ```text
 
@@ -242,19 +178,11 @@ Storage + Crypto
 
 ```
 
-
-
 Each layer has a single responsibility.
-
-
 
 \---
 
-
-
 \# Guiding Principles
-
-
 
 \* ExecutionTransaction is the root aggregate.
 
@@ -270,15 +198,9 @@ Each layer has a single responsibility.
 
 \* Business domains are independent of infrastructure.
 
-
-
 \---
 
-
-
 \# Repository Structure
-
-
 
 ```text
 
@@ -322,27 +244,15 @@ tests/
 
 ```
 
-
-
 \---
-
-
 
 \# Implementation Order
 
-
-
 Implementation follows the specification.
-
-
 
 \### Phase 1
 
-
-
 Shared domain model
-
-
 
 \* ExecutionTransaction
 
@@ -358,83 +268,43 @@ Shared domain model
 
 \* Verification
 
-
-
 \---
-
-
 
 \### Phase 2
 
-
-
 Crypto layer
-
-
 
 Storage layer
 
-
-
 Evidence layer
 
-
-
 \---
-
-
 
 \### Phase 3
 
-
-
 Runtime
-
-
 
 Verification Engine
 
-
-
 Trust Report
 
-
-
 \---
-
-
 
 \### Phase 4
 
-
-
 SDK
-
-
 
 REST API
 
-
-
 CLI
-
-
 
 Examples
 
-
-
 \---
-
-
 
 \# Success Criteria
 
-
-
 The Parmana platform is complete when:
-
-
 
 \* Every execution is represented by an ExecutionTransaction.
 
@@ -445,6 +315,3 @@ The Parmana platform is complete when:
 \* Every verification produces an Execution Trust Report.
 
 \* The platform remains independent of specific storage technologies and cryptographic algorithms.
-
-
-

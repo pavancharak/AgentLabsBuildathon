@@ -15,13 +15,7 @@
  * all found and fixed by this dogfooding pass, not hypothetical.
  */
 
-import {
-  afterAll,
-  beforeAll,
-  describe,
-  expect,
-  it,
-} from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
@@ -39,13 +33,11 @@ beforeAll(async () => {
   // above is set -- see parmana-client.integration.test.ts's identical,
   // more thoroughly documented pattern for exactly why createApp and
   // createApplication both need this.
-  const { createApplication } = await import(
-    "../../../packages/api/src/application.js"
-  );
+  const { createApplication } =
+    await import("../../../packages/api/src/application.js");
   const { createApp } = await import("../../../packages/api/src/app.js");
-  const { createExecutionSystem } = await import(
-    "../../../packages/api/src/bootstrap/createExecutionSystem.js"
-  );
+  const { createExecutionSystem } =
+    await import("../../../packages/api/src/bootstrap/createExecutionSystem.js");
 
   const executionSystem = createExecutionSystem();
   const application = createApplication(executionSystem);

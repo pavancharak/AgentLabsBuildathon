@@ -52,13 +52,8 @@ export function toExecutableContent(
     "businessTransactionId" | "action" | "target" | "parameters"
   >,
 ): ExecutableContent {
-  if (
-    typeof input.target !== "string" ||
-    input.target.trim().length === 0
-  ) {
-    throw new Error(
-      "ExecutableContent.target must be a non-empty string.",
-    );
+  if (typeof input.target !== "string" || input.target.trim().length === 0) {
+    throw new Error("ExecutableContent.target must be a non-empty string.");
   }
 
   return Object.freeze({

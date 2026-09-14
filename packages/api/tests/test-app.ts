@@ -4,13 +4,8 @@ import { createExecutionSystem } from "../src/bootstrap/createExecutionSystem.js
 
 const executionSystem = createExecutionSystem();
 
-const application = createApplication(
-  executionSystem,
-);
+const application = createApplication(executionSystem);
 
-const app = createApp(
-  application,
-  { callerAuth: "disabled" },
-);
+const app = createApp(application, { callerAuth: "disabled" });
 
 export default app;

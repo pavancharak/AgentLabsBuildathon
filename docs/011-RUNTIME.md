@@ -1,78 +1,42 @@
 \# Runtime Specification
 
-
-
 \*\*Document:\*\* 011-RUNTIME.md
 
 \*\*Version:\*\* 1.0.0 (Draft)
 
 \*\*Status:\*\* Implementation Specification
 
-
-
 \---
-
-
 
 \# Purpose
 
-
-
 This document defines the Runtime architecture of the Parmana platform.
-
-
 
 The Runtime coordinates trusted execution.
 
-
-
 The Runtime is responsible for orchestrating the execution lifecycle and producing immutable evidence.
-
-
 
 The Runtime does not establish trust.
 
-
-
 Execution Trust is established independently by the Verification Engine.
 
-
-
 \---
-
-
 
 \# Runtime Philosophy
 
-
-
 The Runtime performs work.
-
-
 
 The Runtime records facts.
 
-
-
 The Runtime never determines whether those facts should be trusted.
-
-
 
 That responsibility belongs exclusively to Verification.
 
-
-
 \---
-
-
 
 \# Design Principles
 
-
-
 The Runtime must be:
-
-
 
 \* Deterministic
 
@@ -88,15 +52,9 @@ The Runtime must be:
 
 \* Evidence Producing
 
-
-
 \---
 
-
-
 \# Runtime Architecture
-
-
 
 ```text id="ng39l4"
 
@@ -146,23 +104,13 @@ The Runtime must be:
 
 ```
 
-
-
 Verification begins only after Runtime completes.
-
-
 
 \---
 
-
-
 \# Runtime Responsibilities
 
-
-
 The Runtime is responsible for:
-
-
 
 \* Creating ExecutionTransactions
 
@@ -178,11 +126,7 @@ The Runtime is responsible for:
 
 \* Emitting Domain Events
 
-
-
 The Runtime is \*\*not\*\* responsible for:
-
-
 
 \* Verification
 
@@ -194,19 +138,11 @@ The Runtime is \*\*not\*\* responsible for:
 
 \* Audit conclusions
 
-
-
 \---
-
-
 
 \# Runtime Domains
 
-
-
 The Runtime consists of four canonical domains.
-
-
 
 ```text id="kkyovj"
 
@@ -226,75 +162,39 @@ Execution
 
 ```
 
-
-
 Each domain has one responsibility.
 
-
-
 \---
-
-
 
 \# Runtime Components
 
-
-
 \## Authority
-
-
 
 Captures who is permitted to authorize execution.
 
-
-
 Produces:
-
-
 
 \* Authority Record
 
-
-
 \---
-
-
 
 \## Intent
 
-
-
 Captures what execution is expected to perform.
 
-
-
 Produces:
-
-
 
 \* Intent Record
 
-
-
 Intent is immutable.
-
-
 
 \---
 
-
-
 \## Authorization
-
-
 
 Evaluates execution policy.
 
-
-
 Produces:
-
-
 
 \* Authorization Result
 
@@ -304,27 +204,15 @@ Produces:
 
 \* Execution Permit
 
-
-
 Authorization completes before execution begins.
-
-
 
 \---
 
-
-
 \## Execution
-
-
 
 Coordinates execution.
 
-
-
 Produces:
-
-
 
 \* Execution Record
 
@@ -332,23 +220,13 @@ Produces:
 
 \* Execution Metadata
 
-
-
 Execution produces Evidence.
-
-
 
 Execution does not perform Verification.
 
-
-
 \---
 
-
-
 \# Runtime State Machine
-
-
 
 ```text id="mjlwmw"
 
@@ -398,11 +276,7 @@ COMPLETED
 
 ```
 
-
-
 Terminal states:
-
-
 
 \* FAILED
 
@@ -410,27 +284,15 @@ Terminal states:
 
 \* EXPIRED
 
-
-
 Historical states are preserved.
-
-
 
 \---
 
-
-
 \# Runtime Events
-
-
 
 The Runtime emits immutable domain events.
 
-
-
 Examples:
-
-
 
 ```text id="a4k7fy"
 
@@ -462,27 +324,15 @@ evidence.generated
 
 ```
 
-
-
 Events are append-only.
-
-
 
 Events are never modified.
 
-
-
 \---
-
-
 
 \# Runtime Boundaries
 
-
-
 The Runtime depends on:
-
-
 
 \* Domain Model
 
@@ -492,11 +342,7 @@ The Runtime depends on:
 
 \* Event Interfaces
 
-
-
 The Runtime does not depend on:
-
-
 
 \* Verification Engine
 
@@ -506,27 +352,15 @@ The Runtime does not depend on:
 
 \* User Interfaces
 
-
-
 This preserves separation of concerns.
-
-
 
 \---
 
-
-
 \# Runtime Interfaces
-
-
 
 The Runtime exposes abstract services.
 
-
-
 Examples:
-
-
 
 ```text id="0d9hng"
 
@@ -550,23 +384,13 @@ EventPublisher
 
 ```
 
-
-
 Implementations remain replaceable.
-
-
 
 \---
 
-
-
 \# Runtime Outputs
 
-
-
 The Runtime produces:
-
-
 
 \* ExecutionTransaction
 
@@ -574,11 +398,7 @@ The Runtime produces:
 
 \* Domain Events
 
-
-
 The Runtime never produces:
-
-
 
 \* Verification Results
 
@@ -586,27 +406,15 @@ The Runtime never produces:
 
 \* Audit Decisions
 
-
-
 \---
-
-
 
 \# Error Handling
 
-
-
 Runtime failures produce immutable failure records.
-
-
 
 Failures never delete historical information.
 
-
-
 Examples:
-
-
 
 \* Authorization Failed
 
@@ -616,23 +424,13 @@ Examples:
 
 \* External System Failure
 
-
-
 Failure records become part of the ExecutionTransaction history.
-
-
 
 \---
 
-
-
 \# Scalability
 
-
-
 The Runtime supports:
-
-
 
 \* Synchronous execution
 
@@ -648,19 +446,11 @@ The Runtime supports:
 
 \* Batch execution
 
-
-
 The execution model remains unchanged.
-
-
 
 \---
 
-
-
 \# Dependency Model
-
-
 
 ```text id="zgwmvr"
 
@@ -696,27 +486,15 @@ Consumes Runtime Outputs
 
 ```
 
-
-
 Runtime never calls Verification.
-
-
 
 Verification observes Runtime outputs.
 
-
-
 \---
-
-
 
 \# Future Compatibility
 
-
-
 The Runtime architecture supports:
-
-
 
 \* AI agents
 
@@ -732,21 +510,10 @@ The Runtime architecture supports:
 
 \* Future execution engines
 
-
-
 Execution technologies may evolve without changing the Runtime model.
-
-
 
 \---
 
-
-
 \# Success Criterion
 
-
-
 The Runtime succeeds when it consistently produces a complete, immutable ExecutionTransaction, associated Evidence, and Domain Events that are sufficient for an independent Verification Engine to determine whether execution matched authorized intent without requiring access to the Runtime itself.
-
-
-

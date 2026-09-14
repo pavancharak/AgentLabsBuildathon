@@ -1,8 +1,8 @@
 # 06 — REWRITE PLAN
 
-*Design/scoping document only. No application code. Snapshot: 2026-08-04, written against
+_Design/scoping document only. No application code. Snapshot: 2026-08-04, written against
 `parmana-exp` at commit `a0c725e` ("Add state-verification for Razorpay/HubSpot signals, fix
-cumulative-cap race, complete Postgres migration").*
+cumulative-cap race, complete Postgres migration")._
 
 ---
 
@@ -14,7 +14,7 @@ Razorpay-initiated webhook closing the loop (CLAIMS.md 3.9), a public adversaria
 finding found/fixed/disclosed (G-24, `docs/VERIFICATION-GAPS.md`), an open-core signing
 library extracted (`@parmana/envelope-verifier`), and — as of this session — the completion of
 a multi-session effort to remove a PostgREST/`supabase-js` dependency in favor of direct
-Postgres access. None of that is being thrown away as *knowledge*. The code is being rewritten;
+Postgres access. None of that is being thrown away as _knowledge_. The code is being rewritten;
 the requirements, the proofs, and the hard-won judgment calls are the actual asset and this
 document is how they survive the rewrite.
 
@@ -30,7 +30,7 @@ Source of truth: `docs/CLAIMS.md` §§ 2–3 (the only document in this repo who
 discipline is "present-tense only if backed by implementation + tests"), cross-checked against
 the actual source tree this session. Nothing below is aspirational; where CLAIMS.md itself
 scopes a claim narrowly (e.g. "test mode only," "reachability only, not money-moving"), that
-scope is preserved here — the rewrite's bar is to match the *actual* proven capability, not an
+scope is preserved here — the rewrite's bar is to match the _actual_ proven capability, not an
 inflated version of it.
 
 ### 1.1 Core execution/authorization pipeline (propose → verify → execute → confirm)
@@ -53,7 +53,7 @@ inflated version of it.
   (`@parmana/envelope-verifier`, CLAIMS 2.9, 3.1 — scoped: opt-in per receiving endpoint, not a
   network-level guarantee).
 - Rejection of forged signatures, tampered payloads, expired envelopes, and replayed envelopes,
-  with the specific proven property that a *forged or expired* envelope never burns the nonce
+  with the specific proven property that a _forged or expired_ envelope never burns the nonce
   (CLAIMS 2.10).
 - Cryptographically verifiable execution evidence: Execution Trust Records, canonical hashes,
   signed Receipts (`ExecutionTrustRecordBuilder`, `VerificationCrypto`, `ReceiptCrypto`, CLAIMS
@@ -87,7 +87,7 @@ inflated version of it.
   reports "no connector registered for capability," never a mock/placeholder credential silently
   standing in (CLAIMS 3.4, 3.10; `createRazorpayCredentialProvider.ts`,
   `createHubSpotCredentialProvider.ts`).
-- Placeholder-credential guard against the *real* production endpoint, present from day one for
+- Placeholder-credential guard against the _real_ production endpoint, present from day one for
   HubSpot (learned from Razorpay's retrofit — see § 2).
 
 ### 1.3 Signal/Intent binding — the G-24 fix, exact mechanism (safety-critical, reproduce precisely)
@@ -101,7 +101,7 @@ mechanism and the rewrite must reproduce its exact shape, not an approximation:
 - `SignalIntentBinder.findViolations(policy, signals, intentSnapshot)`: for every declared
   binding, resolves the Intent dot-path and requires **strict equality** against the declared
   signal value. A missing signal counts as a violation, not a pass (never treats `undefined ===
-  undefined` as a match).
+undefined` as a match).
 - Runs in `RuntimeEngine.execute()` **immediately before `PolicyEngine.evaluate`**, over the
   exact signals about to be evaluated and the exact Intent that will be signed and executed if
   approved.
@@ -112,7 +112,7 @@ mechanism and the rewrite must reproduce its exact shape, not an approximation:
 - The historical exploit this closes, verbatim (for the regression test — see § 7): `signals`
   declaring a fully verified, policy-approved $5,000 payment to a known vendor
   (`vendorVerified/invoiceVerified/paymentApproved/sufficientFunds: true, paymentAmount: 5000,
-  riskScore: 10, vendorId: "VENDOR-1001"`) while `intent` targets
+riskScore: 10, vendorId: "VENDOR-1001"`) while `intent` targets
   `"ATTACKER-CONTROLLED-ACCOUNT-9999"` for `999999999`. Before the fix: `200`/`APPROVED`/
   `COMPLETED`, a real signed Trust Record and receipt issued for it.
 - A compounding, same-session finding fixed alongside it: `authority.principalId` was
@@ -155,7 +155,7 @@ mechanism and the rewrite must reproduce its exact shape, not an approximation:
 
 - Every caller-authentication accept/reject event, and every Razorpay-webhook accept/reject
   event, is durably recorded and now (as of this session's commit) cryptographically signed —
-  the same evidentiary standard as Refusal Records and Receipts, applied to the *access* layer,
+  the same evidentiary standard as Refusal Records and Receipts, applied to the _access_ layer,
   not just the execution layer.
 - Fail-closed at the point of use for caller-auth: `middleware/caller-auth.ts` rejects the
   request with `503`/`AUDIT_UNAVAILABLE` if the audit write itself fails — an action that
@@ -174,7 +174,7 @@ mechanism and the rewrite must reproduce its exact shape, not an approximation:
 `docs/rfcs/RFC-0022-Challenge-Record.md` is a **Draft**, explicitly "no implementation code is
 included or should be inferred as approved by this document's existence." Its own recommendation
 (§ Proposal 3) is **not** to sign it like `RefusalRecord` — a Challenge Record is evidence of an
-*epistemic process* (what was questioned, checked, and changed), not of an execution outcome,
+_epistemic process_ (what was questioned, checked, and changed), not of an execution outcome,
 and the RFC gives specific reasoning for why that distinction matters. `packages/storage/src/
 postgres/PostgresChallengeRecordRepository.ts` and `packages/shared/src/domain/
 challenge-record.ts` exist as scaffolding but there is no wired write path, no route, and no
@@ -200,7 +200,7 @@ an existing behavior.
 - Settlement closure (M4b): **FETCH-VERIFY is load-bearing, not decorative** — a webhook is
   "a doorbell, never a delivery." Before any confirmation is written, an authenticated
   `razorpay:refund-fetch` confirms the refund's actual status directly from Razorpay; the
-  *fetched* status, never the webhook's own claimed event type, decides
+  _fetched_ status, never the webhook's own claimed event type, decides
   `SettlementConfirmation.status`. Park-and-retry with a bounded attempt window for the
   legitimate race where a webhook arrives before the synchronous execution path finishes
   writing the Trust Record.
@@ -217,7 +217,7 @@ an existing behavior.
   delivery fixture (`packages/api/tests/fixtures/razorpay-webhook-real-delivery.ts`) is replayed
   in an always-running hermetic test so this proof does not silently rot.
 - **The gap this session closed** (post-CLAIMS.md, see `docs/VERIFICATION-GAPS.md` G-24's
-  update): the *generic* `POST /execute` production route previously evaluated the
+  update): the _generic_ `POST /execute` production route previously evaluated the
   `razorpay-refund` policy against caller-supplied signals with zero independent verification
   against Razorpay's real state — `paymentStatus`, `refundableRemainingPaise`,
   `requestedExceedsRemainder` were pure caller attestations. `RazorpaySignalStateVerifier` now
@@ -236,7 +236,7 @@ an existing behavior.
 
 - `@parmana/connector-hubspot`: standalone workspace package (not a subdirectory of
   `connector-sdk` — see § 5 for why this placement pattern is being adopted generally).
-- Deal `dealstage`/`amount` update only; deny-by-default at the *property* level (a request
+- Deal `dealstage`/`amount` update only; deny-by-default at the _property_ level (a request
   naming any property outside `HUBSPOT_ALLOWED_DEAL_UPDATE_PROPERTIES` is refused before any
   network call).
 - Both of Razorpay's retrofitted hardening fixes were built in from HubSpot's first version,
@@ -302,7 +302,7 @@ caller-auth exemption:
 ### 1.12 Deployment shape
 
 - Multi-stage Dockerfile (`deps` → `build` via `tsc -b` → `prod-deps` (fresh `npm ci
-  --omit=dev`) → `runtime` on `node:24-slim`, non-root `node` user, signing key material never
+--omit=dev`) → `runtime` on `node:24-slim`, non-root `node` user, signing key material never
   baked into the image — `keys/` starts empty in the image; `PARMANA_KEY_MATERIAL_JSON` or a
   mounted volume supplies it at runtime).
 - Single container runs both the HTTP API and the Razorpay settlement poll loop
@@ -325,7 +325,7 @@ caller-auth exemption:
 1. **No PostgREST / auto-generated REST layer dependency, ever, not even residually.**
    `parmana-exp` spent real, multi-session effort removing `@supabase/supabase-js` from the
    query path after it was implicated in a production incident, and — as documented precisely
-   in § 1.10 — the removal is *still not fully complete* as of this snapshot (the dependency and
+   in § 1.10 — the removal is _still not fully complete_ as of this snapshot (the dependency and
    one client-factory file remain). The lesson is not "prefer direct Postgres"; it is "a partial
    removal is still the wrong end-state, and it is easy to end up there by accident even when
    you know better." The rewrite's mechanism for this is structural, not aspirational — see § 7.
@@ -358,7 +358,7 @@ caller-auth exemption:
    Documented Proof → Public Claim) is the actual reason this document is trustworthy enough to
    serve as § 1's source of truth. `04-INCIDENTS-LOG.md` and `01-ACHIEVED.md`/
    `05-SESSION-LEDGER.md` are explicitly, admittedly stale ("Snapshot: July 5, 2026," not updated
-   since) — this is the one discipline in this codebase's history that visibly *lapsed*, and the
+   since) — this is the one discipline in this codebase's history that visibly _lapsed_, and the
    rewrite must not let CLAIMS.md lapse the same way. Concrete mechanism in § 7.
 
 6. **Docker builds must compile fresh — the stale `dist/` lesson.** `pretest` already runs
@@ -384,23 +384,23 @@ one-session/one-commit discipline (§ 2.4). The order deliberately differs from 
 order where the historical order retrofitted something this plan can build native from the
 start — each such reordering is called out.
 
-| # | Milestone | Packages | Native-from-start (vs. historical retrofit) |
-|---|---|---|---|
-| **M0** | Repo scaffold: package skeleton (§ 5), `CLAIMS.md` created empty with its lifecycle rule stated, `CONTRIBUTING.md`, CI skeleton (build/lint/typecheck/test, dist-freshness gate, dependency-cruiser rule — § 7 Risk B), and the **G-24 regression test ported verbatim, committed first, red** (§ 7 Risk A). | none yet | — |
-| **M1** | Crypto + key management: Ed25519 default, ML-DSA-65 selectable, `FileKeyProvider` with the path-traversal `assertValidKeyId` guard *from its first version* (historically retrofitted after an unrelated finding — see CLAIMS 2.18), key/algorithm binding guard from day one. | `crypto` | keyId validation |
-| **M2** | Domain model + storage: repository interfaces, in-memory implementations, **direct Postgres from the first commit, zero `supabase-js` dependency ever** (§ 7 Risk B), migrations runner. | `shared`, `storage` | direct Postgres |
-| **M3** | Policy Engine + the unified signal-trust contract: `PolicyEngine`, `SignalIntentBinder` (§ 1.3, reproduced exactly), **and the structural external-state-verification contract (§ 7 Risk C) built together as one concept, not two sequential features.** G-24 regression test (M0) now must pass. | `policy` | signal/state contract unified from day 1, not discovered in sequence |
-| **M4** | Runtime pipeline (propose → verify → execute → confirm), Execution Gateway, envelope verification, durable shared NonceStore, credential isolation (session credential vault, issue/consume/destroy). | `envelope-verifier`, `execution-system`, `execution-control`, `execution-gateway`, `runtime` | — |
-| **M5** | Refusal Record pipeline, built as a first-class part of `RuntimeEngine.execute()`'s REJECT path from this milestone, **including its fail-open guarantee from the first version** (historically RFC-0021 landed as its own dedicated session after the core pipeline had existed for months — see § 2.3). | `runtime`, `storage` | fail-open guarantee native |
-| **M6** | Audit-sink signing for caller-auth and webhook events, direct-Postgres from the start, fail-closed per § 2.3's distinct rule. | `api`, `storage` | signed audit natively, not added after a "should this be signed too" pass |
-| **M7** | API surface: every route in § 1.11, caller-auth middleware with the mandatory-no-default `CallerAuthOption` shape from day one, deployment shape (Dockerfile, `docker/entrypoint.sh`, Fly config, migrations wiring). | `api` | — |
-| **M8** | Razorpay connector: connector + policy pack + `RazorpaySignalStateVerifier`-equivalent **built and wired into the one production execution path in the same milestone** — no interim state where a "stronger" fetch-verify implementation exists unwired while a generic path evaluates unverified caller signals (§ 6 Risk C's own origin story, not to be repeated even temporarily). | `connector-razorpay` (own package — § 5) | verifier native, wired same-milestone |
-| **M9** | Razorpay webhook receipt + settlement lifecycle (fetch-verify load-bearing from this milestone's first version, not a separately-scoped M4a/M4b/M4c/M4d sequence spread across four historical milestones). | `api`, `connector-razorpay` | — |
-| **M10** | HubSpot connector, following Razorpay's now-mature pattern immediately (placeholder-credential guard, no bridge env var, `boundSignals` + state verifier all present in its first version — this already happened correctly once historically; repeat it). | `connector-hubspot` | — |
-| **M11** | ChallengeRecord (RFC-0022), built per the RFC's own design and its own recommendation (unsigned, structured, append-only, cross-linked) — this is the first *implementation* of RFC-0022, not a reproduction of an existing capability (§ 1.7). | `shared`, `storage`, `api` | genuinely new |
-| **M12** | **Adversarial parity diffing** (§ 7): the G-24 exploit payload, plausible Risk-C-shaped unbound-signal misrepresentation attempts, and every case in the current `SignalIntentBinder`/policy test suites run through both `parmana-exp` and the new repo, outputs diffed. Not a normal test-writing milestone — its deliverable is a diff report, committed. | n/a (cross-repo) | — |
-| **M13** | **Dedicated adversarial-review session** (§ 7), separate reviewer mindset from M3/M4/M8's implementation sessions: explicitly tasked with defeating signal-binding, credential-isolation, and state-verification code on all three named risks. Findings feed fixes back into M3/M4/M8 before M14. | n/a (review) | — |
-| **M14** | **Cutover gate**: the new repo independently re-earns TRL 7 — a real transaction, a real webhook, live-verified, on its own deployed infrastructure. `parmana-exp` remains the authoritative, live, production system until this milestone closes. Not before. | n/a | — |
+| #       | Milestone                                                                                                                                                                                                                                                                                                                                                                               | Packages                                                                                     | Native-from-start (vs. historical retrofit)                               |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **M0**  | Repo scaffold: package skeleton (§ 5), `CLAIMS.md` created empty with its lifecycle rule stated, `CONTRIBUTING.md`, CI skeleton (build/lint/typecheck/test, dist-freshness gate, dependency-cruiser rule — § 7 Risk B), and the **G-24 regression test ported verbatim, committed first, red** (§ 7 Risk A).                                                                            | none yet                                                                                     | —                                                                         |
+| **M1**  | Crypto + key management: Ed25519 default, ML-DSA-65 selectable, `FileKeyProvider` with the path-traversal `assertValidKeyId` guard _from its first version_ (historically retrofitted after an unrelated finding — see CLAIMS 2.18), key/algorithm binding guard from day one.                                                                                                          | `crypto`                                                                                     | keyId validation                                                          |
+| **M2**  | Domain model + storage: repository interfaces, in-memory implementations, **direct Postgres from the first commit, zero `supabase-js` dependency ever** (§ 7 Risk B), migrations runner.                                                                                                                                                                                                | `shared`, `storage`                                                                          | direct Postgres                                                           |
+| **M3**  | Policy Engine + the unified signal-trust contract: `PolicyEngine`, `SignalIntentBinder` (§ 1.3, reproduced exactly), **and the structural external-state-verification contract (§ 7 Risk C) built together as one concept, not two sequential features.** G-24 regression test (M0) now must pass.                                                                                      | `policy`                                                                                     | signal/state contract unified from day 1, not discovered in sequence      |
+| **M4**  | Runtime pipeline (propose → verify → execute → confirm), Execution Gateway, envelope verification, durable shared NonceStore, credential isolation (session credential vault, issue/consume/destroy).                                                                                                                                                                                   | `envelope-verifier`, `execution-system`, `execution-control`, `execution-gateway`, `runtime` | —                                                                         |
+| **M5**  | Refusal Record pipeline, built as a first-class part of `RuntimeEngine.execute()`'s REJECT path from this milestone, **including its fail-open guarantee from the first version** (historically RFC-0021 landed as its own dedicated session after the core pipeline had existed for months — see § 2.3).                                                                               | `runtime`, `storage`                                                                         | fail-open guarantee native                                                |
+| **M6**  | Audit-sink signing for caller-auth and webhook events, direct-Postgres from the start, fail-closed per § 2.3's distinct rule.                                                                                                                                                                                                                                                           | `api`, `storage`                                                                             | signed audit natively, not added after a "should this be signed too" pass |
+| **M7**  | API surface: every route in § 1.11, caller-auth middleware with the mandatory-no-default `CallerAuthOption` shape from day one, deployment shape (Dockerfile, `docker/entrypoint.sh`, Fly config, migrations wiring).                                                                                                                                                                   | `api`                                                                                        | —                                                                         |
+| **M8**  | Razorpay connector: connector + policy pack + `RazorpaySignalStateVerifier`-equivalent **built and wired into the one production execution path in the same milestone** — no interim state where a "stronger" fetch-verify implementation exists unwired while a generic path evaluates unverified caller signals (§ 6 Risk C's own origin story, not to be repeated even temporarily). | `connector-razorpay` (own package — § 5)                                                     | verifier native, wired same-milestone                                     |
+| **M9**  | Razorpay webhook receipt + settlement lifecycle (fetch-verify load-bearing from this milestone's first version, not a separately-scoped M4a/M4b/M4c/M4d sequence spread across four historical milestones).                                                                                                                                                                             | `api`, `connector-razorpay`                                                                  | —                                                                         |
+| **M10** | HubSpot connector, following Razorpay's now-mature pattern immediately (placeholder-credential guard, no bridge env var, `boundSignals` + state verifier all present in its first version — this already happened correctly once historically; repeat it).                                                                                                                              | `connector-hubspot`                                                                          | —                                                                         |
+| **M11** | ChallengeRecord (RFC-0022), built per the RFC's own design and its own recommendation (unsigned, structured, append-only, cross-linked) — this is the first _implementation_ of RFC-0022, not a reproduction of an existing capability (§ 1.7).                                                                                                                                         | `shared`, `storage`, `api`                                                                   | genuinely new                                                             |
+| **M12** | **Adversarial parity diffing** (§ 7): the G-24 exploit payload, plausible Risk-C-shaped unbound-signal misrepresentation attempts, and every case in the current `SignalIntentBinder`/policy test suites run through both `parmana-exp` and the new repo, outputs diffed. Not a normal test-writing milestone — its deliverable is a diff report, committed.                            | n/a (cross-repo)                                                                             | —                                                                         |
+| **M13** | **Dedicated adversarial-review session** (§ 7), separate reviewer mindset from M3/M4/M8's implementation sessions: explicitly tasked with defeating signal-binding, credential-isolation, and state-verification code on all three named risks. Findings feed fixes back into M3/M4/M8 before M14.                                                                                      | n/a (review)                                                                                 | —                                                                         |
+| **M14** | **Cutover gate**: the new repo independently re-earns TRL 7 — a real transaction, a real webhook, live-verified, on its own deployed infrastructure. `parmana-exp` remains the authoritative, live, production system until this milestone closes. Not before.                                                                                                                          | n/a                                                                                          | —                                                                         |
 
 Every milestone after M3 assumes the unified signal-trust contract (M3) exists; no later
 milestone may introduce a capability that evaluates policy against externally-sourced state
@@ -423,17 +423,17 @@ through any path other than that contract (§ 7 Risk C).
   `docs/AUDIT_*.md` and numbered `docs/0NN-*.md` series; a `docs/00-introduction/` next to a
   root-level `VISION.md` and a `docs/VISION.md`). Only a narrow slice of this tree is load-bearing
   and current: `docs/CLAIMS.md`, `docs/VERIFICATION-GAPS.md`, `docs/rfcs/*`, `docs/adr/*`, and the
-  connector build guide. The rest is historical noise from iterating on how to *present* the
-  project, not on what the project *does* — do not port it wholesale; let § 1 (derived from the
+  connector build guide. The rest is historical noise from iterating on how to _present_ the
+  project, not on what the project _does_ — do not port it wholesale; let § 1 (derived from the
   current, load-bearing subset) be the new repo's starting documentation surface, expanded
   forward from there.
 
 - **The stale root-level snapshot docs themselves** (`01-ACHIEVED.md`, `02-REMAINING.md`,
   `03-CLAIMS-POSITION.md`, `04-INCIDENTS-LOG.md`, `05-SESSION-LEDGER.md`) — genuinely useful as
-  *historical record* (this plan cites several of them directly), but by their own admission not
+  _historical record_ (this plan cites several of them directly), but by their own admission not
   living documents. `04-INCIDENTS-LOG.md`'s own header names this precisely: "not been updated to
   reflect... this document's own gap... see RFC-0022 for the durable, structured record type
-  going forward." Carry forward the *content* they document (folded into § 1–2 above); do not
+  going forward." Carry forward the _content_ they document (folded into § 1–2 above); do not
   carry forward the pattern of a numbered snapshot doc nobody is responsible for keeping current
   — RFC-0022/ChallengeRecord (M11) is the intended replacement pattern, and the rewrite should
   actually use it rather than let it stay a design document a second time.
@@ -442,7 +442,7 @@ through any path other than that contract (§ 7 Risk C).
   publicly-exposed private key, rotated 2026-07-05) and its still-open cleanup item (a
   `git filter-repo` history purge of the old repository, and archiving a sibling
   `pavancharak/parmana` repo with the same exposure) are real, documented incidents worth
-  knowing about — but the *git history itself* carrying that exposure is not an asset to
+  knowing about — but the _git history itself_ carrying that exposure is not an asset to
   preserve. The new repo starts with clean history and a freshly generated keypair, never
   derived from or containing the compromised material.
 
@@ -457,7 +457,7 @@ through any path other than that contract (§ 7 Risk C).
 - **Superseded implementation attempts, specifically the "one strong, one weak, both live"
   pattern.** `RazorpayRefundService`/`RazorpayRefundHarness` is a real, well-tested,
   fetch-verify-correct implementation that was simply never wired into the generic production
-  route (§ 1.8, § 6 Risk C). This is not a capability to reproduce as a *second* pathway in the
+  route (§ 1.8, § 6 Risk C). This is not a capability to reproduce as a _second_ pathway in the
   rewrite — the rewrite has exactly one pathway per § 7's Risk C mechanism, so there is no
   "harness vs. generic route" distinction to carry forward at all. The lesson survives (§ 2.1);
   the two-pathway shape does not.
@@ -467,9 +467,9 @@ through any path other than that contract (§ 7 Risk C).
 ## 5. Repo setup proposal
 
 **Name**: a clean `parmana` (not `parmana-v2`, not another `-exp`/`-next` variant). Reasoning:
-a version-numbered or "experimental"-sounding name signals impermanence and invites a *third*
+a version-numbered or "experimental"-sounding name signals impermanence and invites a _third_
 rewrite's worth of "which one is real" confusion later; the actual signal to send is that this
-*is* the product going forward, with `parmana-exp` explicitly archived (read-only, README
+_is_ the product going forward, with `parmana-exp` explicitly archived (read-only, README
 pointing at the new repo) once M14 closes — not run in parallel indefinitely, not renamed to
 imply lesser status while still being load-bearing.
 
@@ -497,7 +497,7 @@ Two adjustments, both justified by evidence already in this document:
 2. **The unified signal-trust contract (§ 3 M3, § 7 Risk C) lives in `policy` as a first-class
    export from `policy`'s first version**, not bolted on as a `runtime`-level optional dependency
    the way this session's `SignalStateVerifier` port was added (real, tested, but — by its own
-   design — *optional*, which is precisely the shape Risk C's elimination mechanism must not
+   design — _optional_, which is precisely the shape Risk C's elimination mechanism must not
    have; see § 7).
 
 One deliberately open decision, not resolved here: whether Refusal Record / audit-sink / (future)
@@ -520,7 +520,7 @@ semantics (§ 1.3) — strict equality vs. loose, "missing signal = violation" v
 exploit already found by an external adversarial exercise, fixed, and publicly disclosed once
 (CLAIMS 3.4's own "adversarial-testing hardening session" update, `docs/VERIFICATION-GAPS.md`
 G-24). A rewrite is exactly the situation where "close enough" reimplementations happen by
-accident, because the new code is written from memory of the *concept* rather than against the
+accident, because the new code is written from memory of the _concept_ rather than against the
 old code's exact behavior.
 
 ### Risk B — PostgREST gets reintroduced
@@ -533,19 +533,19 @@ session or a different tool, can reintroduce exactly this dependency without any
 
 ### Risk C — the unbound-signal/unverified-state gap gets rebuilt
 
-Distinct from Risk A. G-24 was signals disagreeing *with each other* (signals vs. intent,
-within the same request). This is signals agreeing with each other while disagreeing *with
-reality* — the production `POST /execute` route evaluated `razorpay-refund` policy against
+Distinct from Risk A. G-24 was signals disagreeing _with each other_ (signals vs. intent,
+within the same request). This is signals agreeing with each other while disagreeing _with
+reality_ — the production `POST /execute` route evaluated `razorpay-refund` policy against
 caller-supplied `paymentStatus`/`refundableRemainingPaise`/`requestedExceedsRemainder`/
 `dailyCumulativeAfterThisRefundPaise` with zero fetch against Razorpay's actual state; a
 separate, correct, fetch-verify implementation (`RazorpayRefundService`) existed the whole time
 but was never wired into the route real traffic uses (§ 1.8). **This session's fix for it —
 `RazorpaySignalStateVerifier`/`HubSpotSignalStateVerifier`, composed via
-`CompositeSignalStateVerifier`, wired as an *optional* trailing constructor dependency on
+`CompositeSignalStateVerifier`, wired as an _optional_ trailing constructor dependency on
 `RuntimeEngine`** — is real, tested, and closes the gap for exactly two capabilities. It is
 **not yet the structural guarantee this risk's elimination mechanism requires**, and this plan
 states that honestly rather than claiming the current fix already covers it: because the
-dependency is optional, a *third* capability added later, by a session that does not know this
+dependency is optional, a _third_ capability added later, by a session that does not know this
 history, can be wired without a verifier and silently reopen exactly this gap for itself. The
 rewrite's job is to make that omission impossible to make, not merely unlikely.
 
@@ -618,7 +618,7 @@ merely repeating it:
 Created in M0, before any application code — as an empty file stating only its own lifecycle
 rule (Idea → Implementation → Automated Tests → Audit → Documented Proof → Public Claim) and a
 placeholder Future Claims section. Every milestone that adds a capability updates CLAIMS.md in
-the *same session*, not as separate follow-up work — the same rule `03-CLAIMS-POSITION.md`
+the _same session_, not as separate follow-up work — the same rule `03-CLAIMS-POSITION.md`
 already states for `parmana-exp`, actually enforced this time rather than lapsing the way
 `01-ACHIEVED.md`/`04-INCIDENTS-LOG.md`/`05-SESSION-LEDGER.md` did (§ 2.5).
 
@@ -631,8 +631,8 @@ misrepresentation attempts (declared `paymentStatus`/deal-stage/amount claims th
 satisfy every policy rule while contradicting a fixed, known-real mock state) are run against
 both `parmana-exp` and the new repo, on identical inputs, with outputs diffed and the diff
 committed as this milestone's deliverable. Matching `parmana-exp`'s proven-correct outputs is
-the floor; on every Risk-C-shaped input, the new repo's output must additionally be *strictly
-better* (REJECT where `parmana-exp`'s generic route today would APPROVE) — passing the new
+the floor; on every Risk-C-shaped input, the new repo's output must additionally be _strictly
+better_ (REJECT where `parmana-exp`'s generic route today would APPROVE) — passing the new
 repo's own test suite is explicitly not sufficient evidence of either.
 
 ### `parmana-exp` stays authoritative in production until the new repo re-earns TRL 7 (M14)
@@ -648,7 +648,7 @@ completion, however thorough, substitutes for this gate.
 A session whose only task is trying to defeat the new implementation on Risk A, B, and C
 specifically — signal-binding, credential-isolation, and state-verification code — run by a
 different reviewing pass than the one that built M3/M4/M8, mirroring the fact that G-24 itself
-was found by an *external* adversarial exercise, not this codebase's own internal audit process
+was found by an _external_ adversarial exercise, not this codebase's own internal audit process
 (CLAIMS 3.4's own phrasing). Its job is to find a way in, not to confirm the design is sound;
 findings feed fixes back into the relevant milestone, re-verified, before M14.
 

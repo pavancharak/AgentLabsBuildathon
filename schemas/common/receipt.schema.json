@@ -42,9 +42,7 @@
     "algorithm": {
       "type": "string",
       "description": "Signing algorithm.",
-      "examples": [
-        "ed25519"
-      ]
+      "examples": ["ed25519"]
     },
     "issuedAt": {
       "type": "string",

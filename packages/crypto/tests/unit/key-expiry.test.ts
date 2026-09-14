@@ -48,9 +48,7 @@ describe("FileKeyExpiryStore", () => {
 
     const entry = await store.get("key-a");
 
-    expect(entry?.expiresAt).toEqual(
-      new Date("2020-01-01T00:00:00.000Z"),
-    );
+    expect(entry?.expiresAt).toEqual(new Date("2020-01-01T00:00:00.000Z"));
     expect(entry?.revoked).toBeUndefined();
   });
 
@@ -81,8 +79,6 @@ describe("FileKeyExpiryStore", () => {
 
     const store = new FileKeyExpiryStore();
 
-    await expect(store.get("key-a")).rejects.toThrow(
-      /must be a JSON object/,
-    );
+    await expect(store.get("key-a")).rejects.toThrow(/must be a JSON object/);
   });
 });

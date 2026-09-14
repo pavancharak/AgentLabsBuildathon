@@ -1,4 +1,8 @@
-import { parseApiKeys, parseCryptoMode, parseStorageProvider } from "@parmana/shared";
+import {
+  parseApiKeys,
+  parseCryptoMode,
+  parseStorageProvider,
+} from "@parmana/shared";
 
 //
 // Config validation in this codebase fails closed: an invalid value
@@ -16,7 +20,9 @@ console.log();
 
 console.log("CRYPTO_MODE");
 console.log("--------------------------------------------------");
-console.log(`parseCryptoMode(undefined) -> ${parseCryptoMode(undefined)} (default)`);
+console.log(
+  `parseCryptoMode(undefined) -> ${parseCryptoMode(undefined)} (default)`,
+);
 console.log(`parseCryptoMode("hybrid")  -> ${parseCryptoMode("hybrid")}`);
 
 let cryptoModeError: string | undefined;
@@ -30,8 +36,12 @@ console.log();
 
 console.log("PARMANA_STORAGE");
 console.log("--------------------------------------------------");
-console.log(`parseStorageProvider(undefined)  -> ${parseStorageProvider(undefined)} (default)`);
-console.log(`parseStorageProvider("supabase") -> ${parseStorageProvider("supabase")}`);
+console.log(
+  `parseStorageProvider(undefined)  -> ${parseStorageProvider(undefined)} (default)`,
+);
+console.log(
+  `parseStorageProvider("supabase") -> ${parseStorageProvider("supabase")}`,
+);
 
 let storageError: string | undefined;
 try {
@@ -55,7 +65,9 @@ console.log();
 
 console.log("PARMANA_API_KEYS");
 console.log("--------------------------------------------------");
-console.log(`parseApiKeys(undefined) -> ${JSON.stringify(parseApiKeys(undefined))}`);
+console.log(
+  `parseApiKeys(undefined) -> ${JSON.stringify(parseApiKeys(undefined))}`,
+);
 
 let jsonError: string | undefined;
 try {
@@ -71,7 +83,9 @@ try {
 } catch (error) {
   missingFieldError = error instanceof Error ? error.message : String(error);
 }
-console.log(`parseApiKeys([{keyHash only, no callerId}]) -> throws: ${missingFieldError}`);
+console.log(
+  `parseApiKeys([{keyHash only, no callerId}]) -> throws: ${missingFieldError}`,
+);
 console.log();
 
 const allPassed =
@@ -88,7 +102,9 @@ if (allPassed) {
     "✓ Every invalid config value is rejected at load time with a named, specific error -- none of them silently default or crash later.",
   );
 } else {
-  console.log("✗ Expected every invalid value above to throw a named error, and valid/default values to resolve cleanly.");
+  console.log(
+    "✗ Expected every invalid value above to throw a named error, and valid/default values to resolve cleanly.",
+  );
 }
 
 console.log();

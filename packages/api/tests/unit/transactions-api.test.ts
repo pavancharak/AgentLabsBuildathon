@@ -121,6 +121,3 @@ describe("POST /transactions", () => {
     },
   );
 });
-
-
-

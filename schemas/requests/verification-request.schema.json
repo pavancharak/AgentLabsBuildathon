@@ -5,9 +5,7 @@
   "description": "Request payload for POST /verify. businessTransactionId is required and must be a valid UUID; both are rejected with a 400, with distinct messages depending on which check fails.",
   "type": "object",
   "additionalProperties": true,
-  "required": [
-    "businessTransactionId"
-  ],
+  "required": ["businessTransactionId"],
   "properties": {
     "businessTransactionId": {
       "type": "string",

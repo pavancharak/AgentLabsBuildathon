@@ -224,6 +224,8 @@ describe("canonicalPaytmAuthorizationString", () => {
 describe("PAYTM_AUTHORIZATION_SIGNATURE_TTL_MS", () => {
   it("is a short, positive TTL (bounds replay of a captured signed request)", () => {
     expect(PAYTM_AUTHORIZATION_SIGNATURE_TTL_MS).toBeGreaterThan(0);
-    expect(PAYTM_AUTHORIZATION_SIGNATURE_TTL_MS).toBeLessThanOrEqual(5 * 60_000);
+    expect(PAYTM_AUTHORIZATION_SIGNATURE_TTL_MS).toBeLessThanOrEqual(
+      5 * 60_000,
+    );
   });
 });

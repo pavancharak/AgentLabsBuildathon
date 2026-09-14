@@ -1,21 +1,13 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  MemoryExecutionTrustRecordRepository,
-} from "@parmana/storage";
+import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
-import {
-  RuntimeBuilder,
-} from "@parmana/runtime";
+import { RuntimeBuilder } from "@parmana/runtime";
 
-import type {
-  BusinessTransaction,
-} from "@parmana/shared";
+import type { BusinessTransaction } from "@parmana/shared";
 
 const root = path.resolve(import.meta.dirname);
 
@@ -26,28 +18,17 @@ const transaction = JSON.parse(
   ),
 ) as BusinessTransaction;
 
-const policyRepository =
-  new FilePolicyRepository(
-    path.resolve(
-      root,
-      "../../../policies",
-    ),
-  );
+const policyRepository = new FilePolicyRepository(
+  path.resolve(root, "../../../policies"),
+);
 
-const trustRecords =
-  new MemoryExecutionTrustRecordRepository();
+const trustRecords = new MemoryExecutionTrustRecordRepository();
 
-const runtime =
-  new RuntimeBuilder()
-    .withPolicyRepository(
-      policyRepository,
-    )
-    .build(trustRecords);
+const runtime = new RuntimeBuilder()
+  .withPolicyRepository(policyRepository)
+  .build(trustRecords);
 
-const { trustRecord } =
-  await runtime.execute(
-    transaction,
-  );
+const { trustRecord } = await runtime.execute(transaction);
 
 console.log("========================================");
 console.log(" Parmana Tutorial 03 - Runtime Execution");
@@ -57,29 +38,15 @@ console.log();
 
 console.log("Business Transaction");
 
-console.log(
-  JSON.stringify(
-    transaction,
-    null,
-    2,
-  ),
-);
+console.log(JSON.stringify(transaction, null, 2));
 
 console.log();
 
 console.log("Execution Trust Record");
 
-console.log(
-  JSON.stringify(
-    trustRecord,
-    null,
-    2,
-  ),
-);
+console.log(JSON.stringify(trustRecord, null, 2));
 
 console.log();
 
 console.log("Tutorial Complete");
-console.log(
-  "Next: Tutorial 04 - Policy Router",
-);
+console.log("Next: Tutorial 04 - Policy Router");

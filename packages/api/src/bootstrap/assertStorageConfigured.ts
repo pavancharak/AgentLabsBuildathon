@@ -32,6 +32,8 @@ export function assertStorageConfigured(): void {
   const config = loadConfig();
 
   if (config.storage.provider === "supabase") {
-    assertDatabaseUrlConfigured("Storage (business transactions / trust records)");
+    assertDatabaseUrlConfigured(
+      "Storage (business transactions / trust records)",
+    );
   }
 }

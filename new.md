@@ -467,20 +467,20 @@ Describe the architecture that the code actually implements. Do not describe the
 
 Create a table:
 
-| Parmana Claim | Code Evidence | Status | Risk |
-|---|---|---|---|
+| Parmana Claim                  | Code Evidence | Status                  | Risk     |
+| ------------------------------ | ------------- | ----------------------- | -------- |
 | Agent separated from authority | file/function | VERIFIED/PARTIAL/FAILED | severity |
-| Deterministic authorization | file/function | ... | ... |
-| Fail closed | file/function | ... | ... |
-| Cryptographic authorization | file/function | ... | ... |
-| Canonical signing | file/function | ... | ... |
-| Replay protection | file/function | ... | ... |
-| Caller scope | file/function | ... | ... |
-| Execution binding | file/function | ... | ... |
-| Policy enforcement | file/function | ... | ... |
-| Authority gate | file/function | ... | ... |
-| Audit evidence | file/function | ... | ... |
-| Domain agnosticism | file/function | ... | ... |
+| Deterministic authorization    | file/function | ...                     | ...      |
+| Fail closed                    | file/function | ...                     | ...      |
+| Cryptographic authorization    | file/function | ...                     | ...      |
+| Canonical signing              | file/function | ...                     | ...      |
+| Replay protection              | file/function | ...                     | ...      |
+| Caller scope                   | file/function | ...                     | ...      |
+| Execution binding              | file/function | ...                     | ...      |
+| Policy enforcement             | file/function | ...                     | ...      |
+| Authority gate                 | file/function | ...                     | ...      |
+| Audit evidence                 | file/function | ...                     | ...      |
+| Domain agnosticism             | file/function | ...                     | ...      |
 
 ### Critical Security Findings
 

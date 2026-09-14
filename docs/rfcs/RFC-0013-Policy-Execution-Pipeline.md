@@ -1,38 +1,20 @@
 \# RFC-0013: Policy Execution Pipeline
 
-
-
 \*\*Status:\*\* Accepted
-
-
 
 \## Purpose
 
-
-
 This RFC defines the canonical Policy Execution Pipeline for Parmana.
-
-
 
 It specifies how a BusinessTransaction progresses from a policy reference to a deterministic Decision while preserving execution trust.
 
-
-
 This pipeline separates policy loading, validation, signal preparation, signal validation, and policy evaluation into independent responsibilities.
-
-
 
 \---
 
-
-
 \# Objectives
 
-
-
 The Policy Execution Pipeline SHALL:
-
-
 
 \* execute exactly one policy
 
@@ -46,15 +28,9 @@ The Policy Execution Pipeline SHALL:
 
 \* produce a deterministic Decision
 
-
-
 \---
 
-
-
 \# Canonical Pipeline
-
-
 
 ```text
 
@@ -124,27 +100,15 @@ Decision
 
 ```
 
-
-
 Each component owns exactly one responsibility.
-
-
 
 \---
 
-
-
 \# Component Responsibilities
-
-
 
 \## BusinessTransaction
 
-
-
 Provides:
-
-
 
 \* execution request
 
@@ -152,23 +116,13 @@ Provides:
 
 \* runtime data
 
-
-
 The BusinessTransaction SHALL NOT contain policy logic.
-
-
 
 \---
 
-
-
 \## PolicyReference
 
-
-
 Identifies the exact policy artifact.
-
-
 
 ```ts
 
@@ -184,19 +138,11 @@ interface PolicyReference {
 
 ```
 
-
-
 \---
-
-
 
 \## PolicyRegistry
 
-
-
 Responsibilities:
-
-
 
 \* register policy metadata
 
@@ -204,33 +150,19 @@ Responsibilities:
 
 \* list available policies
 
-
-
 The registry SHALL NOT execute policies.
-
-
 
 \---
 
-
-
 \## PolicyRouter
 
-
-
 Responsibilities:
-
-
 
 \* locate policy artifact
 
 \* load policy.json
 
-
-
 The router SHALL NOT:
-
-
 
 \* evaluate policies
 
@@ -240,23 +172,13 @@ The router SHALL NOT:
 
 \* apply business logic
 
-
-
 \---
-
-
 
 \## PolicyValidator
 
-
-
 Responsibilities:
 
-
-
 Validate:
-
-
 
 \* policyId
 
@@ -268,73 +190,39 @@ Validate:
 
 \* rule structure
 
-
-
 Execution SHALL fail if validation fails.
 
-
-
 \---
-
-
 
 \## PolicyAdapter
 
-
-
 Responsibilities:
-
-
 
 Convert RuntimeTransaction into PolicySignals.
 
-
-
 The adapter SHALL remain business-domain independent.
-
-
 
 \---
 
-
-
 \## SignalValidator
-
-
 
 Responsibilities:
 
-
-
 Validate runtime signals against the policy's declared signalsSchema.
 
-
-
 Validation includes:
-
-
 
 \* required signals
 
 \* signal types
 
-
-
 Execution SHALL fail on validation errors.
-
-
 
 \---
 
-
-
 \## PolicyEngine
 
-
-
 Responsibilities:
-
-
 
 \* evaluate one policy
 
@@ -342,11 +230,7 @@ Responsibilities:
 
 \* record evaluation trace
 
-
-
 The PolicyEngine SHALL NOT:
-
-
 
 \* load policies
 
@@ -354,23 +238,13 @@ The PolicyEngine SHALL NOT:
 
 \* validate runtime signals
 
-
-
 \---
-
-
 
 \# Decision
 
-
-
 The Decision is the deterministic result of policy evaluation.
 
-
-
 A Decision is derived solely from:
-
-
 
 \* PolicyReference
 
@@ -378,23 +252,13 @@ A Decision is derived solely from:
 
 \* validated PolicySignals
 
-
-
 No external runtime state may influence the result.
-
-
 
 \---
 
-
-
 \# Determinism
 
-
-
 Given identical:
-
-
 
 \* BusinessTransaction
 
@@ -404,23 +268,13 @@ Given identical:
 
 \* PolicySignals
 
-
-
 the Policy Execution Pipeline SHALL always produce the same Decision.
-
-
 
 \---
 
-
-
 \# Failure Conditions
 
-
-
 Execution SHALL terminate if:
-
-
 
 \* PolicyReference is invalid.
 
@@ -432,23 +286,13 @@ Execution SHALL terminate if:
 
 \* Policy evaluation fails.
 
-
-
 No fallback execution is permitted.
-
-
 
 \---
 
-
-
 \# Architectural Invariants
 
-
-
 The pipeline SHALL satisfy the following invariants:
-
-
 
 1\. Exactly one policy is executed.
 
@@ -464,19 +308,11 @@ The pipeline SHALL satisfy the following invariants:
 
 7\. The runtime remains domain independent.
 
-
-
 \---
-
-
 
 \# Relationship to the Trust Chain
 
-
-
 This RFC covers the transition from:
-
-
 
 ```text
 
@@ -490,11 +326,7 @@ Decision
 
 ```
 
-
-
 The Decision becomes the canonical input for the remaining execution trust chain:
-
-
 
 ```text
 
@@ -520,19 +352,11 @@ Independent Verification
 
 ```
 
-
-
 \---
-
-
 
 \# Phase 1 Completion
 
-
-
 The Policy Execution Pipeline is considered complete when:
-
-
 
 \* Policy loading is deterministic.
 
@@ -544,21 +368,10 @@ The Policy Execution Pipeline is considered complete when:
 
 \* A canonical Decision is produced.
 
-
-
 This completes the policy execution stage of the Parmana Execution Trust Architecture.
-
-
 
 \---
 
-
-
 \# Status
 
-
-
 This RFC defines the canonical Policy Execution Pipeline for Parmana Phase 1 and serves as the implementation contract for all future runtime implementations.
-
-
-

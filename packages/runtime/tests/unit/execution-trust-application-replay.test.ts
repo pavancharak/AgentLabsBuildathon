@@ -32,16 +32,12 @@ import type { RuntimeContext } from "../../src/context/RuntimeContext.js";
 // skips packages/api/tests/integration/replay.integration.test.ts
 // when no database is configured.
 //
-class InMemoryExecutionTrustRecordRepository
-  implements ExecutionTrustRecordRepository
-{
+class InMemoryExecutionTrustRecordRepository implements ExecutionTrustRecordRepository {
   private readonly store = new Map<string, ExecutionTrustRecord>();
 
   public readonly appendedVerifications: Verification[] = [];
 
-  async create(
-    record: ExecutionTrustRecord,
-  ): Promise<ExecutionTrustRecord> {
+  async create(record: ExecutionTrustRecord): Promise<ExecutionTrustRecord> {
     this.store.set(record.businessTransactionId, record);
     return record;
   }
@@ -68,9 +64,7 @@ class InMemoryExecutionTrustRecordRepository
   async appendReceipt(): Promise<void> {}
 }
 
-function createTransaction(
-  businessTransactionId: string,
-): BusinessTransaction {
+function createTransaction(businessTransactionId: string): BusinessTransaction {
   const authorityId = "authority-1";
   const authorizationId = "authorization-1";
   const fixedDate = new Date("2026-01-01T00:00:00Z");
@@ -130,9 +124,7 @@ async function buildTrustRecord(options: {
   businessTransactionId: string;
   authorizationId?: string;
 }): Promise<ExecutionTrustRecord> {
-  const transaction = createTransaction(
-    options.businessTransactionId,
-  );
+  const transaction = createTransaction(options.businessTransactionId);
 
   const fixedDate = new Date("2026-01-01T00:00:00Z");
 
@@ -155,8 +147,7 @@ async function buildTrustRecord(options: {
     completedAt: fixedDate,
 
     metadata: {
-      authorizationId:
-        options.authorizationId ?? "authorization-xyz",
+      authorizationId: options.authorizationId ?? "authorization-xyz",
     },
   };
 
@@ -216,12 +207,8 @@ describe("ExecutionTrustApplication.replay() (TD-13 / Phase 2G)", () => {
 
     const application = buildApplication(repository);
 
-    const first = await application.replay(
-      "txn-replay-deterministic",
-    );
-    const second = await application.replay(
-      "txn-replay-deterministic",
-    );
+    const first = await application.replay("txn-replay-deterministic");
+    const second = await application.replay("txn-replay-deterministic");
 
     expect(first).toEqual(second);
   });
@@ -256,9 +243,7 @@ describe("ExecutionTrustApplication.replay() (TD-13 / Phase 2G)", () => {
 
     const application = buildApplication(repository);
 
-    const replay = await application.replay(
-      "txn-replay-tampered-hash",
-    );
+    const replay = await application.replay("txn-replay-tampered-hash");
 
     expect(replay.verified).toBe(false);
 
@@ -285,9 +270,7 @@ describe("ExecutionTrustApplication.replay() (TD-13 / Phase 2G)", () => {
 
     const application = buildApplication(repository);
 
-    const replay = await application.replay(
-      "txn-replay-tampered-signature",
-    );
+    const replay = await application.replay("txn-replay-tampered-signature");
 
     expect(replay.verified).toBe(false);
   });
@@ -297,15 +280,13 @@ describe("ExecutionTrustApplication.replay() (TD-13 / Phase 2G)", () => {
 
     const application = buildApplication(repository);
 
-    await expect(
-      application.replay("txn-does-not-exist"),
-    ).rejects.toThrow(VerificationFailedError);
+    await expect(application.replay("txn-does-not-exist")).rejects.toThrow(
+      VerificationFailedError,
+    );
 
     // No record was created as a side effect of the failed replay.
     expect(
-      await repository.findByTransactionId(
-        "txn-does-not-exist",
-      ),
+      await repository.findByTransactionId("txn-does-not-exist"),
     ).toBeNull();
   });
 });

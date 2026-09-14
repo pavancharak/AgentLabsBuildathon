@@ -96,11 +96,11 @@ hash procedure regardless of which artifact X is.
 `RuntimeContext`: the business transaction, any human override (as an array, empty if none), the
 execution artifact itself — required; the method throws if `context.execution` is absent, so no
 Trust Record can be built for a runtime context that has not actually executed — any verification
-and receipt artifacts already produced, and timestamps. This draft, together with an *empty*
+and receipt artifacts already produced, and timestamps. This draft, together with an _empty_
 placeholder signature block (algorithm and keyId populated, `value: ""`), is passed as a single
 unit into `this.crypto.hash(trustRecord)`, producing `trustRecordHash`.
 
-[0009] The hash is folded back into the record (`recordWithHash`), and *that* hash-inclusive
+[0009] The hash is folded back into the record (`recordWithHash`), and _that_ hash-inclusive
 object — not the original draft — is what gets signed: `this.crypto.sign(recordWithHash)`. This
 ordering is significant: the signature covers the hash itself, not merely the pre-hash content, so
 a party holding only the record can (i) recompute the hash from the content, (ii) confirm it
@@ -111,7 +111,7 @@ each other.
 
 [0010] **Additive dual-algorithm signing.** When system configuration (`loadConfig().crypto.mode`)
 is `"hybrid"`, the builder additionally calls `this.crypto.signHybrid(recordWithHash)` — over the
-*identical* `recordWithHash` object already used for the first, "classical" signature — producing
+_identical_ `recordWithHash` object already used for the first, "classical" signature — producing
 a second, independent `signatures` collection, and bumps `schemaVersion` to `2` to signal the
 record carries both. Crucially, this second signing pass takes the already-hash-inclusive record
 as its input and does not alter, invalidate, or require recomputation of the first `signature`
@@ -199,8 +199,8 @@ without having been re-signed after the fact should the classical scheme later b
 - Signed audit logs and hash-chained tamper-evidence are broadly known art (certificate
   transparency logs, blockchain-adjacent append-only ledgers). The attorney will need to sharpen
   what is specifically novel here relative to that art. Candidate distinguishing elements: the
-  *additive, non-invalidating dual-algorithm signature over an identical hash-inclusive object*
-  (Claim 2/7), and the *deliberate side-effect ordering* in the verifier that prevents nonce
+  _additive, non-invalidating dual-algorithm signature over an identical hash-inclusive object_
+  (Claim 2/7), and the _deliberate side-effect ordering_ in the verifier that prevents nonce
   poisoning by an invalid record (Claim 4) — as opposed to the general concept of a signed hash
   chain, which is not itself novel.
 - Formal drawings: a sequence diagram of canonicalize → hash → fold → sign → (optionally)

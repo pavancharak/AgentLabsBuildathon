@@ -19,8 +19,13 @@ export function createHubSpotConnector(): Connector {
   return createGatewayHubSpotConnector({
     connectorId: "hubspot",
 
-    capabilities: connectorCapabilities([HUBSPOT_DEAL_FETCH_CAPABILITY, HUBSPOT_DEAL_UPDATE_CAPABILITY]),
+    capabilities: connectorCapabilities([
+      HUBSPOT_DEAL_FETCH_CAPABILITY,
+      HUBSPOT_DEAL_UPDATE_CAPABILITY,
+    ]),
 
-    ...(process.env.HUBSPOT_BASE_URL !== undefined ? { baseUrl: process.env.HUBSPOT_BASE_URL } : {}),
+    ...(process.env.HUBSPOT_BASE_URL !== undefined
+      ? { baseUrl: process.env.HUBSPOT_BASE_URL }
+      : {}),
   });
 }

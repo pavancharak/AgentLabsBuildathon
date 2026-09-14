@@ -52,18 +52,18 @@ This confirms TD-19's count of "9" exactly (7 + 2 — TD-19's own inventory corr
 
 ## 3. Logging Inventory
 
-| File | Class/Method | Line(s) | API | Message | Introduced | Classification |
-|---|---|---|---|---|---|---|
-| `packages/runtime/src/ExecutionTrustApplication.ts` | `ExecutionTrustApplication.execute()` | 68 | `console.log` | `"[APP] 1 - accept"` | `a6b9d8b` (2026-07-18) | Temporary debug / Development artifact |
-| same | same | 73 | `console.log` | `"[APP] 2 - runtime"` | `a6b9d8b` | Temporary debug / Development artifact |
-| same | same | 78 | `console.log` | `"[APP] 3 - verification"` | `a6b9d8b` | Temporary debug / Development artifact |
-| same | same | 83 | `console.log` | `"[APP] 4 - receipt"` | `a6b9d8b` | Temporary debug / Development artifact |
-| same | same | 88 | `console.log` | `"[APP] 5 - load trust record"` | `a6b9d8b` | Temporary debug / Development artifact |
-| same | same | 94 | `console.log` | `"[APP] 6 - found trust record"` | `a6b9d8b` | Temporary debug / Development artifact |
-| same | same | 102 | `console.log` | `"[APP] 7 - returning"` | `a6b9d8b` | Temporary debug / Development artifact |
-| `packages/api/src/routes/execute.ts` | `createExecuteRouter()` route handler | 108 | `console.log` | `"[ROUTE] before execute"` | `a6b9d8b` (2026-07-18) | Temporary debug / Development artifact |
-| same | same | 115 | `console.log` | `"[ROUTE] after execute"` | `a6b9d8b` | Temporary debug / Development artifact |
-| `packages/api/src/server.ts` | module-level, server bootstrap | 84 | `console.log` | `` `API running on http://${HOST}:${PORT}` `` | `9fe09ee` (2026-06-26) | Production observability / Startup diagnostic |
+| File                                                | Class/Method                          | Line(s) | API           | Message                                       | Introduced             | Classification                                |
+| --------------------------------------------------- | ------------------------------------- | ------- | ------------- | --------------------------------------------- | ---------------------- | --------------------------------------------- |
+| `packages/runtime/src/ExecutionTrustApplication.ts` | `ExecutionTrustApplication.execute()` | 68      | `console.log` | `"[APP] 1 - accept"`                          | `a6b9d8b` (2026-07-18) | Temporary debug / Development artifact        |
+| same                                                | same                                  | 73      | `console.log` | `"[APP] 2 - runtime"`                         | `a6b9d8b`              | Temporary debug / Development artifact        |
+| same                                                | same                                  | 78      | `console.log` | `"[APP] 3 - verification"`                    | `a6b9d8b`              | Temporary debug / Development artifact        |
+| same                                                | same                                  | 83      | `console.log` | `"[APP] 4 - receipt"`                         | `a6b9d8b`              | Temporary debug / Development artifact        |
+| same                                                | same                                  | 88      | `console.log` | `"[APP] 5 - load trust record"`               | `a6b9d8b`              | Temporary debug / Development artifact        |
+| same                                                | same                                  | 94      | `console.log` | `"[APP] 6 - found trust record"`              | `a6b9d8b`              | Temporary debug / Development artifact        |
+| same                                                | same                                  | 102     | `console.log` | `"[APP] 7 - returning"`                       | `a6b9d8b`              | Temporary debug / Development artifact        |
+| `packages/api/src/routes/execute.ts`                | `createExecuteRouter()` route handler | 108     | `console.log` | `"[ROUTE] before execute"`                    | `a6b9d8b` (2026-07-18) | Temporary debug / Development artifact        |
+| same                                                | same                                  | 115     | `console.log` | `"[ROUTE] after execute"`                     | `a6b9d8b`              | Temporary debug / Development artifact        |
+| `packages/api/src/server.ts`                        | module-level, server bootstrap        | 84      | `console.log` | `` `API running on http://${HOST}:${PORT}` `` | `9fe09ee` (2026-06-26) | Production observability / Startup diagnostic |
 
 No statement in this inventory was classified as Structured operational logging, Test-only, or Legacy — the repository has no other logging in these files to classify. No statement was found outside these two commits or these three files within production `src/`.
 
@@ -79,6 +79,7 @@ No credentials, API keys, tokens, signed authorization envelopes, signature mate
 ## 5. Classification Rationale
 
 **Temporary debug / Development artifact (9 statements, `ExecutionTrustApplication.ts` ×7, `execute.ts` ×2):**
+
 - Introduced in the same commit, with no stated logging intent in that commit's message.
 - Direct diff evidence shows they replaced meaningful section comments at the exact same code positions (`ExecutionTrustApplication.ts`) and were inserted with broken indentation (`execute.ts`) — both independent signals of an unreviewed, ad hoc edit rather than a deliberate logging feature.
 - Unconditional (no `NODE_ENV`/log-level gate), firing on every request through the system's most central method — the profile of a bug trace left in, not a designed observability signal.
@@ -87,6 +88,7 @@ No credentials, API keys, tokens, signed authorization envelopes, signature mate
 - Not documented as supported observability in `CLAIMS.md`, `GUARANTEES.md`, `docs/architecture/**`, or any deployment/operations guide (`docs/ROADMAP-v1.md`, `docs/architecture/repository-invariants.md`, `docs/guides/e2e/19-deployment-guide.md`, `docs/guides/e2e/20-production-operations.md`, `docs/guides/e2e/21-troubleshooting.md` were all checked; none mention `[APP]` or `[ROUTE]`).
 
 **Production observability / Startup diagnostic (1 statement, `server.ts`):**
+
 - Fires exactly once per process start, not once per request — a fundamentally different frequency and purpose than the 9 above.
 - Conventional pattern for an HTTP server (announcing its bound host/port), present since the file's creation, not introduced alongside the debug-tracing commit.
 - Explicitly protected by this phase's own Preserve/Task 3 instructions ("Do NOT remove: ... startup diagnostics").
@@ -134,15 +136,15 @@ Identical pass/skip counts before and after this phase's changes is itself evide
 
 ## Final Verification
 
-| Item | Status |
-|---|---|
-| TD-19 independently verified | ✓ — all 9 flagged statements confirmed present, correctly classified, and correctly attributed to their introducing commit (`a6b9d8b`); no additional debug statements found beyond TD-19's original count |
-| Every debug statement checked for sensitive data exposure | ✓ — all 10 (including the retained `server.ts` line) inspected for interpolated content; none found (§4) |
-| Temporary debug instrumentation removed | ✓ — all 9 `[APP]`/`[ROUTE]` statements deleted from `ExecutionTrustApplication.ts` and `execute.ts`; meaningful section comments restored where the debug lines had overwritten them |
-| Production observability preserved | ✓ — `server.ts`'s startup diagnostic untouched |
-| Runtime behavior unchanged | ✓ — no branch, ordering, awaited call, or return value changed; only `console.log` calls and comments touched |
-| Security behavior unchanged | ✓ — no authorization, signal-verification, replay-protection, audit, or credential-handling code touched |
-| Execution architecture unchanged | ✓ — no class, method signature, or call graph changed |
+| Item                                                      | Status                                                                                                                                                                                                     |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TD-19 independently verified                              | ✓ — all 9 flagged statements confirmed present, correctly classified, and correctly attributed to their introducing commit (`a6b9d8b`); no additional debug statements found beyond TD-19's original count |
+| Every debug statement checked for sensitive data exposure | ✓ — all 10 (including the retained `server.ts` line) inspected for interpolated content; none found (§4)                                                                                                   |
+| Temporary debug instrumentation removed                   | ✓ — all 9 `[APP]`/`[ROUTE]` statements deleted from `ExecutionTrustApplication.ts` and `execute.ts`; meaningful section comments restored where the debug lines had overwritten them                       |
+| Production observability preserved                        | ✓ — `server.ts`'s startup diagnostic untouched                                                                                                                                                             |
+| Runtime behavior unchanged                                | ✓ — no branch, ordering, awaited call, or return value changed; only `console.log` calls and comments touched                                                                                              |
+| Security behavior unchanged                               | ✓ — no authorization, signal-verification, replay-protection, audit, or credential-handling code touched                                                                                                   |
+| Execution architecture unchanged                          | ✓ — no class, method signature, or call graph changed                                                                                                                                                      |
 
 Supported by: repository searches (§2), source references and diff inspection of both introducing commits (§2, §3), and regression tests (§8: `tsc -b` clean; 961 tests passed, 39 correctly skipped, 0 failed — identical counts before and after).
 

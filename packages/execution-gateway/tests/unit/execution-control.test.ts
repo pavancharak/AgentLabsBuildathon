@@ -37,20 +37,27 @@ class RecordingVault implements CredentialVault {
     this.acquisitions += 1;
     return {
       handle: this.credential,
-      release: async () => { this.releases += 1; },
+      release: async () => {
+        this.releases += 1;
+      },
     };
   }
 }
 
 async function fixture() {
   const { privateKey, publicKey } = generateKeyPairSync("ed25519");
-  const authorization = await new AuthorizationSigner(crypto).sign({
-    decisionId: "decision-1",
-    businessTransactionId: content.businessTransactionId,
-    policyName: "payments",
-    policyVersion: "1.0.0",
-    executableContent: content,
-  }, privateKey, "key-1", 60);
+  const authorization = await new AuthorizationSigner(crypto).sign(
+    {
+      decisionId: "decision-1",
+      businessTransactionId: content.businessTransactionId,
+      policyName: "payments",
+      policyVersion: "1.0.0",
+      executableContent: content,
+    },
+    privateKey,
+    "key-1",
+    60,
+  );
   const request: ExecutionRequest = { ...content, authorization };
   const sessions = new InMemoryGatewaySessionAuthority();
   const registry = new InMemoryConnectorRegistry();
@@ -59,8 +66,14 @@ async function fixture() {
   const gatewayPresentation = Object.freeze({ workload: "gateway" });
   let receivedCredential: unknown;
   const connector = new DefaultSecureConnector({
-    identity: { connectorId: "stripe", serviceIdentity: "spiffe://parmana/connectors/stripe" },
-    capabilities: { actions: ["CreateCharge"], targetPrefixes: ["stripe/accounts/"] },
+    identity: {
+      connectorId: "stripe",
+      serviceIdentity: "spiffe://parmana/connectors/stripe",
+    },
+    capabilities: {
+      actions: ["CreateCharge"],
+      targetPrefixes: ["stripe/accounts/"],
+    },
     credential: { connectorId: "stripe", name: "production" },
     sessions,
     policy: new CapabilityConnectorPolicy(),
@@ -68,14 +81,22 @@ async function fixture() {
     target: {
       async execute(transaction, credential): Promise<ExecutionResult> {
         receivedCredential = credential;
-        return { ...transaction, success: true, executedAt: new Date(), metadata: {} };
+        return {
+          ...transaction,
+          success: true,
+          executedAt: new Date(),
+          metadata: {},
+        };
       },
     },
     audit,
   });
   registry.register(connector);
   const channel = new DefaultExecutionChannel({
-    registry, sessions, audit, gatewayIdentity: gatewayPresentation,
+    registry,
+    sessions,
+    audit,
+    gatewayIdentity: gatewayPresentation,
   });
   const gateway = new ExecutionGateway({
     publicKey,
@@ -86,7 +107,17 @@ async function fixture() {
       route: () => "stripe",
     },
   });
-  return { gateway, channel, connector, sessions, audit, vault, request, authorization, getCredential: () => receivedCredential };
+  return {
+    gateway,
+    channel,
+    connector,
+    sessions,
+    audit,
+    vault,
+    request,
+    authorization,
+    getCredential: () => receivedCredential,
+  };
 }
 
 describe("execution control", () => {
@@ -100,7 +131,9 @@ describe("execution control", () => {
     expect(f.getCredential()).toBe(f.vault.credential);
     expect(JSON.stringify(f.request)).not.toContain("connector-only");
     expect(f.audit.events.map((event) => event.type)).toEqual([
-      "session.opened", "credential.acquired", "execution.completed",
+      "session.opened",
+      "credential.acquired",
+      "execution.completed",
     ]);
   });
 
@@ -111,48 +144,78 @@ describe("execution control", () => {
       connectorId: "stripe",
       transaction: content,
       authorization: f.authorization,
-      verification: { valid: true, checks: {
-        versionSupported: true, signatureVerified: true, notExpired: true,
-        ttlWithinPolicy: true, businessTransactionHashMatches: true, nonceUnseen: true,
-      } },
+      verification: {
+        valid: true,
+        checks: {
+          versionSupported: true,
+          signatureVerified: true,
+          notExpired: true,
+          ttlWithinPolicy: true,
+          businessTransactionHashMatches: true,
+          nonceUnseen: true,
+        },
+      },
     };
 
-    await expect(f.connector.invoke({
-      ...fake,
-      session: {
-        sessionId: "forged", connectorId: "stripe", executionId: fake.executionId,
-        authorizationId: f.authorization.payload.authorizationId,
-        contentHash: f.authorization.payload.businessTransactionHash,
-        expiresAt: f.authorization.payload.expiresAt,
-      },
-    })).rejects.toThrow("Secure Connector rejected");
+    await expect(
+      f.connector.invoke({
+        ...fake,
+        session: {
+          sessionId: "forged",
+          connectorId: "stripe",
+          executionId: fake.executionId,
+          authorizationId: f.authorization.payload.authorizationId,
+          contentHash: f.authorization.payload.businessTransactionHash,
+          expiresAt: f.authorization.payload.expiresAt,
+        },
+      }),
+    ).rejects.toThrow("Secure Connector rejected");
     expect(f.vault.acquisitions).toBe(0);
   });
 
   it("rejects a direct channel call without the Gateway workload identity", async () => {
     const f = await fixture();
     const forged: GatewayExecutionRequest = {
-      executionId: "forged-execution", connectorId: "stripe", transaction: content,
+      executionId: "forged-execution",
+      connectorId: "stripe",
+      transaction: content,
       authorization: f.authorization,
-      verification: { valid: true, checks: {
-        versionSupported: true, signatureVerified: true, notExpired: true,
-        ttlWithinPolicy: true, businessTransactionHashMatches: true, nonceUnseen: true,
-      } },
+      verification: {
+        valid: true,
+        checks: {
+          versionSupported: true,
+          signatureVerified: true,
+          notExpired: true,
+          ttlWithinPolicy: true,
+          businessTransactionHashMatches: true,
+          nonceUnseen: true,
+        },
+      },
     };
-    await expect(f.channel.release(forged, { workload: "gateway" }))
-      .rejects.toThrow("unauthenticated caller");
+    await expect(
+      f.channel.release(forged, { workload: "gateway" }),
+    ).rejects.toThrow("unauthenticated caller");
     expect(f.vault.acquisitions).toBe(0);
   });
 
   it("binds and consumes a gateway session exactly once", async () => {
     const f = await fixture();
     const base: GatewayExecutionRequest = {
-      executionId: "execution-1", connectorId: "stripe", transaction: content,
+      executionId: "execution-1",
+      connectorId: "stripe",
+      transaction: content,
       authorization: f.authorization,
-      verification: { valid: true, checks: {
-        versionSupported: true, signatureVerified: true, notExpired: true,
-        ttlWithinPolicy: true, businessTransactionHashMatches: true, nonceUnseen: true,
-      } },
+      verification: {
+        valid: true,
+        checks: {
+          versionSupported: true,
+          signatureVerified: true,
+          notExpired: true,
+          ttlWithinPolicy: true,
+          businessTransactionHashMatches: true,
+          nonceUnseen: true,
+        },
+      },
     };
     const session = await f.sessions.open(base);
     await f.connector.invoke({ ...base, session });
@@ -163,17 +226,24 @@ describe("execution control", () => {
   it("denies actions outside connector capabilities before credential acquisition", async () => {
     const f = await fixture();
     const base: GatewayExecutionRequest = {
-      executionId: "execution-2", connectorId: "stripe",
+      executionId: "execution-2",
+      connectorId: "stripe",
       transaction: { ...content, action: "DeleteAccount" },
       authorization: f.authorization,
-      verification: { valid: true, checks: {
-        versionSupported: true, signatureVerified: true, notExpired: true,
-        ttlWithinPolicy: true, businessTransactionHashMatches: true, nonceUnseen: true,
-      } },
+      verification: {
+        valid: true,
+        checks: {
+          versionSupported: true,
+          signatureVerified: true,
+          notExpired: true,
+          ttlWithinPolicy: true,
+          businessTransactionHashMatches: true,
+          nonceUnseen: true,
+        },
+      },
     };
     const session = await f.sessions.open(base);
     await expect(f.connector.invoke({ ...base, session })).rejects.toThrow();
     expect(f.vault.acquisitions).toBe(0);
   });
 });
-

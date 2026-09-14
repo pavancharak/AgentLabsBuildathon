@@ -1,17 +1,17 @@
 # 04 — INCIDENTS & DEFECTS LOG
 
-*Security incidents and latent defects discovered during Sessions 1–8, with resolutions.*
-*Snapshot: July 5, 2026. INC-6 and INC-7 added 2026-08-03, from later sessions this log had
+_Security incidents and latent defects discovered during Sessions 1–8, with resolutions._
+_Snapshot: July 5, 2026. INC-6 and INC-7 added 2026-08-03, from later sessions this log had
 not been updated to reflect — this document's own gap, not a new incident; see RFC-0022
 (docs/rfcs/RFC-0022-Challenge-Record.md) for the durable, structured record type going
 forward. INC-8 added 2026-08-09, for an incident that itself dates from the ML-DSA-65
 signature provider work (same gap pattern this note already describes); independently
 re-verified against the actual current state of both remotes as part of adding it, not
-transcribed from a prior report on faith.*
+transcribed from a prior report on faith._
 
 The pattern worth noting: three of the five arrived from work done **outside the
 review loop**, and the test suite (or a review stop-gate) caught each. The recurring
-lesson — *full suite green before every commit, whoever produced the change* — is now a
+lesson — _full suite green before every commit, whoever produced the change_ — is now a
 standing rule.
 
 ---
@@ -45,7 +45,7 @@ content, reversibly encoded, labeled `"sha256"`, with `createHash` never called.
 with empty stub files, an empty class exported from the public API, and a "tutorial 14"
 that was a verbatim copy of tutorial 13.
 
-**Impact:** a counterfeit security primitive on `main`, tagged as a release, that *looked*
+**Impact:** a counterfeit security primitive on `main`, tagged as a release, that _looked_
 like content binding but bound nothing.
 
 **Resolution:** reverted file-by-file with proof, and replaced with the real gateway
@@ -214,6 +214,7 @@ to `.pem`/key material, matching INC-1's own tooling choice), `feature/pqc-dilit
 
 **Independently re-verified this session, against the actual current state of both remotes —
 not taken on the original report's word:**
+
 - `origin`: `git ls-remote --refs` shows no `feature/pqc-dilithium3` and no ref referencing
   `a68c99d`/`e76debd`. A plain fresh clone does not resolve either hash.
 - `backup` (`github.com/pavancharak/parmana-exp-backup`, private): **found NOT actually clean**
@@ -226,10 +227,10 @@ not taken on the original report's word:**
   clean throughout (confirmed: `a0c725e`'s tree contains none of the four key files). Fixed
   in this session: all five stray refs deleted (`git push backup :refs/remotes/...` for each).
   Re-verified via a fresh, independent bare clone of `backup` immediately after: `git cat-file
-  -e a68c99d...` fails (exit 1) — the fresh-clone-unresolvable standard this incident's
+-e a68c99d...` fails (exit 1) — the fresh-clone-unresolvable standard this incident's
   original closure claimed now genuinely holds on both remotes.
 - **Residual, not fully closed:** even on `origin`, an explicit `git fetch origin
-  a68c99d...` (asking the server for that exact hash directly, not discovering it via any
+a68c99d...` (asking the server for that exact hash directly, not discovering it via any
   ref) still succeeds — GitHub does not guarantee a force-pushed-over commit is truly deleted
   server-side, only that it's no longer advertised or discoverable through ordinary
   clone/browse paths; full removal requires a GitHub support "sensitive data removal"

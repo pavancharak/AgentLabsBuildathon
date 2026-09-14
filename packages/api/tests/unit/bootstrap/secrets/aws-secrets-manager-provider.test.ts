@@ -24,9 +24,8 @@ const ORIGINAL_AWS_ROLE_ARN = process.env.AWS_ROLE_ARN;
 
 async function freshAwsSecretsManagerProvider() {
   vi.resetModules();
-  const module = await import(
-    "../../../../src/bootstrap/secrets/AwsSecretsManagerProvider.js"
-  );
+  const module =
+    await import("../../../../src/bootstrap/secrets/AwsSecretsManagerProvider.js");
   return module.AwsSecretsManagerProvider;
 }
 
@@ -88,8 +87,8 @@ describe("AwsSecretsManagerProvider", () => {
 
     const provider = await AwsSecretsManagerProvider.create();
 
-    await expect(
-      provider.getSecret("parmana/binary-secret"),
-    ).rejects.toThrow(/no SecretString value/);
+    await expect(provider.getSecret("parmana/binary-secret")).rejects.toThrow(
+      /no SecretString value/,
+    );
   });
 });

@@ -32,9 +32,7 @@ export {
   CANONICAL_CAPABILITY_POLICY_BINDINGS,
   CapabilityPolicyBinder,
 } from "@parmana/capability-registry";
-export type {
-  CapabilityPolicyBindingViolation,
-} from "@parmana/capability-registry";
+export type { CapabilityPolicyBindingViolation } from "@parmana/capability-registry";
 
 // -----------------------------------------------------------------------------
 // Routing & Registry
@@ -69,21 +67,13 @@ export type {
   PolicyRuleOutcome,
 } from "./types/Policy.js";
 
-export type {
-  PolicySignals,
-} from "./types/PolicySignals.js";
+export type { PolicySignals } from "./types/PolicySignals.js";
 
-export type {
-  PolicyDecision,
-} from "./types/PolicyDecision.js";
+export type { PolicyDecision } from "./types/PolicyDecision.js";
 
-export {
-  PolicyAction,
-} from "./types/PolicyAction.js";
+export { PolicyAction } from "./types/PolicyAction.js";
 
-export {
-  PolicyOutcome,
-} from "./types/PolicyOutcome.js";
+export { PolicyOutcome } from "./types/PolicyOutcome.js";
 
 // -----------------------------------------------------------------------------
 // Errors

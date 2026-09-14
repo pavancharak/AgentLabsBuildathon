@@ -3,10 +3,13 @@ title: "Live API and Demos"
 description: "Call the real, deployed Parmana API directly: authentication, the request shape, every deployed policy, how to author and deploy a new one, and independent offline verification."
 ---
 
-<Info>**[AVAILABLE]**. Every endpoint, error, and worked example below was run against the
-live deployment while writing this page, not written from the spec alone. Base URL:
-`https://parmana-api-real.vercel.app`. Repo copy of this guide: `LIVE-API-GUIDE.md`
-(repo root), this page and that file are kept in sync.</Info>
+<Info>
+  **[AVAILABLE]**. Every endpoint, error, and worked example below was run
+  against the live deployment while writing this page, not written from the spec
+  alone. Base URL: `https://parmana-api-real.vercel.app`. Repo copy of this
+  guide: `LIVE-API-GUIDE.md` (repo root), this page and that file are kept in
+  sync.
+</Info>
 
 ## Goal
 
@@ -42,9 +45,9 @@ deployment; "money actually moves" is not, unless you add real connector credent
 
 Bearer token in the `Authorization` header. Two keys are currently provisioned:
 
-| Caller | Capabilities | Use for |
-|---|---|---|
-| `demo` | `["*"]`, any policy | Building new demos. Use this by default. |
+| Caller                      | Capabilities                    | Use for                                                                |
+| --------------------------- | ------------------------------- | ---------------------------------------------------------------------- |
+| `demo`                      | `["*"]`, any policy             | Building new demos. Use this by default.                               |
 | `agent-vendor-payment-demo` | `["agent-vendor-payment"]` only | Kept for continuity from an earlier session; not needed for new demos. |
 
 Raw key values are shown once in a terminal and never committed to the repo, only their
@@ -92,8 +95,17 @@ with the `demo` key.
     "parameters": { "amount": 50 },
     "createdAt": "2026-01-01T00:00:00Z"
   },
-  "policy": { "name": "customer-refund", "version": "1.0.0", "schemaVersion": "1.0.0" },
-  "signals": { "refundEligible": true, "managerApproved": true, "fraudCheckPassed": true, "refundAmount": 50 },
+  "policy": {
+    "name": "customer-refund",
+    "version": "1.0.0",
+    "schemaVersion": "1.0.0"
+  },
+  "signals": {
+    "refundEligible": true,
+    "managerApproved": true,
+    "fraudCheckPassed": true,
+    "refundAmount": 50
+  },
   "status": "RECEIVED",
   "createdAt": "2026-01-01T00:00:00Z"
 }
@@ -113,21 +125,21 @@ Hard requirements, all fail-closed with a clear `400`/`403` if wrong:
 
 ## Available policies
 
-| Policy | What it authorizes | Bound to `intent` |
-|---|---|---|
-| `access-control@1.0.0` | Access via auth/MFA/device-trust/session-risk | None |
-| `agent-vendor-payment@1.0.0` | An autonomous agent paying a vendor, within limits | `paymentAmount`→`parameters.amount`, `vendorId`→`target` |
-| `api-key-issuance@1.0.0` | Issuing a new API key | `keyLifetimeDays`→`parameters.lifetimeDays` |
-| `connector-capability@1.0.0` | Capability-based connector authorization (reference) | `paymentAmount`→`parameters.amount` |
-| `customer-refund@1.0.0` | Customer refunds, bounded by eligibility/amount | `refundAmount`→`parameters.amount` |
-| `database-change@3.0.0` | Production DB changes | None |
-| `expense-reimbursement@1.0.0` | Employee expense reimbursement, the worked example below | `expenseAmount`→`parameters.amount` |
-| `github-pr-approval@1.0.0` | PR approval via reviews/status checks | None |
-| `hubspot-deal-update@1.0.0` | HubSpot deal stage/amount updates | `proposedDealStage`→`parameters.dealstage`, `proposedAmount`→`parameters.amount` |
-| `llm-tool-call@1.0.0` | AI-initiated tool execution | None |
-| `production-deployment@1.0.0` | Production deployments | None |
-| `rag-document-access@1.0.0` | Enterprise document retrieval | None |
-| `vendor-payment@2.0.0` | Vendor payments (real production policy) | `paymentAmount`→`parameters.amount`, `vendorId`→`target` |
+| Policy                        | What it authorizes                                       | Bound to `intent`                                                                |
+| ----------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `access-control@1.0.0`        | Access via auth/MFA/device-trust/session-risk            | None                                                                             |
+| `agent-vendor-payment@1.0.0`  | An autonomous agent paying a vendor, within limits       | `paymentAmount`→`parameters.amount`, `vendorId`→`target`                         |
+| `api-key-issuance@1.0.0`      | Issuing a new API key                                    | `keyLifetimeDays`→`parameters.lifetimeDays`                                      |
+| `connector-capability@1.0.0`  | Capability-based connector authorization (reference)     | `paymentAmount`→`parameters.amount`                                              |
+| `customer-refund@1.0.0`       | Customer refunds, bounded by eligibility/amount          | `refundAmount`→`parameters.amount`                                               |
+| `database-change@3.0.0`       | Production DB changes                                    | None                                                                             |
+| `expense-reimbursement@1.0.0` | Employee expense reimbursement, the worked example below | `expenseAmount`→`parameters.amount`                                              |
+| `github-pr-approval@1.0.0`    | PR approval via reviews/status checks                    | None                                                                             |
+| `hubspot-deal-update@1.0.0`   | HubSpot deal stage/amount updates                        | `proposedDealStage`→`parameters.dealstage`, `proposedAmount`→`parameters.amount` |
+| `llm-tool-call@1.0.0`         | AI-initiated tool execution                              | None                                                                             |
+| `production-deployment@1.0.0` | Production deployments                                   | None                                                                             |
+| `rag-document-access@1.0.0`   | Enterprise document retrieval                            | None                                                                             |
+| `vendor-payment@2.0.0`        | Vendor payments (real production policy)                 | `paymentAmount`→`parameters.amount`, `vendorId`→`target`                         |
 
 Full signal schemas for every policy: `LIVE-API-GUIDE.md` (repo root).
 
@@ -150,17 +162,17 @@ validate, deploy, call, get a signed decision, independently verify.
 
 ## Endpoints
 
-| Method & path | Auth | What it does |
-|---|---|---|
-| `GET /health` / `GET /ready` | none | Liveness / readiness |
-| `POST /execute` | required | Submit a Business Transaction, get the decision |
-| `GET /transactions` | required | List your own submitted transactions |
-| `GET /refusal/:id` | required | The signed Refusal Record for a rejected transaction |
-| `POST /refusal/verify` | none | Independently verify a Refusal Record's signature |
-| `POST /audit/verify` | none | Verify a signed caller-audit event |
-| `GET /keys/:keyId` | none | Fetch a public signing key (PEM + JWK where supported) |
-| `GET /.well-known/jwks.json` | none | Every public key this deployment currently holds |
-| `GET /trust-records/:id` | required | The full signed Execution Trust Record (only populated once a real connector is wired, see above) |
+| Method & path                | Auth     | What it does                                                                                      |
+| ---------------------------- | -------- | ------------------------------------------------------------------------------------------------- |
+| `GET /health` / `GET /ready` | none     | Liveness / readiness                                                                              |
+| `POST /execute`              | required | Submit a Business Transaction, get the decision                                                   |
+| `GET /transactions`          | required | List your own submitted transactions                                                              |
+| `GET /refusal/:id`           | required | The signed Refusal Record for a rejected transaction                                              |
+| `POST /refusal/verify`       | none     | Independently verify a Refusal Record's signature                                                 |
+| `POST /audit/verify`         | none     | Verify a signed caller-audit event                                                                |
+| `GET /keys/:keyId`           | none     | Fetch a public signing key (PEM + JWK where supported)                                            |
+| `GET /.well-known/jwks.json` | none     | Every public key this deployment currently holds                                                  |
+| `GET /trust-records/:id`     | required | The full signed Execution Trust Record (only populated once a real connector is wired, see above) |
 
 Full table, every route, and copy-pasteable `curl` examples: `LIVE-API-GUIDE.md` (repo
 root). Machine-readable spec: `GET /openapi.yaml` or [the REST API
@@ -182,13 +194,28 @@ ML-DSA-65) record and a downgrade-attack proof.
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="Write your first policy" icon="file-pen" href="/guides/write-your-first-policy">
-    A slower, more conceptual walkthrough of policy authoring than the reference above.
+  <Card
+    title="Write your first policy"
+    icon="file-pen"
+    href="/guides/write-your-first-policy"
+  >
+    A slower, more conceptual walkthrough of policy authoring than the reference
+    above.
   </Card>
-  <Card title="Verify a trust record independently" icon="check-double" href="/guides/verify-independently">
+  <Card
+    title="Verify a trust record independently"
+    icon="check-double"
+    href="/guides/verify-independently"
+  >
     The fully offline verification path, in depth.
   </Card>
-  <Card title="Connect an external agent" icon="robot" href="/guides/connect-an-agent">
-    How an AI agent authenticates, sends a governed request, and handles APPROVED/REJECTED — the real parmana-phinite-agent integration as the worked example.
+  <Card
+    title="Connect an external agent"
+    icon="robot"
+    href="/guides/connect-an-agent"
+  >
+    How an AI agent authenticates, sends a governed request, and handles
+    APPROVED/REJECTED — the real parmana-phinite-agent integration as the worked
+    example.
   </Card>
 </CardGroup>

@@ -1,22 +1,12 @@
 \# 21 – Troubleshooting
 
-
-
 This guide describes common issues, their possible causes, and recommended resolutions when working with the Parmana Execution Trust Platform.
-
-
 
 \---
 
-
-
 \# Overview
 
-
-
 Troubleshooting should begin by identifying:
-
-
 
 \- The affected component
 
@@ -28,15 +18,9 @@ Troubleshooting should begin by identifying:
 
 \- Relevant application logs
 
-
-
 \---
 
-
-
 \# Troubleshooting Workflow
-
-
 
 ```text
 
@@ -80,19 +64,11 @@ Retest
 
 ```
 
-
-
 \---
-
-
 
 \# Authentication Issues
 
-
-
 \## Symptom
-
-
 
 ```json
 
@@ -104,11 +80,7 @@ Retest
 
 ```
 
-
-
 \### Possible Causes
-
-
 
 \- Missing Bearer token
 
@@ -118,11 +90,7 @@ Retest
 
 \- API key not configured
 
-
-
 \### Resolution
-
-
 
 \- Verify the `Authorization: Bearer <API\_KEY>` header.
 
@@ -130,19 +98,11 @@ Retest
 
 \- Restart the service if configuration has changed.
 
-
-
 \---
-
-
 
 \# Trust Record Not Found
 
-
-
 \## Symptom
-
-
 
 ```json
 
@@ -154,11 +114,7 @@ Retest
 
 ```
 
-
-
 \### Possible Causes
-
-
 
 \- Incorrect Business Transaction ID
 
@@ -166,11 +122,7 @@ Retest
 
 \- Repository misconfiguration
 
-
-
 \### Resolution
-
-
 
 \- Confirm the Business Transaction ID.
 
@@ -178,19 +130,11 @@ Retest
 
 \- Check repository connectivity.
 
-
-
 \---
-
-
 
 \# Verification Failure
 
-
-
 \## Possible Causes
-
-
 
 \- Trust Record was modified
 
@@ -198,11 +142,7 @@ Retest
 
 \- Authorization binding missing
 
-
-
 \### Resolution
-
-
 
 \- Inspect the verification message.
 
@@ -212,19 +152,11 @@ Retest
 
 \- Confirm every approved execution contains an `authorizationId`.
 
-
-
 \---
-
-
 
 \# Replay Failure
 
-
-
 \## Possible Causes
-
-
 
 \- Missing Trust Record
 
@@ -234,11 +166,7 @@ Retest
 
 \- Invalid signature
 
-
-
 \### Resolution
-
-
 
 \- Retrieve the Trust Record.
 
@@ -246,19 +174,11 @@ Retest
 
 \- Review the verification results.
 
-
-
 \---
-
-
 
 \# Receipt Generation Failure
 
-
-
 \## Possible Causes
-
-
 
 \- Missing Business Transaction
 
@@ -266,11 +186,7 @@ Retest
 
 \- Repository failure
 
-
-
 \### Resolution
-
-
 
 \- Verify the Business Transaction ID.
 
@@ -278,19 +194,11 @@ Retest
 
 \- Check repository availability.
 
-
-
 \---
-
-
 
 \# Connector Failures
 
-
-
 \## Symptoms
-
-
 
 \- Execution timeout
 
@@ -298,11 +206,7 @@ Retest
 
 \- Unexpected connector response
 
-
-
 \### Resolution
-
-
 
 \- Verify connector configuration.
 
@@ -310,19 +214,11 @@ Retest
 
 \- Review connector logs.
 
-
-
 \---
-
-
 
 \# Database Issues
 
-
-
 \## Symptoms
-
-
 
 \- Slow responses
 
@@ -330,11 +226,7 @@ Retest
 
 \- Missing records
 
-
-
 \### Resolution
-
-
 
 \- Verify database connectivity.
 
@@ -344,19 +236,11 @@ Retest
 
 \- Restore from backup if necessary.
 
-
-
 \---
-
-
 
 \# Signature Verification Failures
 
-
-
 \## Possible Causes
-
-
 
 \- Incorrect public key
 
@@ -366,11 +250,7 @@ Retest
 
 \- Data tampering
 
-
-
 \### Resolution
-
-
 
 \- Verify the configured public key.
 
@@ -378,19 +258,11 @@ Retest
 
 \- Validate key configuration.
 
-
-
 \---
-
-
 
 \# Performance Issues
 
-
-
 \## Symptoms
-
-
 
 \- High API latency
 
@@ -398,11 +270,7 @@ Retest
 
 \- Delayed execution
 
-
-
 \### Resolution
-
-
 
 \- Review system metrics.
 
@@ -412,19 +280,11 @@ Retest
 
 \- Scale infrastructure if required.
 
-
-
 \---
-
-
 
 \# Diagnostic Checklist
 
-
-
 Before reporting an issue, collect:
-
-
 
 \- Business Transaction ID
 
@@ -442,19 +302,11 @@ Before reporting an issue, collect:
 
 \- Relevant log entries
 
-
-
 \---
-
-
 
 \# Escalation Checklist
 
-
-
 If the issue cannot be resolved:
-
-
 
 \- Preserve logs.
 
@@ -466,15 +318,8 @@ If the issue cannot be resolved:
 
 \- Document reproduction steps.
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 Most operational issues can be diagnosed by tracing the Business Transaction through execution, verification, and the associated Execution Trust Record. The platform's immutable evidence and deterministic verification simplify root cause analysis and support reliable incident investigation.
-

@@ -43,7 +43,9 @@ function createFakePool(options?: {
 
 describe("SupabaseBusinessTransactionRepository (G-1)", () => {
   it("creates a transaction that does not yet exist", async () => {
-    const repository = new SupabaseBusinessTransactionRepository(createFakePool());
+    const repository = new SupabaseBusinessTransactionRepository(
+      createFakePool(),
+    );
 
     await expect(
       repository.create(buildBusinessTransaction("txn-1")),
@@ -51,7 +53,9 @@ describe("SupabaseBusinessTransactionRepository (G-1)", () => {
   });
 
   it("maps a 23505 unique-violation to DuplicateBusinessTransactionError, not the raw Postgres error", async () => {
-    const repository = new SupabaseBusinessTransactionRepository(createFakePool());
+    const repository = new SupabaseBusinessTransactionRepository(
+      createFakePool(),
+    );
 
     await repository.create(buildBusinessTransaction("txn-1"));
 

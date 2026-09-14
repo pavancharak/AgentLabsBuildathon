@@ -34,7 +34,7 @@ You never fetch, decrypt, or look it up yourself.
 
 ### What if I want to disable isolation for a test?
 
-Set `legacyInsecure: true` on that registration. It requires you to *not* set the
+Set `legacyInsecure: true` on that registration. It requires you to _not_ set the
 `ExecutionAuditSink` (or the registry throws), and its type doc explicitly says every production
 connector should go through the default path instead. If you see this flag set on a real,
 env-configured connector rather than a test fixture, that's a bug worth flagging in review.

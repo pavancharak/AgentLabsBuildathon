@@ -11,15 +11,16 @@ describe("MemoryBusinessTransactionRepository (G-1)", () => {
     const repository = new MemoryBusinessTransactionRepository();
     const transaction = buildBusinessTransaction("txn-1");
 
-    await expect(repository.create(transaction)).resolves.toEqual(
-      transaction,
-    );
+    await expect(repository.create(transaction)).resolves.toEqual(transaction);
   });
 
   it("rejects a sequential duplicate with DuplicateBusinessTransactionError, without overwriting the first write", async () => {
     const repository = new MemoryBusinessTransactionRepository();
     const first = buildBusinessTransaction("txn-1");
-    const second = { ...buildBusinessTransaction("txn-1"), signals: { amount: 999 } };
+    const second = {
+      ...buildBusinessTransaction("txn-1"),
+      signals: { amount: 999 },
+    };
 
     await repository.create(first);
 
@@ -56,7 +57,9 @@ describe("MemoryBusinessTransactionRepository (G-1)", () => {
     expect(fulfilled).toHaveLength(1);
     expect(rejected).toHaveLength(1);
 
-    expect(rejected[0].reason).toBeInstanceOf(DuplicateBusinessTransactionError);
+    expect(rejected[0].reason).toBeInstanceOf(
+      DuplicateBusinessTransactionError,
+    );
 
     // Whichever one won, the stored record must be exactly that one's
     // content, not a merge and not the loser's — the storage-layer

@@ -1,38 +1,20 @@
 \# RFC-0012: Phase 1 Architecture Completion
 
-
-
 \*\*Status:\*\* Accepted
-
-
 
 \## Purpose
 
-
-
 This RFC records the successful completion of Phase 1 of the Parmana architecture.
-
-
 
 Phase 1 establishes the canonical execution trust foundation upon which all future capabilities will be built.
 
-
-
 The objective of Phase 1 was to transform the runtime from a payment-oriented implementation into a deterministic, policy-driven, domain-independent execution platform.
-
-
 
 \---
 
-
-
 \# Phase 1 Objectives
 
-
-
 Phase 1 established the following architectural principles:
-
-
 
 \* deterministic execution
 
@@ -48,23 +30,13 @@ Phase 1 established the following architectural principles:
 
 \* independent verification
 
-
-
 \---
-
-
 
 \# Locked Architecture
 
-
-
 \## PolicyReference
 
-
-
 The canonical PolicyReference is:
-
-
 
 ```ts
 
@@ -80,31 +52,17 @@ interface PolicyReference {
 
 ```
 
-
-
 The PolicyReference uniquely identifies the policy artifact.
-
-
 
 It forms part of the execution trust chain.
 
-
-
 \---
-
-
 
 \## PolicyRouter
 
-
-
 The PolicyRouter is responsible for loading exactly one policy artifact.
 
-
-
 Responsibilities:
-
-
 
 \* load referenced policy
 
@@ -114,11 +72,7 @@ Responsibilities:
 
 \* validate schema version
 
-
-
 The PolicyRouter SHALL NOT:
-
-
 
 \* scan policy directories
 
@@ -130,19 +84,11 @@ The PolicyRouter SHALL NOT:
 
 \* choose between policies
 
-
-
 \---
-
-
 
 \## Policy
 
-
-
 The canonical policy artifact contains:
-
-
 
 ```ts
 
@@ -162,27 +108,15 @@ interface Policy {
 
 ```
 
-
-
 Policy artifacts are immutable after publication.
-
-
 
 \---
 
-
-
 \## PolicyEngine
-
-
 
 The PolicyEngine is generic.
 
-
-
 Responsibilities:
-
-
 
 \* deterministic evaluation
 
@@ -190,23 +124,13 @@ Responsibilities:
 
 \* decision generation
 
-
-
 The PolicyEngine contains no business-specific logic.
-
-
 
 \---
 
-
-
 \## PolicyAdapter
 
-
-
 The PolicyAdapter converts runtime data into policy signals.
-
-
 
 ```text
 
@@ -220,27 +144,15 @@ PolicySignals
 
 ```
 
-
-
 The adapter is domain independent.
-
-
 
 It performs no business-specific transformation.
 
-
-
 \---
-
-
 
 \## RuntimeTransaction
 
-
-
 The canonical RuntimeTransaction is:
-
-
 
 ```ts
 
@@ -252,11 +164,7 @@ interface RuntimeTransaction {
 
 ```
 
-
-
 The runtime no longer contains fields such as:
-
-
 
 \* amount
 
@@ -264,31 +172,17 @@ The runtime no longer contains fields such as:
 
 \* recipient
 
-
-
 Business-specific information is represented entirely as runtime signals.
-
-
 
 \---
 
-
-
 \# Domain Independence
-
-
 
 The runtime supports any business domain.
 
-
-
 Examples include:
 
-
-
 \## Payment
-
-
 
 ```json
 
@@ -306,11 +200,7 @@ Examples include:
 
 ```
 
-
-
 \## Lending
-
-
 
 ```json
 
@@ -328,11 +218,7 @@ Examples include:
 
 ```
 
-
-
 \## Healthcare
-
-
 
 ```json
 
@@ -350,11 +236,7 @@ Examples include:
 
 ```
 
-
-
 \## Cybersecurity
-
-
 
 ```json
 
@@ -372,11 +254,7 @@ Examples include:
 
 ```
 
-
-
 \## Manufacturing
-
-
 
 ```json
 
@@ -394,23 +272,13 @@ Examples include:
 
 ```
 
-
-
 The runtime requires no code changes to support additional domains.
-
-
 
 \---
 
-
-
 \# Architectural Achievements
 
-
-
 Phase 1 establishes:
-
-
 
 \* Generic policy evaluation
 
@@ -428,39 +296,21 @@ Phase 1 establishes:
 
 \* Clear separation of responsibilities
 
-
-
 \---
-
-
 
 \# Remaining Phase 1 Milestone
 
-
-
 One architectural refinement remains.
-
-
 
 The runtime currently contains residual policy-selection behavior.
 
-
-
 The final step is to eliminate all policy-selection logic.
-
-
 
 The runtime SHALL execute only the policy explicitly referenced by the BusinessTransaction.
 
-
-
 \---
 
-
-
 \# Target Execution Flow
-
-
 
 ```text
 
@@ -540,23 +390,13 @@ Independent Verification
 
 ```
 
-
-
 Once the PolicyRouter loads only the explicitly referenced policy, the runtime becomes a pure execution engine.
-
-
 
 \---
 
-
-
 \# Phase 1 Completion Criteria
 
-
-
 Phase 1 is considered complete when all of the following conditions are satisfied:
-
-
 
 \* BusinessTransaction references exactly one PolicyReference.
 
@@ -580,19 +420,11 @@ Phase 1 is considered complete when all of the following conditions are satisfie
 
 \* Verification independently validates the execution.
 
-
-
 \---
-
-
 
 \# Foundation for Future Phases
 
-
-
 Phase 1 provides the foundation for:
-
-
 
 \* richer policy language features
 
@@ -612,25 +444,12 @@ Phase 1 provides the foundation for:
 
 \* cryptographic policy attestations
 
-
-
 None of these future capabilities require changes to the core execution architecture established in Phase 1.
-
-
 
 \---
 
-
-
 \# Status
-
-
 
 This RFC records the completion of the Phase 1 architectural foundation for Parmana.
 
-
-
 The runtime is now a generic, deterministic, policy-driven execution platform capable of supporting any business domain while preserving execution trust, replayability, and independent verification.
-
-
-

@@ -28,9 +28,12 @@ import { createInspectableExecutionSystem } from "../bootstrap/createInspectable
  */
 describe("Caller capability scoping (HTTP boundary)", () => {
   const SCOPED_KEY = "capability-scoping-scoped-caller-raw-key-for-tests-only";
-  const UNSCOPED_KEY = "capability-scoping-unscoped-caller-raw-key-for-tests-only";
-  const WILDCARD_KEY = "capability-scoping-wildcard-caller-raw-key-for-tests-only";
-  const NO_CAPABILITIES_KEY = "capability-scoping-no-capabilities-caller-raw-key-for-tests-only";
+  const UNSCOPED_KEY =
+    "capability-scoping-unscoped-caller-raw-key-for-tests-only";
+  const WILDCARD_KEY =
+    "capability-scoping-wildcard-caller-raw-key-for-tests-only";
+  const NO_CAPABILITIES_KEY =
+    "capability-scoping-no-capabilities-caller-raw-key-for-tests-only";
 
   function buildApp() {
     const { executionSystem, auditSink: executionAuditSink } =
@@ -114,7 +117,7 @@ describe("Caller capability scoping (HTTP boundary)", () => {
       expect(response.body.code).toBe("CAPABILITY_NOT_ALLOWED");
     });
 
-    it("honors the explicit \"*\" wildcard grant", async () => {
+    it('honors the explicit "*" wildcard grant', async () => {
       const { app } = buildApp();
 
       const response = await request(app)
@@ -178,7 +181,9 @@ describe("Caller capability scoping (HTTP boundary)", () => {
         .send(createBusinessTransaction());
 
       expect(
-        callerAuditSink.events.some((event) => event.type === "caller.capability_denied"),
+        callerAuditSink.events.some(
+          (event) => event.type === "caller.capability_denied",
+        ),
       ).toBe(false);
     });
   });
@@ -222,7 +227,10 @@ describe("GET /callers/me (proof artifact)", () => {
         callerId: "caller-a",
         keyHash: hashApiKey(CALLER_A_KEY),
         allowedPrincipalIds: ["integration-test"],
-        allowedCapabilities: ["razorpay:refund-create", "razorpay:refund-fetch"],
+        allowedCapabilities: [
+          "razorpay:refund-create",
+          "razorpay:refund-fetch",
+        ],
       },
       {
         callerId: "caller-b",

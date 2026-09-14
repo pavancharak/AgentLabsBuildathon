@@ -1,28 +1,14 @@
-import {
-  OperatorEvaluator,
-} from "./OperatorEvaluator.js";
+import { OperatorEvaluator } from "./OperatorEvaluator.js";
 
-import type {
-  Policy,
-  PolicyCondition,
-  PolicyRule,
-} from "./types/Policy.js";
+import type { Policy, PolicyCondition, PolicyRule } from "./types/Policy.js";
 
-import type {
-  PolicySignals,
-} from "./types/PolicySignals.js";
+import type { PolicySignals } from "./types/PolicySignals.js";
 
-import type {
-  PolicyDecision,
-} from "./types/PolicyDecision.js";
+import type { PolicyDecision } from "./types/PolicyDecision.js";
 
-import {
-  PolicyAction,
-} from "./types/PolicyAction.js";
+import { PolicyAction } from "./types/PolicyAction.js";
 
-import {
-  PolicyOutcome,
-} from "./types/PolicyOutcome.js";
+import { PolicyOutcome } from "./types/PolicyOutcome.js";
 
 /**
  * Canonical Policy Engine.
@@ -41,52 +27,30 @@ import {
  * - generate timestamps
  */
 export class PolicyEngine {
-
-  private readonly operatorEvaluator =
-    new OperatorEvaluator();
+  private readonly operatorEvaluator = new OperatorEvaluator();
 
   /**
    * Evaluate exactly one policy.
    */
-  public evaluate(
-    policy: Policy,
-    signals: PolicySignals,
-  ): PolicyDecision {
-
+  public evaluate(policy: Policy, signals: PolicySignals): PolicyDecision {
     const trace: string[] = [];
 
-    const rule = this.findFirstMatch(
-      policy.rules,
-      signals,
-      trace,
-    );
+    const rule = this.findFirstMatch(policy.rules, signals, trace);
 
     return {
+      policyId: policy.policyId,
 
-      policyId:
-        policy.policyId,
+      policyVersion: policy.policyVersion,
 
-      policyVersion:
-        policy.policyVersion,
+      outcome: this.toOutcome(rule?.outcome.action),
 
-      outcome:
-        this.toOutcome(
-          rule?.outcome.action,
-        ),
+      reason: rule?.outcome.reason ?? "no_rule_matched",
 
-      reason:
-        rule?.outcome.reason ??
-        "no_rule_matched",
+      matchedRuleId: rule?.id ?? "none",
 
-      matchedRuleId:
-        rule?.id ??
-        "none",
+      evaluatedRules: trace.length,
 
-      evaluatedRules:
-        trace.length,
-
-      matchedPath:
-        trace,
+      matchedPath: trace,
     };
   }
 
@@ -98,17 +62,10 @@ export class PolicyEngine {
     signals: PolicySignals,
     trace: string[],
   ): PolicyRule | null {
-
     for (const rule of rules) {
-
       trace.push(rule.id);
 
-      if (
-        this.evaluateCondition(
-          rule.condition,
-          signals,
-        )
-      ) {
+      if (this.evaluateCondition(rule.condition, signals)) {
         return rule;
       }
     }
@@ -123,14 +80,11 @@ export class PolicyEngine {
     condition: PolicyCondition,
     signals: PolicySignals,
   ): boolean {
-
     //
     // Leaf condition
     //
     if ("fact" in condition) {
-
-      const signal =
-        signals[condition.fact];
+      const signal = signals[condition.fact];
 
       //
       // Missing facts never satisfy
@@ -158,13 +112,8 @@ export class PolicyEngine {
     // Logical AND
     //
     if ("all" in condition) {
-
-      return condition.all.every(
-        (child) =>
-          this.evaluateCondition(
-            child,
-            signals,
-          ),
+      return condition.all.every((child) =>
+        this.evaluateCondition(child, signals),
       );
     }
 
@@ -172,13 +121,8 @@ export class PolicyEngine {
     // Logical OR
     //
     if ("any" in condition) {
-
-      return condition.any.some(
-        (child) =>
-          this.evaluateCondition(
-            child,
-            signals,
-          ),
+      return condition.any.some((child) =>
+        this.evaluateCondition(child, signals),
       );
     }
 
@@ -188,12 +132,8 @@ export class PolicyEngine {
   /**
    * Maps PolicyAction to PolicyOutcome.
    */
-  private toOutcome(
-    action?: PolicyAction,
-  ): PolicyOutcome {
-
+  private toOutcome(action?: PolicyAction): PolicyOutcome {
     switch (action) {
-
       case PolicyAction.APPROVE:
         return PolicyOutcome.APPROVE;
 

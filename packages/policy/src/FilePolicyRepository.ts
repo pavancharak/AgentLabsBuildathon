@@ -1,6 +1,13 @@
 import crypto from "node:crypto";
 import path from "node:path";
-import { mkdir, readdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  unlink,
+  writeFile,
+} from "node:fs/promises";
 
 import type { Policy } from "./types/Policy.js";
 import type { PolicyRepository } from "./PolicyRepository.js";
@@ -27,46 +34,25 @@ const VALID_NAME_OR_VERSION = /^[A-Za-z0-9._-]+$/;
  *     1.0.0/
  *       policy.json
  */
-export class FilePolicyRepository
-  implements PolicyRepository
-{
-  constructor(
-    private readonly basePath: string,
-  ) {}
+export class FilePolicyRepository implements PolicyRepository {
+  constructor(private readonly basePath: string) {}
 
-  public async load(
-    name: string,
-    version: string,
-  ): Promise<Policy> {
+  public async load(name: string, version: string): Promise<Policy> {
     if (
       !VALID_NAME_OR_VERSION.test(name) ||
       !VALID_NAME_OR_VERSION.test(version)
     ) {
-      throw new PolicyNotFoundError(
-        name,
-        version,
-      );
+      throw new PolicyNotFoundError(name, version);
     }
 
-    const file = path.join(
-      this.basePath,
-      name,
-      version,
-      "policy.json",
-    );
+    const file = path.join(this.basePath, name, version, "policy.json");
 
     try {
-      const json = await readFile(
-        file,
-        "utf8",
-      );
+      const json = await readFile(file, "utf8");
 
       return JSON.parse(json) as Policy;
     } catch {
-      throw new PolicyNotFoundError(
-        name,
-        version,
-      );
+      throw new PolicyNotFoundError(name, version);
     }
   }
 
@@ -87,22 +73,12 @@ export class FilePolicyRepository
       !VALID_NAME_OR_VERSION.test(name) ||
       !VALID_NAME_OR_VERSION.test(version)
     ) {
-      throw new PolicyWriteRejectedError(
-        name,
-        version,
-      );
+      throw new PolicyWriteRejectedError(name, version);
     }
 
-    const directory = path.join(
-      this.basePath,
-      name,
-      version,
-    );
+    const directory = path.join(this.basePath, name, version);
 
-    const file = path.join(
-      directory,
-      "policy.json",
-    );
+    const file = path.join(directory, "policy.json");
 
     await mkdir(directory, { recursive: true });
 
@@ -112,11 +88,7 @@ export class FilePolicyRepository
     );
 
     try {
-      await writeFile(
-        tempFile,
-        JSON.stringify(content, null, 2),
-        "utf8",
-      );
+      await writeFile(tempFile, JSON.stringify(content, null, 2), "utf8");
 
       await rename(tempFile, file);
     } catch (error) {
@@ -170,10 +142,7 @@ export class FilePolicyRepository
         const version = versionEntry.name;
 
         try {
-          await readFile(
-            path.join(nameDir, version, "policy.json"),
-            "utf8",
-          );
+          await readFile(path.join(nameDir, version, "policy.json"), "utf8");
 
           results.push({ name, version });
         } catch {

@@ -1,38 +1,20 @@
 \# 25 – Contributing
 
-
-
 This guide explains how to contribute to the Parmana Execution Trust Platform while maintaining its architectural principles and code quality.
 
-
-
 \---
-
-
 
 \# Purpose
 
-
-
 Parmana is designed around deterministic execution, immutable evidence, and independent verification.
-
-
 
 Every contribution should preserve these principles.
 
-
-
 \---
-
-
 
 \# Development Principles
 
-
-
 Contributors should follow these core principles:
-
-
 
 \- Deterministic behavior
 
@@ -46,15 +28,9 @@ Contributors should follow these core principles:
 
 \- Well-documented changes
 
-
-
 \---
 
-
-
 \# Development Workflow
-
-
 
 ```text
 
@@ -104,23 +80,13 @@ Merge
 
 ```
 
-
-
 \---
-
-
 
 \# Branching
 
-
-
 Use descriptive branch names.
 
-
-
 Examples:
-
-
 
 \- feature/execution-gateway
 
@@ -130,19 +96,11 @@ Examples:
 
 \- docs/api-reference
 
-
-
 \---
-
-
 
 \# Coding Standards
 
-
-
 Contributors should:
-
-
 
 \- Use TypeScript strict mode.
 
@@ -154,23 +112,13 @@ Contributors should:
 
 \- Write meaningful comments where intent is not obvious.
 
-
-
 \---
-
-
 
 \# Testing
 
-
-
 Every change should include appropriate tests.
 
-
-
 Recommended categories:
-
-
 
 \- Unit tests
 
@@ -182,23 +130,13 @@ Recommended categories:
 
 \- Replay tests
 
-
-
 All existing tests should pass before submitting a pull request.
-
-
 
 \---
 
-
-
 \# Documentation
 
-
-
 Documentation should be updated whenever:
-
-
 
 \- APIs change
 
@@ -210,19 +148,11 @@ Documentation should be updated whenever:
 
 \- New guides are added
 
-
-
 \---
-
-
 
 \# Security
 
-
-
 Do not:
-
-
 
 \- Commit private keys
 
@@ -232,23 +162,13 @@ Do not:
 
 \- Log sensitive information
 
-
-
 Report security issues through the project's responsible disclosure process rather than public issue trackers.
-
-
 
 \---
 
-
-
 \# Pull Requests
 
-
-
 A pull request should include:
-
-
 
 \- Summary of changes
 
@@ -260,19 +180,11 @@ A pull request should include:
 
 \- Any compatibility considerations
 
-
-
 \---
-
-
 
 \# Code Review Checklist
 
-
-
 Reviewers should verify:
-
-
 
 \- Correctness
 
@@ -286,19 +198,11 @@ Reviewers should verify:
 
 \- Security implications
 
-
-
 \---
-
-
 
 \# Architectural Principles
 
-
-
 Changes should preserve:
-
-
 
 \- Deterministic execution
 
@@ -312,15 +216,8 @@ Changes should preserve:
 
 \- Clear package boundaries
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 Successful contributions improve the platform while preserving Parmana's core architectural guarantees: deterministic execution, cryptographic integrity, immutable evidence, and independent verification.
-

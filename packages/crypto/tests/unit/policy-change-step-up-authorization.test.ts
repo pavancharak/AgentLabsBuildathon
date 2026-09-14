@@ -95,7 +95,10 @@ describe("PolicyChangeStepUpAuthorization sign/verify", () => {
 
     const tampered: PolicyChangeStepUpAuthorization = {
       ...signed,
-      payload: { ...signed.payload, pendingPolicyChangeId: "ppc-attacker-controlled" },
+      payload: {
+        ...signed.payload,
+        pendingPolicyChangeId: "ppc-attacker-controlled",
+      },
     };
 
     const result = await verifier.verify(tampered, publicKey, {

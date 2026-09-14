@@ -76,10 +76,9 @@ signed `SETTLED` settlement confirmation roughly 48 seconds later.
 It was removed from this repository **in full** on 2026-08-12, not deprecated, not gated
 behind a flag, deleted: the connector code, its credential provider, its signal-state
 verifier, its settlement processor, its webhook route, its tests, and every doc page
-dedicated to it. `payments:execute`/vendor-payment (a separate, earlier connector, Chapter
-18) was removed the same way, for a related but distinct reason. The immediate trigger for
+dedicated to it. `payments:execute`/vendor-payment (a separate, earlier connector, Chapter 18) was removed the same way, for a related but distinct reason. The immediate trigger for
 Razorpay's removal isn't itself the point of this chapter. What matters architecturally is
-what removing a *real, working, revenue-shaped* connector in full teaches about the rest of
+what removing a _real, working, revenue-shaped_ connector in full teaches about the rest of
 this codebase's design.
 
 **Nothing in the authorization pipeline referenced Razorpay by name.** `RuntimeEngine`,

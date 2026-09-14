@@ -33,17 +33,11 @@ export { PolicyApi, type PolicyValidationResult } from "./client/PolicyApi.js";
 // Configuration
 // -----------------------------------------------------------------------------
 
-export type {
-  Configuration,
-} from "./config/Configuration.js";
+export type { Configuration } from "./config/Configuration.js";
 
-export type {
-  RetryPolicy,
-} from "./config/RetryPolicy.js";
+export type { RetryPolicy } from "./config/RetryPolicy.js";
 
-export {
-  RetryStrategy,
-} from "./config/RetryPolicy.js";
+export { RetryStrategy } from "./config/RetryPolicy.js";
 
 export type {
   Transport,
@@ -55,9 +49,7 @@ export type {
 // Transport
 // -----------------------------------------------------------------------------
 
-export {
-  HttpTransport,
-} from "./transport/HttpTransport.js";
+export { HttpTransport } from "./transport/HttpTransport.js";
 
 // -----------------------------------------------------------------------------
 // Canonical Parmana Domain Model

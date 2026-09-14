@@ -1,10 +1,7 @@
 import type { Policy } from "./types/Policy.js";
 
 export interface PolicyRepository {
-  load(
-    name: string,
-    version: string,
-  ): Promise<Policy>;
+  load(name: string, version: string): Promise<Policy>;
 
   /**
    * Writes `content` as the live policy.json for (name, version),
@@ -15,11 +12,7 @@ export interface PolicyRepository {
    * unlike load(), a rejected write here is a prevented arbitrary
    * file write, not merely a prevented arbitrary file read.
    */
-  save(
-    name: string,
-    version: string,
-    content: Policy,
-  ): Promise<void>;
+  save(name: string, version: string, content: Policy): Promise<void>;
 
   /**
    * Every (name, version) pair with a policy.json currently on disk --
@@ -31,5 +24,7 @@ export interface PolicyRepository {
    * which (name, version) it wants and should keep using load(), not
    * this.
    */
-  listAll(): Promise<ReadonlyArray<{ readonly name: string; readonly version: string }>>;
+  listAll(): Promise<
+    ReadonlyArray<{ readonly name: string; readonly version: string }>
+  >;
 }

@@ -28,19 +28,12 @@
     "status": {
       "type": "string",
       "description": "Execution lifecycle state.",
-      "enum": [
-        "PROCESSING",
-        "COMPLETED",
-        "FAILED"
-      ]
+      "enum": ["PROCESSING", "COMPLETED", "FAILED"]
     },
     "mode": {
       "type": "string",
       "description": "Execution mode.",
-      "enum": [
-        "SYNC",
-        "ASYNC"
-      ]
+      "enum": ["SYNC", "ASYNC"]
     },
     "startedAt": {
       "type": "string",

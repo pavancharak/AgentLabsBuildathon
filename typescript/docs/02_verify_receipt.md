@@ -1,34 +1,18 @@
 \# Example 02 — Verify Receipt
 
-
-
 \## Overview
-
-
 
 After a Business Transaction has been executed, Parmana produces cryptographic artifacts that allow the execution to be independently verified.
 
-
-
 This example demonstrates how to verify an Execution Trust Record using the TypeScript SDK.
-
-
 
 Verification is a core capability of Parmana because it allows a third party to determine whether an execution occurred exactly as recorded, without relying on trust in the executing application.
 
-
-
 \---
-
-
 
 \# Learning Objectives
 
-
-
 After completing this guide you will understand:
-
-
 
 \* Why verification exists
 
@@ -42,19 +26,11 @@ After completing this guide you will understand:
 
 \* How verification supports independent audit
 
-
-
 \---
-
-
 
 \# Prerequisites
 
-
-
 Before completing this example you should understand:
-
-
 
 \* Authority
 
@@ -66,11 +42,7 @@ Before completing this example you should understand:
 
 \* BusinessTransaction
 
-
-
 If not, complete:
-
-
 
 ```text
 
@@ -78,51 +50,27 @@ docs/01\_basic\_execution.md
 
 ```
 
-
-
 first.
 
-
-
 \---
-
-
 
 \# Why Verification?
 
-
-
 Execution answers:
-
-
 
 > Did the system perform the requested operation?
 
-
-
 Verification answers:
-
-
 
 > Can someone independently prove that the recorded execution is authentic and internally consistent?
 
-
-
 Execution and verification are intentionally separate activities.
-
-
 
 \---
 
-
-
 \# Execution Trust Chain
 
-
-
 Verification operates on an existing Execution Trust Record.
-
-
 
 ```text
 
@@ -170,27 +118,15 @@ Verification
 
 ```
 
-
-
 Verification never modifies the trust chain.
-
-
 
 It produces another immutable trust artifact.
 
-
-
 \---
-
-
 
 \# What Is Verified?
 
-
-
 The verification process examines the complete trust chain, including:
-
-
 
 \* Business Transaction identifiers
 
@@ -212,19 +148,11 @@ The verification process examines the complete trust chain, including:
 
 \* Receipt integrity
 
-
-
 Every component contributes to the verification result.
-
-
 
 \---
 
-
-
 \# Creating the Client
-
-
 
 ```typescript
 
@@ -240,43 +168,23 @@ const client = new ParmanaClient({
 
 ```
 
-
-
 \---
-
-
 
 \# Loading the Trust Record
 
-
-
 Normally the Runtime or storage layer returns an `ExecutionTrustRecord`.
 
-
-
 ```typescript
-
 const trustRecord = getExecutionTrustRecord();
-
 ```
-
-
 
 For the SDK example, a placeholder trust record is used.
 
-
-
 \---
-
-
 
 \# Verify the Trust Record
 
-
-
 Verification requires only one call.
-
-
 
 ```typescript
 
@@ -286,23 +194,13 @@ const verification =
 
 ```
 
-
-
 The SDK sends the trust record to the Parmana Runtime, which performs deterministic verification.
-
-
 
 \---
 
-
-
 \# Verification Result
 
-
-
 A successful verification returns a `Verification` object.
-
-
 
 ```typescript
 
@@ -330,11 +228,7 @@ console.log(
 
 ```
 
-
-
 Typical output:
-
-
 
 ```text
 
@@ -362,19 +256,11 @@ Verified
 
 ```
 
-
-
 \---
-
-
 
 \# Internal Verification Process
 
-
-
 Although the SDK exposes a single method, the Runtime performs multiple validation steps.
-
-
 
 ```text
 
@@ -414,23 +300,13 @@ Return Verification
 
 ```
 
-
-
 Each step is deterministic.
-
-
 
 \---
 
-
-
 \# Trust Record Hash
 
-
-
 Every Execution Trust Record has a canonical hash.
-
-
 
 ```text
 
@@ -438,35 +314,19 @@ trustRecordHash
 
 ```
 
-
-
 The verifier recomputes this value.
-
-
 
 If the computed hash differs from the recorded hash, verification fails.
 
-
-
 \---
-
-
 
 \# Why Hashes Matter
 
-
-
 Hashes provide tamper evidence.
-
-
 
 Changing even one field produces a completely different digest.
 
-
-
 For example:
-
-
 
 ```text
 
@@ -502,23 +362,13 @@ Hash
 
 ```
 
-
-
 Verification immediately detects the modification.
-
-
 
 \---
 
-
-
 \# Verification Status
 
-
-
 Current statuses include:
-
-
 
 ```text
 
@@ -530,23 +380,13 @@ FAILED
 
 ```
 
-
-
 Future versions may introduce additional diagnostic states, while preserving the deterministic verification model.
-
-
 
 \---
 
-
-
 \# Error Handling
 
-
-
 Always handle verification failures.
-
-
 
 ```typescript
 
@@ -574,11 +414,7 @@ catch(error){
 
 ```
 
-
-
 Verification may fail because:
-
-
 
 \* Runtime unavailable
 
@@ -592,59 +428,31 @@ Verification may fail because:
 
 \* Missing execution artifacts
 
-
-
 \---
-
-
 
 \# Verification vs Replay
 
-
-
 Verification confirms integrity.
-
-
 
 Replay reproduces execution.
 
-
-
 Verification asks:
-
-
 
 > Is this execution authentic?
 
-
-
 Replay asks:
-
-
 
 > Would the same inputs produce the same outcome?
 
-
-
 Both capabilities complement each other but serve different purposes.
-
-
 
 \---
 
-
-
 \# Independent Verification
-
-
 
 One of Parmana's design goals is independent verification.
 
-
-
 The verifier does not need access to:
-
-
 
 \* Original application
 
@@ -652,27 +460,15 @@ The verifier does not need access to:
 
 \* Original database
 
-
-
 Only the Execution Trust Record and verification logic are required.
-
-
 
 This separation improves transparency and auditability.
 
-
-
 \---
-
-
 
 \# Security Benefits
 
-
-
 Verification provides:
-
-
 
 \* Tamper detection
 
@@ -686,19 +482,11 @@ Verification provides:
 
 \* Independent assurance
 
-
-
 \---
-
-
 
 \# Architectural Principles
 
-
-
 Verification is:
-
-
 
 \* Deterministic
 
@@ -710,23 +498,13 @@ Verification is:
 
 \* Non-destructive
 
-
-
 It never changes the original execution artifacts.
-
-
 
 \---
 
-
-
 \# Complete Example
 
-
-
 See:
-
-
 
 ```text
 
@@ -734,57 +512,39 @@ examples/02\_verify\_receipt.ts
 
 ```
 
-
-
 for the complete implementation.
-
-
 
 \---
 
-
-
 \# Relationship to Later Examples
 
-
-
 The remaining examples build on verification.
-
-
 
 | Example | Additional Capability |
 
 | ------- | --------------------- |
 
-| 03      | Deterministic Replay  |
+| 03 | Deterministic Replay |
 
-| 04      | Trust Chain Audit     |
+| 04 | Trust Chain Audit |
 
-| 05      | Human Override        |
+| 05 | Human Override |
 
-| 06      | Autonomous Vehicle    |
+| 06 | Autonomous Vehicle |
 
-| 07      | Medical AI            |
+| 07 | Medical AI |
 
-| 08      | Financial Governance  |
+| 08 | Financial Governance |
 
-| 09      | Multi-Agent Systems   |
+| 09 | Multi-Agent Systems |
 
-| 10      | Custom Policy         |
-
-
+| 10 | Custom Policy |
 
 \---
 
-
-
 \# Summary
 
-
-
 In this example you learned:
-
-
 
 \* Why verification exists
 
@@ -798,23 +558,13 @@ In this example you learned:
 
 \* Why verification is independent of execution
 
-
-
 Verification transforms execution evidence into independently provable evidence that can be audited, replayed, and trusted across organizational boundaries.
-
-
 
 \---
 
-
-
 \# Next
 
-
-
 Continue with:
-
-
 
 ```text
 
@@ -822,9 +572,4 @@ docs/03\_replay\_execution.md
 
 ```
 
-
-
 to learn how Parmana deterministically reproduces an execution using the immutable Execution Trust Record.
-
-
-

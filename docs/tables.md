@@ -1,14 +1,8 @@
 I agree. This is exactly the point to \*\*freeze the persistence model\*\*. Everything above it (API, Runtime, Crypto, Verification) is now stable, so the storage schema should become a long-term contract.
 
-
-
 \# Parmana Persistence Model v1.0 (Frozen)
 
-
-
 \## Design Principles
-
-
 
 1\. \*\*Append-only by default\*\*
 
@@ -22,23 +16,13 @@ I agree. This is exactly the point to \*\*freeze the persistence model\*\*. Ever
 
 6\. \*\*Works with PostgreSQL, Supabase, SQLite, MySQL\*\*
 
-
-
 \---
-
-
 
 \# Tables
 
-
-
 \## 1. business\_transactions
 
-
-
 One row per transaction.
-
-
 
 ```text
 
@@ -70,11 +54,7 @@ created\_at
 
 ```
 
-
-
 Purpose:
-
-
 
 ```
 
@@ -82,19 +62,11 @@ BusinessTransactionRepository
 
 ```
 
-
-
 \---
-
-
 
 \## 2. execution\_trust\_records
 
-
-
 Exactly one Trust Record per Business Transaction.
-
-
 
 ```text
 
@@ -122,11 +94,7 @@ updated\_at
 
 ```
 
-
-
 Purpose:
-
-
 
 ```
 
@@ -138,19 +106,11 @@ findByTransactionId()
 
 ```
 
-
-
 \---
-
-
 
 \## 3. executions
 
-
-
 Append-only.
-
-
 
 ```text
 
@@ -170,11 +130,7 @@ created\_at
 
 ```
 
-
-
 Purpose:
-
-
 
 ```
 
@@ -186,19 +142,11 @@ replaceExecution()
 
 ```
 
-
-
 \---
-
-
 
 \## 4. overrides
 
-
-
 Append-only.
-
-
 
 ```text
 
@@ -218,11 +166,7 @@ created\_at
 
 ```
 
-
-
 Purpose:
-
-
 
 ```
 
@@ -230,19 +174,11 @@ appendOverride()
 
 ```
 
-
-
 \---
-
-
 
 \## 5. verifications
 
-
-
 Append-only.
-
-
 
 ```text
 
@@ -262,11 +198,7 @@ verified\_at
 
 ```
 
-
-
 Purpose:
-
-
 
 ```
 
@@ -274,19 +206,11 @@ appendVerification()
 
 ```
 
-
-
 \---
-
-
 
 \## 6. receipts
 
-
-
 Append-only.
-
-
 
 ```text
 
@@ -306,11 +230,7 @@ issued\_at
 
 ```
 
-
-
 Purpose:
-
-
 
 ```
 
@@ -318,15 +238,9 @@ appendReceipt()
 
 ```
 
-
-
 \---
 
-
-
 \# Relationships
-
-
 
 ```
 
@@ -364,15 +278,9 @@ Receipts
 
 ```
 
-
-
 \---
 
-
-
 \# StorageProvider (Frozen)
-
-
 
 ```text
 
@@ -388,23 +296,13 @@ StorageProvider
 
 ```
 
-
-
 No other repositories.
-
-
 
 Everything flows through the aggregate.
 
-
-
 \---
 
-
-
 \# Runtime (Frozen)
-
-
 
 ```
 
@@ -428,11 +326,7 @@ ExecutionTrustRecordRepository
 
 ```
 
-
-
 Runtime never knows about:
-
-
 
 \* PostgreSQL
 
@@ -442,15 +336,9 @@ Runtime never knows about:
 
 \* MySQL
 
-
-
 \---
 
-
-
 \# StorageFactory (Frozen)
-
-
 
 ```
 
@@ -490,11 +378,7 @@ MySQLStorageProvider
 
 ```
 
-
-
 Selection happens only in:
-
-
 
 ```
 
@@ -502,15 +386,9 @@ StorageFactory
 
 ```
 
-
-
 \---
 
-
-
 \# Supabase Mapping (Frozen)
-
-
 
 ```
 
@@ -568,15 +446,9 @@ overrides
 
 ```
 
-
-
 \---
 
-
-
 \# Canonical Persistence Flow (Frozen)
-
-
 
 ```
 
@@ -644,19 +516,11 @@ Receipt
 
 ```
 
-
-
 This sequence is immutable.
-
-
 
 \---
 
-
-
 \# What is now frozen
-
-
 
 \* ✅ Repository interfaces
 
@@ -674,15 +538,9 @@ This sequence is immutable.
 
 \* ✅ Runtime independent of storage implementation
 
-
-
 \## Next implementation phase
 
-
-
 With the architecture frozen, I recommend implementing in this order:
-
-
 
 1\. \*\*Supabase schema (SQL migration)\*\* — create the six tables, primary keys, foreign keys, and indexes.
 
@@ -694,9 +552,4 @@ With the architecture frozen, I recommend implementing in this order:
 
 5\. \*\*Update `StorageFactory`\*\* to select `MemoryStorageProvider` or `SupabaseStorageProvider` based on configuration (for example, `PARMANA\_STORAGE=memory` or `PARMANA\_STORAGE=supabase`).
 
-
-
 I recommend \*\*freezing this architecture as v1.0\*\* and treating future changes as additive rather than modifying these core persistence contracts.
-
-
-

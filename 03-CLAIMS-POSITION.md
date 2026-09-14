@@ -1,8 +1,8 @@
 # 03 — CLAIMS POSITION
 
-*What can be said about Parmana today, and what must stay future tense.*
-*Snapshot: July 5, 2026. The authoritative source is `docs/CLAIMS.md` in the repo —
-this is the plain-language companion.*
+_What can be said about Parmana today, and what must stay future tense._
+_Snapshot: July 5, 2026. The authoritative source is `docs/CLAIMS.md` in the repo —
+this is the plain-language companion._
 
 ---
 
@@ -74,7 +74,7 @@ systems verify, and execute exactly what was authorized — byte-for-byte.**
 
 - Unscoped "non-bypassable" / "single execution authority."
 - "Universal" credential isolation (it is per-system-class, earned per integration).
-- "The policy is correct" (Parmana proves rules were *followed*, never *wise*).
+- "The policy is correct" (Parmana proves rules were _followed_, never _wise_).
 
 ---
 
@@ -83,7 +83,7 @@ systems verify, and execute exactly what was authorized — byte-for-byte.**
 - **Category:** "verifiable execution authorization for AI systems" today; "Agentic PAM"
   becomes honest only after credential brokering ships. Lead with the property
   competitors lack (independent verifiability), not a bigger category than you can hold.
-- **The name earns itself:** *pramāṇa* = a valid means of knowing. Post-gateway, the
+- **The name earns itself:** _pramāṇa_ = a valid means of knowing. Post-gateway, the
   product is named after exactly what it produces — proof, bound to the exact action.
 - **The discipline is the moat:** every claim traceable to a test, every limit written
   down. Competitors can copy an envelope; they cannot retroactively acquire the habit of

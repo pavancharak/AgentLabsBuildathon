@@ -7,8 +7,8 @@ this guide assumes that architecture.
 **Scope, precisely:** there is no dynamic/runtime registration path. Adding a connector is a
 bootstrap source change today — you add files following the pattern below and add one entry to
 `packages/api/src/bootstrap/createConnectorRegistry.ts`. This matches what the codebase's own
-roadmap documentation says explicitly: *"no dynamic registration path, no environment variable
-that adds a connector, this is a code change today."*
+roadmap documentation says explicitly: _"no dynamic registration path, no environment variable
+that adds a connector, this is a code change today."_
 
 ## Anatomy of a connector
 
@@ -39,7 +39,10 @@ That's the point of the architecture this guide is following.
 export interface Connector {
   readonly connectorId: string;
   readonly capabilities: ConnectorCapabilities;
-  execute(request: ConnectorRequest, context: ConnectorExecutionContext): Promise<ConnectorResponse>;
+  execute(
+    request: ConnectorRequest,
+    context: ConnectorExecutionContext,
+  ): Promise<ConnectorResponse>;
 }
 ```
 
@@ -71,13 +74,23 @@ export class GatewayHubSpotAdapter implements Connector {
     }
 
     // context.credential is already resolved — you never call the vault.
-    const { privateAppToken } = context.credential.value as { privateAppToken: string };
+    const { privateAppToken } = context.credential.value as {
+      privateAppToken: string;
+    };
 
     switch (request.capability) {
       case HUBSPOT_DEAL_FETCH_CAPABILITY:
-        return await this.fetchDeal(request, privateAppToken, context.timeoutMs);
+        return await this.fetchDeal(
+          request,
+          privateAppToken,
+          context.timeoutMs,
+        );
       case HUBSPOT_DEAL_UPDATE_CAPABILITY:
-        return await this.updateDeal(request, privateAppToken, context.timeoutMs);
+        return await this.updateDeal(
+          request,
+          privateAppToken,
+          context.timeoutMs,
+        );
       default:
         throw new Error(`no handler for capability "${request.capability}"`);
     }
@@ -88,7 +101,7 @@ export class GatewayHubSpotAdapter implements Connector {
 Notice what the real connector does that a naive example wouldn't show:
 
 - **Deny-by-default on parameters.** HubSpot's `updateDeal` refuses any property outside an
-  explicit allowlist (`HUBSPOT_ALLOWED_DEAL_UPDATE_PROPERTIES`) *before* any network call — not
+  explicit allowlist (`HUBSPOT_ALLOWED_DEAL_UPDATE_PROPERTIES`) _before_ any network call — not
   silently dropping it, refusing outright.
 - **Refuses its own test-mode placeholder credential against the real API.** Don't rely on the
   vendor happening to reject a bad credential — that's an accident of their behavior, not
@@ -110,7 +123,10 @@ Instead, follow the exact structure `createConnectorRegistry.ts` already uses fo
 const myCredentialProvider = createMyConnectorCredentialProvider();
 
 if (myCredentialProvider === undefined) {
-  console.warn({ event: "my_connector_unavailable", reason: "MY_CONNECTOR_TOKEN is not configured." });
+  console.warn({
+    event: "my_connector_unavailable",
+    reason: "MY_CONNECTOR_TOKEN is not configured.",
+  });
 } else {
   registrations.push({
     connector: createMyConnector(),
@@ -154,7 +170,7 @@ actually verifies, as a model for what yours should cover:
 
 - An approved request succeeds and returns the expected `ConnectorResponse`.
 - A policy-denied request never reaches the connector at all.
-- A deny-by-default guard (unsupported parameter, wrong credential shape) is rejected *before*
+- A deny-by-default guard (unsupported parameter, wrong credential shape) is rejected _before_
   any network call.
 - A non-2xx response and a timeout both fail closed with a clear error, not a silent success.
 - The credential value is never logged or placed in the response's `metadata` beyond a one-way

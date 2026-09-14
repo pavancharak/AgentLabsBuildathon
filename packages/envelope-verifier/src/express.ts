@@ -40,17 +40,14 @@ interface AuthorizationRequestBody {
  * only — "import type" is erased at build time, so
  * this file has no runtime dependency on Express).
  */
-export function requireParmanaAuthorization(
-  verifier: EnvelopeVerifier,
-) {
+export function requireParmanaAuthorization(verifier: EnvelopeVerifier) {
   return async (
     req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
-    const authorization = (
-      req.body as AuthorizationRequestBody | undefined
-    )?.authorization;
+    const authorization = (req.body as AuthorizationRequestBody | undefined)
+      ?.authorization;
 
     if (!authorization) {
       res.status(401).json({

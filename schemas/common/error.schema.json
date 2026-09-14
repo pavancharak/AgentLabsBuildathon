@@ -5,9 +5,7 @@
   "description": "Shared error envelope produced by packages/api/src/middleware/error-handler.ts and by every route's inline validation checks. error is always a plain human-readable string (never a nested object). code is present only when the failure was a RuntimeError subclass reaching the centralized error handler (VerificationFailedError, ReceiptGenerationError, or an uncategorized RuntimeError); it is absent from every inline route-level check (businessTransactionId format/required checks) and from BusinessTransactionValidationError, PolicyValidationError, SignalValidationError, PolicyNotFoundError, DuplicateBusinessTransactionError, and the generic 500 fallback. POST /policies/validate does NOT use this envelope at all. See its own response schema. For the triggering condition and recommended caller action behind any specific error/code/status combination, see the Error catalog at /api-reference/error-catalog.",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "error"
-  ],
+  "required": ["error"],
   "properties": {
     "error": {
       "type": "string",

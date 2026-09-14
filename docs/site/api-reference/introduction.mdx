@@ -3,7 +3,10 @@ title: "REST API Introduction"
 description: "15 routes, enumerated from packages/api/src/app.ts. The full per-route reference is generated from openapi/openapi.yaml; this page covers what the spec can't express."
 ---
 
-<Info>**[AVAILABLE]**, every route below is mounted in `packages/api/src/app.ts`. No other routes exist.</Info>
+<Info>
+  **[AVAILABLE]**, every route below is mounted in `packages/api/src/app.ts`. No
+  other routes exist.
+</Info>
 
 ## Base URL
 
@@ -20,13 +23,23 @@ snippet. This page and its siblings cover what a spec can't express:
 
 <CardGroup cols={2}>
   <Card title="Authentication" icon="key" href="/api-reference/authentication">
-    The bearer key model, and how it differs from Policy evaluation and gateway attestation.
+    The bearer key model, and how it differs from Policy evaluation and gateway
+    attestation.
   </Card>
-  <Card title="Error handling" icon="triangle-exclamation" href="/api-reference/error-handling">
+  <Card
+    title="Error handling"
+    icon="triangle-exclamation"
+    href="/api-reference/error-handling"
+  >
     The shared error envelope, and two verified gaps in it.
   </Card>
-  <Card title="Idempotency and nonces" icon="fingerprint" href="/api-reference/idempotency-and-nonces">
-    Why there's no Idempotency-Key header, and what businessTransactionId does instead.
+  <Card
+    title="Idempotency and nonces"
+    icon="fingerprint"
+    href="/api-reference/idempotency-and-nonces"
+  >
+    Why there's no Idempotency-Key header, and what businessTransactionId does
+    instead.
   </Card>
   <Card title="Error catalog" icon="list" href="/api-reference/error-catalog">
     Every error this API returns, one table, cross-linked from the spec.
@@ -47,9 +60,11 @@ SDK](/sdks/python). The TypeScript SDK: `ValidationError`/`AuthenticationError`/
 
 ## Auth
 
-<Info>**Every route requires a caller bearer key, except `GET /health`.** See
-[Authentication](/api-reference/authentication) for how to send one and what it does and
-does not prove.</Info>
+<Info>
+  **Every route requires a caller bearer key, except `GET /health`.** See
+  [Authentication](/api-reference/authentication) for how to send one and what
+  it does and does not prove.
+</Info>
 
 ## Rate limiting
 

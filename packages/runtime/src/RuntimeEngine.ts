@@ -31,20 +31,14 @@ import {
   type SignalStateViolation,
 } from "@parmana/policy";
 
-import type {
-  RuntimeContext,
-} from "./context/RuntimeContext.js";
+import type { RuntimeContext } from "./context/RuntimeContext.js";
 
 import { RuntimePipeline } from "./RuntimePipeline.js";
 import { BusinessTrustPipeline } from "./BusinessTrustPipeline.js";
 
-import {
-  RuntimeHookRunner,
-} from "./hooks/RuntimeHookRunner.js";
+import { RuntimeHookRunner } from "./hooks/RuntimeHookRunner.js";
 
-import type {
-  RuntimeHook,
-} from "./hooks/RuntimeHook.js";
+import type { RuntimeHook } from "./hooks/RuntimeHook.js";
 
 /**
  * Canonical Runtime Engine.
@@ -73,8 +67,9 @@ export class RuntimeEngine {
    * output for the identical content -- see PolicyReference.contentHash's
    * own doc comment and the deploy-time verification that reads it.
    */
-  private readonly policyContentHasher =
-    new TrustRecordHasher(CryptoBootstrap.create());
+  private readonly policyContentHasher = new TrustRecordHasher(
+    CryptoBootstrap.create(),
+  );
 
   /**
    * Hashes the runtime PolicySignals evaluated for a decision (G-31,
@@ -83,8 +78,9 @@ export class RuntimeEngine {
    * comparable to the value ExecutionGateway's signalsStillCurrent check
    * recomputes from the signals carried on the ExecutionRequest.
    */
-  private readonly signalsHasher =
-    new TrustRecordHasher(CryptoBootstrap.create());
+  private readonly signalsHasher = new TrustRecordHasher(
+    CryptoBootstrap.create(),
+  );
 
   constructor(
     private readonly pipeline: RuntimePipeline,
@@ -179,10 +175,7 @@ export class RuntimeEngine {
       throw new Error("RuntimeAuthorizationSigner is required.");
     }
 
-    this.hookRunner =
-      new RuntimeHookRunner(
-        hooks,
-      );
+    this.hookRunner = new RuntimeHookRunner(hooks);
 
     //
     // Observability: which optional protections are wired for this
@@ -191,8 +184,7 @@ export class RuntimeEngine {
     //
     console.log({
       event: "runtime_engine_constructed",
-      signalStateVerifierConfigured:
-        this.signalStateVerifier !== undefined,
+      signalStateVerifierConfigured: this.signalStateVerifier !== undefined,
       capabilityPolicyBinderConfigured:
         this.capabilityPolicyBinder !== undefined,
       policyExecutionVerifierConfigured:
@@ -203,42 +195,29 @@ export class RuntimeEngine {
     });
   }
 
-  public async execute(
-    transaction: BusinessTransaction,
-  ): Promise<{
+  public async execute(transaction: BusinessTransaction): Promise<{
     transaction: BusinessTransaction;
     context: RuntimeContext;
     trustRecord: ExecutionTrustRecord;
   }> {
-
     //
     // Runtime signals
     //
 
-    const signals =
-      (transaction.signals ?? {}) as Record<
-        string,
-        JsonValue
-      >;
+    const signals = (transaction.signals ?? {}) as Record<string, JsonValue>;
 
     //
     // Policy loading
     //
 
-    await this.hookRunner.beforePolicyLoad(
-      transaction,
+    await this.hookRunner.beforePolicyLoad(transaction);
+
+    const policy = await this.policyRouter.load(
+      transaction.policy.name,
+      transaction.policy.version,
     );
 
-    const policy =
-      await this.policyRouter.load(
-        transaction.policy.name,
-        transaction.policy.version,
-      );
-
-    await this.hookRunner.afterPolicyLoad(
-      transaction,
-      policy,
-    );
+    await this.hookRunner.afterPolicyLoad(transaction, policy);
 
     //
     // Content hash of the real loaded Policy document (G-24,
@@ -249,8 +228,7 @@ export class RuntimeEngine {
     // declared) -- see PolicyReference.contentHash's own doc comment.
     //
 
-    const policyContentHash =
-      await this.policyContentHasher.hash(policy);
+    const policyContentHash = await this.policyContentHasher.hash(policy);
 
     //
     // Policy Governance execution-time verification (2026-09-07)
@@ -263,12 +241,11 @@ export class RuntimeEngine {
     // why this defaults to unconfigured.
     //
 
-    const policyExecutionViolation =
-      await this.policyExecutionVerifier?.verify(
-        policy.policyId,
-        policy.policyVersion,
-        policyContentHash,
-      );
+    const policyExecutionViolation = await this.policyExecutionVerifier?.verify(
+      policy.policyId,
+      policy.policyVersion,
+      policyContentHash,
+    );
 
     //
     // Signal/Intent binding
@@ -313,25 +290,19 @@ export class RuntimeEngine {
         : undefined;
 
     const bindingViolations =
-      policyExecutionViolation === undefined && capabilityBindingViolation === undefined
-        ? this.signalIntentBinder.findViolations(
-            policy,
-            signals,
-            {
-              target: transaction.intent.target,
-              parameters: transaction.intent.parameters,
-            },
-          )
+      policyExecutionViolation === undefined &&
+      capabilityBindingViolation === undefined
+        ? this.signalIntentBinder.findViolations(policy, signals, {
+            target: transaction.intent.target,
+            parameters: transaction.intent.parameters,
+          })
         : [];
 
     //
     // Policy evaluation
     //
 
-    await this.hookRunner.beforePolicyEvaluation(
-      transaction,
-      policy,
-    );
+    await this.hookRunner.beforePolicyEvaluation(transaction, policy);
 
     const provisionalDecision: PolicyDecision =
       policyExecutionViolation !== undefined
@@ -345,40 +316,37 @@ export class RuntimeEngine {
             matchedPath: [],
           }
         : capabilityBindingViolation !== undefined
-        ? {
-            policyId: policy.policyId,
-            policyVersion: policy.policyVersion,
-            outcome: PolicyOutcome.REJECT,
-            reason:
-              `Rejected: capability "${capabilityBindingViolation.action}" requires policy ` +
-              `"${capabilityBindingViolation.expected.name}"@"${capabilityBindingViolation.expected.version}", but ` +
-              `"${capabilityBindingViolation.declared.name}"@"${capabilityBindingViolation.declared.version}" was declared.`,
-            matchedRuleId: "capability-policy-binding-violation",
-            evaluatedRules: 0,
-            matchedPath: [],
-          }
-        : bindingViolations.length > 0
-        ? {
-            policyId: policy.policyId,
-            policyVersion: policy.policyVersion,
-            outcome: PolicyOutcome.REJECT,
-            reason:
-              "Rejected: declared signal(s) do not match the executed intent (" +
-              bindingViolations
-                .map(
-                  (violation) =>
-                    `${violation.signalKey}=${JSON.stringify(violation.signalValue)} != intent.${violation.intentPath}=${JSON.stringify(violation.intentValue)}`,
-                )
-                .join(", ") +
-              ").",
-            matchedRuleId: "signal-intent-binding-violation",
-            evaluatedRules: 0,
-            matchedPath: [],
-          }
-        : this.policyEngine.evaluate(
-            policy,
-            signals,
-          );
+          ? {
+              policyId: policy.policyId,
+              policyVersion: policy.policyVersion,
+              outcome: PolicyOutcome.REJECT,
+              reason:
+                `Rejected: capability "${capabilityBindingViolation.action}" requires policy ` +
+                `"${capabilityBindingViolation.expected.name}"@"${capabilityBindingViolation.expected.version}", but ` +
+                `"${capabilityBindingViolation.declared.name}"@"${capabilityBindingViolation.declared.version}" was declared.`,
+              matchedRuleId: "capability-policy-binding-violation",
+              evaluatedRules: 0,
+              matchedPath: [],
+            }
+          : bindingViolations.length > 0
+            ? {
+                policyId: policy.policyId,
+                policyVersion: policy.policyVersion,
+                outcome: PolicyOutcome.REJECT,
+                reason:
+                  "Rejected: declared signal(s) do not match the executed intent (" +
+                  bindingViolations
+                    .map(
+                      (violation) =>
+                        `${violation.signalKey}=${JSON.stringify(violation.signalValue)} != intent.${violation.intentPath}=${JSON.stringify(violation.intentValue)}`,
+                    )
+                    .join(", ") +
+                  ").",
+                matchedRuleId: "signal-intent-binding-violation",
+                evaluatedRules: 0,
+                matchedPath: [],
+              }
+            : this.policyEngine.evaluate(policy, signals);
 
     //
     // Signal/State verification (G-24 residual closure, RFC-0022)
@@ -405,10 +373,8 @@ export class RuntimeEngine {
         ? await this.signalStateVerifier.findViolations(
             {
               action: transaction.intent.action,
-              businessTransactionId:
-                transaction.businessTransactionId,
-              intentParameters:
-                transaction.intent.parameters,
+              businessTransactionId: transaction.businessTransactionId,
+              intentParameters: transaction.intent.parameters,
             },
             signals,
           )
@@ -445,16 +411,9 @@ export class RuntimeEngine {
     // Decision
     //
 
-    await this.hookRunner.beforeDecision(
-      transaction,
-      policyDecision,
-    );
+    await this.hookRunner.beforeDecision(transaction, policyDecision);
 
-    const decision =
-      this.decisionBuilder.build(
-        transaction,
-        policyDecision,
-      );
+    const decision = this.decisionBuilder.build(transaction, policyDecision);
 
     //
     // Refusal Record (RFC-0021)
@@ -470,68 +429,51 @@ export class RuntimeEngine {
     // none of which reach this point at all.
     //
     if (decision.outcome !== DecisionOutcome.APPROVED) {
-      await this.writeRefusalRecord(
-        transaction,
-        decision,
-        bindingViolations,
-      );
+      await this.writeRefusalRecord(transaction, decision, bindingViolations);
     }
 
     //
     // Enforce
     //
 
-    this.executionGate.enforce(
-      decision,
-    );
+    this.executionGate.enforce(decision);
 
-    const executableContent: ExecutableContent =
-      toExecutableContent({
-        businessTransactionId:
-          transaction.businessTransactionId,
-        action: transaction.intent.action,
-        target: transaction.intent.target,
-        parameters: transaction.intent.parameters,
-      });
+    const executableContent: ExecutableContent = toExecutableContent({
+      businessTransactionId: transaction.businessTransactionId,
+      action: transaction.intent.action,
+      target: transaction.intent.target,
+      parameters: transaction.intent.parameters,
+    });
 
     //
     // Authorization
     //
 
-    await this.hookRunner.beforeAuthorization(
-      transaction,
-      policyDecision,
+    await this.hookRunner.beforeAuthorization(transaction, policyDecision);
+
+    const signalsHash = await this.signalsHasher.hash(signals);
+
+    const authorization = await this.authorizationSigner.sign(
+      {
+        decisionId: decision.decisionId,
+        businessTransactionId: transaction.businessTransactionId,
+        policyName: transaction.policy.name,
+        policyVersion: transaction.policy.version,
+        policyContentHash,
+        signalsHash,
+        ...(transaction.metadata?.submittedBy !== undefined && {
+          submittedBy: transaction.metadata.submittedBy,
+        }),
+        ...(transaction.metadata?.grantedCapability !== undefined && {
+          grantedCapability: transaction.metadata.grantedCapability,
+        }),
+        ...(transaction.metadata?.tenantId !== undefined && {
+          tenantId: transaction.metadata.tenantId,
+        }),
+        executableContent,
+      },
+      this.authorizationTtlSeconds,
     );
-
-    const signalsHash =
-      await this.signalsHasher.hash(signals);
-
-    const authorization =
-      await this.authorizationSigner.sign(
-        {
-          decisionId:
-            decision.decisionId,
-          businessTransactionId:
-            transaction.businessTransactionId,
-          policyName:
-            transaction.policy.name,
-          policyVersion:
-            transaction.policy.version,
-          policyContentHash,
-          signalsHash,
-          ...(transaction.metadata?.submittedBy !== undefined && {
-            submittedBy: transaction.metadata.submittedBy,
-          }),
-          ...(transaction.metadata?.grantedCapability !== undefined && {
-            grantedCapability: transaction.metadata.grantedCapability,
-          }),
-          ...(transaction.metadata?.tenantId !== undefined && {
-            tenantId: transaction.metadata.tenantId,
-          }),
-          executableContent,
-        },
-        this.authorizationTtlSeconds,
-      );
 
     await this.hookRunner.afterAuthorization(
       transaction,
@@ -543,11 +485,7 @@ export class RuntimeEngine {
     // Execution
     //
 
-    const execution =
-      this.executionBuilder.build(
-        transaction,
-        decision,
-      );
+    const execution = this.executionBuilder.build(transaction, decision);
 
     //
     // Runtime Context
@@ -556,9 +494,7 @@ export class RuntimeEngine {
     const context: RuntimeContext = {
       transaction: {
         ...transaction,
-        status:
-          transaction.status ??
-          BusinessTransactionStatus.RECEIVED,
+        status: transaction.status ?? BusinessTransactionStatus.RECEIVED,
         // A copy, not a mutation of the caller-supplied transaction.policy
         // (already persisted, contentHash-free, by BusinessTransactionService.accept
         // before RuntimeEngine.execute ever runs) -- this contentHash-bearing
@@ -574,58 +510,36 @@ export class RuntimeEngine {
       execution,
     };
 
-    await this.hookRunner.afterDecision(
-      context,
-    );
+    await this.hookRunner.afterDecision(context);
 
-    await this.hookRunner.beforeExecution(
-      context,
-    );
+    await this.hookRunner.beforeExecution(context);
 
     try {
       //
       // Runtime Pipeline
       //
 
-      const processedContext =
-        await this.pipeline.execute(
-          context,
-        );
+      const processedContext = await this.pipeline.execute(context);
 
-      await this.hookRunner.afterExecution(
-        processedContext,
-      );
+      await this.hookRunner.afterExecution(processedContext);
 
-      await this.hookRunner.beforeTrustRecord(
-        processedContext,
-      );
+      await this.hookRunner.beforeTrustRecord(processedContext);
 
       //
       // Business Trust Pipeline
       //
 
-      const trustRecord =
-        await this.trustPipeline.execute(
-          processedContext,
-        );
+      const trustRecord = await this.trustPipeline.execute(processedContext);
 
-      await this.hookRunner.afterTrustRecord(
-        processedContext,
-        trustRecord,
-      );
+      await this.hookRunner.afterTrustRecord(processedContext, trustRecord);
 
       return {
-        transaction:
-          processedContext.transaction,
-        context:
-          processedContext,
+        transaction: processedContext.transaction,
+        context: processedContext,
         trustRecord,
       };
     } catch (error) {
-      await this.hookRunner.onRuntimeError(
-        context,
-        error as Error,
-      );
+      await this.hookRunner.onRuntimeError(context, error as Error);
 
       throw error;
     }
@@ -658,32 +572,24 @@ export class RuntimeEngine {
     }
 
     try {
-      const refusalRecord =
-        await this.refusalRecordBuilder.build(
-          transaction.businessTransactionId,
-          decision,
-          {
-            target: transaction.intent.target,
-            parameters: transaction.intent.parameters,
-          },
-          bindingViolations,
-          transaction.metadata?.submittedBy,
-        );
-
-      await this.refusalRecordRepository.create(
-        refusalRecord,
+      const refusalRecord = await this.refusalRecordBuilder.build(
+        transaction.businessTransactionId,
+        decision,
+        {
+          target: transaction.intent.target,
+          parameters: transaction.intent.parameters,
+        },
+        bindingViolations,
+        transaction.metadata?.submittedBy,
       );
+
+      await this.refusalRecordRepository.create(refusalRecord);
     } catch (error) {
       console.error({
         event: "refusal_record_write_failed",
-        businessTransactionId:
-          transaction.businessTransactionId,
-        decisionId:
-          decision.decisionId,
-        error:
-          error instanceof Error
-            ? error.message
-            : String(error),
+        businessTransactionId: transaction.businessTransactionId,
+        decisionId: decision.decisionId,
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }

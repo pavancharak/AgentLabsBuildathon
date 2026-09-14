@@ -5,11 +5,7 @@
   "description": "Exact Policy to evaluate. The client explicitly supplies name, version, and schemaVersion; Parmana does not automatically discover or select a policy. If no matching policy file exists at policies/{name}/{version}/policy.json, the request fails with a 404 (policyId/policyVersion on POST /policies/validate) or a RUNTIME_ERROR (name/version elsewhere, from PolicyNotFoundError not otherwise mapped by the shared error handler in every route, see the error envelope note).",
   "type": "object",
   "additionalProperties": true,
-  "required": [
-    "name",
-    "version",
-    "schemaVersion"
-  ],
+  "required": ["name", "version", "schemaVersion"],
   "properties": {
     "name": {
       "type": "string",
@@ -20,17 +16,12 @@
       "type": "string",
       "description": "Business policy version. Required and non-empty. Parmana rejects an empty version with a 400.",
       "minLength": 1,
-      "examples": [
-        "2.0.0",
-        "1.0.0"
-      ]
+      "examples": ["2.0.0", "1.0.0"]
     },
     "schemaVersion": {
       "type": "string",
       "description": "Signals schema version expected by the policy.",
-      "examples": [
-        "1.0.0"
-      ]
+      "examples": ["1.0.0"]
     }
   },
   "examples": [

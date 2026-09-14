@@ -4,22 +4,24 @@ description: "The real mechanism that closes the check-vs-use gap between author
 ---
 
 <Info>
-**[AVAILABLE], and wired into the default server as of commit `651497a` (2026-07-11).**
-Earlier revisions of this page said the opposite, see the correction below.
+  **[AVAILABLE], and wired into the default server as of commit `651497a`
+  (2026-07-11).** Earlier revisions of this page said the opposite, see the
+  correction below.
 </Info>
 
 <Warning>
-**This page previously said the default local server does NOT enforce content binding.**
-That was true through commit `4740aee` (2026-07-08). As of `651497a`,
-`packages/api/src/bootstrap/createExecutionSystem.ts` unconditionally builds a real
-`ExecutionGateway`, so every `POST /execute` against the stock server does get the hash
-recompute-and-compare described below. See [The gateway](/concepts/the-gateway) for the
-full, current mechanism and the one caveat that remains (only one connector is registered).
+  **This page previously said the default local server does NOT enforce content
+  binding.** That was true through commit `4740aee` (2026-07-08). As of
+  `651497a`, `packages/api/src/bootstrap/createExecutionSystem.ts`
+  unconditionally builds a real `ExecutionGateway`, so every `POST /execute`
+  against the stock server does get the hash recompute-and-compare described
+  below. See [The gateway](/concepts/the-gateway) for the full, current
+  mechanism and the one caveat that remains (only one connector is registered).
 </Warning>
 
 ## The problem: check-vs-use (TOCTOU)
 
-A system that authorizes an action by checking a payload, then executes a *different*
+A system that authorizes an action by checking a payload, then executes a _different_
 payload under the same authorization, has a Time-Of-Check-To-Time-Of-Use gap. An
 authorization that only names an ID (`businessTransactionId: "tx-001"`), without binding
 to the actual content, cannot detect this: anything can be substituted under a
@@ -90,7 +92,7 @@ version → signature → expiry → TTL policy → businessTransactionHash reco
 The nonce (single-use) check runs **last**, and only if every prior check, including the
 content hash, passed. This matters: a forged or mismatched request must never burn a
 nonce, or an attacker who observes a nonce in transit could poison it and get the
-*legitimate* request rejected instead (`ExecutionGateway.ts:170-180`).
+_legitimate_ request rejected instead (`ExecutionGateway.ts:170-180`).
 
 `ExecutableContentHasher` delegates to the same `TrustRecordHasher` used elsewhere in the
 system (`packages/crypto/src/ExecutableContentHasher.ts`), the signing side and verifying
@@ -99,12 +101,12 @@ implementations of the same computation.
 
 ## The same gap, one layer out: signal freshness (G-31)
 
-`businessTransactionHash` closes TOCTOU for *what* gets executed. It says nothing about
-*why* it was approved. A decision rests on runtime signals — vendor status, risk exposure,
+`businessTransactionHash` closes TOCTOU for _what_ gets executed. It says nothing about
+_why_ it was approved. A decision rests on runtime signals — vendor status, risk exposure,
 market conditions, whatever a policy's `boundSignals`/`SignalStateVerifier` cares about
 (see [Policies and the decision](/concepts/policies-and-the-decision)) — and those are
 independently re-verified against real-world state, but only once, before the authorization
-is signed. Nothing re-checked whether they were *still* true by the time a receiving system
+is signed. Nothing re-checked whether they were _still_ true by the time a receiving system
 got around to executing: an authorization is a portable artifact, valid for
 `authorizationTtlSeconds`/`maxTtlSeconds`, and a system that verifies it a while after
 Parmana signed it had no way to tell "the vendor was verified when this was authorized"
@@ -135,7 +137,7 @@ if (currentSignalsHash !== signalsHash) {
 
 Two receiving systems can hold the exact same authorization, the exact same declared
 signals, and the exact same `signalsHash`, and still disagree — because what differs is
-what each one's own live check finds *right then*. That is the entire point: this is a
+what each one's own live check finds _right then_. That is the entire point: this is a
 freshness check, not a tamper check. See `examples/tutorials/98-signal-freshness-enforcement`
 for both outcomes run side by side, and `docs/VERIFICATION-GAPS.md` G-31 in the source
 repository for the full scope caveats — most importantly, this only has teeth for a
@@ -146,11 +148,12 @@ in-process wiring is not.
 ## What this proves, precisely scoped
 
 <Note>
-From CLAIMS.md 3.1 (Conditional Claim, load-bearing scope): *"For any system running the
-Parmana envelope verifier, execution requests not authorized by Parmana are
-cryptographically impossible to accept. This claim holds only for a receiving system that
-(a) runs `@parmana/envelope-verifier` and (b) gates every execution-triggering code path
-behind its verification result. Parmana enforces nothing at the network level."*
+  From CLAIMS.md 3.1 (Conditional Claim, load-bearing scope): *"For any system
+  running the Parmana envelope verifier, execution requests not authorized by
+  Parmana are cryptographically impossible to accept. This claim holds only for
+  a receiving system that (a) runs `@parmana/envelope-verifier` and (b) gates
+  every execution-triggering code path behind its verification result. Parmana
+  enforces nothing at the network level."*
 </Note>
 
 This is real, tested protection, for a **gateway-integrated system**. It is not a
@@ -180,7 +183,10 @@ hash of a **tampered** copy of the same content (payment amount changed) using t
 ```typescript
 // examples/tutorials/36-parameter-tampering/run.ts
 const originalHash = context.authorization.payload.businessTransactionHash;
-const tampered = { ...content, parameters: { ...content.parameters, paymentAmount: 500000 } };
+const tampered = {
+  ...content,
+  parameters: { ...content.parameters, paymentAmount: 500000 },
+};
 const tamperedHash = await hasher.hash(tampered);
 // originalHash !== tamperedHash
 ```
@@ -208,7 +214,7 @@ already deep-frozen (`ExecutionGateway.ts`'s `deepFreeze(executableContent)`). F
 Any mismatch between what was authorized and what a connector would execute is still
 caught upstream, in the unchanged `ExecutionGateway.verify()` hash comparison, this is a
 permanent architectural invariant, not something `connector-sdk` re-implements or could
-weaken. `connector-sdk` adds capability-declaration and version/health checks *in front of*
+weaken. `connector-sdk` adds capability-declaration and version/health checks _in front of_
 a connector call (`SdkConnectorExecutor`, `CapabilityConnectorPolicy`), all of which fail
 closed (throw, never a partial or guessed success) before a connector is ever invoked.
 
@@ -219,7 +225,7 @@ closed (throw, never a partial or guessed success) before a connector is ever in
   same authorization once. Fleet-wide single-use requires one shared store (CLAIMS.md 3.2).
 - **ML-DSA-65 (post-quantum) signatures are randomized, not deterministic.** Signing the
   same message twice with the same key produces two different, both-valid signatures, only
-  *verification* is deterministic. Don't build tooling that assumes identical input produces
+  _verification_ is deterministic. Don't build tooling that assumes identical input produces
   an identical PQ signature (CLAIMS.md §5).
 - Every envelope carries a bounded TTL specifically so the exposure window from either of
   the above gaps is bounded, not unlimited.

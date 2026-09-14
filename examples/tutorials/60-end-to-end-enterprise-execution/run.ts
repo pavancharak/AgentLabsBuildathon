@@ -36,22 +36,21 @@ import {
   type ConnectorRequest,
 } from "@parmana/execution-gateway";
 
-import { PolicyAction, PolicyEngine, PolicyOutcome, type Policy } from "@parmana/policy";
+import {
+  PolicyAction,
+  PolicyEngine,
+  PolicyOutcome,
+  type Policy,
+} from "@parmana/policy";
 
 import type { ExecutionRequest } from "@parmana/execution-system";
 import type { ExecutableContent, ExecutionResult } from "@parmana/shared";
 
 async function main(): Promise<void> {
   console.log();
-  console.log(
-    "==================================================",
-  );
-  console.log(
-    "Tutorial 60 - End-to-End Enterprise Execution",
-  );
-  console.log(
-    "==================================================",
-  );
+  console.log("==================================================");
+  console.log("Tutorial 60 - End-to-End Enterprise Execution");
+  console.log("==================================================");
   console.log();
 
   //
@@ -68,38 +67,26 @@ async function main(): Promise<void> {
     },
   };
 
-  console.log(
-    "Stage 1 - Business Transaction",
-  );
+  console.log("Stage 1 - Business Transaction");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
-  console.log(
-    `Vendor  : ${content.parameters.vendorId}`,
-  );
+  console.log(`Vendor  : ${content.parameters.vendorId}`);
 
   console.log(
     `Amount  : ${content.parameters.amount} ${content.parameters.currency}`,
   );
 
-  console.log(
-    `Action  : ${content.action}`,
-  );
+  console.log(`Action  : ${content.action}`);
 
   console.log();
 
   //
   // Stage 2: Policy Evaluation
   //
-  console.log(
-    "Stage 2 - Policy Evaluation",
-  );
+  console.log("Stage 2 - Policy Evaluation");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
   const policy: Policy = {
     policyId: "vendor-payment-policy",
@@ -125,19 +112,13 @@ async function main(): Promise<void> {
     ],
   };
 
-  const decision =
-    new PolicyEngine().evaluate(
-      policy,
-      { amount: content.parameters.amount as number },
-    );
+  const decision = new PolicyEngine().evaluate(policy, {
+    amount: content.parameters.amount as number,
+  });
 
-  console.log(
-    `Outcome : ${decision.outcome}`,
-  );
+  console.log(`Outcome : ${decision.outcome}`);
 
-  console.log(
-    `Reason  : ${decision.reason}`,
-  );
+  console.log(`Reason  : ${decision.reason}`);
 
   if (decision.outcome !== PolicyOutcome.APPROVE) {
     throw new Error("Policy did not approve this transaction.");
@@ -165,35 +146,26 @@ async function main(): Promise<void> {
 
   const crypto = CryptoBootstrap.create();
 
-  console.log(
-    "Stage 3 - Signed Authorization",
+  console.log("Stage 3 - Signed Authorization");
+
+  console.log("--------------------------------------------------");
+
+  const authorization = await new AuthorizationSigner(crypto).sign(
+    {
+      decisionId: "decision-1",
+      businessTransactionId: content.businessTransactionId,
+      policyName: policy.policyId,
+      policyVersion: policy.policyVersion,
+      executableContent: content,
+    },
+    runtimePrivateKey,
+    "runtime-key-1",
+    60,
   );
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log(`Authorization ID : ${authorization.payload.authorizationId}`);
 
-  const authorization =
-    await new AuthorizationSigner(crypto).sign(
-      {
-        decisionId: "decision-1",
-        businessTransactionId: content.businessTransactionId,
-        policyName: policy.policyId,
-        policyVersion: policy.policyVersion,
-        executableContent: content,
-      },
-      runtimePrivateKey,
-      "runtime-key-1",
-      60,
-    );
-
-  console.log(
-    `Authorization ID : ${authorization.payload.authorizationId}`,
-  );
-
-  console.log(
-    `Expires At       : ${authorization.payload.expiresAt}`,
-  );
+  console.log(`Expires At       : ${authorization.payload.expiresAt}`);
 
   console.log();
 
@@ -212,82 +184,79 @@ async function main(): Promise<void> {
     authenticationMetadata: {},
   };
 
-  const attestationSigner =
-    new GatewayAttestationSigner(new SystemClock(), new RandomIdGenerator());
+  const attestationSigner = new GatewayAttestationSigner(
+    new SystemClock(),
+    new RandomIdGenerator(),
+  );
 
-  const authenticator =
-    new SignedTokenConnectorAuthenticator(
-      gatewayIdentity,
-      gatewayPublicKey,
-      [connectorIdentity],
-    );
+  const authenticator = new SignedTokenConnectorAuthenticator(
+    gatewayIdentity,
+    gatewayPublicKey,
+    [connectorIdentity],
+  );
 
-  const sessionIssuanceAuthentication =
-    Object.freeze({ capability: "session-issuer" });
+  const sessionIssuanceAuthentication = Object.freeze({
+    capability: "session-issuer",
+  });
 
-  const sessions =
-    new InMemoryGatewaySessionStore(sessionIssuanceAuthentication);
+  const sessions = new InMemoryGatewaySessionStore(
+    sessionIssuanceAuthentication,
+  );
 
-  const audit =
-    new MemoryExecutionAuditSink();
+  const audit = new MemoryExecutionAuditSink();
 
   //
   // Static, registration-time attestation for the connector's own
   // defense-in-depth check — mirrors createConnectorRegistry.ts.
   //
-  const registrationAttestation =
-    attestationSigner.sign(
-      gatewayIdentity.gatewayId,
-      "registration",
-      gatewayPrivateKey,
-    );
+  const registrationAttestation = attestationSigner.sign(
+    gatewayIdentity.gatewayId,
+    "registration",
+    gatewayPrivateKey,
+  );
 
-  const registry =
-    createGatewayConnectorRegistry([
-      {
-        connector: new MockConnector({
-          connectorId: "sap",
-          capabilities: connectorCapabilities(["sap:post-invoice"]),
-        }),
+  const registry = createGatewayConnectorRegistry([
+    {
+      connector: new MockConnector({
+        connectorId: "sap",
+        capabilities: connectorCapabilities(["sap:post-invoice"]),
+      }),
 
-        metadata: {
-          connectorId: "sap",
-          displayName: "SAP",
-          version: { major: 1, minor: 0, patch: 0 },
-          health: healthyNow(),
-        },
-
-        connectorIdentity,
-
-        credentialProvider:
-          new StaticCredentialProvider({
-            sap: { apiKey: "sap-secret-100" },
-          }),
-
-        policy:
-          new DefaultConnectorPolicy(authenticator, sessions),
-
-        gatewayAuthentication: registrationAttestation,
-
-        crypto,
-
-        audit,
+      metadata: {
+        connectorId: "sap",
+        displayName: "SAP",
+        version: { major: 1, minor: 0, patch: 0 },
+        health: healthyNow(),
       },
-    ]);
 
-  const executionControl =
-    new SessionCredentialExecutionControl({
+      connectorIdentity,
+
+      credentialProvider: new StaticCredentialProvider({
+        sap: { apiKey: "sap-secret-100" },
+      }),
+
+      policy: new DefaultConnectorPolicy(authenticator, sessions),
+
+      gatewayAuthentication: registrationAttestation,
+
+      crypto,
+
+      audit,
+    },
+  ]);
+
+  const executionControl = new SessionCredentialExecutionControl({
+    gatewayIdentity,
+    authenticator,
+    inner: new ExecutionControlService({
       gatewayIdentity,
       authenticator,
-      inner: new ExecutionControlService({
-        gatewayIdentity,
-        authenticator,
-        registry,
-        sessions,
-        sessionIssuanceAuthentication,
-        audit,
-      }),
-    });
+      registry,
+      sessions,
+      sessionIssuanceAuthentication,
+      audit,
+    }),
+  });
 
   const request: ExecutionRequest = {
     businessTransactionId: content.businessTransactionId,
@@ -305,35 +274,29 @@ async function main(): Promise<void> {
   // production Gateway below would otherwise burn the nonce before
   // execute() ever ran.
   //
-  console.log(
-    "Stage 4 - Gateway Envelope Verification",
-  );
+  console.log("Stage 4 - Gateway Envelope Verification");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
-  const previewGateway =
-    new ExecutionGateway({
-      publicKey: runtimePublicKey,
-      nonceStore: new MemoryNonceStore(),
-      connector: {
-        async execute(r: ConnectorRequest): Promise<ExecutionResult> {
-          return {
-            businessTransactionId: r.transaction.businessTransactionId,
-            action: r.transaction.action,
-            target: r.transaction.target,
-            parameters: r.transaction.parameters,
-            success: true,
-            executedAt: new Date(),
-            metadata: {},
-          };
-        },
+  const previewGateway = new ExecutionGateway({
+    publicKey: runtimePublicKey,
+    nonceStore: new MemoryNonceStore(),
+    connector: {
+      async execute(r: ConnectorRequest): Promise<ExecutionResult> {
+        return {
+          businessTransactionId: r.transaction.businessTransactionId,
+          action: r.transaction.action,
+          target: r.transaction.target,
+          parameters: r.transaction.parameters,
+          success: true,
+          executedAt: new Date(),
+          metadata: {},
+        };
       },
-    });
+    },
+  });
 
-  const { result: verification } =
-    await previewGateway.verify(request);
+  const { result: verification } = await previewGateway.verify(request);
 
   console.log(
     `Signature Verified          : ${verification.checks.signatureVerified}`,
@@ -356,20 +319,15 @@ async function main(): Promise<void> {
   //
   // Stage 5: Request-Bound Attestation (preview)
   //
-  console.log(
-    "Stage 5 - Request-Bound Attestation",
-  );
+  console.log("Stage 5 - Request-Bound Attestation");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
-  const attestationPreview =
-    attestationSigner.sign(
-      gatewayIdentity.gatewayId,
-      authorization.payload.authorizationId,
-      gatewayPrivateKey,
-    );
+  const attestationPreview = attestationSigner.sign(
+    gatewayIdentity.gatewayId,
+    authorization.payload.authorizationId,
+    gatewayPrivateKey,
+  );
 
   console.log(
     `Bound To Authorization : ${attestationPreview.payload.authorizationId}`,
@@ -386,45 +344,39 @@ async function main(): Promise<void> {
   // Credential Destroyed — all inside SessionCredentialSecureConnector,
   // reached through the production Gateway's execute().
   //
-  const productionGateway =
-    new ExecutionGateway({
-      publicKey: runtimePublicKey,
-      nonceStore: new MemoryNonceStore(),
-      executionControl: {
-        service: executionControl,
-        mintGatewayAuthentication: (authorizationId) =>
-          attestationSigner.sign(gatewayIdentity.gatewayId, authorizationId, gatewayPrivateKey),
-        route: () => "sap",
-      },
-    });
+  const productionGateway = new ExecutionGateway({
+    publicKey: runtimePublicKey,
+    nonceStore: new MemoryNonceStore(),
+    executionControl: {
+      service: executionControl,
+      mintGatewayAuthentication: (authorizationId) =>
+        attestationSigner.sign(
+          gatewayIdentity.gatewayId,
+          authorizationId,
+          gatewayPrivateKey,
+        ),
+      route: () => "sap",
+    },
+  });
 
   console.log(
     "Stage 6-8 - Session Credential Issue, Connector Execution, Credential Destroyed",
   );
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
-  const result =
-    await productionGateway.execute(request);
+  const result = await productionGateway.execute(request);
 
-  console.log(
-    `Result : ${result.success ? "SUCCESS" : "FAILURE"}`,
-  );
+  console.log(`Result : ${result.success ? "SUCCESS" : "FAILURE"}`);
 
   console.log();
 
   //
   // Stage 9: Audit Record
   //
-  console.log(
-    "Stage 9 - Audit Record",
-  );
+  console.log("Stage 9 - Audit Record");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
   //
   // ExecutionControlService records its own generic
@@ -432,45 +384,30 @@ async function main(): Promise<void> {
   // returns — this picks out the connector's own, richer event
   // (the one carrying credentialId/gatewayId), not that one.
   //
-  const completedEvent =
-    audit.events.find((event) => event.credentialId !== undefined)!;
+  const completedEvent = audit.events.find(
+    (event) => event.credentialId !== undefined,
+  )!;
 
-  console.log(
-    `Type          : ${completedEvent.type}`,
-  );
+  console.log(`Type          : ${completedEvent.type}`);
 
-  console.log(
-    `Connector     : ${completedEvent.connectorId}`,
-  );
+  console.log(`Connector     : ${completedEvent.connectorId}`);
 
-  console.log(
-    `Credential ID : ${completedEvent.credentialId}`,
-  );
+  console.log(`Credential ID : ${completedEvent.credentialId}`);
 
-  console.log(
-    `Gateway ID    : ${completedEvent.gatewayId}`,
-  );
+  console.log(`Gateway ID    : ${completedEvent.gatewayId}`);
 
-  console.log(
-    `Authorization : ${completedEvent.authorizationId}`,
-  );
+  console.log(`Authorization : ${completedEvent.authorizationId}`);
 
-  console.log(
-    `Occurred At   : ${completedEvent.occurredAt}`,
-  );
+  console.log(`Occurred At   : ${completedEvent.occurredAt}`);
 
   console.log();
 
   //
   // Stage 10: Trust Record
   //
-  console.log(
-    "Stage 10 - Trust Record",
-  );
+  console.log("Stage 10 - Trust Record");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
   const trustRecordDraft = {
     businessTransactionId: content.businessTransactionId,
@@ -484,19 +421,18 @@ async function main(): Promise<void> {
     createdAt: new Date().toISOString(),
   };
 
-  const trustRecordHash =
-    await new TrustRecordHasher(crypto).hash(trustRecordDraft);
-
-  const trustRecordSignature =
-    await new ArtifactSigner(crypto).sign(trustRecordDraft, runtimePrivateKey);
-
-  console.log(
-    `Trust Record Hash      : ${trustRecordHash}`,
+  const trustRecordHash = await new TrustRecordHasher(crypto).hash(
+    trustRecordDraft,
   );
 
-  console.log(
-    `Signature Algorithm    : ${crypto.signature.algorithm}`,
+  const trustRecordSignature = await new ArtifactSigner(crypto).sign(
+    trustRecordDraft,
+    runtimePrivateKey,
   );
+
+  console.log(`Trust Record Hash      : ${trustRecordHash}`);
+
+  console.log(`Signature Algorithm    : ${crypto.signature.algorithm}`);
 
   console.log(
     `Signature (first 24)   : ${trustRecordSignature.slice(0, 24)}...`,
@@ -510,9 +446,7 @@ async function main(): Promise<void> {
 
   console.log();
 
-  console.log(
-    "Tutorial completed successfully.",
-  );
+  console.log("Tutorial completed successfully.");
 }
 
 main().catch((error) => {

@@ -4,11 +4,7 @@ import { StorageFactory } from "../../src/StorageFactory.js";
 import { MemoryStorageProvider } from "../../src/memory/MemoryStorageProvider.js";
 import { SupabaseStorageProvider } from "../../src/supabase/SupabaseStorageProvider.js";
 
-const ENV_KEYS = [
-  "NODE_ENV",
-  "PARMANA_STORAGE",
-  "DATABASE_URL",
-] as const;
+const ENV_KEYS = ["NODE_ENV", "PARMANA_STORAGE", "DATABASE_URL"] as const;
 
 /**
  * Unit coverage for the G-15 test-safety fix: createFromEnvironment must
@@ -44,7 +40,8 @@ describe("StorageFactory.createFromEnvironment", () => {
   it("(G-15) returns MemoryStorageProvider when NODE_ENV=test even with DATABASE_URL present", () => {
     process.env.NODE_ENV = "test";
     process.env.PARMANA_STORAGE = "supabase";
-    process.env.DATABASE_URL = "postgresql://user:pass@example.supabase.co:5432/postgres";
+    process.env.DATABASE_URL =
+      "postgresql://user:pass@example.supabase.co:5432/postgres";
 
     expect(StorageFactory.createFromEnvironment()).toBeInstanceOf(
       MemoryStorageProvider,
@@ -67,7 +64,8 @@ describe("StorageFactory.createFromEnvironment", () => {
   it("returns SupabaseStorageProvider when NODE_ENV is not test and DATABASE_URL is configured", () => {
     process.env.NODE_ENV = "production";
     process.env.PARMANA_STORAGE = "supabase";
-    process.env.DATABASE_URL = "postgresql://user:pass@example.supabase.co:5432/postgres";
+    process.env.DATABASE_URL =
+      "postgresql://user:pass@example.supabase.co:5432/postgres";
 
     expect(StorageFactory.createFromEnvironment()).toBeInstanceOf(
       SupabaseStorageProvider,

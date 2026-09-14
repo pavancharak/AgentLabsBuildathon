@@ -3,9 +3,11 @@ title: "Integrations"
 description: "The Connector SDK foundation is real. Four enterprise-named connectors exist as explicit, self-documented mocks; no real enterprise integration is built on it yet."
 ---
 
-<Info>**[AVAILABLE] as a library.** `packages/connector-sdk`, 45 tests. Extends
-`packages/execution-control` (unchanged), see [The gateway](/concepts/the-gateway)
-for how a Connector is reached.</Info>
+<Info>
+  **[AVAILABLE] as a library.** `packages/connector-sdk`, 45 tests. Extends
+  `packages/execution-control` (unchanged), see [The
+  gateway](/concepts/the-gateway) for how a Connector is reached.
+</Info>
 
 ## What exists: the Connector SDK foundation
 
@@ -17,12 +19,15 @@ enterprise system.
 export interface Connector {
   readonly connectorId: string;
   readonly capabilities: ConnectorCapabilities;
-  execute(request: ConnectorRequest, context: ConnectorExecutionContext): Promise<ConnectorResponse>;
+  execute(
+    request: ConnectorRequest,
+    context: ConnectorExecutionContext,
+  ): Promise<ConnectorResponse>;
 }
 ```
 
 - **`ConnectorCapability`**, a namespaced verb (`crm:read`, `payments:refund`,
-  `http:post`). By convention, `ExecutableContent.action` *is* the capability string,
+  `http:post`). By convention, `ExecutableContent.action` _is_ the capability string,
   this is exactly what `execution-control`'s `DefaultConnectorPolicy` already checks
   (`connector.capabilities.includes(request.executableContent.action)`, unchanged).
 - **`ConnectorMetadata` / `ConnectorVersion` / `ConnectorHealth`**, descriptive metadata a
@@ -43,8 +48,8 @@ export interface Connector {
   ([AVAILABLE] as reference mocks), thin factory functions in
   `packages/connector-sdk/src/connectors/{sap,oracle,workday,salesforce}/`, each
   constructing a `MockConnector` under an enterprise-shaped `connectorId` and capability.
-  Every one carries the same self-documenting comment: *"deterministic, in-memory connector
-  used until the real enterprise connector is implemented."* These are reference mocks for
+  Every one carries the same self-documenting comment: _"deterministic, in-memory connector
+  used until the real enterprise connector is implemented."_ These are reference mocks for
   building against a realistic connector shape, not integrations, they never call SAP,
   Oracle, Workday, or Salesforce. `packages/api`'s default server registers only
   `hubspot`, not these four (nor any other capability), see [The
@@ -75,7 +80,7 @@ connector without ever passing through the Runtime or the AI caller.
 
 ## What still doesn't exist
 
-No *real* connector for SAP, Oracle, Workday, or Salesforce exists, only the reference mocks
+No _real_ connector for SAP, Oracle, Workday, or Salesforce exists, only the reference mocks
 above. No connector, mock or real, exists for OpenAI, Anthropic, ServiceNow, Slack, Jira,
 GitHub, or any database driver, all `[FUTURE]`, see CLAIMS.md. Building any of these means
 implementing `Connector` from `@parmana/connector-sdk` and registering it with a

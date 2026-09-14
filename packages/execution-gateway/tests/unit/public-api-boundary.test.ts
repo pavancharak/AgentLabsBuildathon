@@ -29,9 +29,14 @@ describe("execution-gateway public API boundary", () => {
     "sanitizeEndpoint",
   ] as const;
 
-  it.each(internalSymbols)("does not export %s from the public package entry", (symbol) => {
-    expect(Object.prototype.hasOwnProperty.call(publicApi, symbol)).toBe(false);
-  });
+  it.each(internalSymbols)(
+    "does not export %s from the public package entry",
+    (symbol) => {
+      expect(Object.prototype.hasOwnProperty.call(publicApi, symbol)).toBe(
+        false,
+      );
+    },
+  );
 
   it("exports ExecutionGateway as the sole public execution entry point", () => {
     expect(publicApi.ExecutionGateway).toBeTypeOf("function");

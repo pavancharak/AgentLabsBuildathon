@@ -1,26 +1,14 @@
 \# 18 – Key Management
 
-
-
 This guide describes how Parmana manages cryptographic keys used to sign and verify Execution Trust Records.
-
-
 
 \---
 
-
-
 \# Overview
-
-
 
 Parmana uses asymmetric cryptography to provide authenticity for Execution Trust Records.
 
-
-
 The Runtime signs Trust Records using a private key, while verification uses the corresponding public key.
-
-
 
 ```
 
@@ -52,19 +40,11 @@ Verify Signature
 
 ```
 
-
-
 \---
-
-
 
 \# Key Components
 
-
-
 The cryptographic implementation consists of:
-
-
 
 | Component | Responsibility |
 
@@ -80,19 +60,11 @@ The cryptographic implementation consists of:
 
 | VerificationCrypto | Coordinates hashing, signing, and verification |
 
-
-
 \---
-
-
 
 \# Signing Process
 
-
-
 During execution:
-
-
 
 1\. Create the canonical Trust Record.
 
@@ -103,8 +75,6 @@ During execution:
 4\. Sign the canonical Trust Record.
 
 5\. Store the signature with the Trust Record.
-
-
 
 ```
 
@@ -130,19 +100,11 @@ Execution Trust Record
 
 ```
 
-
-
 \---
-
-
 
 \# Verification Process
 
-
-
 During verification:
-
-
 
 1\. Load the public key referenced by the Trust Record.
 
@@ -151,8 +113,6 @@ During verification:
 3\. Verify the digital signature.
 
 4\. Report the verification result.
-
-
 
 ```
 
@@ -178,19 +138,11 @@ Signature Verification
 
 ```
 
-
-
 \---
-
-
 
 \# Key Identification
 
-
-
 Every signature includes:
-
-
 
 \- Algorithm
 
@@ -200,27 +152,15 @@ Every signature includes:
 
 \- Signed Timestamp
 
-
-
 The `keyId` identifies which public key should be used during verification.
-
-
 
 \---
 
-
-
 \# Development Keys
-
-
 
 The development environment uses file-based keys loaded by the `FileKeyProvider`.
 
-
-
 These keys are intended for:
-
-
 
 \- Local development
 
@@ -228,23 +168,13 @@ These keys are intended for:
 
 \- Continuous Integration
 
-
-
 They should not be used in production.
-
-
 
 \---
 
-
-
 \# Production Recommendations
 
-
-
 Production deployments should replace the file-based key provider with a secure key management solution such as:
-
-
 
 \- Hardware Security Module (HSM)
 
@@ -252,23 +182,13 @@ Production deployments should replace the file-based key provider with a secure 
 
 \- Enterprise secrets management platform
 
-
-
 The Runtime should never expose private keys outside the signing process.
-
-
 
 \---
 
-
-
 \# Key Rotation
 
-
-
 Key rotation should follow these principles:
-
-
 
 \- Generate a new signing key pair.
 
@@ -278,23 +198,13 @@ Key rotation should follow these principles:
 
 \- Retain previous public keys to verify historical Trust Records.
 
-
-
 Historical signatures remain valid because each Trust Record references the `keyId` that was used when it was signed.
-
-
 
 \---
 
-
-
 \# Security Considerations
 
-
-
 To protect signing keys:
-
-
 
 \- Restrict filesystem access.
 
@@ -308,15 +218,9 @@ To protect signing keys:
 
 \- Protect production keys with HSM or KMS.
 
-
-
 \---
 
-
-
 \# Trust Model
-
-
 
 ```text
 
@@ -348,19 +252,10 @@ Verify
 
 ```
 
-
-
 The Runtime requires the private key only for signing. Verification requires only the corresponding public key.
-
-
 
 \---
 
-
-
 \# Summary
 
-
-
 Parmana separates signing and verification through asymmetric cryptography. Trust Records are signed with a private key and verified with the matching public key, enabling independent verification while supporting secure key rotation and long-term validation of historical execution evidence.
-

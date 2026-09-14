@@ -1,98 +1,98 @@
 # \# Scenario — Expense Approval
 
-# 
+#
 
 # \## Overview
 
-# 
+#
 
 # This scenario demonstrates an employee expense reimbursement workflow using Parmana.
 
-# 
+#
 
 # An employee submits an expense report, a manager authorizes reimbursement, Parmana evaluates the Expense Approval Policy, executes the transaction, verifies the resulting Execution Trust Record, and generates a Receipt.
 
-# 
+#
 
 # This scenario represents a common enterprise finance workflow.
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Business Flow
 
-# 
+#
 
 # Employee submits expense
 
-# 
+#
 
 # ↓
 
-# 
+#
 
 # Manager reviews request
 
-# 
+#
 
 # ↓
 
-# 
+#
 
 # Human authority approves reimbursement
 
-# 
+#
 
 # ↓
 
-# 
+#
 
 # Parmana evaluates policy
 
-# 
+#
 
 # ↓
 
-# 
+#
 
 # Runtime executes transaction
 
-# 
+#
 
 # ↓
 
-# 
+#
 
 # Execution Trust Record created
 
-# 
+#
 
 # ↓
 
-# 
+#
 
 # Verification
 
-# 
+#
 
 # ↓
 
-# 
+#
 
 # Receipt generated
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Files
 
-# 
+#
 
 # | File | Purpose |
 
@@ -104,79 +104,79 @@
 
 # | `run.ts` | Executes the complete workflow |
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Architecture
 
-# 
+#
 
 # ```
 
 # Expense Report
 
-# &#x20;      │
+# &#x20; │
 
-# &#x20;      ▼
+# &#x20; ▼
 
 # Authority
 
-# &#x20;      │
+# &#x20; │
 
-# &#x20;      ▼
+# &#x20; ▼
 
 # Authorization
 
-# &#x20;      │
+# &#x20; │
 
-# &#x20;      ▼
+# &#x20; ▼
 
 # Intent
 
-# &#x20;      │
+# &#x20; │
 
-# &#x20;      ▼
+# &#x20; ▼
 
 # Policy Evaluation
 
-# &#x20;      │
+# &#x20; │
 
-# &#x20;      ▼
+# &#x20; ▼
 
 # Runtime
 
-# &#x20;      │
+# &#x20; │
 
-# &#x20;      ▼
+# &#x20; ▼
 
 # Execution Trust Record
 
-# &#x20;      │
+# &#x20; │
 
-# &#x20;      ▼
+# &#x20; ▼
 
 # Verification
 
-# &#x20;      │
+# &#x20; │
 
-# &#x20;      ▼
+# &#x20; ▼
 
 # Receipt
 
 # ```
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Run
 
-# 
+#
 
 # ```bash
 
@@ -184,11 +184,11 @@
 
 # ```
 
-# 
+#
 
 # or
 
-# 
+#
 
 # ```bash
 
@@ -196,19 +196,19 @@
 
 # ```
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Expected Output
 
-# 
+#
 
 # The scenario prints:
 
-# 
+#
 
 # \- Business Transaction
 
@@ -221,4 +221,3 @@
 # \- Verification
 
 # \- Receipt
-

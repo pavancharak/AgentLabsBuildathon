@@ -31,6 +31,7 @@ This is Claude's **master progress tracker** for all active Parmana initiatives.
 6. **Guides session starts** ("Where are we? What's next?")
 
 **When to use this:**
+
 - **Session start:** "What's the status of all initiatives per the master tracker?"
 - **During work:** "Update tracker as we make progress"
 - **Session end:** "Summarize work done; update all relevant sections"
@@ -46,11 +47,11 @@ corrected once already for violating that rule; don't reintroduce the problem.
 
 ## Current Status Summary (As of Aug 25, 2026)
 
-| Initiative | Phase | Owner | Status | Next Milestone |
-|-----------|-------|-------|--------|-----------------|
-| **Deep Tech Cert** | Drafting → Fact-filling | Pavan + Claude | 🟡 ON TRACK | Fill remaining TODOs in each drafted doc (patent status, R&D spend, Mastercard/AISI verification) |
-| **Patent Filing** | Drafted, unreviewed | Pavan + Claude | 🟡 DRAFTS DONE | Attorney review + prior-art search of `docs/patents/DRAFT-01/02/03-*.md`, then engagement |
-| **A2A Accountability** | Research | Pavan | 🟡 PENDING | Market validation (Aug 26) |
+| Initiative             | Phase                   | Owner          | Status         | Next Milestone                                                                                    |
+| ---------------------- | ----------------------- | -------------- | -------------- | ------------------------------------------------------------------------------------------------- |
+| **Deep Tech Cert**     | Drafting → Fact-filling | Pavan + Claude | 🟡 ON TRACK    | Fill remaining TODOs in each drafted doc (patent status, R&D spend, Mastercard/AISI verification) |
+| **Patent Filing**      | Drafted, unreviewed     | Pavan + Claude | 🟡 DRAFTS DONE | Attorney review + prior-art search of `docs/patents/DRAFT-01/02/03-*.md`, then engagement         |
+| **A2A Accountability** | Research                | Pavan          | 🟡 PENDING     | Market validation (Aug 26)                                                                        |
 
 ---
 
@@ -59,6 +60,7 @@ corrected once already for violating that rule; don't reintroduce the problem.
 ### Roadmap & Timeline
 
 **Current Status:**
+
 - DPIIT Certificate issued: Aug 24, 2026 (regular startup, DPP27254)
 - Incorporation date: April 20, 2026 (corrected 2026-08-25 — see `docs/deep-tech/DEEP-TECH-APPLICATION-PROMPT.md`; do not use "April 2024," which appeared in an earlier draft and is wrong)
 - Deep Tech application deadline: Sep 15, 2026
@@ -68,20 +70,21 @@ corrected once already for violating that rule; don't reintroduce the problem.
 
 **Required for Deep Tech Application:**
 
-| Deliverable | Owner | Status | Notes |
-|-------------|-------|--------|-------|
-| Innovation Narrative (1 page) | Claude | ✅ DRAFTED (`docs/deep-tech/01-INNOVATION-NARRATIVE.md`) | Grounded in real evidence (1,313 tests, self-found/fixed G-24 bypass, live HubSpot production proof, TRL 6 assessment). No open TODOs beyond confirming Mastercard/AISI references. |
-| Commercialization Roadmap (1 page) | Claude | ✅ DRAFTED (`docs/deep-tech/02-COMMERCIALIZATION-ROADMAP.md`) | Corrects the stale "Razorpay in production" claim — Razorpay was validated live-money then deliberately removed 2026-08-12; HubSpot + GitHub are the current production connectors. Pilot names/revenue still TODO. |
-| Long Gestation Argument (1 page) | Claude | ✅ DRAFTED (`docs/deep-tech/03-LONG-GESTATION-ARGUMENT.md`) | Reframed around the corrected ~4-month company age, not the originally-claimed "2+ years." |
-| IP & Patent Summary (1 page) | Claude | ✅ DRAFTED (`docs/deep-tech/04-IP-PATENT-SUMMARY.md`) | States plainly that no patents are confirmed filed; documents the real proprietary-license posture and candidate patentable mechanisms instead. Needs a real filing-status answer to finalize — see Initiative #2. |
-| R&D Evidence Dossier | Claude | ✅ DRAFTED (`docs/deep-tech/05-RND-EVIDENCE-DOSSIER.md`) | Indexes checkable artifacts (233 commits, G-1→G-29 gap tracking, 1,313 tests, self-conducted security audits). Explicitly flags everything in it as self-conducted, not externally validated. |
-| Team & Expertise (0.5 page) | Claude | ✅ DRAFTED (`docs/deep-tech/06-TEAM-AND-EXPERTISE.md`) | Git history confirms sole technical authorship (Pavan, 233/233 commits). Prior-role specifics (MakeMyTrip/Shaadi.com, "13+ years") are stated as Pavan-supplied and flagged as needing resume/LinkedIn backup before submission. Co-founder/headcount unresolved. |
-| Application Draft (complete) | Claude | TODO (due Sep 10) | Assemble the six drafted docs into one submission-ready application once their individual TODOs are closed. |
-| Legal/CA Review | External | TODO (due Sep 12) | Final approval before submission. |
-| Submit to DPIIT | Pavan | TODO (due Sep 15) | Hard deadline. |
+| Deliverable                        | Owner    | Status                                                        | Notes                                                                                                                                                                                                                                                             |
+| ---------------------------------- | -------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Innovation Narrative (1 page)      | Claude   | ✅ DRAFTED (`docs/deep-tech/01-INNOVATION-NARRATIVE.md`)      | Grounded in real evidence (1,313 tests, self-found/fixed G-24 bypass, live HubSpot production proof, TRL 6 assessment). No open TODOs beyond confirming Mastercard/AISI references.                                                                               |
+| Commercialization Roadmap (1 page) | Claude   | ✅ DRAFTED (`docs/deep-tech/02-COMMERCIALIZATION-ROADMAP.md`) | Corrects the stale "Razorpay in production" claim — Razorpay was validated live-money then deliberately removed 2026-08-12; HubSpot + GitHub are the current production connectors. Pilot names/revenue still TODO.                                               |
+| Long Gestation Argument (1 page)   | Claude   | ✅ DRAFTED (`docs/deep-tech/03-LONG-GESTATION-ARGUMENT.md`)   | Reframed around the corrected ~4-month company age, not the originally-claimed "2+ years."                                                                                                                                                                        |
+| IP & Patent Summary (1 page)       | Claude   | ✅ DRAFTED (`docs/deep-tech/04-IP-PATENT-SUMMARY.md`)         | States plainly that no patents are confirmed filed; documents the real proprietary-license posture and candidate patentable mechanisms instead. Needs a real filing-status answer to finalize — see Initiative #2.                                                |
+| R&D Evidence Dossier               | Claude   | ✅ DRAFTED (`docs/deep-tech/05-RND-EVIDENCE-DOSSIER.md`)      | Indexes checkable artifacts (233 commits, G-1→G-29 gap tracking, 1,313 tests, self-conducted security audits). Explicitly flags everything in it as self-conducted, not externally validated.                                                                     |
+| Team & Expertise (0.5 page)        | Claude   | ✅ DRAFTED (`docs/deep-tech/06-TEAM-AND-EXPERTISE.md`)        | Git history confirms sole technical authorship (Pavan, 233/233 commits). Prior-role specifics (MakeMyTrip/Shaadi.com, "13+ years") are stated as Pavan-supplied and flagged as needing resume/LinkedIn backup before submission. Co-founder/headcount unresolved. |
+| Application Draft (complete)       | Claude   | TODO (due Sep 10)                                             | Assemble the six drafted docs into one submission-ready application once their individual TODOs are closed.                                                                                                                                                       |
+| Legal/CA Review                    | External | TODO (due Sep 12)                                             | Final approval before submission.                                                                                                                                                                                                                                 |
+| Submit to DPIIT                    | Pavan    | TODO (due Sep 15)                                             | Hard deadline.                                                                                                                                                                                                                                                    |
 
 **Remaining cross-cutting TODOs before the application is submission-ready** (consolidated from
 all six docs — see each doc's own TODO section for full detail):
+
 - [ ] Real patent filing status (Initiative #2)
 - [ ] R&D spend statement (₹, headcount-months, Apr 20 2026 – Aug 2026)
 - [ ] Confirm or drop: Mastercard AI Defense Lab submission, "UK AISI agentic incident (Aug 2026)" — neither is verifiable from this repo or session
@@ -92,6 +95,7 @@ all six docs — see each doc's own TODO section for full detail):
 ### Key Decision Points
 
 **Decision 1: Include A2A Accountability in Deep Tech Narrative?**
+
 - Status: PENDING (depends on A2A research findings Aug 26)
 - If YES: Add "accountability layer for trustless A2A settlement" to innovation narrative
 - If NO: Keep Deep Tech focused on execution auth only
@@ -100,6 +104,7 @@ all six docs — see each doc's own TODO section for full detail):
 - Date: Aug 27
 
 **Decision 2: Patent Portfolio Impact**
+
 - Status: **NOT DECIDED** (corrected — the source version of this tracker marked this "DECIDED,"
   but no patent-extraction work has actually happened yet; see Initiative #2 below)
 - Once real extraction and attorney engagement happen, the number of provisional filings and
@@ -109,20 +114,20 @@ all six docs — see each doc's own TODO section for full detail):
 
 ### Blocking Issues
 
-| Issue | Impact | Owner | Target Resolution | Status |
-|-------|--------|-------|-------------------|--------|
-| R&D spend documentation | Needed for Deep Tech credibility | Finance/Pavan | Aug 29 | TODO — compile Apr 20 2026-Aug 2026 burn breakdown |
-| Patent filing logistics | Extraction not yet started (see Initiative #2) | Pavan + Claude | TBD | TODO — do real extraction first, then engage attorney |
-| Mastercard/AISI reference verification | Needed before citing either in the application | Pavan | Before Sep 05 | TODO |
+| Issue                                  | Impact                                         | Owner          | Target Resolution | Status                                                |
+| -------------------------------------- | ---------------------------------------------- | -------------- | ----------------- | ----------------------------------------------------- |
+| R&D spend documentation                | Needed for Deep Tech credibility               | Finance/Pavan  | Aug 29            | TODO — compile Apr 20 2026-Aug 2026 burn breakdown    |
+| Patent filing logistics                | Extraction not yet started (see Initiative #2) | Pavan + Claude | TBD               | TODO — do real extraction first, then engage attorney |
+| Mastercard/AISI reference verification | Needed before citing either in the application | Pavan          | Before Sep 05     | TODO                                                  |
 
 ### Metrics to Track
 
-| Metric | Status |
-|--------|--------|
-| Narrative docs with a first draft | 6 / 6 (all drafted 2026-08-25) |
-| Narrative docs with all TODOs closed (submission-ready) | 0 / 6 |
-| Patents filed | 0 |
-| Days to deadline | 21 (as of 2026-08-25) |
+| Metric                                                  | Status                         |
+| ------------------------------------------------------- | ------------------------------ |
+| Narrative docs with a first draft                       | 6 / 6 (all drafted 2026-08-25) |
+| Narrative docs with all TODOs closed (submission-ready) | 0 / 6                          |
+| Patents filed                                           | 0                              |
+| Days to deadline                                        | 21 (as of 2026-08-25)          |
 
 ---
 
@@ -142,19 +147,18 @@ The table below replaces the original's file citations with real files, chosen u
 candidate-mechanism analysis already done in `docs/deep-tech/04-IP-PATENT-SUMMARY.md`. These are
 **candidates for a patent attorney to evaluate**, not filed or drafted claims:
 
-| Candidate | Working Title | Real Source File(s) | Why this one |
-|-----------|---------------|----------------------|---------------|
-| A | Runtime Credential Isolation via Single-Use Session Credentials | `packages/execution-control/src/SessionCredentialSecureConnector.ts`, `packages/execution-control/src/CredentialVault.ts`, `packages/execution-control/src/GatewaySessionStore.ts` | Connectors never receive a long-lived credential — corrected from the original's `createConnectorRegistry.ts` citation, which is just where connectors get wired in, not where isolation itself is implemented. |
-| B | Cryptographically Signed, Independently Verifiable Execution Audit Trail | `packages/runtime/src/BusinessTrustRecordBuilder.ts`, `packages/crypto/src/TrustRecordHasher.ts`, `@parmana/envelope-verifier` | Corrected from the original's nonexistent `executeTransaction.ts`. Third-party-verifiable without trusting Parmana's own runtime/DB is the actual novel property here. |
-| C | Structural Policy-Change Governance (approval-gated policy writes) | `packages/api/src/governance/verifyPolicyGovernanceIntegrityAtStartup.ts`, `packages/api/src/bootstrap/createPolicyChangeApprovalService.ts`, `packages/shared/src/domain/pending-policy-change.ts`, `packages/shared/src/domain/policy-change-approval-record.ts` | Corrected from the original's nonexistent `policyEngine.ts`. This is the real governance mechanism in the codebase (pending-change + approval-record + step-up verification) that the source prompt's "maker-checker" language was gesturing at, even though that exact term doesn't appear in code. |
+| Candidate | Working Title                                                            | Real Source File(s)                                                                                                                                                                                                                                                | Why this one                                                                                                                                                                                                                                                                                         |
+| --------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A         | Runtime Credential Isolation via Single-Use Session Credentials          | `packages/execution-control/src/SessionCredentialSecureConnector.ts`, `packages/execution-control/src/CredentialVault.ts`, `packages/execution-control/src/GatewaySessionStore.ts`                                                                                 | Connectors never receive a long-lived credential — corrected from the original's `createConnectorRegistry.ts` citation, which is just where connectors get wired in, not where isolation itself is implemented.                                                                                      |
+| B         | Cryptographically Signed, Independently Verifiable Execution Audit Trail | `packages/runtime/src/BusinessTrustRecordBuilder.ts`, `packages/crypto/src/TrustRecordHasher.ts`, `@parmana/envelope-verifier`                                                                                                                                     | Corrected from the original's nonexistent `executeTransaction.ts`. Third-party-verifiable without trusting Parmana's own runtime/DB is the actual novel property here.                                                                                                                               |
+| C         | Structural Policy-Change Governance (approval-gated policy writes)       | `packages/api/src/governance/verifyPolicyGovernanceIntegrityAtStartup.ts`, `packages/api/src/bootstrap/createPolicyChangeApprovalService.ts`, `packages/shared/src/domain/pending-policy-change.ts`, `packages/shared/src/domain/policy-change-approval-record.ts` | Corrected from the original's nonexistent `policyEngine.ts`. This is the real governance mechanism in the codebase (pending-change + approval-record + step-up verification) that the source prompt's "maker-checker" language was gesturing at, even though that exact term doesn't appear in code. |
 
 **Worth strong consideration as a 4th (or replacement) candidate**, per
 `docs/deep-tech/04-IP-PATENT-SUMMARY.md`: **D — binding policy-evaluation signals to the executed
 Intent** (`packages/policy/src/SignalIntentBinder.ts`), the fix for the self-discovered
-execution-authorization bypass. That document assessed this as the *strongest* candidate of
+execution-authorization bypass. That document assessed this as the _strongest_ candidate of
 everything in the repo, because it has a real "found exploit → structural fix" narrative rather
-than a defensively-designed mechanism — worth discussing with Pavan before finalizing which 3 (or
-4) to actually pursue.
+than a defensively-designed mechanism — worth discussing with Pavan before finalizing which 3 (or 4) to actually pursue.
 
 **Cost figures (₹15K / ₹3K with startup discount)** from the source tracker are not verified
 here — these are attorney/filing-fee facts, not something derivable from the repo. Confirm with
@@ -164,47 +168,48 @@ whichever patent attorney is engaged.
 
 **For Each Patent Candidate:**
 
-| Step | Deliverable | Owner | Status |
-|------|-------------|-------|--------|
-| 1 | Extract technical claims from source code | Claude | ✅ DONE (2026-08-25) — `docs/patents/DRAFT-01/02/03-*.md`, each grounded in real, read-in-full source files |
-| 2 | Write patent spec outline | Claude | ✅ DONE (2026-08-25) — same three drafts, each with background/summary/detailed description/candidate claims |
-| 3 | Identify drawings/diagrams needed | Claude | PARTIAL — each draft names what drawings would be needed (sequence/state diagrams) but none have been produced |
-| 4 | Do prior-art search (Google Patents) | Pavan/Patent atty | TODO |
-| 5 | Engage patent attorney | Pavan | TODO |
-| 6 | Submit provisional application(s) | Patent atty | TODO |
-| 7 | Track filing dates (for Deep Tech ref) | Claude | TODO |
-| 8 | Convert to complete apps (~12 months after provisional) | Patent atty | FUTURE |
+| Step | Deliverable                                             | Owner             | Status                                                                                                         |
+| ---- | ------------------------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------- |
+| 1    | Extract technical claims from source code               | Claude            | ✅ DONE (2026-08-25) — `docs/patents/DRAFT-01/02/03-*.md`, each grounded in real, read-in-full source files    |
+| 2    | Write patent spec outline                               | Claude            | ✅ DONE (2026-08-25) — same three drafts, each with background/summary/detailed description/candidate claims   |
+| 3    | Identify drawings/diagrams needed                       | Claude            | PARTIAL — each draft names what drawings would be needed (sequence/state diagrams) but none have been produced |
+| 4    | Do prior-art search (Google Patents)                    | Pavan/Patent atty | TODO                                                                                                           |
+| 5    | Engage patent attorney                                  | Pavan             | TODO                                                                                                           |
+| 6    | Submit provisional application(s)                       | Patent atty       | TODO                                                                                                           |
+| 7    | Track filing dates (for Deep Tech ref)                  | Claude            | TODO                                                                                                           |
+| 8    | Convert to complete apps (~12 months after provisional) | Patent atty       | FUTURE                                                                                                         |
 
 ### Blocking Issues
 
-| Issue | Impact | Owner | Status |
-|-------|--------|-------|--------|
-| Real claim extraction hasn't started | Blocks everything downstream in this initiative | Pavan + Claude | TODO |
-| Patent attorney engagement | Can't file without legal help | Pavan | TODO |
-| Decide final candidate set (3 vs. include D) | Affects scope of extraction work | Pavan | TODO |
+| Issue                                        | Impact                                          | Owner          | Status |
+| -------------------------------------------- | ----------------------------------------------- | -------------- | ------ |
+| Real claim extraction hasn't started         | Blocks everything downstream in this initiative | Pavan + Claude | TODO   |
+| Patent attorney engagement                   | Can't file without legal help                   | Pavan          | TODO   |
+| Decide final candidate set (3 vs. include D) | Affects scope of extraction work                | Pavan          | TODO   |
 
 ### Metrics to Track
 
-| Metric | Target | Current |
-|--------|--------|---------|
+| Metric                                     | Target                     | Current                                     |
+| ------------------------------------------ | -------------------------- | ------------------------------------------- |
 | Candidates with real claim extraction done | 3 (or 4, pending decision) | 3 (drafted 2026-08-25, see `docs/patents/`) |
-| Patent attorneys contacted | — | 0 |
-| Provisional apps filed | — | 0 |
+| Patent attorneys contacted                 | —                          | 0                                           |
+| Provisional apps filed                     | —                          | 0                                           |
 
 ---
 
 ## Initiative #3: A2A Commerce Accountability (Research Phase)
 
-*Not independently verified this session — this section is carried forward from Pavan's draft
+_Not independently verified this session — this section is carried forward from Pavan's draft
 largely as-is, since it's honestly framed as pending research rather than claiming false
 completions. One correction: the source tracker cites
 `parmana/docs/roadmaps/A2A_COMMERCE_ACCOUNTABILITY_ROADMAP.md` — that file does not exist in this
 repository yet. If this initiative proceeds, that roadmap needs to actually be created, not just
-referenced.*
+referenced._
 
 ### Roadmap & Timeline
 
 **Current Status:**
+
 - Problem identified: Agents disagree on contract fulfillment; Parmana audit is evidence oracle
 - Architecture sketched: 3-layer model (Execution → Rules → Arbitration)
 - Research phase: Market validation due Aug 26
@@ -213,17 +218,18 @@ referenced.*
 
 ### Phase 1: Market Validation (Aug 25-26)
 
-| Research Question | Owner | Due | Status |
-|--------------------|-------|-----|--------|
-| Is A2A contract interpretation a real pain point? | Pavan | Aug 26 | IN PROGRESS — interview Razorpay/Pine Labs |
-| Do agents actually disagree on SLA interpretation? | Pavan | Aug 26 | IN PROGRESS — need market evidence |
-| What's the top 3-5 real dispute scenarios? | Pavan | Aug 26 | TODO |
-| What's the estimated TAM? | Pavan | Aug 26 | TODO |
-| Decision: Go or No-Go? | Pavan | Aug 27 | PENDING |
+| Research Question                                  | Owner | Due    | Status                                     |
+| -------------------------------------------------- | ----- | ------ | ------------------------------------------ |
+| Is A2A contract interpretation a real pain point?  | Pavan | Aug 26 | IN PROGRESS — interview Razorpay/Pine Labs |
+| Do agents actually disagree on SLA interpretation? | Pavan | Aug 26 | IN PROGRESS — need market evidence         |
+| What's the top 3-5 real dispute scenarios?         | Pavan | Aug 26 | TODO                                       |
+| What's the estimated TAM?                          | Pavan | Aug 26 | TODO                                       |
+| Decision: Go or No-Go?                             | Pavan | Aug 27 | PENDING                                    |
 
 ### Phase 2-7 (Contingent on Go Decision)
 
 If Phase 1 = Go:
+
 - Phase 2: Dispute categorization (Aug 27-28)
 - Phase 3: Contract templates (Aug 28-30)
 - Phase 4: Arbitration model (Aug 30-Sep 1)
@@ -232,31 +238,33 @@ If Phase 1 = Go:
 - Phase 7: Deep Tech narrative (Sep 10-15)
 
 If Phase 1 = No-Go:
+
 - Pause A2A work
 - Focus on Deep Tech cert + patent filing only
 - Revisit A2A later (after Deep Tech success)
 
 ### Blocking Issues
 
-| Issue | Impact | Owner | Target Resolution | Status |
-|-------|--------|-------|--------------------|--------|
-| Razorpay/Pine Labs availability | Can't validate without market feedback | Pavan | Aug 26 | IN PROGRESS — interviews scheduled? |
-| Time availability | A2A research competes with Deep Tech prep | Pavan | Aug 26 | OK if Razorpay can share data quickly |
+| Issue                           | Impact                                    | Owner | Target Resolution | Status                                |
+| ------------------------------- | ----------------------------------------- | ----- | ----------------- | ------------------------------------- |
+| Razorpay/Pine Labs availability | Can't validate without market feedback    | Pavan | Aug 26            | IN PROGRESS — interviews scheduled?   |
+| Time availability               | A2A research competes with Deep Tech prep | Pavan | Aug 26            | OK if Razorpay can share data quickly |
 
 ### Metrics to Track
 
-| Metric | Target | Current |
-|--------|--------|---------|
-| Market interviews conducted | 5+ | Unknown — Pavan to update |
-| Dispute scenarios identified | 10+ | Unknown — Pavan to update |
-| TAM estimate (annual) | >$10M | Unknown — Pavan to update |
-| Go/No-Go decision | DECIDED | PENDING (due Aug 27) |
+| Metric                       | Target  | Current                   |
+| ---------------------------- | ------- | ------------------------- |
+| Market interviews conducted  | 5+      | Unknown — Pavan to update |
+| Dispute scenarios identified | 10+     | Unknown — Pavan to update |
+| TAM estimate (annual)        | >$10M   | Unknown — Pavan to update |
+| Go/No-Go decision            | DECIDED | PENDING (due Aug 27)      |
 
 ---
 
 ## Cross-Initiative Dependencies
 
 ### Deep Tech ← Patents
+
 - **Dependency:** Real patent claim extraction and (ideally) at least provisional filings should
   happen before the Deep Tech application is finalized, since `04-IP-PATENT-SUMMARY.md`
   currently states "no patents confirmed filed" — a stronger position is available if filing
@@ -268,6 +276,7 @@ If Phase 1 = No-Go:
 - **Mitigation:** Start real extraction now (Initiative #2, Step 1) rather than assuming it's done.
 
 ### Deep Tech ← A2A Accountability
+
 - **Dependency:** A2A Go/No-Go decision (Aug 27) should land before the Deep Tech innovation
   narrative is finalized, in case it changes scope.
 - **Risk:** If A2A decision is "Yes but not ready," Deep Tech application scope stays undecided
@@ -276,6 +285,7 @@ If Phase 1 = No-Go:
   drafted, unchanged.
 
 ### Patents ← Source Code
+
 - **Dependency:** This repository (`D:\last\parmana-exp`) is the actual source of truth for
   patent claims — corrected from the original tracker's reference to
   `/areas/parmana-exp-complete-documentation.md`, which does not exist in this repo or in this
@@ -470,6 +480,7 @@ the submission itself.
 4. **Update** tracker as blocker resolves
 
 **Example escalation:**
+
 ```
 Blocker: Patent attorney not responding; can't file Candidate A by [date]
 Impact: HIGH (delays IP section strength, not the Sep 15 submission itself)
@@ -483,26 +494,28 @@ Status: ESCALATED
 
 ## Update Cadence
 
-| Trigger | Action | Owner | Sections Updated |
-|---------|--------|-------|-------------------|
-| **Session start** (daily) | Read tracker, identify status | Claude | None (read-only) |
-| **After work** (end of session) | Update deliverables, metrics, blockers — only with verified facts | Claude | All relevant sections |
-| **Daily at 5pm** (if on tight deadline) | Quick sync on critical path | Pavan | Critical path only |
-| **When blocker found** | Log + escalate immediately | Claude/Pavan | Blockers section |
-| **When decision made** | Record in tracker | Claude/Pavan | Decisions section |
-| **End of week** | Review all initiatives, update forecast | Pavan | Status summary, forecast |
+| Trigger                                 | Action                                                            | Owner        | Sections Updated         |
+| --------------------------------------- | ----------------------------------------------------------------- | ------------ | ------------------------ |
+| **Session start** (daily)               | Read tracker, identify status                                     | Claude       | None (read-only)         |
+| **After work** (end of session)         | Update deliverables, metrics, blockers — only with verified facts | Claude       | All relevant sections    |
+| **Daily at 5pm** (if on tight deadline) | Quick sync on critical path                                       | Pavan        | Critical path only       |
+| **When blocker found**                  | Log + escalate immediately                                        | Claude/Pavan | Blockers section         |
+| **When decision made**                  | Record in tracker                                                 | Claude/Pavan | Decisions section        |
+| **End of week**                         | Review all initiatives, update forecast                           | Pavan        | Status summary, forecast |
 
 ---
 
 ## Success Criteria (How to Know We're On Track)
 
 ### By Aug 28
+
 - [ ] Real patent claim extraction done for the corrected candidate files (Initiative #2)
 - [ ] A2A Go/No-Go decision made
 - [ ] All six Deep Tech docs have their remaining TODOs closed or explicitly deferred with a reason
 - [ ] No blockers from patent extraction or A2A research
 
 ### By Sep 05
+
 - [ ] R&D spend documented
 - [ ] Mastercard/AISI references confirmed or removed from all Deep Tech docs
 - [ ] Patent attorney engaged (even if provisional filings land after Sep 05, engagement should
@@ -510,6 +523,7 @@ Status: ESCALATED
 - [ ] Legal review scheduled for Sep 12
 
 ### By Sep 15
+
 - [ ] Deep Tech application complete + reviewed by CA
 - [ ] Application submitted to DPIIT
 - [ ] Patent filing status accurately reflected in the application (filed, pending, or honestly
@@ -521,6 +535,7 @@ Status: ESCALATED
 ## Version History
 
 **v1.1 (Aug 25, 2026):**
+
 - Corrected false "✅ DONE" markers in the Patent Filing initiative (extraction file and 2 of 3
   source-file citations didn't exist in this repo)
 - Replaced patent candidate source files with real, verified files from this codebase
@@ -530,6 +545,7 @@ Status: ESCALATED
 - Noted the A2A roadmap file doesn't exist yet in this repo
 
 **v1.0 (Aug 25, 2026):**
+
 - Initial master progress tracker created (as supplied by Pavan)
 - Consolidated Deep Tech cert + Patent filing + A2A accountability initiatives
 - Set critical path to Sep 15 deadline

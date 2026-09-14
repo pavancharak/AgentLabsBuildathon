@@ -11,10 +11,12 @@ export class CapabilityConnectorPolicy implements ConnectorPolicy {
     identity: ConnectorIdentity,
     capabilities: ConnectorCapabilities,
   ): boolean {
-    return request.connectorId === identity.connectorId &&
+    return (
+      request.connectorId === identity.connectorId &&
       capabilities.actions.includes(request.transaction.action) &&
       capabilities.targetPrefixes.some((prefix) =>
         request.transaction.target.startsWith(prefix),
-      );
+      )
+    );
   }
 }

@@ -17,8 +17,6 @@ import type { ExecutableContent } from "@parmana/shared";
  */
 export function createConnectorRoute() {
   return (content: Readonly<ExecutableContent>): string => {
-    throw new Error(
-      `No connector registered for action: ${content.action}.`,
-    );
+    throw new Error(`No connector registered for action: ${content.action}.`);
   };
 }

@@ -28,7 +28,9 @@ export interface DefaultSecureConnectorOptions {
 export class DefaultSecureConnector implements SecureConnector {
   readonly identity: ConnectorIdentity;
   readonly capabilities: ConnectorCapabilities;
-  private readonly contentHasher = new ExecutableContentHasher(CryptoBootstrap.create());
+  private readonly contentHasher = new ExecutableContentHasher(
+    CryptoBootstrap.create(),
+  );
 
   constructor(private readonly options: DefaultSecureConnectorOptions) {
     this.identity = Object.freeze({ ...options.identity });
@@ -38,31 +40,46 @@ export class DefaultSecureConnector implements SecureConnector {
     });
   }
 
-  async invoke(request: AuthenticatedConnectorRequest): Promise<ExecutionResult> {
+  async invoke(
+    request: AuthenticatedConnectorRequest,
+  ): Promise<ExecutionResult> {
     const baseRequest = { ...request };
     const actualHash = await this.contentHasher.hash(request.transaction);
-    const contentBound = actualHash === request.session.contentHash &&
+    const contentBound =
+      actualHash === request.session.contentHash &&
       actualHash === request.authorization.payload.businessTransactionHash;
-    const authenticated = contentBound && await this.options.sessions.verifyAndConsume(
-      request.session,
-      baseRequest,
-      this.identity,
-    );
-    const allowed = authenticated && this.options.policy.allows(
-      baseRequest,
-      this.identity,
-      this.capabilities,
-    );
+    const authenticated =
+      contentBound &&
+      (await this.options.sessions.verifyAndConsume(
+        request.session,
+        baseRequest,
+        this.identity,
+      ));
+    const allowed =
+      authenticated &&
+      this.options.policy.allows(baseRequest, this.identity, this.capabilities);
     if (!allowed) {
-      await this.audit(request, "execution.rejected", authenticated ? "capability_denied" : "gateway_authentication_failed");
+      await this.audit(
+        request,
+        "execution.rejected",
+        authenticated ? "capability_denied" : "gateway_authentication_failed",
+      );
       throw new Error("Secure Connector rejected request.");
     }
 
     const lease = await this.options.vault.acquire(this.options.credential);
     await this.audit(request, "credential.acquired");
     try {
-      const result = await this.options.target.execute(request.transaction, lease.handle);
-      await this.audit(request, "execution.completed", undefined, result.success);
+      const result = await this.options.target.execute(
+        request.transaction,
+        lease.handle,
+      );
+      await this.audit(
+        request,
+        "execution.completed",
+        undefined,
+        result.success,
+      );
       return result;
     } finally {
       await lease.release();

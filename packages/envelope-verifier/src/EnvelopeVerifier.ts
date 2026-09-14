@@ -131,8 +131,7 @@ export class EnvelopeVerifier {
     this.keyProvider = options.keyProvider;
     this.keyExpiryStore = options.keyExpiryStore;
     this.nonceStore = options.nonceStore;
-    this.maxTtlSeconds =
-      options.maxTtlSeconds ?? DEFAULT_MAX_TTL_SECONDS;
+    this.maxTtlSeconds = options.maxTtlSeconds ?? DEFAULT_MAX_TTL_SECONDS;
 
     this.authorizationVerifier = new AuthorizationVerifier(
       CryptoBootstrap.create(),
@@ -158,9 +157,7 @@ export class EnvelopeVerifier {
     }
 
     if (this.keyExpiryStore !== undefined) {
-      const entry = await this.keyExpiryStore.get(
-        authorization.keyId,
-      );
+      const entry = await this.keyExpiryStore.get(authorization.keyId);
 
       if (
         entry?.revoked === true ||
@@ -171,9 +168,7 @@ export class EnvelopeVerifier {
     }
 
     try {
-      return await this.keyProvider.getPublicKey(
-        authorization.keyId,
-      );
+      return await this.keyProvider.getPublicKey(authorization.keyId);
     } catch {
       return undefined;
     }
@@ -202,9 +197,7 @@ export class EnvelopeVerifier {
     // absent from the result, matching today's behavior exactly.
     //
     const keyValid =
-      this.keyProvider === undefined
-        ? undefined
-        : resolvedKey !== undefined;
+      this.keyProvider === undefined ? undefined : resolvedKey !== undefined;
 
     const { checks } =
       resolvedKey !== undefined
@@ -229,8 +222,7 @@ export class EnvelopeVerifier {
       1000;
 
     const ttlWithinPolicy =
-      Number.isFinite(ttlSeconds) &&
-      ttlSeconds <= this.maxTtlSeconds;
+      Number.isFinite(ttlSeconds) && ttlSeconds <= this.maxTtlSeconds;
 
     return {
       passed:
@@ -284,14 +276,9 @@ export class EnvelopeVerifier {
     authorization: SignedExecutionAuthorization,
     now: Date = new Date(),
   ): Promise<EnvelopeVerificationResult> {
-    const { passed, checks } = await this.verifyChecks(
-      authorization,
-      now,
-    );
+    const { passed, checks } = await this.verifyChecks(authorization, now);
 
-    const nonceUnseen = passed
-      ? await this.consumeNonce(authorization)
-      : false;
+    const nonceUnseen = passed ? await this.consumeNonce(authorization) : false;
 
     return {
       valid: passed && nonceUnseen,

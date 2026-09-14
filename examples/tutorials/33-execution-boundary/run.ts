@@ -1,127 +1,69 @@
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeBuilder,
-} from "@parmana/runtime";
+import { RuntimeBuilder } from "@parmana/runtime";
 
-import {
-  MemoryExecutionTrustRecordRepository,
-} from "@parmana/storage";
+import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
-import transaction from "./transaction.json" with {
-  type: "json",
-};
+import transaction from "./transaction.json" with { type: "json" };
 
 async function main(): Promise<void> {
   console.log();
-  console.log(
-    "==================================================",
-  );
-  console.log(
-    "Tutorial 33 - Execution Boundary",
-  );
-  console.log(
-    "==================================================",
-  );
+  console.log("==================================================");
+  console.log("Tutorial 33 - Execution Boundary");
+  console.log("==================================================");
   console.log();
 
   //
   // Build Runtime
   //
-  const runtime =
-    new RuntimeBuilder()
-      .withPolicyRepository(
-        new FilePolicyRepository(
-          "policies",
-        ),
-      )
-      .build(
-        new MemoryExecutionTrustRecordRepository(),
-      );
+  const runtime = new RuntimeBuilder()
+    .withPolicyRepository(new FilePolicyRepository("policies"))
+    .build(new MemoryExecutionTrustRecordRepository());
 
-  console.log(
-    "Executing Business Transaction...",
-  );
+  console.log("Executing Business Transaction...");
 
-  const { context } =
-    await runtime.execute(
-      transaction,
-    );
+  const { context } = await runtime.execute(transaction);
 
   console.log();
 
-  console.log(
-    "Execution Boundary",
-  );
+  console.log("Execution Boundary");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
-  console.log(
-    "AI proposes the action.",
-  );
+  console.log("AI proposes the action.");
 
-  console.log(
-    "✓ Policy evaluated.",
-  );
+  console.log("✓ Policy evaluated.");
 
-  console.log(
-    "✓ Execution authorized.",
-  );
+  console.log("✓ Execution authorized.");
 
-  console.log(
-    "✓ Execution request created.",
-  );
+  console.log("✓ Execution request created.");
 
   console.log();
 
-  console.log(
-    "============== Execution Boundary ==============",
-  );
+  console.log("============== Execution Boundary ==============");
 
-  console.log(
-    "Everything above is governed by Parmana.",
-  );
+  console.log("Everything above is governed by Parmana.");
 
-  console.log(
-    "Everything below belongs to the enterprise execution system.",
-  );
+  console.log("Everything below belongs to the enterprise execution system.");
 
   console.log();
 
-  console.log(
-    "Enterprise Execution",
-  );
+  console.log("Enterprise Execution");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
-  console.log(
-    "ERP / Payment System / CRM / Database",
-  );
+  console.log("ERP / Payment System / CRM / Database");
 
-  console.log(
-    "executes only after receiving",
-  );
+  console.log("executes only after receiving");
 
-  console.log(
-    "a valid Execution Authorization.",
-  );
+  console.log("a valid Execution Authorization.");
 
   console.log();
 
   if (context.authorization) {
-    console.log(
-      "Authorization",
-    );
+    console.log("Authorization");
 
-    console.log(
-      "--------------------------------------------------",
-    );
+    console.log("--------------------------------------------------");
 
     console.log(
       `Authorization ID : ${context.authorization.payload.authorizationId}`,
@@ -142,31 +84,19 @@ async function main(): Promise<void> {
 
   console.log();
 
-  console.log(
-    "Execution Boundary Summary",
-  );
+  console.log("Execution Boundary Summary");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
-  console.log(
-    "• Parmana authorizes execution.",
-  );
+  console.log("• Parmana authorizes execution.");
 
-  console.log(
-    "• Parmana never executes enterprise actions.",
-  );
+  console.log("• Parmana never executes enterprise actions.");
 
-  console.log(
-    "• Enterprise systems execute only authorized requests.",
-  );
+  console.log("• Enterprise systems execute only authorized requests.");
 
   console.log();
 
-  console.log(
-    "Tutorial completed successfully.",
-  );
+  console.log("Tutorial completed successfully.");
 }
 
 main().catch((error) => {

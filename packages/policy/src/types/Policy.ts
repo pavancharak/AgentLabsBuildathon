@@ -1,14 +1,8 @@
-import type {
-  JsonValue,
-} from "@parmana/shared";
+import type { JsonValue } from "@parmana/shared";
 
-import type {
-  PolicySignals,
-} from "./PolicySignals.js";
+import type { PolicySignals } from "./PolicySignals.js";
 
-import {
-  PolicyAction,
-} from "./PolicyAction.js";
+import { PolicyAction } from "./PolicyAction.js";
 
 /**
  * Canonical input to the Policy Engine.
@@ -47,7 +41,6 @@ export interface PolicyRuleOutcome {
  * - generate randomness
  */
 export type PolicyOperator =
-
   //
   // Equality
   //
@@ -68,10 +61,8 @@ export type PolicyOperator =
   //
   | "in"
   | "not_in"
-
   | "contains"
   | "not_contains"
-
   | "contains_all"
   | "contains_any"
 
@@ -126,7 +117,6 @@ export type PolicyOperator =
  * }
  */
 export interface PolicyLeafCondition {
-
   /**
    * Runtime signal name.
    */
@@ -186,7 +176,6 @@ export type PolicyCondition =
  * Single policy rule.
  */
 export interface PolicyRule {
-
   /**
    * Unique rule identifier.
    */
@@ -207,7 +196,6 @@ export interface PolicyRule {
  * Canonical Policy Document.
  */
 export interface Policy {
-
   /**
    * Unique policy identifier.
    */

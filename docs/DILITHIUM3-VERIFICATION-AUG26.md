@@ -80,12 +80,12 @@ independently against its own provider.
 
 ## Executive summary
 
-| Check | Result |
-|---|---|
-| Dilithium3 tests (named file, 4/4) | PASS |
-| Full suite (1274 passed / 37 skipped / 0 failed) | PASS |
-| Crypto-agility (both algorithms verify independently) | PASS |
-| No regressions | PASS |
+| Check                                                 | Result |
+| ----------------------------------------------------- | ------ |
+| Dilithium3 tests (named file, 4/4)                    | PASS   |
+| Full suite (1274 passed / 37 skipped / 0 failed)      | PASS   |
+| Crypto-agility (both algorithms verify independently) | PASS   |
+| No regressions                                        | PASS   |
 
 ## Crypto-agility proof statement
 

@@ -3,9 +3,7 @@ import type {
   ExecutionTrustRecord,
 } from "@parmana/shared";
 
-import type {
-  Runtime,
-} from "@parmana/runtime";
+import type { Runtime } from "@parmana/runtime";
 
 /**
  * Example application service.
@@ -16,9 +14,7 @@ import type {
  * controllers, routes, or UI code.
  */
 export class PaymentService {
-  constructor(
-    private readonly runtime: Runtime,
-  ) {}
+  constructor(private readonly runtime: Runtime) {}
 
   /**
    * Releases a vendor payment through
@@ -27,11 +23,7 @@ export class PaymentService {
   async releasePayment(
     transaction: BusinessTransaction,
   ): Promise<ExecutionTrustRecord> {
-    const {
-      trustRecord,
-    } = await this.runtime.execute(
-      transaction,
-    );
+    const { trustRecord } = await this.runtime.execute(transaction);
 
     return trustRecord;
   }

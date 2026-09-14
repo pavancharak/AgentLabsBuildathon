@@ -14,11 +14,18 @@ function buildRegistry() {
   const authenticator = createConnectorAuthenticator();
   const sessions = new InMemoryGatewaySessionStore(Object.freeze({}));
   const audit = new MemoryExecutionAuditSink();
-  return createConnectorRegistry(authenticator, sessions, audit, Object.freeze({ token: "test" }));
+  return createConnectorRegistry(
+    authenticator,
+    sessions,
+    audit,
+    Object.freeze({ token: "test" }),
+  );
 }
 
 describe("createConnectorRegistry — hubspot capability availability", () => {
-  const original = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
+  const original = Object.fromEntries(
+    ENV_KEYS.map((key) => [key, process.env[key]]),
+  );
 
   afterEach(() => {
     for (const key of ENV_KEYS) {
@@ -35,8 +42,12 @@ describe("createConnectorRegistry — hubspot capability availability", () => {
 
     const registry = buildRegistry();
 
-    expect(registry.resolveCapability("hubspot:deal-update").connectorId).toBe("hubspot");
-    expect(registry.resolveCapability("hubspot:deal-fetch").connectorId).toBe("hubspot");
+    expect(registry.resolveCapability("hubspot:deal-update").connectorId).toBe(
+      "hubspot",
+    );
+    expect(registry.resolveCapability("hubspot:deal-fetch").connectorId).toBe(
+      "hubspot",
+    );
   });
 
   it("(fail-closed) does not register hubspot, and resolveCapability throws, when credentials are unconfigured outside test mode", () => {
@@ -68,6 +79,8 @@ describe("createConnectorRegistry — hubspot capability availability", () => {
 
     const registry = buildRegistry();
 
-    expect(registry.resolveCapability("hubspot:deal-update").connectorId).toBe("hubspot");
+    expect(registry.resolveCapability("hubspot:deal-update").connectorId).toBe(
+      "hubspot",
+    );
   });
 });

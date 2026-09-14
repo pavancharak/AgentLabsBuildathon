@@ -1,18 +1,10 @@
 \# Tutorial 22 — Idempotent Execution
 
-
-
 \## Overview
-
-
 
 This tutorial demonstrates retrying the same Business Transaction multiple times.
 
-
-
 In distributed systems, retries are common because of:
-
-
 
 \- Network failures
 
@@ -24,23 +16,13 @@ In distributed systems, retries are common because of:
 
 \- Infrastructure failures
 
-
-
 An execution platform must be able to handle retries safely.
-
-
 
 This tutorial shows what happens when the same Business Transaction is submitted repeatedly.
 
-
-
 \---
 
-
-
 \## Retry Flow
-
-
 
 ```
 
@@ -80,19 +62,11 @@ Same Business Transaction
 
 ```
 
-
-
 The same Business Transaction is executed three times using the same `businessTransactionId`.
-
-
 
 \---
 
-
-
 \## Building the Runtime
-
-
 
 ```ts
 
@@ -110,47 +84,25 @@ const runtime =
 
 ```
 
-
-
 The Runtime is created once and reused for every execution attempt.
 
-
-
 \---
-
-
 
 \## Executing Retries
 
-
-
 ```ts
+await runtime.execute(transaction);
 
 await runtime.execute(transaction);
 
-
-
 await runtime.execute(transaction);
-
-
-
-await runtime.execute(transaction);
-
 ```
-
-
 
 Each retry uses exactly the same Business Transaction.
 
-
-
 \---
 
-
-
 \## Expected Output
-
-
 
 ```text
 
@@ -198,27 +150,15 @@ Tutorial completed successfully.
 
 ```
 
-
-
 The exact runtime behaviour depends on the configured repository and Runtime implementation.
-
-
 
 \---
 
-
-
 \## Why Idempotency Matters
-
-
 
 Enterprise systems frequently retry requests automatically.
 
-
-
 Typical examples include:
-
-
 
 \- Payment processing
 
@@ -230,39 +170,21 @@ Typical examples include:
 
 \- ERP integrations
 
-
-
 Without idempotency, retries could unintentionally execute the same business action multiple times.
 
-
-
 \---
-
-
 
 \## Current Tutorial Scope
 
-
-
 This tutorial demonstrates retry behaviour using the existing Parmana Runtime.
-
-
 
 It intentionally does \*\*not\*\* introduce any new Runtime APIs or idempotency mechanisms.
 
-
-
 Future versions of Parmana may provide first-class idempotency support while preserving the same Runtime programming model.
-
-
 
 \---
 
-
-
 \## Running the Example
-
-
 
 ```bash
 
@@ -270,11 +192,7 @@ tsx examples/tutorials/22-idempotent-execution/run.ts
 
 ```
 
-
-
 or
-
-
 
 ```bash
 
@@ -282,19 +200,11 @@ npm run examples
 
 ```
 
-
-
 \---
-
-
 
 \## Summary
 
-
-
 In this tutorial you learned how to:
-
-
 
 \- Reuse a Runtime instance
 
@@ -304,7 +214,4 @@ In this tutorial you learned how to:
 
 \- Understand why idempotency is important in enterprise execution systems
 
-
-
 Idempotent execution is a foundational concept for building reliable, fault-tolerant enterprise applications.
-

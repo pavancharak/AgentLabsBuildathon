@@ -18,7 +18,7 @@ Severity: **High**. Classified as a production-trust gap, not an architectural-b
 
 ## 3. Why The Issue Existed
 
-Established with direct, contemporaneous, first-commit evidence in `docs/operations/phase2a-deployment-readiness.md` §1: `createVendorPaymentConnector.ts`'s original commit (`ddf4bc5`, 2026-07-09) already carried the docstring *"This is the production bootstrap for the vendor-payment connector. The current implementation uses MockConnector until the real enterprise connector is introduced."* — intentional, temporary, self-documented technical debt from the moment it was written, not accidental. It was wired into the default server (`docs/site/roadmap.mdx`, commit `651497a`, 2026-07-11) specifically to demonstrate the credential-isolation/brokering architecture claim. No real `vendor-payment` implementation was ever built, and no roadmap entry committed to building one on any timeline.
+Established with direct, contemporaneous, first-commit evidence in `docs/operations/phase2a-deployment-readiness.md` §1: `createVendorPaymentConnector.ts`'s original commit (`ddf4bc5`, 2026-07-09) already carried the docstring _"This is the production bootstrap for the vendor-payment connector. The current implementation uses MockConnector until the real enterprise connector is introduced."_ — intentional, temporary, self-documented technical debt from the moment it was written, not accidental. It was wired into the default server (`docs/site/roadmap.mdx`, commit `651497a`, 2026-07-11) specifically to demonstrate the credential-isolation/brokering architecture claim. No real `vendor-payment` implementation was ever built, and no roadmap entry committed to building one on any timeline.
 
 ## 4. Phase 2A — Implementation
 
@@ -46,13 +46,13 @@ Resolved the database-identity question directly: production's own public `/read
 
 ## 8. Final Evidence Chain
 
-| Phase | Commit | Date | Report | Outcome |
-|---|---|---|---|---|
-| 2A (implementation) | `6eff8ec` | 2026-08-05 | `docs/architecture/phase2a-production-connectors.md` | MockConnector removed from unconditional production registration; fail-closed |
-| 2A.1 (readiness review) | `10c8064` | 2026-08-05 | `docs/operations/phase2a-deployment-readiness.md` | READY WITH CONDITIONS |
-| 2A.2 (deployment verification) | `0c19f78` | 2026-08-05 | `docs/operations/phase2a-deployment-verification.md` | DEPLOYMENT VERIFIED WITH FOLLOW-UP |
-| 2A.3 (historical integrity) | `e6a25ab` | 2026-08-05 | `docs/operations/phase2a-historical-integrity-verification.md` | HISTORICAL INTEGRITY CONFIRMED |
-| 2A.4 (this closure) | — | 2026-08-05 | `docs/operations/td1-closure-summary.md` (this document) | TD-1 CLOSED |
+| Phase                          | Commit    | Date       | Report                                                         | Outcome                                                                       |
+| ------------------------------ | --------- | ---------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| 2A (implementation)            | `6eff8ec` | 2026-08-05 | `docs/architecture/phase2a-production-connectors.md`           | MockConnector removed from unconditional production registration; fail-closed |
+| 2A.1 (readiness review)        | `10c8064` | 2026-08-05 | `docs/operations/phase2a-deployment-readiness.md`              | READY WITH CONDITIONS                                                         |
+| 2A.2 (deployment verification) | `0c19f78` | 2026-08-05 | `docs/operations/phase2a-deployment-verification.md`           | DEPLOYMENT VERIFIED WITH FOLLOW-UP                                            |
+| 2A.3 (historical integrity)    | `e6a25ab` | 2026-08-05 | `docs/operations/phase2a-historical-integrity-verification.md` | HISTORICAL INTEGRITY CONFIRMED                                                |
+| 2A.4 (this closure)            | —         | 2026-08-05 | `docs/operations/td1-closure-summary.md` (this document)       | TD-1 CLOSED                                                                   |
 
 Deployed artifact: Fly.io app `parmana-api`, release `v40`, image `registry.fly.io/parmana-api:deployment-01KZ7W5ZZF13WV46E6TBNTVFE6`, built from commit `6eff8ec`.
 
@@ -62,7 +62,7 @@ TD-1 is closed, not merely "fixed," because every layer of evidence this program
 
 - **Repository evidence** (Phase 2A): the fix exists, is tested, and mutation-testing confirmed the regression tests actually detect the reintroduced gap.
 - **Deployment evidence** (Phase 2A.2): the exact reviewed commit is confirmed running in production, via direct build-identity chain-of-custody and a live-captured startup log showing the fix's own warning message firing in the real process.
-- **Production/operational evidence** (Phase 2A.2, Phase 2A.3): the fail-closed behavior was established from confirmed registry state and unchanged, previously-proven code paths (not merely asserted); the historical-data question — whether any *real* party was ever handed fabricated evidence of a *real* execution — was answered directly, with self-triggered, timestamp-correlated proof of database identity, and a finding of zero non-test-attributed records.
+- **Production/operational evidence** (Phase 2A.2, Phase 2A.3): the fail-closed behavior was established from confirmed registry state and unchanged, previously-proven code paths (not merely asserted); the historical-data question — whether any _real_ party was ever handed fabricated evidence of a _real_ execution — was answered directly, with self-triggered, timestamp-correlated proof of database identity, and a finding of zero non-test-attributed records.
 
 No unresolved condition remains from any of the four phases. Phase 2A.1's conditions were each individually satisfied (checklist completed, monitoring window observed, database identity resolved). Phase 2A.2's one follow-up (historical data) was resolved by Phase 2A.3. Nothing further is pending.
 
@@ -96,4 +96,4 @@ No unresolved condition remains from any of the four phases. Phase 2A.1's condit
 - `docs/operations/phase2a-historical-integrity-verification.md` — traceability pointer added to this closure summary
 - `docs/operations/td1-closure-summary.md` — this document, newly created
 
-**Not modified** (explicitly out of scope for this closure pass): `docs/VERIFICATION-GAPS.md` and `docs/ROADMAP-v1.md` track a separate, G-numbered gap register that includes an unrelated, still-genuinely-open item about independent *signal-state verification* for `vendor-payment` (whether caller-declared signals like `vendorVerified`/`riskScore` are independently checked against a real system before execution) — a different concern from TD-1 (whether execution itself could be fabricated), using a different identifier, never tracked as "TD-1," and not addressed by Phase 2A. `docs/CLAIMS.md` contains one now-imprecise line (§ "create-connector-registry.test.ts... vendor-payment remains resolvable when razorpay is not," no longer accurate in production since Phase 2A) — noted here for visibility but not edited in this pass, as it falls outside this closure's explicitly named document set and warrants its own dedicated review given CLAIMS.md's size and separate maintenance conventions.
+**Not modified** (explicitly out of scope for this closure pass): `docs/VERIFICATION-GAPS.md` and `docs/ROADMAP-v1.md` track a separate, G-numbered gap register that includes an unrelated, still-genuinely-open item about independent _signal-state verification_ for `vendor-payment` (whether caller-declared signals like `vendorVerified`/`riskScore` are independently checked against a real system before execution) — a different concern from TD-1 (whether execution itself could be fabricated), using a different identifier, never tracked as "TD-1," and not addressed by Phase 2A. `docs/CLAIMS.md` contains one now-imprecise line (§ "create-connector-registry.test.ts... vendor-payment remains resolvable when razorpay is not," no longer accurate in production since Phase 2A) — noted here for visibility but not edited in this pass, as it falls outside this closure's explicitly named document set and warrants its own dedicated review given CLAIMS.md's size and separate maintenance conventions.

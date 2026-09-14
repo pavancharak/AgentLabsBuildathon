@@ -9,33 +9,31 @@ beforeAll(() => {
 import app from "../test-app.js";
 import { resolveDatabaseGate } from "../helpers/database-availability.js";
 
-const databaseConfigured = resolveDatabaseGate("Execution Trust Record Lifecycle");
+const databaseConfigured = resolveDatabaseGate(
+  "Execution Trust Record Lifecycle",
+);
 
 describe.skipIf(!databaseConfigured)("Execution Trust Record Lifecycle", () => {
   it("maintains the complete trust lifecycle", async () => {
-    const transaction =
-      createBusinessTransaction();
+    const transaction = createBusinessTransaction();
 
     //
     // Execute
     //
-    const executeResponse =
-      await request(app)
-        .post("/execute")
-        .send(transaction);
+    const executeResponse = await request(app)
+      .post("/execute")
+      .send(transaction);
 
     expect(executeResponse.status).toBe(200);
 
-    const trustRecord =
-      executeResponse.body;
+    const trustRecord = executeResponse.body;
 
     //
     // Retrieve Trust Record
     //
-    const response =
-      await request(app).get(
-        `/trust-records/${trustRecord.businessTransactionId}`,
-      );
+    const response = await request(app).get(
+      `/trust-records/${trustRecord.businessTransactionId}`,
+    );
 
     expect(response.status).toBe(200);
 
@@ -48,18 +46,10 @@ describe.skipIf(!databaseConfigured)("Execution Trust Record Lifecycle", () => {
     //
     // Invariants
     //
-    expect(
-      response.body.businessTransactionId,
-    ).toBe(
+    expect(response.body.businessTransactionId).toBe(
       trustRecord.businessTransactionId,
     );
 
-    expect(
-      response.body.trustRecordHash,
-    ).toBe(
-      trustRecord.trustRecordHash,
-    );
+    expect(response.body.trustRecordHash).toBe(trustRecord.trustRecordHash);
   });
 });
-
-

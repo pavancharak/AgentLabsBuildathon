@@ -34,437 +34,403 @@ describe("RuntimeEngine E2E", () => {
     path.resolve(import.meta.dirname, "../../../../policies"),
   );
 
-  const router = new PolicyRouter(
-  policyRepository,
-);
-const pipeline = new RuntimePipeline([]);
+  const router = new PolicyRouter(policyRepository);
+  const pipeline = new RuntimePipeline([]);
 
   const policyEngine = new PolicyEngine();
 
   const signalIntentBinder = new SignalIntentBinder();
 
-  const trustPipeline =
-    new BusinessTrustPipeline();
+  const trustPipeline = new BusinessTrustPipeline();
 
-  const authorizationSigner =
-    new RuntimeAuthorizationSigner();
+  const authorizationSigner = new RuntimeAuthorizationSigner();
 
-  it(
-    "executes full trust pipeline deterministically",
-    async () => {
-      const transaction: BusinessTransaction = {
-        businessTransactionId: "tx-1",
+  it("executes full trust pipeline deterministically", async () => {
+    const transaction: BusinessTransaction = {
+      businessTransactionId: "tx-1",
 
-        //
-        // executionMode is not a TransactionMetadata field;
-        // this fixture is deliberately loose and never read
-        // by the code under test, hence the unknown cast.
-        //
-        metadata: {
-          executionMode: "SYNC",
-        } as unknown as TransactionMetadata,
+      //
+      // executionMode is not a TransactionMetadata field;
+      // this fixture is deliberately loose and never read
+      // by the code under test, hence the unknown cast.
+      //
+      metadata: {
+        executionMode: "SYNC",
+      } as unknown as TransactionMetadata,
 
-        authority: {} as Authority,
+      authority: {} as Authority,
 
-        authorization: {} as Authorization,
+      authorization: {} as Authorization,
 
       intent: {
-  intentId: "intent-1",
-  authorizationId: "authorization-1",
-  action: "payments:execute",
-  target: "vendor://payments",
-  parameters: {
-    amount: 100,
-  },
-  createdAt: new Date(),
-},
-
-policy: {
-  name: "vendor-payment",
-  version: "2.0.0",
-  schemaVersion: "1.0.0",
-},
-
-signals: {
-  vendorVerified: true,
-  invoiceVerified: true,
-  paymentApproved: true,
-  sufficientFunds: true,
-  paymentAmount: 100,
-  riskScore: 10,
-  // Must match intent.target exactly: vendor-payment/2.0.0 now
-  // declares boundSignals requiring vendorId === intent.target.
-  vendorId: "vendor://payments",
-},
-
-        status:
-          BusinessTransactionStatus.RECEIVED,
-
+        intentId: "intent-1",
+        authorizationId: "authorization-1",
+        action: "payments:execute",
+        target: "vendor://payments",
+        parameters: {
+          amount: 100,
+        },
         createdAt: new Date(),
-      };
+      },
 
-      const runtime = new RuntimeEngine(
-  pipeline,
-  router,
-  policyEngine,
-  signalIntentBinder,
-  new DecisionBuilder(),
-  new ExecutionGate(),
-  new ExecutionBuilder(),
-  trustPipeline,
-  authorizationSigner,
-  120,
-);
+      policy: {
+        name: "vendor-payment",
+        version: "2.0.0",
+        schemaVersion: "1.0.0",
+      },
 
-      const result =
-        await runtime.execute(transaction);
+      signals: {
+        vendorVerified: true,
+        invoiceVerified: true,
+        paymentApproved: true,
+        sufficientFunds: true,
+        paymentAmount: 100,
+        riskScore: 10,
+        // Must match intent.target exactly: vendor-payment/2.0.0 now
+        // declares boundSignals requiring vendorId === intent.target.
+        vendorId: "vendor://payments",
+      },
 
-      expect(result.transaction).toBeDefined();
-      expect(result.context).toBeDefined();
-      expect(result.trustRecord).toBeDefined();
+      status: BusinessTransactionStatus.RECEIVED,
 
-      expect(
-        result.trustRecord.businessTransactionId,
-      ).toBe(
-        transaction.businessTransactionId,
-      );
-    },
-  );
+      createdAt: new Date(),
+    };
 
-  it(
-    "stamps transaction.policy.contentHash on the Execution Trust Record with a hash of the real loaded policy content (G-24, policy-governance milestone)",
-    async () => {
-      const runtime = new RuntimeEngine(
-        pipeline,
-        router,
-        policyEngine,
-        signalIntentBinder,
-        new DecisionBuilder(),
-        new ExecutionGate(),
-        new ExecutionBuilder(),
-        trustPipeline,
-        authorizationSigner,
-        120,
-      );
+    const runtime = new RuntimeEngine(
+      pipeline,
+      router,
+      policyEngine,
+      signalIntentBinder,
+      new DecisionBuilder(),
+      new ExecutionGate(),
+      new ExecutionBuilder(),
+      trustPipeline,
+      authorizationSigner,
+      120,
+    );
 
-      const transaction: BusinessTransaction = {
-        businessTransactionId: "tx-content-hash",
+    const result = await runtime.execute(transaction);
 
-        metadata: {
-          executionMode: "SYNC",
-        } as unknown as TransactionMetadata,
+    expect(result.transaction).toBeDefined();
+    expect(result.context).toBeDefined();
+    expect(result.trustRecord).toBeDefined();
 
-        authority: {} as Authority,
+    expect(result.trustRecord.businessTransactionId).toBe(
+      transaction.businessTransactionId,
+    );
+  });
 
-        authorization: {} as Authorization,
+  it("stamps transaction.policy.contentHash on the Execution Trust Record with a hash of the real loaded policy content (G-24, policy-governance milestone)", async () => {
+    const runtime = new RuntimeEngine(
+      pipeline,
+      router,
+      policyEngine,
+      signalIntentBinder,
+      new DecisionBuilder(),
+      new ExecutionGate(),
+      new ExecutionBuilder(),
+      trustPipeline,
+      authorizationSigner,
+      120,
+    );
 
-        intent: {
-          intentId: "intent-content-hash",
-          authorizationId: "authorization-content-hash",
-          action: "payments:execute",
-          target: "vendor://payments",
-          parameters: {
-            amount: 100,
-          },
-          createdAt: new Date(),
+    const transaction: BusinessTransaction = {
+      businessTransactionId: "tx-content-hash",
+
+      metadata: {
+        executionMode: "SYNC",
+      } as unknown as TransactionMetadata,
+
+      authority: {} as Authority,
+
+      authorization: {} as Authorization,
+
+      intent: {
+        intentId: "intent-content-hash",
+        authorizationId: "authorization-content-hash",
+        action: "payments:execute",
+        target: "vendor://payments",
+        parameters: {
+          amount: 100,
         },
-
-        // Caller-declared PolicyReference never carries contentHash --
-        // proof it's computed server-side, not merely passed through.
-        policy: {
-          name: "vendor-payment",
-          version: "2.0.0",
-          schemaVersion: "1.0.0",
-        },
-
-        signals: {
-          vendorVerified: true,
-          invoiceVerified: true,
-          paymentApproved: true,
-          sufficientFunds: true,
-          paymentAmount: 100,
-          riskScore: 10,
-          vendorId: "vendor://payments",
-        },
-
-        status: BusinessTransactionStatus.RECEIVED,
-
         createdAt: new Date(),
-      };
+      },
 
-      const result = await runtime.execute(transaction);
+      // Caller-declared PolicyReference never carries contentHash --
+      // proof it's computed server-side, not merely passed through.
+      policy: {
+        name: "vendor-payment",
+        version: "2.0.0",
+        schemaVersion: "1.0.0",
+      },
 
-      const loadedPolicy = await policyRepository.load(
-        "vendor-payment",
-        "2.0.0",
-      );
+      signals: {
+        vendorVerified: true,
+        invoiceVerified: true,
+        paymentApproved: true,
+        sufficientFunds: true,
+        paymentAmount: 100,
+        riskScore: 10,
+        vendorId: "vendor://payments",
+      },
 
-      const expectedContentHash = await new TrustRecordHasher(
-        CryptoBootstrap.create(),
-      ).hash(loadedPolicy);
+      status: BusinessTransactionStatus.RECEIVED,
 
-      expect(result.trustRecord.transaction.policy.contentHash).toBe(
-        expectedContentHash,
-      );
+      createdAt: new Date(),
+    };
 
-      // Not a degenerate constant: different content hashes differently.
-      const differentContentHash = await new TrustRecordHasher(
-        CryptoBootstrap.create(),
-      ).hash({ ...loadedPolicy, policyVersion: "9.9.9" });
+    const result = await runtime.execute(transaction);
 
-      expect(result.trustRecord.transaction.policy.contentHash).not.toBe(
-        differentContentHash,
-      );
-    },
-  );
+    const loadedPolicy = await policyRepository.load("vendor-payment", "2.0.0");
 
-  it(
-    "blocks the exact live exploit: signals describe a small verified payment, intent executes a different amount to a different target",
-    async () => {
-      const runtime = new RuntimeEngine(
-        pipeline,
-        router,
-        policyEngine,
-        signalIntentBinder,
-        new DecisionBuilder(),
-        new ExecutionGate(),
-        new ExecutionBuilder(),
-        trustPipeline,
-        authorizationSigner,
-        120,
-      );
+    const expectedContentHash = await new TrustRecordHasher(
+      CryptoBootstrap.create(),
+    ).hash(loadedPolicy);
 
-      const exploitTransaction: BusinessTransaction = {
-        businessTransactionId: "tx-exploit",
+    expect(result.trustRecord.transaction.policy.contentHash).toBe(
+      expectedContentHash,
+    );
 
-        metadata: {
-          executionMode: "SYNC",
-        } as unknown as TransactionMetadata,
+    // Not a degenerate constant: different content hashes differently.
+    const differentContentHash = await new TrustRecordHasher(
+      CryptoBootstrap.create(),
+    ).hash({ ...loadedPolicy, policyVersion: "9.9.9" });
 
-        authority: {} as Authority,
+    expect(result.trustRecord.transaction.policy.contentHash).not.toBe(
+      differentContentHash,
+    );
+  });
 
-        authorization: {} as Authorization,
+  it("blocks the exact live exploit: signals describe a small verified payment, intent executes a different amount to a different target", async () => {
+    const runtime = new RuntimeEngine(
+      pipeline,
+      router,
+      policyEngine,
+      signalIntentBinder,
+      new DecisionBuilder(),
+      new ExecutionGate(),
+      new ExecutionBuilder(),
+      trustPipeline,
+      authorizationSigner,
+      120,
+    );
 
-        intent: {
-          intentId: "intent-exploit",
-          authorizationId: "authorization-exploit",
-          action: "payments:execute",
-          // What actually executes: an attacker-controlled account
-          // for $999,999,999.
-          target: "ATTACKER-CONTROLLED-ACCOUNT-9999",
-          parameters: {
-            amount: 999999999,
-          },
-          createdAt: new Date(),
+    const exploitTransaction: BusinessTransaction = {
+      businessTransactionId: "tx-exploit",
+
+      metadata: {
+        executionMode: "SYNC",
+      } as unknown as TransactionMetadata,
+
+      authority: {} as Authority,
+
+      authorization: {} as Authorization,
+
+      intent: {
+        intentId: "intent-exploit",
+        authorizationId: "authorization-exploit",
+        action: "payments:execute",
+        // What actually executes: an attacker-controlled account
+        // for $999,999,999.
+        target: "ATTACKER-CONTROLLED-ACCOUNT-9999",
+        parameters: {
+          amount: 999999999,
         },
-
-        policy: {
-          name: "vendor-payment",
-          version: "2.0.0",
-          schemaVersion: "1.0.0",
-        },
-
-        signals: {
-          // What is declared to the policy engine: a small,
-          // fully-verified payment to a known, verified vendor.
-          vendorVerified: true,
-          invoiceVerified: true,
-          paymentApproved: true,
-          sufficientFunds: true,
-          paymentAmount: 5000,
-          riskScore: 10,
-          vendorId: "VENDOR-1001",
-        },
-
-        status: BusinessTransactionStatus.RECEIVED,
-
         createdAt: new Date(),
-      };
+      },
 
-      await expect(
-        runtime.execute(exploitTransaction),
-      ).rejects.toThrow("do not match the executed intent");
-    },
-  );
+      policy: {
+        name: "vendor-payment",
+        version: "2.0.0",
+        schemaVersion: "1.0.0",
+      },
 
-  it(
-    "refuses execution when the configured PolicyExecutionVerifier finds a violation (2026-09-07 hardening pass), before PolicyEngine ever evaluates a rule",
-    async () => {
-      const policyExecutionVerifier = {
-        verify: async () => ({
-          reason: "has no PolicyChangeApprovalRecord -- test double",
-        }),
-      };
+      signals: {
+        // What is declared to the policy engine: a small,
+        // fully-verified payment to a known, verified vendor.
+        vendorVerified: true,
+        invoiceVerified: true,
+        paymentApproved: true,
+        sufficientFunds: true,
+        paymentAmount: 5000,
+        riskScore: 10,
+        vendorId: "VENDOR-1001",
+      },
 
-      const runtime = new RuntimeEngine(
-        pipeline,
-        router,
-        policyEngine,
-        signalIntentBinder,
-        new DecisionBuilder(),
-        new ExecutionGate(),
-        new ExecutionBuilder(),
-        trustPipeline,
-        authorizationSigner,
-        120,
-        [],
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        policyExecutionVerifier,
-      );
+      status: BusinessTransactionStatus.RECEIVED,
 
-      // Otherwise a fully valid, approving transaction -- same fixture
-      // as "executes full trust pipeline deterministically" above.
-      const transaction: BusinessTransaction = {
-        businessTransactionId: "tx-governance-violation",
+      createdAt: new Date(),
+    };
 
-        metadata: {
-          executionMode: "SYNC",
-        } as unknown as TransactionMetadata,
+    await expect(runtime.execute(exploitTransaction)).rejects.toThrow(
+      "do not match the executed intent",
+    );
+  });
 
-        authority: {} as Authority,
+  it("refuses execution when the configured PolicyExecutionVerifier finds a violation (2026-09-07 hardening pass), before PolicyEngine ever evaluates a rule", async () => {
+    const policyExecutionVerifier = {
+      verify: async () => ({
+        reason: "has no PolicyChangeApprovalRecord -- test double",
+      }),
+    };
 
-        authorization: {} as Authorization,
+    const runtime = new RuntimeEngine(
+      pipeline,
+      router,
+      policyEngine,
+      signalIntentBinder,
+      new DecisionBuilder(),
+      new ExecutionGate(),
+      new ExecutionBuilder(),
+      trustPipeline,
+      authorizationSigner,
+      120,
+      [],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      policyExecutionVerifier,
+    );
 
-        intent: {
-          intentId: "intent-governance-violation",
-          authorizationId: "authorization-governance-violation",
-          action: "payments:execute",
-          target: "vendor://payments",
-          parameters: {
-            amount: 100,
-          },
-          createdAt: new Date(),
+    // Otherwise a fully valid, approving transaction -- same fixture
+    // as "executes full trust pipeline deterministically" above.
+    const transaction: BusinessTransaction = {
+      businessTransactionId: "tx-governance-violation",
+
+      metadata: {
+        executionMode: "SYNC",
+      } as unknown as TransactionMetadata,
+
+      authority: {} as Authority,
+
+      authorization: {} as Authorization,
+
+      intent: {
+        intentId: "intent-governance-violation",
+        authorizationId: "authorization-governance-violation",
+        action: "payments:execute",
+        target: "vendor://payments",
+        parameters: {
+          amount: 100,
         },
-
-        policy: {
-          name: "vendor-payment",
-          version: "2.0.0",
-          schemaVersion: "1.0.0",
-        },
-
-        signals: {
-          vendorVerified: true,
-          invoiceVerified: true,
-          paymentApproved: true,
-          sufficientFunds: true,
-          paymentAmount: 100,
-          riskScore: 10,
-          vendorId: "vendor://payments",
-        },
-
-        status: BusinessTransactionStatus.RECEIVED,
-
         createdAt: new Date(),
-      };
+      },
 
-      await expect(
-        runtime.execute(transaction),
-      ).rejects.toThrow("has no PolicyChangeApprovalRecord -- test double");
-    },
-  );
+      policy: {
+        name: "vendor-payment",
+        version: "2.0.0",
+        schemaVersion: "1.0.0",
+      },
 
-  it(
-    "leaves execution unaffected when the configured PolicyExecutionVerifier finds no violation",
-    async () => {
-      const policyExecutionVerifier = {
-        verify: async () => undefined,
-      };
+      signals: {
+        vendorVerified: true,
+        invoiceVerified: true,
+        paymentApproved: true,
+        sufficientFunds: true,
+        paymentAmount: 100,
+        riskScore: 10,
+        vendorId: "vendor://payments",
+      },
 
-      const runtime = new RuntimeEngine(
-        pipeline,
-        router,
-        policyEngine,
-        signalIntentBinder,
-        new DecisionBuilder(),
-        new ExecutionGate(),
-        new ExecutionBuilder(),
-        trustPipeline,
-        authorizationSigner,
-        120,
-        [],
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        policyExecutionVerifier,
-      );
+      status: BusinessTransactionStatus.RECEIVED,
 
-      const transaction: BusinessTransaction = {
-        businessTransactionId: "tx-governance-clean",
+      createdAt: new Date(),
+    };
 
-        metadata: {
-          executionMode: "SYNC",
-        } as unknown as TransactionMetadata,
+    await expect(runtime.execute(transaction)).rejects.toThrow(
+      "has no PolicyChangeApprovalRecord -- test double",
+    );
+  });
 
-        authority: {} as Authority,
+  it("leaves execution unaffected when the configured PolicyExecutionVerifier finds no violation", async () => {
+    const policyExecutionVerifier = {
+      verify: async () => undefined,
+    };
 
-        authorization: {} as Authorization,
+    const runtime = new RuntimeEngine(
+      pipeline,
+      router,
+      policyEngine,
+      signalIntentBinder,
+      new DecisionBuilder(),
+      new ExecutionGate(),
+      new ExecutionBuilder(),
+      trustPipeline,
+      authorizationSigner,
+      120,
+      [],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      policyExecutionVerifier,
+    );
 
-        intent: {
-          intentId: "intent-governance-clean",
-          authorizationId: "authorization-governance-clean",
-          action: "payments:execute",
-          target: "vendor://payments",
-          parameters: {
-            amount: 100,
-          },
-          createdAt: new Date(),
+    const transaction: BusinessTransaction = {
+      businessTransactionId: "tx-governance-clean",
+
+      metadata: {
+        executionMode: "SYNC",
+      } as unknown as TransactionMetadata,
+
+      authority: {} as Authority,
+
+      authorization: {} as Authorization,
+
+      intent: {
+        intentId: "intent-governance-clean",
+        authorizationId: "authorization-governance-clean",
+        action: "payments:execute",
+        target: "vendor://payments",
+        parameters: {
+          amount: 100,
         },
-
-        policy: {
-          name: "vendor-payment",
-          version: "2.0.0",
-          schemaVersion: "1.0.0",
-        },
-
-        signals: {
-          vendorVerified: true,
-          invoiceVerified: true,
-          paymentApproved: true,
-          sufficientFunds: true,
-          paymentAmount: 100,
-          riskScore: 10,
-          vendorId: "vendor://payments",
-        },
-
-        status: BusinessTransactionStatus.RECEIVED,
-
         createdAt: new Date(),
-      };
+      },
 
-      const result = await runtime.execute(transaction);
+      policy: {
+        name: "vendor-payment",
+        version: "2.0.0",
+        schemaVersion: "1.0.0",
+      },
 
-      expect(result.trustRecord).toBeDefined();
-      expect(result.trustRecord.businessTransactionId).toBe(
-        transaction.businessTransactionId,
-      );
-    },
-  );
+      signals: {
+        vendorVerified: true,
+        invoiceVerified: true,
+        paymentApproved: true,
+        sufficientFunds: true,
+        paymentAmount: 100,
+        riskScore: 10,
+        vendorId: "vendor://payments",
+      },
 
-  it(
-    "fails safely on invalid transaction",
-    async () => {
-const runtime = new RuntimeEngine(
-  pipeline,
-  router,
-  policyEngine,
-  signalIntentBinder,
-  new DecisionBuilder(),
-  new ExecutionGate(),
-  new ExecutionBuilder(),
-  trustPipeline,
-  authorizationSigner,
-  120,
-);
-      await expect(
-        runtime.execute(
-          {} as BusinessTransaction,
-        ),
-      ).rejects.toThrow();
-    },
-  );
+      status: BusinessTransactionStatus.RECEIVED,
+
+      createdAt: new Date(),
+    };
+
+    const result = await runtime.execute(transaction);
+
+    expect(result.trustRecord).toBeDefined();
+    expect(result.trustRecord.businessTransactionId).toBe(
+      transaction.businessTransactionId,
+    );
+  });
+
+  it("fails safely on invalid transaction", async () => {
+    const runtime = new RuntimeEngine(
+      pipeline,
+      router,
+      policyEngine,
+      signalIntentBinder,
+      new DecisionBuilder(),
+      new ExecutionGate(),
+      new ExecutionBuilder(),
+      trustPipeline,
+      authorizationSigner,
+      120,
+    );
+    await expect(runtime.execute({} as BusinessTransaction)).rejects.toThrow();
+  });
 });
-

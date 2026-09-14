@@ -1,10 +1,6 @@
-import type {
-  ConnectorMetadata,
-} from "../../ConnectorMetadata.js";
+import type { ConnectorMetadata } from "../../ConnectorMetadata.js";
 
-import {
-  healthyNow,
-} from "../../ConnectorMetadata.js";
+import { healthyNow } from "../../ConnectorMetadata.js";
 
 /**
  * Metadata describing the SAP connector.
@@ -25,6 +21,5 @@ export const SapMetadata: ConnectorMetadata = Object.freeze({
 
   health: healthyNow(),
 
-  description:
-    "Mock connector for SAP invoice execution.",
+  description: "Mock connector for SAP invoice execution.",
 });

@@ -17,13 +17,9 @@ export class EvidenceStage implements RuntimeComponent {
    * @returns The same immutable execution transaction.
    * @throws RuntimeError if Evidence is missing.
    */
-  public execute(
-    transaction: ExecutionTransaction
-  ): ExecutionTransaction {
+  public execute(transaction: ExecutionTransaction): ExecutionTransaction {
     if (!transaction.evidence) {
-      throw new RuntimeError(
-        "ExecutionTransaction must contain Evidence."
-      );
+      throw new RuntimeError("ExecutionTransaction must contain Evidence.");
     }
 
     return transaction;

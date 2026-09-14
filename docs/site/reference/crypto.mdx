@@ -3,7 +3,11 @@ title: "@parmana/crypto"
 description: "Signing, hashing, and verification. Ed25519 and ML-DSA-65 providers, canonical serialization, and the file-based key provider."
 ---
 
-<Info>**[AVAILABLE]** for every export below. **[ROADMAP]** for KMS/HSM key custody, no provider class exists for it yet, see [Deploy patterns](/guides/deploy-patterns).</Info>
+<Info>
+  **[AVAILABLE]** for every export below. **[ROADMAP]** for KMS/HSM key custody,
+  no provider class exists for it yet, see [Deploy
+  patterns](/guides/deploy-patterns).
+</Info>
 
 ## Purpose
 
@@ -21,45 +25,45 @@ npm install @parmana/crypto
 
 ### Bootstrap, [AVAILABLE]
 
-| Export | Signature |
-|---|---|
-| `CryptoBootstrap.create()` | `(): CryptoProvider`, builds from `config.crypto.primarySignatureProvider` |
+| Export                           | Signature                                                                                 |
+| -------------------------------- | ----------------------------------------------------------------------------------------- |
+| `CryptoBootstrap.create()`       | `(): CryptoProvider`, builds from `config.crypto.primarySignatureProvider`                |
 | `CryptoBootstrap.createHybrid()` | `(): HybridCryptoProvider`, requires `SECONDARY_SIGNATURE_PROVIDER` set, throws otherwise |
 
 See [Choose a signature provider](/guides/choose-a-signature-provider) for both, run live.
 
 ### High-level services, [AVAILABLE]
 
-| Export | Purpose |
-|---|---|
-| `VerificationCrypto` | `.hash()`, `.sign()`, `.verifySignature()`, `.verify()` on an `ExecutionTrustRecord`. No constructor arguments, builds its own `FileKeyProvider` internally — resolves keys via `PARMANA_KEY_DIR`, a local file path, not a standalone offline check a third party without that env var/file can run. See `verifyExecutionTrustRecordOffline` below for that case, and [Verify a trust record independently](/guides/verify-independently). |
-| `verifyExecutionTrustRecordOffline` | `(trustRecord, publicKeys: Record<keyId, pem>): Promise<OfflineVerificationResult>`, added 2026-09-11. Zero disk/network/env-var dependency — callers supply public keys directly as PEM strings. Checks the legacy signature and, when present, every entry in a hybrid `signatures` array. See `packages/crypto/src/OfflineVerifier.ts`. |
-| `canonicalExecutionTrustRecord` / `hybridCanonicalExecutionTrustRecord` | The exact field mapping (`packages/crypto/src/ExecutionTrustRecordCanonicalView.ts`) both `VerificationCrypto` and `verifyExecutionTrustRecordOffline` sign/verify against — one definition, shared, not two independent reimplementations that could drift. |
-| `AuthorizationSigner` | `.sign({ decisionId, businessTransactionId, policyName, policyVersion, executableContent }, privateKey, keyId, ttlSeconds): Promise<SignedExecutionAuthorization>` |
-| `AuthorizationVerifier` | Verifies a `SignedExecutionAuthorization`'s signature independent of `@parmana/envelope-verifier`'s fuller checks (expiry, nonce, TTL policy) |
-| `ReceiptCrypto` | Signs and verifies `Receipt` artifacts |
-| `TrustRecordHasher` | Canonical hash of an `ExecutionTrustRecord`'s signed fields, see [Execution trust records](/concepts/execution-trust-records) for exactly which fields |
-| `ExecutableContentHasher` | Canonical hash of `{ businessTransactionId, action, target, parameters }`, the value bound into `businessTransactionHash`, see [The gateway](/concepts/the-gateway) |
-| `ReceiptHasher` | Canonical hash for receipts |
+| Export                                                                  | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VerificationCrypto`                                                    | `.hash()`, `.sign()`, `.verifySignature()`, `.verify()` on an `ExecutionTrustRecord`. No constructor arguments, builds its own `FileKeyProvider` internally — resolves keys via `PARMANA_KEY_DIR`, a local file path, not a standalone offline check a third party without that env var/file can run. See `verifyExecutionTrustRecordOffline` below for that case, and [Verify a trust record independently](/guides/verify-independently). |
+| `verifyExecutionTrustRecordOffline`                                     | `(trustRecord, publicKeys: Record<keyId, pem>): Promise<OfflineVerificationResult>`, added 2026-09-11. Zero disk/network/env-var dependency — callers supply public keys directly as PEM strings. Checks the legacy signature and, when present, every entry in a hybrid `signatures` array. See `packages/crypto/src/OfflineVerifier.ts`.                                                                                                  |
+| `canonicalExecutionTrustRecord` / `hybridCanonicalExecutionTrustRecord` | The exact field mapping (`packages/crypto/src/ExecutionTrustRecordCanonicalView.ts`) both `VerificationCrypto` and `verifyExecutionTrustRecordOffline` sign/verify against — one definition, shared, not two independent reimplementations that could drift.                                                                                                                                                                                |
+| `AuthorizationSigner`                                                   | `.sign({ decisionId, businessTransactionId, policyName, policyVersion, executableContent }, privateKey, keyId, ttlSeconds): Promise<SignedExecutionAuthorization>`                                                                                                                                                                                                                                                                          |
+| `AuthorizationVerifier`                                                 | Verifies a `SignedExecutionAuthorization`'s signature independent of `@parmana/envelope-verifier`'s fuller checks (expiry, nonce, TTL policy)                                                                                                                                                                                                                                                                                               |
+| `ReceiptCrypto`                                                         | Signs and verifies `Receipt` artifacts                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `TrustRecordHasher`                                                     | Canonical hash of an `ExecutionTrustRecord`'s signed fields, see [Execution trust records](/concepts/execution-trust-records) for exactly which fields                                                                                                                                                                                                                                                                                      |
+| `ExecutableContentHasher`                                               | Canonical hash of `{ businessTransactionId, action, target, parameters }`, the value bound into `businessTransactionHash`, see [The gateway](/concepts/the-gateway)                                                                                                                                                                                                                                                                         |
+| `ReceiptHasher`                                                         | Canonical hash for receipts                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 ### Low-level primitives, [AVAILABLE]
 
-| Export | Purpose |
-|---|---|
-| `ArtifactSigner` / `SignatureVerifier` | Sign/verify any canonically-serializable object with a given `CryptoProvider` |
-| `CanonicalSerializer` | Key-sorted, deterministic JSON serialization, what makes hashing reproducible |
-| `Ed25519SignatureProvider` | Default signature provider |
-| `Dilithium3SignatureProvider` | ML-DSA-65 (FIPS 204) provider, requires Node ≥ 24, produces randomized (non-deterministic) signatures |
-| `SHA256HashProvider` | Default hash provider |
-| `FileKeyProvider` | `.getPrivateKey(keyId)`, `.getPublicKey(keyId)`, `.getMetadata(keyId)`, `.hasKey(keyId)`, `.listKeys()` (added 2026-09-11, enumerates every `*.public.pem` in the key directory), reads `<PARMANA_KEY_DIR>/<keyId>.{private,public}.pem`. `getPublicKey` never checks for the private key file. `getMetadata()`'s `algorithm` is derived from the key material's own `asymmetricKeyType` (fixed 2026-09-11 — it previously just echoed back `config.crypto.primarySignatureProvider`, wrong for any keyId other than whichever happened to match that global config). The only implemented `KeyProvider`. |
-| `assertKeyType` | Fails closed, naming both expected and actual key type, if a key doesn't match the configured provider (CLAIMS.md 2.13) |
+| Export                                 | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ArtifactSigner` / `SignatureVerifier` | Sign/verify any canonically-serializable object with a given `CryptoProvider`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `CanonicalSerializer`                  | Key-sorted, deterministic JSON serialization, what makes hashing reproducible                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `Ed25519SignatureProvider`             | Default signature provider                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `Dilithium3SignatureProvider`          | ML-DSA-65 (FIPS 204) provider, requires Node ≥ 24, produces randomized (non-deterministic) signatures                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `SHA256HashProvider`                   | Default hash provider                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `FileKeyProvider`                      | `.getPrivateKey(keyId)`, `.getPublicKey(keyId)`, `.getMetadata(keyId)`, `.hasKey(keyId)`, `.listKeys()` (added 2026-09-11, enumerates every `*.public.pem` in the key directory), reads `<PARMANA_KEY_DIR>/<keyId>.{private,public}.pem`. `getPublicKey` never checks for the private key file. `getMetadata()`'s `algorithm` is derived from the key material's own `asymmetricKeyType` (fixed 2026-09-11 — it previously just echoed back `config.crypto.primarySignatureProvider`, wrong for any keyId other than whichever happened to match that global config). The only implemented `KeyProvider`. |
+| `assertKeyType`                        | Fails closed, naming both expected and actual key type, if a key doesn't match the configured provider (CLAIMS.md 2.13)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 ### Hybrid signing, [AVAILABLE]
 
-| Export | Purpose |
-|---|---|
-| `HybridSignatureProvider` | `.sign(artifact, primaryKeyId, secondaryKeyId)` / `.verify(artifact, signatures)` — real class name, corrected 2026-09-11 (this table previously named nonexistent `HybridSigner`/`HybridVerifier`/`SignatureBundleBuilder` classes). Fail-closed: requires exactly one entry per configured algorithm, both must independently verify — a missing, extra, duplicate, or mismatched entry fails the whole check. |
-| `CryptoBootstrap.createHybrid()` | Builds the `HybridCryptoProvider` (primary + secondary) `HybridSignatureProvider` takes as its first constructor argument — see the Bootstrap section above. |
+| Export                           | Purpose                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HybridSignatureProvider`        | `.sign(artifact, primaryKeyId, secondaryKeyId)` / `.verify(artifact, signatures)` — real class name, corrected 2026-09-11 (this table previously named nonexistent `HybridSigner`/`HybridVerifier`/`SignatureBundleBuilder` classes). Fail-closed: requires exactly one entry per configured algorithm, both must independently verify — a missing, extra, duplicate, or mismatched entry fails the whole check. |
+| `CryptoBootstrap.createHybrid()` | Builds the `HybridCryptoProvider` (primary + secondary) `HybridSignatureProvider` takes as its first constructor argument — see the Bootstrap section above.                                                                                                                                                                                                                                                     |
 
 ## Minimal example
 
@@ -70,9 +74,9 @@ import { VerificationCrypto } from "@parmana/crypto";
 const trustRecord = JSON.parse(readFileSync("trust-record.json", "utf8"));
 const crypto = new VerificationCrypto();
 const verified = await crypto.verify(trustRecord); // no HTTP call, but still reads
-                                                    // PARMANA_KEY_DIR from disk —
-                                                    // see verifyExecutionTrustRecordOffline
-                                                    // below for a genuinely standalone check
+// PARMANA_KEY_DIR from disk —
+// see verifyExecutionTrustRecordOffline
+// below for a genuinely standalone check
 ```
 
 For a check with zero disk/env-var dependency at all — the shape an actual third party
@@ -86,7 +90,9 @@ import { verifyExecutionTrustRecordOffline } from "@parmana/crypto";
 const trustRecord = JSON.parse(readFileSync("trust-record.json", "utf8"));
 const publicKeyPem = readFileSync("default.public.pem", "utf8"); // e.g. from GET /keys/default
 
-const result = await verifyExecutionTrustRecordOffline(trustRecord, { default: publicKeyPem });
+const result = await verifyExecutionTrustRecordOffline(trustRecord, {
+  default: publicKeyPem,
+});
 // { valid: true, hashValid: true, legacySignatureValid: true, algorithmsChecked: ["ed25519"], errors: [] }
 ```
 
@@ -95,10 +101,19 @@ Full runnable version: [Verify a trust record independently](/guides/verify-inde
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="Choose a signature provider" icon="key" href="/guides/choose-a-signature-provider">
+  <Card
+    title="Choose a signature provider"
+    icon="key"
+    href="/guides/choose-a-signature-provider"
+  >
     Ed25519, ML-DSA-65, and hybrid signing, all run live.
   </Card>
-  <Card title="@parmana/envelope-verifier" icon="shield-check" href="/reference/envelope-verifier">
-    Where `AuthorizationVerifier`'s check fits into the fuller envelope verification flow.
+  <Card
+    title="@parmana/envelope-verifier"
+    icon="shield-check"
+    href="/reference/envelope-verifier"
+  >
+    Where `AuthorizationVerifier`'s check fits into the fuller envelope
+    verification flow.
   </Card>
 </CardGroup>

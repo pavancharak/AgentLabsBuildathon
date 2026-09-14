@@ -1,5 +1,3 @@
-
-
 export interface RegisteredPolicy {
   /**
    * Policy name.
@@ -34,22 +32,14 @@ export class PolicyRegistry {
    * Register a policy.
    */
   public register(policy: RegisteredPolicy): void {
-    this.registry.set(
-      `${policy.name}:${policy.version}`,
-      policy,
-    );
+    this.registry.set(`${policy.name}:${policy.version}`, policy);
   }
 
   /**
    * Find a registered policy.
    */
-  public find(
-    name: string,
-    version: string,
-  ): RegisteredPolicy | undefined {
-    return this.registry.get(
-      `${name}:${version}`,
-    );
+  public find(name: string, version: string): RegisteredPolicy | undefined {
+    return this.registry.get(`${name}:${version}`);
   }
 
   /**
@@ -62,25 +52,15 @@ export class PolicyRegistry {
   /**
    * Returns true if the policy exists.
    */
-  public has(
-    name: string,
-    version: string,
-  ): boolean {
-    return this.registry.has(
-      `${name}:${version}`,
-    );
+  public has(name: string, version: string): boolean {
+    return this.registry.has(`${name}:${version}`);
   }
 
   /**
    * Removes a registered policy.
    */
-  public unregister(
-    name: string,
-    version: string,
-  ): boolean {
-    return this.registry.delete(
-      `${name}:${version}`,
-    );
+  public unregister(name: string, version: string): boolean {
+    return this.registry.delete(`${name}:${version}`);
   }
 
   /**

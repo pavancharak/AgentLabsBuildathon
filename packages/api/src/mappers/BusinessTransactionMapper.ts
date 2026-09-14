@@ -15,10 +15,7 @@ import {
  */
 export class BusinessTransactionMapper {
   static fromRequest(
-    request: Omit<
-      BusinessTransaction,
-      "status" | "createdAt"
-    >,
+    request: Omit<BusinessTransaction, "status" | "createdAt">,
   ): BusinessTransaction {
     return {
       businessTransactionId: request.businessTransactionId,

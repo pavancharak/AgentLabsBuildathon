@@ -88,7 +88,12 @@ function createFakePool(options?: {
 
         return Promise.resolve({
           rows: last
-            ? [{ chain_hash: last.chain_hash, chain_position: String(last.chain_position) }]
+            ? [
+                {
+                  chain_hash: last.chain_hash,
+                  chain_position: String(last.chain_position),
+                },
+              ]
             : [],
         });
       }
@@ -119,7 +124,8 @@ function createFakePool(options?: {
   };
 
   const pool = {
-    query: (sql: string, values?: readonly unknown[]) => client.query(sql, values),
+    query: (sql: string, values?: readonly unknown[]) =>
+      client.query(sql, values),
     connect: () => Promise.resolve(client),
     rows,
   };
@@ -204,7 +210,8 @@ const STRUCTURAL_REJECTED_EVENT: CallerAuditEvent = {
   route: "/execute",
   callerId: "caller-1",
   businessTransactionId: "11111111-1111-4111-8111-111111111111",
-  reason: "Business Transaction '11111111-1111-4111-8111-111111111111' already exists.",
+  reason:
+    "Business Transaction '11111111-1111-4111-8111-111111111111' already exists.",
 };
 
 const NON_HUMAN_DENIED_EVENT: CallerAuditEvent = {
@@ -212,7 +219,8 @@ const NON_HUMAN_DENIED_EVENT: CallerAuditEvent = {
   occurredAt: "2026-01-01T00:00:00.000Z",
   route: "/policies/pending-changes",
   callerId: "caller-1",
-  reason: "credential is not provisioned as a verified human (credentialHolderType !== USER)",
+  reason:
+    "credential is not provisioned as a verified human (credentialHolderType !== USER)",
   severity: "flagged",
 };
 
@@ -381,7 +389,8 @@ describe("SupabaseCallerAuditSink", () => {
       occurred_at: "2026-01-01T00:00:00.000Z",
       route: "/policies/pending-changes",
       caller_id: "caller-1",
-      reason: "credential is not provisioned as a verified human (credentialHolderType !== USER)",
+      reason:
+        "credential is not provisioned as a verified human (credentialHolderType !== USER)",
       capability: null,
       principal_id: null,
       severity: "flagged",
@@ -416,7 +425,8 @@ describe("SupabaseCallerAuditSink", () => {
       occurred_at: "2026-01-01T00:00:00.000Z",
       route: "/execute",
       caller_id: "caller-1",
-      reason: "Business Transaction '11111111-1111-4111-8111-111111111111' already exists.",
+      reason:
+        "Business Transaction '11111111-1111-4111-8111-111111111111' already exists.",
       capability: null,
       principal_id: null,
       severity: null,
@@ -524,7 +534,9 @@ describe("SupabaseCallerAuditSink", () => {
       callerId: "attacker-controlled-caller-id",
     };
 
-    await expect(crypto.verify(tamperedContent, signature)).resolves.toBe(false);
+    await expect(crypto.verify(tamperedContent, signature)).resolves.toBe(
+      false,
+    );
   });
 
   it("chains a second event from the same caller to the first, incrementing chain_position", async () => {
@@ -545,7 +557,9 @@ describe("SupabaseCallerAuditSink", () => {
     expect(capturedRows[0]!.previous_chain_hash).toBeNull();
 
     expect(capturedRows[1]!.chain_position).toBe(2);
-    expect(capturedRows[1]!.previous_chain_hash).toBe(capturedRows[0]!.chain_hash);
+    expect(capturedRows[1]!.previous_chain_hash).toBe(
+      capturedRows[0]!.chain_hash,
+    );
     expect(capturedRows[1]!.chain_hash).not.toBe(capturedRows[0]!.chain_hash);
   });
 

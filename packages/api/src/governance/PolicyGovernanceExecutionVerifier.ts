@@ -1,4 +1,7 @@
-import type { PolicyExecutionVerifier, PolicyExecutionViolation } from "@parmana/policy";
+import type {
+  PolicyExecutionVerifier,
+  PolicyExecutionViolation,
+} from "@parmana/policy";
 import type { PolicyChangeCrypto } from "@parmana/crypto";
 import type { PolicyChangeApprovalRecordRepository } from "@parmana/shared";
 
@@ -29,10 +32,11 @@ export class PolicyGovernanceExecutionVerifier implements PolicyExecutionVerifie
     policyVersion: string,
     policyContentHash: string,
   ): Promise<PolicyExecutionViolation | undefined> {
-    const record = await this.policyChangeApprovalRecordRepository.findMostRecentFor(
-      policyName,
-      policyVersion,
-    );
+    const record =
+      await this.policyChangeApprovalRecordRepository.findMostRecentFor(
+        policyName,
+        policyVersion,
+      );
 
     if (record === null) {
       return {

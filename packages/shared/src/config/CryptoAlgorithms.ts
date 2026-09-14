@@ -49,5 +49,4 @@ export const CryptoModes = {
   PQ: "pq",
 } as const;
 
-export type CryptoMode =
-  (typeof CryptoModes)[keyof typeof CryptoModes];
+export type CryptoMode = (typeof CryptoModes)[keyof typeof CryptoModes];

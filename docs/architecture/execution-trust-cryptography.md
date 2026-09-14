@@ -1,34 +1,18 @@
 \# Execution Trust Cryptography
 
-
-
 \## Overview
-
-
 
 Execution Trust Cryptography provides the cryptographic foundation of Parmana's Execution Trust Infrastructure.
 
-
-
 It ensures that every authorization decision, execution, verification, and receipt can be independently validated long after execution has completed.
-
-
 
 Rather than securing communication channels, this subsystem secures execution evidence.
 
-
-
 \---
-
-
 
 \# Purpose
 
-
-
 Execution Trust Cryptography provides:
-
-
 
 \* Integrity
 
@@ -40,19 +24,11 @@ Execution Trust Cryptography provides:
 
 \* Long-Term Auditability
 
-
-
 Its purpose is to produce cryptographic proof that an execution occurred exactly as authorized.
-
-
 
 \---
 
-
-
 \# Position in the Architecture
-
-
 
 ```text
 
@@ -100,23 +76,13 @@ Its purpose is to produce cryptographic proof that an execution occurred exactly
 
 ```
 
-
-
 Execution Trust Cryptography begins after execution has been authorized and continues through verification and receipt generation.
-
-
 
 \---
 
-
-
 \# Trust Pipeline
 
-
-
 The complete trust pipeline is:
-
-
 
 ```text
 
@@ -184,27 +150,15 @@ Digital Signature
 
 ```
 
-
-
 Every stage produces immutable evidence.
-
-
 
 \---
 
-
-
 \# Execution Trust Record
-
-
 
 The Execution Trust Record is the primary cryptographic object.
 
-
-
 It captures:
-
-
 
 \* Execution Intent
 
@@ -222,27 +176,15 @@ It captures:
 
 \* Receipts
 
-
-
 The record becomes the canonical representation of execution.
-
-
 
 \---
 
-
-
 \# Canonical Serialization
-
-
 
 Before any cryptographic operation, Parmana converts objects into deterministic byte sequences.
 
-
-
 Canonical serialization guarantees:
-
-
 
 \* Stable property ordering
 
@@ -252,23 +194,13 @@ Canonical serialization guarantees:
 
 \* Platform-independent output
 
-
-
 The same Trust Record always produces the same byte representation.
-
-
 
 \---
 
-
-
 \# Hashing
 
-
-
 Canonical bytes are hashed to produce immutable identifiers.
-
-
 
 ```text
 
@@ -294,45 +226,25 @@ Trust Record Hash
 
 ```
 
-
-
 Current implementation:
-
-
 
 \* SHA-256
 
-
-
 Future providers may include:
-
-
 
 \* SHA3-512
 
 \* BLAKE3
 
-
-
 Hash providers are selected through configuration.
-
-
 
 \---
 
-
-
 \# Verification
-
-
 
 Verification validates that the Trust Record satisfies Parmana's execution trust requirements.
 
-
-
 Verification includes:
-
-
 
 \* Structural validation
 
@@ -346,23 +258,13 @@ Verification includes:
 
 \* Integrity validation
 
-
-
 Successful verification produces a verification result that becomes part of the immutable Trust Record.
-
-
 
 \---
 
-
-
 \# Receipt Generation
 
-
-
 After successful verification, Parmana generates a cryptographic receipt.
-
-
 
 ```text
 
@@ -394,71 +296,41 @@ Execution Trust Receipt
 
 ```
 
-
-
 Receipts are cryptographically signed attestations of successful verification.
-
-
 
 \---
 
-
-
 \# Signature Algorithms
-
-
 
 Receipt signatures are algorithm independent.
 
-
-
 Current implementations:
 
-
-
-| Algorithm              | Status    |
+| Algorithm | Status |
 
 | ---------------------- | --------- |
 
-| Ed25519                | Supported |
+| Ed25519 | Supported |
 
 | ML-DSA-65 (Dilithium3) | Supported |
 
-
-
 Future implementations may include:
-
-
 
 \* ML-DSA-87
 
 \* SLH-DSA
 
-
-
 The active provider is selected through configuration.
-
-
 
 \---
 
-
-
 \# Key Management
-
-
 
 Signature providers never manage key storage directly.
 
-
-
 Instead they obtain key material from the configured Key Provider.
 
-
-
 Current implementation:
-
-
 
 ```text
 
@@ -466,11 +338,7 @@ FileKeyProvider
 
 ```
 
-
-
 Future implementations:
-
-
 
 \* AWS KMS
 
@@ -482,27 +350,15 @@ Future implementations:
 
 \* Hardware Security Modules (HSM)
 
-
-
 This separation allows cryptographic algorithms and key storage mechanisms to evolve independently.
-
-
 
 \---
 
-
-
 \# Independent Verification
-
-
 
 Execution Trust Records and Receipts can be verified without access to the executing runtime.
 
-
-
 Independent verification requires:
-
-
 
 \* Canonical serialization
 
@@ -514,23 +370,13 @@ Independent verification requires:
 
 \* Execution Trust Record
 
-
-
 No database access is required to validate cryptographic integrity.
-
-
 
 \---
 
-
-
 \# Replay Compatibility
 
-
-
 Replay uses the same canonical cryptographic model.
-
-
 
 ```text
 
@@ -562,23 +408,13 @@ Receipt Verification
 
 ```
 
-
-
 Replay validates that historical executions remain cryptographically consistent.
-
-
 
 \---
 
-
-
 \# Security Properties
 
-
-
 Execution Trust Cryptography provides:
-
-
 
 \* Integrity
 
@@ -596,23 +432,13 @@ Execution Trust Cryptography provides:
 
 \* Post-Quantum Readiness
 
-
-
 It does not provide confidentiality or encryption. Those concerns belong to separate security layers.
-
-
 
 \---
 
-
-
 \# Design Principles
 
-
-
 Execution Trust Cryptography is built on the following principles:
-
-
 
 \* Cryptography protects execution evidence, not execution itself.
 
@@ -630,9 +456,4 @@ Execution Trust Cryptography is built on the following principles:
 
 \* Every receipt is a signed cryptographic attestation of a verified execution.
 
-
-
 These principles allow Parmana to evolve its cryptographic implementations while preserving the stability and verifiability of the Execution Trust Infrastructure.
-
-
-

@@ -6,11 +6,11 @@ Exercise `ApprovalVerifier` itself, generically and connector-agnostic — the d
 
 ## What You'll Learn
 
-* `result.checks` breaks verification into nine independent booleans (`versionSupported`, `issuerKnown`, `signatureVerified`, `notExpired`, `notRevoked`, `capabilityMatches`, `resourceMatches`, `scopeSatisfied`, `nonceUnseen`) — a revoked issuer's artifact can have a genuinely valid `signatureVerified: true` alongside `notRevoked: false`, proving revocation is a distinct, independent check, not merely folded into signature verification
-* A forged signature (a different key claiming a registered identity) and a tampered payload (a genuine signature, modified after signing) both fail the same `signatureVerified` check, for different underlying reasons
-* Scope supports more than a simple upper bound — a `"between"` range comparator is verified too
-* Replay protection is a property of the shared, durable nonce store, not of any single verifier instance: two independent `ApprovalVerifier` instances backed by the same store (simulating two separate processes/requests) still correctly reject a second presentation
-* A rejection on an unrelated ground (wrong `resourceId`) never consumes the nonce — a corrected retry with the same artifact still succeeds
+- `result.checks` breaks verification into nine independent booleans (`versionSupported`, `issuerKnown`, `signatureVerified`, `notExpired`, `notRevoked`, `capabilityMatches`, `resourceMatches`, `scopeSatisfied`, `nonceUnseen`) — a revoked issuer's artifact can have a genuinely valid `signatureVerified: true` alongside `notRevoked: false`, proving revocation is a distinct, independent check, not merely folded into signature verification
+- A forged signature (a different key claiming a registered identity) and a tampered payload (a genuine signature, modified after signing) both fail the same `signatureVerified` check, for different underlying reasons
+- Scope supports more than a simple upper bound — a `"between"` range comparator is verified too
+- Replay protection is a property of the shared, durable nonce store, not of any single verifier instance: two independent `ApprovalVerifier` instances backed by the same store (simulating two separate processes/requests) still correctly reject a second presentation
+- A rejection on an unrelated ground (wrong `resourceId`) never consumes the nonce — a corrected retry with the same artifact still succeeds
 
 ## Running the Tutorial
 

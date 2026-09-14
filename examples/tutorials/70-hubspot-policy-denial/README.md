@@ -6,9 +6,9 @@ Attempt to move a deal out of a terminal `closedlost` pipeline stage, and confir
 
 ## What You'll Learn
 
-* `hubspot-deal-update`'s policy has an explicit `reject-stage-transition-not-allowed` rule: `dealStageChangeRequested` true plus `dealStageTransitionAllowed` false is always a hard rejection
-* The mock server's own state is the proof, exactly like Tutorial 64: after a denial, the deal's `dealstage` property is exactly what it was before
-* `ExecutionGate` throws (status 403, code `POLICY_DENIED`) rather than returning a rejected trust record
+- `hubspot-deal-update`'s policy has an explicit `reject-stage-transition-not-allowed` rule: `dealStageChangeRequested` true plus `dealStageTransitionAllowed` false is always a hard rejection
+- The mock server's own state is the proof, exactly like Tutorial 64: after a denial, the deal's `dealstage` property is exactly what it was before
+- `ExecutionGate` throws (status 403, code `POLICY_DENIED`) rather than returning a rejected trust record
 
 ## Running the Tutorial
 

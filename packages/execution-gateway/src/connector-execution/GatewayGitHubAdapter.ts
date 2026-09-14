@@ -68,7 +68,10 @@ export class GatewayGitHubAdapter implements Connector {
     // Same guard as GatewayHubSpotAdapter's placeholder-credential check,
     // present from this connector's first version rather than retrofitted
     // after an incident (docs/CLAIMS.md 3.10's own precedent).
-    if (this.baseUrl === DEFAULT_BASE_URL && installationToken === GITHUB_TEST_MODE_PLACEHOLDER_TOKEN) {
+    if (
+      this.baseUrl === DEFAULT_BASE_URL &&
+      installationToken === GITHUB_TEST_MODE_PLACEHOLDER_TOKEN
+    ) {
       throw new Error(
         `GitHubConnector "${this.connectorId}" refuses to send the built-in test-mode placeholder ` +
           `credential to GitHub's real API (${DEFAULT_BASE_URL}). This placeholder is only safe against ` +
@@ -84,9 +87,19 @@ export class GatewayGitHubAdapter implements Connector {
     try {
       switch (request.capability) {
         case GITHUB_PR_FETCH_CAPABILITY:
-          return await this.fetchPullRequest(request, authorizationHeader, controller.signal, installationToken);
+          return await this.fetchPullRequest(
+            request,
+            authorizationHeader,
+            controller.signal,
+            installationToken,
+          );
         case GITHUB_PR_MERGE_CAPABILITY:
-          return await this.mergePullRequest(request, authorizationHeader, controller.signal, installationToken);
+          return await this.mergePullRequest(
+            request,
+            authorizationHeader,
+            controller.signal,
+            installationToken,
+          );
         default:
           throw new Error(
             `GitHubConnector "${this.connectorId}" has no handler for capability "${request.capability}".`,
@@ -134,7 +147,10 @@ export class GatewayGitHubAdapter implements Connector {
       baseRef: body.base.ref,
     };
 
-    return { success: true, metadata: { pullRequest, tokenRedacted: redactGitHubToken(token) } };
+    return {
+      success: true,
+      metadata: { pullRequest, tokenRedacted: redactGitHubToken(token) },
+    };
   }
 
   /**
@@ -155,8 +171,13 @@ export class GatewayGitHubAdapter implements Connector {
     const { owner, repo, pullNumber } = parseTarget(request.target);
     const tokenRedacted = redactGitHubToken(token);
 
-    const mergeMethod = requireString(request.parameters.mergeMethod, "parameters.mergeMethod");
-    if (!(GITHUB_ALLOWED_MERGE_METHODS as readonly string[]).includes(mergeMethod)) {
+    const mergeMethod = requireString(
+      request.parameters.mergeMethod,
+      "parameters.mergeMethod",
+    );
+    if (
+      !(GITHUB_ALLOWED_MERGE_METHODS as readonly string[]).includes(mergeMethod)
+    ) {
       throw new Error(
         `GitHubConnector "${this.connectorId}" refuses to merge with unsupported merge method ` +
           `"${mergeMethod}". Only ${GITHUB_ALLOWED_MERGE_METHODS.join(", ")} are permitted.`,
@@ -167,27 +188,37 @@ export class GatewayGitHubAdapter implements Connector {
       merge_method: mergeMethod as GitHubAllowedMergeMethod,
     };
     if (request.parameters.expectedHeadSha !== undefined) {
-      requestBody.sha = requireString(request.parameters.expectedHeadSha, "parameters.expectedHeadSha");
+      requestBody.sha = requireString(
+        request.parameters.expectedHeadSha,
+        "parameters.expectedHeadSha",
+      );
     }
 
-    const response = await fetch(`${this.baseUrl}/repos/${owner}/${repo}/pulls/${pullNumber}/merge`, {
-      method: "PUT",
-      signal,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: authorizationHeader,
-        Accept: "application/vnd.github+json",
-        "User-Agent": "parmana-connector-github",
+    const response = await fetch(
+      `${this.baseUrl}/repos/${owner}/${repo}/pulls/${pullNumber}/merge`,
+      {
+        method: "PUT",
+        signal,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authorizationHeader,
+          Accept: "application/vnd.github+json",
+          "User-Agent": "parmana-connector-github",
+        },
+        body: JSON.stringify(requestBody),
       },
-      body: JSON.stringify(requestBody),
-    });
+    );
 
     const merged = await this.parseOrFailClosed(response);
 
     return { success: true, metadata: { merged, tokenRedacted } };
   }
 
-  private async githubGet(path: string, authorizationHeader: string, signal: AbortSignal): Promise<unknown> {
+  private async githubGet(
+    path: string,
+    authorizationHeader: string,
+    signal: AbortSignal,
+  ): Promise<unknown> {
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: "GET",
       signal,
@@ -202,13 +233,19 @@ export class GatewayGitHubAdapter implements Connector {
 
   private async parseOrFailClosed(response: Response): Promise<unknown> {
     if (!response.ok) {
-      throw new Error(`GitHubConnector "${this.connectorId}" request failed with HTTP ${response.status}.`);
+      throw new Error(
+        `GitHubConnector "${this.connectorId}" request failed with HTTP ${response.status}.`,
+      );
     }
     return response.json().catch(() => ({}));
   }
 }
 
-function parseTarget(target: string): { owner: string; repo: string; pullNumber: string } {
+function parseTarget(target: string): {
+  owner: string;
+  repo: string;
+  pullNumber: string;
+} {
   const match = /^([^/]+)\/([^#]+)#(\d+)$/.exec(target);
   if (!match) {
     throw new Error(
@@ -220,7 +257,9 @@ function parseTarget(target: string): { owner: string; repo: string; pullNumber:
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0) {
-    throw new Error(`GitHubConnector request is missing required field "${field}".`);
+    throw new Error(
+      `GitHubConnector request is missing required field "${field}".`,
+    );
   }
   return value;
 }

@@ -1,11 +1,7 @@
 import crypto from "node:crypto";
 
 import { Router } from "express";
-import type {
-  NextFunction,
-  Request,
-  Response,
-} from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import {
   ParmanaError,
@@ -66,9 +62,7 @@ function asString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-function isValidStatus(
-  value: unknown,
-): value is PendingPolicyChangeStatus {
+function isValidStatus(value: unknown): value is PendingPolicyChangeStatus {
   return (
     typeof value === "string" &&
     Object.values(PendingPolicyChangeStatus).includes(
@@ -242,11 +236,7 @@ export function createPendingPolicyChangesRouter(
    */
   router.post(
     "/:name/:version/pending-changes",
-    async (
-      req: Request,
-      res: Response,
-      next: NextFunction,
-    ): Promise<void> => {
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
         const name = asString(req.params.name);
         const version = asString(req.params.version);
@@ -265,10 +255,7 @@ export function createPendingPolicyChangesRouter(
 
         const { proposedContent, reason } = req.body ?? {};
 
-        if (
-          typeof reason !== "string" ||
-          reason.trim().length === 0
-        ) {
+        if (typeof reason !== "string" || reason.trim().length === 0) {
           res.status(400).json({
             error: "reason is required.",
           });
@@ -281,7 +268,8 @@ export function createPendingPolicyChangesRouter(
           Array.isArray(proposedContent)
         ) {
           res.status(400).json({
-            error: "proposedContent is required and must be a policy.json object.",
+            error:
+              "proposedContent is required and must be a policy.json object.",
           });
           return;
         }
@@ -313,7 +301,8 @@ export function createPendingPolicyChangesRouter(
           !VALID_NAME_OR_VERSION.test(candidate.policyVersion)
         ) {
           res.status(400).json({
-            error: "proposedContent.policyVersion must match ^[A-Za-z0-9._-]+$.",
+            error:
+              "proposedContent.policyVersion must match ^[A-Za-z0-9._-]+$.",
           });
           return;
         }
@@ -352,7 +341,8 @@ export function createPendingPolicyChangesRouter(
 
         if (req.callerId === undefined) {
           res.status(401).json({
-            error: "Caller authentication is required to propose a policy change.",
+            error:
+              "Caller authentication is required to propose a policy change.",
           });
           return;
         }
@@ -403,15 +393,12 @@ export function createPendingPolicyChangesRouter(
    */
   router.get(
     "/pending-changes",
-    async (
-      req: Request,
-      res: Response,
-      next: NextFunction,
-    ): Promise<void> => {
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
         if (req.callerId === undefined) {
           res.status(401).json({
-            error: "Caller authentication is required to list pending policy changes.",
+            error:
+              "Caller authentication is required to list pending policy changes.",
           });
           return;
         }
@@ -420,10 +407,7 @@ export function createPendingPolicyChangesRouter(
 
         const statusParam = req.query.status;
 
-        if (
-          statusParam !== undefined &&
-          !isValidStatus(statusParam)
-        ) {
+        if (statusParam !== undefined && !isValidStatus(statusParam)) {
           res.status(400).json({
             error:
               "status must be one of PENDING_APPROVAL, APPROVED, REJECTED.",
@@ -431,9 +415,7 @@ export function createPendingPolicyChangesRouter(
           return;
         }
 
-        const changes = await pendingPolicyChangeRepository.list(
-          statusParam,
-        );
+        const changes = await pendingPolicyChangeRepository.list(statusParam);
 
         const withDiff = await Promise.all(
           changes.map(async (change) => {
@@ -493,15 +475,12 @@ export function createPendingPolicyChangesRouter(
    */
   router.post(
     "/pending-changes/:id/approve",
-    async (
-      req: Request,
-      res: Response,
-      next: NextFunction,
-    ): Promise<void> => {
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
         if (req.callerId === undefined) {
           res.status(401).json({
-            error: "Caller authentication is required to approve a policy change.",
+            error:
+              "Caller authentication is required to approve a policy change.",
           });
           return;
         }
@@ -543,13 +522,10 @@ export function createPendingPolicyChangesRouter(
 
         await policyChangeApprovalService.approve(existing, req.callerId);
 
-        const resolved = await pendingPolicyChangeRepository.resolve(
-          id,
-          {
-            outcome: "approved",
-            resolvedBy: req.callerId,
-          },
-        );
+        const resolved = await pendingPolicyChangeRepository.resolve(id, {
+          outcome: "approved",
+          resolvedBy: req.callerId,
+        });
 
         res.status(200).json(resolved);
         return;
@@ -587,15 +563,12 @@ export function createPendingPolicyChangesRouter(
    */
   router.post(
     "/pending-changes/:id/reject",
-    async (
-      req: Request,
-      res: Response,
-      next: NextFunction,
-    ): Promise<void> => {
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
         if (req.callerId === undefined) {
           res.status(401).json({
-            error: "Caller authentication is required to reject a policy change.",
+            error:
+              "Caller authentication is required to reject a policy change.",
           });
           return;
         }
@@ -638,14 +611,11 @@ export function createPendingPolicyChangesRouter(
           action: "reject",
         });
 
-        const resolved = await pendingPolicyChangeRepository.resolve(
-          id,
-          {
-            outcome: "rejected",
-            resolvedBy: req.callerId,
-            rejectionReason,
-          },
-        );
+        const resolved = await pendingPolicyChangeRepository.resolve(id, {
+          outcome: "rejected",
+          resolvedBy: req.callerId,
+          rejectionReason,
+        });
 
         res.status(200).json(resolved);
         return;

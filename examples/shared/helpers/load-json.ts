@@ -6,16 +6,8 @@ import { readFile } from "node:fs/promises";
  * @param filePath Path to a JSON file.
  * @returns Parsed JSON object.
  */
-export async function loadJson<T>(
-  filePath: string,
-): Promise<T> {
-  const text =
-    await readFile(
-      filePath,
-      "utf8",
-    );
+export async function loadJson<T>(filePath: string): Promise<T> {
+  const text = await readFile(filePath, "utf8");
 
-  return JSON.parse(
-    text,
-  ) as T;
+  return JSON.parse(text) as T;
 }

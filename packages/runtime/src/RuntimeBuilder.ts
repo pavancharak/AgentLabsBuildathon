@@ -28,13 +28,9 @@ import { RuntimeEngine } from "./RuntimeEngine.js";
 import { RuntimePipeline } from "./RuntimePipeline.js";
 import { BusinessTrustPipeline } from "./BusinessTrustPipeline.js";
 
-import type {
-  RuntimeComponent,
-} from "./RuntimeComponent.js";
+import type { RuntimeComponent } from "./RuntimeComponent.js";
 
-import type {
-  RuntimeHook,
-} from "./hooks/RuntimeHook.js";
+import type { RuntimeHook } from "./hooks/RuntimeHook.js";
 
 /**
  * Canonical Runtime Builder.
@@ -55,9 +51,7 @@ export class RuntimeBuilder {
   /**
    * Configure policy directory.
    */
-  public withPolicyRepository(
-    repository: PolicyRepository,
-  ): this {
+  public withPolicyRepository(repository: PolicyRepository): this {
     this.policyRepository = repository;
 
     return this;
@@ -68,9 +62,7 @@ export class RuntimeBuilder {
    * RFC-0022). Optional -- omitting this leaves current behavior
    * unchanged.
    */
-  public withSignalStateVerifier(
-    verifier: SignalStateVerifier,
-  ): this {
+  public withSignalStateVerifier(verifier: SignalStateVerifier): this {
     this.signalStateVerifier = verifier;
 
     return this;
@@ -82,9 +74,7 @@ export class RuntimeBuilder {
    * current behavior unchanged (no policy is checked against Policy
    * Governance before evaluation).
    */
-  public withPolicyExecutionVerifier(
-    verifier: PolicyExecutionVerifier,
-  ): this {
+  public withPolicyExecutionVerifier(verifier: PolicyExecutionVerifier): this {
     this.policyExecutionVerifier = verifier;
 
     return this;
@@ -93,9 +83,7 @@ export class RuntimeBuilder {
   /**
    * Add runtime stage.
    */
-  public addStage(
-    component: RuntimeComponent,
-  ): this {
+  public addStage(component: RuntimeComponent): this {
     this.components.push(component);
 
     return this;
@@ -104,9 +92,7 @@ export class RuntimeBuilder {
   /**
    * Add multiple runtime stages.
    */
-  public addStages(
-    ...components: RuntimeComponent[]
-  ): this {
+  public addStages(...components: RuntimeComponent[]): this {
     this.components.push(...components);
 
     return this;
@@ -124,12 +110,8 @@ export class RuntimeBuilder {
   /**
    * Add runtime hook.
    */
-  public addHook(
-    hook: RuntimeHook,
-  ): this {
-    this.hooks.push(
-      hook,
-    );
+  public addHook(hook: RuntimeHook): this {
+    this.hooks.push(hook);
 
     return this;
   }
@@ -137,12 +119,8 @@ export class RuntimeBuilder {
   /**
    * Add multiple runtime hooks.
    */
-  public addHooks(
-    ...hooks: RuntimeHook[]
-  ): this {
-    this.hooks.push(
-      ...hooks,
-    );
+  public addHooks(...hooks: RuntimeHook[]): this {
+    this.hooks.push(...hooks);
 
     return this;
   }
@@ -162,87 +140,67 @@ export class RuntimeBuilder {
     //
     // Runtime pipeline
     //
-    const pipeline =
-      new RuntimePipeline(
-        this.components,
-      );
+    const pipeline = new RuntimePipeline(this.components);
 
     //
     // Policy subsystem
     //
     if (!this.policyRepository) {
-      throw new Error(
-        "PolicyRepository is required.",
-      );
+      throw new Error("PolicyRepository is required.");
     }
 
-    const router =
-      new PolicyRouter(
-        this.policyRepository,
-      );
+    const router = new PolicyRouter(this.policyRepository);
 
-    const engine =
-      new PolicyEngine();
+    const engine = new PolicyEngine();
 
-    const signalIntentBinder =
-      new SignalIntentBinder();
+    const signalIntentBinder = new SignalIntentBinder();
 
-    const capabilityPolicyBinder =
-      new CapabilityPolicyBinder();
+    const capabilityPolicyBinder = new CapabilityPolicyBinder();
 
     //
     // Trust subsystem
     //
-    const trustPipeline =
-      new BusinessTrustPipeline();
+    const trustPipeline = new BusinessTrustPipeline();
 
     //
     // Authorization subsystem
     //
-    const authorizationSigner =
-      new RuntimeAuthorizationSigner();
+    const authorizationSigner = new RuntimeAuthorizationSigner();
 
-    const {
-      ttlSeconds: authorizationTtlSeconds,
-    } = loadConfig().authorization;
+    const { ttlSeconds: authorizationTtlSeconds } = loadConfig().authorization;
 
     //
     // Refusal subsystem (RFC-0021)
     //
-    const refusalRecordBuilder =
-      refusalRecords
-        ? new RefusalRecordBuilder()
-        : undefined;
+    const refusalRecordBuilder = refusalRecords
+      ? new RefusalRecordBuilder()
+      : undefined;
 
     //
     // Runtime engine
     //
-    const runtimeEngine =
-      new RuntimeEngine(
-        pipeline,
-        router,
-        engine,
-        signalIntentBinder,
-        new DecisionBuilder(),
-        new ExecutionGate(),
-        new ExecutionBuilder(),
-        trustPipeline,
-        authorizationSigner,
-        authorizationTtlSeconds,
-        this.hooks,
-        refusalRecordBuilder,
-        refusalRecords,
-        this.signalStateVerifier,
-        capabilityPolicyBinder,
-        this.policyExecutionVerifier,
-      );
+    const runtimeEngine = new RuntimeEngine(
+      pipeline,
+      router,
+      engine,
+      signalIntentBinder,
+      new DecisionBuilder(),
+      new ExecutionGate(),
+      new ExecutionBuilder(),
+      trustPipeline,
+      authorizationSigner,
+      authorizationTtlSeconds,
+      this.hooks,
+      refusalRecordBuilder,
+      refusalRecords,
+      this.signalStateVerifier,
+      capabilityPolicyBinder,
+      this.policyExecutionVerifier,
+    );
 
     //
     // Runtime façade
     //
-    return new Runtime(
-      runtimeEngine,
-      trustRecords,
-    );
+    return new Runtime(runtimeEngine, trustRecords);
   }
 }

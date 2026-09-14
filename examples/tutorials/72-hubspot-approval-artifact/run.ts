@@ -1,10 +1,20 @@
 import { generateKeyPairSync } from "node:crypto";
 
-import { ApprovalVerifier, StaticApprovalIssuerRegistry } from "@parmana/approval";
-import { ArtifactSigner, CryptoBootstrap, type KeyProvider } from "@parmana/crypto";
+import {
+  ApprovalVerifier,
+  StaticApprovalIssuerRegistry,
+} from "@parmana/approval";
+import {
+  ArtifactSigner,
+  CryptoBootstrap,
+  type KeyProvider,
+} from "@parmana/crypto";
 import { MemoryNonceStore } from "@parmana/envelope-verifier";
 import type { ExecutionSystem } from "@parmana/execution-system";
-import type { PolicySignals, SignalStateVerificationRequest } from "@parmana/policy";
+import type {
+  PolicySignals,
+  SignalStateVerificationRequest,
+} from "@parmana/policy";
 import type { ApprovalPayload, SignedApproval } from "@parmana/shared";
 import {
   HUBSPOT_DEAL_UPDATE_CAPABILITY,
@@ -80,11 +90,18 @@ async function signApproval(
   const value = await signer.sign(payload, privateKey);
   return {
     payload,
-    signature: { algorithm: crypto.signature.algorithm, keyId: payload.issuer.keyId, value, signedAt: new Date() },
+    signature: {
+      algorithm: crypto.signature.algorithm,
+      keyId: payload.issuer.keyId,
+      value,
+      signedAt: new Date(),
+    },
   };
 }
 
-function approvalPayload(overrides: Partial<ApprovalPayload> = {}): ApprovalPayload {
+function approvalPayload(
+  overrides: Partial<ApprovalPayload> = {},
+): ApprovalPayload {
   const now = new Date();
   return {
     version: 1,
@@ -128,12 +145,20 @@ console.log();
 
 // A single trusted issuer, "manager-jane", with a real generated key
 // pair -- standing in for an operator-provisioned approver.
-const { privateKey: managerPrivateKey, publicKey: managerPublicKey } = generateKeyPairSync("ed25519");
+const { privateKey: managerPrivateKey, publicKey: managerPublicKey } =
+  generateKeyPairSync("ed25519");
 const trustedRegistry = new StaticApprovalIssuerRegistry([
-  { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey: managerPublicKey, revoked: false },
+  {
+    approverId: "manager-jane",
+    keyId: "manager-jane-key-1",
+    publicKey: managerPublicKey,
+    revoked: false,
+  },
 ]);
 
-function buildVerifier(registry: StaticApprovalIssuerRegistry): HubSpotSignalStateVerifier {
+function buildVerifier(
+  registry: StaticApprovalIssuerRegistry,
+): HubSpotSignalStateVerifier {
   return new HubSpotSignalStateVerifier({
     gateway: stubGateway(fakeDeal()),
     keys: FAKE_SIGNING_KEYS,
@@ -141,54 +166,85 @@ function buildVerifier(registry: StaticApprovalIssuerRegistry): HubSpotSignalSta
     policyName: "hubspot-deal-update",
     policyVersion: "1.0.0",
     crypto,
-    approvalVerifier: new ApprovalVerifier({ crypto, issuerRegistry: registry, nonceStore: new MemoryNonceStore() }),
+    approvalVerifier: new ApprovalVerifier({
+      crypto,
+      issuerRegistry: registry,
+      nonceStore: new MemoryNonceStore(),
+    }),
   });
 }
 
-console.log("Scenario 1: Valid artifact from a trusted issuer, covering this deal and amount");
+console.log(
+  "Scenario 1: Valid artifact from a trusted issuer, covering this deal and amount",
+);
 console.log("--------------------------------------------------");
 
 const verifier1 = buildVerifier(trustedRegistry);
 const validArtifact = await signApproval(approvalPayload(), managerPrivateKey);
 const violations1 = await verifier1.findViolations(
   REQUEST,
-  baseSignals({ preAuthorizedForAmountChange: true, approvalArtifact: validArtifact as unknown as PolicySignals[string] }),
+  baseSignals({
+    preAuthorizedForAmountChange: true,
+    approvalArtifact: validArtifact as unknown as PolicySignals[string],
+  }),
 );
-console.log(`Violations : ${violations1.length === 0 ? "none -- pre-authorization accepted" : JSON.stringify(violations1)}`);
+console.log(
+  `Violations : ${violations1.length === 0 ? "none -- pre-authorization accepted" : JSON.stringify(violations1)}`,
+);
 console.log();
 
-console.log("Scenario 2: preAuthorizedForAmountChange declared true, but no artifact presented");
+console.log(
+  "Scenario 2: preAuthorizedForAmountChange declared true, but no artifact presented",
+);
 console.log("--------------------------------------------------");
 
 const verifier2 = buildVerifier(trustedRegistry);
-const violations2 = await verifier2.findViolations(REQUEST, baseSignals({ preAuthorizedForAmountChange: true }));
+const violations2 = await verifier2.findViolations(
+  REQUEST,
+  baseSignals({ preAuthorizedForAmountChange: true }),
+);
 console.log(`Violations : ${JSON.stringify(violations2)}`);
 console.log();
 
-console.log("Scenario 3: Well-formed, validly-signed artifact -- but from an issuer nobody trusts");
+console.log(
+  "Scenario 3: Well-formed, validly-signed artifact -- but from an issuer nobody trusts",
+);
 console.log("--------------------------------------------------");
 
 const untrustedRegistry = new StaticApprovalIssuerRegistry([]); // "manager-jane" never registered here
 const verifier3 = buildVerifier(untrustedRegistry);
-const untrustedArtifact = await signApproval(approvalPayload(), managerPrivateKey);
+const untrustedArtifact = await signApproval(
+  approvalPayload(),
+  managerPrivateKey,
+);
 const violations3 = await verifier3.findViolations(
   REQUEST,
-  baseSignals({ preAuthorizedForAmountChange: true, approvalArtifact: untrustedArtifact as unknown as PolicySignals[string] }),
+  baseSignals({
+    preAuthorizedForAmountChange: true,
+    approvalArtifact: untrustedArtifact as unknown as PolicySignals[string],
+  }),
 );
 console.log(`Violations : ${JSON.stringify(violations3)}`);
 console.log();
 
-console.log("Scenario 4: Valid artifact, but approved for a smaller amount than actually requested");
+console.log(
+  "Scenario 4: Valid artifact, but approved for a smaller amount than actually requested",
+);
 console.log("--------------------------------------------------");
 
 const verifier4 = buildVerifier(trustedRegistry);
 const underscopedArtifact = await signApproval(
-  approvalPayload({ scope: { field: "amountDeltaAbs", comparator: "lte", value: 1_000 } }),
+  approvalPayload({
+    scope: { field: "amountDeltaAbs", comparator: "lte", value: 1_000 },
+  }),
   managerPrivateKey,
 );
 const violations4 = await verifier4.findViolations(
   REQUEST,
-  baseSignals({ preAuthorizedForAmountChange: true, approvalArtifact: underscopedArtifact as unknown as PolicySignals[string] }),
+  baseSignals({
+    preAuthorizedForAmountChange: true,
+    approvalArtifact: underscopedArtifact as unknown as PolicySignals[string],
+  }),
 );
 console.log(`Violations : ${JSON.stringify(violations4)}`);
 console.log();
@@ -203,9 +259,13 @@ const allPassed =
   violations4[0]?.signalKey === "preAuthorizedForAmountChange";
 
 if (allPassed) {
-  console.log("✓ Only a valid, trusted, correctly-scoped Approval Artifact clears pre-authorization.");
+  console.log(
+    "✓ Only a valid, trusted, correctly-scoped Approval Artifact clears pre-authorization.",
+  );
 } else {
-  console.log("✗ Expected exactly one scenario (the trusted, correctly-scoped artifact) to pass.");
+  console.log(
+    "✗ Expected exactly one scenario (the trusted, correctly-scoped artifact) to pass.",
+  );
 }
 
 console.log();

@@ -1,14 +1,8 @@
 import "dotenv/config";
 
-import {
-  generateKeyPairSync,
-} from "node:crypto";
+import { generateKeyPairSync } from "node:crypto";
 
-import {
-  existsSync,
-  mkdirSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 
 import { join } from "node:path";
 
@@ -24,18 +18,13 @@ function argument(name: string): string {
   return args[index + 1];
 }
 
-const algorithm =
-  argument("--algorithm");
+const algorithm = argument("--algorithm");
 
-const keyId =
-  argument("--key-id");
+const keyId = argument("--key-id");
 
-const force =
-  args.includes("--force");
+const force = args.includes("--force");
 
-const keyDirectory =
-  process.env.PARMANA_KEY_DIR ??
-  "./keys";
+const keyDirectory = process.env.PARMANA_KEY_DIR ?? "./keys";
 
 if (!existsSync(keyDirectory)) {
   mkdirSync(keyDirectory, {
@@ -59,47 +48,26 @@ const nodeAlgorithm =
       : undefined;
 
 if (!nodeAlgorithm) {
-  throw new Error(
-    `Unsupported algorithm: ${algorithm}`,
-  );
+  throw new Error(`Unsupported algorithm: ${algorithm}`);
 }
 
-const {
-  publicKey,
-  privateKey,
-} = generateKeyPairSync(
-  nodeAlgorithm,
-);
+const { publicKey, privateKey } = generateKeyPairSync(nodeAlgorithm);
 
-const privatePem =
-  privateKey.export({
-    format: "pem",
-    type: "pkcs8",
-  }) as string;
+const privatePem = privateKey.export({
+  format: "pem",
+  type: "pkcs8",
+}) as string;
 
-const publicPem =
-  publicKey.export({
-    format: "pem",
-    type: "spki",
-  }) as string;
+const publicPem = publicKey.export({
+  format: "pem",
+  type: "spki",
+}) as string;
 
-const privatePath =
-  join(
-    keyDirectory,
-    `${keyId}.private.pem`,
-  );
+const privatePath = join(keyDirectory, `${keyId}.private.pem`);
 
-const publicPath =
-  join(
-    keyDirectory,
-    `${keyId}.public.pem`,
-  );
+const publicPath = join(keyDirectory, `${keyId}.public.pem`);
 
-if (
-  !force &&
-  (existsSync(privatePath) ||
-    existsSync(publicPath))
-) {
+if (!force && (existsSync(privatePath) || existsSync(publicPath))) {
   throw new Error(
     `Key material already exists at "${keyDirectory}" ` +
       `(${keyId}.private.pem / ${keyId}.public.pem). Refusing to ` +
@@ -107,15 +75,9 @@ if (
   );
 }
 
-writeFileSync(
-  privatePath,
-  privatePem,
-);
+writeFileSync(privatePath, privatePem);
 
-writeFileSync(
-  publicPath,
-  publicPem,
-);
+writeFileSync(publicPath, publicPem);
 
 console.log();
 console.log("Key pair generated");

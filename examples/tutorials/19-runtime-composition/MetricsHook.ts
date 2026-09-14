@@ -4,61 +4,35 @@ import type {
   ExecutionTrustRecord,
 } from "@parmana/shared";
 
-import type {
-  Policy,
-  PolicyDecision,
-} from "@parmana/policy";
+import type { Policy, PolicyDecision } from "@parmana/policy";
 
-import type {
-  RuntimeContext,
-  RuntimeHook,
-} from "@parmana/runtime";
+import type { RuntimeContext, RuntimeHook } from "@parmana/runtime";
 
 /**
  * Measures the duration of each Runtime phase.
  */
-export class MetricsHook
-  implements RuntimeHook
-{
-  private readonly started =
-    new Map<string, number>();
+export class MetricsHook implements RuntimeHook {
+  private readonly started = new Map<string, number>();
 
-  private start(
-    phase: string,
-  ): void {
-    this.started.set(
-      phase,
-      performance.now(),
-    );
+  private start(phase: string): void {
+    this.started.set(phase, performance.now());
   }
 
-  private finish(
-    phase: string,
-  ): void {
-    const started =
-      this.started.get(phase);
+  private finish(phase: string): void {
+    const started = this.started.get(phase);
 
     if (started === undefined) {
       return;
     }
 
-    const elapsed =
-      performance.now() - started;
+    const elapsed = performance.now() - started;
 
-    console.log(
-      `[Metrics] ${phase}: ${elapsed.toFixed(
-        2,
-      )} ms`,
-    );
+    console.log(`[Metrics] ${phase}: ${elapsed.toFixed(2)} ms`);
 
-    this.started.delete(
-      phase,
-    );
+    this.started.delete(phase);
   }
 
-  async beforePolicyLoad(
-    _transaction: BusinessTransaction,
-  ): Promise<void> {
+  async beforePolicyLoad(_transaction: BusinessTransaction): Promise<void> {
     this.start("Policy Load");
   }
 
@@ -73,9 +47,7 @@ export class MetricsHook
     _transaction: BusinessTransaction,
     _policy: Policy,
   ): Promise<void> {
-    this.start(
-      "Policy Evaluation",
-    );
+    this.start("Policy Evaluation");
   }
 
   async afterPolicyEvaluation(
@@ -83,9 +55,7 @@ export class MetricsHook
     _policy: Policy,
     _decision: PolicyDecision,
   ): Promise<void> {
-    this.finish(
-      "Policy Evaluation",
-    );
+    this.finish("Policy Evaluation");
   }
 
   async beforeDecision(
@@ -95,9 +65,7 @@ export class MetricsHook
     this.start("Decision");
   }
 
-  async afterDecision(
-    _context: RuntimeContext,
-  ): Promise<void> {
+  async afterDecision(_context: RuntimeContext): Promise<void> {
     this.finish("Decision");
   }
 
@@ -105,9 +73,7 @@ export class MetricsHook
     _transaction: BusinessTransaction,
     _decision: PolicyDecision,
   ): Promise<void> {
-    this.start(
-      "Authorization",
-    );
+    this.start("Authorization");
   }
 
   async afterAuthorization(
@@ -115,50 +81,32 @@ export class MetricsHook
     _decision: PolicyDecision,
     _authorization: SignedExecutionAuthorization,
   ): Promise<void> {
-    this.finish(
-      "Authorization",
-    );
+    this.finish("Authorization");
   }
 
-  async beforeExecution(
-    _context: RuntimeContext,
-  ): Promise<void> {
-    this.start(
-      "Runtime Pipeline",
-    );
+  async beforeExecution(_context: RuntimeContext): Promise<void> {
+    this.start("Runtime Pipeline");
   }
 
-  async afterExecution(
-    _context: RuntimeContext,
-  ): Promise<void> {
-    this.finish(
-      "Runtime Pipeline",
-    );
+  async afterExecution(_context: RuntimeContext): Promise<void> {
+    this.finish("Runtime Pipeline");
   }
 
-  async beforeTrustRecord(
-    _context: RuntimeContext,
-  ): Promise<void> {
-    this.start(
-      "Trust Pipeline",
-    );
+  async beforeTrustRecord(_context: RuntimeContext): Promise<void> {
+    this.start("Trust Pipeline");
   }
 
   async afterTrustRecord(
     _context: RuntimeContext,
     _trustRecord: ExecutionTrustRecord,
   ): Promise<void> {
-    this.finish(
-      "Trust Pipeline",
-    );
+    this.finish("Trust Pipeline");
   }
 
   async onRuntimeError(
     _context: RuntimeContext | undefined,
     error: Error,
   ): Promise<void> {
-    console.log(
-      `[Metrics] Runtime failed: ${error.message}`,
-    );
+    console.log(`[Metrics] Runtime failed: ${error.message}`);
   }
 }

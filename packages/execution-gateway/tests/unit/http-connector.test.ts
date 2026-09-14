@@ -1,4 +1,9 @@
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from "node:http";
 import type { AddressInfo } from "node:net";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -14,7 +19,14 @@ import { GatewayHttpAdapter } from "../../src/connector-execution/index.js";
 
 let server: Server;
 let baseUrl: string;
-let lastRequest: { method?: string; url?: string; headers: IncomingMessage["headers"]; body: string } | undefined;
+let lastRequest:
+  | {
+      method?: string;
+      url?: string;
+      headers: IncomingMessage["headers"];
+      body: string;
+    }
+  | undefined;
 let responseDelayMs = 0;
 let responseStatus = 200;
 
@@ -49,9 +61,15 @@ afterEach(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()));
 });
 
-function context(overrides: Partial<ConnectorExecutionContext> = {}): ConnectorExecutionContext {
+function context(
+  overrides: Partial<ConnectorExecutionContext> = {},
+): ConnectorExecutionContext {
   return {
-    credential: brandCredentialHandle({ providerId: "static", credentialId: "stripe", value: { token: "sk_test_123" } }),
+    credential: brandCredentialHandle({
+      providerId: "static",
+      credentialId: "stripe",
+      value: { token: "sk_test_123" },
+    }),
     timeoutMs: 2_000,
     requestedAt: new Date(),
     ...overrides,
@@ -83,7 +101,10 @@ describe("GatewayHttpAdapter", () => {
     expect(lastRequest?.method).toBe("POST");
     expect(lastRequest?.url).toBe("/charges");
     expect(lastRequest?.headers.authorization).toBe("Bearer sk_test_123");
-    expect(JSON.parse(lastRequest?.body ?? "{}")).toEqual({ amount: 1000, currency: "usd" });
+    expect(JSON.parse(lastRequest?.body ?? "{}")).toEqual({
+      amount: 1000,
+      currency: "usd",
+    });
   });
 
   it("derives the HTTP method from the http: namespaced capability", async () => {
@@ -93,7 +114,14 @@ describe("GatewayHttpAdapter", () => {
       baseUrl,
     });
 
-    await connector.execute(request({ capability: "http:get", action: "http:get", target: "/accounts/1" }), context());
+    await connector.execute(
+      request({
+        capability: "http:get",
+        action: "http:get",
+        target: "/accounts/1",
+      }),
+      context(),
+    );
 
     expect(lastRequest?.method).toBe("GET");
   });
@@ -106,7 +134,9 @@ describe("GatewayHttpAdapter", () => {
       baseUrl,
     });
 
-    await expect(connector.execute(request(), context())).rejects.toThrow("HTTP 500");
+    await expect(connector.execute(request(), context())).rejects.toThrow(
+      "HTTP 500",
+    );
   });
 
   it("fails closed on a timeout, never returning a partial success", async () => {
@@ -117,8 +147,9 @@ describe("GatewayHttpAdapter", () => {
       baseUrl,
     });
 
-    await expect(connector.execute(request(), context({ timeoutMs: 20 })))
-      .rejects.toThrow("timed out after 20ms");
+    await expect(
+      connector.execute(request(), context({ timeoutMs: 20 })),
+    ).rejects.toThrow("timed out after 20ms");
   });
 
   it("rejects a capability the connector did not declare", async () => {
@@ -128,8 +159,9 @@ describe("GatewayHttpAdapter", () => {
       baseUrl,
     });
 
-    await expect(connector.execute(request({ capability: "http:post" }), context()))
-      .rejects.toThrow('does not declare capability "http:post"');
+    await expect(
+      connector.execute(request({ capability: "http:post" }), context()),
+    ).rejects.toThrow('does not declare capability "http:post"');
   });
 
   it("forwards additional configured headers on the request", async () => {

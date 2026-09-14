@@ -90,7 +90,7 @@ querying Parmana's own database or trusting Parmana's own runtime to self-report
 - Signed audit logs and Merkle-style tamper-evidence are known art broadly (e.g., certificate
   transparency logs, blockchain-adjacent systems) — the attorney will need to sharpen what's
   specifically novel here versus that prior art. Candidate distinguishing elements: the
-  *AI-agent-execution-specific* framing (claim 4), and the additive dual-signature hybrid
+  _AI-agent-execution-specific_ framing (claim 4), and the additive dual-signature hybrid
   mechanism (claim 3) that doesn't require re-signing under a new algorithm.
 - Formal drawings: a sequence diagram of canonicalize → hash → sign → (optionally) hybrid-sign,
   and a system diagram showing the verifier as a separate, untrusted-relationship component from

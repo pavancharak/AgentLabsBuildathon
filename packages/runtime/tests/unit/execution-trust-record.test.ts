@@ -100,8 +100,7 @@ describe("Runtime Engine", () => {
     const execution: Execution = {
       executionId: crypto.randomUUID(),
 
-      businessTransactionId:
-        transaction.businessTransactionId,
+      businessTransactionId: transaction.businessTransactionId,
 
       decision,
 
@@ -120,8 +119,7 @@ describe("Runtime Engine", () => {
     const trustRecord: ExecutionTrustRecord = {
       trustRecordId: crypto.randomUUID(),
 
-      businessTransactionId:
-        transaction.businessTransactionId,
+      businessTransactionId: transaction.businessTransactionId,
 
       transaction,
 
@@ -143,31 +141,20 @@ describe("Runtime Engine", () => {
     //
     // Assert
     //
-    expect(transaction.status).toBe(
-      BusinessTransactionStatus.RECEIVED,
-    );
+    expect(transaction.status).toBe(BusinessTransactionStatus.RECEIVED);
 
-    expect(decision.outcome).toBe(
-      DecisionOutcome.APPROVED,
-    );
+    expect(decision.outcome).toBe(DecisionOutcome.APPROVED);
 
-    expect(execution.status).toBe(
-      ExecutionStatus.COMPLETED,
-    );
+    expect(execution.status).toBe(ExecutionStatus.COMPLETED);
 
-    expect(
-      trustRecord.executions.length,
-    ).toBe(1);
+    expect(trustRecord.executions.length).toBe(1);
 
-    expect(
-      trustRecord.businessTransactionId,
-    ).toBe(
+    expect(trustRecord.businessTransactionId).toBe(
       transaction.businessTransactionId,
     );
 
-    expect(
-      trustRecord.executions[0].decision
-        .decisionId,
-    ).toBe(decision.decisionId);
+    expect(trustRecord.executions[0].decision.decisionId).toBe(
+      decision.decisionId,
+    );
   });
 });

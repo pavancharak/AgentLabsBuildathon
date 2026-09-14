@@ -8,8 +8,8 @@
 
 ## The gap before this existed
 
-Every other chapter in this book is about controlling *execution*, what an AI agent or
-other caller is allowed to make happen. None of it protects the *rules* execution is checked
+Every other chapter in this book is about controlling _execution_, what an AI agent or
+other caller is allowed to make happen. None of it protects the _rules_ execution is checked
 against: before this feature, any caller with filesystem write access to `policies/` could
 change what a policy allows, with no second party involved and no durable, signed record of
 who approved the change. This is the one deliberate exception to Chapter 1's
@@ -34,7 +34,7 @@ audited as `caller.non_human_denied` with `severity: "flagged"`.
 
 **Maker not equal to checker, next, on approve/reject.**
 `SameActorCannotApproveOwnChangeError` fires independently on both endpoints when
-`proposedBy === req.callerId`: `403 SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE`, checked *before*
+`proposedBy === req.callerId`: `403 SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE`, checked _before_
 step-up authorization is even looked at, because a maker approving its own change is wrong
 regardless of what envelope it presents.
 
@@ -53,8 +53,8 @@ that was caught and fixed before merge.
 Tutorial 103 (`examples/tutorials/103-policy-governance-maker-checker`) exercises all three
 layers independently against a real HTTP server: a human maker proposes; a `SERVICE` caller
 is denied at propose; the maker is denied approving its own change with no step-up envelope
-even attempted; a distinct checker with *no* step-up envelope is still denied; only a distinct
-checker *with* a valid step-up envelope succeeds.
+even attempted; a distinct checker with _no_ step-up envelope is still denied; only a distinct
+checker _with_ a valid step-up envelope succeeds.
 
 ## Sign before write: the safer order, proven, not just documented
 
@@ -74,7 +74,7 @@ route, form, or template anywhere targets `/approve` or `/reject`. The diff page
 instructions tell a checker to run `scripts/sign-policy-change-step-up.ts` **locally** and
 submit the result themselves, with their own bearer token, entirely outside this UI. Its
 login has no independent validation logic of its own: `POST /login` calls `GET /callers/me`
-on the real API with the submitted key as the bearer token, and that single round trip *is*
+on the real API with the submitted key as the bearer token, and that single round trip _is_
 the entire check. If the API accepts the key, the UI trusts it; if not, the UI has nothing
 further to say. The session holds only the caller's own API key, server-side, in an
 `express-session` cookie (`httpOnly`, `secure` in production, 8-hour expiry). The key never
@@ -91,12 +91,12 @@ property the mechanism exists to provide.
 
 ## Two open questions this feature does not resolve
 
-**Internal vs. external policy authoring.** This system resolves *how* a policy change is
+**Internal vs. external policy authoring.** This system resolves _how_ a policy change is
 approved, given that Parmana is the system of record for the approval. It does not answer
-whether Parmana *should* be that system of record at all. An architecture where policies
+whether Parmana _should_ be that system of record at all. An architecture where policies
 are authored and approved in an external system, with Parmana staying strictly
 read-only/enforcement-only, remains a live, undecided option. The maker-checker system exists
-because policy authoring was previously outside *any* governance surface, not because the
+because policy authoring was previously outside _any_ governance surface, not because the
 internal-vs-external question was compared and internal was chosen.
 
 **The human-vs-AI-agent identity problem underneath step-up authorization.** `isHumanCaller()`

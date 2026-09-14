@@ -1,54 +1,28 @@
 \# RFC-0007 — Agent SDK
 
-
-
 \*\*Status:\*\* Draft
-
-
 
 \*\*Author:\*\* Parmana Architecture Team
 
-
-
 \*\*Created:\*\* 2026-06-25
-
-
 
 \*\*Target Version:\*\* 0.4.0
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 Introduce an Agent SDK that enables autonomous systems to integrate with Parmana and produce verifiable execution records.
-
-
 
 The Agent SDK provides a developer-friendly interface for recording authority, intent, authorization, execution, evidence, and verification while remaining independent of any specific AI framework or model provider.
 
-
-
 \---
-
-
 
 \# Motivation
 
-
-
 Modern AI systems increasingly operate as autonomous agents capable of planning, reasoning, invoking tools, and executing actions.
 
-
-
 Organizations require evidence that these actions:
-
-
 
 \* Were authorized.
 
@@ -58,19 +32,11 @@ Organizations require evidence that these actions:
 
 \* Can be independently verified.
 
-
-
 The Agent SDK provides this capability without replacing existing agent frameworks.
-
-
 
 \---
 
-
-
 \# Goals
-
-
 
 \* Integrate with existing agent frameworks.
 
@@ -82,19 +48,11 @@ The Agent SDK provides this capability without replacing existing agent framewor
 
 \* Provide a consistent developer experience.
 
-
-
 \---
-
-
 
 \# Non-Goals
 
-
-
 This RFC does not define:
-
-
 
 \* An LLM abstraction.
 
@@ -110,35 +68,19 @@ This RFC does not define:
 
 \* Tool execution frameworks.
 
-
-
 These remain the responsibility of external agent frameworks.
 
-
-
 \---
-
-
 
 \# Architectural Principle
 
-
-
 The Agent SDK extends autonomous systems with Execution Trust.
-
-
 
 It does not replace agent runtimes.
 
-
-
 \---
 
-
-
 \# Architecture
-
-
 
 ```text
 
@@ -166,23 +108,13 @@ It does not replace agent runtimes.
 
 ```
 
-
-
 The SDK acts as an integration layer between autonomous systems and the Parmana platform.
-
-
 
 \---
 
-
-
 \# Responsibilities
 
-
-
 The Agent SDK SHALL:
-
-
 
 \* Create execution transactions.
 
@@ -196,11 +128,7 @@ The Agent SDK SHALL:
 
 \* Support replay integration.
 
-
-
 The Agent SDK SHALL NOT:
-
-
 
 \* Execute LLM inference.
 
@@ -210,19 +138,11 @@ The Agent SDK SHALL NOT:
 
 \* Replace orchestration frameworks.
 
-
-
 \---
-
-
 
 \# Agent Execution Model
 
-
-
 A typical execution flow:
-
-
 
 ```text
 
@@ -266,23 +186,13 @@ Verification
 
 ```
 
-
-
 The SDK records each stage as part of the execution lifecycle.
-
-
 
 \---
 
-
-
 \# Integration Model
 
-
-
 The SDK MAY integrate with:
-
-
 
 \* Single-agent systems.
 
@@ -294,23 +204,13 @@ The SDK MAY integrate with:
 
 \* Custom automation platforms.
 
-
-
 Integration occurs through stable public APIs.
-
-
 
 \---
 
-
-
 \# Developer API
 
-
-
 Illustrative example:
-
-
 
 ```typescript
 
@@ -338,23 +238,13 @@ const report = await sdk.verify(transaction);
 
 ```
 
-
-
 The API emphasizes execution recording rather than agent orchestration.
-
-
 
 \---
 
-
-
 \# Execution Context
 
-
-
 The SDK MAY capture contextual information such as:
-
-
 
 \* Agent Identifier
 
@@ -368,23 +258,13 @@ The SDK MAY capture contextual information such as:
 
 \* Correlation Identifiers
 
-
-
 Context is recorded only when relevant to execution trust.
-
-
 
 \---
 
-
-
 \# Evidence
 
-
-
 The SDK records immutable evidence, including:
-
-
 
 \* Tool invocations.
 
@@ -396,55 +276,29 @@ The SDK records immutable evidence, including:
 
 \* Runtime metadata.
 
-
-
 Evidence remains append-only.
 
-
-
 \---
-
-
 
 \# Verification
 
-
-
 The SDK exposes verification capabilities but does not implement verification itself.
-
-
 
 Verification is delegated to the Verification Engine.
 
-
-
 \---
-
-
 
 \# Replay
 
-
-
 The SDK MAY expose replay functionality by delegating to the Replay Engine.
-
-
 
 Replay remains an independent subsystem.
 
-
-
 \---
-
-
 
 \# Framework Independence
 
-
-
 The Agent SDK SHALL remain independent of any specific:
-
-
 
 \* AI model.
 
@@ -456,19 +310,11 @@ The Agent SDK SHALL remain independent of any specific:
 
 \* Cloud provider.
 
-
-
 Framework-specific integrations SHOULD be implemented as adapters.
-
-
 
 \---
 
-
-
 \# Package Mapping
-
-
 
 ```text
 
@@ -494,83 +340,43 @@ sdk/
 
 ```
 
-
-
 Adapters provide integration with external ecosystems without changing the SDK's public contract.
 
-
-
 \---
-
-
 
 \# Compatibility
 
-
-
 This RFC is backward compatible.
-
-
 
 Existing Runtime, Verification, and Replay packages require no architectural changes.
 
-
-
 The SDK is an additional integration layer.
 
-
-
 \---
-
-
 
 \# Alternatives Considered
 
-
-
 \## Agent Framework
-
-
 
 Rejected because Parmana's purpose is Execution Trust, not agent orchestration.
 
-
-
 \---
-
-
 
 \## Runtime-Coupled SDK
 
-
-
 Rejected because coupling the SDK directly to Runtime internals would reduce portability and hinder future implementations.
 
-
-
 \---
-
-
 
 \## AI Provider SDK
 
-
-
 Rejected because model providers evolve rapidly.
-
-
 
 The SDK should remain provider-neutral and focus on execution trust.
 
-
-
 \---
 
-
-
 \# Open Questions
-
-
 
 \* Should streaming tool execution be standardized?
 
@@ -580,15 +386,9 @@ The SDK should remain provider-neutral and focus on execution trust.
 
 \* Should SDK adapters be maintained within the core repository or separately?
 
-
-
 \---
 
-
-
 \# Acceptance Criteria
-
-
 
 \* An `AgentSDK` abstraction exists.
 
@@ -602,15 +402,9 @@ The SDK should remain provider-neutral and focus on execution trust.
 
 \* Existing Core, Runtime, and Verification packages require no architectural changes.
 
-
-
 \---
 
-
-
 \# References
-
-
 
 \* 003-EXECUTION-TRANSACTION.md
 
@@ -633,6 +427,3 @@ The SDK should remain provider-neutral and focus on execution trust.
 \* RFC-0002 — Replay Engine
 
 \* RFC-0003 — Human Approval
-
-
-

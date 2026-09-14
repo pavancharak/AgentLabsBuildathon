@@ -1,30 +1,16 @@
 \# Tutorial 40 — Signature Forgery
 
-
-
 \## Overview
-
-
 
 A signature forgery attack occurs when an attacker attempts to fabricate an Execution Authorization without possessing Parmana's private signing key.
 
-
-
 Although the authorization payload may appear legitimate, the digital signature cannot be reproduced without the corresponding private key.
-
-
 
 The Execution Gateway verifies every authorization using Parmana's public key before allowing execution.
 
-
-
 \---
 
-
-
 \## Attack Scenario
-
-
 
 ```text
 
@@ -92,15 +78,9 @@ Execution Rejected
 
 ```
 
-
-
 \---
 
-
-
 \## Genuine Authorization
-
-
 
 ```text
 
@@ -120,15 +100,9 @@ Signature
 
 ```
 
-
-
 \---
 
-
-
 \## Forged Authorization
-
-
 
 ```text
 
@@ -148,23 +122,13 @@ Signature
 
 ```
 
-
-
 The payload may be identical.
-
-
 
 Only the signature has changed.
 
-
-
 \---
 
-
-
 \## Expected Output
-
-
 
 ```text
 
@@ -202,47 +166,25 @@ Tutorial completed successfully.
 
 ```
 
-
-
 \---
-
-
 
 \## Why Digital Signatures Matter
 
-
-
 An attacker can copy an authorization.
-
-
 
 An attacker can read an authorization.
 
-
-
 An attacker can modify an authorization.
-
-
 
 What an attacker \*\*cannot\*\* do is generate a valid signature without Parmana's private signing key.
 
-
-
 This is the foundation of trust for every Execution Authorization.
-
-
 
 \---
 
-
-
 \## Gateway Validation
 
-
-
 The gateway performs cryptographic verification before considering any business logic.
-
-
 
 ```text
 
@@ -274,19 +216,11 @@ Execution Decision
 
 ```
 
-
-
 If signature verification fails, execution stops immediately.
-
-
 
 \---
 
-
-
 \## Running the Example
-
-
 
 ```bash
 
@@ -294,11 +228,7 @@ tsx examples/tutorials/40-signature-forgery/run.ts
 
 ```
 
-
-
 or
-
-
 
 ```bash
 
@@ -306,35 +236,19 @@ npm run examples
 
 ```
 
-
-
 \---
-
-
 
 \## Next Tutorial
 
-
-
 \*\*Tutorial 41 — Expired Authorization\*\*
-
-
 
 The next tutorial demonstrates that even a correctly signed authorization is rejected after its validity period has expired.
 
-
-
 \---
-
-
 
 \## Summary
 
-
-
 In this tutorial you learned:
-
-
 
 \- Execution Authorizations are digitally signed.
 
@@ -343,4 +257,3 @@ In this tutorial you learned:
 \- The Execution Gateway verifies signatures before execution.
 
 \- Forged authorizations are rejected immediately.
-

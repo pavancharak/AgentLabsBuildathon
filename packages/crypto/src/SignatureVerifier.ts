@@ -1,6 +1,4 @@
-import {
-  type KeyObject,
-} from "node:crypto";
+import { type KeyObject } from "node:crypto";
 
 import { CanonicalSerializer } from "./CanonicalSerializer.js";
 
@@ -17,8 +15,7 @@ export class SignatureVerifier {
   constructor(
     private readonly crypto: CryptoProvider,
 
-    private readonly serializer =
-      new CanonicalSerializer(),
+    private readonly serializer = new CanonicalSerializer(),
   ) {}
 
   /**
@@ -29,19 +26,13 @@ export class SignatureVerifier {
     signature: string,
     publicKey: KeyObject,
   ): Promise<boolean> {
-    const bytes =
-      this.serializer.serialize(artifact);
+    const bytes = this.serializer.serialize(artifact);
 
-
-
-
-    const verified =
-      await this.crypto.signature.verify(
-        bytes,
-        signature,
-        publicKey,
-      );
-
+    const verified = await this.crypto.signature.verify(
+      bytes,
+      signature,
+      publicKey,
+    );
 
     return verified;
   }

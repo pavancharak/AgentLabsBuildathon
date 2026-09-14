@@ -1,7 +1,4 @@
-import {
-  ErrorCode,
-  ParmanaError,
-} from "./ParmanaError.js";
+import { ErrorCode, ParmanaError } from "./ParmanaError.js";
 
 /**
  * Raised when communication with the Runtime fails.

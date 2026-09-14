@@ -1,42 +1,22 @@
 \# Parmana Governance
 
-
-
 Version: 1.0
-
-
 
 Status: Normative
 
-
-
 \---
-
-
 
 \# Purpose
 
-
-
 This document defines the governance principles that preserve the integrity, stability, and evolution of the Parmana Execution Trust Infrastructure.
-
-
 
 Governance ensures that changes to the architecture, specification, and implementation do not weaken execution trust.
 
-
-
 \---
-
-
 
 \# Governance Objectives
 
-
-
 Parmana governance is designed to ensure:
-
-
 
 \* architectural stability
 
@@ -48,47 +28,25 @@ Parmana governance is designed to ensure:
 
 \* evidence-backed technical claims
 
-
-
 Every change should strengthen or preserve execution trust.
 
-
-
 \---
-
-
 
 \# Governance Principles
 
-
-
 \## Trust Before Features
-
-
 
 New features MUST NOT weaken the execution trust model.
 
-
-
 Execution trust takes precedence over feature velocity.
-
-
 
 \---
 
-
-
 \## Explicit Evolution
-
-
 
 Architectural changes MUST be documented.
 
-
-
 Breaking changes MUST include:
-
-
 
 \* rationale
 
@@ -96,55 +54,29 @@ Breaking changes MUST include:
 
 \* compatibility impact
 
-
-
 \---
-
-
 
 \## Specification First
 
-
-
 Normative behavior is defined by `SPECIFICATION.md`.
-
-
 
 The implementation MUST conform to the specification.
 
-
-
 When conflicts arise, the specification is authoritative.
 
-
-
 \---
-
-
 
 \## Guarantees Before Claims
 
-
-
 Public claims MUST be supported by documented guarantees.
-
-
 
 Guarantees MUST be supported by implementation evidence.
 
-
-
 \---
-
-
 
 \## Evidence Before Marketing
 
-
-
 Technical capabilities SHOULD be documented only after they are:
-
-
 
 \* implemented
 
@@ -154,31 +86,17 @@ Technical capabilities SHOULD be documented only after they are:
 
 \* documented
 
-
-
 \---
-
-
 
 \# Versioning
 
-
-
 Parmana follows semantic versioning.
-
-
 
 \## Major Version
 
-
-
 A major version MAY introduce breaking architectural or specification changes.
 
-
-
 Major versions require:
-
-
 
 \* updated specification
 
@@ -188,19 +106,11 @@ Major versions require:
 
 \* migration documentation
 
-
-
 \---
-
-
 
 \## Minor Version
 
-
-
 Minor versions MAY introduce:
-
-
 
 \* new capabilities
 
@@ -208,23 +118,13 @@ Minor versions MAY introduce:
 
 \* optional features
 
-
-
 Minor versions MUST preserve existing guarantees unless explicitly documented.
-
-
 
 \---
 
-
-
 \## Patch Version
 
-
-
 Patch releases SHOULD contain:
-
-
 
 \* bug fixes
 
@@ -234,27 +134,15 @@ Patch releases SHOULD contain:
 
 \* implementation improvements
 
-
-
 Patch releases MUST NOT change normative behavior.
-
-
 
 \---
 
-
-
 \# Change Categories
-
-
 
 \## Architectural Changes
 
-
-
 Examples:
-
-
 
 \* runtime architecture
 
@@ -262,11 +150,7 @@ Examples:
 
 \* execution lifecycle
 
-
-
 Require:
-
-
 
 \* architecture review
 
@@ -274,19 +158,11 @@ Require:
 
 \* updated proofs
 
-
-
 \---
-
-
 
 \## Specification Changes
 
-
-
 Require:
-
-
 
 \* specification update
 
@@ -294,19 +170,11 @@ Require:
 
 \* migration guidance if applicable
 
-
-
 \---
-
-
 
 \## Security Changes
 
-
-
 Require:
-
-
 
 \* security review
 
@@ -314,31 +182,17 @@ Require:
 
 \* regression testing
 
-
-
 \---
-
-
 
 \## Documentation Changes
 
-
-
 Documentation SHOULD remain synchronized with the implementation.
-
-
 
 \---
 
-
-
 \# Guarantee Governance
 
-
-
 Every guarantee SHALL have:
-
-
 
 \* implementation
 
@@ -348,27 +202,15 @@ Every guarantee SHALL have:
 
 \* audit evidence
 
-
-
 Guarantees SHOULD NOT be removed without replacing their functionality or documenting the impact.
-
-
 
 \---
 
-
-
 \# Policy Governance
-
-
 
 Business policies are external to Parmana.
 
-
-
 Parmana governs:
-
-
 
 \* policy references
 
@@ -378,39 +220,21 @@ Parmana governs:
 
 \* policy execution
 
-
-
 Parmana does not govern the business content of individual policies.
 
-
-
 \---
-
-
 
 \# Runtime Governance
 
-
-
 The production runtime SHOULD execute the canonical trust pipeline.
-
-
 
 Future architectural changes MUST preserve the integrity of the execution trust chain.
 
-
-
 \---
-
-
 
 \# Security Governance
 
-
-
 Security-related changes SHOULD include:
-
-
 
 \* threat analysis
 
@@ -418,23 +242,13 @@ Security-related changes SHOULD include:
 
 \* documentation updates
 
-
-
 Cryptographic changes SHOULD preserve compatibility where possible or provide a documented migration path.
-
-
 
 \---
 
-
-
 \# Release Governance
 
-
-
 A release is considered complete only when:
-
-
 
 \* implementation is complete
 
@@ -446,19 +260,11 @@ A release is considered complete only when:
 
 \* release checklist is satisfied
 
-
-
 \---
-
-
 
 \# Decision Process
 
-
-
 Architectural decisions SHOULD be guided by the following questions:
-
-
 
 1\. Does this strengthen execution trust?
 
@@ -470,23 +276,13 @@ Architectural decisions SHOULD be guided by the following questions:
 
 5\. Can the resulting behavior be independently verified?
 
-
-
 Changes that weaken these properties require explicit justification.
-
-
 
 \---
 
-
-
 \# Governance Artifacts
 
-
-
 The following documents collectively define Parmana governance:
-
-
 
 \* VISION.md
 
@@ -508,21 +304,10 @@ The following documents collectively define Parmana governance:
 
 \* RELEASE\_CHECKLIST.md
 
-
-
 \---
-
-
 
 \# Guiding Principle
 
-
-
 Parmana evolves through disciplined, evidence-backed engineering.
 
-
-
 Execution trust is preserved by governance, demonstrated by implementation, and validated through testing, audit, and independent verification.
-
-
-

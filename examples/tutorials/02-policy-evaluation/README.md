@@ -1,38 +1,38 @@
 # \# Tutorial 02 — Policy Evaluation
 
-# 
+#
 
 # \## Overview
 
-# 
+#
 
 # This tutorial demonstrates how Parmana evaluates business signals against a reference policy.
 
-# 
+#
 
 # Unlike Tutorial 01, this tutorial executes the Policy Engine and produces a policy decision.
 
-# 
+#
 
 # No Runtime execution occurs.
 
-# 
+#
 
 # No Trust Record is generated.
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Learning Objectives
 
-# 
+#
 
 # After completing this tutorial you will understand:
 
-# 
+#
 
 # \- Reference Policies
 
@@ -46,15 +46,15 @@
 
 # \- Decision Reasons
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Files
 
-# 
+#
 
 # | File | Purpose |
 
@@ -66,49 +66,49 @@
 
 # | `run.ts` | Executes the Policy Engine |
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Architecture
 
-# 
+#
 
 # ```
 
 # Signals
 
-# &#x20;   │
+# &#x20; │
 
-# &#x20;   ▼
+# &#x20; ▼
 
 # Policy Engine
 
-# &#x20;   │
+# &#x20; │
 
-# &#x20;   ▼
+# &#x20; ▼
 
 # Evaluate Rules
 
-# &#x20;   │
+# &#x20; │
 
-# &#x20;   ▼
+# &#x20; ▼
 
 # Decision
 
 # ```
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Run
 
-# 
+#
 
 # ```bash
 
@@ -116,11 +116,11 @@
 
 # ```
 
-# 
+#
 
 # or
 
-# 
+#
 
 # ```bash
 
@@ -128,19 +128,19 @@
 
 # ```
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Expected Output
 
-# 
+#
 
 # The tutorial prints:
 
-# 
+#
 
 # \- Signals
 
@@ -148,23 +148,22 @@
 
 # \- Decision Reason
 
-# 
+#
 
 # No Runtime execution occurs.
 
-# 
+#
 
 # No Trust Record is generated.
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Next Tutorial
 
-# 
+#
 
 # Continue to \*\*Tutorial 03 – Runtime Execution\*\* to execute a complete Business Transaction.
-

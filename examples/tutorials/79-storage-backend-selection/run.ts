@@ -1,4 +1,8 @@
-import { StorageFactory, MemoryStorageProvider, SupabaseStorageProvider } from "@parmana/storage";
+import {
+  StorageFactory,
+  MemoryStorageProvider,
+  SupabaseStorageProvider,
+} from "@parmana/storage";
 
 //
 // G-15: StorageFactory.createFromEnvironment() decides between an
@@ -13,7 +17,9 @@ import { StorageFactory, MemoryStorageProvider, SupabaseStorageProvider } from "
 // never does).
 //
 const ENV_KEYS = ["NODE_ENV", "PARMANA_STORAGE", "DATABASE_URL"] as const;
-const savedEnv = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
+const savedEnv = Object.fromEntries(
+  ENV_KEYS.map((key) => [key, process.env[key]]),
+);
 
 function resetEnv(): void {
   for (const key of ENV_KEYS) delete process.env[key];
@@ -26,7 +32,9 @@ console.log("==================================================");
 console.log();
 
 try {
-  console.log("Scenario 1: NODE_ENV=test, PARMANA_STORAGE=supabase -- test safety wins regardless");
+  console.log(
+    "Scenario 1: NODE_ENV=test, PARMANA_STORAGE=supabase -- test safety wins regardless",
+  );
   console.log("--------------------------------------------------");
   resetEnv();
   process.env.NODE_ENV = "test";
@@ -35,17 +43,24 @@ try {
   console.log(`Provider : ${provider1.constructor.name}`);
   console.log();
 
-  console.log("Scenario 2: NODE_ENV=test, PARMANA_STORAGE=supabase, DATABASE_URL present -- still memory");
+  console.log(
+    "Scenario 2: NODE_ENV=test, PARMANA_STORAGE=supabase, DATABASE_URL present -- still memory",
+  );
   console.log("--------------------------------------------------");
   resetEnv();
   process.env.NODE_ENV = "test";
   process.env.PARMANA_STORAGE = "supabase";
-  process.env.DATABASE_URL = "postgresql://user:pass@example.supabase.co:5432/postgres";
+  process.env.DATABASE_URL =
+    "postgresql://user:pass@example.supabase.co:5432/postgres";
   const provider2 = StorageFactory.createFromEnvironment();
-  console.log(`Provider : ${provider2.constructor.name} (a live DATABASE_URL is never enough on its own under NODE_ENV=test)`);
+  console.log(
+    `Provider : ${provider2.constructor.name} (a live DATABASE_URL is never enough on its own under NODE_ENV=test)`,
+  );
   console.log();
 
-  console.log("Scenario 3: Production-like env, PARMANA_STORAGE=supabase, no DATABASE_URL -- fails closed");
+  console.log(
+    "Scenario 3: Production-like env, PARMANA_STORAGE=supabase, no DATABASE_URL -- fails closed",
+  );
   console.log("--------------------------------------------------");
   resetEnv();
   process.env.NODE_ENV = "production";
@@ -59,17 +74,22 @@ try {
   console.log(`Threw : ${scenario3Error}`);
   console.log();
 
-  console.log("Scenario 4: Production-like env, PARMANA_STORAGE=supabase, DATABASE_URL configured");
+  console.log(
+    "Scenario 4: Production-like env, PARMANA_STORAGE=supabase, DATABASE_URL configured",
+  );
   console.log("--------------------------------------------------");
   resetEnv();
   process.env.NODE_ENV = "production";
   process.env.PARMANA_STORAGE = "supabase";
-  process.env.DATABASE_URL = "postgresql://user:pass@example.supabase.co:5432/postgres";
+  process.env.DATABASE_URL =
+    "postgresql://user:pass@example.supabase.co:5432/postgres";
   const provider4 = StorageFactory.createFromEnvironment();
   console.log(`Provider : ${provider4.constructor.name}`);
   console.log();
 
-  console.log("Scenario 5: Production-like env, PARMANA_STORAGE=memory -- an explicit, valid choice");
+  console.log(
+    "Scenario 5: Production-like env, PARMANA_STORAGE=memory -- an explicit, valid choice",
+  );
   console.log("--------------------------------------------------");
   resetEnv();
   process.env.NODE_ENV = "production";
@@ -91,7 +111,9 @@ try {
       "✓ NODE_ENV=test always wins (never a live client under test); production without DATABASE_URL fails closed by name, not a generic crash.",
     );
   } else {
-    console.log("✗ Expected the test-safety override, the fail-closed error, and both explicit production choices to all hold.");
+    console.log(
+      "✗ Expected the test-safety override, the fail-closed error, and both explicit production choices to all hold.",
+    );
   }
 
   console.log();

@@ -21,38 +21,21 @@ import type {
   TransportResponse,
 } from "../config/Transport.js";
 
-import type {
-  Configuration,
-} from "../config/Configuration.js";
+import type { Configuration } from "../config/Configuration.js";
 
-import {
-  RetryStrategy,
-  type RetryPolicy,
-} from "../config/RetryPolicy.js";
+import { RetryStrategy, type RetryPolicy } from "../config/RetryPolicy.js";
 
-import {
-  ParmanaError,
-} from "../errors/ParmanaError.js";
+import { ParmanaError } from "../errors/ParmanaError.js";
 
-import {
-  NetworkError,
-} from "../errors/NetworkError.js";
+import { NetworkError } from "../errors/NetworkError.js";
 
-import {
-  TimeoutError,
-} from "../errors/TimeoutError.js";
+import { TimeoutError } from "../errors/TimeoutError.js";
 
-import {
-  InternalServerError,
-} from "../errors/InternalServerError.js";
+import { InternalServerError } from "../errors/InternalServerError.js";
 
-import {
-  RateLimitError,
-} from "../errors/RateLimitError.js";
+import { RateLimitError } from "../errors/RateLimitError.js";
 
-import {
-  mapHttpErrorResponse,
-} from "./mapHttpErrorResponse.js";
+import { mapHttpErrorResponse } from "./mapHttpErrorResponse.js";
 
 /**
  * Retries are restricted to idempotent methods only. A retried POST
@@ -154,20 +137,13 @@ function resolveRetryPolicy(
   };
 }
 
-export class HttpTransport
-  implements Transport
-{
-  constructor(
-    private readonly configuration: Configuration,
-  ) {}
+export class HttpTransport implements Transport {
+  constructor(private readonly configuration: Configuration) {}
 
   public async send<T>(
     request: TransportRequest,
   ): Promise<TransportResponse<T>> {
-    const retryPolicy = resolveRetryPolicy(
-      this.configuration,
-      request.method,
-    );
+    const retryPolicy = resolveRetryPolicy(this.configuration, request.method);
 
     if (retryPolicy === undefined) {
       return this.attempt<T>(request);
@@ -195,25 +171,18 @@ export class HttpTransport
   private async attempt<T>(
     request: TransportRequest,
   ): Promise<TransportResponse<T>> {
-    const controller =
-      new AbortController();
+    const controller = new AbortController();
 
-    const timeout =
-      this.configuration.timeout ??
-      30_000;
+    const timeout = this.configuration.timeout ?? 30_000;
 
-    const timer = setTimeout(
-      () => controller.abort(),
-      timeout,
-    );
+    const timer = setTimeout(() => controller.abort(), timeout);
 
     try {
       const init: RequestInit = {
         method: request.method,
 
         headers: {
-          "Content-Type":
-            "application/json",
+          "Content-Type": "application/json",
 
           ...(this.configuration.apiKey !== undefined && {
             Authorization: `Bearer ${this.configuration.apiKey}`,
@@ -222,54 +191,33 @@ export class HttpTransport
           ...(request.headers ?? {}),
         },
 
-        signal:
-          controller.signal,
+        signal: controller.signal,
       };
 
-      if (
-        request.body !== undefined
-      ) {
-        init.body =
-          JSON.stringify(
-            request.body,
-          );
+      if (request.body !== undefined) {
+        init.body = JSON.stringify(request.body);
       }
 
-      const response =
-        await fetch(
-          this.configuration.endpoint +
-            request.path,
-          init,
-        );
-
-      clearTimeout(
-        timer,
+      const response = await fetch(
+        this.configuration.endpoint + request.path,
+        init,
       );
 
-      const headers: Record<
-        string,
-        string
-      > = {};
+      clearTimeout(timer);
 
-      response.headers.forEach(
-        (
-          value,
-          key,
-        ) => {
-          headers[key] = value;
-        },
-      );
+      const headers: Record<string, string> = {};
+
+      response.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
 
       let body: T;
 
-      if (
-        response.status === 204
-      ) {
+      if (response.status === 204) {
         body = undefined as T;
       } else {
         try {
-          body =
-            (await response.json()) as T;
+          body = (await response.json()) as T;
         } catch {
           // A non-JSON or empty body. Real, error-envelope
           // responses from this API are always JSON; this only
@@ -282,46 +230,29 @@ export class HttpTransport
 
       if (
         response.status >= 400 &&
-        !(request.nonThrowingStatuses ?? []).includes(
-          response.status,
-        )
+        !(request.nonThrowingStatuses ?? []).includes(response.status)
       ) {
-        throw mapHttpErrorResponse(
-          response.status,
-          body,
-          headers,
-        );
+        throw mapHttpErrorResponse(response.status, body, headers);
       }
 
       return {
-        status:
-          response.status,
+        status: response.status,
 
         headers,
 
         body,
       };
     } catch (error) {
-      clearTimeout(
-        timer,
-      );
+      clearTimeout(timer);
 
-      if (
-        error instanceof ParmanaError
-      ) {
+      if (error instanceof ParmanaError) {
         // Already the correct typed error (mapHttpErrorResponse,
         // above) — rethrow as-is, do not fold it into NetworkError.
         throw error;
       }
 
-      if (
-        error instanceof DOMException &&
-        error.name ===
-          "AbortError"
-      ) {
-        throw new TimeoutError(
-          "Request timed out.",
-        );
+      if (error instanceof DOMException && error.name === "AbortError") {
+        throw new TimeoutError("Request timed out.");
       }
 
       throw new NetworkError(

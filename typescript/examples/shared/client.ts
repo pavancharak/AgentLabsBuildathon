@@ -1,17 +1,11 @@
-import {
-  HttpTransport,
-  ParmanaClient,
-} from "@parmana/sdk";
+import { HttpTransport, ParmanaClient } from "@parmana/sdk";
 
 export function createClient() {
   return new ParmanaClient({
-    endpoint:
-      "http://localhost:3000",
+    endpoint: "http://localhost:3000",
 
-    transport:
-      new HttpTransport({
-        endpoint:
-          "http://localhost:3000",
-      }),
+    transport: new HttpTransport({
+      endpoint: "http://localhost:3000",
+    }),
   });
 }

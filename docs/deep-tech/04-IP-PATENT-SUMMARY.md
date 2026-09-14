@@ -1,9 +1,9 @@
 # IP & Patent Summary
 
-*Draft — DPIIT Deep Tech recognition application*
-*Status: DRAFT. Current IP posture only — no patent filings are claimed here because none are
+_Draft — DPIIT Deep Tech recognition application_
+_Status: DRAFT. Current IP posture only — no patent filings are claimed here because none are
 confirmed to exist. See [DEEP-TECH-APPLICATION-PROMPT.md](./DEEP-TECH-APPLICATION-PROMPT.md) for
-why this is treated as an open item rather than asserted.*
+why this is treated as an open item rather than asserted._
 
 ## Current IP posture (as of 2026-08-25)
 
@@ -71,7 +71,7 @@ already existed; they didn't, and these are the real replacements.
       document until that answer is confirmed.** If none are filed, the honest and still credible
       position for DPIIT is: "no patents filed yet; provisional application(s) planned for
       [mechanism 1 and/or 2 above] before/alongside this submission" — DPIIT's "novel IP" criterion
-      accepts registered IP *or* documented proprietary technology, and the copyright/trade-secret
+      accepts registered IP _or_ documented proprietary technology, and the copyright/trade-secret
       posture above is real evidence even without a patent.
   - [ ] If a provisional filing is feasible before the Sep 15, 2026 target submission date in
         the application timeline, prioritize filing on item 1 (the intent-binding fix) — it has

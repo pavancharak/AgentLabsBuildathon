@@ -34,7 +34,7 @@ needing its own update each time.
 ## Signed Approval Artifacts: an independent business authority, not Parmana's own key
 
 An `Authorization` (Chapter 1) proves Parmana approved a `Decision`. It cannot truthfully
-represent that some *other*, independent business authority approved an *exception* to
+represent that some _other_, independent business authority approved an _exception_ to
 Parmana's own rules, a manager overriding a threshold, say. `SignedApproval`
 (`packages/shared/src/domain/approval-artifact.ts`) exists for exactly that: a cryptographic
 attestation, signed by an external issuer's own key (never Parmana's runtime key, never the
@@ -59,8 +59,8 @@ The identical reasoning `EnvelopeVerifier`'s nonce ordering uses. `valid = prior
 
 The one wired production consumer is HubSpot's `HubSpotSignalStateVerifier`
 (`verifyPreAuthorization`): it checks a caller's declared `preAuthorizedForAmountChange`
-against a real `SignedApproval`, using the amount delta the verifier itself *independently
-re-derives*, not the caller's declared value, as the value checked against the approval's
+against a real `SignedApproval`, using the amount delta the verifier itself _independently
+re-derives_, not the caller's declared value, as the value checked against the approval's
 scope, specifically so a genuine small-amount approval can't be replayed to cover a larger
 change it was never actually issued for. `createApprovalIssuerRegistry.ts` currently ships
 `TRUSTED_APPROVAL_ISSUERS = []`: fail-closed by default. No real approver key is provisioned

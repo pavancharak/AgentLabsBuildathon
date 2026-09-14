@@ -4,23 +4,14 @@
  * @param title Section title.
  * @param value Value to print.
  */
-export function print(
-  title: string,
-  value: unknown,
-): void {
+export function print(title: string, value: unknown): void {
   console.log();
   console.log("========================================");
   console.log(` ${title}`);
   console.log("========================================");
   console.log();
 
-  console.log(
-    JSON.stringify(
-      value,
-      null,
-      2,
-    ),
-  );
+  console.log(JSON.stringify(value, null, 2));
 }
 
 /**
@@ -28,9 +19,7 @@ export function print(
  *
  * @param title Section title.
  */
-export function printHeading(
-  title: string,
-): void {
+export function printHeading(title: string): void {
   console.log();
   console.log("========================================");
   console.log(` ${title}`);
@@ -43,9 +32,7 @@ export function printHeading(
  *
  * @param message Message to print.
  */
-export function printMessage(
-  message: string,
-): void {
+export function printMessage(message: string): void {
   console.log(message);
 }
 
@@ -55,10 +42,7 @@ export function printMessage(
  * @param step Step number.
  * @param title Step title.
  */
-export function printStep(
-  step: number,
-  title: string,
-): void {
+export function printStep(step: number, title: string): void {
   console.log();
   console.log(`Step ${step} - ${title}`);
   console.log();

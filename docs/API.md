@@ -1,30 +1,16 @@
 \# Parmana API Specification
 
-
-
 Version: 1.0
-
-
 
 Status: Normative
 
-
-
 \---
-
-
 
 \# Purpose
 
-
-
 This document defines the logical API surface of the Parmana Execution Trust Infrastructure.
 
-
-
 The API exposes the capabilities required to:
-
-
 
 \* execute Business Transactions
 
@@ -34,35 +20,19 @@ The API exposes the capabilities required to:
 
 \* retrieve execution artifacts
 
-
-
 The specification is transport-independent.
-
-
 
 REST, gRPC, SDK, and CLI implementations may expose different interfaces while preserving the same semantics.
 
-
-
 \---
-
-
 
 \# API Principles
 
-
-
 The Parmana API is designed around trust artifacts rather than runtime operations.
-
-
 
 Every request is expected to preserve the execution trust chain.
 
-
-
 The API SHALL:
-
-
 
 \* validate inputs
 
@@ -72,15 +42,9 @@ The API SHALL:
 
 \* support independent verification
 
-
-
 \---
 
-
-
 \# API Overview
-
-
 
 ```text
 
@@ -118,35 +82,19 @@ Execution Trust Record
 
 ```
 
-
-
 \---
-
-
 
 \# Operations
 
-
-
 \## Execute
-
-
 
 Processes a Business Transaction.
 
-
-
 \### Input
-
-
 
 BusinessTransaction
 
-
-
 \### Processing
-
-
 
 \* Validate Business Transaction
 
@@ -162,11 +110,7 @@ BusinessTransaction
 
 \* Produce Receipt
 
-
-
 \### Output
-
-
 
 ```text
 
@@ -184,35 +128,19 @@ ExecutionResult
 
 ```
 
-
-
 \---
-
-
 
 \## Verify
 
-
-
 Verifies execution evidence.
-
-
 
 \### Input
 
-
-
 Execution Trust Record
-
-
 
 Receipt
 
-
-
 \### Processing
-
-
 
 \* Verify hashes
 
@@ -220,11 +148,7 @@ Receipt
 
 \* Verify integrity
 
-
-
 \### Output
-
-
 
 ```text
 
@@ -238,31 +162,17 @@ VerificationResult
 
 ```
 
-
-
 \---
-
-
 
 \## Replay
 
-
-
 Replays historical execution.
-
-
 
 \### Input
 
-
-
 Execution Trust Record
 
-
-
 \### Processing
-
-
 
 \* Load recorded execution
 
@@ -272,11 +182,7 @@ Execution Trust Record
 
 \* Report differences
 
-
-
 \### Output
-
-
 
 ```text
 
@@ -292,23 +198,13 @@ ReplayResult
 
 ```
 
-
-
 \---
-
-
 
 \## Retrieve
 
-
-
 Retrieves historical execution artifacts.
 
-
-
 Examples:
-
-
 
 \* Business Transaction
 
@@ -320,19 +216,11 @@ Examples:
 
 \* Receipt
 
-
-
 \---
-
-
 
 \# Request Lifecycle
 
-
-
 Every Execute request follows the same lifecycle.
-
-
 
 ```text
 
@@ -376,19 +264,11 @@ Response
 
 ```
 
-
-
 \---
-
-
 
 \# Execution Guarantees
 
-
-
 The Execute operation SHALL:
-
-
 
 \* validate Business Transactions
 
@@ -402,23 +282,13 @@ The Execute operation SHALL:
 
 \* produce one Receipt
 
-
-
 Execution SHALL fail when required trust artifacts are missing.
-
-
 
 \---
 
-
-
 \# Verification Guarantees
 
-
-
 Verification SHALL:
-
-
 
 \* validate execution integrity
 
@@ -426,23 +296,13 @@ Verification SHALL:
 
 \* preserve immutable execution artifacts
 
-
-
 Verification SHALL NOT modify execution evidence.
-
-
 
 \---
 
-
-
 \# Replay Guarantees
 
-
-
 Replay SHALL:
-
-
 
 \* preserve historical evidence
 
@@ -450,27 +310,15 @@ Replay SHALL:
 
 \* report detected differences
 
-
-
 Replay SHALL NOT modify historical execution records.
-
-
 
 \---
 
-
-
 \# Error Model
-
-
 
 Implementations SHOULD return structured errors.
 
-
-
 Examples include:
-
-
 
 ```text
 
@@ -506,23 +354,13 @@ REPLAY\_FAILED
 
 ```
 
-
-
 Error identifiers SHOULD remain stable across implementations.
-
-
 
 \---
 
-
-
 \# Security Requirements
 
-
-
 API implementations SHOULD:
-
-
 
 \* validate all inputs
 
@@ -534,23 +372,13 @@ API implementations SHOULD:
 
 \* validate execution evidence before verification
 
-
-
 Authentication and authorization mechanisms are deployment-specific and outside the scope of this specification.
-
-
 
 \---
 
-
-
 \# Transport Independence
 
-
-
 This specification does not mandate:
-
-
 
 \* HTTP
 
@@ -564,23 +392,13 @@ This specification does not mandate:
 
 \* SDK
 
-
-
 Any transport MAY be used provided the execution semantics defined by this specification are preserved.
-
-
 
 \---
 
-
-
 \# Conformance
 
-
-
 An API implementation conforms when it:
-
-
 
 \* preserves the canonical execution trust chain
 
@@ -590,15 +408,9 @@ An API implementation conforms when it:
 
 \* passes the Parmana Conformance Suite
 
-
-
 \---
 
-
-
 \# Related Documents
-
-
 
 \* VISION.md
 
@@ -614,21 +426,10 @@ An API implementation conforms when it:
 
 \* CONFORMANCE.md
 
-
-
 \---
-
-
 
 \# Guiding Principle
 
-
-
 The Parmana API is not simply an interface to a runtime.
 
-
-
 It is the public entry point into the Execution Trust Infrastructure, preserving the integrity of the trust chain from Business Transaction to independently verifiable execution evidence.
-
-
-

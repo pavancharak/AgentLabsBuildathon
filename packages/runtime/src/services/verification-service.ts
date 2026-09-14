@@ -23,42 +23,30 @@ import { ExecutionChainCrypto, VerificationCrypto } from "@parmana/crypto";
  * can name every check that failed.
  */
 export class VerificationService {
-  private readonly crypto =
-    new VerificationCrypto();
+  private readonly crypto = new VerificationCrypto();
 
-  private readonly chainCrypto =
-    new ExecutionChainCrypto();
+  private readonly chainCrypto = new ExecutionChainCrypto();
 
-  constructor(
-    private readonly trustRecords: ExecutionTrustRecordRepository,
-  ) {}
+  constructor(private readonly trustRecords: ExecutionTrustRecordRepository) {}
 
   /**
    * Verifies an Execution Trust Record.
    */
-  async verify(
-    businessTransactionId: string,
-  ): Promise<Verification> {
-
-    const trustRecord =
-      await this.trustRecords.findByTransactionId(
-        businessTransactionId,
-      );
+  async verify(businessTransactionId: string): Promise<Verification> {
+    const trustRecord = await this.trustRecords.findByTransactionId(
+      businessTransactionId,
+    );
 
     if (!trustRecord) {
-      throw new VerificationFailedError(
-        "Execution Trust Record not found.",
-      );
+      throw new VerificationFailedError("Execution Trust Record not found.");
     }
 
-    const failures =
-      await this.runChecks(trustRecord);
+    const failures = await this.runChecks(trustRecord);
 
     const verified = failures.length === 0;
 
     const verification: Verification = {
-      verificationId:
-        crypto.randomUUID(),
+      verificationId: crypto.randomUUID(),
 
       businessTransactionId,
 
@@ -72,8 +60,7 @@ export class VerificationService {
 
       verifiedAt: new Date(),
 
-      trustRecordHash:
-        trustRecord.trustRecordHash,
+      trustRecordHash: trustRecord.trustRecordHash,
     };
 
     await this.trustRecords.appendVerification(
@@ -99,8 +86,7 @@ export class VerificationService {
     // Integrity: recomputed hash must match the
     // stored hash.
     //
-    const expectedHash =
-      await this.crypto.hash(trustRecord);
+    const expectedHash = await this.crypto.hash(trustRecord);
 
     if (expectedHash !== trustRecord.trustRecordHash) {
       failures.push(
@@ -114,8 +100,7 @@ export class VerificationService {
     // Signature: cryptographic signature must verify
     // against the stored public key.
     //
-    const signatureVerified =
-      await this.crypto.verifySignature(trustRecord);
+    const signatureVerified = await this.crypto.verifySignature(trustRecord);
 
     if (!signatureVerified) {
       failures.push(
@@ -130,20 +115,13 @@ export class VerificationService {
     // metadata. REJECTED executions are not required to.
     //
     for (const execution of trustRecord.executions) {
-      if (
-        execution.decision.outcome !==
-        DecisionOutcome.APPROVED
-      ) {
+      if (execution.decision.outcome !== DecisionOutcome.APPROVED) {
         continue;
       }
 
-      const authorizationId =
-        execution.metadata?.authorizationId;
+      const authorizationId = execution.metadata?.authorizationId;
 
-      if (
-        typeof authorizationId !== "string" ||
-        authorizationId.length === 0
-      ) {
+      if (typeof authorizationId !== "string" || authorizationId.length === 0) {
         failures.push(
           `Authorization binding check failed: execution ` +
             `"${execution.executionId}" is APPROVED but has no ` +
@@ -159,10 +137,9 @@ export class VerificationService {
     // Execution with no chain fields at all is unprotected legacy
     // data and does not fail this check.
     //
-    const chainResult =
-      await this.chainCrypto.verifyChain(
-        trustRecord.executions,
-      );
+    const chainResult = await this.chainCrypto.verifyChain(
+      trustRecord.executions,
+    );
 
     if (!chainResult.valid) {
       failures.push(

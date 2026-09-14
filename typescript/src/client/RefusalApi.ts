@@ -2,18 +2,12 @@
  * Parmana Refusal Record API (RFC-0021).
  */
 
-import type {
-  RefusalRecord,
-} from "../models/index.js";
+import type { RefusalRecord } from "../models/index.js";
 
-import type {
-  Transport,
-} from "../config/Transport.js";
+import type { Transport } from "../config/Transport.js";
 
 export class RefusalApi {
-  constructor(
-    private readonly transport: Transport,
-  ) {}
+  constructor(private readonly transport: Transport) {}
 
   /**
    * Verifies a Refusal Record's signature. Maps to POST
@@ -22,15 +16,12 @@ export class RefusalApi {
    * capability that makes a refusal independently third-party
    * verifiable (RFC-0021).
    */
-  public async verify(
-    record: RefusalRecord,
-  ): Promise<boolean> {
-    const response =
-      await this.transport.send<{ valid: boolean }>({
-        method: "POST",
-        path: "/refusal/verify",
-        body: record,
-      });
+  public async verify(record: RefusalRecord): Promise<boolean> {
+    const response = await this.transport.send<{ valid: boolean }>({
+      method: "POST",
+      path: "/refusal/verify",
+      body: record,
+    });
 
     return response.body.valid;
   }
@@ -41,14 +32,11 @@ export class RefusalApi {
    * route is behind caller-auth and ownership scoping, identically to
    * TrustRecordApi.get().
    */
-  public async get(
-    businessTransactionId: string,
-  ): Promise<RefusalRecord> {
-    const response =
-      await this.transport.send<RefusalRecord>({
-        method: "GET",
-        path: `/refusal/${businessTransactionId}`,
-      });
+  public async get(businessTransactionId: string): Promise<RefusalRecord> {
+    const response = await this.transport.send<RefusalRecord>({
+      method: "GET",
+      path: `/refusal/${businessTransactionId}`,
+    });
 
     return response.body;
   }

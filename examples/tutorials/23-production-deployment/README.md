@@ -1,30 +1,16 @@
 \# Tutorial 23 — Production Deployment
 
-
-
 \## Overview
-
-
 
 This tutorial demonstrates how to configure Parmana for a production environment.
 
-
-
 Unlike previous tutorials that focus on Runtime behavior, this tutorial focuses on configuring the Runtime using persistent storage, policy repositories, and environment variables.
-
-
 
 The same Runtime programming model is used in development and production.
 
-
-
 \---
 
-
-
 \## Production Architecture
-
-
 
 ```
 
@@ -68,19 +54,11 @@ The same Runtime programming model is used in development and production.
 
 ```
 
-
-
 \---
-
-
 
 \## Runtime Configuration
 
-
-
 A production Runtime is configured using the same builder API used throughout the tutorial series.
-
-
 
 ```ts
 
@@ -102,27 +80,15 @@ const runtime =
 
 ```
 
-
-
 The Runtime itself does not change between environments.
-
-
 
 Only the supporting infrastructure changes.
 
-
-
 \---
-
-
 
 \## Policy Repository
 
-
-
 Policies are loaded from the configured repository.
-
-
 
 ```ts
 
@@ -136,59 +102,31 @@ const policyRepository =
 
 ```
 
-
-
 In production, organizations typically version and review policies through their deployment process.
 
-
-
 \---
-
-
 
 \## Trust Record Repository
 
-
-
 This tutorial uses a repository abstraction.
-
-
 
 Development environments may use:
 
-
-
 \- MemoryExecutionTrustRecordRepository
-
-
 
 Production environments typically use a persistent implementation such as:
 
-
-
 \- SupabaseExecutionTrustRecordRepository
-
-
 
 The Runtime code remains unchanged.
 
-
-
 \---
-
-
 
 \## Environment Configuration
 
-
-
 The included `.env.example` demonstrates typical production configuration.
 
-
-
 Example settings include:
-
-
 
 \- Storage backend
 
@@ -200,19 +138,11 @@ Example settings include:
 
 \- Runtime environment
 
-
-
 Environment-specific values should never be committed with secrets.
-
-
 
 \---
 
-
-
 \## Running the Example
-
-
 
 ```bash
 
@@ -220,11 +150,7 @@ tsx examples/tutorials/23-production-deployment/run.ts
 
 ```
 
-
-
 or execute the full tutorial suite:
-
-
 
 ```bash
 
@@ -232,15 +158,9 @@ npm run examples
 
 ```
 
-
-
 \---
 
-
-
 \## Expected Output
-
-
 
 ```text
 
@@ -290,19 +210,11 @@ Production Runtime completed successfully.
 
 ```
 
-
-
 \---
-
-
 
 \## Production Checklist
 
-
-
 Before deploying Parmana, verify:
-
-
 
 \- Policy repository is configured.
 
@@ -318,23 +230,13 @@ Before deploying Parmana, verify:
 
 \- Production policies have been reviewed.
 
-
-
 \---
-
-
 
 \## Design Principles
 
-
-
 Parmana separates Runtime behavior from deployment configuration.
 
-
-
 This provides several advantages:
-
-
 
 \- The same Runtime code runs in every environment.
 
@@ -344,19 +246,11 @@ This provides several advantages:
 
 \- Infrastructure concerns remain outside the Runtime.
 
-
-
 \---
-
-
 
 \## Summary
 
-
-
 In this tutorial you learned how to:
-
-
 
 \- Configure a Runtime for production use.
 
@@ -366,7 +260,4 @@ In this tutorial you learned how to:
 
 \- Separate Runtime behavior from deployment infrastructure.
 
-
-
 This separation allows Parmana to move from local development to enterprise production deployments while preserving the same deterministic Runtime programming model.
-

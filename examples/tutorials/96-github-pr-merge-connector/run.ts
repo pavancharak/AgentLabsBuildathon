@@ -13,7 +13,9 @@ process.env.NODE_ENV = "test";
 
 const INSTALLATION_TOKEN = "test-mock-installation-token-a1b2c3d4e5f6";
 
-const mockServer = new MockGitHubServer({ installationToken: INSTALLATION_TOKEN });
+const mockServer = new MockGitHubServer({
+  installationToken: INSTALLATION_TOKEN,
+});
 await mockServer.listen();
 
 process.env.GITHUB_BASE_URL = mockServer.baseUrl;
@@ -26,12 +28,10 @@ process.env.GITHUB_BASE_URL = mockServer.baseUrl;
 // never verifies the JWT's signature, so no further env overrides are
 // needed here the way Tutorial 69 needs for HubSpot's empty-string gotcha.
 
-const { createExecutionSystem } = await import(
-  "../../../packages/api/src/bootstrap/createExecutionSystem.js"
-);
-const { createApplication } = await import(
-  "../../../packages/api/src/application.js"
-);
+const { createExecutionSystem } =
+  await import("../../../packages/api/src/bootstrap/createExecutionSystem.js");
+const { createApplication } =
+  await import("../../../packages/api/src/application.js");
 
 function prMergeTransaction(overrides: {
   owner: string;
@@ -139,7 +139,9 @@ try {
   console.log();
 
   if (decision?.outcome === "APPROVED" && pr?.mergedAt !== null) {
-    console.log("✓ PR merge authorized and executed against the real connector.");
+    console.log(
+      "✓ PR merge authorized and executed against the real connector.",
+    );
   } else {
     console.log("✗ Expected an approved decision with the PR merged.");
   }

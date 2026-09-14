@@ -20,12 +20,8 @@ import type { RuntimeComponent } from "../RuntimeComponent.js";
  * This component validates runtime preconditions
  * only. It does not evaluate business policy.
  */
-export class TrustChainValidationComponent
-  implements RuntimeComponent
-{
-  async execute(
-    context: RuntimeContext,
-  ): Promise<RuntimeContext> {
+export class TrustChainValidationComponent implements RuntimeComponent {
+  async execute(context: RuntimeContext): Promise<RuntimeContext> {
     const transaction = context.transaction;
 
     //
@@ -72,10 +68,7 @@ export class TrustChainValidationComponent
     //
     // Only approved Decisions may execute.
     //
-    if (
-      context.decision.outcome !==
-      DecisionOutcome.APPROVED
-    ) {
+    if (context.decision.outcome !== DecisionOutcome.APPROVED) {
       throw new DecisionNotApprovedError();
     }
 

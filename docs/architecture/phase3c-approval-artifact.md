@@ -54,20 +54,20 @@ Per §13's explicit instruction, Approval Artifact nonces are tracked in a **new
 
 ## 6. Adversarial Validation
 
-| Adversarial attempt | Prevented? | Evidence |
-|---|---|---|
-| Forge an artifact without the approver's private key | **Yes** | `ApprovalVerifier.test.ts`, forged-signature case (§3) |
-| Tamper with a genuine artifact's payload after signing | **Yes** | Same file, tampered-payload case |
-| Replay a genuine artifact a second time | **Yes** | Same-instance and cross-instance (shared-store) replay cases |
-| Present an artifact from an unregistered/unknown issuer | **Yes** | `ApprovalVerifier.test.ts` and `HubSpotSignalStateVerifier.test.ts`, unknown-issuer cases |
-| Present an artifact from a revoked issuer's key | **Yes** | `ApprovalVerifier.test.ts`, revoked-issuer case (with independent proof the signature itself was genuine) |
-| Reuse an artifact for a different deal/business object (authorization transfer) | **Yes** | Both test files, authorization-transfer cases |
-| Reuse an artifact for a different capability | **Yes** | `ApprovalVerifier.test.ts`, capability-substitution case |
-| Reuse a genuine, smaller-amount approval to authorize a larger amount (scope escalation) | **Yes** | Both test files, scope-escalation cases |
-| Present an expired artifact | **Yes** | `ApprovalVerifier.test.ts`, expired case |
-| Present a malformed/wrong-version artifact | **Yes** | `ApprovalVerifier.test.ts`, malformed-version case; `SignedApprovalGuard.test.ts`, 18 shape-rejection cases |
-| Bypass verification entirely via the real, production-wired API with no real issuer provisioned | **Yes** | `hubspot-deal-update.integration.test.ts`, `(TD-23)` case — proves the fail-closed default, end to end |
-| False-positive: penalize an honest caller who correctly declares no pre-authorization | **No regression** | `HubSpotSignalStateVerifier.test.ts`, no-false-positive case |
+| Adversarial attempt                                                                             | Prevented?        | Evidence                                                                                                    |
+| ----------------------------------------------------------------------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------- |
+| Forge an artifact without the approver's private key                                            | **Yes**           | `ApprovalVerifier.test.ts`, forged-signature case (§3)                                                      |
+| Tamper with a genuine artifact's payload after signing                                          | **Yes**           | Same file, tampered-payload case                                                                            |
+| Replay a genuine artifact a second time                                                         | **Yes**           | Same-instance and cross-instance (shared-store) replay cases                                                |
+| Present an artifact from an unregistered/unknown issuer                                         | **Yes**           | `ApprovalVerifier.test.ts` and `HubSpotSignalStateVerifier.test.ts`, unknown-issuer cases                   |
+| Present an artifact from a revoked issuer's key                                                 | **Yes**           | `ApprovalVerifier.test.ts`, revoked-issuer case (with independent proof the signature itself was genuine)   |
+| Reuse an artifact for a different deal/business object (authorization transfer)                 | **Yes**           | Both test files, authorization-transfer cases                                                               |
+| Reuse an artifact for a different capability                                                    | **Yes**           | `ApprovalVerifier.test.ts`, capability-substitution case                                                    |
+| Reuse a genuine, smaller-amount approval to authorize a larger amount (scope escalation)        | **Yes**           | Both test files, scope-escalation cases                                                                     |
+| Present an expired artifact                                                                     | **Yes**           | `ApprovalVerifier.test.ts`, expired case                                                                    |
+| Present a malformed/wrong-version artifact                                                      | **Yes**           | `ApprovalVerifier.test.ts`, malformed-version case; `SignedApprovalGuard.test.ts`, 18 shape-rejection cases |
+| Bypass verification entirely via the real, production-wired API with no real issuer provisioned | **Yes**           | `hubspot-deal-update.integration.test.ts`, `(TD-23)` case — proves the fail-closed default, end to end      |
+| False-positive: penalize an honest caller who correctly declares no pre-authorization           | **No regression** | `HubSpotSignalStateVerifier.test.ts`, no-false-positive case                                                |
 
 ## 7. Regression Testing
 
@@ -117,25 +117,25 @@ Test output: npm test → 1025 passed (+46), 39 skipped, 0 failed
 
 ## Final Verification
 
-| Item | Status |
-|---|---|
-| Phase 3A's frozen specification independently re-verified before implementation | ✓ — §1, read directly from source, not summary |
-| Approval Artifact implemented exactly per §7's schema | ✓ — §2, field-for-field, including `constraints`'s exact `JsonValue` type |
-| Verification algorithm implemented exactly per §10 | ✓ — §3, fixed order, no early return, nonce burned last |
-| Canonical serialization and signature model reused verbatim | ✓ — §3, `CanonicalSerializer`/`SignatureVerifier` unmodified |
-| Issuer trust model implemented, never trusts caller identity | ✓ — §3, `StaticApprovalIssuerRegistry`, resolves §17 Q4 |
-| `preAuthorizedForAmountChange` independently verified, caller-declared value no longer trusted verbatim | ✓ — §4, `verifyPreAuthorization`, any disagreement is a violation |
-| Scope escalation (reuse smaller-amount approval for a larger amount) prevented | ✓ — §4, §6, requestedValue is the independently re-derived amount |
-| Replay protection implemented, in a dedicated, separate nonce store | ✓ — §5, `consumed_approval_nonces` distinct from `consumed_nonces` |
-| Production wiring fails closed with no issuer provisioned | ✓ — §5, §6, proven by the live-API `(TD-23)` integration test |
-| No false positives for honest callers | ✓ — §6, dedicated no-false-positive test |
-| Adversarial categories covered | ✓ — §6, 12/12 rows |
-| Razorpay (Phase 3B) untouched | ✓ — §7, zero changes to any Razorpay file |
-| Canonical Capability → Policy binding (TD-22) untouched | ✓ — §7, `CapabilityPolicyBinder`/`CapabilityPolicyBinding.ts` not modified |
-| `RuntimeEngine`/`ExecutionGateway` untouched | ✓ — §7, zero changes to either file; integration achieved entirely via the pre-existing `SignalStateVerifier` extension point |
-| Replay protection (Gateway/Authorization side) and audit generation unchanged | ✓ — §7, no file under `envelope-verifier`/`execution-control`/audit sinks modified |
-| Public API compatibility preserved | ✓ — §4, no route, request/response schema, or field changed; `signals.approvalArtifact` is accepted via the pre-existing generic `PolicySignals` bag |
-| Full regression suite green | ✓ — §7, 1025 passed (+46), 39 skipped, 0 failed |
+| Item                                                                                                    | Status                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 3A's frozen specification independently re-verified before implementation                         | ✓ — §1, read directly from source, not summary                                                                                                       |
+| Approval Artifact implemented exactly per §7's schema                                                   | ✓ — §2, field-for-field, including `constraints`'s exact `JsonValue` type                                                                            |
+| Verification algorithm implemented exactly per §10                                                      | ✓ — §3, fixed order, no early return, nonce burned last                                                                                              |
+| Canonical serialization and signature model reused verbatim                                             | ✓ — §3, `CanonicalSerializer`/`SignatureVerifier` unmodified                                                                                         |
+| Issuer trust model implemented, never trusts caller identity                                            | ✓ — §3, `StaticApprovalIssuerRegistry`, resolves §17 Q4                                                                                              |
+| `preAuthorizedForAmountChange` independently verified, caller-declared value no longer trusted verbatim | ✓ — §4, `verifyPreAuthorization`, any disagreement is a violation                                                                                    |
+| Scope escalation (reuse smaller-amount approval for a larger amount) prevented                          | ✓ — §4, §6, requestedValue is the independently re-derived amount                                                                                    |
+| Replay protection implemented, in a dedicated, separate nonce store                                     | ✓ — §5, `consumed_approval_nonces` distinct from `consumed_nonces`                                                                                   |
+| Production wiring fails closed with no issuer provisioned                                               | ✓ — §5, §6, proven by the live-API `(TD-23)` integration test                                                                                        |
+| No false positives for honest callers                                                                   | ✓ — §6, dedicated no-false-positive test                                                                                                             |
+| Adversarial categories covered                                                                          | ✓ — §6, 12/12 rows                                                                                                                                   |
+| Razorpay (Phase 3B) untouched                                                                           | ✓ — §7, zero changes to any Razorpay file                                                                                                            |
+| Canonical Capability → Policy binding (TD-22) untouched                                                 | ✓ — §7, `CapabilityPolicyBinder`/`CapabilityPolicyBinding.ts` not modified                                                                           |
+| `RuntimeEngine`/`ExecutionGateway` untouched                                                            | ✓ — §7, zero changes to either file; integration achieved entirely via the pre-existing `SignalStateVerifier` extension point                        |
+| Replay protection (Gateway/Authorization side) and audit generation unchanged                           | ✓ — §7, no file under `envelope-verifier`/`execution-control`/audit sinks modified                                                                   |
+| Public API compatibility preserved                                                                      | ✓ — §4, no route, request/response schema, or field changed; `signals.approvalArtifact` is accepted via the pre-existing generic `PolicySignals` bag |
+| Full regression suite green                                                                             | ✓ — §7, 1025 passed (+46), 39 skipped, 0 failed                                                                                                      |
 
 Supported by: repository searches, source references, regression tests, and build output, all in §9.
 

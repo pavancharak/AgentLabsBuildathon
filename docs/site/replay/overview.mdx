@@ -4,9 +4,9 @@ description: "Two separate things share this name today, what each actually does
 ---
 
 <Warning>
-**[PARTIAL], and more precisely split than the name suggests.** There are two unconnected
-things called "replay" in the current codebase. Conflating them would overclaim what
-either one does.
+  **[PARTIAL], and more precisely split than the name suggests.** There are two
+  unconnected things called "replay" in the current codebase. Conflating them
+  would overclaim what either one does.
 </Warning>
 
 ## 1. `POST /replay` (what the SDKs and HTTP API expose)
@@ -55,16 +55,17 @@ Verified live, `examples/tutorials/06-replay/run.ts`: it prints a `Recorded Deci
 re-evaluation, scoped to one execution's decision outcome, not the fuller claim below.
 
 <Warning>
-**Still confirmed disconnected: nothing in `packages/api` or `packages/runtime` imports
-`@parmana/replay`.** This engine is not reachable through `POST /replay` or any other
-route today, and it only handles `trustRecord.executions[0]`, one execution, not the whole
-record. It's real, tested, standalone library code, not yet wired into the runtime or the
-HTTP surface.
+  **Still confirmed disconnected: nothing in `packages/api` or
+  `packages/runtime` imports `@parmana/replay`.** This engine is not reachable
+  through `POST /replay` or any other route today, and it only handles
+  `trustRecord.executions[0]`, one execution, not the whole record. It's real,
+  tested, standalone library code, not yet wired into the runtime or the HTTP
+  surface.
 </Warning>
 
 ## What CLAIMS.md's "semantic verification" Future Claim still withholds
 
-CLAIMS.md §4 lists *"Replay semantically verifies every trust artifact"* as a Future Claim,
+CLAIMS.md §4 lists _"Replay semantically verifies every trust artifact"_ as a Future Claim,
 not a Supported one. That claim is broader than what `ReplayEngine` does today: "every trust
 artifact" implies re-evaluating every execution across a record and every artifact type, not
 one execution's decision outcome. `ReplayEngine`'s real, narrower behavior above doesn't

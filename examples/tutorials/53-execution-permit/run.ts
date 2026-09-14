@@ -2,31 +2,20 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { generateKeyPairSync } from "node:crypto";
 import path from "node:path";
 
-import {
-  isMlDsa65Supported,
-  ML_DSA_65_SKIP_REASON,
-} from "@parmana/crypto";
+import { isMlDsa65Supported, ML_DSA_65_SKIP_REASON } from "@parmana/crypto";
 
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeFactory,
-} from "@parmana/runtime";
+import { RuntimeFactory } from "@parmana/runtime";
 
-import {
-  DefaultExecutionSystem,
-} from "@parmana/execution-system";
+import { DefaultExecutionSystem } from "@parmana/execution-system";
 
 import {
   MemoryBusinessTransactionRepository,
   MemoryExecutionTrustRecordRepository,
 } from "@parmana/storage";
 
-import type {
-  BusinessTransaction,
-} from "@parmana/shared";
+import type { BusinessTransaction } from "@parmana/shared";
 
 //
 // Historical note: this tutorial was originally "Execution Permit",
@@ -67,46 +56,41 @@ const secondaryPublicPath = path.join(keyDir, "default-secondary.public.pem");
 if (!existsSync(secondaryPrivatePath)) {
   const { privateKey, publicKey } = generateKeyPairSync("ml-dsa-65");
 
-  writeFileSync(secondaryPrivatePath, privateKey.export({ format: "pem", type: "pkcs8" }));
-  writeFileSync(secondaryPublicPath, publicKey.export({ format: "pem", type: "spki" }));
+  writeFileSync(
+    secondaryPrivatePath,
+    privateKey.export({ format: "pem", type: "pkcs8" }),
+  );
+  writeFileSync(
+    secondaryPublicPath,
+    publicKey.export({ format: "pem", type: "spki" }),
+  );
 }
 
 const root = path.resolve(import.meta.dirname);
 
 const transaction = JSON.parse(
   readFileSync(
-    path.join(
-      root,
-      "../../shared/vendor-payment-transaction.json",
-    ),
+    path.join(root, "../../shared/vendor-payment-transaction.json"),
     "utf8",
   ),
 ) as BusinessTransaction;
 
-const policyRepository =
-  new FilePolicyRepository(
-    path.resolve(
-      root,
-      "../../../policies",
-    ),
-  );
+const policyRepository = new FilePolicyRepository(
+  path.resolve(root, "../../../policies"),
+);
 
-const transactions =
-  new MemoryBusinessTransactionRepository();
+const transactions = new MemoryBusinessTransactionRepository();
 
-const trustRecords =
-  new MemoryExecutionTrustRecordRepository();
+const trustRecords = new MemoryExecutionTrustRecordRepository();
 
-const executionSystem =
-  new DefaultExecutionSystem();
+const executionSystem = new DefaultExecutionSystem();
 
-const application =
-  RuntimeFactory.create(
-    transactions,
-    trustRecords,
-    policyRepository,
-    executionSystem,
-  );
+const application = RuntimeFactory.create(
+  transactions,
+  trustRecords,
+  policyRepository,
+  executionSystem,
+);
 
 // --------------------------------------------------
 // EXECUTION
@@ -117,10 +101,7 @@ const application =
 // additionally calls VerificationCrypto.signHybrid().
 // --------------------------------------------------
 
-const trustRecord =
-  await application.execute(
-    transaction,
-  );
+const trustRecord = await application.execute(transaction);
 
 // --------------------------------------------------
 // OUTPUT
@@ -134,23 +115,13 @@ console.log();
 
 console.log("Execution Trust Record");
 
-console.log(
-  JSON.stringify(
-    trustRecord,
-    null,
-    2,
-  ),
-);
+console.log(JSON.stringify(trustRecord, null, 2));
 
 console.log();
 
 console.log("Legacy signature (unchanged shape, always present)");
-console.log(
-  `  algorithm : ${trustRecord.signature.algorithm}`,
-);
-console.log(
-  `  keyId     : ${trustRecord.signature.keyId}`,
-);
+console.log(`  algorithm : ${trustRecord.signature.algorithm}`);
+console.log(`  keyId     : ${trustRecord.signature.keyId}`);
 
 console.log();
 
@@ -160,20 +131,17 @@ console.log(
 
 console.log();
 
-console.log("Additive hybrid signatures[] (present only under CRYPTO_MODE=hybrid)");
+console.log(
+  "Additive hybrid signatures[] (present only under CRYPTO_MODE=hybrid)",
+);
 
 for (const entry of trustRecord.signatures ?? []) {
-  console.log(
-    `  ${entry.algorithm.padEnd(10)} keyId=${entry.keyId}`,
-  );
+  console.log(`  ${entry.algorithm.padEnd(10)} keyId=${entry.keyId}`);
 }
 
 console.log();
 
-if (
-  trustRecord.schemaVersion === 2 &&
-  trustRecord.signatures?.length === 2
-) {
+if (trustRecord.schemaVersion === 2 && trustRecord.signatures?.length === 2) {
   console.log(
     "✓ Trust Record carries both the legacy signature and the additive hybrid signatures[].",
   );
@@ -186,6 +154,4 @@ if (
 console.log();
 
 console.log("Tutorial Complete");
-console.log(
-  "Next: Tutorial 54 - Execution Receipt",
-);
+console.log("Next: Tutorial 54 - Execution Receipt");

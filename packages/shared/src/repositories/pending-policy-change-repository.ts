@@ -14,7 +14,11 @@ import { ConflictError } from "../errors/conflict-error.js";
  */
 export type PendingPolicyChangeResolution =
   | { readonly outcome: "approved"; readonly resolvedBy: string }
-  | { readonly outcome: "rejected"; readonly resolvedBy: string; readonly rejectionReason: string };
+  | {
+      readonly outcome: "rejected";
+      readonly resolvedBy: string;
+      readonly rejectionReason: string;
+    };
 
 /**
  * Repository for Pending Policy Changes (Policy Governance,
@@ -47,7 +51,9 @@ export interface PendingPolicyChangeRepository {
    * Lists changes, optionally filtered by status. Omitting `status`
    * returns every change regardless of lifecycle state.
    */
-  list(status?: PendingPolicyChangeStatus): Promise<readonly PendingPolicyChange[]>;
+  list(
+    status?: PendingPolicyChangeStatus,
+  ): Promise<readonly PendingPolicyChange[]>;
 
   /**
    * Resolves an existing PENDING_APPROVAL change to APPROVED or

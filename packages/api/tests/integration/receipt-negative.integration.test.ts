@@ -52,9 +52,7 @@ describe.skipIf(!databaseConfigured)("Receipt Negative Integration", () => {
 
     expect(verify.status).toBe(200);
 
-
     expect(verify.body.status).toBe("FAILED");
-
 
     const receipt = await request(app).post("/receipt").send({
       businessTransactionId: transaction.businessTransactionId,
@@ -81,6 +79,3 @@ describe.skipIf(!databaseConfigured)("Receipt Negative Integration", () => {
     expect(response.status).toBe(400);
   });
 });
-
-
-

@@ -1,6 +1,9 @@
 import type { NonceStore } from "@parmana/envelope-verifier";
 import { MemoryNonceStore } from "@parmana/envelope-verifier";
-import { PostgresPoolFactory, SupabasePolicyChangeStepUpNonceStore } from "@parmana/storage";
+import {
+  PostgresPoolFactory,
+  SupabasePolicyChangeStepUpNonceStore,
+} from "@parmana/storage";
 
 import { assertDatabaseUrlConfigured } from "./assertDatabaseUrlConfigured.js";
 

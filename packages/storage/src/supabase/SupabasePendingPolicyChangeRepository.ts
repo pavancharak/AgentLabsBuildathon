@@ -31,16 +31,10 @@ import { isUniqueViolation } from "../errors/PostgresErrorCodes.js";
  * -- the same two-layer discipline G-1 established for duplicate
  * Business Transactions.
  */
-export class SupabasePendingPolicyChangeRepository
-  implements PendingPolicyChangeRepository
-{
-  constructor(
-    private readonly pool: Pool,
-  ) {}
+export class SupabasePendingPolicyChangeRepository implements PendingPolicyChangeRepository {
+  constructor(private readonly pool: Pool) {}
 
-  async create(
-    change: PendingPolicyChange,
-  ): Promise<PendingPolicyChange> {
+  async create(change: PendingPolicyChange): Promise<PendingPolicyChange> {
     try {
       await this.pool.query(INSERT_PENDING_POLICY_CHANGE_SQL, [
         change.pendingPolicyChangeId,
@@ -74,7 +68,9 @@ export class SupabasePendingPolicyChangeRepository
       pendingPolicyChangeId,
     ]);
 
-    return rows[0] ? toPendingPolicyChange(rows[0] as PendingPolicyChangeRow) : null;
+    return rows[0]
+      ? toPendingPolicyChange(rows[0] as PendingPolicyChangeRow)
+      : null;
   }
 
   async findPending(
@@ -86,7 +82,9 @@ export class SupabasePendingPolicyChangeRepository
       policyVersion,
     ]);
 
-    return rows[0] ? toPendingPolicyChange(rows[0] as PendingPolicyChangeRow) : null;
+    return rows[0]
+      ? toPendingPolicyChange(rows[0] as PendingPolicyChangeRow)
+      : null;
   }
 
   async list(
@@ -190,7 +188,9 @@ interface PendingPolicyChangeRow {
   readonly rejection_reason: string | null;
 }
 
-function toPendingPolicyChange(row: PendingPolicyChangeRow): PendingPolicyChange {
+function toPendingPolicyChange(
+  row: PendingPolicyChangeRow,
+): PendingPolicyChange {
   return {
     pendingPolicyChangeId: row.pending_policy_change_id,
     policyName: row.policy_name,
@@ -202,7 +202,11 @@ function toPendingPolicyChange(row: PendingPolicyChangeRow): PendingPolicyChange
     reason: row.reason,
 
     ...(row.resolved_by !== null ? { resolvedBy: row.resolved_by } : {}),
-    ...(row.resolved_at !== null ? { resolvedAt: new Date(row.resolved_at) } : {}),
-    ...(row.rejection_reason !== null ? { rejectionReason: row.rejection_reason } : {}),
+    ...(row.resolved_at !== null
+      ? { resolvedAt: new Date(row.resolved_at) }
+      : {}),
+    ...(row.rejection_reason !== null
+      ? { rejectionReason: row.rejection_reason }
+      : {}),
   };
 }

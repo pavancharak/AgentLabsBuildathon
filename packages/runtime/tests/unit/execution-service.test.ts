@@ -22,14 +22,10 @@ import { ExecutionService } from "../../src/services/execution-service.js";
 // execution-authorization-wiring.test.ts.
 //
 
-class InMemoryBusinessTransactionRepository
-  implements BusinessTransactionRepository
-{
+class InMemoryBusinessTransactionRepository implements BusinessTransactionRepository {
   private readonly store = new Map<string, BusinessTransaction>();
 
-  async create(
-    transaction: BusinessTransaction,
-  ): Promise<BusinessTransaction> {
+  async create(transaction: BusinessTransaction): Promise<BusinessTransaction> {
     this.store.set(transaction.businessTransactionId, transaction);
     return transaction;
   }
@@ -49,15 +45,11 @@ class InMemoryBusinessTransactionRepository
   }
 }
 
-class RecordingExecutionTrustRecordRepository
-  implements ExecutionTrustRecordRepository
-{
+class RecordingExecutionTrustRecordRepository implements ExecutionTrustRecordRepository {
   public appended: Execution | undefined;
   public replaced: Execution[] = [];
 
-  async create(
-    record: ExecutionTrustRecord,
-  ): Promise<ExecutionTrustRecord> {
+  async create(record: ExecutionTrustRecord): Promise<ExecutionTrustRecord> {
     return record;
   }
 
@@ -81,9 +73,7 @@ class RecordingExecutionTrustRecordRepository
   async appendReceipt(): Promise<void> {}
 }
 
-function createTransaction(
-  businessTransactionId: string,
-): BusinessTransaction {
+function createTransaction(businessTransactionId: string): BusinessTransaction {
   const authorityId = "authority-1";
   const authorizationId = "authorization-1";
   const fixedDate = new Date("2026-01-01T00:00:00Z");

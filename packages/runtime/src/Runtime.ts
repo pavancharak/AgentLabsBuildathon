@@ -29,49 +29,32 @@ export class Runtime {
    * Execute a Business Transaction.
    */
   public async execute(
-  transaction: BusinessTransaction,
-): Promise<RuntimeResult> {
- 
+    transaction: BusinessTransaction,
+  ): Promise<RuntimeResult> {
     //
     // Execute Runtime Engine
     //
-  
 
-    const result =
-      await this.engine.execute(
-        transaction,
-      );
-
-
+    const result = await this.engine.execute(transaction);
 
     //
     // Extract Trust Record
     //
-    const trustRecord =
-      result.trustRecord as ExecutionTrustRecord;
-
- 
+    const trustRecord = result.trustRecord as ExecutionTrustRecord;
 
     //
     // Persist Trust Record
     //
-  
 
-    await this.trustRecords.create(
-      trustRecord,
-    );
-
-
+    await this.trustRecords.create(trustRecord);
 
     return {
-  transaction:
-    result.transaction,
+      transaction: result.transaction,
 
-  context:
-    result.context,
+      context: result.context,
 
-  trustRecord,
-};
+      trustRecord,
+    };
   }
 
   /**

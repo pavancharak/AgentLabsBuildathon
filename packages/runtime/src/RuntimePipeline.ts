@@ -15,9 +15,7 @@ import type { RuntimeComponent } from "./RuntimeComponent.js";
 export class RuntimePipeline {
   private readonly components: readonly RuntimeComponent[];
 
-  constructor(
-    components: readonly RuntimeComponent[],
-  ) {
+  constructor(components: readonly RuntimeComponent[]) {
     this.components = [...components];
 
     Object.freeze(this.components);
@@ -27,9 +25,7 @@ export class RuntimePipeline {
   /**
    * Execute the complete runtime pipeline.
    */
-  public async execute(
-    context: RuntimeContext,
-  ): Promise<RuntimeContext> {
+  public async execute(context: RuntimeContext): Promise<RuntimeContext> {
     let current = context;
 
     for (const component of this.components) {

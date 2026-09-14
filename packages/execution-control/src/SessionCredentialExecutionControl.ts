@@ -26,17 +26,21 @@ export interface SessionCredentialExecutionControlOptions {
  * constructed and called directly.
  */
 export class SessionCredentialExecutionControl implements ExecutionControl {
-  constructor(private readonly options: SessionCredentialExecutionControlOptions) {}
+  constructor(
+    private readonly options: SessionCredentialExecutionControlOptions,
+  ) {}
 
   async execute(
     release: ExecutionRelease,
     gatewayAuthentication: unknown,
   ): Promise<ExecutionResult> {
-    if (!this.options.authenticator.authenticateGatewayForRequest(
-      this.options.gatewayIdentity,
-      gatewayAuthentication,
-      release.authorization.payload.authorizationId,
-    )) {
+    if (
+      !this.options.authenticator.authenticateGatewayForRequest(
+        this.options.gatewayIdentity,
+        gatewayAuthentication,
+        release.authorization.payload.authorizationId,
+      )
+    ) {
       throw new Error(
         "Execution Control rejected a Gateway attestation that does not match this request.",
       );

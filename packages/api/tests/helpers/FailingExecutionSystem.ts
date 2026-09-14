@@ -10,14 +10,8 @@ import type {
  * Used by integration tests to verify the
  * runtime failure path.
  */
-export class FailingExecutionSystem
-  implements ExecutionSystem
-{
-  public async execute(
-    _request: ExecutionRequest,
-  ): Promise<ExecutionResult> {
-    throw new Error(
-      "Simulated execution failure.",
-    );
+export class FailingExecutionSystem implements ExecutionSystem {
+  public async execute(_request: ExecutionRequest): Promise<ExecutionResult> {
+    throw new Error("Simulated execution failure.");
   }
 }

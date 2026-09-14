@@ -73,9 +73,7 @@ export class ParmanaError extends Error {
   /**
    * Creates a ParmanaError.
    */
-  constructor(
-    options: ParmanaErrorOptions,
-  ) {
+  constructor(options: ParmanaErrorOptions) {
     super(options.message);
 
     this.name = "ParmanaError";
@@ -90,9 +88,6 @@ export class ParmanaError extends Error {
       this.cause = options.cause;
     }
 
-    Object.setPrototypeOf(
-      this,
-      new.target.prototype,
-    );
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 }

@@ -1,22 +1,12 @@
 \# Tutorial 21 — Partial Failure Handling
 
-
-
 \## Overview
-
-
 
 This tutorial demonstrates how Parmana continues processing independent Business Transactions even when some of them fail.
 
-
-
 Each transaction is executed independently through the Runtime. A failure in one transaction does not stop the remaining transactions from being processed.
 
-
-
 This pattern is commonly used for:
-
-
 
 \- Payment processing
 
@@ -30,15 +20,9 @@ This pattern is commonly used for:
 
 \- Large-scale transaction processing
 
-
-
 \---
 
-
-
 \## Partial Failure Handling
-
-
 
 ```
 
@@ -76,23 +60,13 @@ Transaction 4 ─────────► REJECTED
 
 ```
 
-
-
 Every Business Transaction remains isolated from the others.
-
-
 
 \---
 
-
-
 \## Runtime Construction
 
-
-
 A single Runtime instance is reused throughout the batch.
-
-
 
 ```ts
 
@@ -110,19 +84,11 @@ const runtime =
 
 ```
 
-
-
 \---
-
-
 
 \## Executing Transactions
 
-
-
 Each transaction is executed inside its own `try/catch` block.
-
-
 
 ```ts
 
@@ -142,23 +108,13 @@ for (const transaction of transactions) {
 
 ```
 
-
-
 This ensures the remaining transactions continue executing regardless of previous failures.
-
-
 
 \---
 
-
-
 \## Recording Failures
 
-
-
 Failures are collected into a report.
-
-
 
 ```ts
 
@@ -172,19 +128,11 @@ failures.push({
 
 ```
 
-
-
 At the end of processing, a summary is generated showing both successful and failed transactions.
-
-
 
 \---
 
-
-
 \## Expected Output
-
-
 
 ```text
 
@@ -256,23 +204,13 @@ Tutorial completed successfully.
 
 ```
 
-
-
 \---
-
-
 
 \## Why Continue Processing?
 
-
-
 Enterprise workloads often contain hundreds or thousands of independent Business Transactions.
 
-
-
 Stopping the entire batch because one transaction fails would:
-
-
 
 \- Reduce throughput
 
@@ -280,23 +218,13 @@ Stopping the entire batch because one transaction fails would:
 
 \- Increase operational overhead
 
-
-
 Instead, each transaction is evaluated independently while failures are reported separately.
-
-
 
 \---
 
-
-
 \## Design Principles
 
-
-
 Every transaction has its own:
-
-
 
 \- Policy Evaluation
 
@@ -308,23 +236,13 @@ Every transaction has its own:
 
 \- Execution Trust Record
 
-
-
 There is no shared execution state between transactions.
-
-
 
 This isolation allows Parmana to provide deterministic governance while supporting resilient batch processing.
 
-
-
 \---
 
-
-
 \## Running the Example
-
-
 
 ```bash
 
@@ -332,11 +250,7 @@ tsx examples/tutorials/21-partial-failure-handling/run.ts
 
 ```
 
-
-
 or
-
-
 
 ```bash
 
@@ -344,19 +258,11 @@ npm run examples
 
 ```
 
-
-
 \---
-
-
 
 \## Summary
 
-
-
 In this tutorial you learned how to:
-
-
 
 \- Process multiple independent Business Transactions
 
@@ -366,7 +272,4 @@ In this tutorial you learned how to:
 
 \- Produce a clear execution summary
 
-
-
 Partial Failure Handling is a common enterprise execution pattern that improves reliability while maintaining deterministic governance for every transaction.
-

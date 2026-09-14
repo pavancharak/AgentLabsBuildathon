@@ -76,9 +76,7 @@ function findRefEscapes(document: unknown): RefEscape[] {
 
   function walk(node: unknown, base: string, path: string[]): void {
     if (Array.isArray(node)) {
-      node.forEach((item, index) =>
-        walk(item, base, [...path, String(index)]),
-      );
+      node.forEach((item, index) => walk(item, base, [...path, String(index)]));
       return;
     }
 

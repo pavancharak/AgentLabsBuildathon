@@ -6,9 +6,9 @@ Exercise `StorageFactory.createFromEnvironment()` directly: the decision functio
 
 ## What You'll Learn
 
-* `NODE_ENV=test` always wins: even `PARMANA_STORAGE=supabase` with a syntactically valid `DATABASE_URL` present still resolves to `MemoryStorageProvider` — this is the G-15 test-safety fix, preventing a test run from ever touching a live database by accident
-* Outside test, `PARMANA_STORAGE=supabase` with no `DATABASE_URL` fails immediately with a named, actionable error — not a generic `supabaseUrl is required` crash from deep inside a client library
-* `PARMANA_STORAGE=memory` is a legitimate, explicit production choice too, not just a test fallback
+- `NODE_ENV=test` always wins: even `PARMANA_STORAGE=supabase` with a syntactically valid `DATABASE_URL` present still resolves to `MemoryStorageProvider` — this is the G-15 test-safety fix, preventing a test run from ever touching a live database by accident
+- Outside test, `PARMANA_STORAGE=supabase` with no `DATABASE_URL` fails immediately with a named, actionable error — not a generic `supabaseUrl is required` crash from deep inside a client library
+- `PARMANA_STORAGE=memory` is a legitimate, explicit production choice too, not just a test fallback
 
 ## Running the Tutorial
 

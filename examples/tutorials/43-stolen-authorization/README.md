@@ -1,34 +1,18 @@
 \# Tutorial 43 — Stolen Authorization
 
-
-
 \## Overview
-
-
 
 An attacker may obtain a legitimate Execution Authorization.
 
-
-
 Possession alone, however, does \*\*not\*\* grant permission to execute arbitrary requests.
-
-
 
 Every Execution Authorization is cryptographically bound to the exact executable content that Parmana approved.
 
-
-
 Changing the request invalidates the authorization.
-
-
 
 \---
 
-
-
 \## Attack Scenario
-
-
 
 ```text
 
@@ -98,15 +82,9 @@ Hash Mismatch
 
 ```
 
-
-
 \---
 
-
-
 \## Original Request
-
-
 
 ```text
 
@@ -134,19 +112,11 @@ Amount
 
 ```
 
-
-
 \---
-
-
 
 \## Stolen Authorization
 
-
-
 The attacker possesses a completely valid authorization.
-
-
 
 ```text
 
@@ -162,11 +132,7 @@ The attacker possesses a completely valid authorization.
 
 ```
 
-
-
 But then changes the request.
-
-
 
 ```text
 
@@ -186,15 +152,9 @@ Amount
 
 ```
 
-
-
 \---
 
-
-
 \## Expected Output
-
-
 
 ```text
 
@@ -236,23 +196,13 @@ Tutorial completed successfully.
 
 ```
 
-
-
 \---
-
-
 
 \## Why This Works
 
-
-
 The gateway never trusts the request itself.
 
-
-
 Instead it:
-
-
 
 1\. Rebuilds the executable content.
 
@@ -260,23 +210,13 @@ Instead it:
 
 3\. Compares it with the hash stored inside the authorization.
 
-
-
 If they differ, execution stops.
-
-
 
 \---
 
-
-
 \## Security Guarantee
 
-
-
 A stolen authorization is only valid for:
-
-
 
 \- the original transaction
 
@@ -286,19 +226,11 @@ A stolen authorization is only valid for:
 
 \- the original parameters
 
-
-
 It cannot be transferred to another request.
-
-
 
 \---
 
-
-
 \## Running the Example
-
-
 
 ```bash
 
@@ -306,11 +238,7 @@ tsx examples/tutorials/43-stolen-authorization/run.ts
 
 ```
 
-
-
 or
-
-
 
 ```bash
 
@@ -318,35 +246,19 @@ npm run examples
 
 ```
 
-
-
 \---
-
-
 
 \## Next Tutorial
 
-
-
 \*\*Tutorial 44 — Direct API Bypass\*\*
-
-
 
 The next tutorial demonstrates why enterprise APIs should reject requests that bypass Parmana entirely.
 
-
-
 \---
-
-
 
 \## Summary
 
-
-
 In this tutorial you learned:
-
-
 
 \- A valid authorization can be stolen.
 
@@ -355,4 +267,3 @@ In this tutorial you learned:
 \- Execution Authorization is bound to the original executable content.
 
 \- Modified requests are rejected before enterprise execution.
-

@@ -1,34 +1,34 @@
 # \# Tutorial 08 — Human Approval
 
-# 
+#
 
 # \## Overview
 
-# 
+#
 
 # This tutorial demonstrates how Parmana enforces Human Authority before executing a Business Transaction.
 
-# 
+#
 
 # Before a transaction can be evaluated against policy, it must contain valid Authority, Authorization, and Intent information. These records establish who authorized the action, why it was authorized, and what action is permitted.
 
-# 
+#
 
 # This tutorial focuses on the authorization chain rather than policy evaluation.
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Learning Objectives
 
-# 
+#
 
 # After completing this tutorial you will understand:
 
-# 
+#
 
 # \- Authority
 
@@ -40,15 +40,15 @@
 
 # \- Execution Preconditions
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Files
 
-# 
+#
 
 # | File | Purpose |
 
@@ -58,55 +58,55 @@
 
 # | `run.ts` | Validates and displays the authorization chain |
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Architecture
 
-# 
+#
 
 # ```
 
 # Authority
 
-# &#x20;    │
+# &#x20; │
 
-# &#x20;    ▼
+# &#x20; ▼
 
 # Authorization
 
-# &#x20;    │
+# &#x20; │
 
-# &#x20;    ▼
+# &#x20; ▼
 
 # Intent
 
-# &#x20;    │
+# &#x20; │
 
-# &#x20;    ▼
+# &#x20; ▼
 
 # Business Transaction
 
-# &#x20;    │
+# &#x20; │
 
-# &#x20;    ▼
+# &#x20; ▼
 
 # Ready for Runtime Execution
 
 # ```
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Run
 
-# 
+#
 
 # ```bash
 
@@ -114,11 +114,11 @@
 
 # ```
 
-# 
+#
 
 # or
 
-# 
+#
 
 # ```bash
 
@@ -126,19 +126,19 @@
 
 # ```
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Expected Output
 
-# 
+#
 
 # The tutorial prints:
 
-# 
+#
 
 # \- Authority
 
@@ -148,23 +148,22 @@
 
 # \- Business Transaction
 
-# 
+#
 
 # No policy evaluation occurs.
 
-# 
+#
 
 # No Runtime execution occurs.
 
-# 
+#
 
 # \---
 
-# 
+#
 
 # \## Next Tutorial
 
-# 
+#
 
 # Continue to \*\*Tutorial 09 – REST API\*\*.
-

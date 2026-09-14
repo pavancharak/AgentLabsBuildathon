@@ -1,4 +1,9 @@
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from "node:http";
 import type { AddressInfo } from "node:net";
 
 export interface MockGitHubServerOptions {
@@ -48,7 +53,11 @@ export class MockGitHubServer {
     this.pullRequests.set(`${owner}/${repo}#${pr.number}`, pr);
   }
 
-  getPullRequest(owner: string, repo: string, number: number): MockPullRequest | undefined {
+  getPullRequest(
+    owner: string,
+    repo: string,
+    number: number,
+  ): MockPullRequest | undefined {
     return this.pullRequests.get(`${owner}/${repo}#${number}`);
   }
 
@@ -56,10 +65,16 @@ export class MockGitHubServer {
     this.server = createServer((req, res) => {
       this.handle(req, res).catch((error: unknown) => {
         res.writeHead(500, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ message: error instanceof Error ? error.message : "unknown error" }));
+        res.end(
+          JSON.stringify({
+            message: error instanceof Error ? error.message : "unknown error",
+          }),
+        );
       });
     });
-    await new Promise<void>((resolve) => this.server!.listen(0, "127.0.0.1", resolve));
+    await new Promise<void>((resolve) =>
+      this.server!.listen(0, "127.0.0.1", resolve),
+    );
     const address = this.server!.address() as AddressInfo;
     this.baseUrlValue = `http://127.0.0.1:${address.port}`;
   }
@@ -69,12 +84,16 @@ export class MockGitHubServer {
     await new Promise<void>((resolve) => this.server!.close(() => resolve()));
   }
 
-  private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  private async handle(
+    req: IncomingMessage,
+    res: ServerResponse,
+  ): Promise<void> {
     const url = req.url ?? "";
     const method = req.method ?? "GET";
     const path = url.split("?")[0] ?? url;
 
-    const accessTokenMatch = /^\/app\/installations\/([^/]+)\/access_tokens$/.exec(path);
+    const accessTokenMatch =
+      /^\/app\/installations\/([^/]+)\/access_tokens$/.exec(path);
     if (method === "POST" && accessTokenMatch) {
       this.handleMintInstallationToken(req, res);
       return;
@@ -87,24 +106,46 @@ export class MockGitHubServer {
 
     const pullMatch = /^\/repos\/([^/]+)\/([^/]+)\/pulls\/(\d+)$/.exec(path);
     if (method === "GET" && pullMatch) {
-      this.handleFetchPullRequest(res, pullMatch[1]!, pullMatch[2]!, Number(pullMatch[3]));
+      this.handleFetchPullRequest(
+        res,
+        pullMatch[1]!,
+        pullMatch[2]!,
+        Number(pullMatch[3]),
+      );
       return;
     }
 
-    const mergeMatch = /^\/repos\/([^/]+)\/([^/]+)\/pulls\/(\d+)\/merge$/.exec(path);
+    const mergeMatch = /^\/repos\/([^/]+)\/([^/]+)\/pulls\/(\d+)\/merge$/.exec(
+      path,
+    );
     if (method === "PUT" && mergeMatch) {
       const body = await this.readJsonBody(req);
-      this.handleMergePullRequest(res, mergeMatch[1]!, mergeMatch[2]!, Number(mergeMatch[3]), body);
+      this.handleMergePullRequest(
+        res,
+        mergeMatch[1]!,
+        mergeMatch[2]!,
+        Number(mergeMatch[3]),
+        body,
+      );
       return;
     }
 
     this.respond(res, 404, { message: "Not Found" });
   }
 
-  private handleMintInstallationToken(req: IncomingMessage, res: ServerResponse): void {
+  private handleMintInstallationToken(
+    req: IncomingMessage,
+    res: ServerResponse,
+  ): void {
     const header = req.headers.authorization;
-    if (header === undefined || !header.startsWith("Bearer ") || header.slice("Bearer ".length).length === 0) {
-      this.respond(res, 401, { message: "A JSON web token could not be decoded" });
+    if (
+      header === undefined ||
+      !header.startsWith("Bearer ") ||
+      header.slice("Bearer ".length).length === 0
+    ) {
+      this.respond(res, 401, {
+        message: "A JSON web token could not be decoded",
+      });
       return;
     }
     this.respond(res, 201, {
@@ -113,7 +154,12 @@ export class MockGitHubServer {
     });
   }
 
-  private handleFetchPullRequest(res: ServerResponse, owner: string, repo: string, number: number): void {
+  private handleFetchPullRequest(
+    res: ServerResponse,
+    owner: string,
+    repo: string,
+    number: number,
+  ): void {
     const pr = this.pullRequests.get(`${owner}/${repo}#${number}`);
     if (pr === undefined) {
       this.respond(res, 404, { message: "Not Found" });
@@ -143,13 +189,18 @@ export class MockGitHubServer {
     }
 
     if (typeof body.sha === "string" && body.sha !== pr.headSha) {
-      this.respond(res, 422, { message: "Head branch was modified. Review and try the merge again." });
+      this.respond(res, 422, {
+        message: "Head branch was modified. Review and try the merge again.",
+      });
       return;
     }
 
     this.mergeCallCount += 1;
 
-    const merged: MockPullRequest = { ...pr, mergedAt: new Date().toISOString() };
+    const merged: MockPullRequest = {
+      ...pr,
+      mergedAt: new Date().toISOString(),
+    };
     this.pullRequests.set(key, merged);
 
     this.respond(res, 200, {
@@ -165,7 +216,9 @@ export class MockGitHubServer {
     return header.slice("Bearer ".length) === this.options.installationToken;
   }
 
-  private async readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
+  private async readJsonBody(
+    req: IncomingMessage,
+  ): Promise<Record<string, unknown>> {
     const chunks: Buffer[] = [];
     for await (const chunk of req as AsyncIterable<Buffer>) chunks.push(chunk);
     const raw = Buffer.concat(chunks).toString("utf8");

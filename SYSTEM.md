@@ -1,58 +1,30 @@
 \# Parmana System Documentation
 
-
-
 \# Parmana
-
-
 
 \*\*Human Authority for Enterprise AI\*\*
 
-
-
 \## Overview
-
-
 
 Parmana is an Execution Authorization and Verification Infrastructure for Enterprise AI. It enables organizations to deploy autonomous AI while ensuring that every high-impact action is authorized, policy-compliant, verifiable, and auditable.
 
-
-
 Unlike systems that rely on trusting AI outputs, Parmana evaluates execution requests using trusted execution signals and organizational policy before any action is allowed to occur.
 
-
-
 \---
-
-
 
 \# Vision
 
-
-
 The future is not AI that simply answers questions.
-
-
 
 The future is AI that organizations trust to perform real work.
 
-
-
 Parmana provides the trust infrastructure required for AI systems to execute actions responsibly inside enterprises.
-
-
 
 \---
 
-
-
 \# Problem Statement
 
-
-
 Modern AI systems are increasingly capable of making decisions and performing work. However, organizations cannot safely allow AI to execute business operations without answering critical questions:
-
-
 
 \* Is the action permitted?
 
@@ -64,27 +36,15 @@ Modern AI systems are increasingly capable of making decisions and performing wo
 
 \* Can the decision be independently audited later?
 
-
-
 Without these guarantees, autonomous AI cannot be safely deployed in regulated or high-impact environments.
-
-
 
 \---
 
-
-
 \# Solution
-
-
 
 Parmana acts as an independent execution authority positioned between AI systems and enterprise systems.
 
-
-
 Every execution request is evaluated against:
-
-
 
 \* Organizational policies
 
@@ -98,115 +58,59 @@ Every execution request is evaluated against:
 
 \* Risk controls
 
-
-
 Only actions that satisfy all authorization requirements are approved for execution.
 
-
-
 \---
-
-
 
 \# Core Principle
 
-
-
 AI may propose actions.
-
-
 
 Parmana determines whether those actions are authorized to execute.
 
-
-
 AI intelligence and execution authority are intentionally separated.
 
-
-
 \---
-
-
 
 \# Design Principles
 
-
-
 \## Trust Through Verification
-
-
 
 Parmana never assumes an AI response is correct.
 
-
-
 Every execution request is verified using trusted evidence.
 
-
-
 \---
-
-
 
 \## Human Authority
 
-
-
 Organizations retain ultimate authority over business operations.
-
-
 
 Human approval can be mandatory whenever required by policy.
 
-
-
 \---
-
-
 
 \## Policy First
 
-
-
 Policies determine what may execute.
-
-
 
 AI capability never overrides organizational policy.
 
-
-
 \---
-
-
 
 \## Deterministic Verification
 
-
-
 Given the same execution request, policies, enterprise facts, and approvals, Parmana produces the same authorization result.
 
-
-
 \---
-
-
 
 \## Independent Auditability
 
-
-
 Every authorization decision produces evidence that can be independently verified without relying on the original AI system.
-
-
 
 \---
 
-
-
 \# Architecture
-
-
 
 ```
 
@@ -272,27 +176,15 @@ Every authorization decision produces evidence that can be independently verifie
 
 ```
 
-
-
 \---
-
-
 
 \# System Components
 
-
-
 \## Runtime
-
-
 
 Coordinates the complete authorization workflow from request reception to final execution decision.
 
-
-
 Responsibilities include:
-
-
 
 \* Request validation
 
@@ -306,23 +198,13 @@ Responsibilities include:
 
 \* Audit logging
 
-
-
 \---
-
-
 
 \## Policy Engine
 
-
-
 Evaluates organizational policies.
 
-
-
 Examples include:
-
-
 
 \* Spending limits
 
@@ -336,35 +218,19 @@ Examples include:
 
 \* Compliance requirements
 
-
-
 \---
-
-
 
 \## Signal Evaluation Engine
 
-
-
 Collects trusted execution signals.
-
-
 
 Signals are divided into three categories.
 
-
-
 \### Enterprise Facts
-
-
 
 Deterministic information retrieved from systems of record.
 
-
-
 Examples:
-
-
 
 \* Employee role
 
@@ -378,23 +244,13 @@ Examples:
 
 \* Access permissions
 
-
-
 \---
-
-
 
 \### AI-Derived Signals
 
-
-
 Information produced by AI models.
 
-
-
 Examples:
-
-
 
 \* Classification
 
@@ -406,27 +262,15 @@ Examples:
 
 \* Document extraction
 
-
-
 AI-derived signals are treated as evidence rather than authority.
-
-
 
 \---
 
-
-
 \### Human Authority Signals
-
-
 
 Explicit organizational approvals.
 
-
-
 Examples:
-
-
 
 \* Manager approval
 
@@ -438,19 +282,11 @@ Examples:
 
 \* Emergency approval
 
-
-
 \---
-
-
 
 \## Authorization Engine
 
-
-
 Combines:
-
-
 
 \* Policy rules
 
@@ -460,15 +296,9 @@ Combines:
 
 \* Human approvals
 
-
-
 to determine whether execution is permitted.
 
-
-
 Possible outcomes:
-
-
 
 \* Approved
 
@@ -478,19 +308,11 @@ Possible outcomes:
 
 \* Awaiting Approval
 
-
-
 \---
-
-
 
 \## Verification Engine
 
-
-
 Confirms that:
-
-
 
 \* Policies were evaluated
 
@@ -502,41 +324,23 @@ Confirms that:
 
 \* Authorization decision is reproducible
 
-
-
 \---
-
-
 
 \## Cryptography Layer
 
-
-
 Provides integrity protection using:
-
-
 
 \* SHA-256 hashing
 
 \* Ed25519 digital signatures
 
-
-
 This ensures receipts and execution records cannot be altered without detection.
-
-
 
 \---
 
-
-
 \## Receipt Generator
 
-
-
 Every authorization decision produces a receipt containing:
-
-
 
 \* Request ID
 
@@ -554,27 +358,15 @@ Every authorization decision produces a receipt containing:
 
 \* Digital signature
 
-
-
 Receipts provide independent proof of authorization.
-
-
 
 \---
 
-
-
 \## Audit System
-
-
 
 Stores immutable execution records.
 
-
-
 Audit records include:
-
-
 
 \* Request details
 
@@ -590,19 +382,11 @@ Audit records include:
 
 \* Receipt reference
 
-
-
 These records support regulatory compliance, forensic analysis, and operational transparency.
-
-
 
 \---
 
-
-
 \# Execution Flow
-
-
 
 1\. AI submits an execution request.
 
@@ -626,23 +410,13 @@ These records support regulatory compliance, forensic analysis, and operational 
 
 11\. Audit record is stored.
 
-
-
 \---
-
-
 
 \# Security Model
 
-
-
 Parmana follows a zero-trust execution model.
 
-
-
 Key security principles include:
-
-
 
 \* Never trust AI assertions without verification.
 
@@ -656,19 +430,11 @@ Key security principles include:
 
 \* Separate execution authority from AI reasoning.
 
-
-
 \---
-
-
 
 \# API Overview
 
-
-
 Primary API capabilities include:
-
-
 
 \* Submit execution request
 
@@ -682,23 +448,13 @@ Primary API capabilities include:
 
 \* Query audit records
 
-
-
 \---
-
-
 
 \# Deployment
 
-
-
 Parmana is designed to be deployed as an independent infrastructure service within enterprise environments.
 
-
-
 Typical integrations include:
-
-
 
 \* ERP platforms
 
@@ -716,15 +472,9 @@ Typical integrations include:
 
 \* Custom enterprise services
 
-
-
 \---
 
-
-
 \# Use Cases
-
-
 
 \* Financial approvals
 
@@ -746,15 +496,9 @@ Typical integrations include:
 
 \* Enterprise automation
 
-
-
 \---
 
-
-
 \# Benefits
-
-
 
 \* Enables trusted autonomous AI
 
@@ -772,29 +516,14 @@ Typical integrations include:
 
 \* Integrates with existing enterprise systems
 
-
-
 \---
-
-
 
 \# Guiding Principle
 
-
-
 Before Parmana, AI assists people.
-
-
 
 After Parmana, AI performs policy-compliant work.
 
-
-
 Organizations do not trust AI because it is intelligent.
 
-
-
 They trust AI because every action is authorized, verified, and supported by independent evidence.
-
-
-

@@ -1,18 +1,10 @@
 \# Example 09 — Multi-Agent Governance
 
-
-
 \## Overview
-
-
 
 Modern AI systems increasingly consist of \*\*multiple specialized agents\*\* rather than a single monolithic model.
 
-
-
 A customer request might involve:
-
-
 
 \* A planning agent
 
@@ -26,11 +18,7 @@ A customer request might involve:
 
 \* An execution agent
 
-
-
 While these agents collaborate to complete a business objective, organizations still require confidence that the overall workflow is:
-
-
 
 \* Authorized
 
@@ -44,27 +32,15 @@ While these agents collaborate to complete a business objective, organizations s
 
 \* Fully auditable
 
-
-
 Parmana provides this governance by recording the entire multi-agent workflow as a single immutable \*\*Execution Trust Record\*\*.
-
-
 
 This guide demonstrates how coordinated AI agents operate under a shared trust chain using the TypeScript SDK.
 
-
-
 \---
-
-
 
 \# Learning Objectives
 
-
-
 After completing this guide you will understand:
-
-
 
 \* Why multi-agent systems require governance
 
@@ -76,23 +52,13 @@ After completing this guide you will understand:
 
 \* How auditing spans every participating agent
 
-
-
 \---
-
-
 
 \# Why Multi-Agent Systems Need Governance
 
-
-
 Large AI applications rarely rely on a single model.
 
-
-
 Typical workflows include:
-
-
 
 \* Planning
 
@@ -108,23 +74,13 @@ Typical workflows include:
 
 \* Final execution
 
-
-
 Each agent performs a different responsibility, but the organization still owns one business decision.
-
-
 
 Parmana governs the entire workflow rather than each agent independently.
 
-
-
 \---
 
-
-
 \# Multi-Agent Execution Trust Chain
-
-
 
 ```text id="0vru8q"
 
@@ -184,27 +140,15 @@ Execution Trust Record
 
 ```
 
-
-
 Every participating agent contributes evidence to the same immutable trust chain.
-
-
 
 \---
 
-
-
 \# Example Scenario
-
-
 
 A customer support platform receives a request.
 
-
-
 Three AI agents collaborate:
-
-
 
 1\. Planner Agent creates a workflow.
 
@@ -212,27 +156,15 @@ Three AI agents collaborate:
 
 3\. Execution Agent prepares the response.
 
-
-
 Parmana governs the workflow as one Business Transaction.
-
-
 
 \---
 
-
-
 \# Authority
-
-
 
 Authority identifies the organization responsible for the workflow.
 
-
-
 Example:
-
-
 
 ```typescript id="m1bknr"
 
@@ -246,27 +178,15 @@ const authority = {
 
 ```
 
-
-
 Authority establishes organizational ownership.
-
-
 
 \---
 
-
-
 \# Authorization
-
-
 
 Authorization grants permission to execute coordinated AI workflows.
 
-
-
 Example:
-
-
 
 ```typescript id="m83t9n"
 
@@ -278,27 +198,15 @@ permissions: \[
 
 ```
 
-
-
 Authorization defines what the agent platform may do.
-
-
 
 \---
 
-
-
 \# Business Intent
-
-
 
 Intent records the requested business objective.
 
-
-
 Example:
-
-
 
 ```typescript id="4k3txk"
 
@@ -314,27 +222,15 @@ target:
 
 ```
 
-
-
 Intent belongs to the overall workflow—not to any individual agent.
-
-
 
 \---
 
-
-
 \# Policy Reference
-
-
 
 Every workflow specifies exactly one policy.
 
-
-
 Example:
-
-
 
 ```typescript id="3f7zyv"
 
@@ -350,31 +246,17 @@ policyVersion:
 
 ```
 
-
-
 Every participating agent operates under the same governing policy.
-
-
 
 \---
 
-
-
 \# Participating Agents
-
-
 
 In this example three specialized agents contribute.
 
-
-
 \### Planner Agent
 
-
-
 Responsible for:
-
-
 
 \* Workflow planning
 
@@ -382,11 +264,7 @@ Responsible for:
 
 \* Dependency analysis
 
-
-
 Example output:
-
-
 
 ```text id="pm7v0x"
 
@@ -394,19 +272,11 @@ Workflow generated
 
 ```
 
-
-
 \---
-
-
 
 \### Research Agent
 
-
-
 Responsible for:
-
-
 
 \* Retrieving customer history
 
@@ -414,11 +284,7 @@ Responsible for:
 
 \* Preparing execution context
 
-
-
 Example output:
-
-
 
 ```text id="h0fqyj"
 
@@ -426,19 +292,11 @@ Customer history retrieved
 
 ```
 
-
-
 \---
-
-
 
 \### Execution Agent
 
-
-
 Responsible for:
-
-
 
 \* Producing the final business action
 
@@ -446,11 +304,7 @@ Responsible for:
 
 \* Completing execution
 
-
-
 Example output:
-
-
 
 ```text id="rjlwmr"
 
@@ -458,23 +312,13 @@ Support response prepared
 
 ```
 
-
-
 \---
-
-
 
 \# Runtime Signals
 
-
-
 Policy evaluation considers recorded runtime signals.
 
-
-
 Example:
-
-
 
 ```typescript id="if4e7h"
 
@@ -506,27 +350,15 @@ signals: {
 
 ```
 
-
-
 These signals become part of deterministic replay.
-
-
 
 \---
 
-
-
 \# Decision
-
-
 
 The Runtime evaluates the shared policy.
 
-
-
 Example:
-
-
 
 ```text id="4gyotn"
 
@@ -538,11 +370,7 @@ APPROVED
 
 ```
 
-
-
 The Decision records:
-
-
 
 \* Outcome
 
@@ -554,27 +382,15 @@ The Decision records:
 
 \* Evaluation timestamp
 
-
-
 The decision governs the entire workflow rather than an individual agent.
-
-
 
 \---
 
-
-
 \# Execution Evidence
-
-
 
 Execution Evidence records each participating agent.
 
-
-
 Example:
-
-
 
 ```typescript id="mrrjlwm"
 
@@ -640,27 +456,15 @@ Example:
 
 ```
 
-
-
 Evidence preserves the contribution of every agent.
-
-
 
 \---
 
-
-
 \# Receipt
-
-
 
 Successful execution produces a cryptographic Receipt.
 
-
-
 Example:
-
-
 
 ```text id="rm3rwb"
 
@@ -680,23 +484,13 @@ Ed25519
 
 ```
 
-
-
 The receipt proves that the governed workflow completed successfully.
-
-
 
 \---
 
-
-
 \# Execution Trust Record
 
-
-
 Every workflow artifact becomes part of the immutable Execution Trust Record.
-
-
 
 ```text id="tt9nka"
 
@@ -728,27 +522,15 @@ Replay
 
 ```
 
-
-
 This single record represents the authoritative history of the coordinated AI workflow.
-
-
 
 \---
 
-
-
 \# Replay
-
-
 
 Replay reconstructs the original workflow.
 
-
-
 Replay restores:
-
-
 
 \* Original Business Transaction
 
@@ -760,27 +542,15 @@ Replay restores:
 
 \* Original decision
 
-
-
 Replay never invokes current AI models.
-
-
 
 Historical replay uses the recorded execution artifacts.
 
-
-
 \---
-
-
 
 \# Verification
 
-
-
 Verification confirms:
-
-
 
 \* Trust Record integrity
 
@@ -790,23 +560,13 @@ Verification confirms:
 
 \* Artifact consistency
 
-
-
 Verification demonstrates that the recorded workflow remains authentic.
-
-
 
 \---
 
-
-
 \# Auditing
 
-
-
 An auditor can later determine:
-
-
 
 \* Which organization initiated the workflow
 
@@ -822,23 +582,13 @@ An auditor can later determine:
 
 \* Whether execution completed successfully
 
-
-
 The complete workflow becomes independently explainable.
-
-
 
 \---
 
-
-
 \# Benefits
 
-
-
 Execution authorization provides:
-
-
 
 \* Cross-agent accountability
 
@@ -852,19 +602,11 @@ Execution authorization provides:
 
 \* Enterprise auditability
 
-
-
 Parmana governs the execution of coordinated AI systems without dictating how the agents collaborate internally.
-
-
 
 \---
 
-
-
 \# Complete Workflow
-
-
 
 ```text id="vjlwm9"
 
@@ -916,23 +658,13 @@ Audit
 
 ```
 
-
-
 Every stage contributes to the immutable trust chain.
-
-
 
 \---
 
-
-
 \# Complete Example
 
-
-
 See:
-
-
 
 ```text id="e9tsyz"
 
@@ -940,23 +672,13 @@ examples/09\_multi\_agent.ts
 
 ```
 
-
-
 for the complete TypeScript implementation.
-
-
 
 \---
 
-
-
 \# Architectural Principles
 
-
-
 Multi-agent governance follows the same Parmana architecture used across every domain:
-
-
 
 \* Explicit Authority
 
@@ -978,53 +700,33 @@ Multi-agent governance follows the same Parmana architecture used across every d
 
 \* Deterministic Replay
 
-
-
 The number of AI agents may increase, but the trust architecture remains unchanged.
 
-
-
 \---
-
-
 
 \# Relationship to Other Examples
 
-
-
 This example demonstrates that Parmana governs workflows rather than individual AI models.
 
-
-
-| Example | Focus                     |
+| Example | Focus |
 
 | ------- | ------------------------- |
 
-| 06      | Autonomous Systems        |
+| 06 | Autonomous Systems |
 
-| 07      | Clinical AI               |
+| 07 | Clinical AI |
 
-| 08      | Financial Governance      |
+| 08 | Financial Governance |
 
-| 10      | Explicit Policy Selection |
-
-
+| 10 | Explicit Policy Selection |
 
 All domains use the same immutable Execution Trust Chain.
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 In this guide you learned how Parmana governs coordinated AI systems by recording:
-
-
 
 \* Authority
 
@@ -1048,23 +750,13 @@ In this guide you learned how Parmana governs coordinated AI systems by recordin
 
 \* Execution Trust Record
 
-
-
 This architecture enables organizations to build sophisticated multi-agent systems while preserving transparency, determinism, replayability, and independent verification.
-
-
 
 \---
 
-
-
 \# Next
 
-
-
 Continue with:
-
-
 
 ```text
 
@@ -1072,9 +764,4 @@ docs/10\_custom\_policy.md
 
 ```
 
-
-
 to learn how explicit `PolicyReference` selection guarantees deterministic policy evaluation by ensuring that every Business Transaction specifies the exact policy name and version to be executed, eliminating runtime policy discovery and preserving reproducible execution.
-
-
-

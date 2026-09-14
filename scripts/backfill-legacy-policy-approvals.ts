@@ -3,7 +3,10 @@ import "dotenv/config";
 import crypto from "node:crypto";
 
 import { loadConfig } from "@parmana/shared";
-import type { PendingPolicyChange, PolicyChangeApprovalRecord } from "@parmana/shared";
+import type {
+  PendingPolicyChange,
+  PolicyChangeApprovalRecord,
+} from "@parmana/shared";
 import { PendingPolicyChangeStatus } from "@parmana/shared";
 import { PolicyChangeCrypto } from "@parmana/crypto";
 import { FilePolicyRepository } from "@parmana/policy";
@@ -100,16 +103,20 @@ async function planBackfill(
   const awaitingRealApproval: BackfillPlanItem[] = [];
 
   for (const { name, version } of allVersions) {
-    const existingApproval = await storage.policyChangeApprovalRecords.findMostRecentFor(
-      name,
-      version,
-    );
+    const existingApproval =
+      await storage.policyChangeApprovalRecords.findMostRecentFor(
+        name,
+        version,
+      );
 
     if (existingApproval !== null) {
       continue;
     }
 
-    const openProposal = await storage.pendingPolicyChanges.findPending(name, version);
+    const openProposal = await storage.pendingPolicyChanges.findPending(
+      name,
+      version,
+    );
 
     if (openProposal !== null) {
       awaitingRealApproval.push({ policyName: name, policyVersion: version });
@@ -128,14 +135,18 @@ async function backfillOne(
   storage: StorageProvider,
   policyChangeCrypto: PolicyChangeCrypto,
 ): Promise<BackfillOutcome> {
-  const content = await policyRepository.load(item.policyName, item.policyVersion);
+  const content = await policyRepository.load(
+    item.policyName,
+    item.policyVersion,
+  );
   const now = new Date();
 
   const pendingChange: PendingPolicyChange = {
     pendingPolicyChangeId: crypto.randomUUID(),
     policyName: item.policyName,
     policyVersion: item.policyVersion,
-    proposedContent: content as unknown as PendingPolicyChange["proposedContent"],
+    proposedContent:
+      content as unknown as PendingPolicyChange["proposedContent"],
     proposedBy: SYSTEM_ACTOR,
     proposedAt: now,
     status: PendingPolicyChangeStatus.PENDING_APPROVAL,
@@ -163,7 +174,9 @@ async function backfillOne(
     contentHashAfter,
   };
 
-  const signature = await policyChangeCrypto.sign(draft as PolicyChangeApprovalRecord);
+  const signature = await policyChangeCrypto.sign(
+    draft as PolicyChangeApprovalRecord,
+  );
   const record: PolicyChangeApprovalRecord = { ...draft, signature };
 
   const created = await storage.policyChangeApprovalRecords.create(record);
@@ -183,7 +196,10 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
   const storage = StorageFactory.createFromEnvironment();
   const policyChangeCrypto = new PolicyChangeCrypto();
 
-  const { toBackfill, awaitingRealApproval } = await planBackfill(policyRepository, storage);
+  const { toBackfill, awaitingRealApproval } = await planBackfill(
+    policyRepository,
+    storage,
+  );
 
   if (awaitingRealApproval.length > 0) {
     console.log(
@@ -194,7 +210,9 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
     );
 
     for (const item of awaitingRealApproval) {
-      console.log(`  - ${item.policyName}@${item.policyVersion} (awaiting a human checker)`);
+      console.log(
+        `  - ${item.policyName}@${item.policyVersion} (awaiting a human checker)`,
+      );
     }
 
     console.log("");
@@ -227,7 +245,12 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
   }
 
   for (const item of toBackfill) {
-    const outcome = await backfillOne(item, policyRepository, storage, policyChangeCrypto);
+    const outcome = await backfillOne(
+      item,
+      policyRepository,
+      storage,
+      policyChangeCrypto,
+    );
 
     console.log(
       `  backfilled ${outcome.policyName}@${outcome.policyVersion} ` +
@@ -235,7 +258,9 @@ async function main(argv = process.argv.slice(2)): Promise<void> {
     );
   }
 
-  console.log(`\nDone. ${toBackfill.length} polic${toBackfill.length === 1 ? "y" : "ies"} backfilled.`);
+  console.log(
+    `\nDone. ${toBackfill.length} polic${toBackfill.length === 1 ? "y" : "ies"} backfilled.`,
+  );
 }
 
 if (process.env.NODE_ENV !== "test") {

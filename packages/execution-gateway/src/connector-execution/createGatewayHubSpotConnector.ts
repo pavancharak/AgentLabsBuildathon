@@ -10,6 +10,8 @@ import { GatewayHubSpotAdapter } from "./GatewayHubSpotAdapter.js";
  * GatewayHubSpotAdapter class — callers never construct or depend on the
  * adapter implementation directly.
  */
-export function createGatewayHubSpotConnector(options: HubSpotConnectorOptions): Connector {
+export function createGatewayHubSpotConnector(
+  options: HubSpotConnectorOptions,
+): Connector {
   return new GatewayHubSpotAdapter(options);
 }

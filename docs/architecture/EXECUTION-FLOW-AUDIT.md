@@ -1,7 +1,5 @@
 \# Execution Flow Audit
 
-
-
 > Status: Complete (Implementation Verified)
 
 >
@@ -22,15 +20,9 @@
 
 > No assumptions. No future architecture. No marketing language.
 
-
-
 \---
 
-
-
 \# Audit Rules
-
-
 
 \- Document only the current implementation.
 
@@ -42,15 +34,9 @@
 
 \- Every stage should eventually have associated tests.
 
-
-
 \---
 
-
-
 \# High-Level Flow
-
-
 
 ```
 
@@ -148,19 +134,11 @@ Execution Trust Record
 
 ```
 
-
-
 \---
-
-
 
 \# Stage 1: HTTP Entry
 
-
-
 \## File
-
-
 
 ```
 
@@ -168,35 +146,19 @@ packages/api/src/routes/execute.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Accept HTTP execution requests.
 
-
-
 \## Input
-
-
 
 HTTP POST request.
 
-
-
 \## Output
-
-
 
 BusinessTransaction.
 
-
-
 \## Verified Behaviour
-
-
 
 \- Validates `businessTransactionId`.
 
@@ -208,11 +170,7 @@ BusinessTransaction.
 
 \- Returns the resulting Execution Trust Record.
 
-
-
 \## Calls
-
-
 
 ```
 
@@ -228,39 +186,21 @@ ExecutionTrustApplication.execute()
 
 ```
 
-
-
 \## Audit Notes
-
-
 
 Current route validates only the transaction identifier.
 
-
-
 Further validation points will be identified during the runtime audit.
-
-
 
 Status:
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \# Stage 2: Business Transaction Mapper
 
-
-
 \## File
-
-
 
 ```
 
@@ -268,41 +208,23 @@ packages/api/src/mappers/BusinessTransactionMapper.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Convert HTTP request payload into an immutable
 
 BusinessTransaction.
 
-
-
 \## Input
-
-
 
 Request payload.
 
-
-
 \## Output
-
-
 
 BusinessTransaction.
 
-
-
 \## Verified Behaviour
 
-
-
 Copies:
-
-
 
 \- metadata
 
@@ -316,21 +238,13 @@ Copies:
 
 \- signals
 
-
-
 Creates server-owned fields:
-
-
 
 \- status = RECEIVED
 
 \- createdAt = current server time
 
-
-
 \## Does NOT
-
-
 
 \- Execute policy
 
@@ -342,27 +256,15 @@ Creates server-owned fields:
 
 \- Generate receipts
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \# Stage 3: Application Composition
 
-
-
 \## File
-
-
 
 ```
 
@@ -370,19 +272,11 @@ packages/api/src/application.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Compose the application.
 
-
-
 \## Creates
-
-
 
 \- PolicyRepository
 
@@ -392,11 +286,7 @@ Compose the application.
 
 \- ExecutionTrustApplication
 
-
-
 Uses
-
-
 
 ```
 
@@ -404,39 +294,21 @@ RuntimeFactory.create(...)
 
 ```
 
-
-
 \## Audit Notes
-
-
 
 Contains dependency composition only.
 
-
-
 No execution logic.
-
-
 
 Status:
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \# Stage 4: Runtime Factory
 
-
-
 \## File
-
-
 
 ```
 
@@ -444,23 +316,13 @@ packages/runtime/src/RuntimeFactory.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Construct the complete runtime.
 
-
-
 \## Creates
 
-
-
 Application Services
-
-
 
 \- BusinessTransactionService
 
@@ -470,67 +332,37 @@ Application Services
 
 \- ReceiptService
 
-
-
 Builders
-
-
 
 \- ExecutionRequestBuilder
 
 \- ExecutionEvidenceBuilder
 
-
-
 Runtime Pipeline
-
-
 
 \- TrustChainValidationComponent
 
 \- ExecutionComponent
 
-
-
 Application
-
-
 
 \- ExecutionTrustApplication
 
-
-
 \## Audit Notes
-
-
 
 Factory performs dependency composition only.
 
-
-
 No runtime execution occurs here.
-
-
 
 Status:
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \# Stage 5: ExecutionTrustApplication
 
-
-
 \## File
-
-
 
 ```
 
@@ -538,19 +370,11 @@ packages/runtime/src/ExecutionTrustApplication.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Orchestrate the complete execution lifecycle.
 
-
-
 \## Execution Sequence
-
-
 
 ```
 
@@ -598,11 +422,7 @@ Return Execution Trust Record
 
 ```
 
-
-
 \## Public Operations
-
-
 
 \- execute()
 
@@ -618,39 +438,21 @@ Return Execution Trust Record
 
 \- listTransactions()
 
-
-
 \## Audit Notes
-
-
 
 Acts as an orchestration layer.
 
-
-
 Delegates all domain behaviour to dedicated services.
-
-
 
 Status:
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \# Stage 6: Runtime
 
-
-
 \## File
-
-
 
 ```
 
@@ -658,21 +460,13 @@ packages/runtime/src/Runtime.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Execute RuntimeEngine and persist the resulting
 
 Execution Trust Record.
 
-
-
 \## Execution Sequence
-
-
 
 ```
 
@@ -696,41 +490,21 @@ Return RuntimeResult
 
 ```
 
-
-
 \## Audit Notes
-
-
 
 Runtime is a thin façade.
 
-
-
 Execution occurs inside RuntimeEngine.
-
-
 
 Status:
 
-
-
 ✅ Verified
-
-
-
-
 
 \---
 
-
-
 \# Stage 7: Runtime Engine
 
-
-
 \## File
-
-
 
 ```
 
@@ -738,19 +512,11 @@ packages/runtime/src/RuntimeEngine.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 The Runtime Engine is the core orchestration engine of Parmana.
 
-
-
 It is responsible for:
-
-
 
 \- Loading policies.
 
@@ -764,27 +530,15 @@ It is responsible for:
 
 \- Producing the final Execution Trust Record.
 
-
-
 It contains the complete deterministic execution flow.
-
-
 
 Status:
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Execution Sequence
-
-
 
 ```
 
@@ -864,19 +618,11 @@ Execution Trust Record
 
 ```
 
-
-
 \---
-
-
 
 \## Step 1: Extract Runtime Signals
 
-
-
 Input
-
-
 
 ```
 
@@ -884,11 +630,7 @@ BusinessTransaction.signals
 
 ```
 
-
-
 Output
-
-
 
 ```
 
@@ -896,35 +638,19 @@ Record<string, JsonValue>
 
 ```
 
-
-
 Purpose
-
-
 
 Provide deterministic input to policy evaluation.
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Step 2: Load Policy
 
-
-
 Component
-
-
 
 ```
 
@@ -932,11 +658,7 @@ PolicyRouter
 
 ```
 
-
-
 Input
-
-
 
 ```
 
@@ -946,11 +668,7 @@ policy.version
 
 ```
 
-
-
 Output
-
-
 
 ```
 
@@ -958,45 +676,25 @@ Runtime Policy
 
 ```
 
-
-
 Purpose
-
-
 
 Resolve the exact policy requested by the Business Transaction.
 
-
-
 Hooks
-
-
 
 \- beforePolicyLoad()
 
 \- afterPolicyLoad()
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Step 3: Evaluate Policy
 
-
-
 Component
-
-
 
 ```
 
@@ -1004,21 +702,13 @@ PolicyEngine
 
 ```
 
-
-
 Input
-
-
 
 \- Policy
 
 \- Runtime Signals
 
-
-
 Output
-
-
 
 ```
 
@@ -1026,37 +716,21 @@ PolicyDecision
 
 ```
 
-
-
 Hooks
-
-
 
 \- beforePolicyEvaluation()
 
 \- afterPolicyEvaluation()
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Step 4: Build Decision
 
-
-
 Component
-
-
 
 ```
 
@@ -1064,21 +738,13 @@ DecisionBuilder
 
 ```
 
-
-
 Input
-
-
 
 \- Business Transaction
 
 \- Policy Decision
 
-
-
 Output
-
-
 
 ```
 
@@ -1086,27 +752,15 @@ Decision
 
 ```
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Step 5: Execution Gate
 
-
-
 Component
-
-
 
 ```
 
@@ -1114,11 +768,7 @@ ExecutionGate
 
 ```
 
-
-
 Input
-
-
 
 ```
 
@@ -1126,35 +776,19 @@ Decision
 
 ```
 
-
-
 Purpose
-
-
 
 Enforce execution before authorization is created.
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Step 6: Executable Content
 
-
-
 Component
-
-
 
 ```
 
@@ -1162,15 +796,9 @@ toExecutableContent(...)
 
 ```
 
-
-
 Produces the canonical executable payload.
 
-
-
 Contains
-
-
 
 \- businessTransactionId
 
@@ -1180,35 +808,19 @@ Contains
 
 \- parameters
 
-
-
 Purpose
-
-
 
 Create the immutable content that will be authorized.
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Step 7: Runtime Authorization
 
-
-
 Component
-
-
 
 ```
 
@@ -1216,11 +828,7 @@ RuntimeAuthorizationSigner
 
 ```
 
-
-
 Input
-
-
 
 \- Decision ID
 
@@ -1230,11 +838,7 @@ Input
 
 \- Executable Content
 
-
-
 Output
-
-
 
 ```
 
@@ -1242,37 +846,21 @@ Execution Authorization
 
 ```
 
-
-
 Hooks
-
-
 
 \- beforeAuthorization()
 
 \- afterAuthorization()
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Step 8: Execution Artifact
 
-
-
 Component
-
-
 
 ```
 
@@ -1280,11 +868,7 @@ ExecutionBuilder
 
 ```
 
-
-
 Output
-
-
 
 ```
 
@@ -1292,27 +876,15 @@ Execution
 
 ```
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Step 9: Runtime Context
 
-
-
 Creates
-
-
 
 ```
 
@@ -1320,11 +892,7 @@ RuntimeContext
 
 ```
 
-
-
 Contains
-
-
 
 \- Transaction
 
@@ -1334,35 +902,19 @@ Contains
 
 \- Execution
 
-
-
 Purpose
-
-
 
 Shared context passed between all Runtime Pipeline stages.
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Step 10: Runtime Pipeline
 
-
-
 Component
-
-
 
 ```
 
@@ -1370,11 +922,7 @@ RuntimePipeline
 
 ```
 
-
-
 Input
-
-
 
 ```
 
@@ -1382,11 +930,7 @@ RuntimeContext
 
 ```
 
-
-
 Output
-
-
 
 ```
 
@@ -1394,35 +938,19 @@ Processed RuntimeContext
 
 ```
 
-
-
 Purpose
-
-
 
 Execute every configured Runtime Component.
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Step 11: Business Trust Pipeline
 
-
-
 Component
-
-
 
 ```
 
@@ -1430,19 +958,11 @@ BusinessTrustPipeline
 
 ```
 
-
-
 Input
-
-
 
 Processed Runtime Context
 
-
-
 Output
-
-
 
 ```
 
@@ -1450,39 +970,21 @@ ExecutionTrustRecord
 
 ```
 
-
-
 Purpose
-
-
 
 Generate the final immutable Execution Trust Record.
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Runtime Hooks
 
-
-
 The Runtime Engine exposes lifecycle hooks before and after every major stage.
 
-
-
 Verified hook points
-
-
 
 \- Policy Load
 
@@ -1498,43 +1000,23 @@ Verified hook points
 
 \- Runtime Error
 
-
-
 This provides extension points without changing the Runtime Engine itself.
-
-
 
 Status:
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Audit Notes
-
-
 
 The Runtime Engine is deterministic orchestration.
 
-
-
 It does not perform transport handling.
-
-
 
 It does not perform persistence.
 
-
-
 It does not expose HTTP concerns.
-
-
 
 It coordinates policy evaluation, authorization, execution, and trust record creation through explicit stages.
 
@@ -1542,15 +1024,9 @@ It coordinates policy evaluation, authorization, execution, and trust record cre
 
 \---
 
-
-
 \# Stage 8: Runtime Pipeline
 
-
-
 \## File
-
-
 
 ```
 
@@ -1558,39 +1034,21 @@ packages/runtime/src/RuntimePipeline.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Execute Runtime Components in deterministic order.
 
-
-
 The Runtime Pipeline contains no business logic.
-
-
 
 Its only responsibility is to orchestrate Runtime Components sequentially.
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Execution Flow
-
-
 
 ```
 
@@ -1622,19 +1080,11 @@ Processed RuntimeContext
 
 ```
 
-
-
 \---
-
-
 
 \## Pipeline Guarantees
 
-
-
 Verified from implementation.
-
-
 
 \- Deterministic execution order.
 
@@ -1646,27 +1096,15 @@ Verified from implementation.
 
 \- Shared RuntimeContext passed between every stage.
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Execution Algorithm
 
-
-
 Implementation
-
-
 
 ```
 
@@ -1686,115 +1124,63 @@ return current
 
 ```
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## RuntimeContext
 
-
-
 Input
-
-
 
 ```
 
 RuntimeContext
 
 ```
-
-
 
 Output
 
-
-
 ```
 
 RuntimeContext
 
 ```
 
-
-
 Every Runtime Component receives the complete Runtime Context and returns the updated Runtime Context.
-
-
 
 No component communicates directly with another component.
 
-
-
 Communication occurs only through RuntimeContext.
-
-
 
 Status:
 
-
-
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Component Registration
 
-
-
 Components are injected through the constructor.
-
-
 
 The pipeline never creates Runtime Components.
 
-
-
 This responsibility belongs to RuntimeFactory.
-
-
 
 Status:
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Audit Notes
-
-
 
 The Runtime Pipeline is intentionally minimal.
 
-
-
 It provides deterministic orchestration only.
 
-
-
 It does not:
-
-
 
 \- evaluate policy
 
@@ -1806,23 +1192,13 @@ It does not:
 
 \- verify trust
 
-
-
 Those responsibilities belong to Runtime Components.
-
-
 
 \---
 
-
-
 \# Stage 9: Trust Chain Validation Component
 
-
-
 \## File
-
-
 
 ```
 
@@ -1830,39 +1206,21 @@ packages/runtime/src/components/TrustChainValidationComponent.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Validate the minimum trust requirements before execution may continue.
 
-
-
 This component does \*\*not\*\* evaluate business policy.
-
-
 
 It validates that all mandatory trust artifacts already exist.
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Position in Pipeline
-
-
 
 ```
 
@@ -1882,31 +1240,19 @@ ExecutionComponent
 
 ```
 
-
-
 \---
-
-
 
 \## Input
 
-
-
 ```
 
 RuntimeContext
 
 ```
-
-
 
 \---
 
-
-
 \## Output
-
-
 
 ```
 
@@ -1914,29 +1260,17 @@ RuntimeContext
 
 ```
 
-
-
 No new objects are created.
 
-
-
 The component either:
-
-
 
 \- returns the RuntimeContext unchanged
 
 \- throws an exception
 
-
-
 \---
 
-
-
 \## Validation Sequence
-
-
 
 ```
 
@@ -1980,35 +1314,19 @@ Execution Allowed
 
 ```
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Validation Rules
 
-
-
 \### Authority
-
-
 
 Required.
 
-
-
 Failure
-
-
 
 ```
 
@@ -2016,23 +1334,13 @@ AuthorityRequiredError
 
 ```
 
-
-
 \---
-
-
 
 \### Authorization
 
-
-
 Required.
 
-
-
 Failure
-
-
 
 ```
 
@@ -2040,23 +1348,13 @@ AuthorizationRequiredError
 
 ```
 
-
-
 \---
-
-
 
 \### Intent
 
-
-
 Required.
 
-
-
 Failure
-
-
 
 ```
 
@@ -2064,23 +1362,13 @@ IntentRequiredError
 
 ```
 
-
-
 \---
-
-
 
 \### Policy
 
-
-
 Required.
 
-
-
 Failure
-
-
 
 ```
 
@@ -2092,23 +1380,13 @@ POLICY\_REQUIRED
 
 ```
 
-
-
 \---
-
-
 
 \### Decision
 
-
-
 Required.
 
-
-
 Failure
-
-
 
 ```
 
@@ -2120,19 +1398,11 @@ DECISION\_REQUIRED
 
 ```
 
-
-
 \---
-
-
 
 \### Decision Outcome
 
-
-
 Only
-
-
 
 ```
 
@@ -2140,15 +1410,9 @@ APPROVED
 
 ```
 
-
-
 may continue.
 
-
-
 Any other outcome throws
-
-
 
 ```
 
@@ -2156,23 +1420,13 @@ DecisionNotApprovedError
 
 ```
 
-
-
 \---
-
-
 
 \## Audit Notes
 
-
-
 This component validates trust prerequisites.
 
-
-
 It does \*\*not\*\*
-
-
 
 \- load policies
 
@@ -2184,31 +1438,17 @@ It does \*\*not\*\*
 
 \- verify trust records
 
-
-
 Its only responsibility is deciding whether the Runtime Context is complete enough to continue.
-
-
 
 Status:
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \# Stage 10: Execution Component
 
-
-
 \## File
-
-
 
 ```
 
@@ -2216,19 +1456,11 @@ packages/runtime/src/components/ExecutionComponent.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Execute an approved Business Transaction through the configured Execution System.
 
-
-
 This component is responsible for:
-
-
 
 \- Creating the Execution artifact.
 
@@ -2242,23 +1474,13 @@ This component is responsible for:
 
 \- Completing or failing execution.
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Position in Pipeline
-
-
 
 ```
 
@@ -2272,15 +1494,9 @@ ExecutionComponent
 
 ```
 
-
-
 \---
 
-
-
 \## Execution Sequence
-
-
 
 ```
 
@@ -2348,29 +1564,17 @@ Updated RuntimeContext
 
 ```
 
-
-
 \---
-
-
 
 \## Preconditions
 
-
-
 Execution requires
-
-
 
 \- Decision
 
 \- Signed Runtime Authorization
 
-
-
 Failure
-
-
 
 ```
 
@@ -2386,11 +1590,7 @@ Error
 
 ```
 
-
-
 or
-
-
 
 ```
 
@@ -2406,23 +1606,13 @@ Error
 
 ```
 
-
-
 \---
-
-
 
 \## Step 1
 
-
-
 Create Execution Artifact
 
-
-
 Component
-
-
 
 ```
 
@@ -2430,19 +1620,11 @@ ExecutionService.create()
 
 ```
 
-
-
 Purpose
-
-
 
 Create an Execution object before execution begins.
 
-
-
 Execution Mode
-
-
 
 ```
 
@@ -2450,31 +1632,17 @@ SYNC
 
 ```
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Step 2
 
-
-
 Build Execution Request
 
-
-
 Component
-
-
 
 ```
 
@@ -2482,21 +1650,13 @@ ExecutionRequestBuilder
 
 ```
 
-
-
 Input
-
-
 
 \- BusinessTransaction
 
 \- Runtime Authorization
 
-
-
 Output
-
-
 
 ```
 
@@ -2504,31 +1664,17 @@ ExecutionRequest
 
 ```
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Step 3
 
-
-
 Invoke Execution System
 
-
-
 Component
-
-
 
 ```
 
@@ -2536,47 +1682,25 @@ ExecutionSystem.execute()
 
 ```
 
-
-
 Input
-
-
 
 ExecutionRequest
 
-
-
 Output
-
-
 
 ExecutionResponse
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Step 4
 
-
-
 Build Execution Evidence
 
-
-
 Component
-
-
 
 ```
 
@@ -2584,47 +1708,25 @@ ExecutionEvidenceBuilder
 
 ```
 
-
-
 Input
-
-
 
 ExecutionResponse
 
-
-
 Output
-
-
 
 ExecutionEvidence
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Step 5
 
-
-
 Attach Evidence
 
-
-
 Component
-
-
 
 ```
 
@@ -2632,39 +1734,21 @@ ExecutionService.attachEvidence()
 
 ```
 
-
-
 Purpose
-
-
 
 Bind immutable evidence to the Execution artifact.
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Step 6
 
-
-
 Complete Execution
 
-
-
 Component
-
-
 
 ```
 
@@ -2672,31 +1756,17 @@ ExecutionService.complete()
 
 ```
 
-
-
 Marks execution as completed.
-
-
 
 Status:
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Failure Path
 
-
-
 If any exception occurs
-
-
 
 ```
 
@@ -2712,31 +1782,17 @@ rethrow exception
 
 ```
 
-
-
 Execution failures are recorded before the error propagates.
-
-
 
 Status:
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Output
 
-
-
 Returns
-
-
 
 ```
 
@@ -2744,11 +1800,7 @@ RuntimeContext
 
 ```
 
-
-
 with updated
-
-
 
 ```
 
@@ -2756,23 +1808,13 @@ execution
 
 ```
 
-
-
 artifact.
-
-
 
 \---
 
-
-
 \# Stage 11: Execution System
 
-
-
 \## File
-
-
 
 ```
 
@@ -2780,47 +1822,25 @@ packages/execution-system/src/ExecutionSystem.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Define the execution boundary between Parmana and external execution systems.
 
-
-
 The Execution System is an abstraction.
-
-
 
 It defines the contract that every execution implementation must satisfy.
 
-
-
 Parmana never executes enterprise operations directly.
-
-
 
 Instead, it delegates approved execution requests to an implementation of this interface.
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Interface
-
-
 
 ```typescript
 
@@ -2836,15 +1856,9 @@ interface ExecutionSystem {
 
 ```
 
-
-
 \---
 
-
-
 \## Input
-
-
 
 ```
 
@@ -2852,15 +1866,9 @@ ExecutionRequest
 
 ```
 
-
-
 \---
 
-
-
 \## Output
-
-
 
 ```
 
@@ -2868,19 +1876,11 @@ ExecutionResult
 
 ```
 
-
-
 \---
-
-
 
 \## Responsibilities
 
-
-
 The Execution System is responsible for:
-
-
 
 \- Accepting an approved Execution Request.
 
@@ -2888,11 +1888,7 @@ The Execution System is responsible for:
 
 \- Returning an Execution Result.
 
-
-
 It is \*\*not\*\* responsible for:
-
-
 
 \- Policy evaluation.
 
@@ -2906,27 +1902,15 @@ It is \*\*not\*\* responsible for:
 
 \- Verification.
 
-
-
 Those responsibilities remain within the Parmana Runtime.
-
-
 
 Status:
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Architectural Boundary
-
-
 
 ```
 
@@ -2980,51 +1964,27 @@ Execution Trust Record
 
 ```
 
-
-
 \---
-
-
 
 \## Audit Notes
 
-
-
 ExecutionSystem is an interface.
-
-
 
 It contains no business logic.
 
-
-
 Concrete implementations determine how execution reaches enterprise systems.
-
-
 
 This abstraction decouples Parmana's governance runtime from specific execution technologies.
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \# Stage 12: Execution System Implementations
 
-
-
 \## Interface
-
-
 
 ```
 
@@ -3032,15 +1992,9 @@ packages/execution-system/src/ExecutionSystem.ts
 
 ```
 
-
-
 \## Verified Implementations
 
-
-
 \### Production
-
-
 
 ```
 
@@ -3048,11 +2002,7 @@ packages/execution-gateway/src/ExecutionGateway.ts
 
 ```
 
-
-
 Implements
-
-
 
 ```
 
@@ -3060,23 +2010,13 @@ ExecutionSystem
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \### Default Implementation
-
-
 
 ```
 
@@ -3084,11 +2024,7 @@ packages/execution-system/src/DefaultExecutionSystem.ts
 
 ```
 
-
-
 Implements
-
-
 
 ```
 
@@ -3096,23 +2032,13 @@ ExecutionSystem
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \### HTTP Implementation
-
-
 
 ```
 
@@ -3120,11 +2046,7 @@ packages/execution-system/src/HttpExecutionSystem.ts
 
 ```
 
-
-
 Implements
-
-
 
 ```
 
@@ -3132,23 +2054,13 @@ ExecutionSystem
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \### Test Implementations
-
-
 
 ```
 
@@ -3160,51 +2072,27 @@ packages/runtime/tests/unit/execution-authorization-wiring.test.ts
 
 ```
 
-
-
 Used only for testing.
-
-
 
 Status
 
-
-
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Audit Conclusion
 
-
-
 The Runtime depends only on the `ExecutionSystem` interface.
-
-
 
 Concrete execution behavior is supplied through dependency injection.
 
-
-
 This allows Parmana to support multiple execution strategies without changing the Runtime.
-
-
 
 \---
 
-
-
 \# Stage 13: Execution Gateway
 
-
-
 \## File
-
-
 
 ```
 
@@ -3212,39 +2100,23 @@ packages/execution-gateway/src/ExecutionGateway.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 The Execution Gateway is the production implementation of the
 
 `ExecutionSystem` interface.
 
-
-
 It is the final verification boundary before any request is released
 
 to an external execution target.
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Position in Architecture
-
-
 
 ```
 
@@ -3276,19 +2148,11 @@ Enterprise System
 
 ```
 
-
-
 \---
-
-
 
 \## Responsibilities
 
-
-
 The Execution Gateway:
-
-
 
 \- verifies the signed authorization envelope
 
@@ -3302,11 +2166,7 @@ The Execution Gateway:
 
 \- rejects every failed verification
 
-
-
 It does \*\*not\*\*:
-
-
 
 \- evaluate policy
 
@@ -3316,23 +2176,13 @@ It does \*\*not\*\*:
 
 \- generate trust records
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Verification Pipeline
-
-
 
 ```
 
@@ -3370,87 +2220,51 @@ Connector / ExecutionControl
 
 ```
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Verification Order
 
-
-
 The implementation performs verification in the following order.
-
-
 
 1\. Envelope verification
 
-&#x20;   - signature
+&#x20; - signature
 
-&#x20;   - version
+&#x20; - version
 
-&#x20;   - expiry
+&#x20; - expiry
 
-&#x20;   - TTL
-
-
+&#x20; - TTL
 
 2\. Executable content hash verification
 
-
-
 3\. Nonce consumption
-
-
 
 4\. Release to execution
 
-
-
 The nonce is intentionally consumed last.
-
-
 
 Status:
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Executable Content Verification
-
-
 
 The gateway reconstructs the canonical executable content from the
 
 Execution Request.
 
-
-
 It independently hashes the reconstructed content and compares it to
 
 the hash embedded in the signed Runtime Authorization.
 
-
-
 If they differ:
-
-
 
 ```
 
@@ -3458,53 +2272,29 @@ Execution rejected
 
 ```
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Replay Protection
-
-
 
 Replay protection is performed only after every deterministic
 
 verification succeeds.
 
-
-
 A failed request never consumes a nonce.
-
-
 
 Status:
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Immutable Release
 
-
-
 Before forwarding execution:
-
-
 
 ```
 
@@ -3512,39 +2302,21 @@ deepFreeze(executableContent)
 
 ```
 
-
-
 is applied.
-
-
 
 The forwarded transaction becomes immutable.
 
-
-
 Status:
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Release Targets
 
-
-
 Exactly one execution strategy is configured.
 
-
-
 \### Connector Mode
-
-
 
 ```
 
@@ -3552,11 +2324,7 @@ Connector.execute(...)
 
 ```
 
-
-
 \### Controlled Execution Mode
-
-
 
 ```
 
@@ -3564,11 +2332,7 @@ ExecutionControl.execute(...)
 
 ```
 
-
-
 or
-
-
 
 ```
 
@@ -3576,35 +2340,19 @@ ExecutionChannel.release(...)
 
 ```
 
-
-
 The gateway rejects configurations that attempt to use both.
-
-
 
 Status:
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Failure Behaviour
-
-
 
 Every verification failure results in rejection.
 
-
-
 The gateway returns detailed failure information including:
-
-
 
 \- failed verification stages
 
@@ -3612,51 +2360,29 @@ The gateway returns detailed failure information including:
 
 \- replay failures
 
-
-
 No execution is forwarded.
-
-
 
 Status:
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Audit Notes
-
-
 
 The Execution Gateway is the final mechanical enforcement point before
 
 enterprise execution.
 
-
-
 It converts Runtime Authorization into controlled execution.
-
-
 
 It is the primary security boundary of the Parmana execution model.
 
 \---
 
-
-
 \# Stage 14: Business Trust Pipeline
 
-
-
 \## File
-
-
 
 ```
 
@@ -3664,19 +2390,11 @@ packages/runtime/src/BusinessTrustPipeline.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 ⏳ Pending Audit
 
-
-
 Expected responsibilities:
-
-
 
 \- Assemble the final Execution Trust Record.
 
@@ -3684,11 +2402,7 @@ Expected responsibilities:
 
 \- Produce the immutable trust artifact.
 
-
-
 Questions to verify
-
-
 
 \- How is the Execution Trust Record built?
 
@@ -3702,25 +2416,15 @@ Questions to verify
 
 \- Is persistence performed here?
 
-
-
 Status
-
-
 
 ⏳ Pending
 
 \---
 
-
-
 \# Stage 14: Business Trust Pipeline
 
-
-
 \## File
-
-
 
 ```
 
@@ -3728,41 +2432,23 @@ packages/runtime/src/BusinessTrustPipeline.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Assemble the canonical immutable Execution Trust Record.
 
-
-
 The Business Trust Pipeline does \*\*not\*\* perform business logic.
-
-
 
 It validates that the Runtime has already produced the required artifacts
 
 and delegates trust record construction to the BusinessTrustRecordBuilder.
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Position in Execution Flow
-
-
 
 ```
 
@@ -3788,15 +2474,9 @@ ExecutionTrustRecord
 
 ```
 
-
-
 \---
 
-
-
 \## Input
-
-
 
 ```
 
@@ -3804,21 +2484,13 @@ RuntimeContext
 
 ```
 
-
-
 Expected artifacts
-
-
 
 \- Business Transaction
 
 \- Execution
 
-
-
 Optional artifacts
-
-
 
 \- Override
 
@@ -3826,31 +2498,17 @@ Optional artifacts
 
 \- Receipt
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Validation
 
-
-
 The pipeline verifies the minimum required runtime artifacts.
 
-
-
 Required
-
-
 
 ```
 
@@ -3860,11 +2518,7 @@ Execution
 
 ```
 
-
-
 Failure
-
-
 
 ```
 
@@ -3876,27 +2530,15 @@ Execution artifact is required.
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Execution
 
-
-
 After validation
-
-
 
 ```
 
@@ -3904,111 +2546,57 @@ BusinessTrustRecordBuilder.build(context)
 
 ```
 
-
-
 is invoked.
-
-
 
 The pipeline itself contains no assembly logic.
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Responsibilities
 
-
-
 The pipeline
-
-
 
 ✓ validates runtime completeness
 
-
-
 ✓ delegates trust record construction
-
-
 
 ✓ returns the completed Execution Trust Record
 
-
-
 The pipeline does NOT
-
-
 
 ✗ hash
 
-
-
 ✗ sign
-
-
 
 ✗ evaluate policy
 
-
-
 ✗ execute connectors
-
-
 
 ✗ persist data
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Audit Notes
 
-
-
 BusinessTrustPipeline is intentionally minimal.
-
-
 
 Its responsibility is orchestration, not construction.
 
-
-
 All trust record creation is delegated to BusinessTrustRecordBuilder.
-
-
 
 \---
 
-
-
 \# Stage 15: Business Trust Record Builder
 
-
-
 \## File
-
-
 
 ```
 
@@ -4016,35 +2604,19 @@ packages/runtime/src/BusinessTrustRecordBuilder.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Construct the canonical immutable `ExecutionTrustRecord`.
 
-
-
 This builder assembles all runtime artifacts, computes the trust record hash, digitally signs the completed record, and returns the final immutable trust artifact.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Position in Execution Flow
-
-
 
 ```
 
@@ -4082,15 +2654,9 @@ ExecutionTrustRecord
 
 ```
 
-
-
 \---
 
-
-
 \## Input
-
-
 
 ```
 
@@ -4098,21 +2664,13 @@ RuntimeContext
 
 ```
 
-
-
 Required
-
-
 
 \- Business Transaction
 
 \- Execution
 
-
-
 Optional
-
-
 
 \- Override
 
@@ -4120,27 +2678,15 @@ Optional
 
 \- Receipt
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Assembly
 
-
-
 The builder assembles:
-
-
 
 ```
 
@@ -4180,31 +2726,17 @@ updatedAt
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Phase 1: Draft Record
 
-
-
 A draft trust record is created.
 
-
-
 At this point
-
-
 
 ```
 
@@ -4216,31 +2748,17 @@ signature.value = ""
 
 ```
 
-
-
 This temporary structure exists only to create a deterministic hash.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Phase 2: Trust Record Hash
 
-
-
 Component
-
-
 
 ```
 
@@ -4248,11 +2766,7 @@ VerificationCrypto.hash(...)
 
 ```
 
-
-
 Output
-
-
 
 ```
 
@@ -4260,31 +2774,17 @@ trustRecordHash
 
 ```
 
-
-
 The hash is calculated before the signature is created.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Phase 3: Digital Signature
 
-
-
 Component
-
-
 
 ```
 
@@ -4292,15 +2792,9 @@ VerificationCrypto.sign(...)
 
 ```
 
-
-
 Input
 
-
-
 Record including
-
-
 
 ```
 
@@ -4308,11 +2802,7 @@ trustRecordHash
 
 ```
 
-
-
 Output
-
-
 
 ```
 
@@ -4320,27 +2810,15 @@ signature
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Phase 4: Final Record
 
-
-
 The builder returns
-
-
 
 ```
 
@@ -4348,11 +2826,7 @@ ExecutionTrustRecord
 
 ```
 
-
-
 containing
-
-
 
 \- all runtime artifacts
 
@@ -4360,97 +2834,51 @@ containing
 
 \- digital signature
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Responsibilities
 
-
-
 The builder
-
-
 
 ✓ assembles runtime artifacts
 
-
-
 ✓ computes trust record hash
-
-
 
 ✓ digitally signs the record
 
-
-
 ✓ returns immutable trust artifact
-
-
 
 The builder does NOT
 
-
-
 ✗ evaluate policy
-
-
 
 ✗ execute systems
 
-
-
 ✗ persist records
-
-
 
 ✗ verify signatures
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Audit Notes
 
-
-
 This is the final construction step of the execution lifecycle.
-
-
 
 Every preceding stage exists to produce artifacts consumed by this builder.
 
 \---
 
-
-
 \# Stage 16: Execution Request Builder
 
-
-
 \## File
-
-
 
 ```
 
@@ -4458,23 +2886,13 @@ packages/runtime/src/ExecutionRequestBuilder.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 ⏳ Pending Audit
 
-
-
 Construct the canonical ExecutionRequest passed from the Runtime to the Execution Gateway.
 
-
-
 Questions to verify
-
-
 
 \- What fields are included?
 
@@ -4486,25 +2904,15 @@ Questions to verify
 
 \- What guarantees does the builder provide?
 
-
-
 Status
-
-
 
 ⏳ Pending
 
 \---
 
-
-
 \# Stage 16: Execution Request Builder
 
-
-
 \## File
-
-
 
 ```
 
@@ -4512,23 +2920,13 @@ packages/runtime/src/ExecutionRequestBuilder.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Construct the canonical `ExecutionRequest` passed from the Runtime to the configured `ExecutionSystem`.
 
-
-
 The builder performs structural mapping only.
 
-
-
 It does not:
-
-
 
 \- evaluate policy
 
@@ -4540,23 +2938,13 @@ It does not:
 
 \- mutate the transaction
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Position in Execution Flow
-
-
 
 ```
 
@@ -4596,15 +2984,9 @@ ExecutionGateway
 
 ```
 
-
-
 \---
 
-
-
 \## Input
-
-
 
 ```
 
@@ -4616,23 +2998,13 @@ SignedExecutionAuthorization
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Output
-
-
 
 ```
 
@@ -4640,27 +3012,15 @@ ExecutionRequest
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## ExecutionRequest Structure
 
-
-
 The builder constructs:
-
-
 
 ```
 
@@ -4684,23 +3044,13 @@ authorization
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Source Mapping
-
-
 
 | ExecutionRequest | Source |
 
@@ -4716,127 +3066,65 @@ Status
 
 | authorization | SignedExecutionAuthorization |
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Security Properties
 
-
-
 The builder does not create executable content.
-
-
 
 Instead it copies the already-approved intent together with the Runtime Authorization.
 
-
-
 This ensures the Execution Gateway independently reconstructs the canonical executable content before verification.
-
-
 
 Status
 
-
-
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Audit Notes
 
-
-
 The ExecutionRequest is intentionally minimal.
-
-
 
 \## Security Properties
 
-
-
 The builder does not create executable content.
-
-
 
 Instead it copies the already-approved intent together with the Runtime Authorization.
 
-
-
 This ensures the Execution Gateway independently reconstructs the canonical executable content before verification.
-
-
 
 Status
 
-
-
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Architectural Notes
 
-
-
 `ExecutionRequest` is intentionally a \*\*transport object\*\*, not a domain object.
-
-
 
 It is the canonical message exchanged between the Runtime and the Execution System.
 
-
-
 The Execution Gateway independently reconstructs the canonical `ExecutableContent` from the `ExecutionRequest` before verifying its integrity and authorization.
-
-
 
 This design ensures the Gateway verifies the actual execution payload rather than trusting serialized Runtime state.
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Audit Notes
 
-
-
 The ExecutionRequest is intentionally minimal.
 
-
-
 It contains only:
-
-
 
 \- businessTransactionId
 
@@ -4848,11 +3136,7 @@ It contains only:
 
 \- authorization
 
-
-
 It does not contain:
-
-
 
 \- Policy
 
@@ -4862,29 +3146,17 @@ It does not contain:
 
 \- ExecutionTrustRecord
 
-
-
 This minimizes the data crossing the Runtime → Execution System boundary while preserving deterministic verification.
 
-
-
 Status
-
-
 
 ✅ Verified
 
 \---
 
-
-
 \# Stage 17: Execution Evidence Builder
 
-
-
 \## File
-
-
 
 ```
 
@@ -4892,23 +3164,13 @@ packages/runtime/src/ExecutionEvidenceBuilder.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 ⏳ Pending Audit
 
-
-
 Construct immutable Execution Evidence from the Execution Result returned by the configured Execution System.
 
-
-
 Questions to verify
-
-
 
 \- What evidence is preserved?
 
@@ -4920,25 +3182,15 @@ Questions to verify
 
 \- Is evidence immutable?
 
-
-
 Status
-
-
 
 ⏳ Pending
 
 \---
 
-
-
 \# Stage 17: Execution Evidence Builder
 
-
-
 \## File
-
-
 
 ```
 
@@ -4946,23 +3198,13 @@ packages/runtime/src/ExecutionEvidenceBuilder.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Construct the canonical `ExecutionEvidence` from the `ExecutionResult` returned by the configured `ExecutionSystem`.
 
-
-
 The builder performs structural mapping only.
 
-
-
 It does not:
-
-
 
 \- execute business operations
 
@@ -4974,23 +3216,13 @@ It does not:
 
 \- mutate execution state
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Position in Execution Flow
-
-
 
 ```
 
@@ -5028,15 +3260,9 @@ BusinessTrustRecordBuilder
 
 ```
 
-
-
 \---
 
-
-
 \## Input
-
-
 
 ```
 
@@ -5044,23 +3270,13 @@ ExecutionResult
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Output
-
-
 
 ```
 
@@ -5068,27 +3284,15 @@ ExecutionEvidence
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Evidence Structure
 
-
-
 The builder constructs:
-
-
 
 ```
 
@@ -5120,23 +3324,13 @@ attributes (optional)
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Source Mapping
-
-
 
 | ExecutionEvidence | Source |
 
@@ -5156,115 +3350,59 @@ Status
 
 | attributes | result.metadata |
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Security Properties
 
-
-
 The builder preserves the execution outcome exactly as returned by the configured `ExecutionSystem`.
-
-
 
 It performs no enrichment, filtering, or transformation beyond structural mapping.
 
-
-
 This minimizes the risk of altering execution evidence before it becomes part of the Execution Trust Record.
-
-
 
 Status
 
-
-
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Architectural Notes
 
-
-
 `ExecutionEvidence` is an immutable evidence artifact.
-
-
 
 It is \*\*not\*\* the raw connector response.
 
-
-
 Instead, it is the canonical evidence representation used throughout the Runtime and ultimately embedded within the `ExecutionTrustRecord`.
-
-
 
 This decouples the internal trust model from connector-specific response formats.
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Audit Notes
 
-
-
 The builder intentionally contains no business logic.
-
-
 
 It converts an `ExecutionResult` into Parmana's canonical evidence model.
 
-
-
 This provides a stable evidence contract regardless of which `ExecutionSystem` implementation produced the original result.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \# Stage 18: Runtime Authorization Signer
 
-
-
 \## File
-
-
 
 ```
 
@@ -5272,25 +3410,15 @@ packages/runtime/src/RuntimeAuthorizationSigner.ts
 
 ```
 
-
-
 \## Responsibility
 
-
-
 Construct and sign the Runtime Execution Authorization.
-
-
 
 The Runtime Authorization Signer is a thin orchestration layer over the
 
 shared cryptographic infrastructure.
 
-
-
 It is responsible for:
-
-
 
 \- loading the Runtime signing key
 
@@ -5298,27 +3426,15 @@ It is responsible for:
 
 \- returning the signed Runtime Authorization
 
-
-
 It does not implement cryptographic algorithms.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Position in Execution Flow
-
-
 
 ```
 
@@ -5356,15 +3472,9 @@ ExecutionRequestBuilder
 
 ```
 
-
-
 \---
 
-
-
 \## Input
-
-
 
 ```
 
@@ -5392,23 +3502,13 @@ TTL
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Dependencies
-
-
 
 ```
 
@@ -5424,23 +3524,13 @@ FileKeyProvider
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Signing Flow
-
-
 
 ```
 
@@ -5460,27 +3550,15 @@ SignedExecutionAuthorization
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Key Management
 
-
-
 Private keys are loaded through
-
-
 
 ```
 
@@ -5488,11 +3566,7 @@ FileKeyProvider
 
 ```
 
-
-
 using
-
-
 
 ```
 
@@ -5500,41 +3574,23 @@ DEFAULT\_KEY\_ID
 
 ```
 
-
-
 The Runtime Authorization Signer never embeds key material.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Security Properties
 
-
-
 The Runtime Authorization Signer does not implement signing logic.
-
-
 
 Instead it delegates all cryptographic operations to the shared
 
 AuthorizationSigner.
 
-
-
 This centralizes cryptographic behavior across:
-
-
 
 \- Runtime Authorization
 
@@ -5542,65 +3598,35 @@ This centralizes cryptographic behavior across:
 
 \- Receipts
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Architectural Notes
 
-
-
 The Runtime Authorization Signer is an orchestration layer.
 
-
-
 Cryptography is implemented inside the crypto package.
-
-
 
 This separation keeps Runtime independent from cryptographic algorithms,
 
 allowing providers to evolve without changing Runtime orchestration.
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Audit Notes
 
-
-
 This class has a single responsibility:
-
-
 
 create a SignedExecutionAuthorization.
 
-
-
 It does not:
-
-
 
 \- evaluate policy
 
@@ -5612,27 +3638,15 @@ It does not:
 
 \- execute business logic
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \# Stage 19: Execution Service
 
-
-
 \## File
-
-
 
 ```
 
@@ -5640,19 +3654,11 @@ packages/runtime/src/services/execution-service.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 ⏳ Pending Audit
 
-
-
 Expected responsibilities
-
-
 
 \- Create Execution artifact
 
@@ -5664,11 +3670,7 @@ Expected responsibilities
 
 \- Persist execution state
 
-
-
 Questions
-
-
 
 \- Is Execution immutable?
 
@@ -5680,25 +3682,15 @@ Questions
 
 \- How are failures recorded?
 
-
-
 Status
-
-
 
 ⏳ Pending
 
 \---
 
-
-
 \# Stage 19: Execution Service
 
-
-
 \## File
-
-
 
 ```
 
@@ -5706,19 +3698,11 @@ packages/runtime/src/services/execution-service.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Manage the lifecycle of immutable `Execution` artifacts.
 
-
-
 The Execution Service is responsible for:
-
-
 
 \- creating Execution artifacts
 
@@ -5728,11 +3712,7 @@ The Execution Service is responsible for:
 
 \- persisting execution updates
 
-
-
 It does not:
-
-
 
 \- evaluate policy
 
@@ -5742,23 +3722,13 @@ It does not:
 
 \- generate trust records
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Position in Execution Flow
-
-
 
 ```
 
@@ -5796,11 +3766,7 @@ BusinessTrustPipeline
 
 ```
 
-
-
 Failure path
-
-
 
 ```
 
@@ -5808,23 +3774,13 @@ ExecutionService.fail()
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Dependencies
-
-
 
 ```
 
@@ -5836,23 +3792,13 @@ ExecutionTrustRecordRepository
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Lifecycle
-
-
 
 ```
 
@@ -5878,11 +3824,7 @@ COMPLETED
 
 ```
 
-
-
 Failure
-
-
 
 ```
 
@@ -5902,27 +3844,15 @@ FAILED
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Phase 1: Create Execution
 
-
-
 Method
-
-
 
 ```
 
@@ -5930,11 +3860,7 @@ create(...)
 
 ```
 
-
-
 Responsibilities
-
-
 
 \- verify Business Transaction exists
 
@@ -5948,11 +3874,7 @@ Responsibilities
 
 \- append Execution to Trust Record repository
 
-
-
 Initial status
-
-
 
 ```
 
@@ -5960,27 +3882,15 @@ PROCESSING
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Phase 2: Attach Evidence
 
-
-
 Method
-
-
 
 ```
 
@@ -5988,11 +3898,7 @@ attachEvidence(...)
 
 ```
 
-
-
 Responsibilities
-
-
 
 \- create a new Execution object
 
@@ -6000,31 +3906,17 @@ Responsibilities
 
 \- replace stored Execution
 
-
-
 No mutation occurs on the original object.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Phase 3: Complete Execution
 
-
-
 Method
-
-
 
 ```
 
@@ -6032,11 +3924,7 @@ complete(...)
 
 ```
 
-
-
 Responsibilities
-
-
 
 \- transition status to COMPLETED
 
@@ -6044,11 +3932,7 @@ Responsibilities
 
 \- persist updated Execution
 
-
-
 Status
-
-
 
 ```
 
@@ -6056,27 +3940,15 @@ COMPLETED
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Phase 4: Fail Execution
 
-
-
 Method
-
-
 
 ```
 
@@ -6084,11 +3956,7 @@ fail(...)
 
 ```
 
-
-
 Responsibilities
-
-
 
 \- transition status to FAILED
 
@@ -6096,11 +3964,7 @@ Responsibilities
 
 \- persist updated Execution
 
-
-
 Status
-
-
 
 ```
 
@@ -6108,87 +3972,45 @@ FAILED
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Security Properties
 
-
-
 Execution artifacts are treated as immutable.
-
-
 
 Every lifecycle transition creates a new Execution object rather than modifying the existing instance.
 
-
-
 Persistence occurs after each transition.
-
-
 
 Status
 
-
-
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Architectural Notes
 
-
-
 The Execution Service manages execution state only.
-
-
 
 It does not communicate with enterprise systems.
 
-
-
 Enterprise execution occurs in `ExecutionComponent` through the configured `ExecutionSystem`.
-
-
 
 The Execution Service records and persists the resulting execution lifecycle.
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Audit Notes
 
-
-
 Execution state transitions are explicit.
-
-
 
 ```
 
@@ -6204,11 +4026,7 @@ COMPLETED
 
 ```
 
-
-
 or
-
-
 
 ```
 
@@ -6224,31 +4042,17 @@ FAILED
 
 ```
 
-
-
 The service separates execution state management from execution itself, keeping orchestration and persistence independent.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \# Stage 20: Business Transaction Service
 
-
-
 \## File
-
-
 
 ```
 
@@ -6256,19 +4060,11 @@ packages/runtime/src/services/business-transaction-service.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Accept, validate, persist, and retrieve immutable `BusinessTransaction` objects.
 
-
-
 The Business Transaction Service is responsible for:
-
-
 
 \- validating Business Transactions
 
@@ -6278,11 +4074,7 @@ The Business Transaction Service is responsible for:
 
 \- retrieving Business Transactions
 
-
-
 It does not:
-
-
 
 \- evaluate policy
 
@@ -6294,23 +4086,13 @@ It does not:
 
 \- verify execution
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Position in Execution Flow
-
-
 
 ```
 
@@ -6348,23 +4130,13 @@ Immutable BusinessTransaction
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Dependencies
-
-
 
 ```
 
@@ -6376,27 +4148,15 @@ BusinessTransactionValidator
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Phase 1: Validate
 
-
-
 Method
-
-
 
 ```
 
@@ -6404,37 +4164,21 @@ BusinessTransactionValidator.validate(...)
 
 ```
 
-
-
 Responsibilities
-
-
 
 \- validate trust-chain invariants
 
 \- reject structurally invalid transactions
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Phase 2: Duplicate Detection
 
-
-
 Method
-
-
 
 ```
 
@@ -6442,21 +4186,13 @@ repository.exists(...)
 
 ```
 
-
-
 Responsibilities
-
-
 
 \- detect duplicate BusinessTransactionId
 
 \- reject duplicate requests
 
-
-
 Failure
-
-
 
 ```
 
@@ -6464,27 +4200,15 @@ DuplicateBusinessTransactionError
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Phase 3: Persist
 
-
-
 Method
-
-
 
 ```
 
@@ -6492,37 +4216,21 @@ repository.create(...)
 
 ```
 
-
-
 Responsibilities
-
-
 
 \- persist immutable BusinessTransaction
 
 \- return stored transaction
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Retrieval Operations
 
-
-
 Supported methods
-
-
 
 ```
 
@@ -6534,63 +4242,33 @@ list(...)
 
 ```
 
-
-
 These methods provide read-only access to previously accepted Business Transactions.
-
-
 
 Status
 
-
-
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Security Properties
 
-
-
 Every Business Transaction is validated before persistence.
-
-
 
 Duplicate transaction identifiers are rejected.
 
-
-
 Once accepted, the Business Transaction is treated as immutable.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Architectural Notes
-
-
 
 The Business Transaction Service is the Runtime's acceptance boundary.
 
-
-
 No Runtime processing occurs until a Business Transaction has been:
-
-
 
 \- validated
 
@@ -6598,31 +4276,17 @@ No Runtime processing occurs until a Business Transaction has been:
 
 \- persisted
 
-
-
 This establishes a canonical transaction before policy evaluation begins.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Audit Notes
 
-
-
 The service performs three responsibilities only:
-
-
 
 \- validate
 
@@ -6630,29 +4294,17 @@ The service performs three responsibilities only:
 
 \- persist
 
-
-
 Policy evaluation, authorization, execution, and trust record generation are delegated to later Runtime stages.
 
-
-
 Status
-
-
 
 ✅ Verified
 
 \---
 
-
-
 \# Stage 21: Verification Service
 
-
-
 \## File
-
-
 
 ```
 
@@ -6660,19 +4312,11 @@ packages/runtime/src/services/verification-service.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 ⏳ Pending Audit
 
-
-
 Expected responsibilities
-
-
 
 \- Verify Execution Trust Records
 
@@ -6680,11 +4324,7 @@ Expected responsibilities
 
 \- Produce Verification artifacts
 
-
-
 Questions
-
-
 
 \- What is actually verified?
 
@@ -6698,25 +4338,15 @@ Questions
 
 \- Is verification deterministic?
 
-
-
 Status
-
-
 
 ⏳ Pending
 
 \---
 
-
-
 \# Stage 21: Verification Service
 
-
-
 \## File
-
-
 
 ```
 
@@ -6724,25 +4354,15 @@ packages/runtime/src/services/verification-service.ts
 
 ```
 
-
-
 \## Responsibility
 
-
-
 Verify the integrity and authenticity of an `ExecutionTrustRecord`.
-
-
 
 The Verification Service performs deterministic verification of the
 
 complete trust record and produces an immutable `Verification` artifact.
 
-
-
 It is responsible for:
-
-
 
 \- validating trust record integrity
 
@@ -6752,11 +4372,7 @@ It is responsible for:
 
 \- recording verification results
 
-
-
 It does not:
-
-
 
 \- execute business operations
 
@@ -6766,23 +4382,13 @@ It does not:
 
 \- generate receipts
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Position in Execution Flow
-
-
 
 ```
 
@@ -6808,23 +4414,13 @@ ReceiptService
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Dependencies
-
-
 
 ```
 
@@ -6836,23 +4432,13 @@ VerificationCrypto
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Verification Flow
-
-
 
 ```
 
@@ -6884,47 +4470,25 @@ Return Verification
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Verification Checks
 
-
-
 The service performs every verification independently.
-
-
 
 A failure in one check does not prevent the remaining checks from running.
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \### Check 1: Integrity
-
-
 
 ```
 
@@ -6932,15 +4496,9 @@ VerificationCrypto.hash(...)
 
 ```
 
-
-
 The trust record hash is recomputed.
 
-
-
 Verification succeeds only when
-
-
 
 ```
 
@@ -6948,11 +4506,7 @@ recomputedHash == storedHash
 
 ```
 
-
-
 Failure
-
-
 
 ```
 
@@ -6960,23 +4514,13 @@ Integrity check failed
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \### Check 2: Signature
-
-
 
 ```
 
@@ -6984,15 +4528,9 @@ VerificationCrypto.verifySignature(...)
 
 ```
 
-
-
 The digital signature must verify using the stored public key.
 
-
-
 Failure
-
-
 
 ```
 
@@ -7000,27 +4538,15 @@ Signature check failed
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \### Check 3: Authorization Binding
 
-
-
 Every APPROVED execution must contain
-
-
 
 ```
 
@@ -7028,11 +4554,7 @@ authorizationId
 
 ```
 
-
-
 inside
-
-
 
 ```
 
@@ -7040,15 +4562,9 @@ execution.metadata
 
 ```
 
-
-
 Rejected executions are exempt.
 
-
-
 Failure
-
-
 
 ```
 
@@ -7056,27 +4572,15 @@ Authorization binding check failed
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Verification Artifact
 
-
-
 The service constructs
-
-
 
 ```
 
@@ -7104,27 +4608,15 @@ trustRecordHash
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Persistence
 
-
-
 Verification artifacts are appended using
-
-
 
 ```
 
@@ -7132,65 +4624,35 @@ appendVerification(...)
 
 ```
 
-
-
 Previous verification history is preserved.
-
-
 
 Status
 
-
-
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Security Properties
 
-
-
 Verification is deterministic.
-
-
 
 All checks execute regardless of earlier failures.
 
-
-
 The resulting Verification artifact records every detected failure.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Architectural Notes
 
-
-
 Verification is modeled as its own immutable domain artifact.
-
-
 
 Rather than returning only a boolean, Parmana records a complete
 
 Verification object containing:
-
-
 
 \- verification identity
 
@@ -7202,33 +4664,19 @@ Verification object containing:
 
 \- verified trust record hash
 
-
-
 This provides durable evidence that verification occurred and what it
 
 verified.
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Audit Notes
 
-
-
 Verification consists of three independent security guarantees:
-
-
 
 \- Integrity
 
@@ -7236,33 +4684,19 @@ Verification consists of three independent security guarantees:
 
 \- Authorization Binding
 
-
-
 Only after these checks complete is the Runtime ready to generate a
 
 Receipt.
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \# Stage 22: Receipt Service
 
-
-
 \## File
-
-
 
 ```
 
@@ -7270,21 +4704,13 @@ packages/runtime/src/services/receipt-service.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Generate immutable cryptographic Receipts for successfully verified
 
 Execution Trust Records.
 
-
-
 The Receipt Service is responsible for:
-
-
 
 \- validating verification status
 
@@ -7294,11 +4720,7 @@ The Receipt Service is responsible for:
 
 \- persisting receipt artifacts
 
-
-
 It does not:
-
-
 
 \- execute business operations
 
@@ -7308,23 +4730,13 @@ It does not:
 
 \- modify Execution Trust Records
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Position in Execution Flow
-
-
 
 ```
 
@@ -7344,23 +4756,13 @@ Receipt
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Dependencies
-
-
 
 ```
 
@@ -7372,23 +4774,13 @@ ReceiptCrypto
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Receipt Generation Flow
-
-
 
 ```
 
@@ -7426,27 +4818,15 @@ Return Receipt
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Phase 1: Load Trust Record
 
-
-
 Method
-
-
 
 ```
 
@@ -7454,11 +4834,7 @@ findByTransactionId(...)
 
 ```
 
-
-
 Failure
-
-
 
 ```
 
@@ -7466,31 +4842,17 @@ VerificationFailedError
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Phase 2: Verification Prerequisite
 
-
-
 The latest Verification must exist.
 
-
-
 Required status
-
-
 
 ```
 
@@ -7498,11 +4860,7 @@ VERIFIED
 
 ```
 
-
-
 Otherwise
-
-
 
 ```
 
@@ -7510,31 +4868,17 @@ ReceiptGenerationError
 
 ```
 
-
-
 is thrown.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Phase 3: Receipt Hash
 
-
-
 Component
-
-
 
 ```
 
@@ -7542,11 +4886,7 @@ ReceiptCrypto.hash(...)
 
 ```
 
-
-
 Input
-
-
 
 ```
 
@@ -7554,11 +4894,7 @@ ExecutionTrustRecord
 
 ```
 
-
-
 Output
-
-
 
 ```
 
@@ -7566,27 +4902,15 @@ receiptHash
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Phase 4: Create Receipt
 
-
-
 Component
-
-
 
 ```
 
@@ -7594,11 +4918,7 @@ ReceiptCrypto.createReceipt(...)
 
 ```
 
-
-
 Receipt contains
-
-
 
 ```
 
@@ -7622,27 +4942,15 @@ issuedAt
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Phase 5: Persistence
 
-
-
 Receipt is appended using
-
-
 
 ```
 
@@ -7650,35 +4958,19 @@ appendReceipt(...)
 
 ```
 
-
-
 Receipt history is preserved.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Security Properties
-
-
 
 Receipts cannot exist without successful verification.
 
-
-
 Receipt generation depends on:
-
-
 
 \- existing Execution Trust Record
 
@@ -7686,113 +4978,59 @@ Receipt generation depends on:
 
 \- cryptographic Receipt generation
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Architectural Notes
 
-
-
 A Receipt is not generated directly from execution.
-
-
 
 It is generated only after the Execution Trust Record has been successfully verified.
 
-
-
 The Receipt therefore attests to the integrity and authenticity of the verified trust record rather than the execution event alone.
-
-
 
 Status
 
-
-
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Audit Notes
 
-
-
 Receipt generation is the final Runtime operation.
-
-
 
 The Runtime execution lifecycle is therefore:
 
-
-
 Business Transaction
 
-
-
 ↓
-
-
 
 Execution
 
-
-
 ↓
-
-
 
 Execution Trust Record
 
-
-
 ↓
-
-
 
 Verification
 
-
-
 ↓
-
-
 
 Receipt
 
-
-
 Status
-
-
 
 ✅ Verified
 
 \---
 
-
-
 \# Stage 23: Policy Router
 
-
-
 \## File
-
-
 
 ```
 
@@ -7800,19 +5038,11 @@ packages/policy/src/PolicyRouter.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 ⏳ Pending Audit
 
-
-
 Expected responsibilities
-
-
 
 \- Resolve requested policy
 
@@ -7820,11 +5050,7 @@ Expected responsibilities
 
 \- Delegate to repository
 
-
-
 Questions
-
-
 
 \- How are versions selected?
 
@@ -7834,27 +5060,15 @@ Questions
 
 \- Is caching performed?
 
-
-
 Status
-
-
 
 ⏳ Pending
 
-
-
 \---
-
-
 
 \# Stage 23: Policy Router
 
-
-
 \## File
-
-
 
 ```
 
@@ -7862,19 +5076,11 @@ packages/policy/src/PolicyRouter.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Load and validate exactly one Policy.
 
-
-
 The Policy Router is responsible for:
-
-
 
 \- loading the requested policy from the configured repository
 
@@ -7882,11 +5088,7 @@ The Policy Router is responsible for:
 
 \- returning the validated policy
 
-
-
 It does not:
-
-
 
 \- evaluate policy
 
@@ -7898,23 +5100,13 @@ It does not:
 
 \- persist policies
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Position in Decision Flow
-
-
 
 ```
 
@@ -7952,23 +5144,13 @@ PolicyEngine
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Dependencies
-
-
 
 ```
 
@@ -7980,23 +5162,13 @@ PolicyValidator
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Decision Flow
-
-
 
 ```
 
@@ -8016,27 +5188,15 @@ Return Policy
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Phase 1: Load Policy
 
-
-
 Method
-
-
 
 ```
 
@@ -8044,11 +5204,7 @@ repository.load(name, version)
 
 ```
 
-
-
 Responsibilities
-
-
 
 \- resolve policy name
 
@@ -8056,27 +5212,15 @@ Responsibilities
 
 \- retrieve policy
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Phase 2: Validate Policy
 
-
-
 Method
-
-
 
 ```
 
@@ -8084,123 +5228,65 @@ PolicyValidator.validate(...)
 
 ```
 
-
-
 Responsibilities
-
-
 
 \- validate loaded policy
 
 \- reject invalid policy definitions
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Security Properties
 
-
-
 Every policy is validated before entering the Policy Engine.
-
-
 
 The Runtime never evaluates an unvalidated policy.
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Architectural Notes
 
-
-
 PolicyRouter is an orchestration layer.
 
-
-
 It delegates:
-
-
 
 \- storage to PolicyRepository
 
 \- validation to PolicyValidator
 
-
-
 It performs no business decision logic.
-
-
 
 Status
 
-
-
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Audit Notes
 
-
-
 Policy loading and policy evaluation are intentionally separated.
-
-
 
 PolicyRouter is responsible for obtaining a valid Policy.
 
-
-
 PolicyEngine is responsible for evaluating that Policy.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \# Stage 24: File Policy Repository
 
-
-
 \## File
-
-
 
 ```
 
@@ -8208,19 +5294,11 @@ packages/policy/src/FilePolicyRepository.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Load Policy definitions from the filesystem.
 
-
-
 The File Policy Repository is responsible for:
-
-
 
 \- locating policy files
 
@@ -8230,11 +5308,7 @@ The File Policy Repository is responsible for:
 
 \- reporting missing policies
 
-
-
 It does not:
-
-
 
 \- validate policies
 
@@ -8244,23 +5318,13 @@ It does not:
 
 \- modify policies
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Position in Decision Flow
-
-
 
 ```
 
@@ -8292,27 +5356,15 @@ PolicyValidator
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Repository Layout
 
-
-
 Policies are organized by:
-
-
 
 ```
 
@@ -8326,11 +5378,7 @@ policies/
 
 ```
 
-
-
 Example
-
-
 
 ```
 
@@ -8344,27 +5392,15 @@ policies/
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Resolution Strategy
 
-
-
 Policy path
-
-
 
 ```
 
@@ -8378,11 +5414,7 @@ basePath/
 
 ```
 
-
-
 Example
-
-
 
 ```
 
@@ -8390,23 +5422,13 @@ policies/vendor-payment/1.0.0/policy.json
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Loading Flow
-
-
 
 ```
 
@@ -8432,27 +5454,15 @@ Return Policy
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Error Handling
 
-
-
 If the file cannot be loaded
-
-
 
 ```
 
@@ -8460,65 +5470,35 @@ PolicyNotFoundError
 
 ```
 
-
-
 is thrown.
-
-
 
 The repository does not expose filesystem exceptions directly.
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Security Properties
 
-
-
 The repository only loads policy definitions.
-
-
 
 Validation occurs later in `PolicyValidator`.
 
-
-
 Evaluation occurs later in `PolicyEngine`.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Architectural Notes
-
-
 
 `FilePolicyRepository` is a storage adapter implementing the
 
 `PolicyRepository` interface.
-
-
 
 The Runtime depends on the interface rather than filesystem-specific
 
@@ -8526,63 +5506,35 @@ behavior, allowing alternate implementations (database, object storage,
 
 Git-backed repositories, etc.) without changing Runtime orchestration.
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Audit Notes
 
-
-
 Policy lookup is deterministic.
 
-
-
 The repository resolves exactly one policy using:
-
-
 
 \- name
 
 \- version
 
-
-
 No implicit "latest" resolution, version negotiation, or fallback behavior
 
 exists in this implementation.
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \# Stage 25: Policy Engine
 
-
-
 \## File
-
-
 
 ```
 
@@ -8590,21 +5542,13 @@ packages/policy/src/PolicyEngine.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Evaluate exactly one validated Policy against a set of input signals and
 
 produce a deterministic `PolicyDecision`.
 
-
-
 The Policy Engine is responsible for:
-
-
 
 \- evaluating policy rules
 
@@ -8614,11 +5558,7 @@ The Policy Engine is responsible for:
 
 \- producing a deterministic PolicyDecision
 
-
-
 It does not:
-
-
 
 \- authorize execution
 
@@ -8632,23 +5572,13 @@ It does not:
 
 \- generate timestamps
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Position in Decision Flow
-
-
 
 ```
 
@@ -8674,23 +5604,13 @@ DecisionBuilder
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Inputs
-
-
 
 ```
 
@@ -8702,23 +5622,13 @@ PolicySignals
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Output
-
-
 
 ```
 
@@ -8726,11 +5636,7 @@ PolicyDecision
 
 ```
 
-
-
 containing
-
-
 
 \- policyId
 
@@ -8746,23 +5652,13 @@ containing
 
 \- matchedPath
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Evaluation Flow
-
-
 
 ```
 
@@ -8816,27 +5712,15 @@ No Match
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Rule Selection Strategy
 
-
-
 Evaluation uses
-
-
 
 ```
 
@@ -8844,43 +5728,23 @@ First Match Wins
 
 ```
 
-
-
 Rules are evaluated in declaration order.
-
-
 
 The first matching rule terminates evaluation.
 
-
-
 No remaining rules are evaluated.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Condition Types
-
-
 
 Supported conditions
 
-
-
 \### Leaf
-
-
 
 ```
 
@@ -8892,23 +5756,13 @@ value
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \### Always
-
-
 
 ```
 
@@ -8916,27 +5770,15 @@ always
 
 ```
 
-
-
 Always evaluates to true.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \### Logical AND
-
-
 
 ```
 
@@ -8944,27 +5786,15 @@ all\[]
 
 ```
 
-
-
 Every child condition must evaluate to true.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \### Logical OR
-
-
 
 ```
 
@@ -8972,31 +5802,17 @@ any\[]
 
 ```
 
-
-
 At least one child condition must evaluate to true.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Missing Signal Behavior
 
-
-
 If a required signal is missing
-
-
 
 ```
 
@@ -9004,11 +5820,7 @@ signal === undefined
 
 ```
 
-
-
 the condition evaluates to
-
-
 
 ```
 
@@ -9016,31 +5828,17 @@ false
 
 ```
 
-
-
 No exception is thrown.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Operator Evaluation
 
-
-
 Leaf comparisons are delegated to
-
-
 
 ```
 
@@ -9048,31 +5846,17 @@ OperatorEvaluator
 
 ```
 
-
-
 The Policy Engine does not implement comparison operators directly.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Default Outcome
 
-
-
 If no rule matches
-
-
 
 ```
 
@@ -9088,27 +5872,15 @@ outcome = REJECT
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Trace Generation
 
-
-
 The engine records
-
-
 
 ```
 
@@ -9120,49 +5892,27 @@ matchedPath
 
 ```
 
-
-
 These provide deterministic evidence of the evaluation process.
-
-
 
 Status
 
-
-
 ✅ Verified
-
-
 
 \---
 
-
-
 \## Security Properties
-
-
 
 The Policy Engine is deterministic.
 
-
-
 Given:
-
-
 
 \- identical Policy
 
 \- identical PolicySignals
 
-
-
 it will always produce the same PolicyDecision.
 
-
-
 The engine has:
-
-
 
 \- no randomness
 
@@ -9172,33 +5922,19 @@ The engine has:
 
 \- no mutable state
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Architectural Notes
 
-
-
 The Policy Engine performs only evaluation.
-
-
 
 Authorization, execution, verification, and trust generation occur in
 
 later Runtime stages.
-
-
 
 Comparison semantics are delegated to `OperatorEvaluator`, allowing the
 
@@ -9206,43 +5942,23 @@ evaluation engine to remain focused on rule traversal and decision
 
 construction.
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Audit Notes
-
-
 
 The engine implements a deterministic \*\*first-match-wins\*\* evaluation
 
 model.
 
-
-
-
-
 \---
-
-
 
 \# Stage 26: Operator Evaluator
 
-
-
 \## File
-
-
 
 ```
 
@@ -9250,19 +5966,11 @@ packages/policy/src/OperatorEvaluator.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 Evaluate deterministic policy operators against JSON values.
 
-
-
 The Operator Evaluator is responsible for:
-
-
 
 \- evaluating comparison operators
 
@@ -9276,11 +5984,7 @@ The Operator Evaluator is responsible for:
 
 \- returning deterministic boolean results
 
-
-
 It does not:
-
-
 
 \- load policies
 
@@ -9292,23 +5996,13 @@ It does not:
 
 \- mutate state
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \## Position in Decision Flow
-
-
 
 ```
 
@@ -9334,31 +6028,17 @@ PolicyEngine
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Evaluation Categories
 
-
-
 Supported operator groups
 
-
-
 \### Equality
-
-
 
 ```
 
@@ -9368,23 +6048,13 @@ neq
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \### Numeric
-
-
 
 ```
 
@@ -9400,23 +6070,13 @@ between
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \### Collection
-
-
 
 ```
 
@@ -9434,23 +6094,13 @@ contains\_any
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \### String
-
-
 
 ```
 
@@ -9462,23 +6112,13 @@ matches
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \### Existence
-
-
 
 ```
 
@@ -9488,23 +6128,13 @@ not\_exists
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \### Boolean
-
-
 
 ```
 
@@ -9514,23 +6144,13 @@ is\_false
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \### Null
-
-
 
 ```
 
@@ -9540,23 +6160,13 @@ is\_not\_null
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \### Length
-
-
 
 ```
 
@@ -9572,23 +6182,13 @@ length\_lte
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
 
-
-
 \### Type
-
-
 
 ```
 
@@ -9596,83 +6196,43 @@ type\_is
 
 ```
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Type Safety
 
-
-
 Numeric operators execute only for numeric values.
-
-
 
 String operators execute only for string values.
 
-
-
 Collection operators execute only for arrays.
-
-
 
 Invalid type combinations evaluate to false rather than producing implicit coercion.
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Missing Values
 
-
-
 Missing values are handled explicitly.
-
-
 
 Unsupported comparisons do not rely on JavaScript type coercion.
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Regular Expressions
 
-
-
 Regex matching is delegated to
-
-
 
 ```
 
@@ -9680,33 +6240,19 @@ matches()
 
 ```
 
-
-
 The evaluator assumes patterns have already been validated by
 
 `PolicyValidator`.
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Helper Functions
 
-
-
 Internal helpers provide deterministic behavior for
-
-
 
 \- type detection
 
@@ -9716,31 +6262,17 @@ Internal helpers provide deterministic behavior for
 
 \- string checks
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Security Properties
 
-
-
 The evaluator is pure.
 
-
-
 Given identical inputs
-
-
 
 ```
 
@@ -9756,15 +6288,9 @@ expected
 
 ```
 
-
-
 it always returns the same result.
 
-
-
 It has
-
-
 
 \- no mutable state
 
@@ -9776,81 +6302,43 @@ It has
 
 \- no network access
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Architectural Notes
 
-
-
 OperatorEvaluator is intentionally isolated from policy traversal.
-
-
 
 PolicyEngine decides \*\*which\*\* conditions to evaluate.
 
-
-
 OperatorEvaluator decides \*\*how\*\* an individual condition evaluates.
-
-
 
 This separation keeps comparison semantics independent from rule traversal.
 
-
-
 Status
-
-
 
 ✅ Verified
 
-
-
 \---
-
-
 
 \## Audit Notes
 
-
-
 Operator evaluation is deterministic and side-effect free.
-
-
 
 It forms the lowest execution layer of Parmana's deterministic policy evaluation engine.
 
-
-
 Status
-
-
 
 ✅ Verified
 
 \---
 
-
-
 \# Stage 27: Decision Builder
 
-
-
 \## File
-
-
 
 ```
 
@@ -9858,19 +6346,11 @@ packages/runtime/src/DecisionBuilder.ts
 
 ```
 
-
-
 \## Responsibility
-
-
 
 ⏳ Pending Audit
 
-
-
 Expected responsibilities
-
-
 
 \- Build immutable Decision artifacts
 
@@ -9878,11 +6358,7 @@ Expected responsibilities
 
 \- Capture decision metadata
 
-
-
 Questions
-
-
 
 \- Which fields are copied?
 
@@ -9894,11 +6370,7 @@ Questions
 
 \- Are policy traces preserved?
 
-
-
 Status
-
-
 
 ⏳ Pending
 
@@ -9906,55 +6378,31 @@ It supports nested logical expressions (`all`, `any`), simple leaf
 
 conditions, and an unconditional `always` condition.
 
-
-
 When no rule matches, the default decision is rejection.
-
-
 
 Status
 
-
-
 ✅ Verified
 
-
-
 It contains only:
-
-
 
 \- execution intent
 
 \- runtime authorization
 
-
-
 No policy information.
-
-
 
 No decision object.
 
-
-
 No runtime context.
 
-
-
 No trust record.
-
-
 
 The ExecutionRequest is therefore the minimal object required to authorize execution outside the Runtime.
 
 \# Remaining Audit
 
-
-
 The following components have not yet been audited.
-
-
 
 ```
 
@@ -10006,11 +6454,7 @@ Storage
 
 ```
 
-
-
 Status:
-
-
 
 ⏳ Pending
 
@@ -11334,6 +7778,7 @@ without changing Receipt generation.
 Status
 
 ✅ Verified
+
 # Stage 24: Verification Crypto
 
 ## File
@@ -12186,6 +8631,7 @@ Source code inspection required before documenting behavior.
 Status
 
 ⏳ Pending
+
 # Stage 26: Trust Record Hasher
 
 ## File
@@ -13227,6 +9673,7 @@ always compute identical hashes for identical executable content.
 Status
 
 ✅ Verified
+
 # Stage 30: Crypto Bootstrap
 
 ## File
@@ -13595,6 +10042,7 @@ configuration entry point for the Parmana cryptographic subsystem.
 Status
 
 ✅ Verified
+
 # Stage 31: File Key Provider
 
 ## File
@@ -13957,6 +10405,7 @@ underlying key storage mechanism.
 Status
 
 ✅ Verified
+
 # Stage 32: Hash Registry
 
 ## File
@@ -14242,6 +10691,7 @@ algorithm-specific logic into higher-level components.
 Status
 
 ✅ Verified
+
 # Stage 32: Hash Registry
 
 ## File
@@ -14527,6 +10977,7 @@ algorithm-specific logic into higher-level components.
 Status
 
 ✅ Verified
+
 # Stage 33: Signature Registry
 
 ## File
@@ -14813,6 +11264,7 @@ embedding algorithm-specific logic into higher-level components.
 Status
 
 ✅ Verified
+
 # Stage 34: Crypto Builder
 
 ## File
@@ -15119,6 +11571,7 @@ before use.
 Status
 
 ✅ Verified
+
 # Stage 35: SHA-256 Hash Provider
 
 ## File
@@ -15362,6 +11815,7 @@ algorithm.
 Status
 
 ✅ Verified
+
 # Stage 35: SHA-256 Hash Provider
 
 ## File
@@ -16238,6 +12692,7 @@ inputs while preserving verification correctness.
 Status
 
 ✅ Verified
+
 # Stage 38: Hybrid Signer
 
 ## File
@@ -16544,6 +12999,7 @@ duplicating signing logic.
 Status
 
 ✅ Verified
+
 # Stage 39: Hybrid Verifier
 
 ## File
@@ -16908,6 +13364,7 @@ algorithms.
 Status
 
 ✅ Verified
+
 # Stage 40: End-to-End Execution Flow
 
 ## Purpose
@@ -17352,6 +13809,7 @@ generation.
 Status
 
 ✅ Verified
+
 # Stage 41: Trust Boundaries
 
 ## Purpose
@@ -17722,6 +14180,7 @@ individually during the implementation audit.
 Status
 
 ✅ Verified
+
 # Stage 42: Security Invariants
 
 ## Purpose
@@ -18610,14 +15069,14 @@ Status
 
 # Runtime Layer
 
-| Component | Primary Responsibility | Primary Dependencies | Primary Consumers | Audit Stage |
-|------------|------------------------|----------------------|-------------------|------------:|
-| BusinessTransactionService | Receive and prepare business transactions | Mapper layer | Runtime | Earlier |
-| BusinessTransactionMapper | Convert business input into runtime model | Domain models | Runtime | Earlier |
-| ExecutionTrustApplication | Entry point for execution trust | Runtime | RuntimeEngine | Earlier |
-| Runtime | Execute runtime orchestration | RuntimeEngine | Application | Earlier |
-| RuntimeEngine | Coordinate execution pipeline | RuntimePipeline | Runtime | Earlier |
-| RuntimePipeline | Execute runtime stages | Policy engine | RuntimeEngine | Earlier |
+| Component                  | Primary Responsibility                    | Primary Dependencies | Primary Consumers | Audit Stage |
+| -------------------------- | ----------------------------------------- | -------------------- | ----------------- | ----------: |
+| BusinessTransactionService | Receive and prepare business transactions | Mapper layer         | Runtime           |     Earlier |
+| BusinessTransactionMapper  | Convert business input into runtime model | Domain models        | Runtime           |     Earlier |
+| ExecutionTrustApplication  | Entry point for execution trust           | Runtime              | RuntimeEngine     |     Earlier |
+| Runtime                    | Execute runtime orchestration             | RuntimeEngine        | Application       |     Earlier |
+| RuntimeEngine              | Coordinate execution pipeline             | RuntimePipeline      | Runtime           |     Earlier |
+| RuntimePipeline            | Execute runtime stages                    | Policy engine        | RuntimeEngine     |     Earlier |
 
 Status
 
@@ -18627,10 +15086,10 @@ Status
 
 # Policy Layer
 
-| Component | Primary Responsibility | Primary Dependencies | Primary Consumers | Audit Stage |
-|------------|------------------------|----------------------|-------------------|------------:|
-| Policy Evaluation | Evaluate execution policy | Rules | RuntimePipeline | Earlier |
-| Decision | Produce execution outcome | Policy Evaluation | Authorization | Earlier |
+| Component         | Primary Responsibility    | Primary Dependencies | Primary Consumers | Audit Stage |
+| ----------------- | ------------------------- | -------------------- | ----------------- | ----------: |
+| Policy Evaluation | Evaluate execution policy | Rules                | RuntimePipeline   |     Earlier |
+| Decision          | Produce execution outcome | Policy Evaluation    | Authorization     |     Earlier |
 
 Status
 
@@ -18640,11 +15099,11 @@ Status
 
 # Authorization Layer
 
-| Component | Primary Responsibility | Primary Dependencies | Primary Consumers | Audit Stage |
-|------------|------------------------|----------------------|-------------------|------------:|
-| AuthorizationSigner | Create signed execution authorization | ArtifactSigner, ExecutableContentHasher | Execution | 28 |
-| ExecutableContentHasher | Hash executable content | TrustRecordHasher | AuthorizationSigner | 29 |
-| ArtifactSigner | Canonically sign artifacts | CryptoProvider | AuthorizationSigner, ReceiptCrypto, VerificationCrypto, HybridSigner | 25 |
+| Component               | Primary Responsibility                | Primary Dependencies                    | Primary Consumers                                                    | Audit Stage |
+| ----------------------- | ------------------------------------- | --------------------------------------- | -------------------------------------------------------------------- | ----------: |
+| AuthorizationSigner     | Create signed execution authorization | ArtifactSigner, ExecutableContentHasher | Execution                                                            |          28 |
+| ExecutableContentHasher | Hash executable content               | TrustRecordHasher                       | AuthorizationSigner                                                  |          29 |
+| ArtifactSigner          | Canonically sign artifacts            | CryptoProvider                          | AuthorizationSigner, ReceiptCrypto, VerificationCrypto, HybridSigner |          25 |
 
 Status
 
@@ -18654,11 +15113,11 @@ Status
 
 # Execution Layer
 
-| Component | Primary Responsibility | Primary Dependencies | Primary Consumers | Audit Stage |
-|------------|------------------------|----------------------|-------------------|------------:|
-| Execution Gateway | Control outbound execution | ExecutionService | Enterprise Systems | Earlier |
-| ExecutionService | Execute approved operation | Gateway | Runtime | Earlier |
-| Execution System | External business platform | Outside repository | ExecutionService | External |
+| Component         | Primary Responsibility     | Primary Dependencies | Primary Consumers  | Audit Stage |
+| ----------------- | -------------------------- | -------------------- | ------------------ | ----------: |
+| Execution Gateway | Control outbound execution | ExecutionService     | Enterprise Systems |     Earlier |
+| ExecutionService  | Execute approved operation | Gateway              | Runtime            |     Earlier |
+| Execution System  | External business platform | Outside repository   | ExecutionService   |    External |
 
 Status
 
@@ -18668,12 +15127,12 @@ Status
 
 # Trust Record Layer
 
-| Component | Primary Responsibility | Primary Dependencies | Primary Consumers | Audit Stage |
-|------------|------------------------|----------------------|-------------------|------------:|
-| BusinessTrustRecordBuilder | Build business execution evidence | Execution result | Trust Record | Earlier |
-| ExecutionTrustRecordBuilder | Construct immutable trust record | BusinessTrustRecordBuilder | Verification | Earlier |
-| TrustRecordHasher | Canonically hash trust artifacts | CanonicalSerializer, CryptoProvider | ReceiptHasher, ExecutableContentHasher | 26 |
-| ReceiptHasher | Hash receipt artifacts | TrustRecordHasher | ReceiptCrypto | 27 |
+| Component                   | Primary Responsibility            | Primary Dependencies                | Primary Consumers                      | Audit Stage |
+| --------------------------- | --------------------------------- | ----------------------------------- | -------------------------------------- | ----------: |
+| BusinessTrustRecordBuilder  | Build business execution evidence | Execution result                    | Trust Record                           |     Earlier |
+| ExecutionTrustRecordBuilder | Construct immutable trust record  | BusinessTrustRecordBuilder          | Verification                           |     Earlier |
+| TrustRecordHasher           | Canonically hash trust artifacts  | CanonicalSerializer, CryptoProvider | ReceiptHasher, ExecutableContentHasher |          26 |
+| ReceiptHasher               | Hash receipt artifacts            | TrustRecordHasher                   | ReceiptCrypto                          |          27 |
 
 Status
 
@@ -18683,11 +15142,11 @@ Status
 
 # Verification Layer
 
-| Component | Primary Responsibility | Primary Dependencies | Primary Consumers | Audit Stage |
-|------------|------------------------|----------------------|-------------------|------------:|
-| VerificationService | Coordinate verification | VerificationCrypto | ReceiptService | Earlier |
-| VerificationCrypto | Verify signatures and authorization | SignatureVerifier, ArtifactSigner | VerificationService | Earlier |
-| SignatureVerifier | Verify digital signatures | CryptoProvider | VerificationCrypto, HybridVerifier | Earlier |
+| Component           | Primary Responsibility              | Primary Dependencies              | Primary Consumers                  | Audit Stage |
+| ------------------- | ----------------------------------- | --------------------------------- | ---------------------------------- | ----------: |
+| VerificationService | Coordinate verification             | VerificationCrypto                | ReceiptService                     |     Earlier |
+| VerificationCrypto  | Verify signatures and authorization | SignatureVerifier, ArtifactSigner | VerificationService                |     Earlier |
+| SignatureVerifier   | Verify digital signatures           | CryptoProvider                    | VerificationCrypto, HybridVerifier |     Earlier |
 
 Status
 
@@ -18697,10 +15156,10 @@ Status
 
 # Receipt Layer
 
-| Component | Primary Responsibility | Primary Dependencies | Primary Consumers | Audit Stage |
-|------------|------------------------|----------------------|-------------------|------------:|
-| ReceiptService | Produce execution receipts | ReceiptCrypto | External consumers | Earlier |
-| ReceiptCrypto | Generate signed receipts | ArtifactSigner, ReceiptHasher | ReceiptService | Earlier |
+| Component      | Primary Responsibility     | Primary Dependencies          | Primary Consumers  | Audit Stage |
+| -------------- | -------------------------- | ----------------------------- | ------------------ | ----------: |
+| ReceiptService | Produce execution receipts | ReceiptCrypto                 | External consumers |     Earlier |
+| ReceiptCrypto  | Generate signed receipts   | ArtifactSigner, ReceiptHasher | ReceiptService     |     Earlier |
 
 Status
 
@@ -18710,16 +15169,16 @@ Status
 
 # Cryptographic Infrastructure
 
-| Component | Primary Responsibility | Primary Dependencies | Primary Consumers | Audit Stage |
-|------------|------------------------|----------------------|-------------------|------------:|
-| CryptoBootstrap | Register and construct crypto providers | CryptoBuilder, Registries | Application startup | 30 |
-| CryptoBuilder | Assemble CryptoProvider | HashRegistry, SignatureRegistry | CryptoBootstrap | 34 |
-| HashRegistry | Register hash providers | HashProvider | CryptoBuilder | 32 |
-| SignatureRegistry | Register signature providers | SignatureProvider | CryptoBuilder | 33 |
-| SHA256HashProvider | SHA-256 hashing | Node.js crypto | CryptoProvider | 35 |
-| Ed25519SignatureProvider | Ed25519 signatures | Node.js crypto | CryptoProvider | 36 |
-| Dilithium3SignatureProvider | ML-DSA-65 signatures | Node.js crypto | CryptoProvider | 37 |
-| FileKeyProvider | Load cryptographic keys | Filesystem | Signature providers | 31 |
+| Component                   | Primary Responsibility                  | Primary Dependencies            | Primary Consumers   | Audit Stage |
+| --------------------------- | --------------------------------------- | ------------------------------- | ------------------- | ----------: |
+| CryptoBootstrap             | Register and construct crypto providers | CryptoBuilder, Registries       | Application startup |          30 |
+| CryptoBuilder               | Assemble CryptoProvider                 | HashRegistry, SignatureRegistry | CryptoBootstrap     |          34 |
+| HashRegistry                | Register hash providers                 | HashProvider                    | CryptoBuilder       |          32 |
+| SignatureRegistry           | Register signature providers            | SignatureProvider               | CryptoBuilder       |          33 |
+| SHA256HashProvider          | SHA-256 hashing                         | Node.js crypto                  | CryptoProvider      |          35 |
+| Ed25519SignatureProvider    | Ed25519 signatures                      | Node.js crypto                  | CryptoProvider      |          36 |
+| Dilithium3SignatureProvider | ML-DSA-65 signatures                    | Node.js crypto                  | CryptoProvider      |          37 |
+| FileKeyProvider             | Load cryptographic keys                 | Filesystem                      | Signature providers |          31 |
 
 Status
 
@@ -18729,10 +15188,10 @@ Status
 
 # Hybrid Cryptography
 
-| Component | Primary Responsibility | Primary Dependencies | Primary Consumers | Audit Stage |
-|------------|------------------------|----------------------|-------------------|------------:|
-| HybridSigner | Produce multi-algorithm signature bundles | ArtifactSigner | Hybrid deployments | 38 |
-| HybridVerifier | Verify multi-algorithm signature bundles | SignatureVerifier | Hybrid deployments | 39 |
+| Component      | Primary Responsibility                    | Primary Dependencies | Primary Consumers  | Audit Stage |
+| -------------- | ----------------------------------------- | -------------------- | ------------------ | ----------: |
+| HybridSigner   | Produce multi-algorithm signature bundles | ArtifactSigner       | Hybrid deployments |          38 |
+| HybridVerifier | Verify multi-algorithm signature bundles  | SignatureVerifier    | Hybrid deployments |          39 |
 
 Status
 
@@ -18886,6 +15345,7 @@ pipeline.
 Status
 
 ✅ Verified
+
 # Stage 45: Architecture Summary
 
 ## Purpose

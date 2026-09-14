@@ -1,22 +1,12 @@
 \# Tutorial 26 — Execution Authorization Verification
 
-
-
 \## Overview
-
-
 
 In Tutorial 25, the Runtime generated a signed Execution Authorization after successfully evaluating a Business Transaction.
 
-
-
 This tutorial demonstrates how an enterprise system independently verifies that authorization before allowing execution.
 
-
-
 Verification proves that:
-
-
 
 \- The authorization was issued by Parmana.
 
@@ -26,19 +16,11 @@ Verification proves that:
 
 \- The authorization has not expired.
 
-
-
 Only verified authorizations should be trusted to cross the execution boundary.
-
-
 
 \---
 
-
-
 \## Execution Flow
-
-
 
 ```
 
@@ -76,19 +58,11 @@ Enterprise Execution
 
 ```
 
-
-
 \---
-
-
 
 \## Building the Runtime
 
-
-
 The Runtime produces a signed Execution Authorization.
-
-
 
 ```ts
 
@@ -110,15 +84,9 @@ const runtime =
 
 ```
 
-
-
 \---
 
-
-
 \## Executing the Transaction
-
-
 
 ```ts
 
@@ -128,11 +96,7 @@ const { context } =
 
 ```
 
-
-
 The Runtime Context contains the generated authorization.
-
-
 
 ```ts
 
@@ -142,23 +106,13 @@ const authorization =
 
 ```
 
-
-
 \---
-
-
 
 \## Loading the Public Key
 
-
-
 The Runtime signs using Parmana's private key.
 
-
-
 Verification uses the corresponding public key.
-
-
 
 ```ts
 
@@ -178,15 +132,9 @@ const publicKey =
 
 ```
 
-
-
 \---
 
-
-
 \## Verifying the Authorization
-
-
 
 ```ts
 
@@ -212,23 +160,13 @@ const result =
 
 ```
 
-
-
 The verifier performs multiple independent checks.
-
-
 
 \---
 
-
-
 \## Verification Checks
 
-
-
 The verification result contains:
-
-
 
 | Check | Purpose |
 
@@ -242,19 +180,11 @@ The verification result contains:
 
 | `valid` | Overall verification result |
 
-
-
 Every check is reported independently to simplify troubleshooting.
-
-
 
 \---
 
-
-
 \## Expected Output
-
-
 
 ```text
 
@@ -296,23 +226,13 @@ Tutorial completed successfully.
 
 ```
 
-
-
 \---
-
-
 
 \## Why Verification Matters
 
-
-
 Execution Authorization should never be trusted simply because it was received.
 
-
-
 The receiving system must independently verify:
-
-
 
 \- Signature authenticity
 
@@ -322,19 +242,11 @@ The receiving system must independently verify:
 
 \- Supported payload version
 
-
-
 This prevents forged or modified authorizations from reaching enterprise systems.
-
-
 
 \---
 
-
-
 \## Running the Example
-
-
 
 ```bash
 
@@ -342,11 +254,7 @@ tsx examples/tutorials/26-execution-authorization-verification/run.ts
 
 ```
 
-
-
 or
-
-
 
 ```bash
 
@@ -354,35 +262,19 @@ npm run examples
 
 ```
 
-
-
 \---
-
-
 
 \## Next Tutorial
 
-
-
 \*\*Tutorial 27 — Authorization Expiration\*\*
-
-
 
 The next tutorial demonstrates how expired Execution Authorizations are rejected even when their signatures remain valid.
 
-
-
 \---
-
-
 
 \## Summary
 
-
-
 In this tutorial you learned how to:
-
-
 
 \- Retrieve the Runtime-generated Execution Authorization.
 
@@ -394,7 +286,4 @@ In this tutorial you learned how to:
 
 \- Allow execution only after successful verification.
 
-
-
 Execution Authorization verification is the first step in protecting the execution boundary between AI systems and enterprise applications.
-

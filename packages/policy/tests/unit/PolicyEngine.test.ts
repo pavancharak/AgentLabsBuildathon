@@ -39,4 +39,3 @@ describe("PolicyEngine", () => {
     expect(result.outcome).toBe("APPROVE");
   });
 });
-

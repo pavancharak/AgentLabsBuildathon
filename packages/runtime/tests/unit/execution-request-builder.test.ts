@@ -112,9 +112,14 @@ describe("ExecutionRequestBuilder", () => {
 
   it("produces output byte-for-byte equivalent to calling toExecutableContent() directly", () => {
     const transaction = fixtureTransaction();
-    const authorization = fixtureAuthorization(transaction.businessTransactionId);
+    const authorization = fixtureAuthorization(
+      transaction.businessTransactionId,
+    );
 
-    const request = new ExecutionRequestBuilder().build(transaction, authorization);
+    const request = new ExecutionRequestBuilder().build(
+      transaction,
+      authorization,
+    );
 
     const expectedContent = toExecutableContent({
       businessTransactionId: transaction.businessTransactionId,
@@ -123,7 +128,9 @@ describe("ExecutionRequestBuilder", () => {
       parameters: transaction.intent.parameters,
     });
 
-    expect(request.businessTransactionId).toBe(expectedContent.businessTransactionId);
+    expect(request.businessTransactionId).toBe(
+      expectedContent.businessTransactionId,
+    );
     expect(request.action).toBe(expectedContent.action);
     expect(request.target).toBe(expectedContent.target);
     expect(request.parameters).toEqual(expectedContent.parameters);
@@ -132,9 +139,14 @@ describe("ExecutionRequestBuilder", () => {
 
   it("inherits the helper's immutability guarantee — proves real delegation, not a lucky value match", () => {
     const transaction = fixtureTransaction();
-    const authorization = fixtureAuthorization(transaction.businessTransactionId);
+    const authorization = fixtureAuthorization(
+      transaction.businessTransactionId,
+    );
 
-    const request = new ExecutionRequestBuilder().build(transaction, authorization);
+    const request = new ExecutionRequestBuilder().build(
+      transaction,
+      authorization,
+    );
 
     // Manually re-listing the fields (the pre-Phase-2F code) passed
     // transaction.intent.parameters straight through by reference; only
@@ -150,11 +162,13 @@ describe("ExecutionRequestBuilder", () => {
 
   it("inherits the helper's validation — throws on an empty target instead of silently accepting one", () => {
     const transaction = fixtureTransaction({ target: "" });
-    const authorization = fixtureAuthorization(transaction.businessTransactionId);
-
-    expect(() => new ExecutionRequestBuilder().build(transaction, authorization)).toThrow(
-      "ExecutableContent.target must be a non-empty string.",
+    const authorization = fixtureAuthorization(
+      transaction.businessTransactionId,
     );
+
+    expect(() =>
+      new ExecutionRequestBuilder().build(transaction, authorization),
+    ).toThrow("ExecutableContent.target must be a non-empty string.");
   });
 
   it("stays in lockstep with RuntimeEngine's own ExecutableContent derivation for the same transaction", () => {
@@ -166,7 +180,9 @@ describe("ExecutionRequestBuilder", () => {
     // property TD-9 existed to protect: what was authorized must be
     // exactly what gets executed.
     const transaction = fixtureTransaction();
-    const authorization = fixtureAuthorization(transaction.businessTransactionId);
+    const authorization = fixtureAuthorization(
+      transaction.businessTransactionId,
+    );
 
     const signedContent = toExecutableContent({
       businessTransactionId: transaction.businessTransactionId,
@@ -175,7 +191,10 @@ describe("ExecutionRequestBuilder", () => {
       parameters: transaction.intent.parameters,
     });
 
-    const request = new ExecutionRequestBuilder().build(transaction, authorization);
+    const request = new ExecutionRequestBuilder().build(
+      transaction,
+      authorization,
+    );
 
     expect({
       businessTransactionId: request.businessTransactionId,

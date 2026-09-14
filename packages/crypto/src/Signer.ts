@@ -27,33 +27,24 @@ export interface Signer {
    * -- callers that verify with SignatureVerifier/SignatureProvider.verify()
    * need no changes regardless of which Signer produced the signature.
    */
-  sign(
-    keyId: string,
-    data: Uint8Array,
-  ): Promise<string>;
+  sign(keyId: string, data: Uint8Array): Promise<string>;
 
   /**
    * Returns the public key. Identical contract to KeyProvider.getPublicKey.
    */
-  getPublicKey(
-    keyId: string,
-  ): Promise<KeyObject>;
+  getPublicKey(keyId: string): Promise<KeyObject>;
 
   /**
    * Returns metadata for the specified key. Identical contract to
    * KeyProvider.getMetadata.
    */
-  getMetadata(
-    keyId: string,
-  ): Promise<KeyMetadata>;
+  getMetadata(keyId: string): Promise<KeyMetadata>;
 
   /**
    * Returns true if the key exists. Identical contract to
    * KeyProvider.hasKey.
    */
-  hasKey(
-    keyId: string,
-  ): Promise<boolean>;
+  hasKey(keyId: string): Promise<boolean>;
 
   /**
    * Lists every keyId this signer can currently produce a public key

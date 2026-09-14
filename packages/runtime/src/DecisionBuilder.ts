@@ -1,8 +1,6 @@
 import crypto from "node:crypto";
 
-import type {
-  JsonValue,
-} from "@parmana/shared";
+import type { JsonValue } from "@parmana/shared";
 
 import {
   BusinessTransaction,
@@ -10,10 +8,7 @@ import {
   DecisionOutcome,
 } from "@parmana/shared";
 
-import {
-  PolicyDecision,
-  PolicyOutcome,
-} from "@parmana/policy";
+import { PolicyDecision, PolicyOutcome } from "@parmana/policy";
 
 /**
  * Builds the canonical Decision artifact.
@@ -41,29 +36,17 @@ export class DecisionBuilder {
     return {
       decisionId: crypto.randomUUID(),
 
-      intentId:
-        transaction.intent.intentId,
+      intentId: transaction.intent.intentId,
 
-      policy:
-        transaction.policy,
+      policy: transaction.policy,
 
-      signals:
-        (transaction.signals ??
-          {}) as Record<
-          string,
-          JsonValue
-        >,
+      signals: (transaction.signals ?? {}) as Record<string, JsonValue>,
 
-      outcome:
-        this.toDecisionOutcome(
-          policyDecision.outcome,
-        ),
+      outcome: this.toDecisionOutcome(policyDecision.outcome),
 
-      reason:
-        policyDecision.reason,
+      reason: policyDecision.reason,
 
-      evaluatedAt:
-        new Date(),
+      evaluatedAt: new Date(),
     };
   }
 
@@ -71,9 +54,7 @@ export class DecisionBuilder {
    * Maps the canonical PolicyOutcome into the
    * runtime DecisionOutcome.
    */
-  private toDecisionOutcome(
-    outcome: PolicyOutcome,
-  ): DecisionOutcome {
+  private toDecisionOutcome(outcome: PolicyOutcome): DecisionOutcome {
     switch (outcome) {
       case PolicyOutcome.APPROVE:
         return DecisionOutcome.APPROVED;

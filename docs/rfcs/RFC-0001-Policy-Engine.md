@@ -1,74 +1,38 @@
 \# RFC-0001 — Policy Engine
 
-
-
 \*\*Status:\*\* Draft
-
-
 
 \*\*Author:\*\* Parmana Architecture Team
 
-
-
 \*\*Created:\*\* 2026-06-25
-
-
 
 \*\*Target Version:\*\* 0.2.0
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 Introduce a pluggable Policy Engine responsible for evaluating whether an execution request is authorized.
-
-
 
 The Policy Engine operates before execution and produces an immutable `Authorization` object that becomes part of the `ExecutionTransaction`.
 
-
-
 The Policy Engine is independent of the Runtime, Verification Engine, Storage, and Cryptography.
 
-
-
 \---
-
-
 
 \# Motivation
 
-
-
 Execution Trust requires more than recording execution.
-
-
 
 It requires proving that execution was permitted according to an explicit policy.
 
-
-
 Today, authorization is represented as a domain object but no architectural component is responsible for evaluating policy.
-
-
 
 The Policy Engine fills that gap.
 
-
-
 \---
 
-
-
 \# Goals
-
-
 
 \* Provide deterministic policy evaluation.
 
@@ -80,19 +44,11 @@ The Policy Engine fills that gap.
 
 \* Remain independent of Runtime orchestration.
 
-
-
 \---
-
-
 
 \# Non-Goals
 
-
-
 This RFC does not define:
-
-
 
 \* A policy language.
 
@@ -104,19 +60,11 @@ This RFC does not define:
 
 \* Authentication.
 
-
-
 These concerns remain external to Parmana.
-
-
 
 \---
 
-
-
 \# Architecture
-
-
 
 ```text
 
@@ -154,27 +102,15 @@ Execution
 
 ```
 
-
-
 The Policy Engine determines whether execution may proceed.
-
-
 
 The Runtime executes only after authorization has been established.
 
-
-
 \---
-
-
 
 \# Responsibilities
 
-
-
 The Policy Engine SHALL:
-
-
 
 \* Evaluate execution requests.
 
@@ -188,11 +124,7 @@ The Policy Engine SHALL:
 
 \* Record evaluation outcomes.
 
-
-
 The Policy Engine SHALL NOT:
-
-
 
 \* Execute business logic.
 
@@ -202,23 +134,13 @@ The Policy Engine SHALL NOT:
 
 \* Persist transactions.
 
-
-
 \---
-
-
 
 \# Provider Model
 
-
-
 The Policy Engine delegates evaluation to interchangeable providers.
 
-
-
 Example providers include:
-
-
 
 \* Static Policy Provider
 
@@ -234,23 +156,13 @@ Example providers include:
 
 \* Custom Provider
 
-
-
 Providers implement a common interface.
-
-
 
 \---
 
-
-
 \# Policy Evaluation
 
-
-
 Policy evaluation accepts:
-
-
 
 \* Authority
 
@@ -260,11 +172,7 @@ Policy evaluation accepts:
 
 \* Policy Snapshot
 
-
-
 It produces:
-
-
 
 \* Authorization
 
@@ -274,23 +182,13 @@ It produces:
 
 \* Policy Metadata
 
-
-
 Evaluation must be deterministic.
-
-
 
 \---
 
-
-
 \# Runtime Integration
 
-
-
 The Runtime invokes the Policy Engine during the Authorization Stage.
-
-
 
 ```text
 
@@ -328,27 +226,15 @@ ExecutionStage
 
 ```
 
-
-
 Execution SHALL NOT continue if authorization is denied.
-
-
 
 \---
 
-
-
 \# Evidence
-
-
 
 Policy evaluation contributes immutable evidence to the execution record.
 
-
-
 Typical evidence includes:
-
-
 
 \* Policy Identifier
 
@@ -360,23 +246,13 @@ Typical evidence includes:
 
 \* Decision Reason (optional)
 
-
-
 This evidence enables later verification and audit.
-
-
 
 \---
 
-
-
 \# Verification
 
-
-
 The Verification Engine validates:
-
-
 
 \* An Authorization exists.
 
@@ -386,83 +262,43 @@ The Verification Engine validates:
 
 \* Policy evidence has not been modified.
 
-
-
 The Verification Engine does not re-evaluate policy.
 
-
-
 \---
-
-
 
 \# Determinism
 
-
-
 Policy evaluation SHALL be deterministic.
-
-
 
 Equivalent inputs MUST produce equivalent authorization results.
 
-
-
 Providers that depend on external systems SHALL preserve or record the information required to explain the resulting authorization decision.
 
-
-
 \---
-
-
 
 \# Alternatives Considered
 
-
-
 \## Policy Inside Runtime
-
-
 
 Rejected because it couples execution orchestration with policy evaluation.
 
-
-
 \---
-
-
 
 \## Policy Inside Verification
 
-
-
 Rejected because verification evaluates recorded facts rather than making authorization decisions.
 
-
-
 \---
-
-
 
 \## Embedded Rule Engine
 
-
-
 Rejected because organizations use diverse policy technologies.
-
-
 
 Parmana should integrate with existing policy systems rather than replace them.
 
-
-
 \---
 
-
-
 \# Package Mapping
-
-
 
 ```text
 
@@ -486,39 +322,21 @@ policy/
 
 ```
 
-
-
 The Policy package remains independent of Runtime and Verification.
 
-
-
 \---
-
-
 
 \# Compatibility
 
-
-
 This RFC is backward compatible.
-
-
 
 Implementations without a Policy Engine MAY continue using static Authorization objects.
 
-
-
 Future Runtime implementations MAY delegate Authorization creation to the Policy Engine without changing the `ExecutionTransaction` domain model.
-
-
 
 \---
 
-
-
 \# Open Questions
-
-
 
 \* Should policy snapshots become first-class domain objects?
 
@@ -528,15 +346,9 @@ Future Runtime implementations MAY delegate Authorization creation to the Policy
 
 \* Should policy metadata include provenance information?
 
-
-
 \---
 
-
-
 \# Acceptance Criteria
-
-
 
 \* A `PolicyEngine` abstraction exists.
 
@@ -550,15 +362,9 @@ Future Runtime implementations MAY delegate Authorization creation to the Policy
 
 \* Verification validates authorization artifacts without re-evaluating policy.
 
-
-
 \---
 
-
-
 \# References
-
-
 
 \* 001-ARCHITECTURE.md
 
@@ -575,6 +381,3 @@ Future Runtime implementations MAY delegate Authorization creation to the Policy
 \* ADR-0003 — Verification Is Independent
 
 \* ADR-0004 — Runtime Pipeline
-
-
-

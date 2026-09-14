@@ -10,9 +10,9 @@ Verify a hybrid-signed Execution Trust Record via `application.verify()` — the
 
 ## What You'll Learn
 
-* `application.verify()` on a genuine hybrid-signed record returns `VERIFIED`
-* Tampering with just the ML-DSA-65 entry in `signatures[]` (leaving the legacy Ed25519 `signature` field untouched and still individually valid) still fails the whole record — **not** a silent downgrade to checking only the legacy field
-* The exact failure message names the check that failed ("Signature check failed"), not a generic error
+- `application.verify()` on a genuine hybrid-signed record returns `VERIFIED`
+- Tampering with just the ML-DSA-65 entry in `signatures[]` (leaving the legacy Ed25519 `signature` field untouched and still individually valid) still fails the whole record — **not** a silent downgrade to checking only the legacy field
+- The exact failure message names the check that failed ("Signature check failed"), not a generic error
 
 ## Running the Tutorial
 

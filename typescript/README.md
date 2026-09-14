@@ -70,17 +70,14 @@ npm install @parmana/typescript-sdk
 # Quick Start
 
 ```typescript
-import {
-    ParmanaClient,
-    HttpTransport,
-} from "@parmana/typescript-sdk";
+import { ParmanaClient, HttpTransport } from "@parmana/typescript-sdk";
 
 const client = new ParmanaClient({
-    endpoint: "https://runtime.example.com",
+  endpoint: "https://runtime.example.com",
 
-    transport: new HttpTransport({
-        endpoint: "https://runtime.example.com",
-    }),
+  transport: new HttpTransport({
+    endpoint: "https://runtime.example.com",
+  }),
 });
 ```
 
@@ -89,8 +86,7 @@ const client = new ParmanaClient({
 # Runtime Health
 
 ```typescript
-const health =
-    await client.health();
+const health = await client.health();
 ```
 
 ---
@@ -98,10 +94,7 @@ const health =
 # Execute
 
 ```typescript
-const trustRecord =
-    await client.execute(
-        transaction,
-    );
+const trustRecord = await client.execute(transaction);
 ```
 
 The Runtime:
@@ -118,10 +111,9 @@ The Runtime:
 # Verify
 
 ```typescript
-const verification =
-    await client.getLatestVerification(
-        trustRecord.businessTransactionId,
-    );
+const verification = await client.getLatestVerification(
+  trustRecord.businessTransactionId,
+);
 ```
 
 Verification independently validates the Execution Trust Record.
@@ -131,10 +123,7 @@ Verification independently validates the Execution Trust Record.
 # Replay
 
 ```typescript
-const replay =
-    await client.replay(
-        trustRecord.businessTransactionId,
-    );
+const replay = await client.replay(trustRecord.businessTransactionId);
 ```
 
 Replay deterministically re-executes the recorded execution.
@@ -144,10 +133,7 @@ Replay deterministically re-executes the recorded execution.
 # Validate Policy
 
 ```typescript
-const result =
-    await client.validatePolicy(
-        policy,
-    );
+const result = await client.validatePolicy(policy);
 ```
 
 Policy validation checks that a policy is structurally valid before deployment.
@@ -203,7 +189,7 @@ The SDK does not redefine these models.
 All SDK exceptions inherit from:
 
 ```typescript
-ParmanaError
+ParmanaError;
 ```
 
 Common errors include:

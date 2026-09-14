@@ -1,63 +1,44 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeFactory,
-} from "@parmana/runtime";
+import { RuntimeFactory } from "@parmana/runtime";
 
-import {
-  DefaultExecutionSystem,
-} from "@parmana/execution-system";
+import { DefaultExecutionSystem } from "@parmana/execution-system";
 
 import {
   MemoryBusinessTransactionRepository,
   MemoryExecutionTrustRecordRepository,
 } from "@parmana/storage";
 
-import type {
-  BusinessTransaction,
-} from "@parmana/shared";
+import type { BusinessTransaction } from "@parmana/shared";
 
 const root = path.resolve(import.meta.dirname);
 
 const transaction = JSON.parse(
   readFileSync(
-    path.join(
-      root,
-      "../../shared/vendor-payment-transaction.json",
-    ),
+    path.join(root, "../../shared/vendor-payment-transaction.json"),
     "utf8",
   ),
 ) as BusinessTransaction;
 
-const policyRepository =
-  new FilePolicyRepository(
-    path.resolve(
-      root,
-      "../../../policies",
-    ),
-  );
+const policyRepository = new FilePolicyRepository(
+  path.resolve(root, "../../../policies"),
+);
 
-const transactions =
-  new MemoryBusinessTransactionRepository();
+const transactions = new MemoryBusinessTransactionRepository();
 
-const trustRecords =
-  new MemoryExecutionTrustRecordRepository();
+const trustRecords = new MemoryExecutionTrustRecordRepository();
 
-const executionSystem =
-  new DefaultExecutionSystem();
+const executionSystem = new DefaultExecutionSystem();
 
-const application =
-  RuntimeFactory.create(
-    transactions,
-    trustRecords,
-    policyRepository,
-      executionSystem,
-  );
+const application = RuntimeFactory.create(
+  transactions,
+  trustRecords,
+  policyRepository,
+  executionSystem,
+);
 
 // --------------------------------------------------
 // EXECUTION
@@ -67,14 +48,11 @@ const application =
 // the same code path used by POST /execute.
 // --------------------------------------------------
 
-const trustRecord =
-  await application.execute(transaction);
+const trustRecord = await application.execute(transaction);
 
-const verification =
-  trustRecord.verifications.at(-1);
+const verification = trustRecord.verifications.at(-1);
 
-const receipt =
-  trustRecord.receipts.at(-1);
+const receipt = trustRecord.receipts.at(-1);
 
 // --------------------------------------------------
 // OUTPUT
@@ -107,7 +85,3 @@ console.log();
 console.log("========================================");
 console.log(" SCENARIO COMPLETED SUCCESSFULLY");
 console.log("========================================");
-
-
-
-

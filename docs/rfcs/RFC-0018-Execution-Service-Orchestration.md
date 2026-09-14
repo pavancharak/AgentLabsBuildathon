@@ -1,34 +1,18 @@
 \# RFC-0018: Execution Service Orchestration
 
-
-
 \*\*Status:\*\* Accepted
-
-
 
 \## Purpose
 
-
-
 This RFC defines the canonical responsibilities of the `ExecutionService` within the Parmana Runtime.
-
-
 
 With the domain model, policy runtime, `DecisionService`, and `ExecutionTrustRecordService` established, the `ExecutionService` becomes the orchestration layer that coordinates execution without containing business logic.
 
-
-
 \---
-
-
 
 \# Objectives
 
-
-
 The `ExecutionService` SHALL:
-
-
 
 \* orchestrate the end-to-end execution workflow
 
@@ -40,11 +24,7 @@ The `ExecutionService` SHALL:
 
 \* terminate execution on unrecoverable validation failures
 
-
-
 The `ExecutionService` SHALL NOT:
-
-
 
 \* evaluate policy rules
 
@@ -58,15 +38,9 @@ The `ExecutionService` SHALL NOT:
 
 \* contain business-specific logic
 
-
-
 \---
 
-
-
 \# Current Runtime Services
-
-
 
 ```text
 
@@ -90,15 +64,9 @@ packages/runtime/src/services/
 
 ```
 
-
-
 \---
 
-
-
 \# Canonical Execution Pipeline
-
-
 
 ```text
 
@@ -246,19 +214,11 @@ Verification
 
 ```
 
-
-
 \---
-
-
 
 \# ExecutionService Responsibilities
 
-
-
 The `ExecutionService` SHALL orchestrate the following components:
-
-
 
 ```text
 
@@ -286,63 +246,45 @@ ExecutionService
 
 ```
 
-
-
 The `ExecutionService` SHALL coordinate these components but SHALL NOT implement their internal responsibilities.
 
-
-
 \---
-
-
 
 \# Runtime Service Responsibilities
 
-
-
-| Service                     | Responsibility                                |
+| Service | Responsibility |
 
 | --------------------------- | --------------------------------------------- |
 
-| BusinessTransactionService  | Construct BusinessTransaction                 |
+| BusinessTransactionService | Construct BusinessTransaction |
 
-| ExecutionService            | Orchestrate execution workflow                |
+| ExecutionService | Orchestrate execution workflow |
 
-| PolicyRouter                | Load policy artifact                          |
+| PolicyRouter | Load policy artifact |
 
-| PolicyValidator             | Validate policy artifact                      |
+| PolicyValidator | Validate policy artifact |
 
-| PolicyAdapter               | Convert RuntimeTransaction into PolicySignals |
+| PolicyAdapter | Convert RuntimeTransaction into PolicySignals |
 
-| SignalValidator             | Validate runtime signals                      |
+| SignalValidator | Validate runtime signals |
 
-| PolicyEngine                | Evaluate deterministic policy rules           |
+| PolicyEngine | Evaluate deterministic policy rules |
 
-| DecisionService             | Construct immutable Decision                  |
+| DecisionService | Construct immutable Decision |
 
-| ExecutionTrustRecordService | Construct immutable ExecutionTrustRecord      |
+| ExecutionTrustRecordService | Construct immutable ExecutionTrustRecord |
 
-| ReceiptService              | Generate cryptographic Receipt                |
+| ReceiptService | Generate cryptographic Receipt |
 
-| VerificationService         | Verify execution artifacts                    |
-
-
+| VerificationService | Verify execution artifacts |
 
 Every runtime service SHALL own exactly one responsibility.
 
-
-
 \---
-
-
 
 \# Execution Flow
 
-
-
 The `ExecutionService` SHALL execute the following sequence:
-
-
 
 1\. Receive a validated `BusinessTransaction`.
 
@@ -370,23 +312,13 @@ The `ExecutionService` SHALL execute the following sequence:
 
 13\. Return the completed execution result.
 
-
-
 Execution SHALL terminate immediately if any mandatory validation step fails.
-
-
 
 \---
 
-
-
 \# Architectural Invariants
 
-
-
 The runtime SHALL satisfy the following invariants:
-
-
 
 1\. `ExecutionService` SHALL act only as an orchestrator.
 
@@ -408,19 +340,11 @@ The runtime SHALL satisfy the following invariants:
 
 10\. Identical validated inputs SHALL produce identical Decisions.
 
-
-
 \---
-
-
 
 \# Remaining Phase 1 Implementation
 
-
-
 The remaining implementation work SHALL proceed in the following order:
-
-
 
 1\. Refactor `ExecutionService` into a pure orchestrator.
 
@@ -436,47 +360,24 @@ The remaining implementation work SHALL proceed in the following order:
 
 7\. Validate persistence, replay, receipt generation, cryptographic integrity, and verification.
 
-
-
 \---
-
-
 
 \# Phase 1 Milestone
 
-
-
 With the implementation of:
-
-
 
 \* DecisionService
 
 \* ExecutionTrustRecordService
 
-
-
 the project has transitioned from architectural definition to execution pipeline integration.
-
-
 
 The remaining work focuses on wiring the existing components into a complete, deterministic execution workflow without changing the established architecture.
 
-
-
 \---
-
-
 
 \# Status
 
-
-
 This RFC locks the orchestration responsibilities of the `ExecutionService` for Parmana Phase 1.
 
-
-
 Future implementations SHALL preserve the orchestration model and the single-responsibility design established by the runtime service architecture.
-
-
-

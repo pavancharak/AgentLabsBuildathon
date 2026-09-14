@@ -2,10 +2,6 @@
  * SAP connector exports.
  */
 
-export {
-  createSapConnector,
-} from "./SapConnector.js";
+export { createSapConnector } from "./SapConnector.js";
 
-export {
-  SapMetadata,
-} from "./SapMetadata.js";
+export { SapMetadata } from "./SapMetadata.js";

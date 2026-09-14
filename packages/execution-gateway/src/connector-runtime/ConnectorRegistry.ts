@@ -9,7 +9,9 @@ export class InMemoryConnectorRegistry implements ConnectorRegistry {
 
   register(connector: SecureConnector): void {
     if (this.connectors.has(connector.identity.connectorId)) {
-      throw new Error(`Connector already registered: ${connector.identity.connectorId}.`);
+      throw new Error(
+        `Connector already registered: ${connector.identity.connectorId}.`,
+      );
     }
     this.connectors.set(connector.identity.connectorId, connector);
   }

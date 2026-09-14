@@ -53,7 +53,11 @@ export function createCallerAuthMiddleware(
   authenticator: CallerAuthenticator,
   auditSink: CallerAuditSink,
 ) {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     const credential = extractBearerToken(req.headers.authorization);
     const identity = authenticator.authenticate(credential);
 
@@ -72,16 +76,13 @@ export function createCallerAuthMiddleware(
 
       if (!recorded) return;
 
-    res.setHeader(
-  "WWW-Authenticate",
-  'Bearer realm="Parmana"',
-);
+      res.setHeader("WWW-Authenticate", 'Bearer realm="Parmana"');
 
-res.status(401).json({
-  error: "authentication required",
-});
+      res.status(401).json({
+        error: "authentication required",
+      });
 
-return;
+      return;
     }
 
     req.callerId = identity.callerId;

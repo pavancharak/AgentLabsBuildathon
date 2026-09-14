@@ -33,6 +33,7 @@ worked from:
 3. **Accountability:** Who is responsible if something goes wrong?
 
 Parmana's evidence this session addresses each:
+
 - Authorization: hard scope boundary, enforced at the API key layer, before connector dispatch
 - Authenticity: signed execution trust records (ed25519), independently verifiable in principle
   (not yet independently re-verified by a party other than this session — see limitations below)
@@ -43,6 +44,7 @@ Parmana's evidence this session addresses each:
 ## Where Everything Is
 
 ### Code Repository
+
 - **Repo:** github.com/pavancharak/parmana-exp
 - **Branch:** `test/fca-scenario-1` (open PR #1, real, id `4364268804`; contains all FCA work
   this session)
@@ -51,25 +53,30 @@ Parmana's evidence this session addresses each:
 ### Key Files Committed This Session
 
 **Commit `9993940`:** `GITHUB-CALLER-SCOPING-PHASE2-WEEK2-RESULTS.md`
+
 - Live test results, three scenarios, run against real `parmana-api.fly.dev` and real GitHub data
 - Scenario 1: fetch-only caller fetches PR #1 → SUCCESS (200, signed trust record)
 - Scenario 2: fetch-only caller attempts merge → REJECTED (403 `CAPABILITY_NOT_ALLOWED`)
 - Scenario 3: same rejection under maximally policy-favorable signals → REJECTED
 
 **Commit `cbd7cad`:** `FCA-SUBMISSION-PHASE2-WEEK2.md`
+
 - Evidence package framed for FCA, explicitly not asserted as certified regulatory sufficiency
 - Sections: Authorization (hard boundaries), Authenticity (signed trails), Accountability (audit
   records), plus a technical appendix and the live test summary
 
 **Commit `061f483`:** `PRE-FCA-CHECKLIST.md`
+
 - Roadmap to FCA submission: legal, compliance, security audit, Scenario 4, org sign-off
 - Corrected an org-structure claim from its originating prompt ("Manthan Systems" parent company
   — confirmed by Pavan mid-session not to exist; it's Parmana itself)
 
 **Commit `c0db2f1`:** `PRE-FCA-CHECKLIST.md` (updated)
+
 - Added an explicit "Why this is required" and "Pending because" line to every section
 
 ### Supporting Architecture Documentation
+
 - `SCOPED-CREDENTIAL-ARCHITECTURE.md` (commit `c6844bd`) — the real architecture doc; note its
   original prompt asked for a file named `GITHUB-CALLER-SCOPING-ARCHITECTURE.md`, which doesn't
   exist — this is the real one, cited correctly in `FCA-SUBMISSION-PHASE2-WEEK2.md`
@@ -77,6 +84,7 @@ Parmana's evidence this session addresses each:
   hermetic integration tests (4 passing) against a mock GitHub server
 
 ### Live Infrastructure
+
 - **Deployment:** `parmana-api.fly.dev` (Fly.io) — health-checked this session:
   `{"status":"UP"}`, HTTP 200
 - **GitHub App:** authenticated, installed on `pavancharak/parmana-exp` — confirmed via deployed
@@ -86,7 +94,7 @@ Parmana's evidence this session addresses each:
   originating draft of this document**, which named it "parmana-sandbox (AWS ap-south-1)." Per
   this repo's own prior, independently-verified finding
   (`docs/operations/td1-closure-summary.md`, closed 2026-08-05, §7 "Phase 2A.3"), production is
-  confirmed to be the account's *other*, repo-linked project — a **separate** project literally
+  confirmed to be the account's _other_, repo-linked project — a **separate** project literally
   named as a sandbox, region `ap-south-1`, was found on the same account but explicitly **not
   linked to this repository** and not the one production points to. This session did not
   re-verify project identity independently; it is carried forward from that closed, dated
@@ -108,6 +116,7 @@ never reached the GitHub connector
 policy-favorable, demonstrating the outcome doesn't depend on request content
 
 ### Documentation Complete
+
 ✅ `FCA-SUBMISSION-PHASE2-WEEK2.md` — framed explicitly as an evidence package pending legal/
 compliance review, not a certified submission
 ✅ `PRE-FCA-CHECKLIST.md` — review types, honest NOT-STARTED status, rationale per section
@@ -115,6 +124,7 @@ compliance review, not a certified submission
 `ApiKeyEntry.ts`, `SCOPED-CREDENTIAL-ARCHITECTURE.md`)
 
 ### Infrastructure Verified
+
 ✅ `parmana-api` deployed and healthy, GitHub App credentials present and functioning (proven by
 Scenario 1's real connector call, not just secret presence)
 ✅ Three live scenarios ran against the actual deployment, not a mock
@@ -124,23 +134,28 @@ Scenario 1's real connector call, not just secret presence)
 ## What's Stuck (Intentionally)
 
 ### Scenario 4: Full-Access Merge Test
+
 **Status:** Pending explicit approval. **Why stuck:** merging a real PR is irreversible and
 externally visible even if reverted afterward; declined twice already in this session (once when
 proposed as part of the checklist, once when proposed as part of a "Weeks 1-6" execution roadmap)
 pending Pavan's in-the-moment go-ahead specifically, not a standing authorization.
 
 ### Legal Review
+
 **Status:** Pending. **Why stuck:** no real lawyer has been contacted — the originating
 "Weeks 1-6" roadmap's outreach email had a `[Name]` placeholder, not a real recipient; sending
 outreach on Pavan's behalf without a real person to send it to isn't possible, and wasn't done.
 
 ### Compliance Review
+
 **Status:** Pending. **Why stuck:** same — no compliance expert identified yet.
 
 ### Security Audit
+
 **Status:** Pending. **Why stuck:** same — no auditor or firm identified yet.
 
 ### Organizational Sign-Off
+
 **Status:** Pending. **Why stuck:** whether anyone beyond Pavan needs to sign off is itself
 unresolved (`docs/deep-tech/06-TEAM-AND-EXPERTISE.md` has co-founder/team existence as an open
 TODO); confirmed this session that there's no separate "Manthan Systems" parent company.
@@ -205,14 +220,14 @@ regulatory audience.
 
 ## Key Commits Reference
 
-| Commit | File | What It Is |
-|---|---|---|
+| Commit    | File                                            | What It Is                      |
+| --------- | ----------------------------------------------- | ------------------------------- |
 | `9993940` | `GITHUB-CALLER-SCOPING-PHASE2-WEEK2-RESULTS.md` | Live test results (3 scenarios) |
-| `cbd7cad` | `FCA-SUBMISSION-PHASE2-WEEK2.md` | Evidence package for FCA |
-| `061f483` | `PRE-FCA-CHECKLIST.md` | Roadmap to FCA submission |
-| `c0db2f1` | `PRE-FCA-CHECKLIST.md` | Updated with blocking rationale |
-| `94375ed` | `github-caller-scoping.integration.test.ts` | Hermetic tests (4 passing) |
-| `c6844bd` | `SCOPED-CREDENTIAL-ARCHITECTURE.md` | Real architecture doc |
+| `cbd7cad` | `FCA-SUBMISSION-PHASE2-WEEK2.md`                | Evidence package for FCA        |
+| `061f483` | `PRE-FCA-CHECKLIST.md`                          | Roadmap to FCA submission       |
+| `c0db2f1` | `PRE-FCA-CHECKLIST.md`                          | Updated with blocking rationale |
+| `94375ed` | `github-caller-scoping.integration.test.ts`     | Hermetic tests (4 passing)      |
+| `c6844bd` | `SCOPED-CREDENTIAL-ARCHITECTURE.md`             | Real architecture doc           |
 
 ---
 

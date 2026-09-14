@@ -29,26 +29,26 @@ const examples = [
   "examples/tutorials/07-receipt-generation/run.ts",
   "examples/tutorials/08-human-approval/run.ts",
   "examples/tutorials/10-end-to-end/run.ts",
-    "examples/tutorials/11-execution-authorization/run.ts",
+  "examples/tutorials/11-execution-authorization/run.ts",
   "examples/tutorials/12-envelope-verification/run.ts",
   "examples/tutorials/13-post-quantum-signatures/run.ts",
   "examples/tutorials/14-custom-policy/run.ts",
   "examples/tutorials/15-custom-runtime-component/run.ts",
   "examples/tutorials/16-runtime-pipeline/run.ts",
   "examples/tutorials/17-multi-policy-routing/run.ts",
-    "examples/tutorials/18-runtime-hooks/run.ts",
+  "examples/tutorials/18-runtime-hooks/run.ts",
   "examples/tutorials/19-runtime-composition/run.ts",
   "examples/tutorials/20-batch-execution/run.ts",
-   "examples/tutorials/21-partial-failure-handling/run.ts",
-   "examples/tutorials/22-idempotent-execution/run.ts",
+  "examples/tutorials/21-partial-failure-handling/run.ts",
+  "examples/tutorials/22-idempotent-execution/run.ts",
   "examples/tutorials/23-production-deployment/run.ts",
-    "examples/tutorials/24-sdk-integration-patterns/run.ts",
-   "examples/tutorials/25-execution-permit-generation/run.ts",
+  "examples/tutorials/24-sdk-integration-patterns/run.ts",
+  "examples/tutorials/25-execution-permit-generation/run.ts",
   "examples/tutorials/26-execution-authorization-verification/run.ts",
   "examples/tutorials/27-authorization-expiration/run.ts",
   "examples/tutorials/28-envelope-replay-detection/run.ts",
   "examples/tutorials/29-authorization-tampering/run.ts",
-  "examples/tutorials/30-policy-version-pinning/run.ts",     	
+  "examples/tutorials/30-policy-version-pinning/run.ts",
   "examples/tutorials/31-authorization-binding/run.ts",
   "examples/tutorials/32-execution-pipeline/run.ts",
   "examples/tutorials/33-execution-boundary/run.ts",
@@ -56,13 +56,13 @@ const examples = [
   "examples/tutorials/35-replay-attack/run.ts",
   "examples/tutorials/36-parameter-tampering/run.ts",
   "examples/tutorials/37-action-substitution/run.ts",
-   "examples/tutorials/38-target-substitution/run.ts",
+  "examples/tutorials/38-target-substitution/run.ts",
   "examples/tutorials/39-policy-substitution/run.ts",
   "examples/tutorials/40-signature-forgery/run.ts",
   "examples/tutorials/41-expired-authorization/run.ts",
   "examples/tutorials/42-nonce-reuse/run.ts",
   "examples/tutorials/43-stolen-authorization/run.ts",
- "examples/tutorials/44-direct-api-bypass/run.ts",
+  "examples/tutorials/44-direct-api-bypass/run.ts",
   "examples/tutorials/45-connector-bypass/run.ts",
   "examples/tutorials/46-toctou-protection/run.ts",
   "examples/tutorials/47-canonical-json/run.ts",
@@ -70,12 +70,11 @@ const examples = [
   "examples/tutorials/49-detached-signatures/run.ts",
   "examples/tutorials/50-ed25519/run.ts",
 
-
   "examples/tutorials/53-execution-permit/run.ts",
-    "examples/tutorials/54-execution-receipt/run.ts",
+  "examples/tutorials/54-execution-receipt/run.ts",
   "examples/tutorials/55-execution-receipt-verification/run.ts",
- "examples/tutorials/56-complete-execution-flow/run.ts",
-    "examples/tutorials/51-dilithium3/run.ts",
+  "examples/tutorials/56-complete-execution-flow/run.ts",
+  "examples/tutorials/51-dilithium3/run.ts",
   "examples/tutorials/52-hybrid-signatures/run.ts",
   "examples/tutorials/57-credential-isolation/run.ts",
   "examples/tutorials/58-session-credentials/run.ts",
@@ -139,10 +138,7 @@ async function run(example: string): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const child = spawn(
       process.execPath,
-      [
-        "./node_modules/tsx/dist/cli.mjs",
-        path.join(root, example),
-      ],
+      ["./node_modules/tsx/dist/cli.mjs", path.join(root, example)],
       {
         cwd: root,
         stdio: "inherit",
@@ -156,11 +152,7 @@ async function run(example: string): Promise<void> {
         console.log(`✓ ${example} completed.`);
         resolve();
       } else {
-        reject(
-          new Error(
-            `${example} failed with exit code ${code}.`,
-          ),
-        );
+        reject(new Error(`${example} failed with exit code ${code}.`));
       }
     });
   });
@@ -187,7 +179,3 @@ main().catch((error) => {
   console.error(error);
   process.exit(1);
 });
-
-
-
-

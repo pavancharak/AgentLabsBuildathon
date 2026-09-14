@@ -1,20 +1,20 @@
 ﻿const API_KEY = process.env.PARMANA_LATENCY_TEST_KEY;
 if (!API_KEY) {
-  throw new Error('Set PARMANA_LATENCY_TEST_KEY before running this script.');
+  throw new Error("Set PARMANA_LATENCY_TEST_KEY before running this script.");
 }
-const URL = 'https://parmana-api.fly.dev/execute';
+const URL = "https://parmana-api.fly.dev/execute";
 const REQUEST_COUNT = 20;
 
 async function timedRequest(i) {
   const start = process.hrtime.bigint();
   try {
     const res = await fetch(URL, {
-      method: 'POST',
+      method: "POST",
       headers: {
         Authorization: `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-      body: '{}',
+      body: "{}",
     });
     await res.arrayBuffer();
     const end = process.hrtime.bigint();
@@ -30,7 +30,9 @@ async function timedRequest(i) {
 }
 
 async function main() {
-  console.log(`Firing ${REQUEST_COUNT} requests through one warm connection...`);
+  console.log(
+    `Firing ${REQUEST_COUNT} requests through one warm connection...`,
+  );
   const timings = [];
   for (let i = 0; i < REQUEST_COUNT; i++) {
     const ms = await timedRequest(i);
@@ -38,7 +40,7 @@ async function main() {
   }
 
   if (timings.length === 0) {
-    console.log('No successful timings collected.');
+    console.log("No successful timings collected.");
     return;
   }
 
@@ -53,10 +55,14 @@ async function main() {
       ? timings.slice(1).reduce((a, b) => a + b, 0) / (timings.length - 1)
       : null;
 
-  console.log('--- Summary ---');
-  console.log(`First request (cold, pays connection setup): ${first.toFixed(1)}ms`);
+  console.log("--- Summary ---");
+  console.log(
+    `First request (cold, pays connection setup): ${first.toFixed(1)}ms`,
+  );
   if (restMean !== null) {
-    console.log(`Mean of requests 2-${timings.length} (warm connection): ${restMean.toFixed(1)}ms`);
+    console.log(
+      `Mean of requests 2-${timings.length} (warm connection): ${restMean.toFixed(1)}ms`,
+    );
   }
   console.log(`Overall mean: ${mean.toFixed(1)}ms`);
   console.log(`p50: ${p50.toFixed(1)}ms`);

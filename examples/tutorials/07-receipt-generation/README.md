@@ -1,30 +1,16 @@
 \# Tutorial 07 — Receipt Generation
 
-
-
 \## Overview
-
-
 
 This tutorial demonstrates how Parmana generates a cryptographically verifiable Receipt after successful execution and verification.
 
-
-
 A Receipt is the final artifact produced by the Parmana execution lifecycle. It serves as immutable proof that a Business Transaction was executed according to the approved policy and successfully verified.
-
-
 
 \---
 
-
-
 \## Learning Objectives
 
-
-
 After completing this tutorial you will understand:
-
-
 
 \- Receipt Generation
 
@@ -36,15 +22,9 @@ After completing this tutorial you will understand:
 
 \- Audit Evidence
 
-
-
 \---
 
-
-
 \## Files
-
-
 
 | File | Purpose |
 
@@ -52,15 +32,9 @@ After completing this tutorial you will understand:
 
 | `run.ts` | Generates a Receipt from an Execution Trust Record |
 
-
-
 \---
 
-
-
 \## Architecture
-
-
 
 ```
 
@@ -98,15 +72,9 @@ Receipt
 
 ```
 
-
-
 \---
 
-
-
 \## Run
-
-
 
 ```bash
 
@@ -114,11 +82,7 @@ npm run example -- 07-receipt-generation
 
 ```
 
-
-
 or
-
-
 
 ```bash
 
@@ -126,19 +90,11 @@ tsx run.ts
 
 ```
 
-
-
 \---
-
-
 
 \## Expected Output
 
-
-
 The tutorial prints:
-
-
 
 \- Execution Trust Record
 
@@ -146,15 +102,8 @@ The tutorial prints:
 
 \- Receipt
 
-
-
 \---
-
-
 
 \## Next Tutorial
 
-
-
 Continue to \*\*Tutorial 08 – Human Approval\*\*.
-

@@ -1,120 +1,65 @@
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeBuilder,
-} from "@parmana/runtime";
+import { RuntimeBuilder } from "@parmana/runtime";
 
-import {
-  MemoryExecutionTrustRecordRepository,
-} from "@parmana/storage";
+import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
-import transaction from "./transaction.json" with {
-  type: "json",
-};
+import transaction from "./transaction.json" with { type: "json" };
 
 async function main(): Promise<void> {
   console.log();
-  console.log(
-    "==================================================",
-  );
-  console.log(
-    "Tutorial 39 - Policy Substitution",
-  );
-  console.log(
-    "==================================================",
-  );
+  console.log("==================================================");
+  console.log("Tutorial 39 - Policy Substitution");
+  console.log("==================================================");
   console.log();
 
-  const runtime =
-    new RuntimeBuilder()
-      .withPolicyRepository(
-        new FilePolicyRepository(
-          "policies",
-        ),
-      )
-      .build(
-        new MemoryExecutionTrustRecordRepository(),
-      );
+  const runtime = new RuntimeBuilder()
+    .withPolicyRepository(new FilePolicyRepository("policies"))
+    .build(new MemoryExecutionTrustRecordRepository());
 
-  const { context } =
-    await runtime.execute(
-      transaction,
-    );
+  const { context } = await runtime.execute(transaction);
 
   if (!context.authorization) {
-    throw new Error(
-      "Execution Authorization missing.",
-    );
+    throw new Error("Execution Authorization missing.");
   }
 
-  const authorizedPolicy =
-    `${context.authorization.payload.policyName}@${context.authorization.payload.policyVersion}`;
+  const authorizedPolicy = `${context.authorization.payload.policyName}@${context.authorization.payload.policyVersion}`;
 
-  const substitutedPolicy =
-    `${context.authorization.payload.policyName}@3.0.0`;
+  const substitutedPolicy = `${context.authorization.payload.policyName}@3.0.0`;
 
-  console.log(
-    "Authorized Policy",
-  );
+  console.log("Authorized Policy");
 
-  console.log(
-    authorizedPolicy,
-  );
+  console.log(authorizedPolicy);
 
   console.log();
 
-  console.log(
-    "Substituted Policy",
-  );
+  console.log("Substituted Policy");
 
-  console.log(
-    substitutedPolicy,
-  );
+  console.log(substitutedPolicy);
 
   console.log();
 
-  if (
-    authorizedPolicy !==
-    substitutedPolicy
-  ) {
-    console.log(
-      "✓ Policy substitution detected.",
-    );
+  if (authorizedPolicy !== substitutedPolicy) {
+    console.log("✓ Policy substitution detected.");
 
-    console.log(
-      "Execution rejected.",
-    );
+    console.log("Execution rejected.");
   } else {
-    console.log(
-      "✗ Policy substitution not detected.",
-    );
+    console.log("✗ Policy substitution not detected.");
   }
 
   console.log();
 
-  console.log(
-    "Policy Integrity",
-  );
+  console.log("Policy Integrity");
 
-  console.log(
-    "--------------------------------------------------",
-  );
+  console.log("--------------------------------------------------");
 
-  console.log(
-    "Authorizations are valid only for the policy",
-  );
+  console.log("Authorizations are valid only for the policy");
 
-  console.log(
-    "under which they were originally issued.",
-  );
+  console.log("under which they were originally issued.");
 
   console.log();
 
-  console.log(
-    "Tutorial completed successfully.",
-  );
+  console.log("Tutorial completed successfully.");
 }
 
 main().catch((error) => {

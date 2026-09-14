@@ -18,6 +18,7 @@
 > Per Pavan (2026-08-25): draft real specifications now, grounded in the actual codebase, rather
 > than treating the original claims as true or proceeding to file anything. The three real drafts
 > are in this same folder:
+>
 > - [`DRAFT-01-runtime-credential-isolation.md`](./DRAFT-01-runtime-credential-isolation.md)
 > - [`DRAFT-02-signed-execution-audit-trail.md`](./DRAFT-02-signed-execution-audit-trail.md)
 > - [`DRAFT-03-policy-change-maker-checker.md`](./DRAFT-03-policy-change-maker-checker.md)
@@ -50,6 +51,7 @@ This prompt guides Claude to manage the complete patent filing process:
 ## Three Patent Applications (as originally claimed — NOT accurate, see correction above)
 
 ### Patent #1: Runtime Credential Isolation
+
 **File:** `/parmana/docs/patents/PATENT_APP_01_CREDENTIAL_ISOLATION_COMPLETE.md` — **does not exist**
 **Status:** ~~✅ Completely ready to file~~ **Not started; see DRAFT-01 instead**
 **Source code cited:** `packages/api/src/bootstrap/createConnectorRegistry.ts` — this file is
@@ -58,12 +60,14 @@ the actual mechanism instead (`SessionCredentialSecureConnector.ts`, `Credential
 `SessionCredentialVault`).
 
 ### Patent #2: Signed Execution Audit Trail
+
 **File:** `/parmana/docs/patents/PATENT_APP_02_SIGNED_AUDIT_TRAIL_COMPLETE.md` — **does not exist**
 **Status:** ~~✅ Completely ready to file~~ **Not started; see DRAFT-02 instead**
 **Source code cited:** `packages/api/src/execution/executeTransaction.ts` — **this file and
 directory do not exist anywhere in this repository.**
 
 ### Patent #3: Maker-Checker Policy Enforcement
+
 **File:** `/parmana/docs/patents/PATENT_APP_03_MAKER_CHECKER_COMPLETE.md` — **does not exist**
 **Status:** ~~✅ Completely ready to file~~ **Not started; see DRAFT-03 instead**
 **Source code cited:** `packages/api/src/policies/policyEngine.ts` — **this file and directory do
@@ -74,10 +78,10 @@ DRAFT-03 is grounded in that instead.
 
 ---
 
-*(The remainder of the originally-supplied filing checklist, register template, post-filing
+_(The remainder of the originally-supplied filing checklist, register template, post-filing
 actions, 12-month conversion timeline, session-by-session instructions, blocker-resolution
 guidance, and success criteria are process scaffolding that remains generally reusable once real
 drafts exist and an attorney is actually engaged — omitted here for length; ask if you want the
 full original text preserved too. The one change that matters procedurally: every "TODAY /
 ASAP / Aug 26-28" date in the original assumed the three specs already existed. Re-derive a real
-timeline once DRAFT-01/02/03 have had attorney review, not before.)*
+timeline once DRAFT-01/02/03 have had attorney review, not before.)_

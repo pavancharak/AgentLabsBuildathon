@@ -3,7 +3,10 @@ title: "Detect Tampering"
 description: "Mutate a parameter, a signature, and a nonce, run the same verification each time, and watch each one fail. This mirrors the always-running negative-path tutorials."
 ---
 
-<Info>**[AVAILABLE]**, all three runs below are real output from this session, commit `651497a`.</Info>
+<Info>
+  **[AVAILABLE]**, all three runs below are real output from this session,
+  commit `651497a`.
+</Info>
 
 ## Goal
 
@@ -122,10 +125,18 @@ threw an unrelated error instead of the expected rejection.
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="Verify a trust record independently" icon="check-double" href="/guides/verify-independently">
+  <Card
+    title="Verify a trust record independently"
+    icon="check-double"
+    href="/guides/verify-independently"
+  >
     The same tamper-then-fail pattern, applied to a trust record's own hash.
   </Card>
-  <Card title="Content Binding & TOCTOU" icon="shield-check" href="/concepts/content-binding-toctou">
+  <Card
+    title="Content Binding & TOCTOU"
+    icon="shield-check"
+    href="/concepts/content-binding-toctou"
+  >
     The mechanism behind the parameter-tampering check above.
   </Card>
 </CardGroup>

@@ -3,7 +3,10 @@ title: "@parmana/execution-system"
 description: "The single interface every execution boundary implements: a no-op placeholder, an HTTP forwarder, and the real Execution Gateway all plug into the same seam."
 ---
 
-<Info>**[AVAILABLE]**. `packages/execution-system`. Note `DefaultExecutionSystem`'s real scope below, it is a placeholder, not a verified boundary.</Info>
+<Info>
+  **[AVAILABLE]**. `packages/execution-system`. Note `DefaultExecutionSystem`'s
+  real scope below, it is a placeholder, not a verified boundary.
+</Info>
 
 ## Purpose
 
@@ -21,21 +24,22 @@ npm install @parmana/execution-system
 
 ## Key exports
 
-| Export | Signature / Stability |
-|---|---|
-| `ExecutionSystem` (interface) | `{ execute(request: ExecutionRequest): Promise<ExecutionResult> }`. [AVAILABLE] |
-| `DefaultExecutionSystem` | [AVAILABLE], but a **placeholder**: `execute()` unconditionally returns `{ success: true, ... }`, echoing the request back. No policy re-check, no content-binding, no connector. Many tutorials (1-13) use this for simplicity to demonstrate the Runtime in isolation, it performs no real verification. |
-| `HttpExecutionSystem` | [AVAILABLE]. `new HttpExecutionSystem({ baseUrl })`, `execute()` POSTs to `${baseUrl}/execute` and returns the parsed response. |
-| `ExecutionRequest` | `{ businessTransactionId, action, target, parameters }` |
-| `ExecutionTrustAttestationBuilder` | [PARTIAL]. Signs one artifact (hash + hybrid signatures) into an `ExecutionTrustAttestation`, paired with an `ExecutionPermit` to form an `ExecutionReceipt`. Reachable only through `examples/tutorials/53` through `56`, not consumed by `packages/runtime` or `packages/api`. Not the same as `BusinessTrustRecordBuilder` (`@parmana/runtime`), which assembles the full `ExecutionTrustRecord` aggregate and *is* wired into the real pipeline, see [Execution trust records](/concepts/execution-trust-records). |
+| Export                             | Signature / Stability                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ExecutionSystem` (interface)      | `{ execute(request: ExecutionRequest): Promise<ExecutionResult> }`. [AVAILABLE]                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `DefaultExecutionSystem`           | [AVAILABLE], but a **placeholder**: `execute()` unconditionally returns `{ success: true, ... }`, echoing the request back. No policy re-check, no content-binding, no connector. Many tutorials (1-13) use this for simplicity to demonstrate the Runtime in isolation, it performs no real verification.                                                                                                                                                                                                             |
+| `HttpExecutionSystem`              | [AVAILABLE]. `new HttpExecutionSystem({ baseUrl })`, `execute()` POSTs to `${baseUrl}/execute` and returns the parsed response.                                                                                                                                                                                                                                                                                                                                                                                        |
+| `ExecutionRequest`                 | `{ businessTransactionId, action, target, parameters }`                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `ExecutionTrustAttestationBuilder` | [PARTIAL]. Signs one artifact (hash + hybrid signatures) into an `ExecutionTrustAttestation`, paired with an `ExecutionPermit` to form an `ExecutionReceipt`. Reachable only through `examples/tutorials/53` through `56`, not consumed by `packages/runtime` or `packages/api`. Not the same as `BusinessTrustRecordBuilder` (`@parmana/runtime`), which assembles the full `ExecutionTrustRecord` aggregate and _is_ wired into the real pipeline, see [Execution trust records](/concepts/execution-trust-records). |
 
 <Warning>
-**`DefaultExecutionSystem` is not a smaller version of the gateway, it is a stand-in that
-does nothing.** If you see it in a tutorial's source, that tutorial is deliberately
-demonstrating the Runtime, Policy Engine, or trust record shape in isolation, not the
-verified end-to-end pipeline. The default `packages/api` server does **not** use
-`DefaultExecutionSystem`, it always constructs a real `ExecutionGateway`, see [The
-gateway](/concepts/the-gateway).
+  **`DefaultExecutionSystem` is not a smaller version of the gateway, it is a
+  stand-in that does nothing.** If you see it in a tutorial's source, that
+  tutorial is deliberately demonstrating the Runtime, Policy Engine, or trust
+  record shape in isolation, not the verified end-to-end pipeline. The default
+  `packages/api` server does **not** use `DefaultExecutionSystem`, it always
+  constructs a real `ExecutionGateway`, see [The
+  gateway](/concepts/the-gateway).
 </Warning>
 
 ## Minimal example

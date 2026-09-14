@@ -1,46 +1,24 @@
 \# Parmana Protocol
 
-
-
 \*\*Version:\*\* 0.1.0
-
-
 
 \*\*Status:\*\* Draft
 
-
-
 \---
-
-
 
 \# Purpose
 
-
-
 The Parmana Protocol defines the interoperability contract between independent Parmana implementations.
-
-
 
 The protocol specifies how execution records, evidence, and verification artifacts are represented and exchanged.
 
-
-
 It is independent of programming language, runtime, storage engine, and transport protocol.
-
-
 
 \---
 
-
-
 \# Scope
 
-
-
 The protocol defines:
-
-
 
 \* ExecutionTransaction format
 
@@ -54,11 +32,7 @@ The protocol defines:
 
 \* Version negotiation
 
-
-
 The protocol does not define:
-
-
 
 \* HTTP APIs
 
@@ -70,19 +44,11 @@ The protocol does not define:
 
 \* Runtime implementations
 
-
-
 \---
-
-
 
 \# Protocol Goals
 
-
-
 The protocol SHALL enable:
-
-
 
 \* Independent verification
 
@@ -94,19 +60,11 @@ The protocol SHALL enable:
 
 \* Cryptographic integrity
 
-
-
 \---
-
-
 
 \# Protocol Objects
 
-
-
 The protocol defines the following canonical objects:
-
-
 
 \* ExecutionTransaction
 
@@ -122,27 +80,15 @@ The protocol defines the following canonical objects:
 
 \* VerificationReport
 
-
-
 \---
-
-
 
 \# Canonical Serialization
 
-
-
 Every protocol object SHALL have a canonical serialized representation.
-
-
 
 Canonical serialization SHALL produce identical byte sequences for equivalent objects.
 
-
-
 This property enables:
-
-
 
 \* Stable hashing
 
@@ -152,19 +98,11 @@ This property enables:
 
 \* Independent verification
 
-
-
 \---
-
-
 
 \# Protocol Version
 
-
-
 Each serialized artifact SHALL include:
-
-
 
 \* Protocol Version
 
@@ -172,11 +110,7 @@ Each serialized artifact SHALL include:
 
 \* Object Type
 
-
-
 Example:
-
-
 
 ```json
 
@@ -192,55 +126,29 @@ Example:
 
 ```
 
-
-
 \---
-
-
 
 \# Integrity
 
-
-
 Integrity SHALL be established using pluggable cryptographic providers.
-
-
 
 Protocol objects record metadata describing the algorithms used.
 
-
-
 \---
-
-
 
 \# Compatibility
 
-
-
 Future protocol versions SHALL preserve backward readability where practical.
-
-
 
 Breaking protocol changes require a new major protocol version.
 
-
-
 \---
-
-
 
 \# Transport
 
-
-
 The protocol is transport-independent.
 
-
-
 Implementations MAY exchange protocol objects via:
-
-
 
 \* Files
 
@@ -254,19 +162,11 @@ Implementations MAY exchange protocol objects via:
 
 \* Other transports
 
-
-
 \---
-
-
 
 \# Conformance
 
-
-
 A conformant implementation SHALL:
-
-
 
 \* Produce canonical protocol objects.
 
@@ -276,17 +176,8 @@ A conformant implementation SHALL:
 
 \* Preserve execution trust semantics.
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 The Parmana Protocol enables independent systems to exchange execution trust artifacts while preserving deterministic behavior, cryptographic integrity, and long-term interoperability.
-
-
-

@@ -1,27 +1,17 @@
-import {
-  MemoryExecutionTrustRecordRepository,
-} from "@parmana/storage";
+import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeBuilder,
-} from "@parmana/runtime";
+import { RuntimeBuilder } from "@parmana/runtime";
 
 import { PaymentService } from "./PaymentService.js";
 
-import transaction from "./transaction.json" with {
-  type: "json",
-};
+import transaction from "./transaction.json" with { type: "json" };
 
 async function main(): Promise<void> {
   console.log();
   console.log("==================================================");
-  console.log(
-    "Tutorial 24 - SDK Integration Patterns",
-  );
+  console.log("Tutorial 24 - SDK Integration Patterns");
   console.log("==================================================");
   console.log();
 
@@ -29,65 +19,40 @@ async function main(): Promise<void> {
   // Infrastructure
   //
 
-  const trustRecords =
-    new MemoryExecutionTrustRecordRepository();
+  const trustRecords = new MemoryExecutionTrustRecordRepository();
 
-  const policyRepository =
-    new FilePolicyRepository(
-      "policies",
-    );
+  const policyRepository = new FilePolicyRepository("policies");
 
   //
   // Parmana Runtime
   //
 
-  const runtime =
-    new RuntimeBuilder()
-      .withPolicyRepository(
-        policyRepository,
-      )
-      .build(
-        trustRecords,
-      );
+  const runtime = new RuntimeBuilder()
+    .withPolicyRepository(policyRepository)
+    .build(trustRecords);
 
   //
   // Application Service
   //
 
-  const paymentService =
-    new PaymentService(
-      runtime,
-    );
+  const paymentService = new PaymentService(runtime);
 
-  console.log(
-    "Submitting payment request...",
-  );
+  console.log("Submitting payment request...");
 
-  const trustRecord =
-    await paymentService.releasePayment(
-      transaction,
-    );
+  const trustRecord = await paymentService.releasePayment(transaction);
 
-  console.log(
-    "✓ Payment released.",
-  );
+  console.log("✓ Payment released.");
 
   console.log();
 
-  console.log(
-    `Trust Record ID   : ${trustRecord.trustRecordId}`,
-  );
+  console.log(`Trust Record ID   : ${trustRecord.trustRecordId}`);
 
-  console.log(
-    `Trust Record Hash : ${trustRecord.trustRecordHash}`,
-  );
+  console.log(`Trust Record Hash : ${trustRecord.trustRecordHash}`);
 
   console.log();
 
   console.log("==================================================");
-  console.log(
-    "SDK Integration completed successfully.",
-  );
+  console.log("SDK Integration completed successfully.");
   console.log("==================================================");
 }
 

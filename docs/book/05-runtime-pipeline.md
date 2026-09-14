@@ -21,15 +21,14 @@ downstream can observe a different value than what the policy actually evaluated
 
 **2. The policy is loaded, then hashed.** `PolicyRouter.load(name, version)` resolves the
 real on-disk policy; `policyContentHasher.hash(policy)` (a `TrustRecordHasher`, Chapter 6)
-computes a canonical hash of the *actual loaded document*, not the caller's declared
-`(name, version)` string pair. This distinction matters because policy governance (Chapter
-14) permits in-place content edits to an existing version string. A version-string
+computes a canonical hash of the _actual loaded document_, not the caller's declared
+`(name, version)` string pair. This distinction matters because policy governance (Chapter 14) permits in-place content edits to an existing version string. A version-string
 comparison alone can't detect every real change, but this hash can, and it's what the
 execution-boundary `policyStillCurrent` check (Chapter 8) later recomputes and compares
 against.
 
 **3. Capability/policy binding, then signal/intent binding, in that order.**
-`CapabilityPolicyBinder.findViolation()` (Chapter 4) runs first. Only if it finds *no*
+`CapabilityPolicyBinder.findViolation()` (Chapter 4) runs first. Only if it finds _no_
 violation does `SignalIntentBinder.findViolations()` (Chapter 2) run at all. The comment at
 this call site is explicit about why: "checking a narrower guarantee against an already-wrong
 policy is meaningless." Either violation is built into a `PolicyDecision` shaped exactly like

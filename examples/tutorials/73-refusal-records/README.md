@@ -6,9 +6,9 @@ Show that a policy REJECT isn't just an HTTP 403 that vanishes once the response
 
 ## What You'll Learn
 
-* `application.getRefusalRecord(businessTransactionId)` retrieves the record produced automatically by a policy rejection — no separate call needed to create it
-* `application.verifyRefusalRecord(record)` is the same kind of independent, artifact-plus-public-key verification Tutorial 55 demonstrates for Receipts and Tutorial 68 for Settlement Confirmations
-* Tampering with the recorded rejection reason — rewriting the historical record of *why* something was refused — is caught the same way tampering with a Receipt is
+- `application.getRefusalRecord(businessTransactionId)` retrieves the record produced automatically by a policy rejection — no separate call needed to create it
+- `application.verifyRefusalRecord(record)` is the same kind of independent, artifact-plus-public-key verification Tutorial 55 demonstrates for Receipts and Tutorial 68 for Settlement Confirmations
+- Tampering with the recorded rejection reason — rewriting the historical record of _why_ something was refused — is caught the same way tampering with a Receipt is
 
 ## Running the Tutorial
 

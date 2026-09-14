@@ -2,7 +2,11 @@ import { generateKeyPairSync } from "node:crypto";
 
 import { describe, expect, it } from "vitest";
 
-import { AuthorizationSigner, AuthorizationVerifier, CryptoBootstrap } from "../../src/index.js";
+import {
+  AuthorizationSigner,
+  AuthorizationVerifier,
+  CryptoBootstrap,
+} from "../../src/index.js";
 import type { ExecutableContent } from "@parmana/shared";
 
 /**

@@ -1,4 +1,8 @@
-import type { ConnectorPolicy, GatewayExecutionRequest, SecureConnector } from "@parmana/execution-control";
+import type {
+  ConnectorPolicy,
+  GatewayExecutionRequest,
+  SecureConnector,
+} from "@parmana/execution-control";
 
 import { isNamespacedCapability } from "@parmana/connector-sdk";
 
@@ -24,7 +28,7 @@ export class GatewayCapabilityConnectorPolicy implements ConnectorPolicy {
     if (!isNamespacedCapability(request.executableContent.action)) {
       throw new Error(
         `Connector capability "${request.executableContent.action}" is not a namespaced verb ` +
-        `(expected a form like "crm:read").`,
+          `(expected a form like "crm:read").`,
       );
     }
     await this.inner.assertAllowed(request, connector, authentication);

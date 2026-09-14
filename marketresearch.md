@@ -4,21 +4,13 @@ PARMANA MONTHLY MARKET RESEARCH PROMPT (REUSABLE)
 
 ================================================================================
 
-
-
 Copy and paste this prompt into Claude each month.
 
 Edit only: \[CURRENT\_MONTH], \[CURRENT\_YEAR], \[PREVIOUS\_MONTH\_REPORT\_DATE]
 
-
-
 ================================================================================
 
-
-
 \# TASK: Generate Parmana's Monthly Market Analysis Report
-
-
 
 \*\*Report Month:\*\* \[CURRENT\_MONTH] \[CURRENT\_YEAR]
 
@@ -30,15 +22,9 @@ Edit only: \[CURRENT\_MONTH], \[CURRENT\_YEAR], \[PREVIOUS\_MONTH\_REPORT\_DATE]
 
 \*\*Filename:\*\* PARMANA-MARKET-ANALYSIS-\[MMYYYY].md
 
-
-
 \---
 
-
-
 \## WHAT YOU'LL DO
-
-
 
 You will generate a \*\*comprehensive, actionable market analysis\*\* covering:
 
@@ -58,15 +44,9 @@ You will generate a \*\*comprehensive, actionable market analysis\*\* covering:
 
 \- Specific next actions with assigned owners
 
-
-
 \---
 
-
-
 \## STEP 1: RUN THESE 38 SEARCHES (web\_search enabled)
-
-
 
 \*\*REGULATORY BLOCK (8 searches)\*\*
 
@@ -86,8 +66,6 @@ You will generate a \*\*comprehensive, actionable market analysis\*\* covering:
 
 8\. "Japan AI" agent authorization framework \[CURRENT\_YEAR]
 
-
-
 \*\*COMPETITIVE BLOCK (8 searches)\*\*
 
 9\. "Delinea" runtime authorization agents latest news \[CURRENT\_MONTH]
@@ -105,8 +83,6 @@ You will generate a \*\*comprehensive, actionable market analysis\*\* covering:
 15\. "execution authorization" AI agents market \[CURRENT\_YEAR]
 
 16\. agent security incidents reported \[CURRENT\_MONTH] \[CURRENT\_YEAR]
-
-
 
 \*\*PAYMENTS/FINTECH BLOCK (8 searches)\*\*
 
@@ -126,8 +102,6 @@ You will generate a \*\*comprehensive, actionable market analysis\*\* covering:
 
 24\. "Zomato" OR "Swiggy" OR "Zepto" agent payments \[CURRENT\_YEAR]
 
-
-
 \*\*PLATFORMS BLOCK (6 searches)\*\*
 
 25\. "Anthropic" Claude agent authorization sandbox \[CURRENT\_MONTH]
@@ -141,8 +115,6 @@ You will generate a \*\*comprehensive, actionable market analysis\*\* covering:
 29\. agent sandboxing execution environment \[CURRENT\_YEAR] latest
 
 30\. "MCP servers" security vulnerabilities latest \[CURRENT\_YEAR]
-
-
 
 \*\*MARKET DATA BLOCK (6 searches)\*\*
 
@@ -158,27 +130,17 @@ You will generate a \*\*comprehensive, actionable market analysis\*\* covering:
 
 36\. compliance regulations agentic AI \[CURRENT\_YEAR] latest
 
-
-
 \*\*RESEARCH BLOCK (2 searches)\*\*
 
 37\. "runtime authorization" autonomous systems research \[CURRENT\_YEAR]
 
 38\. agentic AI security research \[CURRENT\_YEAR] paper
 
-
-
 \---
-
-
 
 \## STEP 2: ORGANIZE FINDINGS
 
-
-
 For each \*\*major finding\*\*, create a note block:
-
-
 
 ```
 
@@ -224,31 +186,17 @@ For each \*\*major finding\*\*, create a note block:
 
 ```
 
-
-
 Organize \~15-20 major findings this way.
 
-
-
 \---
-
-
 
 \## STEP 3: GENERATE REPORT USING THIS STRUCTURE
 
-
-
 Use this exact markdown structure. Fill each section with your findings:
-
-
 
 \---
 
-
-
 \# PARMANA MARKET ANALYSIS: \[MONTH YEAR]
-
-
 
 \*\*Report Date:\*\* \[Today's Date]
 
@@ -258,47 +206,25 @@ Use this exact markdown structure. Fill each section with your findings:
 
 \*\*Data sources:\*\* \[Number] searches, \[Number] findings
 
-
-
 \---
-
-
 
 \## EXECUTIVE SUMMARY
 
-
-
 \### Market Momentum: \[ACCELERATING / STEADY / SLOWING]
-
-
 
 \*\*Regulatory direction:\*\* \[Assessment of regulatory tailwinds/headwinds]
 
-
-
 \*\*Competitive landscape:\*\* \[Status: New entrants? Consolidation? Market stable?]
-
-
 
 \*\*Market sizing:\*\* \[Change from previous month - growing/flat/contracting]
 
-
-
 \*\*Customer urgency:\*\* \[HIGH/MEDIUM/LOW - Are prospects moving faster?]
-
-
 
 \*\*Window of opportunity:\*\* \[Estimate in months - is it shrinking or expanding?]
 
-
-
 \*\*Key insight:\*\* \[One sentence that captures the most important finding this month]
 
-
-
 \### Changes This Month (vs. Previous Month)
-
-
 
 | Area | Previous | Current | Impact |
 
@@ -310,87 +236,45 @@ Use this exact markdown structure. Fill each section with your findings:
 
 | Market TAM | \[Status] | \[Status] | ✅/⚠️ |
 
-
-
 \---
-
-
 
 \## SECTION A: REGULATORY DEVELOPMENTS
 
-
-
 \### A.1: \[Country/Region] — \[Framework Name]
-
-
 
 \*\*Status:\*\* \[Live / In Development / Proposed]
 
-
-
 \*\*What changed:\*\* \[Findings from relevant searches]
-
-
 
 \*\*Deadline:\*\* \[Specific date if applicable]
 
-
-
 \*\*Why it matters to Parmana:\*\* \[Direct impact on market opportunity or compliance requirement]
-
-
 
 \*\*Market impact:\*\* \[TAM effect, urgency shift, timeline change]
 
-
-
 \*\*Action for Parmana:\*\* \[What Parmana should do]
-
-
 
 \[Repeat A.1 format for each major regulatory development]
 
-
-
 \---
-
-
 
 \## SECTION B: COMPETITIVE INTELLIGENCE
 
-
-
 \### B.1: \[Competitor Name] — \[Announcement/Development]
-
-
 
 \*\*Date announced:\*\* \[Date]
 
-
-
 \*\*What they did:\*\* \[Specific announcement or capability launch]
-
-
 
 \*\*Competitive threat level:\*\* \[HIGH / MEDIUM / LOW]
 
-
-
 \*\*How Parmana compares:\*\* \[Differentiation point]
-
-
 
 \*\*Parmana response:\*\* \[Recommended action]
 
-
-
 \[Repeat B.1 format for each competitor development]
 
-
-
 \### B.2: Competitive Matrix Update
-
-
 
 | Vendor | Credential Isolation | Runtime Verification | Audit Trail | Domain Focus | Market Position |
 
@@ -404,19 +288,11 @@ Use this exact markdown structure. Fill each section with your findings:
 
 | \[New] | ❌/⚠️/✅ | ❌/⚠️/✅ | ❌/⚠️/✅ | \[Domain] | \[Focus] |
 
-
-
 \---
-
-
 
 \## SECTION C: MARKET DATA \& SIZING
 
-
-
 \### C.1: Market Forecasts
-
-
 
 | Forecast | Source | 2026 | 2027 | 2028 | CAGR |
 
@@ -428,11 +304,7 @@ Use this exact markdown structure. Fill each section with your findings:
 
 | Fintech Agent Market (India) | \[Source] | $X | $Y | $Z | X% |
 
-
-
 \### C.2: Adoption Metrics (Month-over-Month Change)
-
-
 
 | Metric | Previous Mo | This Mo | Change |
 
@@ -444,131 +316,67 @@ Use this exact markdown structure. Fill each section with your findings:
 
 | % with compliance/governance controls | X% | Y% | ↑/→/↓ |
 
-
-
 \### C.3: Customer Signal
-
-
 
 \*\*Enterprise interest:\*\* \[Up/Down/Flat this month]
 
-
-
 \*\*RFP velocity:\*\* \[Up/Down/Flat]
-
-
 
 \*\*Demo requests:\*\* \[Up/Down/Flat]
 
-
-
 \*\*Incident-driven inquiries:\*\* \[Up/Down/Flat]
 
-
-
 \---
-
-
 
 \## SECTION D: VERTICAL-SPECIFIC ANALYSIS
 
-
-
 \### D.1: Payments \& Fintech
-
-
 
 \*\*Market size:\*\* $X by EOY \[Year]
 
-
-
 \*\*Growth rate:\*\* X% YoY
-
-
 
 \*\*Key players moving:\*\* \[List companies/announcements]
 
-
-
 \*\*Regulatory pressure:\*\* \[HIGH/MEDIUM/LOW]
-
-
 
 \*\*Parmana opportunity:\*\* \[Market share potential, go-to-market angle]
 
-
-
 \*\*Action items:\*\* \[Next steps]
-
-
 
 \### D.2: Banking \& Financial Services
 
-
-
 \*\*Market size:\*\* $X by EOY \[Year]
-
-
 
 \*\*Growth rate:\*\* X% YoY
 
-
-
 \*\*Key players moving:\*\* \[List]
-
-
 
 \*\*Regulatory pressure:\*\* \[HIGH/MEDIUM/LOW]
 
-
-
 \*\*Parmana opportunity:\*\* \[Market share potential]
 
-
-
 \*\*Action items:\*\* \[Next steps]
-
-
 
 \### D.3: Healthcare
 
-
-
 \*\*Market size:\*\* $X by EOY \[Year]
-
-
 
 \*\*Growth rate:\*\* X% YoY
 
-
-
 \*\*Key players moving:\*\* \[List]
-
-
 
 \*\*Regulatory pressure:\*\* \[HIGH/MEDIUM/LOW]
 
-
-
 \*\*Parmana opportunity:\*\* \[Market share potential]
-
-
 
 \*\*Action items:\*\* \[Next steps]
 
-
-
 \---
-
-
 
 \## SECTION E: TIMELINE \& URGENCY ASSESSMENT
 
-
-
 \### Next 3 Months
-
-
 
 \*\*Regulatory deadlines:\*\*
 
@@ -576,23 +384,17 @@ Use this exact markdown structure. Fill each section with your findings:
 
 \- \[Deadline 2] - \[Action required]
 
-
-
 \*\*Market events expected:\*\*
 
 \- \[Event 1] - \[Significance to Parmana]
 
 \- \[Event 2] - \[Significance to Parmana]
 
-
-
 \*\*Competitive moves expected:\*\*
 
 \- \[Likely competitor action 1]
 
 \- \[Likely competitor action 2]
-
-
 
 \*\*Parmana action items (must complete):\*\*
 
@@ -602,35 +404,19 @@ Use this exact markdown structure. Fill each section with your findings:
 
 \- \[ ] \[Action 3]
 
-
-
 \### Next 6 Months
 
-
-
 \[Same format as above]
-
-
 
 \### Next 12 Months
 
-
-
 \[Same format as above]
-
-
 
 \---
 
-
-
 \## SECTION F: RISK ASSESSMENT
 
-
-
 \### High-Risk Events (>50% probability within 12 months)
-
-
 
 | Risk | Probability | Impact | Mitigation | Monitor |
 
@@ -640,27 +426,15 @@ Use this exact markdown structure. Fill each section with your findings:
 
 | \[Risk 2] | X% | \[Impact] | \[Mitigation] | \[How to track] |
 
-
-
 \### Medium-Risk Events (30-50% probability within 12 months)
-
-
 
 \[Same format as above]
 
-
-
 \---
-
-
 
 \## SECTION G: OPPORTUNITY ASSESSMENT
 
-
-
 \### High-Opportunity Plays (>70% probability within 6 months)
-
-
 
 | Opportunity | TAM | Competition | Timeline | Parmana Action |
 
@@ -670,55 +444,31 @@ Use this exact markdown structure. Fill each section with your findings:
 
 | \[Opp 2] | $X | \[Competitors] | \[Timeline] | \[Action] |
 
-
-
 \### Medium-Opportunity Plays (40-70% within 6-12 months)
-
-
 
 \[Same format as above]
 
-
-
 \---
-
-
 
 \## SECTION H: POSITIONING SHIFTS
 
-
-
 \### What Changed Since Previous Month
-
-
 
 \*\*Was:\*\* \[Previous positioning statement/angle]
 
-
-
 \*\*Now:\*\* \[Current positioning statement/angle]
-
-
 
 \*\*Why:\*\* \[What triggered the shift - regulatory, competitive, market, customer?]
 
-
-
 \*\*Communication:\*\* \[How to position this in conversations]
 
-
-
 \### Messaging Updates by Audience
-
-
 
 \*\*For investors:\*\*
 
 \- \[New talking point about market validation]
 
 \- \[New market data to cite]
-
-
 
 \*\*For customers/prospects:\*\*
 
@@ -728,27 +478,17 @@ Use this exact markdown structure. Fill each section with your findings:
 
 \- \[New compliance angle if relevant]
 
-
-
 \*\*For competitive response:\*\*
 
 \- \[How to position vs. Delinea/Gravitee/new entrants]
 
 \- \[Differentiation talking points]
 
-
-
 \---
-
-
 
 \## SECTION I: MONTHLY CHANGES SUMMARY
 
-
-
 \### Up ⬆️ (Positive for Parmana This Month)
-
-
 
 \- \[Regulatory development favoring Parmana]
 
@@ -758,11 +498,7 @@ Use this exact markdown structure. Fill each section with your findings:
 
 \- \[Competitive advantage identified]
 
-
-
 \### Down ⬇️ (Challenging for Parmana This Month)
-
-
 
 \- \[Competitive threat]
 
@@ -772,29 +508,17 @@ Use this exact markdown structure. Fill each section with your findings:
 
 \- \[Forecast miss]
 
-
-
 \### Flat ➡️ (No Change)
-
-
 
 \- \[Expectation that didn't materialize]
 
 \- \[Status quo on something monitored]
 
-
-
 \---
-
-
 
 \## SECTION J: NEXT ACTIONS (Prioritized)
 
-
-
 \### This Month (Complete Before End of Month)
-
-
 
 \- \[ ] \[Action 1] - Owner: \_\_\_\_\_\_\_\_\_ - Deadline: \[Date]
 
@@ -802,35 +526,21 @@ Use this exact markdown structure. Fill each section with your findings:
 
 \- \[ ] \[Action 3] - Owner: \_\_\_\_\_\_\_\_\_ - Deadline: \[Date]
 
-
-
 \### Next Month (Before Next Research Cycle)
-
-
 
 \- \[ ] \[Action 1]
 
 \- \[ ] \[Action 2]
 
-
-
 \### Decisions Needed
-
-
 
 \- \*\*Decision 1:\*\* \[Question to answer] - Decision by: \[Date]
 
 \- \*\*Decision 2:\*\* \[Question to answer] - Decision by: \[Date]
 
-
-
 \---
 
-
-
 \## APPENDIX: SOURCE BIBLIOGRAPHY
-
-
 
 \### Regulatory \& Policy Sources
 
@@ -838,15 +548,11 @@ Use this exact markdown structure. Fill each section with your findings:
 
 2\. \[Source name] - \[URL]
 
-
-
 \### Competitive Intelligence
 
 1\. \[Source name] - \[URL]
 
 2\. \[Source name] - \[URL]
-
-
 
 \### Market Research \& Reports
 
@@ -854,23 +560,15 @@ Use this exact markdown structure. Fill each section with your findings:
 
 2\. \[Source name] - \[URL]
 
-
-
 \### Academic \& White Papers
 
 1\. \[Source name] - \[URL]
-
-
 
 \### News \& Industry Coverage
 
 1\. \[Source name] - \[URL]
 
-
-
 \---
-
-
 
 \*\*Report ID:\*\* PARMANA-MARKET-\[MMYYYY]
 
@@ -880,19 +578,11 @@ Use this exact markdown structure. Fill each section with your findings:
 
 \*\*Distribution:\*\* Internal Use Only
 
-
-
 \---
-
-
 
 \## KEY METRICS DASHBOARD (Update Every Month)
 
-
-
 Track these 5 metrics to spot trends over 12 months:
-
-
 
 | Month | Regulatory | Competitive | Market TAM | Urgency | Window |
 
@@ -906,23 +596,13 @@ Track these 5 metrics to spot trends over 12 months:
 
 | Nov 2026 | ?/10 | ? | $? | ? | ? mo |
 
-
-
 \---
-
-
 
 \## END OF REPORT TEMPLATE
 
-
-
 \---
 
-
-
 \## STEP 4: QUALITY CHECKLIST (Before Publishing)
-
-
 
 \- \[ ] Executive summary is in plain English (no jargon)
 
@@ -948,15 +628,9 @@ Track these 5 metrics to spot trends over 12 months:
 
 \- \[ ] Key metrics dashboard updated (5 metrics tracked)
 
-
-
 \---
 
-
-
 \## STEP 5: PUBLISH \& SHARE
-
-
 
 1\. File with correct naming: `/mnt/user-data/outputs/PARMANA-MARKET-ANALYSIS-\[MMYYYY].md`
 
@@ -966,15 +640,9 @@ Track these 5 metrics to spot trends over 12 months:
 
 4\. Set reminder: Next month's research (last Friday of next month, 9 AM)
 
-
-
 \---
 
-
-
 \## FINAL OUTPUT REQUIREMENTS
-
-
 
 ✅ \*\*Format:\*\* Markdown (.md)
 
@@ -992,19 +660,10 @@ Track these 5 metrics to spot trends over 12 months:
 
 ✅ \*\*Specificity:\*\* Numbers, dates, timelines are concrete (not vague)
 
-
-
 ================================================================================
-
-
 
 \*\*EXECUTE NOW:\*\* Run the 38 searches (Step 1), then follow the report structure (Step 3).
 
-
-
 Output: `PARMANA-MARKET-ANALYSIS-\[MMYYYY].md`
 
-
-
 Filename example: `PARMANA-MARKET-ANALYSIS-092026.md` (September 2026)
-

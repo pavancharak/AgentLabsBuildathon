@@ -2,22 +2,13 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { generateKeyPairSync } from "node:crypto";
 import path from "node:path";
 
-import {
-  isMlDsa65Supported,
-  ML_DSA_65_SKIP_REASON,
-} from "@parmana/crypto";
+import { isMlDsa65Supported, ML_DSA_65_SKIP_REASON } from "@parmana/crypto";
 
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeFactory,
-} from "@parmana/runtime";
+import { RuntimeFactory } from "@parmana/runtime";
 
-import {
-  DefaultExecutionSystem,
-} from "@parmana/execution-system";
+import { DefaultExecutionSystem } from "@parmana/execution-system";
 
 import {
   MemoryBusinessTransactionRepository,
@@ -63,46 +54,41 @@ const secondaryPublicPath = path.join(keyDir, "default-secondary.public.pem");
 if (!existsSync(secondaryPrivatePath)) {
   const { privateKey, publicKey } = generateKeyPairSync("ml-dsa-65");
 
-  writeFileSync(secondaryPrivatePath, privateKey.export({ format: "pem", type: "pkcs8" }));
-  writeFileSync(secondaryPublicPath, publicKey.export({ format: "pem", type: "spki" }));
+  writeFileSync(
+    secondaryPrivatePath,
+    privateKey.export({ format: "pem", type: "pkcs8" }),
+  );
+  writeFileSync(
+    secondaryPublicPath,
+    publicKey.export({ format: "pem", type: "spki" }),
+  );
 }
 
 const root = path.resolve(import.meta.dirname);
 
 const transaction = JSON.parse(
   readFileSync(
-    path.join(
-      root,
-      "../../shared/vendor-payment-transaction.json",
-    ),
+    path.join(root, "../../shared/vendor-payment-transaction.json"),
     "utf8",
   ),
 ) as BusinessTransaction;
 
-const policyRepository =
-  new FilePolicyRepository(
-    path.resolve(
-      root,
-      "../../../policies",
-    ),
-  );
+const policyRepository = new FilePolicyRepository(
+  path.resolve(root, "../../../policies"),
+);
 
-const transactions =
-  new MemoryBusinessTransactionRepository();
+const transactions = new MemoryBusinessTransactionRepository();
 
-const trustRecords =
-  new MemoryExecutionTrustRecordRepository();
+const trustRecords = new MemoryExecutionTrustRecordRepository();
 
-const executionSystem =
-  new DefaultExecutionSystem();
+const executionSystem = new DefaultExecutionSystem();
 
-const application =
-  RuntimeFactory.create(
-    transactions,
-    trustRecords,
-    policyRepository,
-    executionSystem,
-  );
+const application = RuntimeFactory.create(
+  transactions,
+  trustRecords,
+  policyRepository,
+  executionSystem,
+);
 
 console.log("========================================");
 console.log(" Parmana Tutorial 55 - Execution Receipt Verification");
@@ -114,15 +100,11 @@ console.log();
 // GENUINE VERIFICATION
 // --------------------------------------------------
 
-const trustRecord =
-  await application.execute(
-    transaction,
-  );
+const trustRecord = await application.execute(transaction);
 
-const genuineVerification =
-  await application.verify(
-    transaction.businessTransactionId,
-  );
+const genuineVerification = await application.verify(
+  transaction.businessTransactionId,
+);
 
 console.log("Genuine hybrid-signed record");
 console.log("--------------------------------------------------");
@@ -159,10 +141,9 @@ const tampered: ExecutionTrustRecord = {
 
 await trustRecords.create(tampered);
 
-const tamperedVerification =
-  await application.verify(
-    transaction.businessTransactionId,
-  );
+const tamperedVerification = await application.verify(
+  transaction.businessTransactionId,
+);
 
 console.log("Tampered second signature");
 console.log("--------------------------------------------------");
@@ -188,6 +169,4 @@ if (
 console.log();
 
 console.log("Tutorial Complete");
-console.log(
-  "Next: Tutorial 56 - Complete Execution Flow",
-);
+console.log("Next: Tutorial 56 - Complete Execution Flow");

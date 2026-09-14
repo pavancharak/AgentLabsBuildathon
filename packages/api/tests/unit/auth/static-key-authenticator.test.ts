@@ -37,7 +37,9 @@ describe("StaticKeyAuthenticator", () => {
       { callerId: "orchestrator-1", keyHash: hashApiKey("the-real-key") },
     ]);
 
-    expect(authenticator.authenticate("a-completely-different-key")).toBeUndefined();
+    expect(
+      authenticator.authenticate("a-completely-different-key"),
+    ).toBeUndefined();
   });
 
   it("rejects an undefined credential", () => {
@@ -62,8 +64,12 @@ describe("StaticKeyAuthenticator", () => {
       { callerId: "caller-b", keyHash: hashApiKey("key-b") },
     ]);
 
-    expect(authenticator.authenticate("key-a")).toEqual({ callerId: "caller-a" });
-    expect(authenticator.authenticate("key-b")).toEqual({ callerId: "caller-b" });
+    expect(authenticator.authenticate("key-a")).toEqual({
+      callerId: "caller-a",
+    });
+    expect(authenticator.authenticate("key-b")).toEqual({
+      callerId: "caller-b",
+    });
   });
 
   it("a key valid for one caller does not authenticate as a different caller", () => {
@@ -139,7 +145,9 @@ describe("StaticKeyAuthenticator", () => {
       { callerId: "orchestrator-1", keyHash: hashApiKey("the-real-key") },
     ]);
 
-    expect(authenticator.authenticate("the-real-key")?.allowedCapabilities).toBeUndefined();
+    expect(
+      authenticator.authenticate("the-real-key")?.allowedCapabilities,
+    ).toBeUndefined();
   });
 
   it("propagates credentialHolderType onto the returned identity when configured", () => {
@@ -162,6 +170,8 @@ describe("StaticKeyAuthenticator", () => {
       { callerId: "orchestrator-1", keyHash: hashApiKey("the-real-key") },
     ]);
 
-    expect(authenticator.authenticate("the-real-key")?.credentialHolderType).toBeUndefined();
+    expect(
+      authenticator.authenticate("the-real-key")?.credentialHolderType,
+    ).toBeUndefined();
   });
 });

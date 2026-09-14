@@ -7,7 +7,7 @@
 ## The gap this closes
 
 `boundSignals` (Chapter 2) and `SignalStateVerifier` (Chapter 3) both protect specific
-signals *within* a policy evaluation. Neither of them protects something one level up:
+signals _within_ a policy evaluation. Neither of them protects something one level up:
 nothing stops a caller from pairing a real, fund-moving or CRM-mutating capability with an
 entirely unrelated, weaker policy. `PolicyEngine.evaluate` "takes no `action` parameter at
 all." It evaluates whatever policy it's handed against whatever signals it's handed, with no
@@ -23,11 +23,11 @@ independent verification and closed by `CapabilityPolicyBinder`.
 ```typescript
 // packages/capability-registry/src/CapabilityPolicyBinding.ts (current bindings)
 CANONICAL_CAPABILITY_POLICY_BINDINGS = {
-  "hubspot:deal-fetch":  { name: "hubspot-deal-update", version: "1.0.0" },
+  "hubspot:deal-fetch": { name: "hubspot-deal-update", version: "1.0.0" },
   "hubspot:deal-update": { name: "hubspot-deal-update", version: "1.0.0" },
-  "github:pr-fetch":     { name: "github-pr-approval",  version: "1.0.0" },
-  "github:pr-merge":     { name: "github-pr-approval",  version: "1.0.0" },
-}
+  "github:pr-fetch": { name: "github-pr-approval", version: "1.0.0" },
+  "github:pr-merge": { name: "github-pr-approval", version: "1.0.0" },
+};
 ```
 
 `CapabilityPolicyBinder.findViolation(action, declaredPolicy)` checks a request's declared

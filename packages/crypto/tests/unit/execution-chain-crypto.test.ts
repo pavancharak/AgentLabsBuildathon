@@ -9,9 +9,7 @@ import {
 
 import { ExecutionChainCrypto } from "../../src/index.js";
 
-function draftExecution(
-  overrides: Partial<Execution> = {},
-): Execution {
+function draftExecution(overrides: Partial<Execution> = {}): Execution {
   return {
     executionId: "exec-1",
     businessTransactionId: "txn-1",
@@ -115,16 +113,10 @@ describe("ExecutionChainCrypto", () => {
       status: ExecutionStatus.COMPLETED,
       completedAt: new Date("2026-08-01T00:02:00.000Z"),
     });
-    const secondChain = await crypto.chain(
-      second,
-      firstChain.chainHash,
-    );
+    const secondChain = await crypto.chain(second, firstChain.chainHash);
     const secondExecution: Execution = { ...second, ...secondChain };
 
-    const result = await crypto.verifyChain([
-      firstExecution,
-      secondExecution,
-    ]);
+    const result = await crypto.verifyChain([firstExecution, secondExecution]);
 
     expect(result).toEqual({ valid: true });
   });
@@ -137,16 +129,10 @@ describe("ExecutionChainCrypto", () => {
     const firstExecution: Execution = { ...first, ...firstChain };
 
     const second = draftExecution({ executionId: "exec-2" });
-    const secondChain = await crypto.chain(
-      second,
-      "wrong-predecessor-hash",
-    );
+    const secondChain = await crypto.chain(second, "wrong-predecessor-hash");
     const secondExecution: Execution = { ...second, ...secondChain };
 
-    const result = await crypto.verifyChain([
-      firstExecution,
-      secondExecution,
-    ]);
+    const result = await crypto.verifyChain([firstExecution, secondExecution]);
 
     expect(result.valid).toBe(false);
     expect(result.brokenAt).toBe("exec-2");
@@ -161,10 +147,7 @@ describe("ExecutionChainCrypto", () => {
     const chainFields = await crypto.chain(chained, null);
     const chainedExecution: Execution = { ...chained, ...chainFields };
 
-    const result = await crypto.verifyChain([
-      legacy,
-      chainedExecution,
-    ]);
+    const result = await crypto.verifyChain([legacy, chainedExecution]);
 
     expect(result).toEqual({ valid: true });
   });

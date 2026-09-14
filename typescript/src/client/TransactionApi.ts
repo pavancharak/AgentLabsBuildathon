@@ -9,9 +9,7 @@ import type {
   ExecutionTrustRecord,
 } from "../models/index.js";
 
-import type {
-  Transport,
-} from "../config/Transport.js";
+import type { Transport } from "../config/Transport.js";
 
 /**
  * Transaction API.
@@ -28,9 +26,7 @@ import type {
  * - generate receipts
  */
 export class TransactionApi {
-  constructor(
-    private readonly transport: Transport,
-  ) {}
+  constructor(private readonly transport: Transport) {}
 
   /**
    * Create (execute) a Business Transaction. Maps to POST
@@ -43,12 +39,11 @@ export class TransactionApi {
   public async create(
     transaction: BusinessTransaction,
   ): Promise<ExecutionTrustRecord> {
-    const response =
-      await this.transport.send<ExecutionTrustRecord>({
-        method: "POST",
-        path: "/transactions",
-        body: transaction,
-      });
+    const response = await this.transport.send<ExecutionTrustRecord>({
+      method: "POST",
+      path: "/transactions",
+      body: transaction,
+    });
 
     return response.body;
   }
@@ -59,11 +54,10 @@ export class TransactionApi {
   public async get(
     businessTransactionId: string,
   ): Promise<BusinessTransaction> {
-    const response =
-      await this.transport.send<BusinessTransaction>({
-        method: "GET",
-        path: `/transactions/${businessTransactionId}`,
-      });
+    const response = await this.transport.send<BusinessTransaction>({
+      method: "GET",
+      path: `/transactions/${businessTransactionId}`,
+    });
 
     return response.body;
   }
@@ -71,16 +65,11 @@ export class TransactionApi {
   /**
    * List Business Transactions.
    */
-  public async list(
-    page = 1,
-    pageSize = 25,
-  ): Promise<BusinessTransaction[]> {
-    const response =
-      await this.transport.send<BusinessTransaction[]>({
-        method: "GET",
-        path:
-          `/transactions?page=${page}&pageSize=${pageSize}`,
-      });
+  public async list(page = 1, pageSize = 25): Promise<BusinessTransaction[]> {
+    const response = await this.transport.send<BusinessTransaction[]>({
+      method: "GET",
+      path: `/transactions?page=${page}&pageSize=${pageSize}`,
+    });
 
     return response.body;
   }

@@ -30,63 +30,33 @@ import type {
   Verification,
 } from "../models/index.js";
 
-import type {
-  ReplayResult,
-} from "../models/replay-result.js";
+import type { ReplayResult } from "../models/replay-result.js";
 
-import type {
-  Configuration,
-} from "../config/Configuration.js";
+import type { Configuration } from "../config/Configuration.js";
 
-import type {
-  Transport,
-} from "../config/Transport.js";
+import type { Transport } from "../config/Transport.js";
 
-import {
-  ConfigurationError,
-} from "../errors/ConfigurationError.js";
+import { ConfigurationError } from "../errors/ConfigurationError.js";
 
-import {
-  HealthApi,
-  type HealthStatus,
-} from "./HealthApi.js";
+import { HealthApi, type HealthStatus } from "./HealthApi.js";
 
-import {
-  ExecutionApi,
-} from "./ExecutionApi.js";
+import { ExecutionApi } from "./ExecutionApi.js";
 
-import {
-  VerificationApi,
-} from "./VerificationApi.js";
+import { VerificationApi } from "./VerificationApi.js";
 
-import {
-  ReplayApi,
-} from "./ReplayApi.js";
+import { ReplayApi } from "./ReplayApi.js";
 
-import {
-  ReceiptApi,
-} from "./ReceiptApi.js";
+import { ReceiptApi } from "./ReceiptApi.js";
 
-import {
-  TransactionApi,
-} from "./TransactionApi.js";
+import { TransactionApi } from "./TransactionApi.js";
 
-import {
-  TrustRecordApi,
-} from "./TrustRecordApi.js";
+import { TrustRecordApi } from "./TrustRecordApi.js";
 
-import {
-  PolicyApi,
-  type PolicyValidationResult,
-} from "./PolicyApi.js";
+import { PolicyApi, type PolicyValidationResult } from "./PolicyApi.js";
 
-import {
-  RefusalApi,
-} from "./RefusalApi.js";
+import { RefusalApi } from "./RefusalApi.js";
 
-import {
-  AuditApi,
-} from "./AuditApi.js";
+import { AuditApi } from "./AuditApi.js";
 
 /**
  * Canonical Parmana SDK client.
@@ -155,19 +125,13 @@ export class ParmanaClient {
   /**
    * Creates a Parmana SDK client.
    */
-  constructor(
-    configuration: Configuration,
-  ) {
+  constructor(configuration: Configuration) {
     if (!configuration.endpoint) {
-      throw new ConfigurationError(
-        "Runtime endpoint is required.",
-      );
+      throw new ConfigurationError("Runtime endpoint is required.");
     }
 
     if (!configuration.transport) {
-      throw new ConfigurationError(
-        "Transport is required.",
-      );
+      throw new ConfigurationError("Transport is required.");
     }
 
     this.configuration = configuration;
@@ -176,35 +140,25 @@ export class ParmanaClient {
     //
     // Compose SDK APIs.
     //
-    this.healthApi =
-      new HealthApi(this.transport);
+    this.healthApi = new HealthApi(this.transport);
 
-    this.executionApi =
-      new ExecutionApi(this.transport);
+    this.executionApi = new ExecutionApi(this.transport);
 
-    this.verificationApi =
-      new VerificationApi(this.transport);
+    this.verificationApi = new VerificationApi(this.transport);
 
-    this.replayApi =
-      new ReplayApi(this.transport);
+    this.replayApi = new ReplayApi(this.transport);
 
-    this.receiptApi =
-      new ReceiptApi(this.transport);
+    this.receiptApi = new ReceiptApi(this.transport);
 
-    this.transactionApi =
-      new TransactionApi(this.transport);
+    this.transactionApi = new TransactionApi(this.transport);
 
-    this.trustRecordApi =
-      new TrustRecordApi(this.transport);
+    this.trustRecordApi = new TrustRecordApi(this.transport);
 
-    this.policyApi =
-      new PolicyApi(this.transport);
+    this.policyApi = new PolicyApi(this.transport);
 
-    this.refusalApi =
-      new RefusalApi(this.transport);
+    this.refusalApi = new RefusalApi(this.transport);
 
-    this.auditApi =
-      new AuditApi(this.transport);
+    this.auditApi = new AuditApi(this.transport);
   }
 
   /**
@@ -234,9 +188,7 @@ export class ParmanaClient {
   public execute(
     transaction: BusinessTransaction,
   ): Promise<ExecutionTrustRecord> {
-    return this.executionApi.execute(
-      transaction,
-    );
+    return this.executionApi.execute(transaction);
   }
 
   /**
@@ -245,12 +197,8 @@ export class ParmanaClient {
    * getLatestVerification(), which reads the most recent one without
    * re-verifying.
    */
-  public verify(
-    businessTransactionId: string,
-  ): Promise<Verification> {
-    return this.verificationApi.verify(
-      businessTransactionId,
-    );
+  public verify(businessTransactionId: string): Promise<Verification> {
+    return this.verificationApi.verify(businessTransactionId);
   }
 
   /**
@@ -259,31 +207,21 @@ export class ParmanaClient {
   public getLatestVerification(
     businessTransactionId: string,
   ): Promise<Verification> {
-    return this.verificationApi.getLatest(
-      businessTransactionId,
-    );
+    return this.verificationApi.getLatest(businessTransactionId);
   }
 
   /**
    * Performs deterministic replay.
    */
-  public replay(
-    businessTransactionId: string,
-  ): Promise<ReplayResult> {
-    return this.replayApi.replay(
-      businessTransactionId,
-    );
+  public replay(businessTransactionId: string): Promise<ReplayResult> {
+    return this.replayApi.replay(businessTransactionId);
   }
 
   /**
    * Generates an execution receipt.
    */
-  public receipt(
-    businessTransactionId: string,
-  ): Promise<Receipt> {
-    return this.receiptApi.generate(
-      businessTransactionId,
-    );
+  public receipt(businessTransactionId: string): Promise<Receipt> {
+    return this.receiptApi.generate(businessTransactionId);
   }
 
   /**
@@ -294,9 +232,7 @@ export class ParmanaClient {
   public createTransaction(
     transaction: BusinessTransaction,
   ): Promise<ExecutionTrustRecord> {
-    return this.transactionApi.create(
-      transaction,
-    );
+    return this.transactionApi.create(transaction);
   }
 
   /**
@@ -305,22 +241,14 @@ export class ParmanaClient {
   public transaction(
     businessTransactionId: string,
   ): Promise<BusinessTransaction> {
-    return this.transactionApi.get(
-      businessTransactionId,
-    );
+    return this.transactionApi.get(businessTransactionId);
   }
 
   /**
    * Lists Business Transactions.
    */
-  public transactions(
-    page = 1,
-    pageSize = 25,
-  ): Promise<BusinessTransaction[]> {
-    return this.transactionApi.list(
-      page,
-      pageSize,
-    );
+  public transactions(page = 1, pageSize = 25): Promise<BusinessTransaction[]> {
+    return this.transactionApi.list(page, pageSize);
   }
 
   /**
@@ -329,9 +257,7 @@ export class ParmanaClient {
   public trustRecord(
     businessTransactionId: string,
   ): Promise<ExecutionTrustRecord> {
-    return this.trustRecordApi.get(
-      businessTransactionId,
-    );
+    return this.trustRecordApi.get(businessTransactionId);
   }
 
   /**
@@ -341,32 +267,21 @@ export class ParmanaClient {
     policyId: string,
     policyVersion: string,
   ): Promise<PolicyValidationResult> {
-    return this.policyApi.validate(
-      policyId,
-      policyVersion,
-    );
+    return this.policyApi.validate(policyId, policyVersion);
   }
 
   /**
    * Retrieves a Refusal Record by Business Transaction ID.
    */
-  public refusalRecord(
-    businessTransactionId: string,
-  ): Promise<RefusalRecord> {
-    return this.refusalApi.get(
-      businessTransactionId,
-    );
+  public refusalRecord(businessTransactionId: string): Promise<RefusalRecord> {
+    return this.refusalApi.get(businessTransactionId);
   }
 
   /**
    * Verifies a Refusal Record's signature.
    */
-  public verifyRefusalRecord(
-    record: RefusalRecord,
-  ): Promise<boolean> {
-    return this.refusalApi.verify(
-      record,
-    );
+  public verifyRefusalRecord(record: RefusalRecord): Promise<boolean> {
+    return this.refusalApi.verify(record);
   }
 
   /**
@@ -376,9 +291,6 @@ export class ParmanaClient {
     event: AuditEvent,
     signature: Signature,
   ): Promise<boolean> {
-    return this.auditApi.verify(
-      event,
-      signature,
-    );
+    return this.auditApi.verify(event, signature);
   }
 }

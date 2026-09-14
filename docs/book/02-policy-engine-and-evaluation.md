@@ -117,7 +117,7 @@ no Intent-side equivalent (for example `vendorVerified` or `riskScore`) are not 
 as a binding and remain ordinary caller-declared signals: binding them is a separate, larger
 problem (deriving them from an independently verified source) than this mechanism solves."
 That separate, larger problem is Chapter 3's entire subject. `SignalIntentBinder` proves a
-declared signal describes the same *action* as Intent; it never proves the signal is *true*.
+declared signal describes the same _action_ as Intent; it never proves the signal is _true_.
 
 ## Routing and loading
 

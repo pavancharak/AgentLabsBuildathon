@@ -25,9 +25,14 @@ export interface GitHubPullRequestState {
  * same discipline as HUBSPOT_ALLOWED_DEAL_UPDATE_PROPERTIES: a request
  * naming any value outside this set is refused before any network call.
  */
-export const GITHUB_ALLOWED_MERGE_METHODS = Object.freeze(["merge", "squash", "rebase"] as const);
+export const GITHUB_ALLOWED_MERGE_METHODS = Object.freeze([
+  "merge",
+  "squash",
+  "rebase",
+] as const);
 
-export type GitHubAllowedMergeMethod = (typeof GITHUB_ALLOWED_MERGE_METHODS)[number];
+export type GitHubAllowedMergeMethod =
+  (typeof GITHUB_ALLOWED_MERGE_METHODS)[number];
 
 /**
  * The credential value a GitHubAppCredentialProvider resolves: a
@@ -39,10 +44,15 @@ export interface GitHubCredentialValue {
   readonly installationToken: string;
 }
 
-export function isGitHubCredentialValue(value: unknown): value is GitHubCredentialValue {
+export function isGitHubCredentialValue(
+  value: unknown,
+): value is GitHubCredentialValue {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Record<string, unknown>;
-  return typeof candidate.installationToken === "string" && candidate.installationToken.length > 0;
+  return (
+    typeof candidate.installationToken === "string" &&
+    candidate.installationToken.length > 0
+  );
 }
 
 /**
@@ -55,7 +65,8 @@ export function isGitHubCredentialValue(value: unknown): value is GitHubCredenti
  * connector's own fail-closed guard against sending it to the real API
  * compare the same literal.
  */
-export const GITHUB_TEST_MODE_PLACEHOLDER_TOKEN = "ghs_test_mode_placeholder_0000000000000000";
+export const GITHUB_TEST_MODE_PLACEHOLDER_TOKEN =
+  "ghs_test_mode_placeholder_0000000000000000";
 
 /**
  * One-way fingerprint of a GitHub installation token, safe to place in

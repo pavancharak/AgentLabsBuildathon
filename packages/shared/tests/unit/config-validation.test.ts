@@ -2,7 +2,12 @@ import { generateKeyPairSync } from "node:crypto";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { parseApiKeys, parseCryptoMode, parseSignatureAlgorithm, parseStorageProvider } from "../../src/config/ConfigValidation.js";
+import {
+  parseApiKeys,
+  parseCryptoMode,
+  parseSignatureAlgorithm,
+  parseStorageProvider,
+} from "../../src/config/ConfigValidation.js";
 
 describe("parseSignatureAlgorithm", () => {
   it("defaults to ed25519 when unset", () => {
@@ -113,7 +118,9 @@ describe("parseApiKeys", () => {
 
   it("throws when the value is not a JSON array", () => {
     expect(() =>
-      parseApiKeys(JSON.stringify({ callerId: "caller-1", keyHash: validHash })),
+      parseApiKeys(
+        JSON.stringify({ callerId: "caller-1", keyHash: validHash }),
+      ),
     ).toThrow("PARMANA_API_KEYS must be a JSON array");
   });
 
@@ -144,7 +151,10 @@ describe("parseApiKeys", () => {
           {
             callerId: "caller-1",
             keyHash: validHash,
-            allowedCapabilities: ["razorpay:refund-create", "razorpay:refund-fetch"],
+            allowedCapabilities: [
+              "razorpay:refund-create",
+              "razorpay:refund-fetch",
+            ],
           },
         ]),
       ),
@@ -152,16 +162,23 @@ describe("parseApiKeys", () => {
       {
         callerId: "caller-1",
         keyHash: validHash,
-        allowedCapabilities: ["razorpay:refund-create", "razorpay:refund-fetch"],
+        allowedCapabilities: [
+          "razorpay:refund-create",
+          "razorpay:refund-fetch",
+        ],
       },
     ]);
   });
 
-  it("accepts the \"*\" wildcard as an ordinary allowedCapabilities entry", () => {
+  it('accepts the "*" wildcard as an ordinary allowedCapabilities entry', () => {
     expect(
       parseApiKeys(
         JSON.stringify([
-          { callerId: "caller-1", keyHash: validHash, allowedCapabilities: ["*"] },
+          {
+            callerId: "caller-1",
+            keyHash: validHash,
+            allowedCapabilities: ["*"],
+          },
         ]),
       ),
     ).toEqual([
@@ -181,7 +198,11 @@ describe("parseApiKeys", () => {
     expect(() =>
       parseApiKeys(
         JSON.stringify([
-          { callerId: "caller-1", keyHash: validHash, allowedCapabilities: "razorpay:refund-create" },
+          {
+            callerId: "caller-1",
+            keyHash: validHash,
+            allowedCapabilities: "razorpay:refund-create",
+          },
         ]),
       ),
     ).toThrow("PARMANA_API_KEYS[0].allowedCapabilities must be an array");
@@ -191,7 +212,11 @@ describe("parseApiKeys", () => {
     expect(() =>
       parseApiKeys(
         JSON.stringify([
-          { callerId: "caller-1", keyHash: validHash, allowedCapabilities: ["razorpay:refund-create", ""] },
+          {
+            callerId: "caller-1",
+            keyHash: validHash,
+            allowedCapabilities: ["razorpay:refund-create", ""],
+          },
         ]),
       ),
     ).toThrow("PARMANA_API_KEYS[0].allowedCapabilities must be an array");
@@ -201,11 +226,19 @@ describe("parseApiKeys", () => {
     expect(
       parseApiKeys(
         JSON.stringify([
-          { callerId: "caller-1", keyHash: validHash, credentialHolderType: "USER" },
+          {
+            callerId: "caller-1",
+            keyHash: validHash,
+            credentialHolderType: "USER",
+          },
         ]),
       ),
     ).toEqual([
-      { callerId: "caller-1", keyHash: validHash, credentialHolderType: "USER" },
+      {
+        callerId: "caller-1",
+        keyHash: validHash,
+        credentialHolderType: "USER",
+      },
     ]);
   });
 
@@ -221,7 +254,11 @@ describe("parseApiKeys", () => {
     expect(() =>
       parseApiKeys(
         JSON.stringify([
-          { callerId: "caller-1", keyHash: validHash, credentialHolderType: "HUMAN" },
+          {
+            callerId: "caller-1",
+            keyHash: validHash,
+            credentialHolderType: "HUMAN",
+          },
         ]),
       ),
     ).toThrow("PARMANA_API_KEYS[0].credentialHolderType must be one of");
@@ -229,10 +266,14 @@ describe("parseApiKeys", () => {
 
   it("parses a valid PEM-encoded Ed25519 stepUpPublicKey", () => {
     const { publicKey } = generateKeyPairSync("ed25519");
-    const stepUpPublicKey = publicKey.export({ format: "pem", type: "spki" }).toString();
+    const stepUpPublicKey = publicKey
+      .export({ format: "pem", type: "spki" })
+      .toString();
 
     const [parsed] = parseApiKeys(
-      JSON.stringify([{ callerId: "caller-1", keyHash: validHash, stepUpPublicKey }]),
+      JSON.stringify([
+        { callerId: "caller-1", keyHash: validHash, stepUpPublicKey },
+      ]),
     );
 
     expect(parsed.stepUpPublicKey).toBe(stepUpPublicKey);
@@ -250,10 +291,16 @@ describe("parseApiKeys", () => {
     expect(() =>
       parseApiKeys(
         JSON.stringify([
-          { callerId: "caller-1", keyHash: validHash, stepUpPublicKey: "not-a-pem-key" },
+          {
+            callerId: "caller-1",
+            keyHash: validHash,
+            stepUpPublicKey: "not-a-pem-key",
+          },
         ]),
       ),
-    ).toThrow("PARMANA_API_KEYS[0].stepUpPublicKey must be a PEM-encoded Ed25519 public key");
+    ).toThrow(
+      "PARMANA_API_KEYS[0].stepUpPublicKey must be a PEM-encoded Ed25519 public key",
+    );
   });
 
   it("throws naming the index of an entry whose stepUpPublicKey is a non-Ed25519 key", () => {
@@ -266,7 +313,8 @@ describe("parseApiKeys", () => {
           { callerId: "caller-1", keyHash: validHash, stepUpPublicKey: rsaPem },
         ]),
       ),
-    ).toThrow("PARMANA_API_KEYS[0].stepUpPublicKey must be a PEM-encoded Ed25519 public key");
+    ).toThrow(
+      "PARMANA_API_KEYS[0].stepUpPublicKey must be a PEM-encoded Ed25519 public key",
+    );
   });
 });
-

@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import type { Pool } from "pg";
 
-import { SignatureAlgorithms, type SignedExecutionAuthorization } from "@parmana/shared";
+import {
+  SignatureAlgorithms,
+  type SignedExecutionAuthorization,
+} from "@parmana/shared";
 
 import { SupabaseExecutionTrustRecordRepository } from "../../src/supabase/SupabaseExecutionTrustRecordRepository.js";
 
@@ -74,10 +77,14 @@ function createFakePool() {
           created_at: createdAt,
           updated_at: updatedAt,
           authorization_json:
-            authorizationJson != null ? JSON.parse(authorizationJson as string) : null,
+            authorizationJson != null
+              ? JSON.parse(authorizationJson as string)
+              : null,
           schema_version: schemaVersion ?? null,
           signatures_json:
-            signaturesJson != null ? JSON.parse(signaturesJson as string) : null,
+            signaturesJson != null
+              ? JSON.parse(signaturesJson as string)
+              : null,
         };
 
         return Promise.resolve({ rows: [] });
@@ -86,7 +93,9 @@ function createFakePool() {
       if (sql.includes("SELECT * FROM execution_trust_records")) {
         const [businessTransactionId] = values as [string];
         const matches =
-          header.row?.business_transaction_id === businessTransactionId ? [header.row] : [];
+          header.row?.business_transaction_id === businessTransactionId
+            ? [header.row]
+            : [];
 
         return Promise.resolve({ rows: matches });
       }
@@ -104,7 +113,12 @@ function createFakePool() {
       if (sql.includes("SELECT execution_json FROM executions")) {
         const [businessTransactionId] = values as [string];
         return Promise.resolve({
-          rows: selectOrdered(executions, "execution_json", "created_at", businessTransactionId),
+          rows: selectOrdered(
+            executions,
+            "execution_json",
+            "created_at",
+            businessTransactionId,
+          ),
         });
       }
 
@@ -137,7 +151,12 @@ function createFakePool() {
       if (sql.includes("SELECT override_json FROM overrides")) {
         const [businessTransactionId] = values as [string];
         return Promise.resolve({
-          rows: selectOrdered(overrides, "override_json", "created_at", businessTransactionId),
+          rows: selectOrdered(
+            overrides,
+            "override_json",
+            "created_at",
+            businessTransactionId,
+          ),
         });
       }
 
@@ -159,13 +178,22 @@ function createFakePool() {
       if (sql.includes("SELECT verification_json FROM verifications")) {
         const [businessTransactionId] = values as [string];
         return Promise.resolve({
-          rows: selectOrdered(verifications, "verification_json", "verified_at", businessTransactionId),
+          rows: selectOrdered(
+            verifications,
+            "verification_json",
+            "verified_at",
+            businessTransactionId,
+          ),
         });
       }
 
       if (sql.includes("INSERT INTO verifications")) {
-        const [verificationId, businessTransactionId, verificationJson, verifiedAt] =
-          values as readonly unknown[];
+        const [
+          verificationId,
+          businessTransactionId,
+          verificationJson,
+          verifiedAt,
+        ] = values as readonly unknown[];
 
         verifications.push({
           verification_id: verificationId,
@@ -181,7 +209,12 @@ function createFakePool() {
       if (sql.includes("SELECT receipt_json FROM receipts")) {
         const [businessTransactionId] = values as [string];
         return Promise.resolve({
-          rows: selectOrdered(receipts, "receipt_json", "issued_at", businessTransactionId),
+          rows: selectOrdered(
+            receipts,
+            "receipt_json",
+            "issued_at",
+            businessTransactionId,
+          ),
         });
       }
 
@@ -209,9 +242,12 @@ function createFakePool() {
 
 describe("SupabaseExecutionTrustRecordRepository", () => {
   it("creates a Trust Record header and reads back appended executions/overrides in order, with empty verifications/receipts", async () => {
-    const repository = new SupabaseExecutionTrustRecordRepository(createFakePool());
+    const repository = new SupabaseExecutionTrustRecordRepository(
+      createFakePool(),
+    );
     const transaction = buildBusinessTransaction("txn-1");
-    const signedRecord = await buildSignedMultiExecutionOverrideRecord(transaction);
+    const signedRecord =
+      await buildSignedMultiExecutionOverrideRecord(transaction);
 
     await expect(repository.create(signedRecord)).resolves.toBe(signedRecord);
 
@@ -242,15 +278,22 @@ describe("SupabaseExecutionTrustRecordRepository", () => {
   });
 
   it("returns null for a transaction with no Trust Record", async () => {
-    const repository = new SupabaseExecutionTrustRecordRepository(createFakePool());
+    const repository = new SupabaseExecutionTrustRecordRepository(
+      createFakePool(),
+    );
 
-    await expect(repository.findByTransactionId("does-not-exist")).resolves.toBeNull();
+    await expect(
+      repository.findByTransactionId("does-not-exist"),
+    ).resolves.toBeNull();
   });
 
   it("appendVerification/appendReceipt each persist in insertion order and bump updatedAt", async () => {
-    const repository = new SupabaseExecutionTrustRecordRepository(createFakePool());
+    const repository = new SupabaseExecutionTrustRecordRepository(
+      createFakePool(),
+    );
     const transaction = buildBusinessTransaction("txn-2");
-    const signedRecord = await buildSignedMultiExecutionOverrideRecord(transaction);
+    const signedRecord =
+      await buildSignedMultiExecutionOverrideRecord(transaction);
 
     await repository.create(signedRecord);
 
@@ -261,7 +304,10 @@ describe("SupabaseExecutionTrustRecordRepository", () => {
     await repository.appendVerification("txn-2", verification1);
     await repository.appendVerification("txn-2", verification2);
 
-    const [receipt1, receipt2] = buildReceiptPair("txn-2", signedRecord.trustRecordHash);
+    const [receipt1, receipt2] = buildReceiptPair(
+      "txn-2",
+      signedRecord.trustRecordHash,
+    );
     await repository.appendReceipt("txn-2", receipt1);
     await repository.appendReceipt("txn-2", receipt2);
 
@@ -284,9 +330,12 @@ describe("SupabaseExecutionTrustRecordRepository", () => {
   });
 
   it("replaceExecution overwrites the stored execution_json for that executionId only", async () => {
-    const repository = new SupabaseExecutionTrustRecordRepository(createFakePool());
+    const repository = new SupabaseExecutionTrustRecordRepository(
+      createFakePool(),
+    );
     const transaction = buildBusinessTransaction("txn-3");
-    const signedRecord = await buildSignedMultiExecutionOverrideRecord(transaction);
+    const signedRecord =
+      await buildSignedMultiExecutionOverrideRecord(transaction);
 
     await repository.create(signedRecord);
     for (const execution of signedRecord.executions) {
@@ -315,15 +364,21 @@ describe("SupabaseExecutionTrustRecordRepository", () => {
     // round-trip applied, rather than comparing against the original
     // in-memory object with real Date instances.
     expect(
-      found!.executions.find((e) => e.executionId === firstExecution!.executionId),
+      found!.executions.find(
+        (e) => e.executionId === firstExecution!.executionId,
+      ),
     ).toEqual(JSON.parse(JSON.stringify(replacement)));
     expect(
-      found!.executions.find((e) => e.executionId === secondExecution!.executionId),
+      found!.executions.find(
+        (e) => e.executionId === secondExecution!.executionId,
+      ),
     ).toEqual(JSON.parse(JSON.stringify(secondExecution)));
   });
 
   it("persists and retrieves authorization_json, schema_version, and signatures_json (NF-003 + hybrid-signature persistence gap)", async () => {
-    const repository = new SupabaseExecutionTrustRecordRepository(createFakePool());
+    const repository = new SupabaseExecutionTrustRecordRepository(
+      createFakePool(),
+    );
     const transaction = buildBusinessTransaction("txn-4");
 
     const authorization: SignedExecutionAuthorization = {
@@ -377,13 +432,18 @@ describe("SupabaseExecutionTrustRecordRepository", () => {
     // documented for execution_json in the replaceExecution test above.
     expect(found!.authorization).toEqual(authorization);
     expect(found!.schemaVersion).toBe(2);
-    expect(found!.signatures).toEqual(JSON.parse(JSON.stringify(withHybridFields.signatures)));
+    expect(found!.signatures).toEqual(
+      JSON.parse(JSON.stringify(withHybridFields.signatures)),
+    );
   });
 
   it("returns no authorization/schemaVersion/signatures fields when none were persisted (legacy row)", async () => {
-    const repository = new SupabaseExecutionTrustRecordRepository(createFakePool());
+    const repository = new SupabaseExecutionTrustRecordRepository(
+      createFakePool(),
+    );
     const transaction = buildBusinessTransaction("txn-5");
-    const signedRecord = await buildSignedMultiExecutionOverrideRecord(transaction);
+    const signedRecord =
+      await buildSignedMultiExecutionOverrideRecord(transaction);
 
     await repository.create(signedRecord);
 

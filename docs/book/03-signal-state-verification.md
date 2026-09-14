@@ -9,7 +9,7 @@
 
 Chapter 2 ended on this sentence from `SignalIntentBinder`'s own doc comment: it "proves a
 policy's signals describe the same action as Intent; it never proves those signals are
-*true*." A caller can declare `vendorVerified: true` and nothing in `boundSignals` or
+_true_." A caller can declare `vendorVerified: true` and nothing in `boundSignals` or
 `SignalIntentBinder` checks whether that's actually the case. There's no Intent-side
 equivalent for "is this vendor really KYC-verified" to bind against. That's the residual gap
 `SignalStateVerifier` exists to close, for the signals a policy author chooses to wire it up
@@ -76,7 +76,7 @@ export class CompositeSignalStateVerifier implements SignalStateVerifier {
 }
 ```
 
-Discipline, not enforcement, keeps this safe. Each verifier is *expected* to recognize only
+Discipline, not enforcement, keeps this safe. Each verifier is _expected_ to recognize only
 its own action(s) and return `[]` for everything else. Tutorial 82
 (`examples/tutorials/82-composite-signal-state-verification/run.ts`) exists specifically to
 prove this holds. It pairs the real `HubSpotSignalStateVerifier` with a second, illustrative
@@ -89,7 +89,7 @@ recognizes produces no false positives at all.
 `HubSpotSignalStateVerifier` fetches the real deal (`hubspot:deal-fetch`) and compares it
 against every verified signal key before policy evaluation runs. A single false signal,
 `currentDealStage` declared as an early pipeline stage when the real deal is already
-`closedlost`, is caught, and because `dealStageTransitionAllowed` is *derived* from
+`closedlost`, is caught, and because `dealStageTransitionAllowed` is _derived_ from
 `currentDealStage`, both come back mismatched in the same rejection, not just the first one
 found. Tutorial 71 (`examples/tutorials/71-hubspot-signal-state-verification/run.ts`)
 demonstrates exactly this: a caller declares `currentDealStage: "appointmentscheduled"`
@@ -102,11 +102,11 @@ state overrides the caller's claim; it doesn't merely flag a discrepancy.
 The Razorpay connector had its own `RazorpaySignalStateVerifier`, mirroring HubSpot's
 pattern exactly, before the connector was removed in full on 2026-08-12 (Chapter 10 covers
 why). Its removal is the reason `docs/CLAIMS.md`'s open roadmap item on fetch-verifying
-*unbound* signals generally no longer has a second live example to point at. The general
+_unbound_ signals generally no longer has a second live example to point at. The general
 gap ("a policy can still evaluate signals no verifier covers") is unchanged, but the
 concrete illustration of it is gone along with the connector. This is a small but real
 instance of a larger pattern worth naming: removing a feature for good reasons (Chapter 10)
-doesn't just delete code, it can quietly delete the *evidence* an unrelated claim was leaning
+doesn't just delete code, it can quietly delete the _evidence_ an unrelated claim was leaning
 on. That's exactly what the Razorpay-staleness documentation audit earlier in this
 session had to go hunting for, file by file, months after the fact.
 
@@ -119,7 +119,7 @@ signed. G-31's `signalsStillCurrent` check runs again, independently, at the exe
 boundary, for a `SignedExecutionAuthorization` that might be verified and executed by a
 different process, possibly much later, up to its TTL. They're the same kind of check
 (independent re-derivation of real-world facts) applied at two different moments for two
-different reasons, and this codebase deliberately reuses the *same* `SignalStateVerifier`
+different reasons, and this codebase deliberately reuses the _same_ `SignalStateVerifier`
 port for both rather than inventing a second interface. See Chapter 8 for exactly how.
 
 ---

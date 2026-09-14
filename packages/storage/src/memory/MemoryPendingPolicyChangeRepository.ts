@@ -15,14 +15,10 @@ import {
  * enforcement functions so this backend and SupabasePendingPolicyChangeRepository
  * (a later addition) apply identical invariants.
  */
-export class MemoryPendingPolicyChangeRepository
-  implements PendingPolicyChangeRepository
-{
+export class MemoryPendingPolicyChangeRepository implements PendingPolicyChangeRepository {
   private readonly changes = new Map<string, PendingPolicyChange>();
 
-  async create(
-    change: PendingPolicyChange,
-  ): Promise<PendingPolicyChange> {
+  async create(change: PendingPolicyChange): Promise<PendingPolicyChange> {
     const existingPending = await this.findPending(
       change.policyName,
       change.policyVersion,

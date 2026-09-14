@@ -1,13 +1,8 @@
-
-
 import dotenv from "dotenv";
 
 import { existsSync } from "node:fs";
 
-import {
-  dirname,
-  join,
-} from "node:path";
+import { dirname, join } from "node:path";
 
 import { fileURLToPath } from "node:url";
 
@@ -48,29 +43,21 @@ import {
  * Parmana package to share the same
  * configuration.
  */
-const __filename =
-  fileURLToPath(import.meta.url);
+const __filename = fileURLToPath(import.meta.url);
 
-const __dirname =
-  dirname(__filename);
+const __dirname = dirname(__filename);
 
-function findEnvFile():
-  | string
-  | undefined {
+function findEnvFile(): string | undefined {
   let current = __dirname;
 
   while (true) {
-    const candidate = join(
-      current,
-      ".env",
-    );
+    const candidate = join(current, ".env");
 
     if (existsSync(candidate)) {
       return candidate;
     }
 
-    const parent =
-      dirname(current);
+    const parent = dirname(current);
 
     if (parent === current) {
       return undefined;
@@ -80,8 +67,7 @@ function findEnvFile():
   }
 }
 
-const envFile =
-  findEnvFile();
+const envFile = findEnvFile();
 
 if (envFile) {
   dotenv.config({
@@ -128,41 +114,29 @@ function requirePolicyDirectory(): string {
  * Root configuration.
  */
 export interface Config {
-  readonly environment:
-    EnvironmentConfig;
+  readonly environment: EnvironmentConfig;
 
-  readonly storage:
-    StorageConfig;
+  readonly storage: StorageConfig;
 
-  readonly crypto:
-    CryptoConfig;
+  readonly crypto: CryptoConfig;
 
-  readonly keys:
-    KeyConfig;
+  readonly keys: KeyConfig;
 
-  readonly secrets:
-    SecretsConfig;
+  readonly secrets: SecretsConfig;
 
-  readonly authorization:
-    AuthorizationConfig;
+  readonly authorization: AuthorizationConfig;
 
-  readonly policy:
-    PolicyConfig;
+  readonly policy: PolicyConfig;
 
-  readonly trust:
-    TrustConfig;
+  readonly trust: TrustConfig;
 
-  readonly api:
-    ApiConfig;
+  readonly api: ApiConfig;
 
-  readonly auth:
-    ApiAuthConfig;
+  readonly auth: ApiAuthConfig;
 
-  readonly rateLimit:
-    RateLimitConfig;
+  readonly rateLimit: RateLimitConfig;
 
-  readonly logging:
-    LoggingConfig;
+  readonly logging: LoggingConfig;
 }
 /**
  * Runtime environment.
@@ -175,12 +149,10 @@ export interface EnvironmentConfig {
  * Storage configuration.
  */
 export interface StorageConfig {
-  readonly provider:
-    StorageProvider;
+  readonly provider: StorageProvider;
 
   readonly databaseUrl?: string;
 }
-
 
 /**
  * Cryptographic configuration.
@@ -189,28 +161,24 @@ export interface CryptoConfig {
   /**
    * Crypto operating mode.
    */
-  readonly mode:
-    CryptoMode;
+  readonly mode: CryptoMode;
 
   /**
    * Hash algorithm.
    */
-  readonly hashProvider:
-    HashAlgorithm;
+  readonly hashProvider: HashAlgorithm;
 
   /**
    * Primary signature algorithm.
    */
-  readonly primarySignatureProvider:
-    SignatureAlgorithm;
+  readonly primarySignatureProvider: SignatureAlgorithm;
 
   /**
    * Secondary signature algorithm.
    *
    * Required only in hybrid mode.
    */
-  readonly secondarySignatureProvider?:
-    SignatureAlgorithm;
+  readonly secondarySignatureProvider?: SignatureAlgorithm;
 
   /**
    * When true, verification of a hybrid-schema-capable artifact
@@ -225,21 +193,18 @@ export interface CryptoConfig {
    * hybrid-signed. See VerificationCrypto.verifySignature()'s own
    * comment for the exact downgrade this closes.
    */
-  readonly requireHybridSignature:
-    boolean;
+  readonly requireHybridSignature: boolean;
 }
 /**
  * Key management.
  */
 export interface KeyConfig {
-  readonly provider:
-    KeyProvider;
+  readonly provider: KeyProvider;
 
   /**
    * Root directory containing all Parmana keys.
    */
-  readonly keyDirectory:
-    string;
+  readonly keyDirectory: string;
 }
 /**
  * Secrets backend configuration (ADR-0009). Selects where connector
@@ -251,8 +216,7 @@ export interface KeyConfig {
  * treated as the Secrets Manager secret's name/ARN to fetch.
  */
 export interface SecretsConfig {
-  readonly provider:
-    SecretsProvider;
+  readonly provider: SecretsProvider;
 }
 
 /**
@@ -280,8 +244,7 @@ export interface PolicyConfig {
  * Trust profile configuration.
  */
 export interface TrustConfig {
-  readonly profile:
-    TrustProfile;
+  readonly profile: TrustProfile;
 
   readonly receiptVersion: string;
 }
@@ -302,11 +265,9 @@ export interface ApiConfig {
  * development and tutorials only).
  */
 export interface ApiAuthConfig {
-  readonly keys:
-    readonly ApiKeyEntry[];
+  readonly keys: readonly ApiKeyEntry[];
 
-  readonly disabled:
-    boolean;
+  readonly disabled: boolean;
 }
 
 /**
@@ -341,135 +302,80 @@ export interface LoggingConfig {
  * This is the only location where process.env
  * should be accessed.
  */
-export function loadConfig():
-  Readonly<Config> {
+export function loadConfig(): Readonly<Config> {
   return Object.freeze({
     environment: Object.freeze({
-      nodeEnv:
-        process.env.NODE_ENV ??
-        "development",
+      nodeEnv: process.env.NODE_ENV ?? "development",
     }),
 
     storage: Object.freeze({
-      provider:
-        parseStorageProvider(
-          process.env.PARMANA_STORAGE,
-        ),
+      provider: parseStorageProvider(process.env.PARMANA_STORAGE),
 
-      ...optionalProperty(
-        "databaseUrl",
-        process.env.DATABASE_URL,
-      ),
+      ...optionalProperty("databaseUrl", process.env.DATABASE_URL),
     }),
 
     crypto: Object.freeze({
-  mode:
-    parseCryptoMode(
-      process.env.CRYPTO_MODE,
-    ),
+      mode: parseCryptoMode(process.env.CRYPTO_MODE),
 
-  hashProvider:
-    parseHashAlgorithm(
-      process.env.HASH_PROVIDER,
-    ),
+      hashProvider: parseHashAlgorithm(process.env.HASH_PROVIDER),
 
-  primarySignatureProvider:
-    parseSignatureAlgorithm(
-      process.env.PRIMARY_SIGNATURE_PROVIDER,
-    ),
+      primarySignatureProvider: parseSignatureAlgorithm(
+        process.env.PRIMARY_SIGNATURE_PROVIDER,
+      ),
 
-  ...optionalProperty(
-    "secondarySignatureProvider",
-    process.env
-      .SECONDARY_SIGNATURE_PROVIDER
-        ? parseSignatureAlgorithm(
-            process.env
-              .SECONDARY_SIGNATURE_PROVIDER,
-          )
-        : undefined,
-  ),
+      ...optionalProperty(
+        "secondarySignatureProvider",
+        process.env.SECONDARY_SIGNATURE_PROVIDER
+          ? parseSignatureAlgorithm(process.env.SECONDARY_SIGNATURE_PROVIDER)
+          : undefined,
+      ),
 
-  requireHybridSignature:
-    process.env
-      .HYBRID_SIGNATURE_REQUIRED ===
-      "true",
-}),
+      requireHybridSignature: process.env.HYBRID_SIGNATURE_REQUIRED === "true",
+    }),
 
     keys: Object.freeze({
-  provider:
-    parseKeyProvider(
-      process.env.KEY_PROVIDER,
-    ),
+      provider: parseKeyProvider(process.env.KEY_PROVIDER),
 
-  keyDirectory:
-    process.env.PARMANA_KEY_DIR!,
-}),
+      keyDirectory: process.env.PARMANA_KEY_DIR!,
+    }),
 
     secrets: Object.freeze({
-      provider:
-        parseSecretsProvider(
-          process.env.PARMANA_SECRETS_PROVIDER,
-        ),
+      provider: parseSecretsProvider(process.env.PARMANA_SECRETS_PROVIDER),
     }),
 
     authorization: Object.freeze({
       ttlSeconds: Number(
-        process.env
-          .EXECUTION_AUTHORIZATION_TTL_SECONDS ??
-          120,
+        process.env.EXECUTION_AUTHORIZATION_TTL_SECONDS ?? 120,
       ),
     }),
-policy: Object.freeze({
-  directory:
-    requirePolicyDirectory(),
-}),
+    policy: Object.freeze({
+      directory: requirePolicyDirectory(),
+    }),
 
     trust: Object.freeze({
-      profile:
-        parseTrustProfile(
-          process.env.TRUST_PROFILE,
-        ),
+      profile: parseTrustProfile(process.env.TRUST_PROFILE),
 
-      receiptVersion:
-        process.env.RECEIPT_VERSION ??
-        "1",
+      receiptVersion: process.env.RECEIPT_VERSION ?? "1",
     }),
 
     api: Object.freeze({
-      port: Number(
-        process.env.PORT ?? 3000,
-      ),
+      port: Number(process.env.PORT ?? 3000),
     }),
 
     auth: Object.freeze({
-      keys:
-        parseApiKeys(
-          process.env.PARMANA_API_KEYS,
-        ),
+      keys: parseApiKeys(process.env.PARMANA_API_KEYS),
 
-      disabled:
-        process.env.PARMANA_AUTH_DISABLED ===
-        "true",
+      disabled: process.env.PARMANA_AUTH_DISABLED === "true",
     }),
 
     rateLimit: Object.freeze({
-      executePerMinute: Number(
-        process.env
-          .RATE_LIMIT_EXECUTE_PER_MINUTE ??
-          30,
-      ),
+      executePerMinute: Number(process.env.RATE_LIMIT_EXECUTE_PER_MINUTE ?? 30),
 
-      healthPerMinute: Number(
-        process.env
-          .RATE_LIMIT_HEALTH_PER_MINUTE ??
-          300,
-      ),
+      healthPerMinute: Number(process.env.RATE_LIMIT_HEALTH_PER_MINUTE ?? 300),
     }),
 
     logging: Object.freeze({
-      level:
-        process.env.LOG_LEVEL ??
-        "info",
+      level: process.env.LOG_LEVEL ?? "info",
     }),
   });
 }

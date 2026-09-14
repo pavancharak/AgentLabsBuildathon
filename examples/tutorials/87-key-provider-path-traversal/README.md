@@ -6,9 +6,9 @@ Prove `FileKeyProvider` rejects a path-traversal `keyId` (`../../../../etc/passw
 
 ## What You'll Learn
 
-* `FileKeyProvider` resolves a `keyId` to `${PARMANA_KEY_DIR}/${keyId}.private.pem` (and `.public.pem`) — without sanitization, a `keyId` containing `../` segments could resolve to an arbitrary file outside the key directory entirely
-* Every method that accepts a `keyId` — `getPrivateKey`, `getPublicKey`, `hasKey`, `getMetadata` — validates it against an allow-list pattern (`/^[A-Za-z0-9._-]+$/`) and throws a named `CryptoError` naming the problem, consistently across all four
-* A well-formed `keyId` (like `"default"`) is completely unaffected — this is a targeted allow-list, not a blanket restriction
+- `FileKeyProvider` resolves a `keyId` to `${PARMANA_KEY_DIR}/${keyId}.private.pem` (and `.public.pem`) — without sanitization, a `keyId` containing `../` segments could resolve to an arbitrary file outside the key directory entirely
+- Every method that accepts a `keyId` — `getPrivateKey`, `getPublicKey`, `hasKey`, `getMetadata` — validates it against an allow-list pattern (`/^[A-Za-z0-9._-]+$/`) and throws a named `CryptoError` naming the problem, consistently across all four
+- A well-formed `keyId` (like `"default"`) is completely unaffected — this is a targeted allow-list, not a blanket restriction
 
 ## Running the Tutorial
 

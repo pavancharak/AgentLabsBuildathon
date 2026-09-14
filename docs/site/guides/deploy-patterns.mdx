@@ -3,7 +3,10 @@ title: "Deploy Patterns"
 description: "In-memory vs Supabase storage, the full environment variable checklist, and how key management actually works: two separate keypairs, one directory, one optional rotation variable."
 ---
 
-<Info>**[AVAILABLE]** for everything below, this is what actually runs today. Cloud/KMS/multi-instance/HA deployment is [ROADMAP], see [Roadmap](/roadmap).</Info>
+<Info>
+  **[AVAILABLE]** for everything below, this is what actually runs today.
+  Cloud/KMS/multi-instance/HA deployment is [ROADMAP], see [Roadmap](/roadmap).
+</Info>
 
 ## Goal
 
@@ -23,10 +26,14 @@ exactly which keys the server needs, where they live, and what each one is for.
 ```typescript
 // packages/storage/src/StorageFactory.ts
 switch (configuration.provider) {
-  case "memory":   return new MemoryStorageProvider();
-  case "supabase": return new SupabaseStorageProvider();
-  case "postgres": throw new Error("Postgres storage provider not implemented.");
-  case "sqlite":   throw new Error("SQLite storage provider not implemented.");
+  case "memory":
+    return new MemoryStorageProvider();
+  case "supabase":
+    return new SupabaseStorageProvider();
+  case "postgres":
+    throw new Error("Postgres storage provider not implemented.");
+  case "sqlite":
+    throw new Error("SQLite storage provider not implemented.");
 }
 ```
 
@@ -144,7 +151,7 @@ see [How Parmana thinks](/how-parmana-thinks).
 No downtime, no restart required beyond a config reload:
 
 1. Generate a new key for the same `callerId`: `npm run generate:api-key -- --caller-id
-   orchestrator-1`.
+orchestrator-1`.
 2. Add the new `{ callerId, keyHash }` entry to `PARMANA_API_KEYS` alongside the old one.
    Both are active during migration.
 3. Hand the new raw key to the caller, confirm it works.
@@ -222,10 +229,15 @@ environment-variable toggle for this today, it's a code change.
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="Choose a signature provider" icon="key" href="/guides/choose-a-signature-provider">
+  <Card
+    title="Choose a signature provider"
+    icon="key"
+    href="/guides/choose-a-signature-provider"
+  >
     What `PRIMARY_SIGNATURE_PROVIDER` actually changes, and its real cost.
   </Card>
   <Card title="Roadmap" icon="map" href="/roadmap">
-    What's designed but not built yet for production deployment: KMS, HA, network enforcement.
+    What's designed but not built yet for production deployment: KMS, HA,
+    network enforcement.
   </Card>
 </CardGroup>

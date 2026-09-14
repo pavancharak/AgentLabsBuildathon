@@ -67,9 +67,9 @@ describe("Credential Isolation (HTTP boundary)", () => {
     // "has already been used" — if destruction genuinely happened.
     const credentialId = credentialBearingEvents[0]!.credentialId!;
 
-    await expect(
-      sessionCredentialVault.consume(credentialId),
-    ).rejects.toThrow(/has been revoked/);
+    await expect(sessionCredentialVault.consume(credentialId)).rejects.toThrow(
+      /has been revoked/,
+    );
   });
 
   it("still issues and destroys the session credential when the connector executor fails", async () => {
@@ -114,9 +114,9 @@ describe("Credential Isolation (HTTP boundary)", () => {
     const credentialId = credentialBearingEvents[0]?.credentialId;
     expect(credentialId).toBeDefined();
 
-    await expect(
-      sessionCredentialVault.consume(credentialId!),
-    ).rejects.toThrow(/has been revoked/);
+    await expect(sessionCredentialVault.consume(credentialId!)).rejects.toThrow(
+      /has been revoked/,
+    );
   });
 
   it("issues zero session credentials when the gateway attestation is spoofed", async () => {

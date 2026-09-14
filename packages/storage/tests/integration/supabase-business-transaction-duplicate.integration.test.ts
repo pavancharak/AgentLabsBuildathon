@@ -53,7 +53,10 @@ describe.skipIf(!databaseConfigured)(
 
       const id = `test-txn-race-${crypto.randomUUID()}`;
       const first = buildBusinessTransaction(id);
-      const second = { ...buildBusinessTransaction(id), signals: { amount: 999 } };
+      const second = {
+        ...buildBusinessTransaction(id),
+        signals: { amount: 999 },
+      };
 
       const results = await Promise.allSettled([
         repository.create(first),

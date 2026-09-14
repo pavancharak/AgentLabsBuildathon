@@ -111,16 +111,16 @@ Execution Trust Record
 
 ## Python SDK
 
-| Method | Description |
-|--------|-------------|
-| `health()` | Runtime health check |
-| `execute()` | Execute a Business Transaction |
-| `verify()` | Verify an execution |
-| `replay()` | Deterministic replay |
-| `receipt()` | Generate an execution receipt |
-| `transaction()` | Retrieve a Business Transaction |
-| `trust_record()` | Retrieve an Execution Trust Record |
-| `validate_policy()` | Validate a policy definition |
+| Method              | Description                        |
+| ------------------- | ---------------------------------- |
+| `health()`          | Runtime health check               |
+| `execute()`         | Execute a Business Transaction     |
+| `verify()`          | Verify an execution                |
+| `replay()`          | Deterministic replay               |
+| `receipt()`         | Generate an execution receipt      |
+| `transaction()`     | Retrieve a Business Transaction    |
+| `trust_record()`    | Retrieve an Execution Trust Record |
+| `validate_policy()` | Validate a policy definition       |
 
 Each of these is also available under its own namespace (e.g. `client.execution.execute()`, `client.verification.verify()`, `client.replay.replay()`) for finer-grained access to that API's other operations, such as `client.verification.get_latest()` or `client.transactions.list()`.
 

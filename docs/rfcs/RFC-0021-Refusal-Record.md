@@ -42,7 +42,7 @@ this RFC confirmed the claim in full at the code level:
 - The global `errorHandler` (`packages/api/src/middleware/error-handler.ts:135-142`) turns a
   `RuntimeError` straight into an HTTP response — no log line, no database write.
 - `BusinessTransactionRepository` (`packages/shared/src/repositories/business-transaction-repository.ts`)
-  has no update method at all — the one row that *is* durably written (at accept-time, before
+  has no update method at all — the one row that _is_ durably written (at accept-time, before
   evaluation) is never revisited to record the outcome.
 
 Net effect: the G-24 signal-binding-mismatch REJECT — this project's own headline security fix —
@@ -59,7 +59,7 @@ made today. This RFC closes that gap.
 - That artifact is verifiable by a third party without trusting Parmana's own database — same
   trust model `ExecutionTrustRecord` already provides for approvals.
 - The REJECT itself (the caller receiving a 403) never depends on the evidentiary write
-  succeeding — availability of the *refusal* must not regress even if the *evidence* can't be
+  succeeding — availability of the _refusal_ must not regress even if the _evidence_ can't be
   written.
 - Parallel construction with `ExecutionTrustRecord` throughout, so the two artifact types are
   easy to compare and reason about together, not two unrelated designs bolted together.
@@ -68,7 +68,7 @@ made today. This RFC closes that gap.
 
 - Signing `CallerAuditSink`/`RazorpayWebhookAuditSink` events — explicitly out of scope per the
   task that produced this RFC; that's a separate, smaller, already-scoped milestone.
-- Covering every *failure* path as a Refusal Record. `PolicyNotFoundError`,
+- Covering every _failure_ path as a Refusal Record. `PolicyNotFoundError`,
   `PolicyValidationError`, `SignalValidationError`, `DuplicateBusinessTransactionError` are
   "couldn't evaluate" failures, not "evaluated and decided to reject" — see Open Question 1.
 - Retroactively backfilling refusal evidence for REJECTs that already happened before this
@@ -169,7 +169,7 @@ a new `RefusalCrypto` class parallel to `VerificationCrypto`
 excluding `signature` itself (identical pattern to `VerificationCrypto.canonicalRecord()`).
 
 **Why not depend on `@parmana/sign` directly from `parmana-exp`**: it would point the dependency
-arrow backwards. `@parmana/sign` was deliberately extracted *from* `packages/crypto` as a clean,
+arrow backwards. `@parmana/sign` was deliberately extracted _from_ `packages/crypto` as a clean,
 decoupled, publicly-auditable subset — `parmana-exp` depending on its own spun-off package for
 live production signing would mean two independently-versioned copies of near-identical
 crypto code (the extraction audit confirmed `Dilithium3SignatureProvider`,
@@ -179,8 +179,8 @@ core internal capability. That's real ongoing coupling and maintenance cost for 
 that doesn't actually improve verifiability.
 
 **The nice property this doesn't cost anything to keep**: because `@parmana/sign` is a faithful,
-independently-auditable extraction of the *same algorithms* `packages/crypto` uses internally, a
-third party can already inspect and trust the signing/verification *logic* via the public
+independently-auditable extraction of the _same algorithms_ `packages/crypto` uses internally, a
+third party can already inspect and trust the signing/verification _logic_ via the public
 package without parmana-exp depending on it — only the key material and its use stay internal,
 exactly as they already do for trust records today. Reusing `DEFAULT_KEY_ID` specifically (rather
 than a separate refusal-signing key) means one public key verifies both an approval and a
@@ -192,7 +192,7 @@ independently of approval-signing. See Open Question 2.
 `ExecutionGate.enforce()` is the single correct insertion point for **both** REJECT types.
 Traced precisely: `RuntimeEngine.execute()` (`packages/runtime/src/RuntimeEngine.ts:159-181`)
 unifies `SignalIntentBinder.findViolations()` and `PolicyEngine.evaluate()` into the exact same
-`PolicyDecision` shape *before* either reaches `decisionBuilder.build()` or
+`PolicyDecision` shape _before_ either reaches `decisionBuilder.build()` or
 `executionGate.enforce()` — a signal-binding violation becomes `{ outcome: REJECT, matchedRuleId:
 "signal-intent-binding-violation", ... }`, structurally identical from that point on to an
 ordinary policy rejection. There is no second, separate exit path for the binding-violation case
@@ -258,7 +258,7 @@ pattern exactly.
 The existing `/verify`/`/verification` routes conflate "prove this signature is valid" with
 "look up a specific transaction's record" behind the same caller-auth + `isOwnedByCaller` gate.
 For Refusal Records this RFC proposes keeping those as **two separate capabilities**, because the
-public objection is specifically about *third parties* — not just the original caller — being
+public objection is specifically about _third parties_ — not just the original caller — being
 able to check a refusal happened:
 
 - **`POST /refusal/verify`** — takes a `RefusalRecord` (or its `refusalRecordHash` +
@@ -355,7 +355,7 @@ write turns out to be a real latency problem in practice, not before.
 # Compatibility
 
 - **APIs**: additive only — two new routes (`POST /refusal/verify`, `GET
-  /refusal/:businessTransactionId`). No existing route's request/response shape changes.
+/refusal/:businessTransactionId`). No existing route's request/response shape changes.
   `ExecutionGate.enforce()`'s existing throw behavior (status, code, message) is unchanged — a
   caller today cannot tell the difference in their own response between "REJECT with a Refusal
   Record" and today's "REJECT with nothing," by design (§6).
@@ -383,9 +383,9 @@ implementation date forward.
 - **Technical**: the synchronous-write-before-throw design (§6) adds latency to every REJECT
   response, proportional to one storage write. Given REJECTs are not the hot path this
   system optimizes for, judged acceptable, but worth measuring once implemented.
-- **Operational**: a storage outage now produces a *known, flagged* gap in refusal evidence
+- **Operational**: a storage outage now produces a _known, flagged_ gap in refusal evidence
   (§6) rather than blocking refusals — correct per this RFC's own reasoning, but means "we have a
-  Refusal Record for every REJECT" is a claim that's true *except during outages*, and that
+  Refusal Record for every REJECT" is a claim that's true _except during outages_, and that
   caveat needs to be stated as precisely in any public claim as the original gap was.
 - **Compatibility risk**: none identified — see Compatibility above.
 
@@ -395,7 +395,7 @@ implementation date forward.
 
 1. **Scope of "policy-level REJECT."** This RFC covers `PolicyEngine.evaluate` REJECTs and
    `SignalIntentBinder` binding-violation REJECTs — both reach `ExecutionGate.enforce()` with a
-   `Decision`. It explicitly does *not* cover `PolicyNotFoundError`/`PolicyValidationError`/
+   `Decision`. It explicitly does _not_ cover `PolicyNotFoundError`/`PolicyValidationError`/
    `SignalValidationError` (couldn't evaluate at all, not a decision) or caller-auth/webhook
    rejections (separate, already-scoped milestone). Confirm this boundary is where the public
    claim should actually be drawn — "every policy decided to reject" vs. "every rejected request

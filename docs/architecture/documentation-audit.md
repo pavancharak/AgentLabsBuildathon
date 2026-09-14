@@ -17,14 +17,14 @@ This is a **lightweight** audit, matching the lightweight automated check it's p
 
 **First run surfaced 6 false-positive failures**, all in paths that are intentionally hypothetical, not evidence:
 
-| Path | Where | Why it doesn't exist |
-|---|---|---|
-| `packages/connector-stripe/src/StripeCapabilities.ts` | `extending-parmana.md`, "Adding a new vendor" walkthrough | Stripe is a worked example of a vendor *not yet built* — the walkthrough shows what you'd create |
-| `packages/execution-gateway/src/connector-execution/GatewayStripeAdapter.ts` | same | same |
-| `packages/execution-gateway/src/connector-execution/createGatewayStripeConnector.ts` | same | same |
-| `packages/api/src/bootstrap/createStripeConnector.ts` | same | same |
-| `packages/connector-stripe/src/StripeConnector.ts` | `repository-invariants.md`, Invariant 2 "Regression example" | Describes a file that must **never** be created — it's the counterexample the invariant test guards against |
-| `packages/api/src/routes/admin-replay.ts` | `repository-invariants.md`, Invariant 5 "Regression example" | Same — a hypothetical bad route used to illustrate what the test catches |
+| Path                                                                                 | Where                                                        | Why it doesn't exist                                                                                        |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `packages/connector-stripe/src/StripeCapabilities.ts`                                | `extending-parmana.md`, "Adding a new vendor" walkthrough    | Stripe is a worked example of a vendor _not yet built_ — the walkthrough shows what you'd create            |
+| `packages/execution-gateway/src/connector-execution/GatewayStripeAdapter.ts`         | same                                                         | same                                                                                                        |
+| `packages/execution-gateway/src/connector-execution/createGatewayStripeConnector.ts` | same                                                         | same                                                                                                        |
+| `packages/api/src/bootstrap/createStripeConnector.ts`                                | same                                                         | same                                                                                                        |
+| `packages/connector-stripe/src/StripeConnector.ts`                                   | `repository-invariants.md`, Invariant 2 "Regression example" | Describes a file that must **never** be created — it's the counterexample the invariant test guards against |
+| `packages/api/src/routes/admin-replay.ts`                                            | `repository-invariants.md`, Invariant 5 "Regression example" | Same — a hypothetical bad route used to illustrate what the test catches                                    |
 
 These aren't documentation errors — creating any of these files to satisfy the test would be wrong (in two cases, it would mean adding the exact bypass the invariant exists to prevent). The test's own docstring scopes it to "evidence citations," and these six are illustrative counterfactuals, not citations. Fixed by adding a small, explicit, documented allowlist (`HYPOTHETICAL_EXAMPLE_PATHS`) to the test rather than weakening the pattern generally or fabricating files — any new hypothetical path added to a doc in the future will still fail loudly until someone deliberately allowlists it.
 
@@ -36,18 +36,18 @@ These aren't documentation errors — creating any of these files to satisfy the
 
 All 10 `file.ts:N` citations checked against actual method declarations:
 
-| Claim | Verified |
-|---|---|
-| `ExecutionTrustApplication.execute()` — `ExecutionTrustApplication.ts:64` | ✅ |
-| `Runtime.execute()` — `Runtime.ts:31` | ✅ |
-| `RuntimeEngine.execute()` — `RuntimeEngine.ts:125` | ✅ |
-| `RuntimePipeline.execute()` — `RuntimePipeline.ts:30` | ✅ |
-| `ExecutionComponent.execute()` — `ExecutionComponent.ts:44` | ✅ |
-| `ExecutionGateway.execute()` — `ExecutionGateway.ts:214` | ✅ |
-| `ExecutionControlService.execute()` — `ExecutionControlService.ts:44` | ✅ |
-| `SessionCredentialSecureConnector.execute()` — `SessionCredentialSecureConnector.ts:70` | ✅ |
-| `SdkConnectorExecutor.execute()` — `SdkConnectorExecutor.ts:41` | ✅ |
-| `BusinessTrustPipeline.execute()` — `BusinessTrustPipeline.ts:31` | ✅ |
+| Claim                                                                                   | Verified |
+| --------------------------------------------------------------------------------------- | -------- |
+| `ExecutionTrustApplication.execute()` — `ExecutionTrustApplication.ts:64`               | ✅       |
+| `Runtime.execute()` — `Runtime.ts:31`                                                   | ✅       |
+| `RuntimeEngine.execute()` — `RuntimeEngine.ts:125`                                      | ✅       |
+| `RuntimePipeline.execute()` — `RuntimePipeline.ts:30`                                   | ✅       |
+| `ExecutionComponent.execute()` — `ExecutionComponent.ts:44`                             | ✅       |
+| `ExecutionGateway.execute()` — `ExecutionGateway.ts:214`                                | ✅       |
+| `ExecutionControlService.execute()` — `ExecutionControlService.ts:44`                   | ✅       |
+| `SessionCredentialSecureConnector.execute()` — `SessionCredentialSecureConnector.ts:70` | ✅       |
+| `SdkConnectorExecutor.execute()` — `SdkConnectorExecutor.ts:41`                         | ✅       |
+| `BusinessTrustPipeline.execute()` — `BusinessTrustPipeline.ts:31`                       | ✅       |
 
 ### Class/function existence (`system-architecture.md`, `execution-walkthrough.md`, `extending-parmana.md`)
 
@@ -90,11 +90,11 @@ The only failures seen at any point were the 6 documentation-reference false pos
 
 ## 5. Files touched by this audit
 
-| File | Change | Why |
-|---|---|---|
-| `tests/architecture/documentation-references.test.ts` | Added `HYPOTHETICAL_EXAMPLE_PATHS` allowlist | Exclude 6 intentionally-hypothetical example/counterexample paths from the evidence-citation check (§1) |
-| `docs/architecture/system-architecture.md` | Corrected §8 dependency graph's `crypto` edge | `crypto` depends on `shared`; the doc claimed it didn't (§2) |
-| `docs/architecture/documentation-audit.md` | New (this file) | Phase 1G deliverable |
+| File                                                  | Change                                        | Why                                                                                                     |
+| ----------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `tests/architecture/documentation-references.test.ts` | Added `HYPOTHETICAL_EXAMPLE_PATHS` allowlist  | Exclude 6 intentionally-hypothetical example/counterexample paths from the evidence-citation check (§1) |
+| `docs/architecture/system-architecture.md`            | Corrected §8 dependency graph's `crypto` edge | `crypto` depends on `shared`; the doc claimed it didn't (§2)                                            |
+| `docs/architecture/documentation-audit.md`            | New (this file)                               | Phase 1G deliverable                                                                                    |
 
 No production source file (anything under `packages/*/src`) was modified. Both changes above are documentation and test-infrastructure only.
 

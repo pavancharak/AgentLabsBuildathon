@@ -17,12 +17,8 @@ import { isUniqueViolation } from "../errors/PostgresErrorCodes.js";
  * that broke first (see SupabaseCallerAuditSink for the originating
  * incident).
  */
-export class SupabaseBusinessTransactionRepository
-  implements BusinessTransactionRepository
-{
-  constructor(
-    private readonly pool: Pool,
-  ) {}
+export class SupabaseBusinessTransactionRepository implements BusinessTransactionRepository {
+  constructor(private readonly pool: Pool) {}
 
   /**
    * Persist immutable BusinessTransaction.
@@ -35,9 +31,7 @@ export class SupabaseBusinessTransactionRepository
    * DuplicateBusinessTransactionError the in-memory repository
    * throws.
    */
-  async create(
-    transaction: BusinessTransaction,
-  ): Promise<BusinessTransaction> {
+  async create(transaction: BusinessTransaction): Promise<BusinessTransaction> {
     try {
       await this.pool.query(INSERT_BUSINESS_TRANSACTION_SQL, [
         transaction.businessTransactionId,
@@ -85,12 +79,8 @@ export class SupabaseBusinessTransactionRepository
   /**
    * True if transaction exists.
    */
-  async exists(
-    businessTransactionId: string,
-  ): Promise<boolean> {
-    const { rows } = await this.pool.query(EXISTS_SQL, [
-      businessTransactionId,
-    ]);
+  async exists(businessTransactionId: string): Promise<boolean> {
+    const { rows } = await this.pool.query(EXISTS_SQL, [businessTransactionId]);
 
     return rows.length > 0;
   }
@@ -101,9 +91,7 @@ export class SupabaseBusinessTransactionRepository
   async list(
     page: number,
     pageSize: number,
-  ): Promise<
-    readonly BusinessTransaction[]
-  > {
+  ): Promise<readonly BusinessTransaction[]> {
     const offset = (page - 1) * pageSize;
 
     const { rows } = await this.pool.query(LIST_SQL, [pageSize, offset]);
@@ -146,7 +134,9 @@ interface BusinessTransactionRow {
   readonly created_at: string | Date;
 }
 
-function rowToBusinessTransaction(row: BusinessTransactionRow): BusinessTransaction {
+function rowToBusinessTransaction(
+  row: BusinessTransactionRow,
+): BusinessTransaction {
   return {
     businessTransactionId: row.business_transaction_id,
     status: row.status,

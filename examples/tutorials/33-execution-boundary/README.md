@@ -1,34 +1,18 @@
 \# Tutorial 33 — Execution Boundary
 
-
-
 \## Overview
-
-
 
 Parmana governs \*\*authorization\*\*, not enterprise execution.
 
-
-
 Its responsibility ends after producing a valid \*\*Execution Authorization\*\*.
-
-
 
 The enterprise system begins execution only after receiving that authorization.
 
-
-
 This separation is called the \*\*Execution Boundary\*\*.
-
-
 
 \---
 
-
-
 \## Architecture
-
-
 
 ```text
 
@@ -74,19 +58,11 @@ SAP / Oracle / Workday / Stripe
 
 ```
 
-
-
 \---
-
-
 
 \## Why the Boundary Exists
 
-
-
 Parmana intentionally does \*\*not\*\*:
-
-
 
 \- connect directly to SAP
 
@@ -98,27 +74,15 @@ Parmana intentionally does \*\*not\*\*:
 
 \- own enterprise credentials
 
-
-
 Instead Parmana produces an immutable \*\*Execution Authorization\*\* proving that execution has been approved.
-
-
 
 The enterprise execution system decides whether to execute the request.
 
-
-
 \---
-
-
 
 \## Runtime Responsibilities
 
-
-
 The Runtime:
-
-
 
 \- evaluates policy
 
@@ -130,23 +94,13 @@ The Runtime:
 
 \- produces an Execution Trust Record
 
-
-
 After that, Parmana's work is complete.
-
-
 
 \---
 
-
-
 \## Enterprise Responsibilities
 
-
-
 The enterprise system:
-
-
 
 \- receives the Execution Authorization
 
@@ -156,19 +110,11 @@ The enterprise system:
 
 \- returns execution evidence
 
-
-
 Execution itself belongs to the enterprise system, not Parmana.
-
-
 
 \---
 
-
-
 \## Example Output
-
-
 
 ```text
 
@@ -262,39 +208,21 @@ Tutorial completed successfully.
 
 ```
 
-
-
 \---
-
-
 
 \## Key Principle
 
-
-
 Parmana is \*\*not\*\* an ERP.
-
-
 
 Parmana is \*\*not\*\* an API gateway.
 
-
-
 Parmana is \*\*not\*\* an AI agent.
-
-
 
 Parmana is the \*\*Execution Authorization Layer\*\* that sits between AI and enterprise systems.
 
-
-
 \---
 
-
-
 \## Execution Flow
-
-
 
 ```text
 
@@ -334,19 +262,11 @@ Business Action
 
 ```
 
-
-
 \---
-
-
 
 \## Summary
 
-
-
 In this tutorial you learned:
-
-
 
 \- Parmana governs execution authorization.
 
@@ -355,4 +275,3 @@ In this tutorial you learned:
 \- Enterprise systems execute only after receiving authorization.
 
 \- The Execution Boundary separates governance from execution.
-

@@ -1,10 +1,20 @@
 import { generateKeyPairSync } from "node:crypto";
 
-import { ApprovalVerifier, StaticApprovalIssuerRegistry } from "@parmana/approval";
-import { ArtifactSigner, CryptoBootstrap, type KeyProvider } from "@parmana/crypto";
+import {
+  ApprovalVerifier,
+  StaticApprovalIssuerRegistry,
+} from "@parmana/approval";
+import {
+  ArtifactSigner,
+  CryptoBootstrap,
+  type KeyProvider,
+} from "@parmana/crypto";
 import { MemoryNonceStore } from "@parmana/envelope-verifier";
 import type { ExecutionSystem } from "@parmana/execution-system";
-import type { PolicySignals, SignalStateVerificationRequest } from "@parmana/policy";
+import type {
+  PolicySignals,
+  SignalStateVerificationRequest,
+} from "@parmana/policy";
 import type { ApprovalPayload, SignedApproval } from "@parmana/shared";
 import { describe, expect, it } from "vitest";
 
@@ -28,7 +38,9 @@ import type { HubSpotDeal } from "../../src/HubSpotTypes.js";
 
 const DEAL_ID = "9005";
 
-function fakeDeal(overrides: Partial<HubSpotDeal["properties"]> = {}): HubSpotDeal {
+function fakeDeal(
+  overrides: Partial<HubSpotDeal["properties"]> = {},
+): HubSpotDeal {
   return {
     id: DEAL_ID,
     properties: {
@@ -87,11 +99,18 @@ async function signApproval(
 
   return {
     payload,
-    signature: { algorithm: crypto.signature.algorithm, keyId: payload.issuer.keyId, value, signedAt: new Date() },
+    signature: {
+      algorithm: crypto.signature.algorithm,
+      keyId: payload.issuer.keyId,
+      value,
+      signedAt: new Date(),
+    },
   };
 }
 
-function approvalPayload(overrides: Partial<ApprovalPayload> = {}): ApprovalPayload {
+function approvalPayload(
+  overrides: Partial<ApprovalPayload> = {},
+): ApprovalPayload {
   // Anchored to real wall-clock time, not a fixed past date: ApprovalVerifier.verify
   // defaults `now` to `new Date()`, so a hardcoded issuedAt/expiresAt eventually
   // becomes "expired" simply because real time caught up to it.
@@ -187,7 +206,12 @@ describe("HubSpotSignalStateVerifier -- pre-authorization via Approval Artifact"
   it("approves a declared pre-authorization backed by a valid, matching Approval Artifact", async () => {
     const { privateKey, publicKey } = generateKeyPairSync("ed25519");
     const registry = new StaticApprovalIssuerRegistry([
-      { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey, revoked: false },
+      {
+        approverId: "manager-jane",
+        keyId: "manager-jane-key-1",
+        publicKey,
+        revoked: false,
+      },
     ]);
     const approvalVerifier = new ApprovalVerifier({
       crypto,
@@ -209,7 +233,10 @@ describe("HubSpotSignalStateVerifier -- pre-authorization via Approval Artifact"
 
     const violations = await verifier.findViolations(
       REQUEST,
-      baseSignals({ preAuthorizedForAmountChange: true, approvalArtifact: artifact as unknown as PolicySignals[string] }),
+      baseSignals({
+        preAuthorizedForAmountChange: true,
+        approvalArtifact: artifact as unknown as PolicySignals[string],
+      }),
     );
 
     expect(violations).toEqual([]);
@@ -239,7 +266,11 @@ describe("HubSpotSignalStateVerifier -- pre-authorization via Approval Artifact"
     );
 
     expect(violations).toEqual([
-      { signalKey: "preAuthorizedForAmountChange", declaredValue: true, actualValue: false },
+      {
+        signalKey: "preAuthorizedForAmountChange",
+        declaredValue: true,
+        actualValue: false,
+      },
     ]);
   });
 
@@ -266,18 +297,30 @@ describe("HubSpotSignalStateVerifier -- pre-authorization via Approval Artifact"
 
     const violations = await verifier.findViolations(
       REQUEST,
-      baseSignals({ preAuthorizedForAmountChange: true, approvalArtifact: artifact as unknown as PolicySignals[string] }),
+      baseSignals({
+        preAuthorizedForAmountChange: true,
+        approvalArtifact: artifact as unknown as PolicySignals[string],
+      }),
     );
 
     expect(violations).toEqual([
-      { signalKey: "preAuthorizedForAmountChange", declaredValue: true, actualValue: false },
+      {
+        signalKey: "preAuthorizedForAmountChange",
+        declaredValue: true,
+        actualValue: false,
+      },
     ]);
   });
 
   it("rejects an artifact approved for a smaller amount than the real requested delta (scope escalation)", async () => {
     const { privateKey, publicKey } = generateKeyPairSync("ed25519");
     const registry = new StaticApprovalIssuerRegistry([
-      { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey, revoked: false },
+      {
+        approverId: "manager-jane",
+        keyId: "manager-jane-key-1",
+        publicKey,
+        revoked: false,
+      },
     ]);
     const approvalVerifier = new ApprovalVerifier({
       crypto,
@@ -299,24 +342,38 @@ describe("HubSpotSignalStateVerifier -- pre-authorization via Approval Artifact"
     // amountDeltaAbs (50,000, from baseSignals' deal fixture) far
     // exceeds it.
     const artifact = await signApproval(
-      approvalPayload({ scope: { field: "amountDeltaAbs", comparator: "lte", value: 1_000 } }),
+      approvalPayload({
+        scope: { field: "amountDeltaAbs", comparator: "lte", value: 1_000 },
+      }),
       privateKey,
     );
 
     const violations = await verifier.findViolations(
       REQUEST,
-      baseSignals({ preAuthorizedForAmountChange: true, approvalArtifact: artifact as unknown as PolicySignals[string] }),
+      baseSignals({
+        preAuthorizedForAmountChange: true,
+        approvalArtifact: artifact as unknown as PolicySignals[string],
+      }),
     );
 
     expect(violations).toEqual([
-      { signalKey: "preAuthorizedForAmountChange", declaredValue: true, actualValue: false },
+      {
+        signalKey: "preAuthorizedForAmountChange",
+        declaredValue: true,
+        actualValue: false,
+      },
     ]);
   });
 
   it("rejects an artifact issued for a different HubSpot deal (authorization transfer)", async () => {
     const { privateKey, publicKey } = generateKeyPairSync("ed25519");
     const registry = new StaticApprovalIssuerRegistry([
-      { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey, revoked: false },
+      {
+        approverId: "manager-jane",
+        keyId: "manager-jane-key-1",
+        publicKey,
+        revoked: false,
+      },
     ]);
     const approvalVerifier = new ApprovalVerifier({
       crypto,
@@ -334,22 +391,37 @@ describe("HubSpotSignalStateVerifier -- pre-authorization via Approval Artifact"
       approvalVerifier,
     });
 
-    const artifact = await signApproval(approvalPayload({ resourceId: "SOME-OTHER-DEAL" }), privateKey);
+    const artifact = await signApproval(
+      approvalPayload({ resourceId: "SOME-OTHER-DEAL" }),
+      privateKey,
+    );
 
     const violations = await verifier.findViolations(
       REQUEST,
-      baseSignals({ preAuthorizedForAmountChange: true, approvalArtifact: artifact as unknown as PolicySignals[string] }),
+      baseSignals({
+        preAuthorizedForAmountChange: true,
+        approvalArtifact: artifact as unknown as PolicySignals[string],
+      }),
     );
 
     expect(violations).toEqual([
-      { signalKey: "preAuthorizedForAmountChange", declaredValue: true, actualValue: false },
+      {
+        signalKey: "preAuthorizedForAmountChange",
+        declaredValue: true,
+        actualValue: false,
+      },
     ]);
   });
 
   it("rejects a valid artifact whose second presentation is a replay (nonce already consumed)", async () => {
     const { privateKey, publicKey } = generateKeyPairSync("ed25519");
     const registry = new StaticApprovalIssuerRegistry([
-      { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey, revoked: false },
+      {
+        approverId: "manager-jane",
+        keyId: "manager-jane-key-1",
+        publicKey,
+        revoked: false,
+      },
     ]);
     const approvalVerifier = new ApprovalVerifier({
       crypto,
@@ -378,14 +450,23 @@ describe("HubSpotSignalStateVerifier -- pre-authorization via Approval Artifact"
 
     const second = await verifier.findViolations(REQUEST, signals);
     expect(second).toEqual([
-      { signalKey: "preAuthorizedForAmountChange", declaredValue: true, actualValue: false },
+      {
+        signalKey: "preAuthorizedForAmountChange",
+        declaredValue: true,
+        actualValue: false,
+      },
     ]);
   });
 
   it("does not consume the artifact's nonce when an unrelated violation exists on the same request", async () => {
     const { privateKey, publicKey } = generateKeyPairSync("ed25519");
     const registry = new StaticApprovalIssuerRegistry([
-      { approverId: "manager-jane", keyId: "manager-jane-key-1", publicKey, revoked: false },
+      {
+        approverId: "manager-jane",
+        keyId: "manager-jane-key-1",
+        publicKey,
+        revoked: false,
+      },
     ]);
     const approvalVerifier = new ApprovalVerifier({
       crypto,
@@ -417,7 +498,9 @@ describe("HubSpotSignalStateVerifier -- pre-authorization via Approval Artifact"
       }),
     );
     expect(rejected.some((v) => v.signalKey === "currentDealStage")).toBe(true);
-    expect(rejected.some((v) => v.signalKey === "preAuthorizedForAmountChange")).toBe(false);
+    expect(
+      rejected.some((v) => v.signalKey === "preAuthorizedForAmountChange"),
+    ).toBe(false);
 
     // Second call: same artifact, corrected currentDealStage -- must
     // still succeed, proving the first call never burned the nonce.

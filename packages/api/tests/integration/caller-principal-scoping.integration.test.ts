@@ -31,7 +31,8 @@ import { createInspectableExecutionSystem } from "../bootstrap/createInspectable
  */
 describe("Caller principal scoping (HTTP boundary)", () => {
   const SCOPED_KEY = "principal-scoping-scoped-caller-raw-key-for-tests-only";
-  const UNSCOPED_KEY = "principal-scoping-unscoped-caller-raw-key-for-tests-only";
+  const UNSCOPED_KEY =
+    "principal-scoping-unscoped-caller-raw-key-for-tests-only";
 
   function buildApp() {
     const { executionSystem } = createInspectableExecutionSystem();
@@ -131,7 +132,9 @@ describe("Caller principal scoping (HTTP boundary)", () => {
         .send(withPrincipal("scoped-caller"));
 
       expect(
-        callerAuditSink.events.some((event) => event.type === "caller.principal_denied"),
+        callerAuditSink.events.some(
+          (event) => event.type === "caller.principal_denied",
+        ),
       ).toBe(false);
     });
   });

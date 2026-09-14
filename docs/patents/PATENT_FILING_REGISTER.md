@@ -15,12 +15,12 @@ attorney-reviewed, prior-art-searched, or filed. The formal PATENT-N documents s
 informal DRAFT-0N documents as the citable spec for each candidate; DRAFT-0N files are kept for
 history, not deleted.
 
-| Candidate | Formal Spec | Superseded Draft | Attorney Reviewed? | Prior-Art Search Done? | Filed? | Filing Date | IPO Reference # | Govt Fee Paid | Professional Fee Paid |
-|-----------|-------------|-------------------|---------------------|--------------------------|--------|-------------|-------------------|-----------------|--------------------------|
-| A — Runtime Credential Isolation | [PATENT-1](./PATENT-1-runtime-credential-isolation.md) | [DRAFT-01](./DRAFT-01-runtime-credential-isolation.md) | No | No | No | — | — | — | — |
-| B — Signed Execution Trust Record | [PATENT-2](./PATENT-2-signed-execution-trust-record.md) | [DRAFT-02](./DRAFT-02-signed-execution-audit-trail.md) | No | No | No | — | — | — | — |
-| C — Policy-Change Maker-Checker Governance | [PATENT-3](./PATENT-3-policy-change-governance.md) | [DRAFT-03](./DRAFT-03-policy-change-maker-checker.md) | No | No | No | — | — | — | — |
-| D — Signal/Intent Binding + Capability/Policy Binding | [PATENT-4](./PATENT-4-signal-intent-and-capability-policy-binding.md) | — (not previously drafted) | No | No | No | — | — | — | — |
+| Candidate                                             | Formal Spec                                                           | Superseded Draft                                       | Attorney Reviewed? | Prior-Art Search Done? | Filed? | Filing Date | IPO Reference # | Govt Fee Paid | Professional Fee Paid |
+| ----------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------ | ------------------ | ---------------------- | ------ | ----------- | --------------- | ------------- | --------------------- |
+| A — Runtime Credential Isolation                      | [PATENT-1](./PATENT-1-runtime-credential-isolation.md)                | [DRAFT-01](./DRAFT-01-runtime-credential-isolation.md) | No                 | No                     | No     | —           | —               | —             | —                     |
+| B — Signed Execution Trust Record                     | [PATENT-2](./PATENT-2-signed-execution-trust-record.md)               | [DRAFT-02](./DRAFT-02-signed-execution-audit-trail.md) | No                 | No                     | No     | —           | —               | —             | —                     |
+| C — Policy-Change Maker-Checker Governance            | [PATENT-3](./PATENT-3-policy-change-governance.md)                    | [DRAFT-03](./DRAFT-03-policy-change-maker-checker.md)  | No                 | No                     | No     | —           | —               | —             | —                     |
+| D — Signal/Intent Binding + Capability/Policy Binding | [PATENT-4](./PATENT-4-signal-intent-and-capability-policy-binding.md) | — (not previously drafted)                             | No                 | No                     | No     | —           | —               | —             | —                     |
 
 **Next real step:** get PATENT-1/2/3/4 in front of an actual patent attorney — per
 `docs/deep-tech/04-IP-PATENT-SUMMARY.md`'s own recommendation, prioritize D if only one can be

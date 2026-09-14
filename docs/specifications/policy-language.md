@@ -1,14 +1,8 @@
 \# Policy Language Specification
 
-
-
 \*\*Version:\*\* 1.0.0
 
-
-
 \*\*Status:\*\* Canonical
-
-
 
 \*\*Applies To:\*\*
 
@@ -26,55 +20,29 @@
 
 \- Verification
 
-
-
 \---
-
-
 
 \# 1. Purpose
 
-
-
 The Parmana Policy Language defines the deterministic language used by the Parmana Policy Engine to evaluate Business Transactions.
-
-
 
 The policy language is intentionally declarative.
 
-
-
 Policies describe \*\*what\*\* conditions must hold.
-
-
 
 The Policy Engine determines \*\*whether\*\* those conditions are satisfied.
 
-
-
 Policies SHALL NOT execute code.
-
-
 
 Policies SHALL NOT invoke external systems.
 
-
-
 Policies SHALL remain deterministic.
-
-
 
 \---
 
-
-
 \# 2. Design Principles
 
-
-
 The Policy Language is designed around the following principles.
-
-
 
 \- Deterministic
 
@@ -92,19 +60,11 @@ The Policy Language is designed around the following principles.
 
 \- Platform Independent
 
-
-
 \---
-
-
 
 \# 3. Policy Document
 
-
-
 Every policy SHALL contain:
-
-
 
 ```json
 
@@ -124,19 +84,11 @@ Every policy SHALL contain:
 
 ```
 
-
-
 \---
-
-
 
 \# 4. Rule Structure
 
-
-
 A rule consists of
-
-
 
 \- identifier
 
@@ -144,11 +96,7 @@ A rule consists of
 
 \- outcome
 
-
-
 Example
-
-
 
 ```json
 
@@ -182,19 +130,11 @@ Example
 
 ```
 
-
-
 \---
-
-
 
 \# 5. Canonical Condition Model
 
-
-
 Every leaf condition SHALL use the canonical form
-
-
 
 ```json
 
@@ -210,11 +150,7 @@ Every leaf condition SHALL use the canonical form
 
 ```
 
-
-
 Example
-
-
 
 ```json
 
@@ -230,23 +166,13 @@ Example
 
 ```
 
-
-
 \---
-
-
 
 \# 6. Logical Conditions
 
-
-
 Policies may combine conditions.
 
-
-
 \## AND
-
-
 
 ```json
 
@@ -280,15 +206,9 @@ Policies may combine conditions.
 
 ```
 
-
-
 \---
 
-
-
 \## OR
-
-
 
 ```json
 
@@ -322,23 +242,13 @@ Policies may combine conditions.
 
 ```
 
-
-
 Logical conditions may be nested.
-
-
 
 \---
 
-
-
 \# 7. Supported Operators
 
-
-
 The Policy Engine SHALL support the following operators.
-
-
 
 | Operator | Description |
 
@@ -364,23 +274,13 @@ The Policy Engine SHALL support the following operators.
 
 | not\_exists | fact does not exist |
 
-
-
 Future operators SHALL be introduced through schema versioning.
-
-
 
 \---
 
-
-
 \# 8. Evaluation Model
 
-
-
 Policy evaluation SHALL proceed as follows.
-
-
 
 ```
 
@@ -420,31 +320,17 @@ Reject
 
 ```
 
-
-
 Rules SHALL be evaluated in document order.
-
-
 
 The first matching rule SHALL determine the outcome.
 
-
-
 \---
-
-
 
 \# 9. Determinism
 
-
-
 The Parmana Policy Engine SHALL be deterministic.
 
-
-
 Given identical
-
-
 
 \- Policy
 
@@ -456,11 +342,7 @@ Given identical
 
 \- Policy Engine Version
 
-
-
 the engine SHALL produce identical
-
-
 
 \- Decision
 
@@ -472,23 +354,13 @@ the engine SHALL produce identical
 
 \- Evaluation Trace
 
-
-
 Determinism is a fundamental platform guarantee.
-
-
 
 \---
 
-
-
 \# 10. Deterministic Evaluation
 
-
-
 Policy evaluation SHALL be a pure function.
-
-
 
 ```
 
@@ -502,37 +374,21 @@ Decision = Evaluate(
 
 ```
 
-
-
 The evaluation SHALL depend exclusively upon
-
-
 
 \- Policy
 
 \- Runtime Signals
 
-
-
 \---
-
-
 
 \# 11. Canonical Inputs
 
-
-
 Signals SHALL be normalized before evaluation.
-
-
 
 Signal values SHALL preserve type.
 
-
-
 Examples
-
-
 
 ```
 
@@ -540,11 +396,7 @@ Examples
 
 ```
 
-
-
 is NOT equivalent to
-
-
 
 ```
 
@@ -552,27 +404,15 @@ is NOT equivalent to
 
 ```
 
-
-
 No implicit type conversion SHALL occur.
-
-
 
 \---
 
-
-
 \# 12. Immutable Policies
-
-
 
 Policies SHALL be immutable during evaluation.
 
-
-
 The Policy Engine SHALL NOT modify
-
-
 
 \- Policy
 
@@ -582,19 +422,11 @@ The Policy Engine SHALL NOT modify
 
 \- Outcomes
 
-
-
 \---
-
-
 
 \# 13. Replay Guarantee
 
-
-
 Replay SHALL produce an identical decision when evaluated with
-
-
 
 \- identical policy
 
@@ -602,11 +434,7 @@ Replay SHALL produce an identical decision when evaluated with
 
 \- identical engine version
 
-
-
 Replay SHALL NOT depend upon
-
-
 
 \- system time
 
@@ -614,19 +442,11 @@ Replay SHALL NOT depend upon
 
 \- environment
 
-
-
 \---
-
-
 
 \# 14. Prohibited Operations
 
-
-
 The Policy Engine SHALL NOT
-
-
 
 \- call LLMs
 
@@ -642,27 +462,15 @@ The Policy Engine SHALL NOT
 
 \- use current timestamps
 
-
-
 Policy evaluation SHALL remain isolated.
-
-
 
 \---
 
-
-
 \# 15. Runtime Signals
-
-
 
 Signals SHALL be supplied by the Runtime.
 
-
-
 Example
-
-
 
 ```json
 
@@ -678,23 +486,13 @@ Example
 
 ```
 
-
-
 The Policy Engine SHALL consume these values exactly as supplied.
-
-
 
 \---
 
-
-
 \# 16. Policy Outcomes
 
-
-
 Each rule SHALL produce exactly one outcome.
-
-
 
 ```json
 
@@ -708,11 +506,7 @@ Each rule SHALL produce exactly one outcome.
 
 ```
 
-
-
 Supported actions
-
-
 
 \- approve
 
@@ -720,23 +514,13 @@ Supported actions
 
 \- require\_override
 
-
-
 \---
-
-
 
 \# 17. Versioning
 
-
-
 Policies SHALL be versioned independently from the Policy Language.
 
-
-
 Example
-
-
 
 ```json
 
@@ -752,31 +536,17 @@ Example
 
 ```
 
-
-
 Policy versions evolve independently.
-
-
 
 Language changes SHALL increment the Schema Version.
 
-
-
 \---
-
-
 
 \# 18. Backward Compatibility
 
-
-
 Prior to Parmana v1.0
 
-
-
 The legacy condition format
-
-
 
 ```json
 
@@ -790,15 +560,9 @@ The legacy condition format
 
 ```
 
-
-
 is deprecated.
 
-
-
 The canonical Policy Language SHALL use
-
-
 
 ```json
 
@@ -814,27 +578,14 @@ The canonical Policy Language SHALL use
 
 ```
 
-
-
 No backward compatibility is required because Parmana has not yet reached a stable public release.
-
-
 
 \---
 
-
-
 \# 19. Architecture Guarantee
-
-
 
 The Policy Language is part of Parmana's public contract.
 
-
-
 All SDKs, runtimes, validators, replay engines and verification engines SHALL interpret policies identically.
 
-
-
 This guarantees deterministic execution, replay, verification and auditability across every Parmana implementation.
-

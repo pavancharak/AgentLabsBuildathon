@@ -3,9 +3,7 @@ import type {
   ExecutionTrustRecord,
 } from "@parmana/shared";
 
-import type {
-  RuntimeContext,
-} from "./context/RuntimeContext.js";
+import type { RuntimeContext } from "./context/RuntimeContext.js";
 
 /**
  * Result returned by the Parmana Runtime.

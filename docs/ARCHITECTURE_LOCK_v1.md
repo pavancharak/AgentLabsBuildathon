@@ -1,72 +1,36 @@
-
-
 \---
-
-
 
 \# Parmana Architecture Lock v1
 
-
-
 \*\*Status:\*\* LOCKED
-
-
 
 \*\*Version:\*\* v1.0
 
-
-
 \*\*Date:\*\* 2026-06-27
 
-
-
 \---
-
-
 
 \# Purpose
 
-
-
 This document defines the architectural decisions that are frozen for Parmana v1.
-
-
 
 Unless a major version is planned, these decisions must not change.
 
-
-
 Future work must extend the architecture rather than modify these core principles.
 
-
-
 \---
-
-
 
 \# Product Category
 
-
-
 \*\*Execution Trust Infrastructure\*\*
-
-
 
 Parmana ensures there is no gap between what humans decide and what AI systems do.
 
-
-
 \---
-
-
 
 \# Core Trust Lifecycle
 
-
-
 The canonical lifecycle is:
-
-
 
 ```text
 
@@ -104,47 +68,25 @@ Replay
 
 ```
 
-
-
 This lifecycle is locked.
-
-
 
 No additional mandatory stages may be inserted into this sequence for v1.
 
-
-
 \---
-
-
 
 \# Execution Trust Record
 
-
-
 The Execution Trust Record is the immutable evidence produced from execution.
-
-
 
 It is the canonical trust artifact throughout the platform.
 
-
-
 Everything else references it.
-
-
 
 \---
 
-
-
 \# Cryptographic Invariant
 
-
-
 Exactly one canonical implementation computes the Trust Record hash.
-
-
 
 ```text
 
@@ -170,27 +112,15 @@ SHA-256
 
 ```
 
-
-
 No other component may independently compute Trust Record hashes.
-
-
 
 \---
 
-
-
 \# Trust Record Hash
-
-
 
 The Trust Record hash is computed only from immutable execution evidence.
 
-
-
 Included:
-
-
 
 \* trustRecordId
 
@@ -204,11 +134,7 @@ Included:
 
 \* createdAt
 
-
-
 Excluded:
-
-
 
 \* trustRecordHash
 
@@ -218,27 +144,15 @@ Excluded:
 
 \* updatedAt
 
-
-
 This invariant is frozen.
-
-
 
 \---
 
-
-
 \# Replay
-
-
 
 Replay is an integrity operation.
 
-
-
 Replay:
-
-
 
 \* loads an existing Execution Trust Record
 
@@ -248,51 +162,27 @@ Replay:
 
 \* returns verification results
 
-
-
 Replay never executes business logic.
-
-
 
 Replay never modifies state.
 
-
-
 Replay is deterministic.
 
-
-
 \---
-
-
 
 \# Verification
 
-
-
 Verification validates that the stored Trust Record has not been modified.
-
-
 
 Verification always recomputes the canonical hash before comparison.
 
-
-
 \---
-
-
 
 \# Receipt
 
-
-
 Receipts represent cryptographic proof of a verified Execution Trust Record.
 
-
-
 Each Receipt contains:
-
-
 
 \* receiptHash
 
@@ -304,33 +194,19 @@ Each Receipt contains:
 
 \* issuedAt
 
-
-
 Receipts never modify the Trust Record.
-
-
 
 \---
 
-
-
 \# Runtime Responsibilities
 
-
-
 Runtime is responsible for:
-
-
 
 \* execution
 
 \* Trust Record generation
 
-
-
 Runtime is not responsible for:
-
-
 
 \* cryptographic key management
 
@@ -338,19 +214,11 @@ Runtime is not responsible for:
 
 \* storage implementation
 
-
-
 \---
-
-
 
 \# API Surface
 
-
-
 Canonical API lifecycle:
-
-
 
 ```text
 
@@ -370,11 +238,7 @@ POST /replay
 
 ```
 
-
-
 Read APIs:
-
-
 
 ```text
 
@@ -394,77 +258,41 @@ GET /receipt/latest/:id
 
 ```
 
-
-
 \---
-
-
 
 \# Storage
 
-
-
 Storage implementations are interchangeable.
 
-
-
 Current implementations:
-
-
 
 \* Memory
 
 \* Supabase
 
-
-
 Future implementations must implement the repository interfaces.
 
-
-
 \---
-
-
 
 \# Cryptography
 
-
-
 Current algorithms:
-
-
 
 Hash
 
-
-
 \* SHA-256
-
-
 
 Signature
 
-
-
 \* Ed25519
-
-
 
 Algorithm selection occurs through provider abstractions.
 
-
-
 \---
-
-
 
 \# Testing
 
-
-
 The following are required for v1:
-
-
 
 \* Execute integration
 
@@ -484,23 +312,13 @@ The following are required for v1:
 
 \* API validation tests
 
-
-
 These form the minimum acceptance suite.
-
-
 
 \---
 
-
-
 \# Deferred to v2
 
-
-
 The following capabilities are intentionally excluded from v1:
-
-
 
 \* Persistent Key Management
 
@@ -520,19 +338,11 @@ The following capabilities are intentionally excluded from v1:
 
 \* HSM integration
 
-
-
 These are implementation extensions and must not alter the v1 trust model.
-
-
 
 \---
 
-
-
 \# Architectural Principles
-
-
 
 1\. Deterministic execution evidence
 
@@ -554,19 +364,11 @@ These are implementation extensions and must not alter the v1 trust model.
 
 10\. Backward-compatible evolution
 
-
-
 \---
-
-
 
 \# Change Policy
 
-
-
 The following require a major architecture review:
-
-
 
 \* changing the Trust Record structure
 
@@ -580,23 +382,13 @@ The following require a major architecture review:
 
 \* changing cryptographic invariants
 
-
-
 Minor enhancements may extend the architecture but must not violate these principles.
-
-
 
 \---
 
-
-
 \# Architecture Lock Declaration
 
-
-
 Parmana v1 establishes a stable Execution Trust Infrastructure with a canonical lifecycle:
-
-
 
 ```text
 
@@ -620,9 +412,4 @@ Replay
 
 ```
 
-
-
 This lifecycle, its cryptographic invariants, and the canonical Trust Record hashing model are hereby locked for v1. All future enhancements must preserve these guarantees while extending the platform with production-grade capabilities such as persistent key management, key rotation, and enterprise key providers.
-
-
-

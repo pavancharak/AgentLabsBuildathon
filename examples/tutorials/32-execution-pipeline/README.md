@@ -1,14 +1,8 @@
 \# Tutorial 32 — Execution Pipeline
 
-
-
 \## Overview
 
-
-
 So far we've explored individual parts of Parmana:
-
-
 
 \- Policy Evaluation
 
@@ -18,23 +12,13 @@ So far we've explored individual parts of Parmana:
 
 \- Receipt Generation
 
-
-
 This tutorial demonstrates how those components work together as a single execution pipeline.
-
-
 
 The `ExecutionTrustApplication` orchestrates the complete lifecycle of a Business Transaction and produces an immutable Execution Trust Record.
 
-
-
 \---
 
-
-
 \## Pipeline
-
-
 
 ```text
 
@@ -78,19 +62,11 @@ Execution Trust Record
 
 ```
 
-
-
 Unlike previous tutorials that focused on individual components, this tutorial demonstrates the complete orchestration.
-
-
 
 \---
 
-
-
 \## Building the Application
-
-
 
 ```ts
 
@@ -112,19 +88,11 @@ const application =
 
 ```
 
-
-
 The builder assembles the complete Execution Trust pipeline.
-
-
 
 \---
 
-
-
 \## Executing the Pipeline
-
-
 
 ```ts
 
@@ -138,11 +106,7 @@ const trustRecord =
 
 ```
 
-
-
 The application performs the following stages automatically:
-
-
 
 1\. Accept the Business Transaction.
 
@@ -154,19 +118,11 @@ The application performs the following stages automatically:
 
 5\. Return the completed Execution Trust Record.
 
-
-
 \---
-
-
 
 \## Pipeline Artifacts
 
-
-
 After execution, the Trust Record contains:
-
-
 
 \- Business Transaction
 
@@ -180,19 +136,11 @@ After execution, the Trust Record contains:
 
 \- Signature
 
-
-
 These artifacts together provide cryptographic evidence of the complete execution.
-
-
 
 \---
 
-
-
 \## Expected Output
-
-
 
 ```text
 
@@ -252,23 +200,13 @@ Tutorial completed successfully.
 
 ```
 
-
-
 \---
-
-
 
 \## Why This Matters
 
-
-
 Enterprise systems require more than successful execution.
 
-
-
 They require evidence that:
-
-
 
 \- the request was accepted,
 
@@ -282,19 +220,11 @@ They require evidence that:
 
 \- the complete lifecycle can be audited.
 
-
-
 The Execution Trust Application automates this orchestration.
-
-
 
 \---
 
-
-
 \## Running the Example
-
-
 
 ```bash
 
@@ -302,11 +232,7 @@ tsx examples/tutorials/32-execution-pipeline/run.ts
 
 ```
 
-
-
 or
-
-
 
 ```bash
 
@@ -314,35 +240,19 @@ npm run examples
 
 ```
 
-
-
 \---
-
-
 
 \## Next Tutorial
 
-
-
 \*\*Tutorial 33 — Execution Boundary\*\*
-
-
 
 The next tutorial demonstrates how Parmana becomes the trusted boundary between AI systems and enterprise systems, ensuring only verified and authorized execution requests cross into business applications.
 
-
-
 \---
-
-
 
 \## Summary
 
-
-
 In this tutorial you learned:
-
-
 
 \- The Execution Trust Application orchestrates the complete execution lifecycle.
 
@@ -351,4 +261,3 @@ In this tutorial you learned:
 \- A completed Execution Trust Record contains immutable evidence of execution.
 
 \- The pipeline prepares verified requests before they cross the enterprise execution boundary.
-

@@ -124,7 +124,9 @@ export function createKeysRouter(): Router {
               keys.getPublicKey(keyId),
             ]);
 
-            const pem = publicKey.export({ format: "pem", type: "spki" }).toString();
+            const pem = publicKey
+              .export({ format: "pem", type: "spki" })
+              .toString();
 
             let jwk: unknown;
 

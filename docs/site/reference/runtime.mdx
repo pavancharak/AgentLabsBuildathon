@@ -3,7 +3,11 @@ title: "@parmana/runtime"
 description: "Orchestrates policy evaluation, authorization signing, execution, and trust record assembly. The composition root for everything else."
 ---
 
-<Info>**[AVAILABLE]**. `packages/runtime`. Wires together `@parmana/policy`, `@parmana/crypto`, `@parmana/storage`, and whichever `ExecutionSystem` you supply.</Info>
+<Info>
+  **[AVAILABLE]**. `packages/runtime`. Wires together `@parmana/policy`,
+  `@parmana/crypto`, `@parmana/storage`, and whichever `ExecutionSystem` you
+  supply.
+</Info>
 
 ## Purpose
 
@@ -21,20 +25,20 @@ npm install @parmana/runtime
 
 ### Entry points, [AVAILABLE]
 
-| Export | Signature |
-|---|---|
-| `RuntimeFactory.create(transactions, trustRecords, policyRepository, executionSystem)` | Returns an `ExecutionTrustApplication`. The default server's own bootstrap follows this exact call. |
-| `RuntimeBuilder` | Fluent alternative: `.withPolicyRepository(repo).build(trustRecords)`, used throughout `examples/tutorials/`. |
-| `ExecutionTrustApplication` | `.execute(transaction)`, `.verify(id)`, `.replay(id)`, `.generateReceipt(id)`, `.getTrustRecord(id)`, `.getTransaction(id)`, `.listTransactions(page, pageSize)`. What `packages/api`'s routes call directly. |
+| Export                                                                                 | Signature                                                                                                                                                                                                     |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RuntimeFactory.create(transactions, trustRecords, policyRepository, executionSystem)` | Returns an `ExecutionTrustApplication`. The default server's own bootstrap follows this exact call.                                                                                                           |
+| `RuntimeBuilder`                                                                       | Fluent alternative: `.withPolicyRepository(repo).build(trustRecords)`, used throughout `examples/tutorials/`.                                                                                                 |
+| `ExecutionTrustApplication`                                                            | `.execute(transaction)`, `.verify(id)`, `.replay(id)`, `.generateReceipt(id)`, `.getTrustRecord(id)`, `.getTransaction(id)`, `.listTransactions(page, pageSize)`. What `packages/api`'s routes call directly. |
 
 ### Advanced / lower-level, [AVAILABLE]
 
-| Export | Purpose |
-|---|---|
-| `RuntimeEngine` | The actual pipeline: validation, `ExecutionGate.enforce()` (throws on a `REJECTED` decision), authorization signing, execution, trust record assembly |
-| `RuntimePipeline`, `RuntimeComponent` | The composable stage interface, `ExecutionComponent`, `TrustChainValidationComponent`, etc. implement this |
-| `RuntimeHook`, `RuntimeHookRunner` | Lifecycle hooks around pipeline stages |
-| `RuntimeContext` | Per-execution context threaded through the pipeline (`context.authorization` is where a [signed authorization](/concepts/execution-authorization) is visible before it's discarded, see [Authorize and execute end to end](/guides/authorize-and-execute)) |
+| Export                                | Purpose                                                                                                                                                                                                                                                    |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RuntimeEngine`                       | The actual pipeline: validation, `ExecutionGate.enforce()` (throws on a `REJECTED` decision), authorization signing, execution, trust record assembly                                                                                                      |
+| `RuntimePipeline`, `RuntimeComponent` | The composable stage interface, `ExecutionComponent`, `TrustChainValidationComponent`, etc. implement this                                                                                                                                                 |
+| `RuntimeHook`, `RuntimeHookRunner`    | Lifecycle hooks around pipeline stages                                                                                                                                                                                                                     |
+| `RuntimeContext`                      | Per-execution context threaded through the pipeline (`context.authorization` is where a [signed authorization](/concepts/execution-authorization) is visible before it's discarded, see [Authorize and execute end to end](/guides/authorize-and-execute)) |
 
 ### Services, [AVAILABLE]
 
@@ -54,23 +58,25 @@ catalog](/api-reference/error-catalog).
 ## Startup observability: which optional protections are active
 
 <Note>
-`RuntimeEngine`'s constructor logs a single `runtime_engine_constructed` event noting
-whether `signalStateVerifier`, `capabilityPolicyBinder`, and refusal recording are
-configured for that instance — each is an intentionally optional, capability-scoped
-dependency (RFC-0022, TD-22), and omitting one is valid, deliberate configuration, not a
-bug. Before this, an operator reading logs had no way to tell which protections a given
-deployment was actually running with. Construction-time only, not per-request: the
-configuration doesn't change per transaction. See `docs/CLAIMS.md` §2.30.
+  `RuntimeEngine`'s constructor logs a single `runtime_engine_constructed` event
+  noting whether `signalStateVerifier`, `capabilityPolicyBinder`, and refusal
+  recording are configured for that instance — each is an intentionally
+  optional, capability-scoped dependency (RFC-0022, TD-22), and omitting one is
+  valid, deliberate configuration, not a bug. Before this, an operator reading
+  logs had no way to tell which protections a given deployment was actually
+  running with. Construction-time only, not per-request: the configuration
+  doesn't change per transaction. See `docs/CLAIMS.md` §2.30.
 </Note>
 
 ## A rejected decision throws, it does not return
 
 <Warning>
-`ExecutionTrustApplication.execute()` throws a `RuntimeError` when the policy decision is
-`REJECTED`, it does not return an object with `outcome: "REJECTED"`. Verified live in [Write
-your first policy](/guides/write-your-first-policy): the thrown message is the matched
-rule's rejection reason, `status: 500`, `code: "RUNTIME_ERROR"`. A caller that wants to
-handle rejection gracefully needs a `try`/`catch`.
+  `ExecutionTrustApplication.execute()` throws a `RuntimeError` when the policy
+  decision is `REJECTED`, it does not return an object with `outcome:
+  "REJECTED"`. Verified live in [Write your first
+  policy](/guides/write-your-first-policy): the thrown message is the matched
+  rule's rejection reason, `status: 500`, `code: "RUNTIME_ERROR"`. A caller that
+  wants to handle rejection gracefully needs a `try`/`catch`.
 </Warning>
 
 ## Minimal example
@@ -80,7 +86,9 @@ import { RuntimeFactory } from "@parmana/runtime";
 import { DefaultExecutionSystem } from "@parmana/execution-system";
 
 const application = RuntimeFactory.create(
-  transactionRepository, trustRecordRepository, policyRepository,
+  transactionRepository,
+  trustRecordRepository,
+  policyRepository,
   new DefaultExecutionSystem(),
 );
 
@@ -90,10 +98,20 @@ const trustRecord = await application.execute(transaction); // throws if REJECTE
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="Authorize and execute an action end to end" icon="play" href="/guides/authorize-and-execute">
-    See `RuntimeContext.authorization` directly, something the REST API never exposes.
+  <Card
+    title="Authorize and execute an action end to end"
+    icon="play"
+    href="/guides/authorize-and-execute"
+  >
+    See `RuntimeContext.authorization` directly, something the REST API never
+    exposes.
   </Card>
-  <Card title="@parmana/execution-system" icon="plug" href="/reference/execution-system">
-    The one interface the fourth `RuntimeFactory.create()` argument must implement.
+  <Card
+    title="@parmana/execution-system"
+    icon="plug"
+    href="/reference/execution-system"
+  >
+    The one interface the fourth `RuntimeFactory.create()` argument must
+    implement.
   </Card>
 </CardGroup>

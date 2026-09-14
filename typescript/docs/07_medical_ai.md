@@ -1,18 +1,10 @@
 \# Example 07 — Medical AI Governance
 
-
-
 \## Overview
-
-
 
 Artificial Intelligence is increasingly assisting physicians in diagnosis, treatment planning, medical imaging, triage, and clinical decision support.
 
-
-
 While AI can improve healthcare outcomes, hospitals must also ensure that every AI-assisted action is:
-
-
 
 \* Authorized
 
@@ -26,27 +18,15 @@ While AI can improve healthcare outcomes, hospitals must also ensure that every 
 
 \* Independently verifiable
 
-
-
 Parmana provides this governance by recording an immutable \*\*Execution Trust Chain\*\* for every AI-assisted clinical workflow.
-
-
 
 This guide demonstrates how healthcare organizations can use the TypeScript SDK to govern AI execution while preserving physician oversight.
 
-
-
 \---
-
-
 
 \# Learning Objectives
 
-
-
 After completing this guide you will understand:
-
-
 
 \* Why healthcare requires execution authorization
 
@@ -58,23 +38,13 @@ After completing this guide you will understand:
 
 \* How clinical workflows become replayable and auditable
 
-
-
 \---
-
-
 
 \# Why AI Governance Matters in Healthcare
 
-
-
 Clinical AI should support healthcare professionals—not replace them.
 
-
-
 Examples of AI-assisted workflows include:
-
-
 
 \* Disease diagnosis
 
@@ -92,19 +62,11 @@ Examples of AI-assisted workflows include:
 
 \* Clinical documentation
 
-
-
 Each recommendation should be explainable long after patient care has been completed.
-
-
 
 \---
 
-
-
 \# Execution Trust Chain
-
-
 
 ```text
 
@@ -160,27 +122,15 @@ Execution Trust Record
 
 ```
 
-
-
 Every stage contributes to the permanent governance record.
-
-
 
 \---
 
-
-
 \# Example Scenario
-
-
 
 A physician requests an AI assessment for a patient with respiratory symptoms.
 
-
-
 The AI system:
-
-
 
 \* Reviews structured clinical data
 
@@ -192,27 +142,15 @@ The AI system:
 
 \* Records the completed workflow
 
-
-
 Parmana governs this execution from beginning to end.
-
-
 
 \---
 
-
-
 \# Authority
-
-
 
 Authority identifies the healthcare organization responsible for the workflow.
 
-
-
 Example:
-
-
 
 ```typescript
 
@@ -226,27 +164,15 @@ const authority = {
 
 ```
 
-
-
 Authority establishes organizational accountability.
-
-
 
 \---
 
-
-
 \# Authorization
-
-
 
 Authorization identifies the AI system that is permitted to assist clinicians.
 
-
-
 Example:
-
-
 
 ```typescript
 
@@ -258,63 +184,33 @@ permissions: \[
 
 ```
 
-
-
 Authorization answers:
-
-
 
 > Which clinical operations may this AI perform?
 
-
-
 \---
-
-
 
 \# Medical Intent
 
-
-
 Intent records the requested clinical operation.
-
-
 
 Example:
 
-
-
 ```typescript
+operation: "ASSESS\_PATIENT";
 
-operation: "ASSESS\_PATIENT"
-
-
-
-target: "patient-100234"
-
+target: "patient-100234";
 ```
-
-
 
 Intent represents the physician's request—not the AI's opinion.
 
-
-
 \---
-
-
 
 \# Clinical Policy
 
-
-
 Every Business Transaction specifies an explicit policy.
 
-
-
 Example:
-
-
 
 ```typescript
 
@@ -330,31 +226,17 @@ policyVersion:
 
 ```
 
-
-
 Policy selection is explicit.
-
-
 
 The Runtime never searches for policies.
 
-
-
 \---
-
-
 
 \# Clinical Signals
 
-
-
 Policy evaluation uses recorded clinical information.
 
-
-
 Example:
-
-
 
 ```typescript
 
@@ -390,31 +272,17 @@ signals: {
 
 ```
 
-
-
 These signals represent the clinical context used during decision evaluation.
-
-
 
 They become immutable replay evidence.
 
-
-
 \---
-
-
 
 \# Decision
 
-
-
 The Runtime evaluates the clinical policy.
 
-
-
 Example:
-
-
 
 ```text
 
@@ -426,11 +294,7 @@ APPROVED
 
 ```
 
-
-
 The Decision records:
-
-
 
 \* Outcome
 
@@ -442,27 +306,15 @@ The Decision records:
 
 \* Evaluation timestamp
 
-
-
 This creates a deterministic record of why the recommendation was produced.
-
-
 
 \---
 
-
-
 \# Physician Oversight
-
-
 
 Clinical AI recommendations should typically remain subject to physician judgment.
 
-
-
 Execution evidence may indicate:
-
-
 
 ```typescript
 
@@ -492,27 +344,15 @@ Execution evidence may indicate:
 
 ```
 
-
-
 Parmana records the physician's participation as part of the trust chain rather than replacing clinical responsibility.
-
-
 
 \---
 
-
-
 \# Execution
-
-
 
 Execution records what actually occurred after policy approval.
 
-
-
 Example:
-
-
 
 ```text
 
@@ -524,39 +364,21 @@ COMPLETED
 
 ```
 
-
-
 Execution answers:
-
-
 
 > What happened?
 
-
-
 Decision answers:
-
-
 
 > What should happen?
 
-
-
 \---
-
-
 
 \# Execution Evidence
 
-
-
 Execution Evidence records application-specific results.
 
-
-
 Examples include:
-
-
 
 \* Diagnostic recommendation
 
@@ -570,27 +392,15 @@ Examples include:
 
 \* Treatment recommendation
 
-
-
 Evidence remains intentionally application-defined.
-
-
 
 \---
 
-
-
 \# Receipt
-
-
 
 Successful execution generates an immutable Receipt.
 
-
-
 Example:
-
-
 
 ```text
 
@@ -610,23 +420,13 @@ Ed25519
 
 ```
 
-
-
 The receipt provides cryptographic evidence that the workflow completed successfully.
-
-
 
 \---
 
-
-
 \# Execution Trust Record
 
-
-
 Every clinical artifact becomes part of the immutable Execution Trust Record.
-
-
 
 ```text
 
@@ -658,27 +458,15 @@ Replay
 
 ```
 
-
-
 This aggregate forms the authoritative history of the AI-assisted workflow.
-
-
 
 \---
 
-
-
 \# Replay
-
-
 
 Replay reconstructs the original clinical execution.
 
-
-
 Replay restores:
-
-
 
 \* Recorded patient signals
 
@@ -688,27 +476,15 @@ Replay restores:
 
 \* Clinical recommendation
 
-
-
 Replay never substitutes current patient information.
-
-
 
 Historical replay always evaluates the original recorded evidence.
 
-
-
 \---
-
-
 
 \# Verification
 
-
-
 Verification confirms:
-
-
 
 \* Trust Record integrity
 
@@ -718,23 +494,13 @@ Verification confirms:
 
 \* Trust hash correctness
 
-
-
 Verification determines whether the historical record remains authentic.
-
-
 
 \---
 
-
-
 \# Auditing
 
-
-
 Auditors can later determine:
-
-
 
 \* Which hospital authorized the workflow
 
@@ -752,23 +518,13 @@ Auditors can later determine:
 
 \* Which execution evidence was recorded
 
-
-
 The complete clinical workflow becomes independently reviewable.
-
-
 
 \---
 
-
-
 \# Benefits
 
-
-
 Execution authorization provides:
-
-
 
 \* Clinical accountability
 
@@ -784,19 +540,11 @@ Execution authorization provides:
 
 \* Reproducible clinical decisions
 
-
-
 Parmana governs execution without replacing medical expertise.
-
-
 
 \---
 
-
-
 \# Complete Workflow
-
-
 
 ```text
 
@@ -844,23 +592,13 @@ Audit
 
 ```
 
-
-
 Every stage becomes a permanent trust artifact.
-
-
 
 \---
 
-
-
 \# Complete Example
 
-
-
 See:
-
-
 
 ```text
 
@@ -868,23 +606,13 @@ examples/07\_medical\_ai.ts
 
 ```
 
-
-
 for the full TypeScript implementation.
-
-
 
 \---
 
-
-
 \# Architectural Principles
 
-
-
 Clinical AI governance follows the same Parmana architecture used across every domain:
-
-
 
 \* Explicit Authority
 
@@ -906,53 +634,33 @@ Clinical AI governance follows the same Parmana architecture used across every d
 
 \* Deterministic Replay
 
-
-
 The healthcare domain changes the business context—not the trust architecture.
 
-
-
 \---
-
-
 
 \# Relationship to Other Examples
 
-
-
 The same governance model extends naturally to other regulated domains.
 
-
-
-| Example | Domain                  |
+| Example | Domain |
 
 | ------- | ----------------------- |
 
-| 06      | Autonomous Vehicles     |
+| 06 | Autonomous Vehicles |
 
-| 08      | Financial Transactions  |
+| 08 | Financial Transactions |
 
-| 09      | Multi-Agent AI          |
+| 09 | Multi-Agent AI |
 
-| 10      | Custom Policy Selection |
-
-
+| 10 | Custom Policy Selection |
 
 Parmana applies the same execution trust principles regardless of industry.
 
-
-
 \---
-
-
 
 \# Summary
 
-
-
 In this guide you learned how Parmana governs AI-assisted clinical workflows by recording:
-
-
 
 \* Hospital Authority
 
@@ -976,23 +684,13 @@ In this guide you learned how Parmana governs AI-assisted clinical workflows by 
 
 \* Execution Trust Record
 
-
-
 This architecture enables hospitals to deploy AI-assisted systems while preserving transparency, accountability, replayability, and independent verification.
-
-
 
 \---
 
-
-
 \# Next
 
-
-
 Continue with:
-
-
 
 ```text
 
@@ -1000,9 +698,4 @@ docs/08\_financial\_transaction.md
 
 ```
 
-
-
 to explore how Parmana governs AI-assisted financial transactions, where authorization, fraud controls, policy evaluation, execution evidence, and regulatory compliance form a deterministic Execution Trust Chain.
-
-
-

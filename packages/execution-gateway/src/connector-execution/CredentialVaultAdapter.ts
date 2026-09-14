@@ -1,4 +1,7 @@
-import type { CredentialVault, ExecutionCredential } from "@parmana/execution-control";
+import type {
+  CredentialVault,
+  ExecutionCredential,
+} from "@parmana/execution-control";
 
 import type { CredentialProvider } from "@parmana/connector-sdk";
 

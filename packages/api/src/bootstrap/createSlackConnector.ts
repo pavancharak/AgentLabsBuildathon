@@ -18,6 +18,8 @@ export function createSlackConnector(): Connector {
 
     capabilities: connectorCapabilities([SLACK_POST_MESSAGE_CAPABILITY]),
 
-    ...(process.env.SLACK_BASE_URL !== undefined ? { baseUrl: process.env.SLACK_BASE_URL } : {}),
+    ...(process.env.SLACK_BASE_URL !== undefined
+      ? { baseUrl: process.env.SLACK_BASE_URL }
+      : {}),
   });
 }

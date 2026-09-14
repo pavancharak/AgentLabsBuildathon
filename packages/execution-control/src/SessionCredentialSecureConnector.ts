@@ -58,11 +58,15 @@ export class SessionCredentialSecureConnector implements SecureConnector {
   readonly capabilities: readonly string[];
   readonly identity: ConnectorIdentity;
 
-  constructor(private readonly options: SessionCredentialSecureConnectorOptions) {
+  constructor(
+    private readonly options: SessionCredentialSecureConnectorOptions,
+  ) {
     this.connectorId = options.identity.connectorId;
     this.identity = Object.freeze({
       ...options.identity,
-      authenticationMetadata: Object.freeze({ ...options.identity.authenticationMetadata }),
+      authenticationMetadata: Object.freeze({
+        ...options.identity.authenticationMetadata,
+      }),
     });
     this.capabilities = Object.freeze([...options.capabilities]);
   }
@@ -72,7 +76,11 @@ export class SessionCredentialSecureConnector implements SecureConnector {
     let sessionCredentialId: string | undefined;
 
     try {
-      await this.options.policy.assertAllowed(request, this, this.options.gatewayAuthentication);
+      await this.options.policy.assertAllowed(
+        request,
+        this,
+        this.options.gatewayAuthentication,
+      );
 
       const sessionCredential = await this.options.sessionCredentials.issue(
         this.connectorId,
@@ -82,8 +90,12 @@ export class SessionCredentialSecureConnector implements SecureConnector {
 
       let result: ExecutionResult;
       try {
-        const credential = await this.options.sessionCredentials.consume(sessionCredentialId);
-        result = await this.options.executor.execute(request.executableContent, credential);
+        const credential =
+          await this.options.sessionCredentials.consume(sessionCredentialId);
+        result = await this.options.executor.execute(
+          request.executableContent,
+          credential,
+        );
       } finally {
         await this.options.sessionCredentials.revoke(sessionCredentialId);
       }
@@ -107,7 +119,9 @@ export class SessionCredentialSecureConnector implements SecureConnector {
         connectorId: this.connectorId,
         authorizationId,
         sessionId: request.gatewaySession.sessionId,
-        ...(sessionCredentialId === undefined ? {} : { credentialId: sessionCredentialId }),
+        ...(sessionCredentialId === undefined
+          ? {}
+          : { credentialId: sessionCredentialId }),
         gatewayId: request.gatewayIdentity.gatewayId,
         action: request.executableContent.action,
         reason: error instanceof Error ? error.message : "Unknown rejection",

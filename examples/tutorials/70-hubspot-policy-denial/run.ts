@@ -1,7 +1,10 @@
 import crypto from "node:crypto";
 
 import type { BusinessTransaction } from "@parmana/shared";
-import { MockHubSpotServer, HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN } from "@parmana/connector-hubspot";
+import {
+  MockHubSpotServer,
+  HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN,
+} from "@parmana/connector-hubspot";
 
 //
 // Tutorial 69's sibling: a dealstage transition out of a terminal
@@ -19,12 +22,10 @@ await mockServer.listen();
 process.env.HUBSPOT_BASE_URL = mockServer.baseUrl;
 process.env.TEST_HUBSPOT_PRIVATE_APP_TOKEN = TOKEN;
 
-const { createExecutionSystem } = await import(
-  "../../../packages/api/src/bootstrap/createExecutionSystem.js"
-);
-const { createApplication } = await import(
-  "../../../packages/api/src/application.js"
-);
+const { createExecutionSystem } =
+  await import("../../../packages/api/src/bootstrap/createExecutionSystem.js");
+const { createApplication } =
+  await import("../../../packages/api/src/application.js");
 
 function dealUpdateTransaction(overrides: {
   dealId: string;
@@ -66,7 +67,9 @@ function dealUpdateTransaction(overrides: {
       target: `hubspot://deals/${overrides.dealId}`,
       parameters: Object.freeze({
         dealId: overrides.dealId,
-        ...(overrides.dealstage !== undefined ? { dealstage: overrides.dealstage } : {}),
+        ...(overrides.dealstage !== undefined
+          ? { dealstage: overrides.dealstage }
+          : {}),
         ...(overrides.amount !== undefined ? { amount: overrides.amount } : {}),
       }),
       createdAt: now,
@@ -93,7 +96,11 @@ try {
   // of it is ever allowed.
   mockServer.setDeal({
     id: "9002",
-    properties: { dealstage: "closedlost", amount: "5000", pipeline: "default" },
+    properties: {
+      dealstage: "closedlost",
+      amount: "5000",
+      pipeline: "default",
+    },
   });
 
   const executionSystem = createExecutionSystem();
@@ -137,7 +144,9 @@ try {
 
   console.log("HubSpot Mock Server State");
   console.log("--------------------------------------------------");
-  console.log(`Deal 9002 dealstage : ${deal?.properties.dealstage} (unchanged)`);
+  console.log(
+    `Deal 9002 dealstage : ${deal?.properties.dealstage} (unchanged)`,
+  );
   console.log();
 
   if (outcome === "REJECTED" && deal?.properties.dealstage === "closedlost") {
@@ -145,7 +154,9 @@ try {
       "✓ Deal update denied and the deal is untouched on the mock server -- no forward transition left a terminal stage.",
     );
   } else {
-    console.log("✗ Expected a rejected decision with the deal's dealstage unchanged.");
+    console.log(
+      "✗ Expected a rejected decision with the deal's dealstage unchanged.",
+    );
   }
 
   console.log();

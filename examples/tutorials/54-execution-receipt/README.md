@@ -10,9 +10,9 @@ Generate a real Receipt through the same production pipeline Tutorial 07 uses (`
 
 ## What You'll Learn
 
-* Receipt generation is part of `application.execute()`, not a separate step
-* The legacy `signature`/`algorithm` fields are unchanged under hybrid mode
-* `signatures[]` is populated on the Receipt independently of the Trust Record's own `signatures[]` — each artifact is separately hybrid-signed
+- Receipt generation is part of `application.execute()`, not a separate step
+- The legacy `signature`/`algorithm` fields are unchanged under hybrid mode
+- `signatures[]` is populated on the Receipt independently of the Trust Record's own `signatures[]` — each artifact is separately hybrid-signed
 
 ## Running the Tutorial
 

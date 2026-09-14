@@ -3,11 +3,15 @@ title: "Python SDK"
 description: "Generated models, bearer-key authentication, and a typed error taxonomy verified against real HTTP responses."
 ---
 
-<Info>**[AVAILABLE]**, `python/`, v1.0.5. 64 passing tests, 0 placeholders. Three gaps found in a
-full SDK audit (no bearer-key auth; two real error-taxonomy bugs; a `PolicyApi.validate()` bug)
-were closed and re-verified in that pass, including against a real running local server. A later
-pass added `test_quickstart_example.py`, proving the documented quickstart script itself runs
-(see [Changelog](/changelog)). See the fix history at the bottom of this page.</Info>
+<Info>
+  **[AVAILABLE]**, `python/`, v1.0.5. 64 passing tests, 0 placeholders. Three
+  gaps found in a full SDK audit (no bearer-key auth; two real error-taxonomy
+  bugs; a `PolicyApi.validate()` bug) were closed and re-verified in that pass,
+  including against a real running local server. A later pass added
+  `test_quickstart_example.py`, proving the documented quickstart script itself
+  runs (see [Changelog](/changelog)). See the fix history at the bottom of this
+  page.
+</Info>
 
 ## Install
 
@@ -64,16 +68,16 @@ except ConflictError as exc:          # HTTP 409
     print(exc.status_code, exc)
 ```
 
-| Status | Exception |
-|---|---|
-| 400 | `ValidationError` |
-| 401 | `AuthenticationError` |
+| Status                                                           | Exception                |
+| ---------------------------------------------------------------- | ------------------------ |
+| 400                                                              | `ValidationError`        |
+| 401                                                              | `AuthenticationError`    |
 | 403, code `POLICY_DENIED`, message starting `Execution rejected` | `ExecutionRejectedError` |
-| 403 (no `code`) | `AuthorizationError` |
-| 404 | `NotFoundError` |
-| 409 | `ConflictError` |
-| any other 5xx | `ServerError` |
-| connection failure | `NetworkError` |
+| 403 (no `code`)                                                  | `AuthorizationError`     |
+| 404                                                              | `NotFoundError`          |
+| 409                                                              | `ConflictError`          |
+| any other 5xx                                                    | `ServerError`            |
+| connection failure                                               | `NetworkError`           |
 
 All inherit `ParmanaHttpError` → `ApiError`. Proven against the real `HttpTransport` (not a
 test double) using `responses`-mocked HTTP built from real, verified response shapes
@@ -102,6 +106,7 @@ with `code: "POLICY_DENIED"`, replacing the `500`/`RUNTIME_ERROR` shape bug #2 d
 still doesn't collide with bug #1's caller-identity `403` (no `code`). A real risk-rejected
 `test:fixture-execute` execution raises `ExecutionRejectedError` with `status_code == 403` today,
 not `500`.
+
 </Warning>
 
 The client also reuses a `requests.Session()` (connection pooling) and retries idempotent
@@ -156,9 +161,10 @@ itself, additionally asserting its documented printed output still matches what 
 prints (see [Changelog](/changelog)).
 
 <Note>
-`ruff`/`black`/`mypy` were not reverified in this pass — the dev-tooling extras were not
-installed in this environment. `pytest` (48/48) and live-server verification were run directly;
-the type/lint claim from an earlier pass is not repeated here as current.
+  `ruff`/`black`/`mypy` were not reverified in this pass — the dev-tooling
+  extras were not installed in this environment. `pytest` (48/48) and
+  live-server verification were run directly; the type/lint claim from an
+  earlier pass is not repeated here as current.
 </Note>
 
 ## Next

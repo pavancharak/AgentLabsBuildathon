@@ -96,7 +96,8 @@ class VercelConnectGitHubCredentialProvider implements CredentialProvider {
  * createHubSpotCredentialProvider.ts's test/production split exactly.
  * Kept, not removed, for a deployment that doesn't use Vercel Connect.
  */
-export function createGitHubCredentialProvider(): CredentialProvider | undefined {
+export function createGitHubCredentialProvider():
+  CredentialProvider | undefined {
   const baseUrl = process.env.GITHUB_BASE_URL;
 
   if (process.env.NODE_ENV === "test") {
@@ -104,7 +105,11 @@ export function createGitHubCredentialProvider(): CredentialProvider | undefined
     const testInstallationId = process.env.TEST_GITHUB_INSTALLATION_ID;
     const testPrivateKey = process.env.TEST_GITHUB_APP_PRIVATE_KEY;
 
-    if (testAppId !== undefined && testInstallationId !== undefined && testPrivateKey !== undefined) {
+    if (
+      testAppId !== undefined &&
+      testInstallationId !== undefined &&
+      testPrivateKey !== undefined
+    ) {
       return createGatewayGitHubCredentialProvider({
         appId: testAppId,
         installationId: testInstallationId,
@@ -113,7 +118,9 @@ export function createGitHubCredentialProvider(): CredentialProvider | undefined
       });
     }
 
-    const { privateKey: generatedKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const { privateKey: generatedKey } = generateKeyPairSync("rsa", {
+      modulusLength: 2048,
+    });
 
     return createGatewayGitHubCredentialProvider({
       appId: GITHUB_TEST_MODE_APP_ID,
@@ -134,9 +141,17 @@ export function createGitHubCredentialProvider(): CredentialProvider | undefined
   const installationId = process.env.GITHUB_INSTALLATION_ID;
   const privateKey = process.env.GITHUB_APP_PRIVATE_KEY;
 
-  if (appId === undefined || installationId === undefined || privateKey === undefined) {
+  if (
+    appId === undefined ||
+    installationId === undefined ||
+    privateKey === undefined
+  ) {
     return undefined;
   }
 
-  return createGatewayGitHubCredentialProvider({ appId, installationId, privateKey });
+  return createGatewayGitHubCredentialProvider({
+    appId,
+    installationId,
+    privateKey,
+  });
 }

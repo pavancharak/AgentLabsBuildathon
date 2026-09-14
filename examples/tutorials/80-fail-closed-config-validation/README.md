@@ -6,9 +6,9 @@ Exercise `parseCryptoMode`, `parseStorageProvider`, and `parseApiKeys` directly:
 
 ## What You'll Learn
 
-* An unrecognized `CRYPTO_MODE` or `PARMANA_STORAGE` value throws immediately, naming both the variable and the invalid value — never silently falls back to a default
-* A retired variable name (`DATABASE_PROVIDER`, superseded by `PARMANA_STORAGE`) is caught by name specifically, with a message pointing at its replacement — not just treated as an unknown/ignored variable
-* `PARMANA_API_KEYS` gets the same discipline for structured input: invalid JSON and a well-formed-JSON-but-wrong-shape entry both throw named errors identifying exactly what's wrong
+- An unrecognized `CRYPTO_MODE` or `PARMANA_STORAGE` value throws immediately, naming both the variable and the invalid value — never silently falls back to a default
+- A retired variable name (`DATABASE_PROVIDER`, superseded by `PARMANA_STORAGE`) is caught by name specifically, with a message pointing at its replacement — not just treated as an unknown/ignored variable
+- `PARMANA_API_KEYS` gets the same discipline for structured input: invalid JSON and a well-formed-JSON-but-wrong-shape entry both throw named errors identifying exactly what's wrong
 
 ## Running the Tutorial
 

@@ -41,17 +41,13 @@ export class SupabaseStorageProvider implements StorageProvider {
   constructor() {
     const pool = PostgresPoolFactory.create();
 
-    this.businessTransactions =
-      new SupabaseBusinessTransactionRepository(pool);
+    this.businessTransactions = new SupabaseBusinessTransactionRepository(pool);
 
-    this.trustRecords =
-      new SupabaseExecutionTrustRecordRepository(pool);
+    this.trustRecords = new SupabaseExecutionTrustRecordRepository(pool);
 
-    this.refusalRecords =
-      new SupabaseRefusalRecordRepository(pool);
+    this.refusalRecords = new SupabaseRefusalRecordRepository(pool);
 
-    this.pendingPolicyChanges =
-      new SupabasePendingPolicyChangeRepository(pool);
+    this.pendingPolicyChanges = new SupabasePendingPolicyChangeRepository(pool);
 
     this.policyChangeApprovalRecords =
       new SupabasePolicyChangeApprovalRecordRepository(pool);

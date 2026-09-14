@@ -57,9 +57,9 @@ describe("PolicyChangeApprovalService ordering: record persisted before the live
     // persisting the record, this rejection would happen with no
     // record ever created. Asserting the opposite here is the actual
     // proof of ordering, not merely a description of it.
-    await expect(
-      service.approve(change, "human-checker"),
-    ).rejects.toBe(writeError);
+    await expect(service.approve(change, "human-checker")).rejects.toBe(
+      writeError,
+    );
 
     expect(saveCalled).toBe(true);
 
@@ -75,9 +75,9 @@ describe("PolicyChangeApprovalService ordering: record persisted before the live
 
     // The record is genuinely signed, not a placeholder -- verifiable
     // independently of the service that produced it.
-    await expect(
-      new PolicyChangeCrypto().verify(records[0]),
-    ).resolves.toBe(true);
+    await expect(new PolicyChangeCrypto().verify(records[0])).resolves.toBe(
+      true,
+    );
   });
 
   it("never attempts the live file write when persisting the approval record fails", async () => {

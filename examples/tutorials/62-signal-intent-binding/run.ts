@@ -1,22 +1,12 @@
-import {
-  MemoryExecutionTrustRecordRepository,
-} from "@parmana/storage";
+import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeBuilder,
-} from "@parmana/runtime";
+import { RuntimeBuilder } from "@parmana/runtime";
 
-import mismatchedSignalTransaction from "./transaction-mismatched-signal.json" with {
-  type: "json",
-};
+import mismatchedSignalTransaction from "./transaction-mismatched-signal.json" with { type: "json" };
 
-import correctlyBoundTransaction from "./transaction-correctly-bound.json" with {
-  type: "json",
-};
+import correctlyBoundTransaction from "./transaction-correctly-bound.json" with { type: "json" };
 
 async function main(): Promise<void> {
   console.log();
@@ -37,15 +27,13 @@ async function main(): Promise<void> {
   console.log(
     "real-world action the system actually executes — not just a payload",
   );
-  console.log(
-    "that happens to look correct in isolation.",
-  );
+  console.log("that happens to look correct in isolation.");
   console.log();
   console.log(
-    "vendor-payment@2.0.0 declares: boundSignals.vendorId = \"target\".",
+    'vendor-payment@2.0.0 declares: boundSignals.vendorId = "target".',
   );
   console.log(
-    "Every transaction below shares the same intent.target, \"sap.payment.release\".",
+    'Every transaction below shares the same intent.target, "sap.payment.release".',
   );
   console.log();
 
@@ -53,14 +41,9 @@ async function main(): Promise<void> {
   // Runtime
   //
 
-  const runtime =
-    new RuntimeBuilder()
-      .withPolicyRepository(
-        new FilePolicyRepository("policies"),
-      )
-      .build(
-        new MemoryExecutionTrustRecordRepository(),
-      );
+  const runtime = new RuntimeBuilder()
+    .withPolicyRepository(new FilePolicyRepository("policies"))
+    .build(new MemoryExecutionTrustRecordRepository());
 
   //
   // Scenario 1: a mismatched signal
@@ -72,18 +55,14 @@ async function main(): Promise<void> {
   console.log();
 
   try {
-    await runtime.execute(
-      mismatchedSignalTransaction,
-    );
+    await runtime.execute(mismatchedSignalTransaction);
 
     throw new Error(
       "Expected this transaction to be rejected, but it was approved. " +
         "This tutorial's fixture no longer demonstrates a signal/intent mismatch.",
     );
   } catch (error) {
-    console.log(
-      `✗ ${(error as Error).message}`,
-    );
+    console.log(`✗ ${(error as Error).message}`);
     console.log();
     console.log(
       "This is Parmana working as intended: the caller never declared a",
@@ -107,18 +86,10 @@ async function main(): Promise<void> {
   console.log("--------------------------------------------------");
   console.log();
 
-  const {
-    context,
-  } = await runtime.execute(
-    correctlyBoundTransaction,
-  );
+  const { context } = await runtime.execute(correctlyBoundTransaction);
 
-  console.log(
-    `✓ ${context.decision.outcome}`,
-  );
-  console.log(
-    `Reason : ${context.decision.reason}`,
-  );
+  console.log(`✓ ${context.decision.outcome}`);
+  console.log(`Reason : ${context.decision.reason}`);
 
   console.log();
   console.log(
@@ -147,9 +118,7 @@ async function main(): Promise<void> {
   );
 
   console.log();
-  console.log(
-    "Tutorial completed successfully.",
-  );
+  console.log("Tutorial completed successfully.");
 }
 
 main().catch((error) => {

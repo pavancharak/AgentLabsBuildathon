@@ -1,46 +1,24 @@
 \# Parmana Specification
 
-
-
 Version: 1.0
-
-
 
 Status: Normative
 
-
-
 \---
-
-
 
 \# Purpose
 
-
-
 This specification defines the normative behavior of the Parmana Execution Trust Infrastructure.
-
-
 
 Any implementation claiming compatibility with Parmana should conform to this specification.
 
-
-
 Normative keywords such as \*\*MUST\*\*, \*\*MUST NOT\*\*, \*\*SHOULD\*\*, \*\*SHOULD NOT\*\*, and \*\*MAY\*\* are used as defined by RFC 2119.
-
-
 
 \---
 
-
-
 \# Scope
 
-
-
 This specification defines:
-
-
 
 \* canonical execution model
 
@@ -60,11 +38,7 @@ This specification defines:
 
 \* replay
 
-
-
 This specification does not define:
-
-
 
 \* business policies
 
@@ -76,19 +50,11 @@ This specification does not define:
 
 \* AI models
 
-
-
 \---
-
-
 
 \# Canonical Trust Chain
 
-
-
 A conforming implementation MUST model execution using the following trust chain.
-
-
 
 ```text
 
@@ -140,23 +106,13 @@ Replay
 
 ```
 
-
-
 Each artifact MUST be explicitly linked to its predecessor.
-
-
 
 \---
 
-
-
 \# Business Transaction
 
-
-
 A Business Transaction MUST include:
-
-
 
 \* Business Transaction identifier
 
@@ -176,23 +132,13 @@ A Business Transaction MUST include:
 
 \* Creation timestamp
 
-
-
 The Business Transaction SHALL be treated as immutable after acceptance.
-
-
 
 \---
 
-
-
 \# Trust Relationships
 
-
-
 A conforming implementation MUST enforce the following relationships.
-
-
 
 \* Authorization.authorityId MUST equal Authority.authorityId.
 
@@ -202,23 +148,13 @@ A conforming implementation MUST enforce the following relationships.
 
 \* PolicyReference MUST identify exactly one policy.
 
-
-
 \---
-
-
 
 \# Policy Selection
 
-
-
 Policy selection MUST be deterministic.
 
-
-
 The runtime:
-
-
 
 \* MUST load the policy explicitly referenced by the Business Transaction.
 
@@ -230,23 +166,13 @@ The runtime:
 
 \* MUST NOT substitute a different policy.
 
-
-
 \---
-
-
 
 \# Policy Evaluation
 
-
-
 Policy evaluation MUST be deterministic.
 
-
-
 The implementation:
-
-
 
 \* MUST evaluate rules sequentially.
 
@@ -258,23 +184,13 @@ The implementation:
 
 \* MUST record the evaluation trace.
 
-
-
 For identical policy inputs and runtime signals, evaluation SHOULD produce the same decision outcome, excluding intentionally variable runtime metadata such as timestamps or generated identifiers.
-
-
 
 \---
 
-
-
 \# Runtime Execution
 
-
-
 Execution MUST occur only after:
-
-
 
 \* trust validation
 
@@ -282,27 +198,15 @@ Execution MUST occur only after:
 
 \* approved decision
 
-
-
 Execution MUST NOT occur when the decision outcome is not approved.
-
-
 
 \---
 
-
-
 \# Execution Trust Record
-
-
 
 Every successful execution MUST produce an Execution Trust Record.
 
-
-
 The Trust Record MUST include:
-
-
 
 \* Business Transaction
 
@@ -316,23 +220,13 @@ The Trust Record MUST include:
 
 \* Canonical Trust Record hash
 
-
-
 The Trust Record SHALL be treated as immutable evidence.
-
-
 
 \---
 
-
-
 \# Receipt
 
-
-
 Every Receipt MUST include:
-
-
 
 \* Trust Record reference
 
@@ -340,63 +234,33 @@ Every Receipt MUST include:
 
 \* Signature algorithm
 
-
-
 Receipts MUST be verifiable independently of the runtime.
 
-
-
 \---
-
-
 
 \# Verification
 
-
-
 A conforming implementation MUST support verification of execution evidence.
-
-
 
 Verification MUST confirm the integrity of the supplied execution artifacts.
 
-
-
 Verification MUST NOT modify execution evidence.
 
-
-
 \---
-
-
 
 \# Replay
 
-
-
 Replay SHOULD support re-evaluation of previously recorded execution.
-
-
 
 Replay SHOULD detect differences between the recorded execution and the replayed execution.
 
-
-
 Replay MUST NOT modify historical evidence.
-
-
 
 \---
 
-
-
 \# Architectural Constraints
 
-
-
 A conforming implementation:
-
-
 
 \* MUST separate policy evaluation from runtime execution.
 
@@ -406,19 +270,11 @@ A conforming implementation:
 
 \* MUST preserve immutable execution evidence.
 
-
-
 \---
-
-
 
 \# Security Requirements
 
-
-
 Implementations SHOULD:
-
-
 
 \* use canonical serialization for hashing
 
@@ -428,23 +284,13 @@ Implementations SHOULD:
 
 \* validate execution integrity before verification
 
-
-
 Specific cryptographic algorithms are implementation choices unless otherwise specified.
-
-
 
 \---
 
-
-
 \# Conformance
 
-
-
 An implementation conforms to this specification when it:
-
-
 
 \* implements the required trust chain
 
@@ -454,19 +300,11 @@ An implementation conforms to this specification when it:
 
 \* produces verifiable execution evidence
 
-
-
 Conformance requirements are further defined in `CONFORMANCE.md`.
-
-
 
 \---
 
-
-
 \# Related Documents
-
-
 
 \* VISION.md
 
@@ -483,6 +321,3 @@ Conformance requirements are further defined in `CONFORMANCE.md`.
 \* SECURITY.md
 
 \* CONFORMANCE.md
-
-
-

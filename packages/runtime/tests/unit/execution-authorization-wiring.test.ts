@@ -55,14 +55,10 @@ import { TrustChainValidationComponent } from "../../src/components/TrustChainVa
 // or a real database.
 //
 
-class InMemoryBusinessTransactionRepository
-  implements BusinessTransactionRepository
-{
+class InMemoryBusinessTransactionRepository implements BusinessTransactionRepository {
   private readonly store = new Map<string, BusinessTransaction>();
 
-  async create(
-    transaction: BusinessTransaction,
-  ): Promise<BusinessTransaction> {
+  async create(transaction: BusinessTransaction): Promise<BusinessTransaction> {
     this.store.set(transaction.businessTransactionId, transaction);
     return transaction;
   }
@@ -82,14 +78,10 @@ class InMemoryBusinessTransactionRepository
   }
 }
 
-class InMemoryExecutionTrustRecordRepository
-  implements ExecutionTrustRecordRepository
-{
+class InMemoryExecutionTrustRecordRepository implements ExecutionTrustRecordRepository {
   private readonly store = new Map<string, ExecutionTrustRecord>();
 
-  async create(
-    record: ExecutionTrustRecord,
-  ): Promise<ExecutionTrustRecord> {
+  async create(record: ExecutionTrustRecord): Promise<ExecutionTrustRecord> {
     this.store.set(record.businessTransactionId, record);
     return record;
   }
@@ -183,9 +175,7 @@ const REJECT_POLICY: Policy = {
   ],
 };
 
-function createTransaction(
-  businessTransactionId: string,
-): BusinessTransaction {
+function createTransaction(businessTransactionId: string): BusinessTransaction {
   const authorityId = "authority-1";
   const authorizationId = "authorization-1";
   const fixedDate = new Date("2026-01-01T00:00:00Z");
@@ -304,9 +294,7 @@ describe("Execution Authorization Wiring", () => {
     }
 
     expect(caught).toBeInstanceOf(RuntimeError);
-    expect((caught as RuntimeError).message).toContain(
-      "rejected for test",
-    );
+    expect((caught as RuntimeError).message).toContain("rejected for test");
 
     // A policy denial is a deliberate, correct rejection, not a server
     // error — distinguishable from a genuine 500 (and from a replayed
@@ -317,15 +305,12 @@ describe("Execution Authorization Wiring", () => {
     expect(executionSystem.lastRequest).toBeUndefined();
 
     expect(
-      await trustRecords.findByTransactionId(
-        transaction.businessTransactionId,
-      ),
+      await trustRecords.findByTransactionId(transaction.businessTransactionId),
     ).toBeNull();
   });
 
   it("authorization expiry honors configured TTL", async () => {
-    const previous =
-      process.env.EXECUTION_AUTHORIZATION_TTL_SECONDS;
+    const previous = process.env.EXECUTION_AUTHORIZATION_TTL_SECONDS;
 
     process.env.EXECUTION_AUTHORIZATION_TTL_SECONDS = "120";
 
@@ -341,8 +326,7 @@ describe("Execution Authorization Wiring", () => {
       const { payload } = executionSystem.lastRequest!.authorization;
 
       const deltaMs =
-        Date.parse(payload.expiresAt) -
-        Date.parse(payload.authorizedAt);
+        Date.parse(payload.expiresAt) - Date.parse(payload.authorizedAt);
 
       expect(deltaMs).toBe(120_000);
     } finally {
@@ -503,7 +487,10 @@ describe("Execution Authorization Wiring", () => {
     const defaultPublicKey = await new FileKeyProvider().getPublicKey(
       "default",
     );
-    const defaultResult = await verifier.verify(authorization, defaultPublicKey);
+    const defaultResult = await verifier.verify(
+      authorization,
+      defaultPublicKey,
+    );
     expect(defaultResult.checks.signatureVerified).toBe(false);
   });
 
@@ -521,4 +508,3 @@ describe("Execution Authorization Wiring", () => {
     expect(authorization.keyId).toBe("default");
   });
 });
-

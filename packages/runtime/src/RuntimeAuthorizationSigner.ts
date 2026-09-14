@@ -26,23 +26,18 @@ import {
  * key has been provisioned -- see TenantKeyResolver's own doc comment.
  */
 export class RuntimeAuthorizationSigner {
-  private readonly crypto =
-    CryptoBootstrap.create();
+  private readonly crypto = CryptoBootstrap.create();
 
-  private readonly signerPromise =
-    SignerBootstrap.create();
+  private readonly signerPromise = SignerBootstrap.create();
 
-  private readonly authorizationSigner =
-    new AuthorizationSigner(this.crypto);
+  private readonly authorizationSigner = new AuthorizationSigner(this.crypto);
 
   private readonly keyResolverPromise: Promise<TenantKeyResolver>;
 
   constructor(keyResolver?: TenantKeyResolver) {
     this.keyResolverPromise = keyResolver
       ? Promise.resolve(keyResolver)
-      : this.signerPromise.then(
-          (signer) => new FileTenantKeyResolver(signer),
-        );
+      : this.signerPromise.then((signer) => new FileTenantKeyResolver(signer));
   }
 
   /**
@@ -68,8 +63,7 @@ export class RuntimeAuthorizationSigner {
       this.signerPromise,
     ]);
 
-    const keyId =
-      await keyResolver.resolveKeyId(input.tenantId);
+    const keyId = await keyResolver.resolveKeyId(input.tenantId);
 
     return this.authorizationSigner.signWithSigner(
       input,

@@ -40,7 +40,10 @@ export interface CapabilityPolicyBindingViolation {
  * (repo root) for the full history of why this extraction happened and
  * what it does and doesn't close.
  */
-export const CANONICAL_CAPABILITY_POLICY_BINDINGS: ReadonlyMap<string, PolicyReference> = new Map([
+export const CANONICAL_CAPABILITY_POLICY_BINDINGS: ReadonlyMap<
+  string,
+  PolicyReference
+> = new Map([
   [
     "hubspot:deal-fetch",
     { name: "hubspot-deal-update", version: "1.0.0", schemaVersion: "1.0.0" },

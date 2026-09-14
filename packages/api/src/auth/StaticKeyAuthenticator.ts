@@ -3,7 +3,10 @@ import { timingSafeEqual } from "node:crypto";
 import type { ApiKeyEntry } from "@parmana/shared";
 
 import { hashApiKey } from "./hashApiKey.js";
-import type { CallerAuthenticator, CallerIdentity } from "./CallerAuthenticator.js";
+import type {
+  CallerAuthenticator,
+  CallerIdentity,
+} from "./CallerAuthenticator.js";
 
 /**
  * Authenticates callers against a static, pre-hashed set
@@ -31,7 +34,10 @@ export class StaticKeyAuthenticator implements CallerAuthenticator {
     for (const entry of this.entries) {
       const stored = Buffer.from(entry.keyHash, "hex");
 
-      if (stored.length === candidate.length && timingSafeEqual(stored, candidate)) {
+      if (
+        stored.length === candidate.length &&
+        timingSafeEqual(stored, candidate)
+      ) {
         return {
           callerId: entry.callerId,
           ...(entry.allowedPrincipalIds !== undefined

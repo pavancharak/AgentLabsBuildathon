@@ -1,7 +1,10 @@
 import request from "supertest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { BusinessTransaction } from "@parmana/shared";
-import { GITHUB_TEST_MODE_PLACEHOLDER_TOKEN, MockGitHubServer } from "@parmana/connector-github";
+import {
+  GITHUB_TEST_MODE_PLACEHOLDER_TOKEN,
+  MockGitHubServer,
+} from "@parmana/connector-github";
 
 import { createApplication } from "../../src/application.js";
 import { createApp } from "../../src/app.js";
@@ -50,8 +53,13 @@ describe("GitHub PR merge (HTTP boundary)", () => {
 
   const INSTALLATION_TOKEN = "test-mock-installation-token-a1b2c3d4e5f6";
 
-  async function buildApp(): Promise<{ app: ReturnType<typeof createApp>; server: MockGitHubServer }> {
-    const mockServer = new MockGitHubServer({ installationToken: INSTALLATION_TOKEN });
+  async function buildApp(): Promise<{
+    app: ReturnType<typeof createApp>;
+    server: MockGitHubServer;
+  }> {
+    const mockServer = new MockGitHubServer({
+      installationToken: INSTALLATION_TOKEN,
+    });
     await mockServer.listen();
     server = mockServer;
 
@@ -157,7 +165,9 @@ describe("GitHub PR merge (HTTP boundary)", () => {
     // The strongest proof this went through the real HTTP surface end to
     // end: the PR actually merged on the (mock) GitHub server, not just
     // that the API returned 200.
-    expect(mockServer.getPullRequest("acme", "widgets", 42)?.mergedAt).not.toBeNull();
+    expect(
+      mockServer.getPullRequest("acme", "widgets", 42)?.mergedAt,
+    ).not.toBeNull();
     expect(mockServer.mergeCalls).toBe(1);
   });
 
@@ -195,7 +205,9 @@ describe("GitHub PR merge (HTTP boundary)", () => {
     expect(response.body.code).toBe("POLICY_DENIED");
 
     // The PR is untouched on GitHub's (mock) side.
-    expect(mockServer.getPullRequest("acme", "widgets", 43)?.mergedAt).toBeNull();
+    expect(
+      mockServer.getPullRequest("acme", "widgets", 43)?.mergedAt,
+    ).toBeNull();
     expect(mockServer.mergeCalls).toBe(0);
 
     // The strongest possible proof of "zero GitHub API calls": not even a
@@ -204,7 +216,9 @@ describe("GitHub PR merge (HTTP boundary)", () => {
     // the policy REJECTED decision is caught in ExecutionGate.enforce
     // before ExecutionComponent ever dispatches to the connector or
     // resolves a credential.
-    const gitHubCalls = fetchSpy.mock.calls.filter((call) => String(call[0]).startsWith(mockServer.baseUrl));
+    const gitHubCalls = fetchSpy.mock.calls.filter((call) =>
+      String(call[0]).startsWith(mockServer.baseUrl),
+    );
     expect(gitHubCalls).toHaveLength(0);
 
     fetchSpy.mockRestore();
@@ -241,9 +255,13 @@ describe("GitHub PR merge (HTTP boundary)", () => {
     expect(response.status).toBe(403);
     expect(response.body.code).toBe("POLICY_DENIED");
 
-    expect(mockServer.getPullRequest("acme", "widgets", 44)?.mergedAt).toBeNull();
+    expect(
+      mockServer.getPullRequest("acme", "widgets", 44)?.mergedAt,
+    ).toBeNull();
 
-    const gitHubCalls = fetchSpy.mock.calls.filter((call) => String(call[0]).startsWith(mockServer.baseUrl));
+    const gitHubCalls = fetchSpy.mock.calls.filter((call) =>
+      String(call[0]).startsWith(mockServer.baseUrl),
+    );
     expect(gitHubCalls).toHaveLength(0);
 
     fetchSpy.mockRestore();

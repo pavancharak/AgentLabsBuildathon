@@ -62,11 +62,13 @@ class SlackEnvironmentCredentialProvider implements CredentialProvider {
  * credentials -- createConnectorRegistry.ts does not register the
  * Slack connector at all in that case.
  */
-export function createSlackCredentialProvider(): CredentialProvider | undefined {
+export function createSlackCredentialProvider():
+  CredentialProvider | undefined {
   if (process.env.NODE_ENV === "test") {
     return new StaticCredentialProvider({
       [SLACK_CONNECTOR_ID]: {
-        botToken: process.env.TEST_SLACK_BOT_TOKEN ?? SLACK_TEST_MODE_PLACEHOLDER_TOKEN,
+        botToken:
+          process.env.TEST_SLACK_BOT_TOKEN ?? SLACK_TEST_MODE_PLACEHOLDER_TOKEN,
       },
     });
   }

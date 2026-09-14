@@ -30,11 +30,12 @@ describe("runPolicyGovernanceIntegrityCheckAtStartup: construction-time failure"
   });
 
   it("never propagates a throw from constructing its dependencies, and logs it instead", async () => {
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
 
-    const { runPolicyGovernanceIntegrityCheckAtStartup } = await import(
-      "../../src/bootstrap/runPolicyGovernanceIntegrityCheckAtStartup.js"
-    );
+    const { runPolicyGovernanceIntegrityCheckAtStartup } =
+      await import("../../src/bootstrap/runPolicyGovernanceIntegrityCheckAtStartup.js");
 
     // The real regression check: calling this must not throw, even
     // though PolicyChangeCrypto's constructor -- invoked synchronously

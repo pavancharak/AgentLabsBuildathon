@@ -4,18 +4,11 @@ import {
   ExecutionTrustRecord,
 } from "@parmana/shared";
 
-import type {
-  Policy,
-  PolicyDecision,
-} from "@parmana/policy";
+import type { Policy, PolicyDecision } from "@parmana/policy";
 
-import type {
-  RuntimeContext,
-} from "../context/RuntimeContext.js";
+import type { RuntimeContext } from "../context/RuntimeContext.js";
 
-import type {
-  RuntimeHook,
-} from "./RuntimeHook.js";
+import type { RuntimeHook } from "./RuntimeHook.js";
 
 /**
  * Executes Runtime Hooks.
@@ -24,9 +17,7 @@ import type {
  * they were registered.
  */
 export class RuntimeHookRunner {
-public constructor(
-    private readonly hooks: readonly RuntimeHook[] = [],
-) {}
+  public constructor(private readonly hooks: readonly RuntimeHook[] = []) {}
 
   //
   // Policy loading
@@ -36,9 +27,7 @@ public constructor(
     transaction: BusinessTransaction,
   ): Promise<void> {
     for (const hook of this.hooks) {
-      await hook.beforePolicyLoad?.(
-        transaction,
-      );
+      await hook.beforePolicyLoad?.(transaction);
     }
   }
 
@@ -47,10 +36,7 @@ public constructor(
     policy: Policy,
   ): Promise<void> {
     for (const hook of this.hooks) {
-      await hook.afterPolicyLoad?.(
-        transaction,
-        policy,
-      );
+      await hook.afterPolicyLoad?.(transaction, policy);
     }
   }
 
@@ -63,10 +49,7 @@ public constructor(
     policy: Policy,
   ): Promise<void> {
     for (const hook of this.hooks) {
-      await hook.beforePolicyEvaluation?.(
-        transaction,
-        policy,
-      );
+      await hook.beforePolicyEvaluation?.(transaction, policy);
     }
   }
 
@@ -76,11 +59,7 @@ public constructor(
     decision: PolicyDecision,
   ): Promise<void> {
     for (const hook of this.hooks) {
-      await hook.afterPolicyEvaluation?.(
-        transaction,
-        policy,
-        decision,
-      );
+      await hook.afterPolicyEvaluation?.(transaction, policy, decision);
     }
   }
 
@@ -93,20 +72,13 @@ public constructor(
     decision: PolicyDecision,
   ): Promise<void> {
     for (const hook of this.hooks) {
-      await hook.beforeDecision?.(
-        transaction,
-        decision,
-      );
+      await hook.beforeDecision?.(transaction, decision);
     }
   }
 
-  public async afterDecision(
-    context: RuntimeContext,
-  ): Promise<void> {
+  public async afterDecision(context: RuntimeContext): Promise<void> {
     for (const hook of this.hooks) {
-      await hook.afterDecision?.(
-        context,
-      );
+      await hook.afterDecision?.(context);
     }
   }
 
@@ -119,10 +91,7 @@ public constructor(
     decision: PolicyDecision,
   ): Promise<void> {
     for (const hook of this.hooks) {
-      await hook.beforeAuthorization?.(
-        transaction,
-        decision,
-      );
+      await hook.beforeAuthorization?.(transaction, decision);
     }
   }
 
@@ -132,11 +101,7 @@ public constructor(
     authorization: SignedExecutionAuthorization,
   ): Promise<void> {
     for (const hook of this.hooks) {
-      await hook.afterAuthorization?.(
-        transaction,
-        decision,
-        authorization,
-      );
+      await hook.afterAuthorization?.(transaction, decision, authorization);
     }
   }
 
@@ -144,23 +109,15 @@ public constructor(
   // Runtime Pipeline
   //
 
-  public async beforeExecution(
-    context: RuntimeContext,
-  ): Promise<void> {
+  public async beforeExecution(context: RuntimeContext): Promise<void> {
     for (const hook of this.hooks) {
-      await hook.beforeExecution?.(
-        context,
-      );
+      await hook.beforeExecution?.(context);
     }
   }
 
-  public async afterExecution(
-    context: RuntimeContext,
-  ): Promise<void> {
+  public async afterExecution(context: RuntimeContext): Promise<void> {
     for (const hook of this.hooks) {
-      await hook.afterExecution?.(
-        context,
-      );
+      await hook.afterExecution?.(context);
     }
   }
 
@@ -168,13 +125,9 @@ public constructor(
   // Trust Pipeline
   //
 
-  public async beforeTrustRecord(
-    context: RuntimeContext,
-  ): Promise<void> {
+  public async beforeTrustRecord(context: RuntimeContext): Promise<void> {
     for (const hook of this.hooks) {
-      await hook.beforeTrustRecord?.(
-        context,
-      );
+      await hook.beforeTrustRecord?.(context);
     }
   }
 
@@ -183,10 +136,7 @@ public constructor(
     trustRecord: ExecutionTrustRecord,
   ): Promise<void> {
     for (const hook of this.hooks) {
-      await hook.afterTrustRecord?.(
-        context,
-        trustRecord,
-      );
+      await hook.afterTrustRecord?.(context, trustRecord);
     }
   }
 
@@ -199,10 +149,7 @@ public constructor(
     error: Error,
   ): Promise<void> {
     for (const hook of this.hooks) {
-      await hook.onRuntimeError?.(
-        context,
-        error,
-      );
+      await hook.onRuntimeError?.(context, error);
     }
   }
 }

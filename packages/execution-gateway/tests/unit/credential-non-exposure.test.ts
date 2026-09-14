@@ -40,7 +40,9 @@ describe("GatewayHubSpotAdapter credential lifecycle", () => {
   let server: MockHubSpotServer;
 
   beforeEach(async () => {
-    server = new MockHubSpotServer({ token: HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN });
+    server = new MockHubSpotServer({
+      token: HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN,
+    });
     await server.listen();
   });
 
@@ -94,7 +96,11 @@ describe("GatewayHubSpotAdapter credential lifecycle", () => {
     try {
       scopedServer.setDeal({
         id: "2002",
-        properties: { dealstage: "appointmentscheduled", amount: "100", pipeline: "default" },
+        properties: {
+          dealstage: "appointmentscheduled",
+          amount: "100",
+          pipeline: "default",
+        },
       });
 
       const instance = new GatewayHubSpotAdapter({
@@ -114,9 +120,9 @@ describe("GatewayHubSpotAdapter credential lifecycle", () => {
       // First call: wrong token for this server. Must fail — proves the
       // instance has no left-over valid credential of its own to fall
       // back on.
-      await expect(instance.execute(request, contextWithToken(tokenA))).rejects.toThrow(
-        "HTTP 401",
-      );
+      await expect(
+        instance.execute(request, contextWithToken(tokenA)),
+      ).rejects.toThrow("HTTP 401");
 
       // Second call, same instance: the correct token, supplied fresh.
       // Succeeding here (and being fingerprinted as tokenB, not tokenA)
@@ -126,7 +132,9 @@ describe("GatewayHubSpotAdapter credential lifecycle", () => {
 
       expect(result.success).toBe(true);
       expect(result.metadata?.bearerRedacted).toBe(redactHubSpotToken(tokenB));
-      expect(result.metadata?.bearerRedacted).not.toBe(redactHubSpotToken(tokenA));
+      expect(result.metadata?.bearerRedacted).not.toBe(
+        redactHubSpotToken(tokenA),
+      );
       expect((result.metadata?.deal as HubSpotDeal).id).toBe("2002");
     } finally {
       await scopedServer.close();

@@ -1,22 +1,14 @@
-import {
-  MemoryExecutionTrustRecordRepository,
-} from "@parmana/storage";
+import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeBuilder,
-} from "@parmana/runtime";
+import { RuntimeBuilder } from "@parmana/runtime";
 
 import { LoggingHook } from "./LoggingHook.js";
 import { MetricsHook } from "./MetricsHook.js";
 import { CustomRuntimeComponent } from "./CustomRuntimeComponent.js";
 
-import transaction from "./transaction.json" with {
-  type: "json",
-};
+import transaction from "./transaction.json" with { type: "json" };
 
 async function main(): Promise<void> {
   console.log();
@@ -28,36 +20,22 @@ async function main(): Promise<void> {
   //
   // Trust Record Repository
   //
-  const repository =
-    new MemoryExecutionTrustRecordRepository();
+  const repository = new MemoryExecutionTrustRecordRepository();
 
   //
   // Runtime
   //
-  const runtime =
-    new RuntimeBuilder()
-      .withPolicyRepository(
-        new FilePolicyRepository("policies"),
-      )
-      .addStage(
-        new CustomRuntimeComponent(),
-      )
-      .addHook(
-        new LoggingHook(),
-      )
-      .addHook(
-        new MetricsHook(),
-      )
-      .build(repository);
+  const runtime = new RuntimeBuilder()
+    .withPolicyRepository(new FilePolicyRepository("policies"))
+    .addStage(new CustomRuntimeComponent())
+    .addHook(new LoggingHook())
+    .addHook(new MetricsHook())
+    .build(repository);
 
   //
   // Execute
   //
-  const {
-    trustRecord,
-  } = await runtime.execute(
-    transaction,
-  );
+  const { trustRecord } = await runtime.execute(transaction);
 
   console.log();
   console.log("==================================================");
@@ -65,41 +43,25 @@ async function main(): Promise<void> {
   console.log("==================================================");
   console.log();
 
-  console.log(
-    `Trust Record ID  : ${trustRecord.trustRecordId}`,
-  );
+  console.log(`Trust Record ID  : ${trustRecord.trustRecordId}`);
 
-  console.log(
-    `Trust Record Hash: ${trustRecord.trustRecordHash}`,
-  );
+  console.log(`Trust Record Hash: ${trustRecord.trustRecordHash}`);
 
   console.log();
 
-  console.log(
-    "Runtime successfully composed from:",
-  );
+  console.log("Runtime successfully composed from:");
 
-  console.log(
-    "  ✓ Policy Repository",
-  );
+  console.log("  ✓ Policy Repository");
 
-  console.log(
-    "  ✓ Runtime Component",
-  );
+  console.log("  ✓ Runtime Component");
 
-  console.log(
-    "  ✓ Logging Hook",
-  );
+  console.log("  ✓ Logging Hook");
 
-  console.log(
-    "  ✓ Metrics Hook",
-  );
+  console.log("  ✓ Metrics Hook");
 
   console.log();
 
-  console.log(
-    "Tutorial completed successfully.",
-  );
+  console.log("Tutorial completed successfully.");
 }
 
 main().catch((error) => {

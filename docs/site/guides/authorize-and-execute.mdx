@@ -3,7 +3,10 @@ title: "Authorize and Execute an Action End to End"
 description: "See the signed authorization envelope Quickstart hides behind the REST API, then run the same request through the full gateway-wired server."
 ---
 
-<Info>**[AVAILABLE]**, every command below was run in this session, commit `651497a`.</Info>
+<Info>
+  **[AVAILABLE]**, every command below was run in this session, commit
+  `651497a`.
+</Info>
 
 ## Goal
 
@@ -57,7 +60,7 @@ minutes after `Authorized At`, the envelope's TTL.
 ### 2. Run the same shape of request through the full server
 
 This library call skips the gateway and connector entirely, it's the Runtime in isolation.
-To see the *whole* pipeline, authorization through gateway verification through credential
+To see the _whole_ pipeline, authorization through gateway verification through credential
 issuance through a connector, run [Quickstart](/quickstart) steps 3 and 5 if you haven't:
 start the server, then execute a transaction over HTTP.
 
@@ -97,7 +100,11 @@ signals, same policy, same outcome, different amount of what you get to see.
   <Card title="Detect tampering" icon="bug" href="/guides/detect-tampering">
     Mutate this same content and watch the hash comparison reject it.
   </Card>
-  <Card title="Verify a trust record independently" icon="check-double" href="/guides/verify-independently">
+  <Card
+    title="Verify a trust record independently"
+    icon="check-double"
+    href="/guides/verify-independently"
+  >
     Check the resulting trust record's signature without Parmana running at all.
   </Card>
 </CardGroup>

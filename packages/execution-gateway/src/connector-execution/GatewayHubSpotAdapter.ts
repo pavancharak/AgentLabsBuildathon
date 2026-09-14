@@ -89,7 +89,10 @@ export class GatewayHubSpotAdapter implements Connector {
     // guarantee this codebase controls. Refuse outright instead. See
     // HubSpotTypes.ts's comment on HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN
     // for why this guard exists from this connector's first version.
-    if (this.baseUrl === DEFAULT_BASE_URL && privateAppToken === HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN) {
+    if (
+      this.baseUrl === DEFAULT_BASE_URL &&
+      privateAppToken === HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN
+    ) {
       throw new Error(
         `HubSpotConnector "${this.connectorId}" refuses to send the built-in test-mode placeholder ` +
           `credential to HubSpot's real API (${DEFAULT_BASE_URL}). This placeholder is only safe against ` +
@@ -107,9 +110,19 @@ export class GatewayHubSpotAdapter implements Connector {
     try {
       switch (request.capability) {
         case HUBSPOT_DEAL_FETCH_CAPABILITY:
-          return await this.fetchDeal(request, authorizationHeader, controller.signal, privateAppToken);
+          return await this.fetchDeal(
+            request,
+            authorizationHeader,
+            controller.signal,
+            privateAppToken,
+          );
         case HUBSPOT_DEAL_UPDATE_CAPABILITY:
-          return await this.updateDeal(request, authorizationHeader, controller.signal, privateAppToken);
+          return await this.updateDeal(
+            request,
+            authorizationHeader,
+            controller.signal,
+            privateAppToken,
+          );
         default:
           throw new Error(
             `HubSpotConnector "${this.connectorId}" has no handler for capability "${request.capability}".`,
@@ -135,13 +148,19 @@ export class GatewayHubSpotAdapter implements Connector {
     signal: AbortSignal,
     token: string,
   ): Promise<ConnectorResponse> {
-    const dealId = requireString(request.parameters.dealId, "parameters.dealId");
+    const dealId = requireString(
+      request.parameters.dealId,
+      "parameters.dealId",
+    );
     const deal = (await this.hubspotGet(
       `/crm/v3/objects/deals/${encodeURIComponent(dealId)}?properties=dealstage,amount,pipeline`,
       authorizationHeader,
       signal,
     )) as HubSpotDeal;
-    return { success: true, metadata: { deal, bearerRedacted: redactHubSpotToken(token) } };
+    return {
+      success: true,
+      metadata: { deal, bearerRedacted: redactHubSpotToken(token) },
+    };
   }
 
   /**
@@ -155,11 +174,18 @@ export class GatewayHubSpotAdapter implements Connector {
     signal: AbortSignal,
     token: string,
   ): Promise<ConnectorResponse> {
-    const dealId = requireString(request.parameters.dealId, "parameters.dealId");
+    const dealId = requireString(
+      request.parameters.dealId,
+      "parameters.dealId",
+    );
     const bearerRedacted = redactHubSpotToken(token);
 
     const disallowedKeys = Object.keys(request.parameters).filter(
-      (key) => key !== "dealId" && !(HUBSPOT_ALLOWED_DEAL_UPDATE_PROPERTIES as readonly string[]).includes(key),
+      (key) =>
+        key !== "dealId" &&
+        !(HUBSPOT_ALLOWED_DEAL_UPDATE_PROPERTIES as readonly string[]).includes(
+          key,
+        ),
     );
     if (disallowedKeys.length > 0) {
       throw new Error(
@@ -179,9 +205,13 @@ export class GatewayHubSpotAdapter implements Connector {
       );
     }
 
-    const properties: Partial<Record<HubSpotAllowedDealUpdateProperty, string>> = {};
-    if (dealstage !== undefined) properties.dealstage = requireString(dealstage, "parameters.dealstage");
-    if (amount !== undefined) properties.amount = String(requireNumber(amount, "parameters.amount"));
+    const properties: Partial<
+      Record<HubSpotAllowedDealUpdateProperty, string>
+    > = {};
+    if (dealstage !== undefined)
+      properties.dealstage = requireString(dealstage, "parameters.dealstage");
+    if (amount !== undefined)
+      properties.amount = String(requireNumber(amount, "parameters.amount"));
 
     const updated = (await this.hubspotPatch(
       `/crm/v3/objects/deals/${encodeURIComponent(dealId)}`,
@@ -193,7 +223,11 @@ export class GatewayHubSpotAdapter implements Connector {
     return { success: true, metadata: { deal: updated, bearerRedacted } };
   }
 
-  private async hubspotGet(path: string, authorizationHeader: string, signal: AbortSignal): Promise<unknown> {
+  private async hubspotGet(
+    path: string,
+    authorizationHeader: string,
+    signal: AbortSignal,
+  ): Promise<unknown> {
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: "GET",
       signal,
@@ -232,14 +266,18 @@ export class GatewayHubSpotAdapter implements Connector {
 
 function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0) {
-    throw new Error(`HubSpotConnector request is missing required field "${field}".`);
+    throw new Error(
+      `HubSpotConnector request is missing required field "${field}".`,
+    );
   }
   return value;
 }
 
 function requireNumber(value: unknown, field: string): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new Error(`HubSpotConnector request field "${field}" must be a finite number.`);
+    throw new Error(
+      `HubSpotConnector request field "${field}" must be a finite number.`,
+    );
   }
   return value;
 }

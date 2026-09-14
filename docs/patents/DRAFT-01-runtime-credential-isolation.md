@@ -20,7 +20,7 @@ exfiltrated for a purpose other than the single execution it was issued for.
 Existing integration architectures — API gateways, OAuth-scoped tokens, role-based access control
 — grant a caller a credential (an API key, an OAuth token, a service-account secret) that remains
 valid for a period of time or a number of uses extending beyond any single action. This creates
-two structural risks regardless of how tightly the credential's *scope* is restricted:
+two structural risks regardless of how tightly the credential's _scope_ is restricted:
 
 1. **Credential persistence risk.** A credential that outlives the action it was issued for is a
    standing target: if leaked, logged, or exfiltrated by a compromised or malicious caller
@@ -28,8 +28,8 @@ two structural risks regardless of how tightly the credential's *scope* is restr
    remains usable until manually revoked.
 2. **No cryptographic binding between "this credential was authorized" and "this credential was
    used for the thing it was authorized for."** Scope restrictions (e.g., an OAuth scope of
-   `refunds:write`) constrain *what kind* of action a credential can perform, not *which specific,
-   individually-authorized action* it was issued to perform.
+   `refunds:write`) constrain _what kind_ of action a credential can perform, not _which specific,
+   individually-authorized action_ it was issued to perform.
 
 ## Summary of the Invention
 
@@ -47,7 +47,7 @@ every registered connector in a `SessionCredentialSecureConnector`. Its `execute
 performs the following sequence for every execution request:
 
 1. **Policy assertion first.** `this.options.policy.assertAllowed(request, this,
-   gatewayAuthentication)` is evaluated before any credential is issued — no credential exists
+gatewayAuthentication)` is evaluated before any credential is issued — no credential exists
    yet at this point, so a rejected request never causes a credential to be minted at all.
 2. **Issue.** `this.options.sessionCredentials.issue(connectorId, authorizationId)` mints a new
    session credential scoped to the connector and the specific `authorizationId` of the execution
@@ -61,7 +61,7 @@ performs the following sequence for every execution request:
    failure does not leave a usable credential outstanding.
 5. **Audit on both paths.** Every `execute()` call — success or failure — writes exactly one audit
    event (`execution.completed` or `execution.rejected`) naming the connector, the authorization,
-   the session, and the credential's *id* (never its value), via `ExecutionAuditSink`.
+   the session, and the credential's _id_ (never its value), via `ExecutionAuditSink`.
 
 The credential vault itself (`packages/execution-control/src/CredentialVault.ts`,
 `SessionCredentialVault`) is the layer that actually enforces single-use semantics — a second
@@ -74,7 +74,7 @@ second `consume()` throwing `'has been revoked'`").
 ## Novel Elements (candidate claims — informal, for attorney refinement)
 
 1. A method for authorizing execution of an action against a third-party system, comprising:
-   evaluating a deterministic policy against the requested action *before* issuing any
+   evaluating a deterministic policy against the requested action _before_ issuing any
    credential; upon approval, issuing a session-scoped credential bound to both the specific
    connector and the specific authorization identifier of the approved action; consuming that
    credential exactly once to perform the action; and unconditionally destroying the credential
@@ -97,8 +97,8 @@ second `consume()` throwing `'has been revoked'`").
 
 - Whether "single-use session credential, issued after policy approval and destroyed via
   structural try/finally regardless of outcome" is novel over existing OAuth/short-lived-token
-  patterns, or whether the distinguishing element needs sharper framing (e.g., the *binding to a
-  specific authorizationId*, not just short lifetime, may be the actual novel element).
+  patterns, or whether the distinguishing element needs sharper framing (e.g., the _binding to a
+  specific authorizationId_, not just short lifetime, may be the actual novel element).
 - Whether claim 4 (default-wrapping at the registry level, not opt-in) is separately claimable or
   should fold into claim 1 as an implementation detail.
 - Formal patent drawings (a sequence diagram of issue → consume → execute → revoke, and a

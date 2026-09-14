@@ -1,8 +1,6 @@
 import { ExecutionRequest } from "./ExecutionRequest.js";
 
-import {
-  ExecutionResult,
-} from "@parmana/shared";
+import { ExecutionResult } from "@parmana/shared";
 
 /**
  * Canonical Execution System.
@@ -11,7 +9,5 @@ import {
  * to an Execution System.
  */
 export interface ExecutionSystem {
-  execute(
-    request: ExecutionRequest,
-  ): Promise<ExecutionResult>;
+  execute(request: ExecutionRequest): Promise<ExecutionResult>;
 }

@@ -1,25 +1,15 @@
-import {
-  MemoryExecutionTrustRecordRepository,
-} from "@parmana/storage";
+import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
-import {
-  FilePolicyRepository,
-} from "@parmana/policy";
+import { FilePolicyRepository } from "@parmana/policy";
 
-import {
-  RuntimeBuilder,
-} from "@parmana/runtime";
+import { RuntimeBuilder } from "@parmana/runtime";
 
-import transaction from "./transaction.json" with {
-  type: "json",
-};
+import transaction from "./transaction.json" with { type: "json" };
 
 async function main(): Promise<void> {
   console.log();
   console.log("==================================================");
-  console.log(
-    "Tutorial 22 - Idempotent Execution",
-  );
+  console.log("Tutorial 22 - Idempotent Execution");
   console.log("==================================================");
   console.log();
 
@@ -27,21 +17,15 @@ async function main(): Promise<void> {
   // Repository
   //
 
-  const repository =
-    new MemoryExecutionTrustRecordRepository();
+  const repository = new MemoryExecutionTrustRecordRepository();
 
   //
   // Runtime
   //
 
-  const runtime =
-    new RuntimeBuilder()
-      .withPolicyRepository(
-        new FilePolicyRepository(
-          "policies",
-        ),
-      )
-      .build(repository);
+  const runtime = new RuntimeBuilder()
+    .withPolicyRepository(new FilePolicyRepository("policies"))
+    .build(repository);
 
   let originalExecutions = 0;
   let retries = 0;
@@ -50,26 +34,16 @@ async function main(): Promise<void> {
   // First execution
   //
 
-  console.log(
-    "First execution...",
-  );
+  console.log("First execution...");
 
   try {
-    const {
-      context,
-    } = await runtime.execute(
-      transaction,
-    );
+    const { context } = await runtime.execute(transaction);
 
-    console.log(
-      `✓ ${context.decision.outcome}`,
-    );
+    console.log(`✓ ${context.decision.outcome}`);
 
     originalExecutions++;
   } catch (error) {
-    console.log(
-      `✗ ${(error as Error).message}`,
-    );
+    console.log(`✗ ${(error as Error).message}`);
   }
 
   console.log();
@@ -78,24 +52,14 @@ async function main(): Promise<void> {
   // Retry #1
   //
 
-  console.log(
-    "Retry #1...",
-  );
+  console.log("Retry #1...");
 
   try {
-    await runtime.execute(
-      transaction,
-    );
+    await runtime.execute(transaction);
 
-    console.log(
-      "✓ Transaction executed again.",
-    );
+    console.log("✓ Transaction executed again.");
   } catch (error) {
-    console.log(
-      `✓ Retry handled: ${
-        (error as Error).message
-      }`,
-    );
+    console.log(`✓ Retry handled: ${(error as Error).message}`);
   }
 
   retries++;
@@ -106,54 +70,32 @@ async function main(): Promise<void> {
   // Retry #2
   //
 
-  console.log(
-    "Retry #2...",
-  );
+  console.log("Retry #2...");
 
   try {
-    await runtime.execute(
-      transaction,
-    );
+    await runtime.execute(transaction);
 
-    console.log(
-      "✓ Transaction executed again.",
-    );
+    console.log("✓ Transaction executed again.");
   } catch (error) {
-    console.log(
-      `✓ Retry handled: ${
-        (error as Error).message
-      }`,
-    );
+    console.log(`✓ Retry handled: ${(error as Error).message}`);
   }
 
   retries++;
 
   console.log();
 
-  console.log(
-    "==================================================",
-  );
-  console.log(
-    "Summary",
-  );
-  console.log(
-    "==================================================",
-  );
+  console.log("==================================================");
+  console.log("Summary");
+  console.log("==================================================");
   console.log();
 
-  console.log(
-    `Original Executions : ${originalExecutions}`,
-  );
+  console.log(`Original Executions : ${originalExecutions}`);
 
-  console.log(
-    `Retries             : ${retries}`,
-  );
+  console.log(`Retries             : ${retries}`);
 
   console.log();
 
-  console.log(
-    "Tutorial completed successfully.",
-  );
+  console.log("Tutorial completed successfully.");
 }
 
 main().catch((error) => {

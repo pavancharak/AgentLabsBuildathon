@@ -6,10 +6,10 @@ Prove, directly and executably, that the authorization pipeline's outcome depend
 
 ## What You'll Learn
 
-* `BusinessTransactionMapper.fromRequest` casts the caller-declared `authority` field with no runtime validation against the `AuthorityType` enum (`USER | ROLE | SERVICE | ORGANIZATION`) — an arbitrary string reaches the runtime completely unfiltered
-* `RuntimeEngine`, `PolicyEngine`, `SignalIntentBinder`, and `CapabilityPolicyBinder` contain zero references to `authority` or caller identity anywhere in their source — this isn't inferred here, it's demonstrated: two transactions, identical except for `authority.authorityType`, produce byte-identical decisions
-* This holds on **both** paths: an `authorityType` of `"USER"` versus `"FULLY_AUTONOMOUS_AI_AGENT_NEVER_SEEN_BEFORE"` (not a member of the enum at all) produce the same `APPROVED` outcome and the same `reason` string when the request would be approved, and the same `403`/`POLICY_DENIED`/message when it would be rejected
-* A mechanism could in principle be blind on approval but special-case rejection (an authority-based override, say) — testing both paths separately rules that out explicitly, not just "both got some rejection"
+- `BusinessTransactionMapper.fromRequest` casts the caller-declared `authority` field with no runtime validation against the `AuthorityType` enum (`USER | ROLE | SERVICE | ORGANIZATION`) — an arbitrary string reaches the runtime completely unfiltered
+- `RuntimeEngine`, `PolicyEngine`, `SignalIntentBinder`, and `CapabilityPolicyBinder` contain zero references to `authority` or caller identity anywhere in their source — this isn't inferred here, it's demonstrated: two transactions, identical except for `authority.authorityType`, produce byte-identical decisions
+- This holds on **both** paths: an `authorityType` of `"USER"` versus `"FULLY_AUTONOMOUS_AI_AGENT_NEVER_SEEN_BEFORE"` (not a member of the enum at all) produce the same `APPROVED` outcome and the same `reason` string when the request would be approved, and the same `403`/`POLICY_DENIED`/message when it would be rejected
+- A mechanism could in principle be blind on approval but special-case rejection (an authority-based override, say) — testing both paths separately rules that out explicitly, not just "both got some rejection"
 
 ## Running the Tutorial
 

@@ -4,12 +4,13 @@ description: "Policy-gated updates to a HubSpot Deal's dealstage and amount. Her
 ---
 
 <Info>
-**[AVAILABLE]**, hermetic test suite plus a live run against a real HubSpot developer/test
-account. `packages/connector-hubspot/`, `docs/CLAIMS.md` §3.10. This was the second connector
-in this codebase (after Razorpay, since removed in full 2026-08-12 — see `docs/CLAIMS.md`'s
-"Key Compromise Notice" section) that talks to a real external
-system; everything else offered as a reference (SAP, Salesforce, Workday, Oracle) is a mock,
-and no other capability registers by default at all, see [The gateway](/concepts/the-gateway).
+  **[AVAILABLE]**, hermetic test suite plus a live run against a real HubSpot
+  developer/test account. `packages/connector-hubspot/`, `docs/CLAIMS.md` §3.10.
+  This was the second connector in this codebase (after Razorpay, since removed
+  in full 2026-08-12 — see `docs/CLAIMS.md`'s "Key Compromise Notice" section)
+  that talks to a real external system; everything else offered as a reference
+  (SAP, Salesforce, Workday, Oracle) is a mock, and no other capability
+  registers by default at all, see [The gateway](/concepts/the-gateway).
 </Info>
 
 ## What this connector does
@@ -34,7 +35,8 @@ refused before any network call, not silently dropped:
 ```typescript
 // packages/connector-hubspot/src/HubSpotConnector.ts (abridged, real source)
 const disallowedKeys = Object.keys(request.parameters).filter(
-  (key) => key !== "dealId" && !HUBSPOT_ALLOWED_DEAL_UPDATE_PROPERTIES.includes(key),
+  (key) =>
+    key !== "dealId" && !HUBSPOT_ALLOWED_DEAL_UPDATE_PROPERTIES.includes(key),
 );
 if (disallowedKeys.length > 0) {
   throw new Error(
@@ -60,21 +62,25 @@ absolute delta from the deal's current amount exceeds a configured threshold (10
 deal's own currency units) unless the caller declares `preAuthorizedForAmountChange: true`.
 
 <Warning>
-**`preAuthorizedForAmountChange` is independently verified, not taken on faith — but nothing
-can pass that check in this deployment as configured, only fail it.** `HubSpotSignalStateVerifier`
-(`packages/connector-hubspot/src/HubSpotSignalStateVerifier.ts`), constructed with a real
-`ApprovalVerifier` unconditionally in `packages/api/src/bootstrap/createHubSpotSignalStateVerifier.ts`
-("`approvalVerifier` is always supplied here, never omitted"), checks a caller's declared
-`true` against a real, independently-issued, Ed25519-signed Approval Artifact carried in
-`signals.approvalArtifact` — issuer identity, signature validity, expiry, capability/resource
-scope, and single-use nonce consumption, all verified before the claim is trusted. A missing,
-expired, wrong-scope, replayed, or unsigned artifact is treated as `false` regardless of what
-the caller declared, the same fail-closed default as before. **The gap that remains:**
-`createApprovalIssuerRegistry.ts`'s trusted-issuer list ships **empty by default** — no real
-business-approver key is provisioned in this deployment, so every `preAuthorizedForAmountChange`
-claim is rejected today, genuine artifact or not, until an operator adds one. The mechanism is
-real, tested, and unconditionally wired in; it just has nothing to trust yet. See
-`docs/CLAIMS.md` §3.10's TD-23/Phase 3C update for the full trace.
+  **`preAuthorizedForAmountChange` is independently verified, not taken on faith
+  — but nothing can pass that check in this deployment as configured, only fail
+  it.** `HubSpotSignalStateVerifier`
+  (`packages/connector-hubspot/src/HubSpotSignalStateVerifier.ts`), constructed
+  with a real `ApprovalVerifier` unconditionally in
+  `packages/api/src/bootstrap/createHubSpotSignalStateVerifier.ts`
+  ("`approvalVerifier` is always supplied here, never omitted"), checks a
+  caller's declared `true` against a real, independently-issued, Ed25519-signed
+  Approval Artifact carried in `signals.approvalArtifact` — issuer identity,
+  signature validity, expiry, capability/resource scope, and single-use nonce
+  consumption, all verified before the claim is trusted. A missing, expired,
+  wrong-scope, replayed, or unsigned artifact is treated as `false` regardless
+  of what the caller declared, the same fail-closed default as before. **The gap
+  that remains:** `createApprovalIssuerRegistry.ts`'s trusted-issuer list ships
+  **empty by default** — no real business-approver key is provisioned in this
+  deployment, so every `preAuthorizedForAmountChange` claim is rejected today,
+  genuine artifact or not, until an operator adds one. The mechanism is real,
+  tested, and unconditionally wired in; it just has nothing to trust yet. See
+  `docs/CLAIMS.md` §3.10's TD-23/Phase 3C update for the full trace.
 </Warning>
 
 `boundSignals` is present from this policy's first version, not added after a live
@@ -111,7 +117,11 @@ from an actual local run, 2026-07-31:
     "target": "hubspot://deals/9001",
     "parameters": { "dealId": "9001", "dealstage": "qualifiedtobuy" }
   },
-  "policy": { "name": "hubspot-deal-update", "version": "1.0.0", "schemaVersion": "1.0.0" },
+  "policy": {
+    "name": "hubspot-deal-update",
+    "version": "1.0.0",
+    "schemaVersion": "1.0.0"
+  },
   "signals": {
     "currentDealStage": "appointmentscheduled",
     "proposedDealStage": "qualifiedtobuy",
@@ -134,30 +144,36 @@ Response status: 200
 // the same ExecutionTrustRecord every route returns, see
 // [Execution Trust Record](/concepts/execution-trust-records)
 {
-  "executions": [{
-    "decision": {
-      "outcome": "APPROVED",
-      "reason": "Deal update authorized. The dealstage transition (if any) is on an allowed path, and the amount change (if any) is within threshold or has been pre-authorized."
-    },
-    "evidence": {
-      "attributes": {
-        "connector": {
-          "connectorId": "hubspot",
-          "capability": "hubspot:deal-update",
-          "responseSummary": {
-            "success": true,
-            "metadata": {
-              "deal": {
-                "id": "9001",
-                "properties": { "dealstage": "qualifiedtobuy", "amount": "5000", "pipeline": "default" }
-              },
-              "bearerRedacted": "HUBSPOT_TEST_TOKEN"
+  "executions": [
+    {
+      "decision": {
+        "outcome": "APPROVED",
+        "reason": "Deal update authorized. The dealstage transition (if any) is on an allowed path, and the amount change (if any) is within threshold or has been pre-authorized."
+      },
+      "evidence": {
+        "attributes": {
+          "connector": {
+            "connectorId": "hubspot",
+            "capability": "hubspot:deal-update",
+            "responseSummary": {
+              "success": true,
+              "metadata": {
+                "deal": {
+                  "id": "9001",
+                  "properties": {
+                    "dealstage": "qualifiedtobuy",
+                    "amount": "5000",
+                    "pipeline": "default"
+                  }
+                },
+                "bearerRedacted": "HUBSPOT_TEST_TOKEN"
+              }
             }
           }
         }
       }
     }
-  }]
+  ]
 }
 ```
 
@@ -173,7 +189,11 @@ response:
     "target": "hubspot://deals/9001",
     "parameters": { "dealId": "9001", "dealstage": "appointmentscheduled" }
   },
-  "policy": { "name": "hubspot-deal-update", "version": "1.0.0", "schemaVersion": "1.0.0" },
+  "policy": {
+    "name": "hubspot-deal-update",
+    "version": "1.0.0",
+    "schemaVersion": "1.0.0"
+  },
   "signals": {
     "currentDealStage": "qualifiedtobuy",
     "proposedDealStage": "appointmentscheduled",
@@ -247,13 +267,13 @@ Razorpay's Basic-auth credential has two parts.
 
 ## Configuration
 
-| Variable | Purpose |
-|---|---|
-| `HUBSPOT_PRIVATE_APP_TOKEN` | Production credential. Unset outside test mode means the connector is not registered at all, degrades gracefully rather than failing to boot. |
-| `TEST_HUBSPOT_PRIVATE_APP_TOKEN` | Test-mode override, read directly when `NODE_ENV=test`, no intermediate bridge variable. |
-| `ALLOW_LIVE_HUBSPOT` | Opt-in for the gated live suite. Unset, that suite skips cleanly, does not run in a default `npm test`. |
-| `TEST_HUBSPOT_DEAL_ID` | A real test deal in the same account, required only for the live suite's mutating case. Absent, only that one case skips. |
-| `HUBSPOT_BASE_URL` | Test seam only, points the connector at a mock server. Never set in production. |
+| Variable                         | Purpose                                                                                                                                       |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HUBSPOT_PRIVATE_APP_TOKEN`      | Production credential. Unset outside test mode means the connector is not registered at all, degrades gracefully rather than failing to boot. |
+| `TEST_HUBSPOT_PRIVATE_APP_TOKEN` | Test-mode override, read directly when `NODE_ENV=test`, no intermediate bridge variable.                                                      |
+| `ALLOW_LIVE_HUBSPOT`             | Opt-in for the gated live suite. Unset, that suite skips cleanly, does not run in a default `npm test`.                                       |
+| `TEST_HUBSPOT_DEAL_ID`           | A real test deal in the same account, required only for the live suite's mutating case. Absent, only that one case skips.                     |
+| `HUBSPOT_BASE_URL`               | Test seam only, points the connector at a mock server. Never set in production.                                                               |
 
 ## What's proven where, precisely
 
@@ -309,11 +329,19 @@ This is the part worth reading in full before deciding how much to trust this co
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="Connector Development Guide" icon="plug" href="/integrations/connector-development-guide">
+  <Card
+    title="Connector Development Guide"
+    icon="plug"
+    href="/integrations/connector-development-guide"
+  >
     The pattern this connector follows, and how to build the next one.
   </Card>
-  <Card title="Policies and the decision" icon="scale-balanced" href="/concepts/policies-and-the-decision">
-    What `boundSignals` closes, and why it's here from this policy's first version.
+  <Card
+    title="Policies and the decision"
+    icon="scale-balanced"
+    href="/concepts/policies-and-the-decision"
+  >
+    What `boundSignals` closes, and why it's here from this policy's first
+    version.
   </Card>
 </CardGroup>
-

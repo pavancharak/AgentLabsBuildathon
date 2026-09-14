@@ -114,7 +114,9 @@ describe("Execution Failure", () => {
       `/refusal/${transaction.businessTransactionId}`,
     );
     expect(refusalResponse.status).toBe(404);
-    expect(refusalResponse.body).toEqual({ error: "Refusal Record not found." });
+    expect(refusalResponse.body).toEqual({
+      error: "Refusal Record not found.",
+    });
 
     //
     // The failure is still evidenced in the audit trail even though no

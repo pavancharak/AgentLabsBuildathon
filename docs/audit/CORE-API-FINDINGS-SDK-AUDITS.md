@@ -20,7 +20,7 @@ The route reads only `req.body.policyId` and `req.body.policyVersion`, then
 calls `policyRepository.load(policyId, policyVersion)`. It never accepts or
 inspects a policy document body. The route name and the "validate a policy"
 framing both SDKs originally used (a `validate(policy: dict)`-shaped method)
-imply document validation — checking that a *submitted* policy is
+imply document validation — checking that a _submitted_ policy is
 well-formed. What it actually checks is narrower: "does a policy with this
 name+version already exist and load cleanly from disk."
 
@@ -63,10 +63,11 @@ weaker-validation path.
 ## 3. Content-binding / envelope verification is not wired into the plain API server
 
 **Files:**
+
 - `packages/shared/src/domain/execution-authorization.ts` — defines
   `SignedExecutionAuthorization` (v1 envelope: `version` + `businessTransactionHash`).
 - `packages/runtime/src/context/RuntimeContext.ts:40` — `authorization?:
-  SignedExecutionAuthorization` is produced internally by the runtime
+SignedExecutionAuthorization` is produced internally by the runtime
   pipeline, but only lives on `RuntimeContext`, not on `ExecutionTrustRecord`
   or any route response.
 - `packages/execution-gateway/src/ExecutionGateway.ts` — implements the real
@@ -93,7 +94,7 @@ example (`python/examples/content_binding/`): resubmitting a modified
 payload under the same `businessTransactionId` against the plain server is
 rejected, but only via `DuplicateBusinessTransactionError` (simple ID
 uniqueness, HTTP 409) — not via any hash/signature check. A modified payload
-under a *new* `businessTransactionId` would not be rejected at all.
+under a _new_ `businessTransactionId` would not be rejected at all.
 
 **This is the same open question the original TypeScript SDK audit raised**
 (does the plain server run the content-binding check, or is that
