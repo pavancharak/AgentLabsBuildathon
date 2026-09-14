@@ -625,7 +625,7 @@ Source: `/sdks/python`. `python/`. Published on PyPI as `parmana`, v1.1.2 (publi
 `black`/`ruff`/`mypy --strict` all clean across the whole package.
 
 **v1.1.2's published PyPI metadata and README still show the pre-rename `parmana-exp`
-GitHub repo name and the old docs domain** — the repo was renamed to `parmana` and the docs
+GitHub repo name and the old docs domain.** The repo was renamed to `parmana` and the docs
 domain corrected after v1.1.2's build artifacts were created, and PyPI metadata is immutable
 per version. Cosmetic only, does not affect installing or using the package; already fixed in
 source (`pyproject.toml`, `README.md`) for whenever a future version next publishes.
@@ -733,7 +733,7 @@ Added 2026-09-14, ships in v1.1.2, published. A
 `BusinessTransaction` has three id pairs the server's own `BusinessTransactionValidator`
 cross-checks before policy ever runs (`metadata.business_transaction_id` ==
 `business_transaction_id`, `authorization.authority_id` == `authority.authority_id`,
-`intent.authorization_id` == `authorization.authorization_id`) — every "X must match Y" `400`
+`intent.authorization_id` == `authorization.authorization_id`). Every "X must match Y" `400`
 in the end-to-end Paytm guide came from hand-building a request and getting one of those wrong.
 `create_business_transaction()` derives all three automatically; `business_transaction_id`
 defaults to a fresh `uuid4()` if omitted. See `python/examples/builder/run.py` and
@@ -747,7 +747,7 @@ Previously 26 tests: real but incomplete (no auth coverage, a wrong assumption b
 including both fixed bugs, bearer-key header attachment tests, `create_business_transaction()`
 (9 cases), and three real-server integration suites. `test_live_server_integration.py` spawns
 the actual `@parmana/api` process (the same entry point `npm run dev` runs) on a real
-OS-assigned TCP port and drives it with the real `ParmanaClient` over real HTTP — a real `401`,
+OS-assigned TCP port and drives it with the real `ParmanaClient` over real HTTP: a real `401`,
 a real `403`, a real `400`, a real policy rejection, a real `404`, a real `409` duplicate, and
 the `policy.validate()` `404` case. `test_quickstart_example.py` does the same for
 `run_quickstart()`, the quickstart example script itself, additionally asserting its documented
@@ -763,7 +763,7 @@ Source: `/sdks/typescript`. `typescript/src/`. Builds. Published on npm as `@par
 v1.1.2 (published 2026-09-14, adds `createBusinessTransaction()`, see below).
 
 **v1.1.2's published npm metadata (`homepage`/`repository`/`bugs`) still shows the
-pre-rename `parmana-exp` GitHub repo name** — the repo was renamed to `parmana` after
+pre-rename `parmana-exp` GitHub repo name.** The repo was renamed to `parmana` after
 v1.1.2's build artifacts were created, and npm package metadata is immutable per version.
 Cosmetic only, does not affect installing or using the package; already fixed in source
 (`typescript/package.json`) for whenever a future version next publishes.
@@ -886,17 +886,17 @@ verified response shapes, unit tests for the three model-audit-pass methods
 (`test/NewApiMethods.test.ts`), a retry-logic suite (`test/RetryPolicy.test.ts`, backoff on
 idempotent GETs against 502/503/504, POSTs never retried), per-route unit suites,
 `createBusinessTransaction()` (`test/createBusinessTransaction.test.ts`, 11 cases), and two
-integration suites that boot the actual `@parmana/api` Express application — real
+integration suites that boot the actual `@parmana/api` Express application: real
 `StaticKeyAuthenticator`, real `PolicyEngine`, real Ed25519 signing, the real,
 `NODE_ENV=test`-only generic test-fixture connector (`createTestFixtureConnector.ts`, successor
-to the now-removed `vendor-payment`) — on a real OS-assigned TCP port and drive it with the real
+to the now-removed `vendor-payment`), on a real OS-assigned TCP port and drive it with the real
 `ParmanaClient` over real HTTP: `test/integration/parmana-client.integration.test.ts` (a real
 `401`, a real `403`, a real `400`, a real policy rejection, a real `404`, a real `409` duplicate,
 plus `version()`, `verify()`, and `createTransaction()` exercised against real responses) and
 `test/integration/examples.integration.test.ts` (runs the quickstart example script and the
 builder example script, each against a real local server).
 
-Run both suites from the repo root, not from inside `typescript/` or `python/` — `.env`'s
+Run both suites from the repo root, not from inside `typescript/` or `python/`. `.env`'s
 `PARMANA_POLICY_DIR=./policies` resolves relative to the process's working directory, and
 resolving it from the wrong directory produces spurious `PolicyNotFoundError` failures.
 

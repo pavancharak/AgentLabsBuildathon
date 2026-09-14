@@ -16,12 +16,12 @@ import type { PolicyReference } from "../models/policy.js";
  * Hand-building a BusinessTransaction by writing out all five nested
  * objects and keeping three id pairs in sync by hand is exactly the
  * class of mistake that produced every "X must match Y" 400 response
- * documented in END-TO-END-FLOW.md (repo root) — this function exists
+ * documented in END-TO-END-FLOW.md (repo root). This function exists
  * so that mistake is structurally impossible when going through the
  * SDK, not merely documented as something to be careful about.
  *
  * businessTransactionId defaults to a fresh crypto.randomUUID() if
- * omitted — a caller providing one explicitly is responsible for it
+ * omitted. A caller providing one explicitly is responsible for it
  * being unique per attempt, since it doubles as the server's own
  * idempotency key (see docs/site/guides/end-to-end-paytm-flow.mdx,
  * "businessTransactionId is an idempotency key").
@@ -30,13 +30,13 @@ export interface CreateBusinessTransactionOptions {
   /** Defaults to a fresh crypto.randomUUID() if omitted. */
   readonly businessTransactionId?: string;
 
-  /** Defaults to "SERVICE" — the correct value for an autonomous agent. Never "AGENT"; that value does not exist server-side. */
+  /** Defaults to "SERVICE", the correct value for an autonomous agent. Never "AGENT"; that value does not exist server-side. */
   readonly authorityType?: "USER" | "ROLE" | "SERVICE" | "ORGANIZATION";
 
   /**
    * The identity this transaction is submitted as. Must match one of
    * the caller API key's own allowedPrincipalIds server-side, or the
-   * request is rejected before policy ever runs — see GET /callers/me.
+   * request is rejected before policy ever runs. See GET /callers/me.
    */
   readonly principalId: string;
 
@@ -59,7 +59,7 @@ export interface CreateBusinessTransactionOptions {
    * references must appear here, and every boundSignals entry the
    * policy declares is cross-checked against the matching intent
    * field (see the policy's own boundSignals) before evaluation runs
-   * at all — a mismatch is rejected as a binding-tamper attempt, not
+   * at all. A mismatch is rejected as a binding-tamper attempt, not
    * silently ignored.
    */
   readonly signals: Record<string, unknown>;

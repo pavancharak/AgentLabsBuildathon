@@ -9,17 +9,17 @@ id pairs in sync yourself.
 
 - `create_business_transaction()` derives `metadata.business_transaction_id`,
   `authorization.authority_id`, and `intent.authorization_id` automatically, and every one
-  of them round-trips correctly through a real server (not just an isolated unit test —
+  of them round-trips correctly through a real server (not just an isolated unit test,
   see `tests/test_builders.py` for those, and `tests/test_builder_example.py` for this
   live-server proof).
 - A fresh `business_transaction_id` is generated automatically (`uuid4()`) when you don't
-  supply one — the exact idempotency-key mistake documented in
+  supply one. This is the exact idempotency-key mistake documented in
   `END-TO-END-FLOW.md` (repo root, "businessTransactionId is an idempotency key") is
   structurally harder to make by accident.
 
 ## Prerequisites
 
-Identical to [`examples/quickstart`](../quickstart/README.md) — a local Parmana API server
+Identical to [`examples/quickstart`](../quickstart/README.md): a local Parmana API server
 on `http://localhost:3000` with caller authentication disabled and a Gateway keypair
 present. See that README for the exact server-startup command.
 
@@ -37,9 +37,9 @@ python python/examples/builder/run.py
 
 ## Going further: a real business system, not the test fixture
 
-This example targets `test:fixture-execute` — hermetic, no external connector required.
+This example targets `test:fixture-execute`, hermetic and requiring no external connector.
 To see the identical builder pattern reach a real Paytm refund, staging environment, real
 signature verification, and a real cross-service audit trail, see
-`docs/site/guides/end-to-end-paytm-flow.mdx` / `END-TO-END-FLOW.md` (repo root) — the
+`docs/site/guides/end-to-end-paytm-flow.mdx` / `END-TO-END-FLOW.md` (repo root), the
 complete, verified-live runbook, including every real error message you might hit along
 the way and why.

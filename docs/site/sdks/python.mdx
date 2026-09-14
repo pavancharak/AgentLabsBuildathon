@@ -5,24 +5,24 @@ description: "Generated models, bearer-key authentication, and a typed error tax
 
 <Info>
   **[AVAILABLE]**, **published**, `parmana` on PyPI. Real, public, installable
-  with a plain `pip install parmana` — this page said `v1.0.5` and described
-  only an editable local install until 2026-09-14; both were stale, confirmed
-  against the live PyPI registry while fixing this page. 79 passing tests, 0
+  with a plain `pip install parmana`. This page said `v1.0.5` and described only
+  an editable local install until 2026-09-14; both were stale, confirmed against
+  the live PyPI registry while fixing this page. 79 passing tests, 0
   placeholders, `black`/`ruff`/`mypy --strict` all clean across the whole
   package. Three gaps found in an earlier full SDK audit (no bearer-key auth;
   two real error-taxonomy bugs; a `PolicyApi.validate()` bug) were closed and
   re-verified in that pass, including against a real running local server. A
   later pass added `test_quickstart_example.py`, proving the documented
   quickstart script itself runs. v1.1.2, adding `create_business_transaction()`
-  (see below) and the `offline_verifier.py` fix, published 2026-09-14 —
-  confirmed against the live PyPI registry. See [Changelog](/changelog) and the
-  fix history at the bottom of this page.
+  (see below) and the `offline_verifier.py` fix, published 2026-09-14, confirmed
+  against the live PyPI registry. See [Changelog](/changelog) and the fix
+  history at the bottom of this page.
 </Info>
 
 <Note>
   v1.1.2's published package metadata and README (`pyproject.toml`'s
   `[project.urls]`, the PyPI page's rendered long description) still point at
-  this repository's old name, `parmana-exp`, and the pre-fix docs domain — the
+  this repository's old name, `parmana-exp`, and the pre-fix docs domain. The
   repo was renamed to `parmana` and the docs domain corrected after that
   version's build artifacts were created, and PyPI package metadata is immutable
   per version. Does not affect installing or using the package; fixed in source
@@ -35,7 +35,7 @@ description: "Generated models, bearer-key authentication, and a typed error tax
 pip install parmana
 ```
 
-Real registry install — confirmed live against PyPI while fixing this page's own stale
+Real registry install, confirmed live against PyPI while fixing this page's own stale
 claim otherwise. To build from source inside this monorepo instead:
 
 ```bash
@@ -170,12 +170,12 @@ own handler runs, using the shared envelope like every other route. See
 
 ## `create_business_transaction()`, no more hand-synced ids
 
-Added 2026-09-14, ships in v1.1.2, published — available via a plain
+Added 2026-09-14, ships in v1.1.2, published, available via a plain
 `pip install parmana`. A `BusinessTransaction` has three id pairs the server's own
-`BusinessTransactionValidator` cross-checks before policy ever runs —
+`BusinessTransactionValidator` cross-checks before policy ever runs:
 `metadata.business_transaction_id` must equal `business_transaction_id`,
 `authorization.authority_id` must equal `authority.authority_id`, `intent.authorization_id`
-must equal `authorization.authorization_id` — and every "X must match Y" `400` documented in
+must equal `authorization.authorization_id`. Every "X must match Y" `400` documented in
 [the end-to-end Paytm guide](/guides/end-to-end-paytm-flow) came from hand-building a request
 and getting one of those wrong. `create_business_transaction()` derives all three
 automatically:
@@ -207,7 +207,7 @@ transaction = create_business_transaction(
 trust_record = client.execution.execute(transaction)
 ```
 
-`business_transaction_id` defaults to a fresh `uuid4()` if you don't supply one — a value you
+`business_transaction_id` defaults to a fresh `uuid4()` if you don't supply one. A value you
 do supply is your own responsibility to keep unique per attempt, since it also doubles as the
 server's idempotency key. `authority_type` defaults to `AuthorityType.SERVICE` (never
 `"AGENT"`, which doesn't exist server-side). See `examples/builder/run.py` (the same flow as
@@ -235,7 +235,7 @@ round-trips correctly.
 <Note>
   `ruff`/`black`/`mypy --strict` all reverified clean across the whole package
   as of 2026-09-14 (a prior pass had explicitly left this claim unrepeated,
-  dev-tooling extras not installed at the time) — `python -m ruff check .`,
+  dev-tooling extras not installed at the time). `python -m ruff check .`,
   `python -m black --check .`, `python -m mypy` all pass with zero findings,
   confirmed directly, not assumed.
 </Note>
@@ -248,11 +248,11 @@ round-trips correctly.
     icon="route"
     href="/guides/end-to-end-paytm-flow"
   >
-    The full, no-ambiguity runbook this SDK builds toward — real infrastructure,
+    The full, no-ambiguity runbook this SDK builds toward: real infrastructure,
     every error message, every fix.
   </Card>
   <Card title="TypeScript SDK" icon="js" href="/sdks/typescript">
-    The other maintained SDK — same bearer-key model, same error taxonomy shape.
+    The other maintained SDK: same bearer-key model, same error taxonomy shape.
   </Card>
   <Card title="Error catalog" icon="list" href="/api-reference/error-catalog">
     Every error the real API returns, independent of any SDK.

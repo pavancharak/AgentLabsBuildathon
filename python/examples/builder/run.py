@@ -74,7 +74,7 @@ def run_builder_example(
             "sufficientFunds": True,
             "paymentAmount": 1000,
             "riskScore": 5,
-            # vendor-payment@2.0.0 declares boundSignals: { "vendorId": "target" } —
+            # vendor-payment@2.0.0 declares boundSignals: { "vendorId": "target" }.
             # SignalIntentBinder rejects this transaction unless this signal exactly
             # equals intent.target, checked before policy evaluation ever runs (see
             # docs/VERIFICATION-GAPS.md G-24).

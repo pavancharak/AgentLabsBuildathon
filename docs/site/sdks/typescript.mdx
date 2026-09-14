@@ -5,7 +5,7 @@ description: "Real client code, bearer-key authentication, and a typed error tax
 
 <Info>
   **[AVAILABLE]**, **published**, `@parmana/sdk` on npm. Real, public,
-  installable with a plain `npm install @parmana/sdk` — this page said otherwise
+  installable with a plain `npm install @parmana/sdk`. This page said otherwise
   ("private, not published to any registry") until 2026-09-14; that was stale
   even at v1.1.1, confirmed live against the npm registry while fixing this
   page. The original three gaps (no bearer-key auth, an unused error taxonomy,
@@ -15,14 +15,14 @@ description: "Real client code, bearer-key authentication, and a typed error tax
   `settlementConfirmations`/`signature` field), two missing capabilities (`POST
   /verify`, `GET /version`), and one capability missing from both maintained
   SDKs (`POST /transactions`). v1.1.2, adding `createBusinessTransaction()` (see
-  below), published 2026-09-14 — confirmed via `npm view @parmana/sdk version`.
+  below), published 2026-09-14, confirmed via `npm view @parmana/sdk version`.
   See the fix history at the bottom of this page.
 </Info>
 
 <Note>
   v1.1.2's published package metadata (`homepage`/`repository`/`bugs` in `npm
-  view @parmana/sdk`) still points at this repository's old name, `parmana-exp`
-  — the repo was renamed to `parmana` after that version's build artifacts were
+  view @parmana/sdk`) still points at this repository's old name, `parmana-exp`.
+  The repo was renamed to `parmana` after that version's build artifacts were
   created, and registry metadata is immutable per version. Does not affect
   installing or using the package; fixed in source (`typescript/package.json`)
   for whenever a future version next publishes.
@@ -30,8 +30,8 @@ description: "Real client code, bearer-key authentication, and a typed error tax
 
 <Note>
   Package name history, for anyone who finds an old reference: renamed from
-  `@parmana/legacy-reference`, itself renamed from `@parmana/typescript-sdk` —
-  see [Changelog](/changelog) for when. `@parmana/sdk` is the current, correct,
+  `@parmana/legacy-reference`, itself renamed from `@parmana/typescript-sdk`.
+  See [Changelog](/changelog) for when. `@parmana/sdk` is the current, correct,
   published name.
 </Note>
 
@@ -41,7 +41,7 @@ description: "Real client code, bearer-key authentication, and a typed error tax
 npm install @parmana/sdk
 ```
 
-Real registry install — `npm view @parmana/sdk version` returns the current published
+Real registry install. `npm view @parmana/sdk version` returns the current published
 version directly from npm, confirmed while fixing this page's own stale claim otherwise.
 
 ## Bearer-key authentication
@@ -173,12 +173,12 @@ commit in lockstep with `/execute`, and has dedicated test coverage
 
 ## `createBusinessTransaction()`, no more hand-synced ids
 
-Added 2026-09-14, ships in v1.1.2, published — available via a plain
+Added 2026-09-14, ships in v1.1.2, published, available via a plain
 `npm install @parmana/sdk`. A `BusinessTransaction` has three id pairs the server's own
-`BusinessTransactionValidator` cross-checks before policy ever runs —
+`BusinessTransactionValidator` cross-checks before policy ever runs:
 `metadata.businessTransactionId` must equal `businessTransactionId`,
 `authorization.authorityId` must equal `authority.authorityId`, `intent.authorizationId` must
-equal `authorization.authorizationId` — and every "X must match Y" `400` documented in
+equal `authorization.authorizationId`. Every "X must match Y" `400` documented in
 [the end-to-end Paytm guide](/guides/end-to-end-paytm-flow) came from hand-building a request
 object and getting one of those wrong. `createBusinessTransaction()` derives all three
 automatically:
@@ -217,7 +217,7 @@ const transaction = createBusinessTransaction({
 const trustRecord = await client.execute(transaction);
 ```
 
-`businessTransactionId` defaults to a fresh `crypto.randomUUID()` if you don't supply one — a
+`businessTransactionId` defaults to a fresh `crypto.randomUUID()` if you don't supply one. A
 value you do supply is your own responsibility to keep unique per attempt, since it also
 doubles as the server's idempotency key. `authorityType` defaults to `"SERVICE"` (never
 `"AGENT"`, which doesn't exist server-side). See
@@ -241,7 +241,7 @@ npm run test    # vitest
 ## Test suite
 
 Previously 9 files, 0 bytes each, "9 passed" trivially. Now 157 tests across 16 files
-(`npx vitest run` from the repo root — **run from the repo root**, not `typescript/`; several
+(`npx vitest run` from the repo root: **run from the repo root**, not `typescript/`; several
 tests read `PARMANA_POLICY_DIR` relative to `process.cwd()` and fail with confusing
 `PolicyNotFoundError`-shaped errors otherwise, the exact false alarm chased at length in
 `docs/VERIFICATION-GAPS.md`'s 2026-09-14 session entry): unit tests for every error-mapping
@@ -254,9 +254,9 @@ retried, matching the Python SDK's own retry behavior), per-route unit suites
 (`test/AuditApi.test.ts`, `test/HealthApi.test.ts`, `test/PolicyApi.test.ts`,
 `test/RefusalApi.test.ts`, `test/ReplayApi.test.ts`, `test/RuntimeApi.test.ts`,
 `test/VerificationApi.test.ts`), and two integration suites that boot the actual `@parmana/api`
-Express application — real `StaticKeyAuthenticator`, real `PolicyEngine`, real Ed25519 signing,
+Express application: real `StaticKeyAuthenticator`, real `PolicyEngine`, real Ed25519 signing,
 the real, `NODE_ENV=test`-only generic test-fixture connector (`createTestFixtureConnector.ts`,
-successor to the now-removed `vendor-payment`, see `docs/VERIFICATION-GAPS.md` G-27) — on a
+successor to the now-removed `vendor-payment`, see `docs/VERIFICATION-GAPS.md` G-27), on a
 real OS-assigned TCP port and drive it with the real `ParmanaClient` over real HTTP:
 `test/integration/parmana-client.integration.test.ts` (a real `401`, a real `403`, a real `400`,
 a real policy rejection, a real `404`, a real `409` duplicate, plus `version()`, `verify()`, and
@@ -281,11 +281,11 @@ doesn't have.
     icon="route"
     href="/guides/end-to-end-paytm-flow"
   >
-    The full, no-ambiguity runbook this SDK builds toward — real infrastructure,
+    The full, no-ambiguity runbook this SDK builds toward: real infrastructure,
     every error message, every fix.
   </Card>
   <Card title="Python SDK" icon="python" href="/sdks/python">
-    The other maintained SDK — same bearer-key model, generated (not
+    The other maintained SDK: same bearer-key model, generated (not
     hand-maintained) models.
   </Card>
   <Card title="Error catalog" icon="list" href="/api-reference/error-catalog">
