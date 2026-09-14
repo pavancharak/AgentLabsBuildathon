@@ -389,14 +389,18 @@ useful part, not just the conclusion):**
   manifest of "what's required" that can itself drift out of sync with the code. Disproportionate
   for a single incident; revisit if this recurs.
 
-**Recommended, not yet implemented:** a `vercel-build` script (Vercel's own recognized script
-name, run during the build with the same environment variables the deployment will have) that
-imports `src/server/handler.ts` — the same module whose top-level `loadConfig()` call already
-throws on a missing required variable. A missing variable then fails the _build_, and Vercel
-does not promote a failed build to production; the previous working deployment keeps serving
-instead of the new, broken one going live. No new dependency, no new secret, no separate
-manifest — it reuses the exact `required()` calls already in the code, so it cannot drift out of
-sync with what's actually required. This would have turned this incident into a failed build
+**Fixed:** `parmana-paytm-agent` commit `8730906` adds `scripts/verify-required-env.ts`, wired
+as this package's `vercel-build` script (Vercel's own recognized script name, run during the
+build with the same environment variables the deployment will have). It imports
+`src/server/handler.ts` — the same module whose top-level `loadConfig()` call already throws on
+a missing required variable — so a missing variable now fails the _build_, and Vercel does not
+promote a failed build to production; the previous working deployment keeps serving instead of
+the new, broken one going live. No new dependency, no new secret, no separate manifest — it
+reuses the exact `required()` calls already in the code, so it cannot drift out of sync with
+what's actually required. Verified locally both ways before pushing: fails with `DATABASE_URL is
+required` when unset (also independently caught `PAYTM_MERCHANT_KEY`'s 16-byte format
+requirement, for free, since it exercises real `loadConfig()` validation, not just presence),
+passes cleanly with everything valid. This would have turned this incident into a failed build
 visible in the deploy log, not a live outage.
 
 **Relationship to GAP-2 (see `REMEDIATION.md`, `docs/VERIFICATION-GAPS.md`):** this incident
@@ -408,11 +412,10 @@ requirement, not a bug), while Paytm connector configuration is deliberately opt
 distinction or reopen GAP-2 — it confirms the value of failing loudly on a genuinely required
 variable, exactly what `DATABASE_URL`'s `required()` call already did correctly here.
 
-**Still open:** the `vercel-build` build-time check above (recommended, pending a decision on
-whether to add it), and the same question for whether AgentLabsBuildathon's own Vercel
-deployment (if any) has an equivalent build-time check for its own required variables
-(`DATABASE_URL`, `PARMANA_KEY_DIR`, etc.) — not verified as part of this incident, since this
-incident's own scope was `parmana-paytm-agent` specifically.
+**Still open:** whether AgentLabsBuildathon's own Vercel deployment (if any) has an equivalent
+build-time check for its own required variables (`DATABASE_URL`, `PARMANA_KEY_DIR`, etc.) — not
+verified as part of this incident, since this incident's own scope was `parmana-paytm-agent`
+specifically.
 
 ---
 
