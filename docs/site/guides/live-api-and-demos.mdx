@@ -4,11 +4,9 @@ description: "Call the real, deployed Parmana API directly: authentication, the 
 ---
 
 <Info>
-  **[AVAILABLE]**. Every endpoint, error, and worked example below was run
-  against the live deployment while writing this page, not written from the spec
-  alone. Base URL: `https://parmana-api-real.vercel.app`. Repo copy of this
-  guide: `LIVE-API-GUIDE.md` (repo root), this page and that file are kept in
-  sync.
+  Every endpoint, error, and worked example below has been run against the live
+  deployment. Base URL: `https://parmana-api-real.vercel.app`. Repo copy of this
+  guide: `LIVE-API-GUIDE.md` (repo root).
 </Info>
 
 ## Goal
@@ -26,13 +24,12 @@ signed, durable, retrievable. Genuinely useful for demoing policy authoring, sig
 binding, guardrails correctly declining a request, cryptographic proof of a decision,
 independent offline verification, and audit trails.
 
-**Correction (2026-09-14):** `paytm:refund` is now a real, wired connector on this
-deployment — `PAYTM_CONNECTOR_URL`/`PAYTM_CONNECTOR_SHARED_SECRET` point at a real,
-separately deployed `parmana-paytm-agent` service, which itself calls Paytm's staging API.
-An approved `paytm:refund` request now reaches Paytm's real staging API and returns a real
-result, proven live end to end including a full cross-service audit trail correlated by
-`businessTransactionId`. Full runbook: [End-to-end: agent → Parmana →
-Paytm](/guides/end-to-end-paytm-flow).
+`paytm:refund` is a real, wired connector on this deployment:
+`PAYTM_CONNECTOR_URL`/`PAYTM_CONNECTOR_SHARED_SECRET` point at a real, separately deployed
+`parmana-paytm-agent` service, which itself calls Paytm's staging API. An approved
+`paytm:refund` request reaches Paytm's real staging API and returns a real result, with a
+full cross-service audit trail correlated by `businessTransactionId`. Full runbook:
+[End-to-end: agent → Parmana → Paytm](/guides/end-to-end-paytm-flow).
 
 **Isn't (still true for HubSpot/GitHub):** no HubSpot token, no GitHub App credentials
 configured, and it isn't running in test mode either. This mirrors a real, documented
