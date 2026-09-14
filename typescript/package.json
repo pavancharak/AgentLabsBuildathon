@@ -37,12 +37,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/pavancharak/parmana-exp.git"
+    "url": "https://github.com/pavancharak/parmana.git"
   },
   "bugs": {
-    "url": "https://github.com/pavancharak/parmana-exp/issues"
+    "url": "https://github.com/pavancharak/parmana/issues"
   },
-  "homepage": "https://github.com/pavancharak/parmana-exp",
+  "homepage": "https://github.com/pavancharak/parmana",
   "dependencies": {
     "dotenv": "^17.4.2"
   },

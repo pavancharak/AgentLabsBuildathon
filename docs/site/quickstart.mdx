@@ -46,7 +46,7 @@ npm run generate:gateway-keys
 This runs `scripts/generate-keypair.ts --algorithm ed25519 --key-id gateway`, writing
 `keys/gateway.private.pem` / `keys/gateway.public.pem`. `keys/` is gitignored, this stays
 local. See
-[`createGatewayKeyPair.ts`](https://github.com/pavancharak/parmana-exp/blob/main/packages/api/src/bootstrap/createGatewayKeyPair.ts)
+[`createGatewayKeyPair.ts`](https://github.com/pavancharak/parmana/blob/main/packages/api/src/bootstrap/createGatewayKeyPair.ts)
 for why this key is deliberately separate from the authorization key, and
 [Deploy patterns](/guides/deploy-patterns) for how to manage it outside local dev.
 

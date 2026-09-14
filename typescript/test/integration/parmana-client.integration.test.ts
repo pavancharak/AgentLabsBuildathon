@@ -10,7 +10,7 @@
  * it to a real OS-assigned TCP port, and drives it
  * with the real ParmanaClient/HttpTransport over real HTTP — not
  * supertest, not a mock. This is what "verified against a real local
- * parmana-exp instance" means for this SDK.
+ * parmana instance" means for this SDK.
  *
  * Covers the three gaps this pass fixed, against real responses:
  * 1. Bearer-key auth: an authenticated request succeeds, an

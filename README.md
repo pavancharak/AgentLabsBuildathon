@@ -3,7 +3,7 @@
 **Institutional Authority Infrastructure: protecting who has the authority
 to decide what becomes real-world execution.**
 
-[![CI](https://github.com/pavancharak/parmana-exp/actions/workflows/ci.yml/badge.svg)](https://github.com/pavancharak/parmana-exp/actions/workflows/ci.yml)
+[![CI](https://github.com/pavancharak/parmana/actions/workflows/ci.yml/badge.svg)](https://github.com/pavancharak/parmana/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-proprietary-lightgrey)](./LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D24-brightgreen)](package.json)
 
@@ -166,7 +166,7 @@ you're evaluating Parmana for a role, reach out: **founder@parmanasystems.com**.
 
 - Email: [founder@parmanasystems.com](mailto:founder@parmanasystems.com)
 - Documentation: [docs.parmanasystems.com](https://docs.parmanasystems.com)
-- Issues: [github.com/pavancharak/parmana-exp/issues](https://github.com/pavancharak/parmana-exp/issues)
+- Issues: [github.com/pavancharak/parmana/issues](https://github.com/pavancharak/parmana/issues)
 
 ## License
 

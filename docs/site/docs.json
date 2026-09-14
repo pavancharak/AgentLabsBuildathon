@@ -193,13 +193,13 @@
     "links": [
       {
         "label": "GitHub",
-        "href": "https://github.com/pavancharak/parmana-exp"
+        "href": "https://github.com/pavancharak/parmana"
       }
     ]
   },
   "footer": {
     "socials": {
-      "github": "https://github.com/pavancharak/parmana-exp"
+      "github": "https://github.com/pavancharak/parmana"
     }
   }
 }

@@ -1,4 +1,4 @@
-# Gitleaks configuration for parmana-exp.
+# Gitleaks configuration for parmana.
 #
 # Extends gitleaks' default rule set (real detectors: AWS, Stripe, GitHub,
 # generic high-entropy secrets, private key headers, connection strings with
@@ -14,7 +14,7 @@
 # a new entry here, the same standard applies: verify it's actually fake
 # before allowlisting it.
 
-title = "parmana-exp gitleaks config"
+title = "parmana gitleaks config"
 
 [extend]
 useDefault = true
