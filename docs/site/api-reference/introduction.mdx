@@ -71,3 +71,20 @@ SDK](/sdks/python). The TypeScript SDK: `ValidationError`/`AuthenticationError`/
 `POST /execute` is rate-limited per authenticated caller; `GET /health` and `GET /ready` carry a
 separate, more permissive limit keyed by IP. See [Authentication](/api-reference/authentication#rate-limiting)
 for the mechanism and [Error catalog](/api-reference/error-catalog) for the exact `429` shape.
+
+## Versioning
+
+`GET /version` reports `{"name":"Parmana","version":"<build>","api":"v1"}`. The `api` field
+is the REST API's version, currently `v1`; the `version` field is a separate deployment
+build identifier, not derived from it. `openapi/openapi.yaml`'s own `info.version` tracks the
+spec document, currently `1.0.0`. There's no fixed release cadence: routes and fields have
+been added within `v1` as this API has grown (see [Changelog](/changelog)), and existing
+fields and status codes haven't been removed or had their meaning changed. A breaking change
+to the REST API surface itself would be a new version (`v2`), not a silent change to `v1`.
+
+Both SDKs follow semantic versioning (`MAJOR.MINOR.PATCH`): a major version indicates a
+breaking change to the SDK's public surface (`ParmanaClient`, its domain models, its error
+types), a minor version adds functionality without breaking existing code, and a patch is a
+backward-compatible fix. Check the currently published version with `npm view @parmana/sdk
+version` or `pip index versions parmana`, see [TypeScript SDK](/sdks/typescript) and [Python
+SDK](/sdks/python).
