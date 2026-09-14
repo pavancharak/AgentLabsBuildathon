@@ -620,15 +620,12 @@ Source: `/glossary`. Every term used across the docs site, mapped to its real so
 
 ## Python SDK
 
-Source: `/sdks/python`. `python/`. Published on PyPI as `parmana`, v1.1.2 (published
-2026-09-14, adds `create_business_transaction()`, see below). 79 passing tests,
-`black`/`ruff`/`mypy --strict` all clean across the whole package.
-
-**v1.1.2's published PyPI metadata and README still show the pre-rename `parmana-exp`
-GitHub repo name and the old docs domain.** The repo was renamed to `parmana` and the docs
-domain corrected after v1.1.2's build artifacts were created, and PyPI metadata is immutable
-per version. Cosmetic only, does not affect installing or using the package; already fixed in
-source (`pyproject.toml`, `README.md`) for whenever a future version next publishes.
+Source: `/sdks/python`. `python/`. Published on PyPI as `parmana`, v1.1.4 (current). v1.1.2
+(2026-09-14) added `create_business_transaction()`, see below; v1.1.3 and v1.1.4 corrected the
+published metadata (repo name, docs domain, added a `Website` URL) after v1.1.2's build
+artifacts had already been created with the pre-rename name baked in, since PyPI metadata is
+immutable per version. 79 passing tests, `black`/`ruff`/`mypy --strict` all clean across the
+whole package.
 
 A full SDK audit found and fixed three real, live-verified bugs in an earlier pass: no
 bearer-key auth at all, two error-taxonomy bugs (`403` misclassified, real policy rejection
