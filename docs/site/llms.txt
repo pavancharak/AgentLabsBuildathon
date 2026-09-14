@@ -54,4 +54,4 @@ registers by default at all.
 
 ## Known limitations
 
-- [What Parmana does not claim](https://docs.parmanasystems.com/trust-and-claims/what-we-dont-claim): permanent refusals, scoped-not-absent guarantees, mocked connectors, and packages that are real but disconnected from the default server. Read before assuming a capability exists.
+- [Limitations](https://docs.parmanasystems.com/security/limitations): permanent refusals, scoped-not-absent guarantees, mocked connectors, a threat model by category (policy bypass, credential theft, insider threat, connector failure), and operator responsibilities. Read before assuming a capability exists.

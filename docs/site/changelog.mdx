@@ -1,532 +1,194 @@
 ---
 title: "Changelog"
-description: "What actually shipped, by commit, newest first. Not a marketing summary, generated from git log."
+description: "What shipped, newest first."
 ---
 
-<Info>
-  Pulled directly from `git log` on `main` in `pavancharak/parmana`, commit
-  hashes are real and checkable. This page covers the commits that changed what
-  a reader of this site can actually do or rely on, not every commit in the
-  repository's history, run `git log` yourself for the complete record, 358
-  commits as of this page's last update. **Known gap:** entries between
-  2026-08-19 and 2026-09-06, several commits landed on 2026-09-07 before the two
-  below, and everything on 2026-09-09 other than `25295ee`, `bab0981`, and the
-  ten commits below them (including the changelog and validation-doc commits
-  themselves) were not backfilled — `git log` for those ranges directly if you
-  need them.
-</Info>
+Parmana ships continuously, there's no separate server release train with its own version
+numbers (the running server's `GET /version` reports an internal build identifier, not a
+product version). The SDKs are versioned independently on their own registries, see
+[TypeScript SDK](/sdks/typescript) and [Python SDK](/sdks/python) for their current versions
+and per-version notes. This page covers changes that affect what you can build against, not
+every commit, run `git log` in the repository for the complete record.
 
-## 2026-09-11 (later same day)
+## 2026-09-14
 
-Same-day PQC production-readiness audit (scope: is Parmana's cryptographic execution
-evidence independently verifiable by third parties?) found four real gaps and closed all
-four. Full detail: `docs/VERIFICATION-GAPS.md` ("Gaps closed in the 2026-09-11 PQC
-production-readiness audit remediation", gaps 51-54), `docs/CLAIMS.md` 2.14/2.28/3.12
-updates. Commit `1f4b292`.
+**Added**
 
-- No standalone offline verifier existed anywhere in this repository — every
-  verification path was a call into Parmana's own server. New
-  `packages/crypto/src/OfflineVerifier.ts` (zero network/disk/env-var access) and a
-  Python counterpart, `python/parmana/crypto/offline_verifier.py`; cross-language
-  determinism proven by spawning the real TypeScript signer as a subprocess and
-  verifying its output independently in Python. (Correction to the audit's own first
-  pass: an external, independently maintained package, `@parmana/sign`
-  (`github.com/pavancharak/parmana-sign`, verified real via `gh api`), already
-  provides offline verification of the classical signature, but not the hybrid
-  envelope or this system's specific canonical field mapping.)
-- No public-key discovery endpoint existed. New `GET /keys/:keyId` and
-  `GET /.well-known/jwks.json` (`packages/api/src/routes/keys.ts`), unauthenticated
-  like `/refusal/verify` and `/audit/verify`. Found and fixed alongside it:
-  `FileKeyProvider.getMetadata()` reported the wrong algorithm for any keyId other
-  than whichever one happened to match global config.
-- `VerificationCrypto`/`RefusalCrypto`/`AuditEventCrypto` (Trust Records, Refusal
-  Records, Audit Events) hardcoded keyId `"default"` with no rotation mechanism —
-  reproduced empirically (sign, regenerate the key in place, re-verify: fails). New
-  `PARMANA_VERIFICATION_KEY_ID`/`PARMANA_VERIFICATION_SECONDARY_KEY_ID`, mirroring the
-  existing `PARMANA_GATEWAY_KEY_ID` pattern, plus `scripts/rotate-verification-key.ts`.
-- A genuinely hybrid-signed Trust Record's ML-DSA-65 signature could be silently
-  stripped with no detection (proven by this codebase's own pre-existing test). New
-  opt-in `HYBRID_SIGNATURE_REQUIRED` policy flag closes it for any deployment that
-  enables it, with zero effect on any already-issued signature.
+- `createBusinessTransaction()` (TypeScript) and `create_business_transaction()` (Python):
+  derives the three id pairs a Business Transaction must keep consistent, removing the most
+  common integration mistake. Both SDKs published: `@parmana/sdk@1.1.2` on npm,
+  `parmana@1.1.4` on PyPI.
+- Documentation-site domain fixed to `docs.parmanasystems.com`; repository links updated to
+  `github.com/pavancharak/parmana`.
 
 ## 2026-09-11
 
-Real-deployment verification session: deployed the real API (not the standalone buildathon
-demo) to a new environment for the first time with caller authentication actually enabled
-against a real, live Supabase project, which surfaced a genuine production bug invisible to
-the existing test suite. Full detail: `docs/VERIFICATION-GAPS.md` ("Gaps closed in the
-2026-09-11 real-deployment verification session") and `docs/CLAIMS.md` §2.31's new update.
+**Added**
 
-- **`1eb8881`** fix(policy,api): new `policies/agent-vendor-payment/1.0.0/policy.json`,
-  exercised end-to-end (real `PolicyEngine`, real Ed25519 signing, real Supabase storage)
-  both locally and against a new `parmana-api-real` Vercel deployment. Deliberately
-  authorization-only, no connector wired — its signals are unverified caller attestations,
-  the same shape G-27 found in `vendor-payment` and closed by removing that capability from
-  production entirely. The same deployment surfaced and fixed a real bug:
-  `caller_audit_events.type`'s CHECK constraint never included `'caller.capability_granted'`,
-  even though `POST /execute`/`POST /transactions` write that event on every successful,
-  authenticated capability check — against a real Postgres-backed audit sink with caller-auth
-  enabled, this meant every successful authenticated request failed closed with `503
-AUDIT_UNAVAILABLE` before Policy Engine ever ran. New migration
-  `supabase/migrations/20260911090000_add_capability_granted_to_caller_audit_events.sql`
-  closes it, following the same widening pattern as its four predecessors.
+- Standalone offline signature verifiers with no network/disk dependency, TypeScript
+  (`OfflineVerifier`) and Python (`offline_verifier.py`), cross-verified against each other.
+- Public-key discovery: `GET /keys/:keyId` and `GET /.well-known/jwks.json`.
+- Verification-key rotation support (`PARMANA_VERIFICATION_KEY_ID`, a rotation script), so a
+  key can be rotated without breaking verification of records signed under the old key.
+- Optional `HYBRID_SIGNATURE_REQUIRED` policy flag: an opted-in deployment now detects a
+  stripped post-quantum signature on a record that should have one.
+
+**Fixed**
+
+- A production deployment with real caller authentication surfaced a database constraint gap:
+  successful authenticated requests could fail closed with a `503` before policy ever ran.
+  Fixed via a migration.
+- `FileKeyProvider` reported the wrong signature algorithm for any key other than the default.
 
 ## 2026-09-10
 
-Production-readiness pass against an external code-derived audit (13 items, none critical).
-Every item was independently re-verified from source before being acted on, not taken on
-the audit's word. One item (persistent storage for the session-credential vault/gateway-
-session store) was overturned by that re-verification: both are strictly intra-request,
-single-process objects with no restart-survival requirement at all, confirmed by tracing
-every caller. Full detail: `docs/VERIFICATION-GAPS.md` (new "Gaps closed in the 2026-09-10
-production-readiness session" table, gaps 40–49), `docs/CLAIMS.md` §2.16/§2.18/§2.26/§3.14/
-new §3.21.
+**Added**
 
-- **`624adf7`** fix(crypto): `KEY_PROVIDER=aws-kms`/`azure-key-vault`/`gcp-kms`/`hsm` now
-  fails closed at startup instead of silently constructing `FileKeyProvider`. An operator
-  configuring real KMS custody was getting private-key-on-disk instead, with no error.
-- **`2d643ca`** feat(storage,api): new `PostgresRateLimitStore` closes the fleet-wide half
-  of `/execute`/`/health`/`/ready` rate limiting (`docs/CLAIMS.md` 3.14's own documented
-  scope gap). Durable when `DATABASE_URL` is configured, falls back to the in-process
-  default with a loud warning otherwise. Correction to the source audit in the same commit:
-  the session-credential vault and gateway-session store it also flagged are not actually a
-  gap (see above).
-- **`263387b`** fix(api): `.env.example` no longer ships `PARMANA_AUTH_DISABLED=true`
-  uncommented; `GET /ready` now surfaces `authDisabled`/`warning` in its JSON response, not
-  just a startup log line.
-- **`2761548`** feat(api): `PARMANA_GATEWAY_ID` makes the Gateway's identity configurable
-  (was hardcoded to the literal `"parmana-gateway"`); the session-issuance capability token
-  is now a real generated value instead of a bare `{}`.
-- **`33d96b3`** feat(api): warns at startup when `HUBSPOT_PRIVATE_APP_TOKEN` (a long-lived
-  static credential) hasn't been rotated in 90 days, or has no recorded rotation date at
-  all.
-- **`2aa585f`** feat(api,runtime): new `GET /trust-records`, a bulk export of full signed
-  Execution Trust Records (not just raw transactions), caller-scoped and paginated exactly
-  like `GET /transactions`, with `since`/`until` date-range filtering. See `docs/CLAIMS.md`
-  §3.21.
-- **`373a020`** fix(governance-ui): `POST /login`, this tool's only unauthenticated route,
-  is now rate-limited (10/minute, IP-keyed). Reviewed the rest of `governance-ui`'s security
-  posture in the same pass (session-fixation hardening, cookie flags, XSS escaping) and
-  found it already correct.
-- **`147a366`** feat(shared): new `createLogger`/`getLogger` (`@parmana/shared`), a
-  structured, level-gated logger. `LOG_LEVEL` was already read into config but nothing
-  gated output on it; this is the tested gating infrastructure, not yet threaded through the
-  ~17 existing `console.*` call sites.
-- **`669b198`** chore(deps): `npm audit` found 12 vulnerabilities (3 high); resolved to 3
-  moderate via a `qs` override (`^6.16.0`, unblocking a version `express@4.22.2`'s own pin
-  couldn't reach without one) and a `vitest`/`@vitest/coverage-v8` patch bump
-  (`^4.1.9` → `^4.1.11`). Residual 3 are entirely in this session's own new load-test
-  devDependency (next entry) and never ship in the production image.
-- **`c32a861`** feat: new `npm run loadtest` (`scripts/load-test.ts`). No load testing
-  existed anywhere in the repo before this. Boots the real server and benchmarks
-  `POST /execute` (real policy evaluation, signing, connector execution) at configurable
-  concurrency. Actually run: ~51 req/s sustained, p50 188ms/p99 444ms at 10 connections.
-- **`b6671f7`** chore: gitignore the root `tsconfig.tsbuildinfo` build artifact.
-- **`1361f52`** fix: `scripts/apply-all-migrations.sql` (the Dashboard-only Supabase apply
-  path) was three migrations behind `supabase/migrations/`, two predating this session,
-  found while adding the third (`2d643ca`'s `rate_limit_counters`). A Dashboard-only
-  deployment following `DEPLOYMENT.md`'s own steps would have gotten an incomplete schema.
-- **`d5b2c28`** docs: `docs/VERIFICATION-GAPS.md` gaps 40–49, the session-credential-vault
-  correction, and a new D-6 entry for the CI branch-protection blocker; `docs/CLAIMS.md`
-  §2.16/§2.18/§2.26/§3.14 updates and new §3.21; `DEPLOYMENT.md` updates for the commits
-  above.
-- **`aa1e1eb`** docs: adds `RELEASE-NOTES-2026-09-10.md`, replacing an earlier draft that
-  cited fabricated commit hashes and nonexistent features (Redis-backed rate limiting,
-  governance-ui bulk/CSV export, syslog streaming) with content verified against this same
-  commit range.
-- **`d2f2a42`** docs: a full sweep of `docs/`, `docs/site/`, and `docs/book/` found several
-  pages explicitly asserting this session's pre-fix behavior as current fact (three pages
-  said `KEY_PROVIDER=aws-kms`/etc. "does nothing"; four described the rate limiter as
-  unconditionally in-memory with no shared-store path; two said `LOG_LEVEL` was read but
-  consumed by nothing); all corrected. `docs/site/deployment/production.mdx` also gained
-  the `KEY_PROVIDER`/`PARMANA_GATEWAY_ID`/rate-limiter/`GET /ready` notes `DEPLOYMENT.md`
-  already had. Dated point-in-time audit/certification snapshots were deliberately left
-  untouched, per this repo's own historical-record convention.
-- **`417829e`** docs(book): full re-check of `docs/book/`'s remaining chapters and
-  `docs/00X-*.md` against this session's changes. Completed Chapters 10/14 with accurate
-  additions (neither said anything false, they predated these capabilities).
-  `docs/00X-*.md` needed no change, confirmed by grep: that series operates above the
-  level of detail this session's fixes touch.
-- **`0e0534b`** docs: `README.md`'s test count (1,313, last verified 2026-08-24) was stale
-  from ordinary suite growth since then, not from this session's changes. Updated to
-  1,671 (1,631 passed, 38 skipped, 0 failed), re-verified via a JSON-reporter run.
-- **`9114285`** docs: swept all 37 tracked root `.md` files; `CODEBASE-REFERENCE.md`
-  (built 2026-09-07, three days pre-session) had the same gatewayId/session-token
-  placeholder and unconditional in-memory rate-limiter claims this session fixed.
-  Corrected, original text struck through and kept for historical accuracy. Five other
-  files with hits are dated audit/snapshot reports tied to a specific commit or
-  submission event and were deliberately left untouched.
-- **`07f44d4`** docs(site): expanded `roadmap.mdx`'s KMS/HSM custody section (Move 1) with
-  what's pending, why it's still pending (this repo's own live-test evidence bar, and no
-  real cloud credentials exist in this environment to meet it), and the concrete build
-  order once someone does. Asked for directly rather than having a `KeyProvider`
-  implemented blind against a mocked SDK.
-- **`ead566a`** docs: removed em-dashes from every prose file this session's
-  production-readiness pass touched (81 occurrences, 18 files), rewritten with periods,
-  commas, colons, or parentheses. Meaning unchanged throughout. Requested directly, not
-  applied to `parmana-founder-case-study.md`'s own prose (the founder's writing, not
-  this session's).
+- `PostgresRateLimitStore`: `/execute` rate limiting is now durable and fleet-wide when
+  `DATABASE_URL` is configured (previously in-process only).
+- `GET /trust-records`: bulk, paginated export of full signed Execution Trust Records.
+- Structured, level-gated logging (`createLogger`/`getLogger`).
+- `npm run loadtest`: a load-testing script for `POST /execute`.
+
+**Fixed**
+
+- A misconfigured KMS/HSM key provider (`KEY_PROVIDER=aws-kms` etc.) now fails closed at
+  startup instead of silently falling back to storing keys on disk.
+- `GET /ready` now reports `authDisabled` explicitly in its JSON response.
+- The Gateway's identity is now configurable (`PARMANA_GATEWAY_ID`) instead of hardcoded.
+- A long-lived HubSpot credential with no rotation in 90 days now triggers a startup warning.
 
 ## 2026-09-09
 
-- **`3023399`** docs(examples): new `policies/api-key-issuance/1.0.0` policy and Tutorial 106,
-  written correctly under the fail-closed `boundSignals` discipline (G-33) and zero-conflict
-  shape (G-39) from the start — a worked template for authoring a new policy, rather than
-  another retrofit. Demonstrates the approve path, a `boundSignals` mismatch caught by
-  `SignalIntentBinder`, a specific rejection reason, and zero `findRuleConflicts()` warnings.
-  `npm run examples`: 99/99, exit 0.
-- **`a3d19bd`** docs: `docs/VERIFICATION-GAPS.md` G-38/G-39 and `docs/CLAIMS.md` §2.30 updates
-  for the two commits below.
-- **`f82f071`** feat(policy): new `PolicyValidator.findRuleConflicts(policy)` flags pairs of
-  rules whose conditions can be true simultaneously — first-match-wins otherwise lets the
-  earlier one silently decide with no signal the later rule is partly unreachable. Advisory
-  only, never fail-closed. A first design (tested against every real policy before shipping,
-  not assumed correct) had three real bugs — it would have flagged the ordinary trailing
-  `always: true` catch-all as "conflicting" with everything, gotten asymmetric numeric
-  thresholds wrong, and reported noise on every approve/reject pair since every real approve
-  rule is a nested `all` — all three fixed with real interval-overlap math and a sound
-  conjunct-disjointness argument. Verified against all 10 real policies: zero false positives.
-  See `docs/VERIFICATION-GAPS.md` G-39.
-- **`d1107b6`** chore(policy): removed `PolicyOutcome`/`PolicyAction`'s unused third value,
-  `REQUIRE_OVERRIDE` — no real policy used it, and it collapsed to an ordinary `REJECT`
-  anyway. Disclosed rather than glossed over: two tests and three docs had treated it as a
-  deliberately reserved future extension point, not dead code; removed anyway as an explicit,
-  requested trade-off. See `docs/VERIFICATION-GAPS.md` G-38.
-- **`e1c5d04`** fix(examples): the `boundSignals` fail-closed change (`acf248a`/`b53bd4e`
-  below) applies to every policy, not just the 10 under `policies/` — broke `npm run examples`
-  at Tutorial 14. Fixed `examples/tutorials/14-custom-policy`'s own policy (one genuinely
-  bindable fact, `paymentAmount`, now really bound) and the widely-shared
-  `examples/shared/policies/default-policy.json`. Also wired Tutorial 105 into
-  `scripts/run-examples.ts`'s list for the first time, and corrected two doc-site pages whose
-  own inline policy examples had gone stale relative to the fail-closed behavior they
-  demonstrate ([Write your first policy](/guides/write-your-first-policy),
-  [Policies and the decision](/concepts/policies-and-the-decision)). `npm run examples`:
-  98/98, exit 0. See `docs/VERIFICATION-GAPS.md` G-37.
-- **`1899f6e`** docs: adds `docs/audit/PRODUCTION-READINESS-AUDIT-2026-09-09.md` (5 critical
-  claims, 4 known findings, and a structural dead-code/naming audit, verified against actual
-  code — correcting several stale assumptions along the way) and updates `docs/CLAIMS.md`
-  §2.14/§2.30/§3.11 to match the four fixes below.
-- **`acf248a`** chore(deps): removes the unused `@supabase/supabase-js` dependency from 5
-  packages (`api`, `crypto`, `policy`, `runtime`, `shared`) — confirmed zero real usage by
-  grep. Self-caught regression in the same pass, documented in full rather than glossed over:
-  the grep missed two real usages outside `src`/`tests` (`packages/storage/scripts/migrate.ts`,
-  `scripts/verify-policy-changes-approved.ts`), neither covered by `tsc -b` or `vitest`. Both
-  restored. See `docs/VERIFICATION-GAPS.md` G-36.
-- **`5cd88e2`** feat(crypto): `PRIMARY_SIGNATURE_PROVIDER`/`SECONDARY_SIGNATURE_PROVIDER` now
-  accept `ml-dsa-65` as an alias for the internal `dilithium3` identifier — additive only, no
-  rename, so an existing `dilithium3`-configured deployment is unaffected. See `docs/VERIFICATION-GAPS.md`
-  G-35 and [Cryptography](/cryptography/overview).
-- **`5e291ab`** chore: removes dead `SupabaseClientFactory` and `assertSupabaseConfigured.ts`
-  (zero remaining call sites, no tests) and rewrites 8 stale doc-comment references that still
-  described `SupabaseClientFactory` as current. See `docs/VERIFICATION-GAPS.md` G-34.
-- **`b53bd4e`** fix(policy): `PolicyValidator.validate()` now fails closed on any
-  rule-referenced fact with neither a `boundSignals` nor a new `unboundSignalReasons` entry,
-  replacing a load-time `console.warn` nobody reviewing a running system would see. All 10
-  real policies updated — two (`connector-capability`, `customer-refund`) had a genuinely
-  bindable amount fact that had simply never been bound, a real scope-drift gap now closed.
-  See `docs/VERIFICATION-GAPS.md` G-33.
-- **`bab0981`** docs(examples): Tutorial 105 demonstrates the `25295ee` fix below
-  end-to-end — a transaction with a provisioned `tenant.acme-corp` key signs and verifies
-  only under that key (and fails verification under the shared default key), an
-  unprovisioned tenantId falls back silently to `"default"`, and a transaction with no
-  tenantId is unaffected. `examples/tutorials/105-tenant-key-isolation/`.
-- **`25295ee`** fix(runtime): `RuntimeAuthorizationSigner` previously signed every Execution
-  Authorization under the single shared `"default"` key regardless of tenant, even though
-  verification already resolves the public key per-authorization by its own `keyId`
-  ([Cryptography](/cryptography/overview), 2.28). New `TenantKeyResolver`
-  (`packages/runtime/src/TenantKeyResolver.ts`) signs under a dedicated `tenant.<tenantId>`
-  key when one has been provisioned, falling back to `"default"` otherwise — opt-in per
-  tenant, no behavior change for deployments with no tenant keys provisioned. Found during a
-  nono-style architecture audit of the authorization-proof model. See `docs/CLAIMS.md` §2.28
-  ("Update 2026-09-09") and `docs/VERIFICATION-GAPS.md` G-32.
+**Added**
 
-## 2026-09-07
+- `PolicyValidator.findRuleConflicts()`: flags policy rules whose conditions can both be true
+  at once, advisory only, verified against every shipped policy with zero false positives.
 
-- **`7a1aa37`** feat(runtime): execution-time Policy Governance verification, wired into
-  `RuntimeEngine.execute()` -- a policy with no approval record, a bad approval-record
-  signature, or tampered live content can now be refused before `PolicyEngine` evaluates a
-  single rule, not just flagged minutes later. Feature-flagged
-  (`POLICY_EXECUTION_VERIFICATION_ENFORCED=true`), default off, since every real production
-  policy is currently `PENDING_APPROVAL` (see `docs/CLAIMS.md` §2.26) and an unconditional
-  gate would refuse them all today -- confirmed with the user before building it. See
-  `docs/CLAIMS.md` §2.35 and `docs/VERIFICATION-GAPS.md` gap 40.
-- **`437f5ec`** feat(governance): verify `PolicyChangeApprovalRecord` signatures (not just
-  content hashes) in the deploy/startup integrity check, hash-chain each record to the one
-  before it for the same policy (new `previousRecordHash` field, requires a Supabase
-  migration), and re-run the check every 5 minutes for the life of the process instead of
-  only at startup. Also hardens `PolicyValidator`'s `matches` regex against a class of
-  catastrophic-backtracking patterns, surfaces `findUncoveredFacts()` coverage warnings on
-  the pending-change endpoints, and removes unused dead ledger code from `@parmana/policy`.
-  Findings and fixes documented in `docs/CLAIMS.md` §2.34 and `docs/VERIFICATION-GAPS.md`
-  gaps 35–38. See `docs/CLAIMS.md` §2.26 for the maker-checker feature this extends.
-- **`4e1a8e3`** fix(scripts): the same-day `scripts/backfill-legacy-policy-approvals.ts`
-  (new in `437f5ec`) is corrected to never treat a real, already-`PENDING_APPROVAL` policy
-  proposal as "legacy" — it would otherwise have misclassified this repository's own ten
-  real production policies (`docs/CLAIMS.md` §2.26's "Legacy-policy backfill" entry) awaiting
-  a genuine human checker. `docs/VERIFICATION-GAPS.md` gap 39.
+**Fixed**
 
-## 2026-09-06
+- Policy validation now fails closed on any rule-referenced fact with no `boundSignals`
+  binding, instead of a load-time warning nobody would see. All shipped policies updated.
+- `TenantKeyResolver`: Execution Authorizations now sign under a per-tenant key when one is
+  provisioned, instead of always the shared default key.
 
-- **`8a81dd8`** fix(policy): `PolicyValidator.findUncoveredFacts()` + a `PolicyRouter.load()`
-  warning when a rule decides on a fact absent from `boundSignals`, see
-  [@parmana/policy](/reference/policy) and `docs/CLAIMS.md` §2.30.
-- **`1f479ff`** fix(runtime): `RuntimeEngine`'s constructor logs which optional protections
-  (`signalStateVerifier`, `capabilityPolicyBinder`, refusal recording) are configured, see
-  [@parmana/runtime](/reference/runtime) and `docs/CLAIMS.md` §2.30.
-- **`cf7909c`** chore: remove stale doc-comment references to the deleted Razorpay
-  connector's classes/files across 13 source files (`RazorpaySignalStateVerifier`,
-  `createRazorpayConnector.ts`, `SupabaseRazorpayWebhookAuditSink`, and similar) — a reader
-  following any of these citations found nothing.
-- **`41e7808`** docs(claims): add §2.30 for the two fixes above.
-- **`806d6aa`** feat(execution-control): sign a `submittedBy`/`grantedCapability` caller-capability
-  claim into `ExecutionAuthorizationPayload` (optional fields, same precedent as
-  `policyContentHash`/`signalsHash`), checked for consistency against the executed action by
-  `DefaultConnectorPolicy.assertAllowed()`. Defense-in-depth, not a fix for a live exploit —
-  see [Execution authorization](/concepts/execution-authorization),
-  [@parmana/execution-control](/reference/execution-control), and `docs/CLAIMS.md` §2.31 for
-  the honestly-scoped writeup of what this does and does not close.
-- **`26f1e17`** docs(claims): add §2.31 for the caller-capability claim above.
-- **`66e77f9`** docs(site): add [Objections and
-  Evidence](/trust-and-claims/objections-and-evidence), indexing CLAIMS.md's claims against
-  real tests across 5 domains as objection→evidence, replacing a fabricated 52-scenario plan.
-  Closed 3 real test gaps found in the process: a tampered-`submittedBy` case in
-  `authorization-envelope.test.ts`, a new `AuditEventCrypto` unit test file (previously only
-  indirectly covered), and two new performance tests (`authorization-signing-performance.test.ts`,
-  `execution-pipeline-latency.test.ts`) — zero automated performance measurements existed
-  anywhere in this repo before this commit.
-- **`b752ff1`** feat(api): per-caller tamper-evident chaining for `caller_audit_events`
-  (`SupabaseCallerAuditSink.record()`, a Postgres advisory lock scoped per caller rather than
-  a table-wide lock, since `caller.authenticated` fires on every authenticated request). New
-  `CallerAuditChainVerifier` proves a deleted row breaks the chain, standalone, no server
-  required. See `docs/CLAIMS.md` §2.32.
-- **`1996220`** docs(claims): add §2.32 for the audit chain above, close the corresponding
-  evidence-index gap.
-- **`373402a`** fix: close 2 pre-existing lint issues unrelated to the above (`.cjs` scripts
-  incorrectly flagged for using `require()`; an unused test import).
-- **`c7bba81`** docs(site): add an honest key-compromise row to
-  [Objections and Evidence](/trust-and-claims/objections-and-evidence) — rejected a proposed
-  test claiming signature re-verification catches a stolen signing key (cryptographically
-  incoherent: an attacker holding the real key can sign anything and it verifies as fully
-  legitimate), documented the real, honest answer instead.
-- **`01aae2e`** docs(site): backfill this changelog with the 5 commits above (`66e77f9` through
-  `c7bba81`) — they'd landed without an entry.
-- **`d8ac856`** docs(site): add [Caller Audit Trail](/concepts/caller-audit-trail) — no
-  dedicated reference page existed for `CallerAuditSink`/the per-caller chain (`b752ff1`)
-  before this, a pre-existing gap surfaced while checking doc coverage against code.
+**Changed**
 
-## 2026-08-19
+- `PRIMARY_SIGNATURE_PROVIDER`/`SECONDARY_SIGNATURE_PROVIDER` accept `ml-dsa-65` as an alias
+  for the internal `dilithium3` identifier.
 
-- **`38658c0`** / **`751310a`** / **`5ffc85c`** feat(connector-github): add a GitHub connector
-  with ephemeral GitHub-App-installation credentials, wired into the production execution
-  chain, see `docs/CLAIMS.md` §3.17. No dedicated docs page yet, see [Add a
-  connector](/guides/add-a-connector) for the general pattern this follows.
-- **`496c79e`** / **`030d01b`** docs(claims): add §3.17 (GitHub connector, cross-referenced
-  from §3.10) and §3.18 (deployment infrastructure requirements) to `docs/CLAIMS.md`.
-- **`36f20c8`** / **`9f0f6b2`** test(hubspot): add an explicit credential-lifecycle
-  non-exposure test, cited in `docs/CLAIMS.md` §2.23/§3.10.
-- **`d496f41`** docs(claims): document §2.26's CI policy-governance check and its real
-  Git-enforcement gap.
-- **`4fb7f1c`** docs(claims): record and reject an atomic/fail-closed refusal-record proposal,
-  a design considered during review and turned down, not shipped.
-- **`cbd4650`**, **`57e9667`**, **`6cc0963`**, **`a835c98`**, **`1bbd196`** — a same-day
-  claims-audit session: a master-verification pass across claims 2/3/7/9/10, `PolicyNotFoundError`'s
-  fail-closed behavior documented in §2.2, and a final pass across claims 14-19 finding zero
-  gaps.
+## 2026-09-06 to 2026-09-07
+
+**Added**
+
+- Execution-time Policy Governance verification: a tampered or unapproved policy can now be
+  refused before evaluation runs (feature-flagged, off by default).
+- `PolicyChangeApprovalRecord` signatures are now verified (not just content hashes), hash-chained,
+  and re-checked periodically, not just at startup.
+- Per-caller tamper-evident audit-event chaining, with a standalone chain verifier.
+- Signed caller-capability claims in the Execution Authorization payload (defense-in-depth).
+
+## 2026-08-16 to 2026-08-19
+
+**Added**
+
+- GitHub connector, with ephemeral GitHub-App-installation credentials.
+
+**Fixed**
+
+- Stale documentation and code-comment references to the removed Razorpay connector cleaned
+  up across the repository.
 
 ## 2026-08-18
 
-- **`aae1aca`** feat(governance): Policy Governance, a maker-checker workflow for policy
-  changes (propose/approve/reject, step-up auth, signed approval records), see
-  `docs/CLAIMS.md` §2.26. No dedicated concept page on this site yet.
-- **`a13d52f`** / **`9bd595a`** / **`9e51df2`** feat+fix(governance): bind content hash at
-  decision time, add a fail-open deploy/startup integrity check, and close two findings from
-  an independent audit of the maker-checker feature.
-- **`9b3ed34`** feat(governance-ui): add a read-only internal UI for Policy Governance.
-- **`9374191`** / **`9b4f679`** ci: add policy-approval verification to CI, documented in
-  `docs/CLAIMS.md`.
-- **`8b66f35`** fix: remove secret-like HubSpot token examples from the repository, placeholder
-  tokens made unambiguously fake.
+**Added**
 
-## 2026-08-17
-
-- **`4959af3`** docs: add INC-10, an SDK version-tracking incident and its fix.
-- **`b4c2e5a`** chore: align package versions across the workspace.
-
-## 2026-08-16
-
-- **`900621d`** feat: add a durable audit record for principal-binding violations.
-- **`1aba968`** fix(sdk): add `RateLimitError`, preserve `CAPABILITY_NOT_ALLOWED` on the
-  client, correct 403 docstrings, see [Error catalog](/api-reference/error-catalog).
-- **`41e5d2c`** / **`3253322`** / **`40aebe7`** test: add capability-denied and
-  principal-denied scenarios to tutorial 84, plus caller-C/D key placeholders, and a pass
-  documenting and investigating execution incidents.
-- **`e848b98`** fix(hubspot): replace realistic-format placeholder tokens with clearly-fake
-  ones.
-- **`e5e0b1c`**, **`cca3231`**, **`f39f64f`**, **`3bed7d0`** — a documentation-cleanup series:
-  fixed broken references to deleted Razorpay files, added a citation-integrity test, fixed
-  dangling `CLAIMS.md` section citations, and a general README/`llms-full.txt`/API-reference
-  cleanup pass.
+- Policy Governance: a maker-checker workflow for policy changes (propose, approve, reject,
+  signed approval records), plus a read-only internal review UI.
 
 ## 2026-08-12
 
-- **`a996b89`** feat(api): caller-to-capability scoping (`allowedCapabilities`), see
-  [Authentication](/api-reference/authentication).
-- **`d8a6ded`** docs: add HubSpot integration evidence and update the TRL assessment.
+**Added**
+
+- Caller-to-capability scoping (`allowedCapabilities`).
+
+**Removed**
+
+- The Razorpay connector was removed from the repository entirely. It is not a supported
+  integration path; see [Integrations](/integrations/overview) for what's currently live.
 
 ## 2026-08-11
 
-- **`1061e02`** build: include TypeScript SDK and configure Python tests.
-- **`6a1c3ae`** docs: latency/voice-AI readiness investigation — four findings on whether
-  Parmana can meet a sub-500ms latency budget (cold Postgres connections, since fixed;
-  synchronous caller-auth audit writes, confirmed deliberate; a region mismatch; anycast
-  relay overhead), explicit that a full, real `POST /execute` round trip remains unmeasured.
-  Also added [Verification Log](/trust-and-claims/verification-log)'s first entry (live
-  HubSpot verification against the deployed instance) and repositioned the README tagline.
-- **`09eb2d4`** feat(sdk): dogfood the SDKs end to end — the HubSpot live integration suite
-  rewritten to run through the real `@parmana/sdk` package (`ParmanaClient`/`HttpTransport`)
-  instead of `supertest` against an in-process Express object, and both documented
-  "quickstart" example scripts (`python/examples/quickstart/run.py`,
-  `typescript/examples/02-execute.ts`) proven to actually run for the first time, by a real
-  test each. Found and fixed real bugs along the way, including all 7
-  `typescript/examples/*.ts` files importing `@parmana/typescript-sdk`, a package name that
-  has never existed. See `docs/CLAIMS.md` §3.15.
-- **`bf6a413`** docs: document per-caller rate limiting on `/execute` (`docs/CLAIMS.md`
-  §3.14, `.env.example`), see [Authentication](/api-reference/authentication#rate-limiting).
-- **`6f39ef1`** feat(api): add rate limiting — `POST /execute` per authenticated caller
-  identity, `GET /health`/`GET /ready` separately by IP with a far more permissive limit, see
-  [Authentication](/api-reference/authentication#rate-limiting).
-- **`85dc62d`** feat(sdk): add refusal-record and audit-verify route coverage to both SDKs.
-- **`328be90`** fix(python-sdk): fix stale repository URLs, add missing Apache-2.0 license
-  text.
-- **`6f6c76f`** fix: resolve additional pre-existing test failures found while verifying SDK
-  fixes, plus 2 lint errors.
-- **`6597939`** fix(typescript-sdk): fix an env-path test bug, implement retry logic (backoff
-  on idempotent GETs against 502/503/504), and rename the package
-  `@parmana/legacy-reference` → `@parmana/sdk`, see [TypeScript SDK](/sdks/typescript).
+**Added**
 
-## 2026-08-10
+- Rate limiting on `POST /execute` (per authenticated caller) and `GET /health`/`GET /ready`
+  (per IP, more permissive).
+- TypeScript SDK renamed `@parmana/legacy-reference` to `@parmana/sdk`, plus retry logic
+  (backoff on idempotent GETs against 502/503/504).
 
-- **`5b5cf2c`** / **`b4a2e9c`** / **`3cb4249`** Python SDK and API error-handling fixes: a
-  `shell=True` plus list-argument bug that broke key generation in CI, and `ruff` lint
-  failures in `client.py` and its tests.
+**Fixed**
+
+- Both SDKs' documented quickstart examples are now run against a real server on every test
+  run, not just syntax-checked. Found and fixed several real bugs in the process, including
+  every TypeScript example importing a package name that never existed.
 
 ## 2026-08-09
 
-- **`2e94a0a`** complete hybrid signature migration — see [Security](/security/overview)
-  §3.13 for the current scope (built and tested, not yet running in any deployed
-  environment).
-- **`1d8ebf0`** refactor: strengthen execution authorization architecture.
+**Added**
 
-## 2026-08-07
-
-- **`1e3bd90`** Update documentation and project artifacts.
+- Hybrid signature support completed (classical + post-quantum), see [Security](/security/overview).
 
 ## 2026-08-05
 
-- **`0e3e465`** feat(hubspot): implement Signed Approval Artifact, closing the HubSpot half
-  of TD-23, see [HubSpot](/integrations/hubspot).
-- **`d6b3143`** fix(razorpay): derive the daily cumulative refund cap from the repository
-  rather than a hardcoded value, closing the Razorpay half of TD-23. (Razorpay was removed
-  from the repository entirely 2026-08-12, see the `e5e0b1c`/`cca3231` entry above.)
-- **`e55c646`**, **`470121b`**, **`56cef07`**, **`17c5554`**, **`d38e775`**, **`a30f24a`**,
-  **`ae7c930`**, **`58a3f39`**, **`e44bffc`**, **`5bd4ea6`**, **`4e5f78d`**, **`5470847`** —
-  a technical-debt hardening series (TD-1 through TD-23) from an internal architecture
-  review: canonical capability-to-policy binding, a dead composition-root removal, replay
-  endpoint semantics certified by test, stale vendor-payment/caller-auth documentation
-  corrected, and residual debug instrumentation removed.
+- HubSpot Signed Approval Artifact support, closing a policy-verification gap for that
+  connector.
 
 ## 2026-07-28
 
-- **`0e69ed4`** chore: npm audit fix, resolving 4 known transitive vulnerabilities
-  (`brace-expansion`, `js-yaml`, `postcss`, `body-parser`, plus `nanoid` pulled in
-  transitively) — `npm audit fix` alone, no `--force`, no `package.json` changes. Full
-  suite (597 tests) unchanged, `npm audit` now reports 0 vulnerabilities.
-- **`f89029e`** fix: bind policy signals to executed intent, closing an
-  execution-authorization bypass — the most severe finding in this project's history, see
-  [Security](/security/overview) for the incident and `docs/VERIFICATION-GAPS.md` G-24 for
-  full detail. `Policy.boundSignals` + `SignalIntentBinder`
-  ([Policies and the decision](/concepts/policies-and-the-decision)), `isPrincipalAllowed`,
-  and `isOwnedByCaller` (a compounding IDOR fix) landed together. Found via an external
-  adversarial security exercise, not this project's own audit process.
+**Security**
 
-## 2026-07-20
-
-- **`f453713`** docs: fix CLAIMS.md escaping corruption, lead README/CLAIMS with
-  execution-trust framing, scope key-compromise notice to what's verifiable
-- **`03aed1a`** / **`48320b3`** docs: add founder case study and update E2E documentation
-- **`8a72f1a`** chore: production hardening and live deployment improvements
-
-## 2026-07-19
-
-- **`e13dd2a`** feat: production deployment, execution hardening, and live Razorpay
-  validation, the live-mode refund validated against a second, live-mode Fly.io deployment,
-  see `docs/CLAIMS.md` §3.9 (historical; Razorpay removed from the repository entirely
-  2026-08-12).
-- **`731465c`** feat(razorpay): add webhook processing, settlement confirmations, and live
-  integration support, `POST /webhooks/razorpay`, `RazorpaySettlementProcessor` (all removed
-  from the repository entirely 2026-08-12, along with the connector).
+- Fixed an execution-authorization bypass: policy signals are now bound to the executed
+  intent (`Policy.boundSignals` + `SignalIntentBinder`), closing a gap where a caller could
+  declare one action's signals while a different action actually executed. Found via an
+  external adversarial security exercise. See [Security](/security/overview).
 
 ## 2026-07-18
 
-- **`5fddced`** feat(api): add Razorpay connector and credential provider, refund creation
-  against real Razorpay (removed from the repository entirely 2026-08-12).
-- **`4df5cf6`** Add end-to-end documentation, Swagger UI, authentication improvements, and
-  OpenAPI tooling.
-- **`ce02554`** refactor(storage): improve repository initialization and availability
-  handling.
-- **`5c688b4`** feat(platform): Execution Integrity Platform v0.3, this commit added caller
-  bearer-key authentication, `createCallerAuthenticator.ts`, gating every route except
-  `/health`, `/ready`, `/openapi.yaml`, and `/documentation`, see
-  [Authentication](/api-reference/authentication). If you're reading an older capture of
-  this site's Quickstart or FAQ that describes an unauthenticated API, that description
-  predates this commit and is stale.
+**Added**
 
-## 2026-07-17
-
-- **`de503e6`** docs(architecture): add implementation-backed execution flow audit.
+- Caller bearer-key authentication, gating every route except `/health`, `/ready`,
+  `/openapi.yaml`, and `/documentation`. Any documentation describing an unauthenticated API
+  predates this and is stale.
 
 ## 2026-07-14
 
-- **`ec3735e`** feat(api): publish OpenAPI specification and add execution connector
-  framework.
+**Added**
+
+- OpenAPI specification published, execution connector framework introduced.
 
 ## 2026-07-11 to 2026-07-13
 
-- **`c282b8d`**, **`850e7ab`**, **`7c0f186`** Test and naming alignment: gateway session
-  hardening, `BusinessTrustRecordBuilder` rename, separating the business trust pipeline
-  from the execution trust builder.
-- **`651497a`** feat: implement credential isolation and secure enterprise connectors, the
-  commit most of this site's `[AVAILABLE]` credential-isolation and content-binding claims
-  are pinned to, see [Credential isolation](/concepts/credential-isolation) and [Content
-  binding & TOCTOU](/concepts/content-binding-toctou).
-- **`5cc0c2e`** feat: add deterministic trust record ordering and verification hardening.
-- **`7c529c4`** / **`82ebd31`** feat: add Execution Trust pipeline, hybrid signatures, and
-  tutorials 47-56.
+**Added**
 
-## Earlier milestones
+- Credential isolation and secure enterprise-connector handling, see
+  [Credential isolation](/concepts/credential-isolation) and
+  [Content binding & TOCTOU](/concepts/content-binding-toctou).
+- Execution Trust pipeline and hybrid signatures introduced.
 
-- **2026-07-07 to 2026-07-10**: connector SDK and business transaction model
-  (`4740aee`), runtime stabilization (`ddf4bc5`), execution system bootstrap composition
-  root (`6484349`), tutorial series expansion through tutorial 56.
-- **2026-07-01**: Python SDK `v1.0.0` tagged and released, see [Python
-  SDK](/sdks/python). This is a package version, not the overall product version, the
-  running server's `/version` route reports its own version independently.
-- **2026-06-25**: first commit, `ba7bc45`, "initialize Parmana architecture v1."
+## Earlier
+
+- **2026-07-01**: Python SDK `v1.0.0` released on PyPI, the first versioned artifact.
+- **2026-06-25**: First commit.
 
 ## A note on terminology in older commits
 
-Commit messages and some earlier internal documents use "Execution Governance" as an
-architecture name. The product's current, public-facing language avoids that framing, see
-[Trust and claims](/trust-and-claims/claims-discipline) for the discipline this site follows
-today. Commit messages are historical record and are quoted here as written, not edited to
-match current terminology.
+Commit messages from before 2026-08 sometimes use "Execution Governance" as an architecture
+name. The current, public-facing language avoids that term; if you find it in old commit
+history, it refers to what this site now calls Policy Governance and the Execution Gateway,
+not a separate product.
 
 ## Full history
 
 ```bash
 git log --oneline
 ```
-
-For the evidentiary detail behind what each milestone actually proves, not just what it
-claims, see `docs/CLAIMS.md` in the repository, cited throughout this site wherever a
-specific claim needs it.

@@ -6,9 +6,9 @@ description: "Every caller-authentication event — success, denial, or structur
 <Info>
   **[AVAILABLE]**. `packages/api/src/auth/CallerAuditSink.ts`,
   `SupabaseCallerAuditSink.ts`, `packages/crypto/src/AuditEventCrypto.ts`,
-  `CallerAuditChainVerifier.ts`. See `docs/CLAIMS.md` §2.32 and [Objections and
-  Evidence](/trust-and-claims/objections-and-evidence) (Domain 3) for the full
-  evidence list this page draws from.
+  `CallerAuditChainVerifier.ts`. See [Limitations](/security/limitations)
+  ("Insider threat / audit tampering") for the full evidence list this page
+  draws from.
 </Info>
 
 ## What it is
@@ -138,5 +138,5 @@ for this route's error shapes.
   with its own, longer-standing `previousChainHash`/`chainHash` chaining
   (`ExecutionChainCrypto`) that the per-caller chain above follows the same idiom of.
 - [Authentication](/api-reference/authentication) — the layer this trail audits.
-- [Objections and Evidence](/trust-and-claims/objections-and-evidence) — Domain 3, for the
-  full objection-by-objection evidence this page's claims are drawn from.
+- [Limitations](/security/limitations): "Insider threat / audit tampering," the full
+  evidence this page's claims are drawn from.

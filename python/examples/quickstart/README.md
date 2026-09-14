@@ -59,55 +59,59 @@ to compile, it's asserted to actually work.
 python python/examples/quickstart/run.py
 ```
 
-## Expected output (real run against a local server, 2026-08-11)
+## Expected output (real run against a local server, 2026-09-14)
 
 ```
-Connected to http://127.0.0.1:3999 (SDK v1.0.5)
+Connected to http://localhost:3000 (SDK v1.1.4)
 
-Business Transaction ID: 922d87cc-9417-4d10-b9ec-a7ace53226d5
-Trust Record ID:         97c2d623-0de7-4794-b9e5-902332bdcf53
-Trust Record Hash:       d11af9c31333bc5f0a2a1ff4124c47379798829f216223cf60dc3484268b2883
+Business Transaction ID: 40ba54d1-1038-443c-80ec-9cd6ad7757a1
+Trust Record ID:         9c82c5c6-b465-41c8-8a03-ac07ec839c20
+Trust Record Hash:       a08a041317a6f28307a30c97147ef320e896578153118e978f7998a63cf52037
 Signature Algorithm:     SignatureAlgorithm.ED25519
 
 Full Execution Trust Record:
 {
-  "trust_record_id": "97c2d623-0de7-4794-b9e5-902332bdcf53",
+  "trust_record_id": "9c82c5c6-b465-41c8-8a03-ac07ec839c20",
   ...
   "executions": [
     {
       ...
+      "decision": {
+        "outcome": "APPROVED",
+        "reason": "Vendor payment authorized. Vendor verification, invoice verification, payment approval, funding, and risk assessment requirements were satisfied."
+      },
       "evidence": {
-        "business_transaction_id": "922d87cc-9417-4d10-b9ec-a7ace53226d5",
+        "business_transaction_id": "40ba54d1-1038-443c-80ec-9cd6ad7757a1",
         "action": "test:fixture-execute",
         "target": "vendor://payments",
         "parameters": { "amount": 1000, "currency": "USD" },
         "success": true,
-        "executed_at": "2026-08-11 07:09:42.662000+00:00",
         "attributes": {
           "connector": {
             "connectorId": "test-fixture",
             "connectorVersion": "1.0.0",
             "capability": "test:fixture-execute",
-            "sanitizedEndpoint": "vendor://payments",
             "credentialProviderId": "static",
             "responseSummary": { "success": true, "metadata": {} },
-            "connectorEvidenceHash": "6263f537a7bcb8d941cea5f6b12bd1589b51879c88221a8c57101fc7fed2539c"
+            "connectorEvidenceHash": "18afc40e481ba3ef2072e31f0d1cc5ef37ca2ab753d152d3a0e9e4aaec939f74"
           }
         }
-      },
-      "metadata": { "authorizationId": "3808f0d4-a158-431d-b4ae-98196cda32d9" }
+      }
     }
   ],
   ...
   "signature": {
     "algorithm": "ed25519",
     "key_id": "default",
-    "value": "JEMIPJQ3fvSEnjoHOqypoaTx3xNyiSd4LCInlchJhSuzhc8wH5RsiMJla5/idVIdzT2xX/aNzPEJbfBZjK1VBw==",
-    "signed_at": "2026-08-11 07:09:42.673000+00:00"
+    "value": "HKC7KaZS4uV/KMaYi3K+4fVcFrxqVRYpE+AD26myEJckqdbeYGgwULKGHwu31FG2cSXaurfxb7lzvGTsZqt9AQ==",
+    "signed_at": "2026-09-14 10:06:56.210000+00:00"
   }
 }
 ```
 
 IDs, hashes, and signature values will differ on every run. The `attributes.connector` block
-is populated by `@parmana/connector-sdk`'s `SdkConnectorExecutor`, not present in records
-created before that package existed.
+is populated by `@parmana/connector-sdk`'s `SdkConnectorExecutor`.
+
+As of 2026-09-14 this example is built with `create_business_transaction()`, which derives
+the transaction's three id pairs (see [the Python SDK docs](/sdks/python)) instead of
+hand-assembling `Authority`/`Authorization`/`Intent` with hardcoded ids.

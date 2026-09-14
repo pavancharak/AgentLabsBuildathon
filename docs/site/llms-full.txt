@@ -966,87 +966,67 @@ for the full trace.
 
 ---
 
-## What Parmana does not claim
+## Limitations
 
-Source: `/trust-and-claims/what-we-dont-claim`. Sourced from CLAIMS.md §5's own refused claims
-and from source verification.
+Source: `/security/limitations`.
 
-### Permanent refusals
+### What Parmana does not claim
 
-Not "not yet" items — no implementation could honestly back these, unscoped:
+Not "not yet" items, no implementation could honestly back these, unscoped: execution
+impossible to bypass under all circumstances; mathematical proof of execution correctness;
+cryptographic proof of every aspect of runtime behavior; guaranteed regulatory compliance;
+absolute prevention of all unauthorized execution; tamper-proof operation in every deployment
+environment; deterministic signature output for ML-DSA-65 (randomized by design, only
+verification is deterministic).
 
-- Execution is impossible to bypass under all circumstances.
-- Mathematical proof of execution correctness.
-- Cryptographic proof of every aspect of runtime behavior.
-- Guaranteed regulatory compliance.
-- Absolute prevention of all unauthorized execution.
-- Tamper-proof operation in every deployment environment.
-- Elimination of all software defects or operational risks.
-- "Non-bypassable" or "the single execution authority" as an **unscoped**, system-wide claim. The
-  gateway enforces nothing at the network level, and is a property of systems that route through
-  it, not of the network Parmana runs on.
-- Deterministic signature output for ML-DSA-65. Those signatures are randomized by design, only
-  *verification* is deterministic.
+### Where real guarantees are scoped, not absent
 
-### Scoped claims, not absent ones
+Envelope verification is non-bypassable only for a system that runs it. Single-use
+enforcement is scoped to whichever nonce store checks it (independent Gateway instances each
+accept the same authorization once, not once fleet-wide). Credential isolation is proven for
+the connectors currently registered (HubSpot, GitHub, Paytm, Slack, each registering only
+when its own credentials are configured), not automatically for a new one you add. Key
+management is local PEM files (`FileKeyProvider`); `aws-kms`/`azure-key-vault`/`gcp-kms`/`hsm`
+fail startup loudly rather than silently doing nothing, and rotation is a manual operator
+procedure, not automated or KMS/HSM-custodied. Route access itself is not scoped (any
+authenticated caller can call any route); what is scoped is which `principalId` a caller may
+assert and which records a caller may read. `SapConnector`/`OracleConnector`/`WorkdayConnector`/
+`SalesforceConnector` are explicit, self-documented mocks, none call a real system.
 
-- **Envelope verification is non-bypassable only for a system that runs it.** The default server
-  does, for whichever connectors it registers (currently just `hubspot`, conditional on its
-  credentials being configured). A system built independently that doesn't call
-  `@parmana/envelope-verifier` gets none of this.
-- **Single-use is scoped to whichever `NonceStore` instance checks it.** Independent gateway
-  instances, each with their own `MemoryNonceStore`, can each accept the same authorization once,
-  not once fleet-wide.
-- **Credential isolation is proven for the one connector registered in production today,
-  `hubspot`.** (Previously proven only for `vendor-payment`, a reference connector
-  since removed from the repository entirely, not merely superseded.) The mechanism is generic
-  and tested, but reaching a *second* connector today is a bootstrap code change, not something the
-  architecture does automatically.
+### Threat model
 
-### Mocks are labeled as mocks
+**Policy bypass:** a capability check blocks callers with no matching grant before policy
+runs, fail-closed by default. Every authorization field participates in its signature, tamper
+in any field fails verification. A policy edited after signing doesn't retroactively change
+what an already-signed authorization approved. Honest gap: none of this catches a policy that
+was *authored* wrong, an over-broad rule is a policy-authoring problem, not something
+signature verification detects.
 
-`SapConnector`, `OracleConnector`, `WorkdayConnector`, and `SalesforceConnector`
-(`packages/connector-sdk/src/connectors/`) are explicit, self-documented reference mocks. None of
-them calls a real SAP, Oracle, Workday, or Salesforce system, and none is wired into the default
-server. No real enterprise connector exists in this repository for any vendor.
+**Credential theft:** session credentials are scoped to one connector, single-use, and
+time-bounded, rejected after expiry/revocation including at the exact boundary instant, and
+can't be reused even under concurrent access. Honest gap: if the long-term signing key itself
+is stolen, anything signed with it verifies as legitimate, because it is a legitimate
+signature, true of every signature scheme. Key-id-aware verification limits exposure *after*
+a compromise is discovered and the key is revoked, it doesn't prevent the compromise itself,
+and rotation is manual.
 
-### Real, tested, and disconnected from the default server
+**Insider threat / audit tampering:** no `delete` method exists on any trust record, refusal
+record, or audit event repository. Every caller-authentication event is signed and chained to
+the caller's own immediately-preceding event, a deleted row breaks the chain, provable
+standalone with no server or database. Honest gap: deleting an entire caller's history at
+once, or reordering rows across different callers, isn't caught by the per-caller chain.
 
-- **`@parmana/receipt`**: its `ExecutionReceiptBuilder`, `ExecutionReceiptVerifier`, and the
-  separate `ExecutionPermit` model it depends on (from `@parmana/execution-control`) are exercised
-  only by tutorials. Nothing in `packages/runtime` or `packages/api` imports `@parmana/receipt`.
-- **`@parmana/replay`**'s `ReplayEngine`: genuinely re-evaluates a recorded policy decision, real
-  semantic verification, not a signature recheck — but nothing in `packages/api` or
-  `packages/runtime` imports it either. `POST /replay` is a separate, narrower thing (a signature
-  recheck only).
+**Connector / fail-closed behavior:** an unreachable database at startup fails the server
+rather than running degraded. Every independent check in the Gateway's pipeline is ANDed
+together, one failing check denies the whole request. Every connector adapter fails closed on
+a non-2xx response or a timeout. Honest gap: no throughput/load test exists in this codebase,
+only per-operation latency (roughly 0.1ms to sign, 3-8ms for a full in-memory
+authorization/execution round trip), sustained concurrent throughput under real load is
+unmeasured.
 
-### Authentication is real, but is one layer, not a substitute for the others
+### Operator responsibilities
 
-`packages/api` gates every route except `GET /health`, `GET /ready`, `GET /openapi.yaml`, and
-`GET /documentation` behind a caller bearer key. It answers only "should this HTTP request be
-entertained at all." It does not prove anything about who authorized the underlying business
-action — that is still Execution Authorization and gateway attestation's job, on separate
-signatures.
-
-**What it still does not cover, precisely:** route access itself remains unscoped — any
-authenticated caller can call any route, there is no per-key allowlist of endpoints. What is
-scoped: which `authority.principalId` a caller may assert (`isPrincipalAllowed`, default is "only
-itself," never "anything") and which transactions/trust-records/receipts a caller may read
-(`isOwnedByCaller`, cross-caller reads now 404). Still absent: mutual TLS by default, and a
-self-service key rotation endpoint (rotation is a manual operator procedure).
-
-### No key management beyond local files
-
-Both signing keys, `default.*.pem` and `gateway.*.pem`, are files on disk read by
-`FileKeyProvider`, the only implemented `KeyProvider`. `aws-kms`, `azure-key-vault`, `gcp-kms`,
-and `hsm` are declared as valid config values with zero implementing classes; setting
-`KEY_PROVIDER` to one of these does nothing.
-
-### Error handling: one gap closed, two still open
-
-Malformed JSON and oversized request bodies on `/execute` now return a clean `400`/`413` naming
-which case it was. Two gaps remain open: a structurally incomplete `POST /execute` body throws an
-unhandled `TypeError`, caught only by a generic 500; and "no Connector registered for this action"
-collapses into that same uncoded 500 instead of a coded `RuntimeError`. See the Error handling and
-Error catalog sections above for both; the second is flagged as a product regression, not fixed as
-of this version.
+Key custody and rotation schedule (this system doesn't do it for you); policy content review
+(signature verification proves a policy ran unmodified, not that it's correct); following the
+established credential-isolation pattern when wiring in a new connector; and your own
+capacity planning beyond the built-in per-caller/per-IP rate limits.

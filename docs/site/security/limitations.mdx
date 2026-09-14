@@ -1,0 +1,156 @@
+---
+title: "Limitations"
+description: "What Parmana does not claim, the specific threats its tests actually cover, and what you're responsible for."
+---
+
+Every real, tested guarantee Parmana makes holds only within a stated boundary. This page
+states those boundaries precisely instead of leaving them implicit, and names, threat by
+threat, what's actually tested versus what's an honest gap.
+
+## What Parmana does not claim
+
+These are not "not yet" items, no implementation could honestly back them, so Parmana does
+not claim them:
+
+- Execution is impossible to bypass under all circumstances.
+- Mathematical proof of execution correctness, or cryptographic proof of every aspect of
+  runtime behavior.
+- Guaranteed regulatory compliance (SOC2, GDPR, ISO 27001, or a specific regulator's
+  approval).
+- Absolute prevention of all unauthorized execution, or tamper-proof operation in every
+  deployment environment.
+- "Non-bypassable" as an unscoped, system-wide claim. [The gateway](/concepts/the-gateway)
+  enforces nothing at the network level, it's a property of systems that route through it.
+- Deterministic signature output for ML-DSA-65 (those signatures are randomized by design,
+  only verification is deterministic; see
+  [Choose a signature provider](/guides/choose-a-signature-provider)).
+
+## Where real guarantees are scoped, not absent
+
+- **Envelope verification is non-bypassable only for a system that runs it.** A system you
+  build that doesn't call `@parmana/envelope-verifier` gets none of this protection.
+- **Single-use enforcement is scoped to whichever nonce store checks it.** Independent
+  Gateway instances, each with their own in-memory store, can each accept the same
+  authorization once, not once fleet-wide.
+- **Credential isolation is proven for the connectors currently registered** (HubSpot,
+  GitHub, Paytm, Slack, each registering only when its own credentials are configured), not
+  automatically for a new one you add. The mechanism is generic and tested, but wiring a new
+  connector into it is a deliberate step, not something the architecture does for you; see
+  [Credential isolation](/concepts/credential-isolation).
+- **No key management beyond local files.** Signing keys are PEM files read by
+  `FileKeyProvider`. `aws-kms`, `azure-key-vault`, `gcp-kms`, and `hsm` are declared
+  configuration values with no implementing class; setting one fails startup loudly rather
+  than silently doing nothing. Key rotation exists (`scripts/rotate-verification-key.ts`)
+  but is a manual operator procedure, not automated, and keys stay plain files on disk, not
+  KMS/HSM-custodied.
+- **Route access itself is not scoped.** Any authenticated caller can call any route, there
+  is no per-key allowlist of endpoints. What is scoped: which `authority.principalId` a
+  caller may assert (default: only itself), and which transactions/records a caller may
+  read (cross-caller reads 404, not 403).
+- **Mocks are labeled as mocks.** `SapConnector`, `OracleConnector`, `WorkdayConnector`, and
+  `SalesforceConnector` are explicit, self-documented reference mocks. None calls a real
+  system, and none is wired into the default server.
+
+## Threat model
+
+For each threat below: what's actually tested, and what the honest gap is.
+
+### Policy bypass
+
+A caller lacking a capability is blocked before policy evaluation ever runs; a caller with no
+capabilities configured is denied everything by default (fail-closed). A tampered or forged
+signed authorization fails signature verification, every field participates in the signature
+(decision id, expiry, signals hash, granted capability, submitted-by). A policy edited after
+an authorization was signed doesn't retroactively change what that authorization approved,
+and an authorization is rejected at execution time if the policy's content has changed since
+signing. The capability check takes no input describing a caller's intent, a "jailbroken"
+agent request and a merely mistaken one are denied by the identical, unconditional check.
+
+**Honest gap:** none of this catches a policy that was _authored_ wrong, an over-broad rule
+that approves something it shouldn't is a policy-authoring problem, not something signature
+verification can detect. See [Write your first policy](/guides/write-your-first-policy) for
+how to scope rules correctly, and `PolicyValidator.findRuleConflicts()` for advisory
+detection of rules that can both match at once.
+
+### Credential theft
+
+A session credential is scoped to one connector, single-use, and time-bounded; it's rejected
+after expiry or after revocation, including at the exact boundary instant. It can't be used
+twice, including under concurrent access (exactly one of two simultaneous consume calls
+succeeds). A failed execution still burns the credential, a retry always gets a fresh one.
+
+**Honest gap:** a session credential's scope is in-memory state, not itself signed, the
+provable guarantee lives one layer up on the authorization's content hash. And if the
+long-term signing key itself is stolen, anything an attacker signs with it verifies as fully
+legitimate, because it is a legitimate signature. This is true of every signature scheme, not
+a gap specific to this system. What limits exposure: key-id-aware verification means a
+compromised key can be replaced without invalidating already-issued records, but this is a
+mitigation _after_ a compromise is discovered and the key is revoked, not a prevention, and
+it's a manual operator procedure today, not automatic rotation.
+
+### Insider threat / audit tampering
+
+No `delete` method exists on any trust record, refusal record, or audit event repository.
+Every caller-authentication event is signed (`AuditEventCrypto`) and chained to the caller's
+own immediately-preceding event, a deleted row breaks the chain, provable standalone with no
+server or database required. An execution outcome is always recorded through one of three
+mechanisms (trust record, refusal record, or audit event), there's no code path where an
+outcome goes unrecorded.
+
+**Honest gap:** deleting an entire caller's history at once, or reordering audit rows across
+different callers, isn't caught by the per-caller chain. Verification tools are ordinary,
+public packages (`@parmana/envelope-verifier`, `@parmana/crypto`), not proprietary, so this
+isn't something only Parmana can check, but it also means the tooling itself provides no
+protection against an attacker who has direct database access and the signing key.
+
+### Connector / fail-closed behavior
+
+If the database is unreachable at startup, the server fails to start rather than running
+degraded. Signature verification has no retry-with-a-weaker-check path, denial is immediate
+and single-pass. Every independent check in the Gateway's pipeline is ANDed together, one
+check failing denies the whole request even if every other check passed. Every connector
+adapter fails closed on a non-2xx response or a timeout, never a partial success.
+
+**Honest gap:** there's no throughput/load test in this codebase, per-operation latency is
+measured (roughly 0.1ms to sign, 3-8ms for a full in-memory authorization/execution pipeline
+round trip) but sustained concurrent throughput under real load is not. There's also no
+timeout concept in the authorization pipeline itself, whatever timeout behavior exists comes
+from the underlying HTTP server and database driver, not from Parmana's own logic.
+
+## Your responsibilities as an operator
+
+- **Key custody.** Rotate signing keys on a schedule, and move to a real KMS/HSM if your
+  threat model requires it, this system doesn't do it for you.
+- **Policy authoring.** Signature verification proves a policy ran unmodified, it doesn't
+  prove the policy itself is correct. Review policy content the way you'd review any access
+  control rule.
+- **Connector scope.** Wiring in a new connector is a deliberate integration step. Credential
+  isolation is proven for the connectors already registered, not automatically inherited by
+  one you add without following the same pattern; see
+  [Add a connector](/guides/add-a-connector).
+- **Rate limiting and availability.** `/execute` is rate-limited per caller, `/health`/`/ready`
+  per IP, this protects the service, it isn't a substitute for your own capacity planning.
+
+## How these claims are verified
+
+Every claim on this site cites a real source file or test, not a description written from
+memory. You can check any of it yourself: clone the repository, run `npm test`, read the
+cited file at the cited path, or verify a trust record independently with the server turned
+off entirely, see [Verify a trust record independently](/guides/verify-independently). The
+full evidentiary detail behind every claim lives in `docs/CLAIMS.md` in the repository.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Security overview" icon="shield" href="/security/overview">
+    What Parmana actually guarantees, with its precise scope.
+  </Card>
+  <Card
+    title="Verify independently"
+    icon="check-double"
+    href="/guides/verify-independently"
+  >
+    Verify a trust record with the server turned off, trusting nothing but the
+    artifact and a public key.
+  </Card>
+</CardGroup>

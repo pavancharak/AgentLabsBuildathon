@@ -127,9 +127,9 @@ live with real output.
   tutorial list.
 </Info>
 
-| #   | Name                  | Demonstrates                                                                                                                                                                                                                              |
-| --- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 62  | Signal/Intent Binding | `SignalIntentBinder` rejecting a caller-declared signal that doesn't match `intent`, and the same transaction approved once correctly bound — see [Trust and Claims](/trust-and-claims/claims-discipline) for the live bypass this closed |
+| #   | Name                  | Demonstrates                                                                                                                                                                                                     |
+| --- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 62  | Signal/Intent Binding | `SignalIntentBinder` rejecting a caller-declared signal that doesn't match `intent`, and the same transaction approved once correctly bound. See [Security](/security/overview) for the live bypass this closed. |
 
 ## HubSpot: connector, denial, verification, approval artifacts (69-72)
 
@@ -255,12 +255,7 @@ removed from the repository entirely — see `docs/VERIFICATION-GAPS.md` G-27.)
   <Card title="Detect tampering" icon="bug" href="/guides/detect-tampering">
     Three of the tutorials above, run live with real output.
   </Card>
-  <Card
-    title="Trust and Claims"
-    icon="scale-balanced"
-    href="/trust-and-claims/claims-discipline"
-  >
-    How every claim on this site, including every line above, maps back to code
-    and tests.
+  <Card title="Limitations" icon="scale-balanced" href="/security/limitations">
+    What's tested, what's an honest gap, and how to verify any claim yourself.
   </Card>
 </CardGroup>

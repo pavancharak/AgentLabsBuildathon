@@ -3,29 +3,16 @@ title: "Quickstart"
 description: "Install to your first authorized execution in under 10 minutes, using the in-memory server."
 ---
 
-<Info>
-  **[AVAILABLE]**, commands re-run against a live local server on 2026-07-29
-  (commit `0e69ed4`), including `python/examples/quickstart/run.py` itself.
-  **Updated (2026-08-09, not re-run live as part of this specific update):** the
-  example capability below was changed from `payments:execute` to
-  `test:fixture-execute` because `payments:execute` (vendor-payment) was removed
-  from the repository entirely, not merely renamed — see the note in step 6. The
-  code below was checked against current source for accuracy, but this specific
-  pass did not itself start a live server and re-capture output; treat step 7's
-  captured hash as illustrative of the shape of a real response, not a value
-  you'll reproduce.
-</Info>
-
-<Warning>
-**Step 6's transaction declares a `vendorId` signal.**
-`vendor-payment@2.0.0` (the policy still governing this example, see the note in step 6)
-declares `boundSignals: { "vendorId": "target" }`
-(see [Policies and the decision](/concepts/policies-and-the-decision)):
-`SignalIntentBinder` rejects any transaction where a declared signal doesn't
-exactly match its bound `intent` field, checked before policy evaluation
-ever runs. This closed a real, previously live bypass — see [Security](/security/overview)
-for what it was.
-</Warning>
+<Note>
+  This walkthrough uses `test:fixture-execute`, a generic, credential-free
+  capability built for local testing. It's evaluated against a policy named
+  `vendor-payment`. That policy name is unrelated to any connector; it's simply
+  the example policy this transaction runs against. `SignalIntentBinder` rejects
+  a transaction whose declared `vendorId` signal doesn't exactly match its
+  `intent.target` (see [Policies and the
+  decision](/concepts/policies-and-the-decision)), so step 6 below sets both to
+  the same value.
+</Note>
 
 ## 1. Install dependencies
 
@@ -45,25 +32,17 @@ npm run generate:gateway-keys
 
 This runs `scripts/generate-keypair.ts --algorithm ed25519 --key-id gateway`, writing
 `keys/gateway.private.pem` / `keys/gateway.public.pem`. `keys/` is gitignored, this stays
-local. See
-[`createGatewayKeyPair.ts`](https://github.com/pavancharak/parmana/blob/main/packages/api/src/bootstrap/createGatewayKeyPair.ts)
-for why this key is deliberately separate from the authorization key, and
-[Deploy patterns](/guides/deploy-patterns) for how to manage it outside local dev.
+local. See [Deploy patterns](/guides/deploy-patterns) for how to manage keys outside local dev.
 
 ## 3. Start the Runtime locally
 
 The committed `.env` defaults to Supabase-backed storage. To run fully locally with no
 external dependency, override storage to `memory` **and** set `NODE_ENV=test`. Both are
 required: `PARMANA_STORAGE=memory` alone only affects where Business Transactions and Trust
-Records are stored, two other components, the Execution Gateway's replay-nonce store
-(`createNonceStore.ts`) and the caller-authentication audit trail
-(`createCallerAuditSink.ts`), independently default to Supabase outside `NODE_ENV=test` and
-will fail closed against this repo's demo Supabase credentials otherwise. With
-`NODE_ENV=test`, a generic, test-only connector (`test-fixture`,
-`packages/api/src/bootstrap/createTestFixtureConnector.ts`) registers automatically, no
-credential environment variable required — unlike the one real connector this server can
-also register (`hubspot`), which needs real API credentials and is not this
-walkthrough's subject:
+Records are stored, two other components, the Execution Gateway's replay-nonce store and the
+caller-authentication audit trail, independently default to Supabase outside `NODE_ENV=test`.
+With `NODE_ENV=test`, a generic, test-only connector (`test-fixture`) registers
+automatically, no credential environment variable required:
 
 ```bash
 NODE_ENV=test \
@@ -80,12 +59,10 @@ curl http://localhost:3000/health
 ```
 
 <Note>
-  **The Execution Gateway is wired into this server unconditionally**
-  (`createExecutionSystem()` always returns `createExecutionGateway()`,
-  `packages/api/src/bootstrap/createExecutionSystem.ts`). Every `POST /execute`
-  is independently re-verified and routed through a real Connector. An action
-  with no registered connector fails closed with `"No connector registered for
-  action"`, it does not silently skip enforcement. See [The
+  The Execution Gateway is wired into this server unconditionally. Every `POST
+  /execute` is independently re-verified and routed through a real Connector. An
+  action with no registered connector fails closed with `"No connector
+  registered for action"`, it does not silently skip enforcement. See [The
   gateway](/concepts/the-gateway).
 </Note>
 
@@ -118,108 +95,67 @@ this demo key.
 ## 5. Install the Python SDK
 
 ```bash
-pip install -e ./python
+pip install parmana
 ```
 
-<Note>
-**The Python SDK sends the bearer key from step 4 on every request.**
-`ParmanaClient.__init__` and `HttpTransport.__init__` (`python/parmana/client.py`,
-`python/parmana/transport/http_transport.py`) accept an `api_key` parameter and set
-`Authorization: Bearer <api_key>` on the underlying session, added in commit `a19e452`
-(2026-07-29). Pass the demo key from step 4 when constructing the client, no server
-restart or `PARMANA_AUTH_DISABLED` workaround needed:
+The SDK sends the bearer key from step 4 on every request:
 
 ```python
+from parmana import ParmanaClient
+
 client = ParmanaClient(endpoint="http://localhost:3000", api_key="my-secret-api-key")
 ```
-
-</Note>
 
 ## 6. Execute a Business Transaction
 
-```python
-from datetime import UTC, datetime
-from uuid import uuid4
+`create_business_transaction()` derives every id pair the server checks for consistency, so
+there's nothing to hand-assemble and get wrong:
 
-from parmana import (
-    Authority, Authorization, BusinessTransaction,
-    BusinessTransactionMetadata, Intent, ParmanaClient, PolicyReference,
-)
+```python
+from parmana import ParmanaClient, PolicyReference, create_business_transaction
 
 client = ParmanaClient(endpoint="http://localhost:3000", api_key="my-secret-api-key")
 
-transaction_id = str(uuid4())
-now = datetime.now(UTC)
-
-transaction = BusinessTransaction(
-    business_transaction_id=transaction_id,
-    metadata=BusinessTransactionMetadata(
-        business_transaction_id=transaction_id,
-        correlation_id="quickstart",
-        tenant_id=None,
-        source_system="python-sdk-quickstart",
-        submitted_by="sdk-demo",
-        submitted_at=now,
-    ),
-    authority=Authority(
-        authority_id="authority-001", authority_type="SERVICE",
-        principal_id="python-sdk", display_name="Python SDK Quickstart", issued_at=now,
-    ),
-    authorization=Authorization(
-        authorization_id="authorization-001", authority_id="authority-001",
-        purpose="Quickstart demo", issued_at=now,
-    ),
-    intent=Intent(
-        intent_id="intent-001", authorization_id="authorization-001",
-        # test:fixture-execute, not payments:execute: payments:execute
-        # (vendor-payment) was removed from the repository entirely, not
-        # renamed. This capability is a generic, test-only connector
-        # (createTestFixtureConnector.ts) that plays the same "zero
-        # external dependency" role vendor-payment used to for this
-        # walkthrough — it is not a product feature to build against.
-        action="test:fixture-execute", target="vendor://payments",
-        parameters={"amount": 1000, "currency": "USD"}, created_at=now,
-    ),
-    # Still governed by the vendor-payment/2.0.0 policy, kept unchanged as
-    # generic example content even though the capability name above
-    # changed — policy content and capability identity are independent
-    # concepts in this architecture (see [Policies and the decision](/concepts/policies-and-the-decision)).
+transaction = create_business_transaction(
+    principal_id="python-sdk",
+    purpose="Quickstart demo",
+    action="test:fixture-execute",
+    target="vendor://payments",
+    parameters={"amount": 1000, "currency": "USD"},
     policy=PolicyReference(name="vendor-payment", version="2.0.0", schema_version="1.0.0"),
     signals={
-        "vendorVerified": True, "invoiceVerified": True, "paymentApproved": True,
-        "sufficientFunds": True, "paymentAmount": 1000, "riskScore": 5,
-        # vendor-payment@2.0.0 declares boundSignals: { "vendorId": "target" } —
-        # this must exactly equal intent.target, checked before policy evaluation
-        # ever runs. See [Policies and the decision](/concepts/policies-and-the-decision).
+        "vendorVerified": True,
+        "invoiceVerified": True,
+        "paymentApproved": True,
+        "sufficientFunds": True,
+        "paymentAmount": 1000,
+        "riskScore": 5,
         "vendorId": "vendor://payments",
     },
-    status="RECEIVED",
-    created_at=now,
 )
 
 trust_record = client.execution.execute(transaction)
 print(trust_record.trust_record_hash)
 ```
 
-Full runnable version: `python/examples/quickstart/run.py`, this is the same transaction it
-sends (updated to match this page; syntax-checked, not re-run against a live server as part
-of this pass).
+Full runnable version: `python/examples/quickstart/run.py`, this is exactly the transaction
+it sends. `python/tests/test_quickstart_example.py` runs this script against a real,
+freshly-spawned server on every test run, so this example is verified to work, not just
+syntax-checked.
 
 ## 7. Real output
 
-Captured from an actual run, 2026-07-29, **against the transaction as it existed then**
-(`action: "payments:execute"`, before that capability was removed — see step 6's note; IDs
-and hashes differ on every run regardless):
+Captured from an actual run against a local server, 2026-09-14:
 
 ```
-Trust Record Hash: 1a3130a6874c81cb9c178c2d14a96aa8c4104c19f71f63ca9d272196c819eb5a
+Trust Record Hash: a08a041317a6f28307a30c97147ef320e896578153118e978f7998a63cf52037
 ```
 
 The full `ExecutionTrustRecord` includes the `signature` block, `executions[0].decision`
-(`outcome: APPROVED`, evaluated by the `vendor-payment` policy, unchanged), `executions[0].evidence`
+(`outcome: "APPROVED"`, evaluated by the `vendor-payment` policy), `executions[0].evidence`
 (what the connector actually did, including a `connectorEvidenceHash`), and an initial
 `verifications` / `receipts` history. See [Trust Record](/concepts/execution-trust-records) for the
-complete shape.
+complete shape, or `python/examples/quickstart/README.md` for the full captured JSON.
 
 ## Next
 
@@ -236,11 +172,11 @@ complete shape.
     Read back or re-run verification against the record you just created.
   </Card>
   <Card
-    title="Live API and demos"
-    icon="server"
-    href="/guides/live-api-and-demos"
+    title="End-to-end: agent to Paytm"
+    icon="route"
+    href="/guides/end-to-end-paytm-flow"
   >
-    Skip the local setup entirely — call a real, already-deployed instance
-    directly.
+    The same flow against a real connector and real infrastructure, not the
+    local test fixture.
   </Card>
 </CardGroup>

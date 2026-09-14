@@ -1,21 +1,15 @@
 ---
 title: "Welcome"
-description: "Parmana is Execution Trust Infrastructure: AI proposes an action, Parmana authorizes it, your systems execute it."
+description: "Parmana authorizes every action your AI agents propose, and gives you a signed proof you can verify independently."
 ---
 
-<Info>
-  **Last verified against commit `0e69ed4`, 2026-07-29**, including live local
-  runs. Every `[AVAILABLE]` claim on this site cites the source file or test
-  that proves it. See [Contributing](/contributing) for the rule this site
-  follows.
-</Info>
+Parmana sits between an AI agent (or a script, or a person) and the systems that carry out its
+actions. Before anything executes, Parmana checks it against a policy you write and issues a
+signed, single-use authorization. After it executes, you have an independently verifiable
+signed record of exactly what happened. Integrate in minutes with the [Quickstart](/quickstart),
+not months.
 
 ## What Parmana is
-
-Increasingly, the system proposing a business action, a payment, a database change, a
-production deployment, is an AI agent rather than a person clicking a button. Parmana doesn't
-care whether the proposer is a human, a script, or an LLM agent: it treats every caller
-identically. What it cares about is what happens next.
 
 Think of how a card network authorizes a purchase. Visa doesn't stock the shelves or move the
 money itself. It decides, quickly and cryptographically, whether the transaction is allowed,
@@ -82,11 +76,21 @@ A page or section with no tag is a bug in this site, [file it as such](/contribu
     The concepts behind the diagram above: policy, authorization, the gateway,
     trust records.
   </Card>
-  <Card title="Architecture" icon="sitemap" href="/architecture/overview">
-    Every package, what it actually does, and its current status.
+  <Card
+    title="End-to-end: agent to Paytm"
+    icon="route"
+    href="/guides/end-to-end-paytm-flow"
+  >
+    The same flow against a real connector and real infrastructure, start to
+    finish.
   </Card>
-  <Card title="Roadmap" icon="map" href="/roadmap">
-    What's designed but not yet built, stated plainly: KMS custody, real
-    enterprise connectors, more.
+  <Card title="SDKs" icon="code" href="/sdks/typescript">
+    TypeScript and Python, both published, both with a builder that removes the
+    most common integration mistake.
   </Card>
 </CardGroup>
+
+<sub>
+  Content on this site is periodically verified against a specific commit; see
+  [Changelog](/changelog) for what changed and when.
+</sub>

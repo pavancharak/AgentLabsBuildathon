@@ -63,22 +63,6 @@
             ]
           },
           {
-            "group": "Architecture",
-            "pages": [
-              "architecture/overview",
-              "architecture/packages",
-              "architecture/execution-pipeline"
-            ]
-          },
-          {
-            "group": "Runtime",
-            "pages": ["verification/overview", "replay/overview"]
-          },
-          {
-            "group": "Cryptography & Storage",
-            "pages": ["cryptography/overview", "storage/overview"]
-          },
-          {
             "group": "SDKs",
             "pages": ["sdks/python", "sdks/typescript", "sdks/other-languages"]
           },
@@ -94,27 +78,10 @@
             "openapi": "openapi.bundled.yaml"
           },
           {
-            "group": "Package Reference",
-            "pages": [
-              "reference/shared",
-              "reference/crypto",
-              "reference/policy",
-              "reference/execution-system",
-              "reference/execution-control",
-              "reference/envelope-verifier",
-              "reference/execution-gateway",
-              "reference/connector-sdk",
-              "reference/runtime",
-              "reference/storage",
-              "reference/replay",
-              "reference/receipt",
-              "reference/api"
-            ]
-          },
-          {
             "group": "Security & Deployment",
             "pages": [
               "security/overview",
+              "security/limitations",
               "deployment/local",
               "deployment/production"
             ]
@@ -132,17 +99,32 @@
             "pages": ["tutorials/index"]
           },
           {
-            "group": "Trust and Claims",
+            "group": "Advanced",
             "pages": [
-              "trust-and-claims/claims-discipline",
-              "trust-and-claims/what-we-dont-claim",
-              "trust-and-claims/objections-and-evidence",
-              "trust-and-claims/trl7-verification",
-              "trust-and-claims/verification-log"
+              "architecture/overview",
+              "architecture/packages",
+              "architecture/execution-pipeline",
+              "verification/overview",
+              "replay/overview",
+              "cryptography/overview",
+              "storage/overview",
+              "reference/shared",
+              "reference/crypto",
+              "reference/policy",
+              "reference/execution-system",
+              "reference/execution-control",
+              "reference/envelope-verifier",
+              "reference/execution-gateway",
+              "reference/connector-sdk",
+              "reference/runtime",
+              "reference/storage",
+              "reference/replay",
+              "reference/receipt",
+              "reference/api"
             ]
           },
           {
-            "group": "Reference",
+            "group": "Support",
             "pages": [
               "roadmap",
               "troubleshooting",
@@ -187,6 +169,26 @@
     {
       "source": "/api-reference/endpoints",
       "destination": "/api-reference/introduction"
+    },
+    {
+      "source": "/trust-and-claims/claims-discipline",
+      "destination": "/security/limitations"
+    },
+    {
+      "source": "/trust-and-claims/what-we-dont-claim",
+      "destination": "/security/limitations"
+    },
+    {
+      "source": "/trust-and-claims/objections-and-evidence",
+      "destination": "/security/limitations"
+    },
+    {
+      "source": "/trust-and-claims/trl7-verification",
+      "destination": "/security/limitations"
+    },
+    {
+      "source": "/trust-and-claims/verification-log",
+      "destination": "/security/limitations"
     }
   ],
   "navbar": {
