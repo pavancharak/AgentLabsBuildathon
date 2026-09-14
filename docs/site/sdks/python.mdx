@@ -13,19 +13,21 @@ description: "Generated models, bearer-key authentication, and a typed error tax
   two real error-taxonomy bugs; a `PolicyApi.validate()` bug) were closed and
   re-verified in that pass, including against a real running local server. A
   later pass added `test_quickstart_example.py`, proving the documented
-  quickstart script itself runs. See [Changelog](/changelog) and the fix history
-  at the bottom of this page.
+  quickstart script itself runs. v1.1.2, adding `create_business_transaction()`
+  (see below) and the `offline_verifier.py` fix, published 2026-09-14 —
+  confirmed against the live PyPI registry. See [Changelog](/changelog) and the
+  fix history at the bottom of this page.
 </Info>
 
-<Warning>
-  **v1.1.2 (adds `create_business_transaction()`, see below, and the
-  `offline_verifier.py` fix) is committed, built, and verified but not yet
-  published as of 2026-09-14** — the live PyPI version is still `1.1.1`, which
-  does not include the builder. Check `pip index versions parmana` (or
-  https://pypi.org/pypi/parmana/json) yourself before relying on this page's
-  builder section; once it returns `1.1.2` (or higher), everything below is
-  live.
-</Warning>
+<Note>
+  v1.1.2's published package metadata and README (`pyproject.toml`'s
+  `[project.urls]`, the PyPI page's rendered long description) still point at
+  this repository's old name, `parmana-exp`, and the pre-fix docs domain — the
+  repo was renamed to `parmana` and the docs domain corrected after that
+  version's build artifacts were created, and PyPI package metadata is immutable
+  per version. Does not affect installing or using the package; fixed in source
+  for whenever a future version next publishes.
+</Note>
 
 ## Install
 
@@ -168,10 +170,8 @@ own handler runs, using the shared envelope like every other route. See
 
 ## `create_business_transaction()`, no more hand-synced ids
 
-Added 2026-09-14, **ships in v1.1.2 — not yet published** (see the warning at the top of
-this page). Available today in this repo's source and in the sample code below; not yet
-available via a plain `pip install parmana` until v1.1.2 is live. A `BusinessTransaction`
-has three id pairs the server's own
+Added 2026-09-14, ships in v1.1.2, published — available via a plain
+`pip install parmana`. A `BusinessTransaction` has three id pairs the server's own
 `BusinessTransactionValidator` cross-checks before policy ever runs —
 `metadata.business_transaction_id` must equal `business_transaction_id`,
 `authorization.authority_id` must equal `authority.authority_id`, `intent.authorization_id`

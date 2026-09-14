@@ -620,10 +620,15 @@ Source: `/glossary`. Every term used across the docs site, mapped to its real so
 
 ## Python SDK
 
-Source: `/sdks/python`. `python/`. Published on PyPI as `parmana`, currently v1.1.1 live
-(`pip index versions parmana` to check). v1.1.2 — adds `create_business_transaction()`, see
-below — is committed and verified in the repo but **not yet published** as of 2026-09-14. 79
-passing tests, `black`/`ruff`/`mypy --strict` all clean across the whole package.
+Source: `/sdks/python`. `python/`. Published on PyPI as `parmana`, v1.1.2 (published
+2026-09-14, adds `create_business_transaction()`, see below). 79 passing tests,
+`black`/`ruff`/`mypy --strict` all clean across the whole package.
+
+**v1.1.2's published PyPI metadata and README still show the pre-rename `parmana-exp`
+GitHub repo name and the old docs domain** — the repo was renamed to `parmana` and the docs
+domain corrected after v1.1.2's build artifacts were created, and PyPI metadata is immutable
+per version. Cosmetic only, does not affect installing or using the package; already fixed in
+source (`pyproject.toml`, `README.md`) for whenever a future version next publishes.
 
 A full SDK audit found and fixed three real, live-verified bugs in an earlier pass: no
 bearer-key auth at all, two error-taxonomy bugs (`403` misclassified, real policy rejection
@@ -724,7 +729,7 @@ caller-auth middleware before this route's own handler runs, using the shared en
 
 ### `create_business_transaction()`, no more hand-synced ids
 
-Added 2026-09-14, **ships in v1.1.2 — not yet published** (see the version note above). A
+Added 2026-09-14, ships in v1.1.2, published. A
 `BusinessTransaction` has three id pairs the server's own `BusinessTransactionValidator`
 cross-checks before policy ever runs (`metadata.business_transaction_id` ==
 `business_transaction_id`, `authorization.authority_id` == `authority.authority_id`,
@@ -755,9 +760,13 @@ correctly.
 ## TypeScript SDK
 
 Source: `/sdks/typescript`. `typescript/src/`. Builds. Published on npm as `@parmana/sdk`,
-currently v1.1.1 live (`npm view @parmana/sdk version` to check). v1.1.2 — adds
-`createBusinessTransaction()`, see below — is committed and verified in the repo but **not yet
-published** as of 2026-09-14.
+v1.1.2 (published 2026-09-14, adds `createBusinessTransaction()`, see below).
+
+**v1.1.2's published npm metadata (`homepage`/`repository`/`bugs`) still shows the
+pre-rename `parmana-exp` GitHub repo name** — the repo was renamed to `parmana` after
+v1.1.2's build artifacts were created, and npm package metadata is immutable per version.
+Cosmetic only, does not affect installing or using the package; already fixed in source
+(`typescript/package.json`) for whenever a future version next publishes.
 
 (Renamed from `@parmana/legacy-reference`, itself renamed from `@parmana/typescript-sdk`.)
 
@@ -862,7 +871,7 @@ surface.
 
 ### `createBusinessTransaction()`, no more hand-synced ids
 
-Added 2026-09-14, **ships in v1.1.2 — not yet published** (see the version note above). Derives
+Added 2026-09-14, ships in v1.1.2, published. Derives
 the same three id pairs described in the Python SDK section above, so a caller can't produce
 that class of "X must match Y" `400`. `businessTransactionId` defaults to a fresh
 `crypto.randomUUID()` if omitted. See `typescript/examples/06-create-business-transaction.ts`

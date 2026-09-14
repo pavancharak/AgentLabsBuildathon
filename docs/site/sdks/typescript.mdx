@@ -14,16 +14,19 @@ description: "Real client code, bearer-key authentication, and a typed error tax
   marked required that the real API doesn't require, and a missing
   `settlementConfirmations`/`signature` field), two missing capabilities (`POST
   /verify`, `GET /version`), and one capability missing from both maintained
-  SDKs (`POST /transactions`). See the fix history at the bottom of this page.
+  SDKs (`POST /transactions`). v1.1.2, adding `createBusinessTransaction()` (see
+  below), published 2026-09-14 — confirmed via `npm view @parmana/sdk version`.
+  See the fix history at the bottom of this page.
 </Info>
 
-<Warning>
-  **v1.1.2 (adds `createBusinessTransaction()`, see below) is committed, built,
-  and verified but not yet published as of 2026-09-14** — `npm view @parmana/sdk
-  version` currently returns `1.1.1`, which does not include the builder. Run
-  that command yourself before relying on this page's builder section; once it
-  returns `1.1.2` (or higher), everything below is live.
-</Warning>
+<Note>
+  v1.1.2's published package metadata (`homepage`/`repository`/`bugs` in `npm
+  view @parmana/sdk`) still points at this repository's old name, `parmana-exp`
+  — the repo was renamed to `parmana` after that version's build artifacts were
+  created, and registry metadata is immutable per version. Does not affect
+  installing or using the package; fixed in source (`typescript/package.json`)
+  for whenever a future version next publishes.
+</Note>
 
 <Note>
   Package name history, for anyone who finds an old reference: renamed from
@@ -170,10 +173,8 @@ commit in lockstep with `/execute`, and has dedicated test coverage
 
 ## `createBusinessTransaction()`, no more hand-synced ids
 
-Added 2026-09-14, **ships in v1.1.2 — not yet published** (see the warning at the top of
-this page). Available today in this repo's source and in the sample code below; not yet
-available via a plain `npm install @parmana/sdk` until v1.1.2 is live. A `BusinessTransaction`
-has three id pairs the server's own
+Added 2026-09-14, ships in v1.1.2, published — available via a plain
+`npm install @parmana/sdk`. A `BusinessTransaction` has three id pairs the server's own
 `BusinessTransactionValidator` cross-checks before policy ever runs —
 `metadata.businessTransactionId` must equal `businessTransactionId`,
 `authorization.authorityId` must equal `authority.authorityId`, `intent.authorizationId` must
