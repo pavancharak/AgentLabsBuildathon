@@ -4,25 +4,28 @@ description: "Generated models, bearer-key authentication, and a typed error tax
 ---
 
 <Info>
-  **[AVAILABLE]**, **published**, `parmana` on PyPI, v1.1.2. Real, public,
-  installable with a plain `pip install parmana` — this page said `v1.0.5` and
-  described only an editable local install until 2026-09-14; both were stale,
-  confirmed against the live PyPI registry while fixing this page. 79 passing
-  tests, 0 placeholders, `black`/`ruff`/`mypy --strict` all clean across the
-  whole package. Three gaps found in an earlier full SDK audit (no bearer-key
-  auth; two real error-taxonomy bugs; a `PolicyApi.validate()` bug) were closed
-  and re-verified in that pass, including against a real running local server. A
+  **[AVAILABLE]**, **published**, `parmana` on PyPI. Real, public, installable
+  with a plain `pip install parmana` — this page said `v1.0.5` and described
+  only an editable local install until 2026-09-14; both were stale, confirmed
+  against the live PyPI registry while fixing this page. 79 passing tests, 0
+  placeholders, `black`/`ruff`/`mypy --strict` all clean across the whole
+  package. Three gaps found in an earlier full SDK audit (no bearer-key auth;
+  two real error-taxonomy bugs; a `PolicyApi.validate()` bug) were closed and
+  re-verified in that pass, including against a real running local server. A
   later pass added `test_quickstart_example.py`, proving the documented
-  quickstart script itself runs. 2026-09-14 added
-  `create_business_transaction()` (see below), a real `examples/builder/` demo
-  proving it end to end against a real server, and fixed one real, unrelated
-  `mypy` gap found while re-verifying tooling cleanliness for this page's own
-  claim (`offline_verifier.py`: a `bytes | None` passed to `base64.b64decode`
-  without a type guard — runtime behavior was already safe, caught by a broad
-  `except Exception`, but the static type was wrong; now an explicit
-  `isinstance` check with a clear error message). See [Changelog](/changelog)
-  and the fix history at the bottom of this page.
+  quickstart script itself runs. See [Changelog](/changelog) and the fix history
+  at the bottom of this page.
 </Info>
+
+<Warning>
+  **v1.1.2 (adds `create_business_transaction()`, see below, and the
+  `offline_verifier.py` fix) is committed, built, and verified but not yet
+  published as of 2026-09-14** — the live PyPI version is still `1.1.1`, which
+  does not include the builder. Check `pip index versions parmana` (or
+  https://pypi.org/pypi/parmana/json) yourself before relying on this page's
+  builder section; once it returns `1.1.2` (or higher), everything below is
+  live.
+</Warning>
 
 ## Install
 
@@ -165,7 +168,10 @@ own handler runs, using the shared envelope like every other route. See
 
 ## `create_business_transaction()`, no more hand-synced ids
 
-Added 2026-09-14. A `BusinessTransaction` has three id pairs the server's own
+Added 2026-09-14, **ships in v1.1.2 — not yet published** (see the warning at the top of
+this page). Available today in this repo's source and in the sample code below; not yet
+available via a plain `pip install parmana` until v1.1.2 is live. A `BusinessTransaction`
+has three id pairs the server's own
 `BusinessTransactionValidator` cross-checks before policy ever runs —
 `metadata.business_transaction_id` must equal `business_transaction_id`,
 `authorization.authority_id` must equal `authority.authority_id`, `intent.authorization_id`
