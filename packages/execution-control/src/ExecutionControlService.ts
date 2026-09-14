@@ -23,21 +23,14 @@ export interface ExecutionControlServiceOptions {
   readonly sessionLifetimeMs?: number;
 }
 
-export class ExecutionControlService
-  implements ExecutionControl
-{
+export class ExecutionControlService implements ExecutionControl {
   private readonly sessionLifetimeMs: number;
 
-  constructor(
-    private readonly options: ExecutionControlServiceOptions,
-  ) {
-    this.sessionLifetimeMs =
-      options.sessionLifetimeMs ?? 30_000;
+  constructor(private readonly options: ExecutionControlServiceOptions) {
+    this.sessionLifetimeMs = options.sessionLifetimeMs ?? 30_000;
 
     if (this.sessionLifetimeMs <= 0) {
-      throw new Error(
-        "Session lifetime must be positive.",
-      );
+      throw new Error("Session lifetime must be positive.");
     }
   }
 
@@ -45,7 +38,6 @@ export class ExecutionControlService
     release: ExecutionRelease,
     gatewayAuthentication: unknown,
   ): Promise<ExecutionResult> {
-
     //
     // Authenticate Gateway
     //
@@ -56,95 +48,75 @@ export class ExecutionControlService
         gatewayAuthentication,
       )
     ) {
-      throw new Error(
-        "Execution Control rejected unauthenticated Gateway.",
-      );
+      throw new Error("Execution Control rejected unauthenticated Gateway.");
     }
 
     //
     // Resolve connector from capability.
     //
 
-    const connector =
-      this.options.registry.resolveCapability(
-        release.executableContent.action,
-      );
+    const connector = this.options.registry.resolveCapability(
+      release.executableContent.action,
+    );
 
     //
     // Create one-time Gateway session.
     //
 
-    const session =
-      this.options.sessions.create(
-        release,
-        connector.connectorId,
-        this.sessionLifetimeMs,
-        this.options.sessionIssuanceAuthentication,
-      );
+    const session = this.options.sessions.create(
+      release,
+      connector.connectorId,
+      this.sessionLifetimeMs,
+      this.options.sessionIssuanceAuthentication,
+    );
 
     await this.options.audit.record({
       type: "session.created",
       occurredAt: new Date().toISOString(),
       connectorId: connector.connectorId,
-      authorizationId:
-        release.authorization.payload.authorizationId,
+      authorizationId: release.authorization.payload.authorizationId,
       sessionId: session.sessionId,
       action: release.executableContent.action,
+      businessTransactionId: release.executableContent.businessTransactionId,
     });
 
     //
     // Immutable execution request.
     //
 
-    const request: GatewayExecutionRequest =
-      deepFreeze({
-        authorization:
-          release.authorization,
-        executableContent:
-          release.executableContent,
-        verifiedTransaction:
-          release.verifiedTransaction,
-        executionTimestamp:
-          release.executionTimestamp,
-        gatewayIdentity:
-          this.options.gatewayIdentity,
-        gatewaySession:
-          session,
-      });
+    const request: GatewayExecutionRequest = deepFreeze({
+      authorization: release.authorization,
+      executableContent: release.executableContent,
+      verifiedTransaction: release.verifiedTransaction,
+      executionTimestamp: release.executionTimestamp,
+      gatewayIdentity: this.options.gatewayIdentity,
+      gatewaySession: session,
+    });
 
     try {
-
-      const result =
-        await connector.execute(
-          request,
-        );
+      const result = await connector.execute(request);
 
       await this.options.audit.record({
         type: "execution.completed",
         occurredAt: new Date().toISOString(),
         connectorId: connector.connectorId,
-        authorizationId:
-          release.authorization.payload.authorizationId,
+        authorizationId: release.authorization.payload.authorizationId,
         sessionId: session.sessionId,
         action: release.executableContent.action,
+        businessTransactionId: release.executableContent.businessTransactionId,
       });
 
       return result;
-
     } catch (error) {
-
       await this.options.audit.record({
         type: "execution.rejected",
         occurredAt: new Date().toISOString(),
         connectorId: connector.connectorId,
-        authorizationId:
-          release.authorization.payload.authorizationId,
+        authorizationId: release.authorization.payload.authorizationId,
         sessionId: session.sessionId,
         action: release.executableContent.action,
-        reason:
-          error instanceof Error
-            ? error.message
-            : "Unknown rejection",
+        businessTransactionId: release.executableContent.businessTransactionId,
+        reason: error instanceof Error ? error.message : "Unknown rejection",
       });
 
       throw error;

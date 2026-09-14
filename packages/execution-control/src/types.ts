@@ -64,9 +64,7 @@ export interface SecureConnector {
 export interface ConnectorRegistry {
   get(name: string): SecureConnector;
 
-  resolveCapability(
-    capability: string,
-  ): SecureConnector;
+  resolveCapability(capability: string): SecureConnector;
 }
 
 export interface ConnectorAuthenticator {
@@ -85,25 +83,16 @@ export interface ConnectorPolicy {
   ): Promise<void>;
 }
 
-export interface ExecutionAuditEvent {
-  readonly type: "session.created" | "execution.rejected" | "execution.completed";
-  readonly occurredAt: string;
-  readonly connectorId: string;
-  readonly authorizationId: string;
-  readonly sessionId: string;
-  readonly reason?: string;
-
-  /** Metadata only — never the credential's secret value. */
-  readonly credentialId?: string;
-  readonly gatewayId?: string;
-
-  /** ExecutableContent.action this event concerns — the capability granted or rejected. */
-  readonly action?: string;
-}
-
-export interface ExecutionAuditSink {
-  record(event: ExecutionAuditEvent): Promise<void>;
-}
+/**
+ * Re-exported from @parmana/shared, not defined here, so
+ * packages/storage's SupabaseExecutionAuditSink can use the same
+ * shape without importing @parmana/execution-control —
+ * tests/architecture/execution-boundary.test.ts enforces a closed
+ * dependent set for that package (execution-control, execution-gateway,
+ * and api only), and storage is not on that list, deliberately. See
+ * ExecutionAuditEvent's own doc comment in @parmana/shared for why.
+ */
+export type { ExecutionAuditEvent, ExecutionAuditSink } from "@parmana/shared";
 
 export interface ExecutionRelease {
   readonly authorization: SignedExecutionAuthorization;
@@ -112,5 +101,8 @@ export interface ExecutionRelease {
   readonly executionTimestamp: string;
 }
 export interface ExecutionControl {
-  execute(release: ExecutionRelease, gatewayAuthentication: unknown): Promise<ExecutionResult>;
+  execute(
+    release: ExecutionRelease,
+    gatewayAuthentication: unknown,
+  ): Promise<ExecutionResult>;
 }

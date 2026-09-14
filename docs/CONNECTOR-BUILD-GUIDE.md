@@ -76,7 +76,7 @@ Inside `src/`, one file per responsibility — **do not merge these**, the separ
         both the connector's guard and its request-body construction read from.
   - [ ] A **`<NAME>_TEST_MODE_PLACEHOLDER_<CREDENTIAL>`** constant, shaped like a real credential
         for that vendor but using an all-zero/obviously-fake identifier segment that vendor will
-        never issue for real. Document *why* directly in the comment: this exists because
+        never issue for real. Document _why_ directly in the comment: this exists because
         Razorpay's first version had no guard against sending its placeholder to the real
         production API, and only survived because Razorpay happened to reject it — an accident of
         vendor behavior, never a guarantee this codebase controls. Every new connector closes this
@@ -114,7 +114,7 @@ Inside `src/`, one file per responsibility — **do not merge these**, the separ
 - [ ] **`<Name>CapabilityExecution.ts`** — one generic `execute<Name>Capability()` helper: signs a
       fresh authorization and submits it through the caller-supplied `ExecutionSystem` (the same
       gateway every other execution goes through — envelope verification, nonce consumption,
-      connector dispatch, unmodified). Both the connector's primary action *and* its own
+      connector dispatch, unmodified). Both the connector's primary action _and_ its own
       `SignalStateVerifier` (next item) call this — the sign-then-execute shape must exist in
       exactly one place, not be duplicated. Reference:
       `packages/connector-hubspot/src/HubSpotCapabilityExecution.ts`.
@@ -138,8 +138,8 @@ Inside `src/`, one file per responsibility — **do not merge these**, the separ
 
 ## 3. The execution-gateway adapter — where the executable connector lives
 
-The package above is deliberately **passive** — it defines what a capability *means*, not how it's
-*executed*. The executable class lives in `packages/execution-gateway/src/connector-execution/`
+The package above is deliberately **passive** — it defines what a capability _means_, not how it's
+_executed_. The executable class lives in `packages/execution-gateway/src/connector-execution/`
 (Phase 1C convention: "connector packages retain only capability definitions, schemas, metadata,
 and interfaces; this is where those get wired into a real, running execution path").
 
@@ -160,7 +160,7 @@ see §10's third rule below before designing a remote connector's wire protocol.
   2. [ ] Reject if `context.credential.value` doesn't match the connector's own credential shape
          (`is<Name>CredentialValue`).
   3. [ ] **Placeholder-credential guard**: if `baseUrl === DEFAULT_BASE_URL` (the real vendor
-         endpoint) *and* the resolved credential equals the test-mode placeholder constant, refuse
+         endpoint) _and_ the resolved credential equals the test-mode placeholder constant, refuse
          outright with a clear error — never rely on the vendor rejecting it.
   4. [ ] **Deny-by-default property/field guard** (if the action writes data): any field name in
          `request.parameters` not present in the allowlist constant is refused before any network
@@ -168,7 +168,7 @@ see §10's third rule below before designing a remote connector's wire protocol.
   5. [ ] `AbortController` + `context.timeoutMs` timeout, fail-closed on non-2xx or network error,
          the fetched/updated resource's `bearerRedacted` fingerprint attached to the response
          metadata — never the raw credential.
-      Reference: `packages/execution-gateway/src/connector-execution/GatewayHubSpotAdapter.ts`.
+         Reference: `packages/execution-gateway/src/connector-execution/GatewayHubSpotAdapter.ts`.
 - [ ] **`createGateway<Name>Connector.ts`** — a thin factory: `(options) => new Gateway<Name>Adapter(options)`,
       returning the stable `Connector` interface type, never the concrete class. Callers never
       construct or depend on the adapter class directly.
@@ -193,7 +193,7 @@ see §10's third rule below before designing a remote connector's wire protocol.
     never a fallback to mock credentials. `createConnectorRegistry.ts` (next item) treats
     `undefined` as "don't register this connector," the same fail-closed-absence shape every
     connector uses.
-      Reference: `packages/api/src/bootstrap/createHubSpotCredentialProvider.ts`.
+    Reference: `packages/api/src/bootstrap/createHubSpotCredentialProvider.ts`.
 - [ ] **`create<Name>Connector.ts`** — thin factory delegating to `createGateway<Name>Connector`,
       wiring `<NAME>_BASE_URL` as an optional test-seam override (never set in production; exists
       only so an integration test can point the connector at a mock server).
@@ -211,11 +211,11 @@ see §10's third rule below before designing a remote connector's wire protocol.
 - [ ] **`createConnectorRegistry.ts`** — add a block: resolve the credential provider; if
       `undefined`, `console.warn({ event: "<name>_connector_unavailable", reason: "..." })` and skip;
       else `registrations.push({ connector: create<Name>Connector(), metadata: <Name>Metadata,
-      connectorIdentity: { connectorId: "<name>", publicIdentity: "spiffe://parmana/connectors/<name>",
-      authenticationMetadata: {} }, credentialProvider, policy: new DefaultConnectorPolicy(...),
-      gatewayAuthentication, crypto, audit })`. Mirror the existing HubSpot block exactly.
+connectorIdentity: { connectorId: "<name>", publicIdentity: "spiffe://parmana/connectors/<name>",
+authenticationMetadata: {} }, credentialProvider, policy: new DefaultConnectorPolicy(...),
+gatewayAuthentication, crypto, audit })`. Mirror the existing HubSpot block exactly.
 - [ ] **`createConnectorAuthenticator.ts`** — add `{ connectorId: "<name>", publicIdentity:
-      "spiffe://parmana/connectors/<name>", authenticationMetadata: {} }` to the trusted-identity
+"spiffe://parmana/connectors/<name>", authenticationMetadata: {} }` to the trusted-identity
       array.
 - [ ] If a `<Name>SignalStateVerifier` was built, wire it into `application.ts`'s
       `CompositeSignalStateVerifier([...])` construction alongside any other connector's verifier.
@@ -281,7 +281,7 @@ capability):
       not guaranteed to reproduce the original wire bytes.
 - [ ] **`routes/webhooks-<name>.ts`** — **verify-then-consume ordering is load-bearing**: signature
       verification runs first and is entirely side-effect-free; the dedupe store is never touched
-      until *after* a valid signature and a present event id are both confirmed, so a forged request
+      until _after_ a valid signature and a present event id are both confirmed, so a forged request
       can never burn a legitimate event id. Mount `express.raw({ type: "application/json", limit })`
       on **this router only**, ahead of the handler — and mount this router in `app.ts` **before**
       the global `express.json()` middleware, so the raw bytes reaching signature verification are
@@ -291,14 +291,14 @@ capability):
       mounted, 404s) + a hard startup error if the secret is **set but blank** (an empty secret would
       accept forged signatures as valid — this must never silently pass).
 - [ ] **Migration**: `<name>_webhook_events` (event_id `TEXT PRIMARY KEY` — the primary key itself
-      *is* the atomic dedupe mechanism, a concurrent duplicate insert fails with `23505`) and
+      _is_ the atomic dedupe mechanism, a concurrent duplicate insert fails with `23505`) and
       `<name>_webhook_audit_events` (`id BIGSERIAL PRIMARY KEY`, `type TEXT NOT NULL CHECK (type IN
-      (...))`, `occurred_at`, `route`, plus only the narrow payload-derived fields the audit sink
+(...))`, `occurred_at`, `route`, plus only the narrow payload-derived fields the audit sink
       interface defines). Both `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`, no policy defined (the
       service-role key bypasses RLS by design — document this reasoning inline, don't just enable it
       silently). See §8 for migration file conventions.
 - [ ] Reference (current, until removed): `packages/api/src/webhooks/{RazorpayWebhookEventStore,
-      RazorpayWebhookAuditSink,verifyRazorpayWebhookSignature}.ts`,
+RazorpayWebhookAuditSink,verifyRazorpayWebhookSignature}.ts`,
       `packages/api/src/routes/webhooks-razorpay.ts`,
       `supabase/migrations/20260718182238_add_razorpay_webhook_tables.sql`.
 
@@ -335,7 +335,7 @@ capability):
    - HTTP boundary (`packages/api/tests/integration/<name>-<action>.integration.test.ts`): a policy
      `REJECTED` decision reached through the real, production-wired `POST /execute` is caught in
      `ExecutionGate.enforce` before the connector is ever dispatched to — assert `response.status
-     === 403`, `response.body.code === "POLICY_DENIED"`, **and** a `fetch` spy confirming literally
+=== 403`, `response.body.code === "POLICY_DENIED"`, **and** a `fetch` spy confirming literally
      zero calls reached the mock server's base URL. Reference:
      `packages/api/tests/integration/hubspot-deal-update.integration.test.ts`.
 3. [ ] **Gated live suite last** —
@@ -422,7 +422,7 @@ ever exploited, not after. Every new connector builds all three in from its firs
   out of sync with what's actually read.
 - **A remote connector's wire protocol must not trust a shared secret alone.** If your connector
   forwards to a separate, out-of-process service the way Paytm does (§3's callout above), a bearer
-  shared secret only proves the *caller* is Parmana's gateway — it proves nothing about *which*
+  shared secret only proves the _caller_ is Parmana's gateway — it proves nothing about _which_
   parameters were actually approved. Before Phase 2B, Paytm's remote service accepted any
   `orderId`/`txnId`/`amount` bearing the correct secret, because that service is necessarily a
   public HTTPS endpoint (reachable directly by anyone who obtains the secret, not only by

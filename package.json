@@ -37,7 +37,8 @@
     "loadtest": "tsx scripts/load-test.ts",
     "generate:python-models": "tsx python/scripts/generate_models.ts",
     "check:python-models": "tsx python/scripts/generate_models.ts --check",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm run check:python-models && npm run test && npm run build"
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run check:python-models && npm run test && npm run build",
+    "preflight": "npm run check && npm run examples"
   },
   "engines": {
     "node": ">=24"

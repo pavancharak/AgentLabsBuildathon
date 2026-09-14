@@ -3,7 +3,11 @@ title: "@parmana/storage"
 description: "Package reference for @parmana/storage. For the conceptual overview and configuration, see Storage."
 ---
 
-<Info>**[AVAILABLE]** for `memory` and `supabase`. **Declared but unimplemented, throws at startup** for `postgres`/`sqlite`. See [Storage](/storage/overview) for providers, configuration, and what's actually stored.</Info>
+<Info>
+  **[AVAILABLE]** for `memory` and `supabase`. **Declared but unimplemented,
+  throws at startup** for `postgres`/`sqlite`. See [Storage](/storage/overview)
+  for providers, configuration, and what's actually stored.
+</Info>
 
 ## Install
 
@@ -13,15 +17,16 @@ npm install @parmana/storage
 
 ## Key exports
 
-| Export | Purpose |
-|---|---|
-| `StorageFactory` | Constructs a `StorageProvider` from `StorageConfiguration.provider` (`"memory" \| "supabase" \| "postgres" \| "sqlite"`), throws for the two unimplemented providers. |
-| `MemoryStorageProvider`, `MemoryBusinessTransactionRepository`, `MemoryExecutionTrustRecordRepository`, `MemoryPolicyRepository` | [AVAILABLE]. In-process, non-persistent. |
-| `SupabaseStorageProvider`, `SupabaseBusinessTransactionRepository`, `SupabaseExecutionTrustRecordRepository` | [AVAILABLE] (source), not independently re-verified against a live Supabase instance in this documentation pass. |
-| `StorageProvider`, `StorageBuilder`, `StorageConfiguration` | The provider contract and its typed configuration. |
-| `AppendOnlyLedger`, `LedgerEntry`, `LedgerSerializer` | The append-only primitive repositories are built on. |
-| `ExecutionRepository`, `VerificationRepository`, `CryptoProofRepository` | Additional repository interfaces. |
-| `StorageError` | Thrown on provider misconfiguration, including the retired `DATABASE_PROVIDER` variable, see [Storage](/storage/overview). |
+| Export                                                                                                                           | Purpose                                                                                                                                                                                                                                                                                                                                         |
+| -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `StorageFactory`                                                                                                                 | Constructs a `StorageProvider` from `StorageConfiguration.provider` (`"memory" \| "supabase" \| "postgres" \| "sqlite"`), throws for the two unimplemented providers.                                                                                                                                                                           |
+| `MemoryStorageProvider`, `MemoryBusinessTransactionRepository`, `MemoryExecutionTrustRecordRepository`, `MemoryPolicyRepository` | [AVAILABLE]. In-process, non-persistent.                                                                                                                                                                                                                                                                                                        |
+| `SupabaseStorageProvider`, `SupabaseBusinessTransactionRepository`, `SupabaseExecutionTrustRecordRepository`                     | [AVAILABLE] (source), not independently re-verified against a live Supabase instance in this documentation pass.                                                                                                                                                                                                                                |
+| `SupabaseExecutionAuditSink`                                                                                                     | [AVAILABLE]. Durable replacement for `@parmana/execution-control`'s `MemoryExecutionAuditSink` in production — signed at write time, chained per `authorizationId`, queryable via `query(filter)` by `authorizationId`/`businessTransactionId`/`connectorId`/`type`/date range. See [@parmana/execution-control](/reference/execution-control). |
+| `StorageProvider`, `StorageBuilder`, `StorageConfiguration`                                                                      | The provider contract and its typed configuration.                                                                                                                                                                                                                                                                                              |
+| `AppendOnlyLedger`, `LedgerEntry`, `LedgerSerializer`                                                                            | The append-only primitive repositories are built on.                                                                                                                                                                                                                                                                                            |
+| `ExecutionRepository`, `VerificationRepository`, `CryptoProofRepository`                                                         | Additional repository interfaces.                                                                                                                                                                                                                                                                                                               |
+| `StorageError`                                                                                                                   | Thrown on provider misconfiguration, including the retired `DATABASE_PROVIDER` variable, see [Storage](/storage/overview).                                                                                                                                                                                                                      |
 
 ## Minimal example
 
@@ -37,9 +42,14 @@ const storage = new MemoryStorageProvider();
 
 <CardGroup cols={2}>
   <Card title="Storage" icon="database" href="/storage/overview">
-    Providers, configuration, and what's actually stored, the conceptual overview.
+    Providers, configuration, and what's actually stored, the conceptual
+    overview.
   </Card>
-  <Card title="Execution trust records" icon="file-shield" href="/concepts/execution-trust-records">
+  <Card
+    title="Execution trust records"
+    icon="file-shield"
+    href="/concepts/execution-trust-records"
+  >
     What actually gets stored, and what's append-only versus signed.
   </Card>
 </CardGroup>

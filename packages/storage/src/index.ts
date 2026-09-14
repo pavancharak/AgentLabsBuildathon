@@ -42,6 +42,7 @@ export * from "./supabase/SupabasePolicyChangeApprovalRecordRepository.js";
 export * from "./supabase/SupabaseNonceStore.js";
 export * from "./supabase/SupabaseApprovalNonceStore.js";
 export * from "./supabase/SupabasePolicyChangeStepUpNonceStore.js";
+export * from "./supabase/SupabaseExecutionAuditSink.js";
 
 // -----------------------------------------------------------------------------
 // Postgres (direct connection, bypassing PostgREST)

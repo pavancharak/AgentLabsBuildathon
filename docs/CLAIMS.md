@@ -1,322 +1,184 @@
 # Parmana Technical Claims
 
-
-
 Version: 1.0
-
-
 
 Status: Public
 
-
-
 ---
-
-
 
 # Key Compromise Notice
 
-
-
 The default signing key (`keys/default.private.pem` / `keys/default.public.pem`) was publicly exposed in a Parmana Systems GitHub repository prior to 2026-07-05 (incident record: `04-INCIDENTS-LOG.md`, INC-1). This repository's own commit history does not carry that exposure (no `.pem` private key was ever committed here), but the key itself must still be treated as permanently compromised regardless of which repository exposed it.
-
-
 
 All signatures produced by that key are void for authenticity purposes, regardless of when the signed artifact was created.
 
-
-
 The key pair was rotated on 2026-07-05.
 
-
-
 ---
-
-
 
 > Building a new connector? Read [CONNECTOR-BUILD-GUIDE.md](./CONNECTOR-BUILD-GUIDE.md) first — it captures the pattern distilled from the Razorpay and HubSpot connectors (credential guards, bound-signals hardening, test order, non-destructive live tests).
 
-
-
 ---
-
-
 
 # 1. Core Positioning
 
-
-
 ## Category
-
-
 
 Parmana is **Execution Trust Infrastructure**.
 
-
-
 ## Mission
-
-
 
 Trust in what an AI agent did should not have to rest on hoping it behaved. It should be a verifiable record. Parmana establishes that record through an explicit chain: authorize, verify, execute, confirm, connecting business authorization, policy evaluation, runtime execution, and execution evidence.
 
-
-
 ## Value Proposition
-
-
 
 Parmana enables organizations to verify what automated systems executed, not simply trust that they executed correctly.
 
-
-
 ---
-
-
 
 # Purpose
 
-
-
 This document defines the public technical claims that Parmana makes about its architecture and capabilities: the authorize → verify → execute → confirm chain above, made specific and checkable.
-
-
 
 Claims are categorized according to the level of implementation evidence available.
 
-
-
 A technical claim SHOULD be promoted only when supported by:
 
+- implementation
 
+- automated tests
 
-* implementation
+- audit evidence
 
-* automated tests
+- documented proofs
 
-* audit evidence
-
-* documented proofs
-
-* independent verification (where applicable)
-
-
+- independent verification (where applicable)
 
 ---
-
-
 
 # 2. Supported Technical Claims
 
-
-
 The following claims are supported by the current implementation and architecture.
 
-
-
 ---
-
-
 
 ## 2.1 Trusted Business Transactions
 
-
-
 Parmana validates Business Transactions before execution.
-
-
 
 Business Transactions are checked for internal trust-chain consistency before entering the runtime.
 
-
-
 Evidence
 
-
-
-* BusinessTransactionValidator (`packages/runtime/src/validators/BusinessTransactionValidator.ts`)
-
-
+- BusinessTransactionValidator (`packages/runtime/src/validators/BusinessTransactionValidator.ts`)
 
 ---
-
-
 
 ## 2.2 Deterministic Policy Selection
 
-
-
 Parmana executes exactly one explicitly referenced business policy.
-
-
 
 The runtime loads the policy identified by the Business Transaction and validates its identity before evaluation.
 
-
-
 The runtime does not:
 
+- discover policies
 
+- negotiate policies
 
-* discover policies
+- automatically select the latest version
 
-* negotiate policies
-
-* automatically select the latest version
-
-* substitute alternative policies
-
-
+- substitute alternative policies
 
 A Business Transaction referencing a `(name, version)` pair with no corresponding file fails closed: `FilePolicyRepository.load` throws `PolicyNotFoundError` (distinct from `PolicyValidationError`/`SignalValidationError`, which map to `400`), the error handler maps it to `404`, and no policy evaluation, connector dispatch, or Refusal Record write occurs — there is no fallback to a default or most-recent version.
 
-
-
 Evidence
 
+- PolicyRouter
 
+- PolicyValidator
 
-* PolicyRouter
+- `packages/policy/src/FilePolicyRepository.ts` (`PolicyNotFoundError`), `packages/api/src/middleware/error-handler.ts` (maps to `404`)
 
-* PolicyValidator
-
-* `packages/policy/src/FilePolicyRepository.ts` (`PolicyNotFoundError`), `packages/api/src/middleware/error-handler.ts` (maps to `404`)
-
-* `packages/api/tests/unit/execute-api.test.ts`: `"returns 404 when the referenced policy does not exist (PolicyNotFoundError)"`
-
-
+- `packages/api/tests/unit/execute-api.test.ts`: `"returns 404 when the referenced policy does not exist (PolicyNotFoundError)"`
 
 ---
-
-
 
 ## 2.3 Deterministic Policy Evaluation
 
-
-
 Parmana deterministically evaluates business policies using sequential rule evaluation with first-match semantics.
-
-
 
 Evaluation records include:
 
+- matched rule
 
+- decision reason
 
-* matched rule
-
-* decision reason
-
-* evaluation trace
-
-
+- evaluation trace
 
 Evidence
 
-
-
-* PolicyEngine (`packages/policy/src/PolicyEngine.ts`)
-
-
+- PolicyEngine (`packages/policy/src/PolicyEngine.ts`)
 
 ---
-
-
 
 ## 2.4 Authorized Execution
 
-
-
 Parmana prevents execution when required trust artifacts are missing or when the decision outcome is not approved.
-
-
 
 Evidence
 
+- TrustChainValidationComponent
 
-
-* TrustChainValidationComponent
-
-* RuntimeEngine (`packages/runtime/src/RuntimeEngine.ts`)
-
-
+- RuntimeEngine (`packages/runtime/src/RuntimeEngine.ts`)
 
 ---
-
-
 
 ## 2.5 Verifiable Execution Evidence
 
-
-
 Parmana generates cryptographically verifiable execution evidence.
-
-
 
 Execution produces:
 
+- Execution Trust Records
 
+- Canonical Trust Record hashes
 
-* Execution Trust Records
-
-* Canonical Trust Record hashes
-
-* Signed Receipts
-
-
+- Signed Receipts
 
 Evidence
 
+- BusinessTrustRecordBuilder (renamed from ExecutionTrustRecordBuilder)
 
+- ExecutionComponent, ExecutionEvidenceBuilder (packages/runtime/src/{components/ExecutionComponent,ExecutionEvidenceBuilder}.ts) — the live pipeline stage that builds and attaches ExecutionEvidence to every Execution, called by RuntimeFactory-constructed Runtimes; not to be confused with ExecutionEvidenceComponent, a same-named-in-spirit stub confirmed unwired and deleted (docs/VERIFICATION-GAPS.md G-26)
 
-* BusinessTrustRecordBuilder (renamed from ExecutionTrustRecordBuilder)
+- ReceiptService (packages/runtime/src/services/receipt-service.ts), called directly by ExecutionTrustApplication.execute() on every successful execution
 
-* ExecutionComponent, ExecutionEvidenceBuilder (packages/runtime/src/{components/ExecutionComponent,ExecutionEvidenceBuilder}.ts) — the live pipeline stage that builds and attaches ExecutionEvidence to every Execution, called by RuntimeFactory-constructed Runtimes; not to be confused with ExecutionEvidenceComponent, a same-named-in-spirit stub confirmed unwired and deleted (docs/VERIFICATION-GAPS.md G-26)
+- VerificationCrypto
 
-* ReceiptService (packages/runtime/src/services/receipt-service.ts), called directly by ExecutionTrustApplication.execute() on every successful execution
+- ReceiptCrypto
 
-* VerificationCrypto
-
-* ReceiptCrypto
-
-* packages/runtime/tests/integration/receipt.integration.test.ts, receipt-hybrid.integration.test.ts
-
-
+- packages/runtime/tests/integration/receipt.integration.test.ts, receipt-hybrid.integration.test.ts
 
 ---
-
-
 
 ## 2.6 Independent Verification
 
-
-
 Parmana supports independent verification of execution evidence.
-
-
 
 Verification confirms execution integrity using the generated execution artifacts.
 
-
-
 Evidence
 
+- packages/runtime/src/services/verification-service.ts
 
+- packages/runtime/tests/unit/verification-service.test.ts
 
-* packages/runtime/src/services/verification-service.ts
-
-* packages/runtime/tests/unit/verification-service.test.ts
-
-* VerificationCrypto
-
-
+- VerificationCrypto
 
 ---
 
-
-
 ## 2.7 Replay Support
-
-
 
 Parmana supports replay of recorded execution decisions for verification and analysis, via the standalone `@parmana/replay` package (`ReplayEngine`), which re-evaluates a recorded policy decision against its recorded signals and reports whether the outcome matches.
 
@@ -324,553 +186,357 @@ Parmana supports replay of recorded execution decisions for verification and ana
 
 Evidence
 
-* Replay package (packages/replay/src/ReplayEngine.ts)
+- Replay package (packages/replay/src/ReplayEngine.ts)
 
-* docs/architecture/phase2g-replay-semantics.md
-
-
+- docs/architecture/phase2g-replay-semantics.md
 
 ---
-
-
 
 ## 2.8 Signed, Single-Use, Time-Bounded Execution Authorization
 
-
-
 Every approved execution request carries a cryptographically signed Execution Authorization scoped to one decision, bound to a single-use nonce, and valid only within a bounded time window (Ed25519 by default; ML-DSA-65 / FIPS 204 configurable via SIGNATURE_PROVIDER).
-
-
 
 Evidence
 
+- AuthorizationSigner
 
+- AuthorizationVerifier
 
-* AuthorizationSigner
+- EnvelopeVerifier
 
-* AuthorizationVerifier
+- MemoryNonceStore
 
-* EnvelopeVerifier
+- packages/crypto/tests/unit/authorization-envelope.test.ts
 
-* MemoryNonceStore
-
-* packages/crypto/tests/unit/authorization-envelope.test.ts
-
-* packages/envelope-verifier/tests/unit/envelope-verifier.test.ts
-
-
+- packages/envelope-verifier/tests/unit/envelope-verifier.test.ts
 
 ---
-
-
 
 ## 2.9 Independent Envelope Verification
 
-
-
 A receiving system independently verifies that Parmana authorized an execution request without trusting Parmana's runtime process or its database. Verification requires only Parmana's public key and the envelope itself.
-
-
 
 Evidence
 
+- @parmana/envelope-verifier (EnvelopeVerifier, requireParmanaAuthorization)
 
-
-* @parmana/envelope-verifier (EnvelopeVerifier, requireParmanaAuthorization)
-
-* packages/envelope-verifier/README.md ("Claims" section)
-
-
+- packages/envelope-verifier/README.md ("Claims" section)
 
 ---
-
-
 
 ## 2.10 Rejection of Forged, Tampered, Expired, and Replayed Authorizations
 
-
-
 The receiving system rejects a forged signature, a tampered payload, an expired envelope, and a replayed (previously accepted) envelope. Replay protection is scoped to whichever NonceStore instance performs the check; see 3.2 below.
-
-
 
 Evidence
 
-
-
-* packages/envelope-verifier/tests/unit/envelope-verifier.test.ts: "a forged envelope does not burn the nonce", "an expired envelope does not burn the nonce", "rejects a second use of the same nonce", "treats the exact expiresAt instant as expired (boundary is exclusive, not inclusive)", "under two concurrent verify() calls with one nonce, exactly one succeeds (deterministic, not flaky)"
-
-
+- packages/envelope-verifier/tests/unit/envelope-verifier.test.ts: "a forged envelope does not burn the nonce", "an expired envelope does not burn the nonce", "rejects a second use of the same nonce", "treats the exact expiresAt instant as expired (boundary is exclusive, not inclusive)", "under two concurrent verify() calls with one nonce, exactly one succeeds (deterministic, not flaky)"
 
 ---
-
-
 
 ## 2.11 Trust Record Bound to Its Authorization
 
-
-
 The Execution Trust Record's authorizationId is part of the canonical content that is hashed and signed, not merely attached alongside it. Tampering with it changes the recomputed Trust Record hash.
-
-
 
 Evidence
 
+- BusinessTrustRecordBuilder (renamed from ExecutionTrustRecordBuilder)
 
-
-* BusinessTrustRecordBuilder (renamed from ExecutionTrustRecordBuilder)
-
-* packages/runtime/tests/unit/execution-authorization-wiring.test.ts: "trust record references the authorization"
-
-
+- packages/runtime/tests/unit/execution-authorization-wiring.test.ts: "trust record references the authorization"
 
 ---
-
-
 
 ## 2.12 Fail-Closed Authorization on Rejection
 
-
-
 A rejected Decision never produces a Signed Execution Authorization.
-
-
 
 Evidence
 
+- RuntimeEngine (authorization signing occurs only after executionGate.enforce() approves the Decision)
 
-
-* RuntimeEngine (authorization signing occurs only after executionGate.enforce() approves the Decision)
-
-* packages/runtime/tests/unit/execution-authorization-wiring.test.ts: "rejected transaction produces no authorization"
-
-
+- packages/runtime/tests/unit/execution-authorization-wiring.test.ts: "rejected transaction produces no authorization"
 
 ---
-
-
 
 ## 2.13 Key/Algorithm Binding Guard
 
-
-
 Signing or verifying with key material of the wrong type (for example, an Ed25519 key against the configured ML-DSA-65 provider, or vice versa) fails closed with a clear error naming both the expected and actual key type, rather than silently dispatching on the key's own type.
-
-
 
 Evidence
 
+- assertKeyType (used by Ed25519SignatureProvider and Dilithium3SignatureProvider)
 
+- packages/crypto/tests/unit/signature-provider.test.ts
 
-* assertKeyType (used by Ed25519SignatureProvider and Dilithium3SignatureProvider)
-
-* packages/crypto/tests/unit/signature-provider.test.ts
-
-* examples/tutorials/99-key-algorithm-binding-guard/run.ts (runnable narrative: both mismatch directions, plus a correctly matched key still working)
-
-
+- examples/tutorials/99-key-algorithm-binding-guard/run.ts (runnable narrative: both mismatch directions, plus a correctly matched key still working)
 
 ---
 
-
-
 ## 2.14 Configurable Post-Quantum Signing (ML-DSA-65)
-
-
 
 Post-quantum signing (ML-DSA-65, FIPS 204, historically referred to in this codebase as "dilithium3") is selectable via SIGNATURE_PROVIDER, using the same PEM-based persistent key mechanism as the default Ed25519 provider (FileKeyProvider, keyId "default"). Requires Node >= 24 for native node:crypto ml-dsa-65 support. Selecting it with missing or mismatched key material fails closed rather than silently regenerating or substituting different keys.
 
 **Update (2026-09-09):** `SIGNATURE_PROVIDER`/`PRIMARY_SIGNATURE_PROVIDER`/`SECONDARY_SIGNATURE_PROVIDER` now also accept `ml-dsa-65` as an input alias for `dilithium3` (`parseSignatureAlgorithm`, `packages/shared/src/config/ConfigValidation.ts`), resolved to the same canonical `dilithium3` identifier before validation. Additive only: an existing `dilithium3`-configured deployment is completely unaffected — the internal identifier is not renamed, only a second accepted spelling was added, so a new deployment can use the accurate NIST/FIPS 204 name without anyone reverting or migrating anything. The two `scripts/generate-keypair.ts` CLIs (`--algorithm`) accept the same alias, normalized to `dilithium3` before generating a key, for the identical reason. A production-readiness audit (`docs/audit/PRODUCTION-READINESS-AUDIT-2026-09-09.md`) had concluded a literal rename would be a regression (breaking existing `dilithium3`-configured deployments for no externally-visible benefit, since the docs already disclose the naming history) — this alias is the corrected, non-breaking version of that request.
 
-
-
 **Crypto-agility, demonstrated independently of hybrid signing (3.13):** the same canonical record (via `CanonicalSerializer`, the same serialization every Parmana signing path uses) can be signed and verified by Ed25519 and by ML-DSA-65 as two entirely separate, single-algorithm operations — each against its own freshly generated key pair, with no `CRYPTO_MODE` or hybrid envelope involved. This is a standalone runnable proof (`packages/crypto/examples/crypto-agility-proof.ts`, run via `npx tsx packages/crypto/examples/crypto-agility-proof.ts`), not a unit test, written to make the claim directly checkable by hand. Measured 2026-08-25: `dilithium3-signature-provider.test.ts` 4/4 passing (6/6 including the related `dilithium3-cross-instance.test.ts`); full repository suite 1274 passed, 37 skipped, 0 failed. Full run detail in `docs/DILITHIUM3-VERIFICATION-AUG26.md`.
-
-
 
 Evidence
 
+- Dilithium3SignatureProvider
 
+- FileKeyProvider
 
-* Dilithium3SignatureProvider
+- generate-keypair.ts (--algorithm dilithium3)
 
-* FileKeyProvider
+- packages/crypto/tests/unit/dilithium3-signature-provider.test.ts
 
-* generate-keypair.ts (--algorithm dilithium3)
+- packages/crypto/tests/unit/dilithium3-cross-instance.test.ts
 
-* packages/crypto/tests/unit/dilithium3-signature-provider.test.ts
+- packages/crypto/examples/crypto-agility-proof.ts
 
-* packages/crypto/tests/unit/dilithium3-cross-instance.test.ts
-
-* packages/crypto/examples/crypto-agility-proof.ts
-
-* docs/DILITHIUM3-VERIFICATION-AUG26.md
-
-
+- docs/DILITHIUM3-VERIFICATION-AUG26.md
 
 **Update (2026-09-11, PQC production-readiness audit remediation):** a same-day audit scoped specifically to whether this cryptographic evidence is independently verifiable by third parties (regulators, auditors) found and closed four real gaps, none of which change anything described above -- this claim's own content is unaffected. Summarized here; full detail in `docs/VERIFICATION-GAPS.md`'s "Gaps closed in the 2026-09-11 PQC production-readiness audit remediation" table (gaps 51-54): (1) no standalone offline verifier existed anywhere in this repository -- new `packages/crypto/src/OfflineVerifier.ts` and a Python counterpart, cross-language determinism proven by spawning the real TypeScript signer and verifying its output independently in Python; (2) no public-key discovery endpoint existed -- new `GET /keys/:keyId` and `GET /.well-known/jwks.json`; (3) `VerificationCrypto`/`RefusalCrypto`/`AuditEventCrypto` had no way to rotate their signing keyId without breaking every previously-issued signature -- new `PARMANA_VERIFICATION_KEY_ID`/`PARMANA_VERIFICATION_SECONDARY_KEY_ID`, mirroring the existing `PARMANA_GATEWAY_KEY_ID` precedent; (4) a genuinely hybrid-signed record's ML-DSA-65 signature could be silently stripped with no detection -- new opt-in `HYBRID_SIGNATURE_REQUIRED` policy flag. All four fixes are additive; not one already-issued signature is affected by any of them.
 
-
-
 ---
-
-
 
 ## 2.15 Authorization-Binding Verification
 
-
-
 Every APPROVED execution in a verified Execution Trust Record must carry a non-empty authorizationId in its metadata; absence fails verification and names the execution. REJECTED-decision executions are not required to carry one. All checks (integrity, signature, authorization binding) run unconditionally and independently: a single failure never suppresses reporting of the others.
-
-
 
 Evidence
 
+- VerificationService (packages/runtime/src/services/verification-service.ts)
 
+- packages/runtime/tests/unit/verification-service.test.ts: all 8 cases
 
-* VerificationService (packages/runtime/src/services/verification-service.ts)
+- packages/runtime/tests/unit/verification-negative.test.ts: always-running, in-memory: fails on a mutated transaction payload field, a mutated signature value, and a mutated executions hash-chain-array element
 
-* packages/runtime/tests/unit/verification-service.test.ts: all 8 cases
-
-* packages/runtime/tests/unit/verification-negative.test.ts: always-running, in-memory: fails on a mutated transaction payload field, a mutated signature value, and a mutated executions hash-chain-array element
-
-* packages/api/tests/integration/verification-negative.integration.test.ts: "reports FAILED when the persisted record is tampered after execution" (additional citation; Supabase-gated, does not run without live credentials)
-
-
+- packages/api/tests/integration/verification-negative.integration.test.ts: "reports FAILED when the persisted record is tampered after execution" (additional citation; Supabase-gated, does not run without live credentials)
 
 ---
 
-
-
 ## 2.16 Caller Authentication at the API Boundary
-
-
 
 Every route except `/health`, `/ready`, `/openapi.yaml`, `/documentation`, `POST /refusal/verify`, and `POST /audit/verify` requires a valid caller credential (`packages/api/src/app.ts`). The first four are liveness/readiness probes and API documentation; the last two are deliberately unauthenticated, independently third-party-verifiable signature-verification capabilities (RFC-0021 Refusal Record verification and caller-audit/webhook-audit signature verification, see 3.11), not routes that expose any caller's data. createApp's callerAuth option is mandatory: it accepts either an authenticator/auditSink pair or the literal string "disabled", so every call site states its choice explicitly; there is no default that silently mounts the API with no caller authentication. Production (server.ts) refuses to start with PARMANA_AUTH_DISABLED unset and no PARMANA_API_KEYS configured (2.17). A key valid for one caller does not grant a different caller's identity, and every accept/reject outcome is audited without ever recording the raw key. In production, that audit trail is durable (see 3.2's sibling claim for the NonceStore side of the same fix), backed by Supabase and shared across every process, not scoped to one process's uptime; `createCallerAuditSink.ts` fails closed at startup if `DATABASE_URL` is not configured (a documented, temporary substitute for a direct Supabase-configuration check — see `createCallerAuditSink.ts`'s own comment, pending resolution of Supabase ticket SU-437429 — that still points at the same underlying Supabase Postgres instance in this deployment). `InMemoryCallerAuditSink` remains available and correct for tests (NODE_ENV=test).
 
-**Precise scope of `PARMANA_AUTH_DISABLED=true` (docs/VERIFICATION-GAPS.md G-28):** this flag, when explicitly opted into, removes *caller identity and accountability only* — `RuntimeEngine`, `PolicyEngine`, `CapabilityPolicyBinder`, `SignalIntentBinder`, and every `SignalStateVerifier` never read the caller-auth middleware's output at all (confirmed by direct grep: zero references to caller identity anywhere in those files), so *action-level authorization* (whether a specific `razorpay:refund-create`/`hubspot:deal-update` request is itself authorized) remains fully enforced regardless of this flag. It does not disable the authorization boundary this document's other claims describe; it disables knowing who asked.
+**Precise scope of `PARMANA_AUTH_DISABLED=true` (docs/VERIFICATION-GAPS.md G-28):** this flag, when explicitly opted into, removes _caller identity and accountability only_ — `RuntimeEngine`, `PolicyEngine`, `CapabilityPolicyBinder`, `SignalIntentBinder`, and every `SignalStateVerifier` never read the caller-auth middleware's output at all (confirmed by direct grep: zero references to caller identity anywhere in those files), so _action-level authorization_ (whether a specific `razorpay:refund-create`/`hubspot:deal-update` request is itself authorized) remains fully enforced regardless of this flag. It does not disable the authorization boundary this document's other claims describe; it disables knowing who asked.
 
 **Update (2026-09-10):** `.env.example` shipped `PARMANA_AUTH_DISABLED=true` uncommented, so a first-time operator copying it to `.env` without reading every line would deploy with caller authentication off, discoverable only via the startup `console.warn`, easy to miss in a log-aggregation tool after the fact. The example file's line is now commented out (the code's own default remains `"false"`, unchanged). `GET /ready`'s JSON response now also carries `authDisabled: true` (plus a `warning` string) whenever this flag is set, alongside the existing log line. This gives an operator's own monitoring/synthetic checks, already polling this endpoint every 30s per `fly.toml`, a field to assert and alert on directly. See `docs/VERIFICATION-GAPS.md` G-43.
 
 Evidence (update)
 
-* `.env.example`, `packages/api/src/routes/ready.ts`
-* `packages/api/tests/unit/routes/ready.test.ts`: 2 new cases (`authDisabled: true` with a warning when caller-auth is disabled; `authDisabled: false`, no `warning` key, when enabled)
-
-
+- `.env.example`, `packages/api/src/routes/ready.ts`
+- `packages/api/tests/unit/routes/ready.test.ts`: 2 new cases (`authDisabled: true` with a warning when caller-auth is disabled; `authDisabled: false`, no `warning` key, when enabled)
 
 Evidence
 
+- packages/api/src/app.ts (CallerAuthOption: "disabled" | { authenticator, auditSink }, required, no default)
 
+- packages/api/src/bootstrap/createCallerAuthenticator.ts
 
-* packages/api/src/app.ts (CallerAuthOption: "disabled" | { authenticator, auditSink }, required, no default)
+- packages/api/src/bootstrap/createCallerAuditSink.ts (production wiring; fails closed when DATABASE_URL is not configured, via assertDatabaseUrlConfigured.ts)
 
-* packages/api/src/bootstrap/createCallerAuthenticator.ts
+- packages/api/src/auth/StaticKeyAuthenticator.ts
 
-* packages/api/src/bootstrap/createCallerAuditSink.ts (production wiring; fails closed when DATABASE_URL is not configured, via assertDatabaseUrlConfigured.ts)
+- packages/api/src/auth/SupabaseCallerAuditSink.ts / InMemoryCallerAuditSink.ts
 
-* packages/api/src/auth/StaticKeyAuthenticator.ts
+- packages/api/tests/integration/supabase-caller-audit-sink.integration.test.ts: a recorded event is read back through a second, independent client
 
-* packages/api/src/auth/SupabaseCallerAuditSink.ts / InMemoryCallerAuditSink.ts
+- packages/api/tests/integration/caller-auth.integration.test.ts (valid/missing/invalid credential, scoping and revocation, audit trail content never contains the raw key, composition with policy evaluation, full route inventory)
 
-* packages/api/tests/integration/supabase-caller-audit-sink.integration.test.ts: a recorded event is read back through a second, independent client
-
-* packages/api/tests/integration/caller-auth.integration.test.ts (valid/missing/invalid credential, scoping and revocation, audit trail content never contains the raw key, composition with policy evaluation, full route inventory)
-
-* packages/api/tests/unit/bootstrap/create-caller-authenticator.test.ts
-
-
+- packages/api/tests/unit/bootstrap/create-caller-authenticator.test.ts
 
 ---
-
-
 
 ## 2.17 Fail-Closed Startup Configuration Validation
 
-
-
 Parmana refuses to start rather than let missing required configuration surface later as an unstructured runtime error. This applies to caller authentication keys (PARMANA_API_KEYS, unless PARMANA_AUTH_DISABLED=true is set explicitly), the policy directory (PARMANA_POLICY_DIR), and, in production wiring, the durable NonceStore and CallerAuditSink's DATABASE_URL configuration alike: all fail at startup with an error naming the missing variable, rather than PARMANA_POLICY_DIR surfacing as an unhandled ERR_INVALID_ARG_TYPE inside FilePolicyRepository.load at request time, or a NonceStore/CallerAuditSink silently degrading to an in-memory implementation.
-
-
 
 Evidence
 
+- packages/api/src/bootstrap/createCallerAuthenticator.ts
 
+- packages/shared/src/config/Config.ts (requirePolicyDirectory)
 
-* packages/api/src/bootstrap/createCallerAuthenticator.ts
+- packages/api/src/bootstrap/assertDatabaseUrlConfigured.ts, used by createNonceStore.ts and createCallerAuditSink.ts (a documented, temporary substitute for the Supabase-specific assertSupabaseConfigured.ts, pending resolution of Supabase ticket SU-437429 — see each factory's own comment)
 
-* packages/shared/src/config/Config.ts (requirePolicyDirectory)
+- packages/shared/tests/unit/config.test.ts: "refuses to start when PARMANA_POLICY_DIR is unset", "refuses to start when PARMANA_POLICY_DIR is blank"
 
-* packages/api/src/bootstrap/assertDatabaseUrlConfigured.ts, used by createNonceStore.ts and createCallerAuditSink.ts (a documented, temporary substitute for the Supabase-specific assertSupabaseConfigured.ts, pending resolution of Supabase ticket SU-437429 — see each factory's own comment)
+- packages/api/tests/unit/bootstrap/create-caller-authenticator.test.ts
 
-* packages/shared/tests/unit/config.test.ts: "refuses to start when PARMANA_POLICY_DIR is unset", "refuses to start when PARMANA_POLICY_DIR is blank"
-
-* packages/api/tests/unit/bootstrap/create-caller-authenticator.test.ts
-
-* packages/api/tests/unit/bootstrap/create-nonce-store.test.ts, create-caller-audit-sink.test.ts: "(G-13) fails closed with a named, actionable error when NODE_ENV is not test and DATABASE_URL is not configured", "never silently falls back" to the in-memory implementation
-
-
+- packages/api/tests/unit/bootstrap/create-nonce-store.test.ts, create-caller-audit-sink.test.ts: "(G-13) fails closed with a named, actionable error when NODE_ENV is not test and DATABASE_URL is not configured", "never silently falls back" to the in-memory implementation
 
 ---
 
-
-
 ## 2.18 Key Provider Input Validation
-
-
 
 FileKeyProvider rejects any keyId that does not match ^[A-Za-z0-9._-]+$ before constructing a filesystem path from it, closing the path-traversal surface a crafted keyId (for example, containing "../") would otherwise open against the configured key directory.
 
-
-
 Evidence
 
+- packages/crypto/src/providers/key/FileKeyProvider.ts (assertValidKeyId)
 
-
-* packages/crypto/src/providers/key/FileKeyProvider.ts (assertValidKeyId)
-
-* packages/crypto/tests/unit/file-key-provider.test.ts: rejects a path-traversal keyId in getPrivateKey, getPublicKey, hasKey, and getMetadata
+- packages/crypto/tests/unit/file-key-provider.test.ts: rejects a path-traversal keyId in getPrivateKey, getPublicKey, hasKey, and getMetadata
 
 **Update (2026-09-10):** a separate, previously-unclosed gap in the same area: `KEY_PROVIDER` accepted `aws-kms`, `azure-key-vault`, `gcp-kms`, and `hsm` as valid config values (`packages/shared/src/config/KeyProviders.ts`), each parsed and validated cleanly, but `KeyBootstrap.create()` (`packages/crypto/src/KeyBootstrap.ts`) always constructed `FileKeyProvider` regardless of the configured value -- an operator setting `KEY_PROVIDER=aws-kms`, expecting real KMS custody, got private-key-on-disk instead, with no error at any point. `docs/VERIFICATION-GAPS.md` G-40 closed this: `KeyBootstrap.create()` now throws at startup for any value other than `"local"`, naming the configured value and stating plainly that only `FileKeyProvider` is implemented -- turning the misconfiguration from a silent, false sense of custody into an immediate, actionable startup error. No real cloud KMS/HSM provider exists yet; this closes the silent-fallback failure mode, not the absence of those providers themselves.
 
 Evidence (update)
 
-* `packages/crypto/src/KeyBootstrap.ts`
-* `packages/crypto/tests/unit/key-bootstrap.test.ts`: 7 cases, including one per unimplemented `KEY_PROVIDER` value
+- `packages/crypto/src/KeyBootstrap.ts`
+- `packages/crypto/tests/unit/key-bootstrap.test.ts`: 7 cases, including one per unimplemented `KEY_PROVIDER` value
 
 ---
-
-
 
 ## 2.19 Fail-Closed Caller-Authentication Audit Writes
 
-
-
 A caller-authentication event (accepted or rejected) that fails to be recorded fails the request. `middleware/caller-auth.ts` wraps every `CallerAuditSink.record()` call: on success the request proceeds exactly as before; on failure the request is rejected with `AuditUnavailableError` (503, code `AUDIT_UNAVAILABLE`) and a structured log entry naming the failure, rather than proceeding unaudited or crashing as an unhandled rejection. This is a deliberate design decision (an action that executes without an audit record contradicts independently verifiable execution), not an incidental side effect; the availability cost is accepted. No retry, buffering, or queueing exists: a failure fails closed immediately, once, every time.
-
-
 
 Evidence
 
+- packages/api/src/middleware/caller-auth.ts (calls `recordCallerAuditEvent`)
 
+- packages/api/src/auth/recordCallerAuditEvent.ts (`recordCallerAuditEvent` — the actual fail-closed implementation this claim describes; corrected 2026-08-24, previously miscited under a `recordOrFailClosed` name that does not exist anywhere in this codebase)
 
-* packages/api/src/middleware/caller-auth.ts (calls `recordCallerAuditEvent`)
+- packages/api/src/auth/AuditUnavailableError.ts
 
-* packages/api/src/auth/recordCallerAuditEvent.ts (`recordCallerAuditEvent` — the actual fail-closed implementation this claim describes; corrected 2026-08-24, previously miscited under a `recordOrFailClosed` name that does not exist anywhere in this codebase)
+- packages/api/tests/unit/middleware/caller-auth.test.ts: both success paths unchanged; both failure paths rejected with `AuditUnavailableError` (503/AUDIT_UNAVAILABLE), not a 401 and not a silent pass-through; the structured log entry's exact shape; the sink is called exactly once (no retry)
 
-* packages/api/src/auth/AuditUnavailableError.ts
+- packages/api/tests/unit/supabase-caller-audit-sink.test.ts: `SupabaseCallerAuditSink` propagates storage errors rather than swallowing them, which is what makes this guard reachable in production wiring
 
-* packages/api/tests/unit/middleware/caller-auth.test.ts: both success paths unchanged; both failure paths rejected with `AuditUnavailableError` (503/AUDIT_UNAVAILABLE), not a 401 and not a silent pass-through; the structured log entry's exact shape; the sink is called exactly once (no retry)
-
-* packages/api/tests/unit/supabase-caller-audit-sink.test.ts: `SupabaseCallerAuditSink` propagates storage errors rather than swallowing them, which is what makes this guard reachable in production wiring
-
-* examples/tutorials/101-fail-closed-caller-audit-writes/run.ts (runnable narrative, real HTTP server: a rejected credential and an accepted one each independently fail closed at 503 when the audit write itself fails)
-
-
+- examples/tutorials/101-fail-closed-caller-audit-writes/run.ts (runnable narrative, real HTTP server: a rejected credential and an accepted one each independently fail closed at 503 when the audit write itself fails)
 
 ---
-
-
 
 ## 2.20 Atomic Rejection of Duplicate Business Transactions
 
-
-
 Creating a Business Transaction with a `businessTransactionId` that already exists is rejected atomically, with the identical `DuplicateBusinessTransactionError` regardless of storage backend. `MemoryBusinessTransactionRepository.create()` performs its existence check and its write in the same synchronous tick, with no `await` between them, so two concurrent calls for the same id cannot interleave; `SupabaseBusinessTransactionRepository.create()` relies on the `business_transaction_id` column's `PRIMARY KEY` constraint and maps the resulting `23505` unique-violation to the same error class. Neither implementation ever silently overwrites an existing transaction.
 
-
-
-**Scope note (`docs/VERIFICATION-GAPS.md` G-29, RESOLVED):** this claim is about the correctness of the rejection — the transaction is never lost, corrupted, or double-accepted; that remains exactly as stated above. A duplicate-ID submission's rejection *attempt* is now also durably audited (§3.20, `caller.structural_rejected`) — G-29 originally found, and this note originally documented, that it was not.
-
-
+**Scope note (`docs/VERIFICATION-GAPS.md` G-29, RESOLVED):** this claim is about the correctness of the rejection — the transaction is never lost, corrupted, or double-accepted; that remains exactly as stated above. A duplicate-ID submission's rejection _attempt_ is now also durably audited (§3.20, `caller.structural_rejected`) — G-29 originally found, and this note originally documented, that it was not.
 
 Evidence
 
+- packages/storage/src/memory/MemoryBusinessTransactionRepository.ts
 
+- packages/storage/src/supabase/SupabaseBusinessTransactionRepository.ts (isUniqueViolation mapping)
 
-* packages/storage/src/memory/MemoryBusinessTransactionRepository.ts
+- packages/shared/src/errors/duplicate-business-transaction-error.ts
 
-* packages/storage/src/supabase/SupabaseBusinessTransactionRepository.ts (isUniqueViolation mapping)
+- packages/storage/tests/unit/memory-business-transaction-repository.test.ts: two simultaneous `create()` calls with the same id and different content: exactly one succeeds, the other rejects with `DuplicateBusinessTransactionError`, and the stored record is exactly the winner's
 
-* packages/shared/src/errors/duplicate-business-transaction-error.ts
+- packages/storage/tests/unit/business-transaction-repository-duplicate-consistency.test.ts: both repository implementations throw the identical error class and message for a duplicate
 
-* packages/storage/tests/unit/memory-business-transaction-repository.test.ts: two simultaneous `create()` calls with the same id and different content: exactly one succeeds, the other rejects with `DuplicateBusinessTransactionError`, and the stored record is exactly the winner's
-
-* packages/storage/tests/unit/business-transaction-repository-duplicate-consistency.test.ts: both repository implementations throw the identical error class and message for a duplicate
-
-* packages/storage/tests/integration/supabase-business-transaction-duplicate.integration.test.ts: the same concurrent-race proof against a real Postgres database (Supabase-gated)
-
-
+- packages/storage/tests/integration/supabase-business-transaction-duplicate.integration.test.ts: the same concurrent-race proof against a real Postgres database (Supabase-gated)
 
 ---
-
-
 
 ## 2.21 Distinguishable HTTP Status for Policy Denial and Replay
 
-
-
 A policy `REJECTED` decision surfaces as `HTTP 403` with `code: "POLICY_DENIED"`. An execution request whose authorization envelope has already been consumed, meaning every other Gateway check (version, signature, expiry, TTL policy, `businessTransactionHash`) passed and nonce consumption alone failed, surfaces as `HTTP 409` with `code: "NONCE_ALREADY_CONSUMED"`. Both are now distinguishable from a genuine, unexpected server error, which remains `HTTP 500`. Neither the authorization logic nor any underlying check changed to produce this: only the status code and response body surfaced to the caller changed. Every other Gateway verification failure (forged signature, expired envelope, tampered content) is unaffected and remains a plain, uncoded error, still surfacing as `HTTP 500`.
-
-
 
 Scope, precisely: the `409` path is reachable today only by a receiving system calling `@parmana/execution-gateway`'s `ExecutionGateway.execute()` directly with an already-consumed authorization (the library-level guarantee this closes). It is not reachable through Parmana's own default `POST /execute` / `POST /transactions` routes, because a resubmitted `businessTransactionId` is rejected with the existing `409` `DuplicateBusinessTransactionError` (2.20) before `RuntimeEngine`, policy evaluation, or the Gateway are ever reached — the same admission-time layer this repository's now-removed Razorpay connector relied on for its own live idempotency proof, documented in this file until the connector's removal on 2026-08-12; see `docs/site/changelog.mdx` for the dated record.
 
-
-
 Evidence
 
+- packages/runtime/src/ExecutionGate.ts (`RuntimeError` thrown with `status: 403, code: "POLICY_DENIED"`)
 
+- packages/shared/src/errors/nonce-already-consumed-error.ts (`NonceAlreadyConsumedError`, `status: 409, code: "NONCE_ALREADY_CONSUMED"`)
 
-* packages/runtime/src/ExecutionGate.ts (`RuntimeError` thrown with `status: 403, code: "POLICY_DENIED"`)
+- packages/execution-gateway/src/ExecutionGateway.ts (`isSoleFailureNonceReplay`: throws `NonceAlreadyConsumedError` only when every check other than nonce consumption passed; any other combination of failed checks still throws the existing, unchanged, uncoded `Error`)
 
-* packages/shared/src/errors/nonce-already-consumed-error.ts (`NonceAlreadyConsumedError`, `status: 409, code: "NONCE_ALREADY_CONSUMED"`)
+- packages/api/src/middleware/error-handler.ts (dedicated `NonceAlreadyConsumedError` branch; the existing `RuntimeError` branch reads `error.status`/`error.code` dynamically, unchanged)
 
-* packages/execution-gateway/src/ExecutionGateway.ts (`isSoleFailureNonceReplay`: throws `NonceAlreadyConsumedError` only when every check other than nonce consumption passed; any other combination of failed checks still throws the existing, unchanged, uncoded `Error`)
+- packages/execution-gateway/tests/unit/execution-gateway.test.ts, execution-gateway.dilithium3.test.ts: "rejects a replayed request without releasing it twice, as a distinguishable NonceAlreadyConsumedError (409)"
 
-* packages/api/src/middleware/error-handler.ts (dedicated `NonceAlreadyConsumedError` branch; the existing `RuntimeError` branch reads `error.status`/`error.code` dynamically, unchanged)
+- packages/runtime/tests/unit/execution-authorization-wiring.test.ts: "rejected transaction produces no authorization" (asserts `status: 403`, `code: "POLICY_DENIED"`)
 
-* packages/execution-gateway/tests/unit/execution-gateway.test.ts, execution-gateway.dilithium3.test.ts: "rejects a replayed request without releasing it twice, as a distinguishable NonceAlreadyConsumedError (409)"
+- packages/api/tests/integration/caller-auth.integration.test.ts: "a well-authenticated caller submitting a policy-rejected transaction is still rejected by policy" (asserts `response.status === 403`, `response.body.code === "POLICY_DENIED"`, through the real `POST /execute` route)
 
-* packages/runtime/tests/unit/execution-authorization-wiring.test.ts: "rejected transaction produces no authorization" (asserts `status: 403`, `code: "POLICY_DENIED"`)
+- typescript/src/transport/mapHttpErrorResponse.ts, typescript/test/Errors.test.ts, typescript/test/HttpTransport.test.ts: the TypeScript SDK maps `code: "POLICY_DENIED"` to `ExecutionRejectedError`, checked ahead of the generic `403` → `AuthorizationError` mapping so it does not collide with the unrelated caller-identity-mismatch `403` (`packages/api/src/routes/execute.ts`), which carries no `code` at all
 
-* packages/api/tests/integration/caller-auth.integration.test.ts: "a well-authenticated caller submitting a policy-rejected transaction is still rejected by policy" (asserts `response.status === 403`, `response.body.code === "POLICY_DENIED"`, through the real `POST /execute` route)
-
-* typescript/src/transport/mapHttpErrorResponse.ts, typescript/test/Errors.test.ts, typescript/test/HttpTransport.test.ts: the TypeScript SDK maps `code: "POLICY_DENIED"` to `ExecutionRejectedError`, checked ahead of the generic `403` → `AuthorizationError` mapping so it does not collide with the unrelated caller-identity-mismatch `403` (`packages/api/src/routes/execute.ts`), which carries no `code` at all
-
-* examples/tutorials/102-distinguishable-http-status/run.ts (runnable narrative: all three failure shapes produced side by side — 403/POLICY_DENIED via a real HTTP server, 409/NONCE_ALREADY_CONSUMED and a plain uncoded 500 via `ExecutionGateway.execute()` called directly)
+- examples/tutorials/102-distinguishable-http-status/run.ts (runnable narrative: all three failure shapes produced side by side — 403/POLICY_DENIED via a real HTTP server, 409/NONCE_ALREADY_CONSUMED and a plain uncoded 500 via `ExecutionGateway.execute()` called directly)
 
 **Update (2026-08-24 documentation-currency pass):** this section previously also cited `packages/api/tests/integration/razorpay-refund.integration.test.ts`/`razorpay-live.integration.test.ts` as evidence of the same `403`/`POLICY_DENIED` assertion "through the real production bootstrap chain." Both files were deleted along with the rest of the Razorpay connector on 2026-08-12 (see §3.16's own update); that specific production path no longer exists. The claim itself — that a policy `REJECTED` decision surfaces as `403`/`POLICY_DENIED` — remains fully current and is unaffected, demonstrated by the `caller-auth.integration.test.ts` citation immediately above, which exercises the same generic mechanism against `test:fixture-execute` rather than a Razorpay-specific transaction.
 
-
-
 ---
-
-
 
 ## 2.22 Canonical Capability-to-Policy Binding (TD-22)
 
-
-
 For every production capability, the policy that governs it is fixed structurally, not selected by the caller. `CapabilityPolicyBinder` checks a request's declared `Intent.action` against `CANONICAL_CAPABILITY_POLICY_BINDINGS`, a single hardcoded map from capability to the one policy reference that authorizes it (`packages/capability-registry/src/CapabilityPolicyBinding.ts`, moved from `packages/policy/src` 2026-08-26; re-exported unchanged from `@parmana/policy`'s public API) — covering every capability the production connector registry actually registers. A request pairing a real capability with any policy other than its canonical one is rejected as an ordinary policy denial, with zero rules evaluated, before `PolicyEngine.evaluate` ever runs.
 
-
-
-This closes the gap that would otherwise exist because policy *loading* (`FilePolicyRepository.load(name, version)`) is itself keyed by whatever `policy.name`/`policy.version` the caller declares — validated only against a path-traversal allowlist, not against the capability being executed. Without the binder, a caller could pair a real, CRM-mutating capability (e.g. `hubspot:deal-update`) with an unrelated, unprotected policy that has no `boundSignals` for it, and have the real `intent.parameters` executed under that looser policy's rules — bypassing the capability's own protections entirely, not merely weakening them. `CapabilityPolicyBinder` is unconditionally instantiated inside `RuntimeBuilder.build()` — not configuration, not omittable from production wiring — and runs before both `SignalIntentBinder` and `PolicyEngine.evaluate`, so a wrongly-paired policy is loaded but never evaluated.
-
-
+This closes the gap that would otherwise exist because policy _loading_ (`FilePolicyRepository.load(name, version)`) is itself keyed by whatever `policy.name`/`policy.version` the caller declares — validated only against a path-traversal allowlist, not against the capability being executed. Without the binder, a caller could pair a real, CRM-mutating capability (e.g. `hubspot:deal-update`) with an unrelated, unprotected policy that has no `boundSignals` for it, and have the real `intent.parameters` executed under that looser policy's rules — bypassing the capability's own protections entirely, not merely weakening them. `CapabilityPolicyBinder` is unconditionally instantiated inside `RuntimeBuilder.build()` — not configuration, not omittable from production wiring — and runs before both `SignalIntentBinder` and `PolicyEngine.evaluate`, so a wrongly-paired policy is loaded but never evaluated.
 
 Evidence
 
+- packages/capability-registry/src/CapabilityPolicyBinding.ts (`CANONICAL_CAPABILITY_POLICY_BINDINGS`, `CapabilityPolicyBinder`; moved from `packages/policy/src` 2026-08-26, G-30 Option C, re-exported unchanged from `@parmana/policy`'s own public API — see §2.22's own update below)
 
+- packages/runtime/src/RuntimeBuilder.ts (unconditional construction, no configuration flag)
 
-* packages/capability-registry/src/CapabilityPolicyBinding.ts (`CANONICAL_CAPABILITY_POLICY_BINDINGS`, `CapabilityPolicyBinder`; moved from `packages/policy/src` 2026-08-26, G-30 Option C, re-exported unchanged from `@parmana/policy`'s own public API — see §2.22's own update below)
+- packages/runtime/src/RuntimeEngine.ts (binder check ordered before `SignalIntentBinder`/`PolicyEngine.evaluate`)
 
-* packages/runtime/src/RuntimeBuilder.ts (unconditional construction, no configuration flag)
+- packages/policy/tests/unit/CapabilityPolicyBinder.test.ts (proves the exact live-shaped exploit — `hubspot:deal-update` paired with the unrelated, unprotected `vendor-payment/2.0.0` policy, and the same substitution shape for `hubspot:deal-fetch` paired with `customer-refund/1.0.0` — is rejected; also proves every production-registered capability has a binding, and, per that file's own comment, that Razorpay capabilities were removed from the bound set entirely when the connector was deleted 2026-08-12, not merely left unbound)
 
-* packages/runtime/src/RuntimeEngine.ts (binder check ordered before `SignalIntentBinder`/`PolicyEngine.evaluate`)
-
-* packages/policy/tests/unit/CapabilityPolicyBinder.test.ts (proves the exact live-shaped exploit — `hubspot:deal-update` paired with the unrelated, unprotected `vendor-payment/2.0.0` policy, and the same substitution shape for `hubspot:deal-fetch` paired with `customer-refund/1.0.0` — is rejected; also proves every production-registered capability has a binding, and, per that file's own comment, that Razorpay capabilities were removed from the bound set entirely when the connector was deleted 2026-08-12, not merely left unbound)
-
-* docs/architecture/phase3d-independent-authorization-certification.md §5.1 (independent re-verification, Phase 3D)
+- docs/architecture/phase3d-independent-authorization-certification.md §5.1 (independent re-verification, Phase 3D)
 
 **Update (code-only ground-truth capture pass, follow-up closure):** this section's "covering every capability the production connector registry actually registers" was, until this pass, not quite true — `CANONICAL_CAPABILITY_POLICY_BINDINGS` also carried a stale `payments:execute` entry left behind by G-27's vendor-payment removal (`docs/VERIFICATION-GAPS.md` G-27's own update). Removed; the table now matches the claim exactly. See that G-27 update for the full trace.
 
-**Update (2026-08-25 audit-fix pass, RESOLVED same-day):** "covering every capability the production connector registry actually registers" was, briefly, not true. `createConnectorRegistry.ts` conditionally registers `github:pr-fetch`/`github:pr-merge` (3.17) when GitHub App credentials are configured, wired in on 2026-08-19 — five days *before* the code-only ground-truth pass above — but neither capability had been added to `CANONICAL_CAPABILITY_POLICY_BINDINGS`. Fixed same day: both now map to `github-pr-approval/1.0.0` (the policy §3.17's own connector already evaluates), mirroring HubSpot's own two-capabilities-one-policy shape exactly. `CapabilityPolicyBinder.test.ts`'s "binds every capability the production connector registry actually registers" test — which asserts a hardcoded set rather than reading the registry live, which is why the gap went uncaught for six days — now includes both. Full trace in `docs/VERIFICATION-GAPS.md` G-30 (RESOLVED).
+**Update (2026-08-25 audit-fix pass, RESOLVED same-day):** "covering every capability the production connector registry actually registers" was, briefly, not true. `createConnectorRegistry.ts` conditionally registers `github:pr-fetch`/`github:pr-merge` (3.17) when GitHub App credentials are configured, wired in on 2026-08-19 — five days _before_ the code-only ground-truth pass above — but neither capability had been added to `CANONICAL_CAPABILITY_POLICY_BINDINGS`. Fixed same day: both now map to `github-pr-approval/1.0.0` (the policy §3.17's own connector already evaluates), mirroring HubSpot's own two-capabilities-one-policy shape exactly. `CapabilityPolicyBinder.test.ts`'s "binds every capability the production connector registry actually registers" test — which asserts a hardcoded set rather than reading the registry live, which is why the gap went uncaught for six days — now includes both. Full trace in `docs/VERIFICATION-GAPS.md` G-30 (RESOLVED).
 
 **Update (2026-08-26, G-30 architecture follow-up, Option C implemented):** `CANONICAL_CAPABILITY_POLICY_BINDINGS` and `CapabilityPolicyBinder` moved out of `@parmana/policy` into a new leaf package, `@parmana/capability-registry`, depending only on `@parmana/shared`. `@parmana/policy`'s own public API is unaffected — `packages/policy/src/index.ts` re-exports both symbols from the new package unchanged, so every existing consumer importing from `@parmana/policy` needed no changes; confirmed by grep across the ~10 files that do (`RuntimeEngine.ts`, `RuntimeBuilder.ts`, `execute.ts`, and others). **Deviation from the original Option C sketch, corrected before implementing:** the plan in `G-30-ARCHITECTURE-OPTIONS.md` proposed also importing capability-identifier constants from `@parmana/connector-github`/`@parmana/connector-hubspot` into the new package to remove identifier-string duplication. Checked before doing it: `@parmana/connector-hubspot` already depends on `@parmana/policy` directly, and `@parmana/connector-github` depends on `@parmana/connector-sdk`, which also depends on `@parmana/policy` — either import would have created a direct dependency cycle back through the package this extraction was built to be depended on by. Not done; the four capability-identifier strings remain hand-typed in `CapabilityPolicyBinding.ts`, same as before the move, still duplicated against `GitHubCapabilities.ts`/`HubSpotCapabilities.ts`'s own separate constants. What this move does close: the `packages/policy` → `packages/api` backwards-dependency edge Option B would have required. Full detail in `G-30-ARCHITECTURE-OPTIONS.md` and `G-30-RESOLUTION-ARCHITECTURE.md` (repo root). Verified: full rebuild (`npx tsc -b`, clean) and full suite unchanged at 1274 passed, 37 skipped, 0 failed.
 
-
-
 ---
-
-
 
 ## 2.23 Independently Certified Authorization (Phase 3D)
 
-
-
-*"Even if AI has valid credentials, it still cannot execute anything your business hasn't authorized. No exceptions"* — the specific claim tracked and re-verified across `docs/architecture/phase2k-capability-policy-binding.md`, `phase2l-authorization-exceptions.md` (which found it **not fully supported**, naming two exceptions: Razorpay's caller-declared daily cumulative total, and HubSpot's caller-declared `preAuthorizedForAmountChange`) — was independently re-certified from current repository state in `docs/architecture/phase3d-independent-authorization-certification.md`, treating every prior phase's conclusion as a claim to re-verify, not inherit.
-
-
+_"Even if AI has valid credentials, it still cannot execute anything your business hasn't authorized. No exceptions"_ — the specific claim tracked and re-verified across `docs/architecture/phase2k-capability-policy-binding.md`, `phase2l-authorization-exceptions.md` (which found it **not fully supported**, naming two exceptions: Razorpay's caller-declared daily cumulative total, and HubSpot's caller-declared `preAuthorizedForAmountChange`) — was independently re-certified from current repository state in `docs/architecture/phase3d-independent-authorization-certification.md`, treating every prior phase's conclusion as a claim to re-verify, not inherit.
 
 **Result: CLAIM FULLY CERTIFIED** for both capabilities actually reachable in production (`razorpay:refund-create`, `hubspot:deal-update`). Both of Phase 2L's named exceptions are independently confirmed closed at the mechanism level (2.4/3.4/3.10's own TD-23 updates), credential isolation, structural capability-to-policy binding (2.22, TD-22), replay resistance, concurrency safety, and auditability were each independently re-traced from source, and no repository evidence was found that contradicts the claim for either in-scope capability — no counter-example, exploit, or bypass path was located during the certification's adversarial review (§10 of that document).
 
-
-
 Two narrow, genuinely fixable gaps the certification disclosed were closed in the same follow-up session, not merely noted: a truncated-credential-fragment leak into the caller-visible response (3.4/3.10's `keyIdRedacted`/`bearerRedacted` now return a one-way SHA-256 fingerprint, never a literal credential substring — see 3.4/3.10's own updates below) and a missing live-database concurrency proof for the Razorpay daily-refund-cap ledger (`packages/storage/tests/integration/supabase-razorpay-daily-refund-ledger.integration.test.ts`, new). **`payments:execute`/vendor-payment, originally carried forward here as a sixth disclosed limitation (a capability that would have failed this claim entirely if ever made production-reachable), was removed from the repository outright** rather than independently verified — it was never on the roadmap as a real capability; see `docs/VERIFICATION-GAPS.md` G-27 for the full account, including what was deliberately retained (the policy file and shared test fixtures that use it as generic example data, which carry no execution risk with zero connector able to back them). Five further disclosed limitations remain carried forward explicitly, each with a stated reason it was not force-closed: HubSpot's approval-issuer registry has never yet been exercised against a real operator-provisioned key; the internal Gateway attestation relies on an upstream nonce check rather than its own independent TTL; the internal gateway-session/credential-vault layer is single-process scoped; `OverrideService`'s continued, deliberate unreachability; and hybrid/PQ signing's scope stopping short of execution-authorization/Gateway/connector signing (most decisively for `OverrideService`, where `02-REMAINING.md`'s own standing security guard says not to wire it up). None of the five carried-forward items provide a currently exploitable path to unauthorized execution — full detail, with exact certification section references for each, in `docs/VERIFICATION-GAPS.md`'s "Gaps closed in the Phase 3D certification session".
-
-
 
 Evidence
 
+- docs/architecture/phase3d-independent-authorization-certification.md (full methodology, per-property verification, adversarial assessment, evidence summary)
 
+- packages/connector-hubspot/src/HubSpotTypes.ts (`redactHubSpotToken`, fingerprint-based)
 
-* docs/architecture/phase3d-independent-authorization-certification.md (full methodology, per-property verification, adversarial assessment, evidence summary)
+- packages/execution-gateway/tests/unit/credential-non-exposure.test.ts (independent claims audit, 2026-08-19): closes the one property this certification's own connector-level test suites had not asserted explicitly — that `GatewayHubSpotAdapter` never retains a resolved credential as instance state between calls (structural check that no instance field is credential-shaped, plus a same-instance two-call test with two different tokens proving each call authenticates independently, never from carried-over state)
 
-* packages/connector-hubspot/src/HubSpotTypes.ts (`redactHubSpotToken`, fingerprint-based)
-
-* packages/execution-gateway/tests/unit/credential-non-exposure.test.ts (independent claims audit, 2026-08-19): closes the one property this certification's own connector-level test suites had not asserted explicitly — that `GatewayHubSpotAdapter` never retains a resolved credential as instance state between calls (structural check that no instance field is credential-shaped, plus a same-instance two-call test with two different tokens proving each call authenticates independently, never from carried-over state)
-
-**Update (2026-08-24 documentation-currency pass):** this certification was performed, and the "CLAIM FULLY CERTIFIED for both capabilities" verdict above was written, while the Razorpay connector still existed. The Razorpay connector — including `razorpay:refund-create`, the `RazorpayTypes.ts` redaction this section previously cited, and the daily-refund-cap ledger integration test previously cited here — was deliberately removed in its entirety on 2026-08-12 (see §3.16's own update, and this document's historical §3.8/§3.9). `razorpay:refund-create` is therefore no longer a production-reachable capability, and this certification's Razorpay-specific findings are historical: an accurate record of what was independently verified about that connector *while it existed*, not a description of current production reachability. The `hubspot:deal-update` findings are unaffected by the removal and remain current — as of this update, `hubspot:deal-update` is the only capability the "CLAIM FULLY CERTIFIED" verdict above actually describes in present-tense production terms.
+**Update (2026-08-24 documentation-currency pass):** this certification was performed, and the "CLAIM FULLY CERTIFIED for both capabilities" verdict above was written, while the Razorpay connector still existed. The Razorpay connector — including `razorpay:refund-create`, the `RazorpayTypes.ts` redaction this section previously cited, and the daily-refund-cap ledger integration test previously cited here — was deliberately removed in its entirety on 2026-08-12 (see §3.16's own update, and this document's historical §3.8/§3.9). `razorpay:refund-create` is therefore no longer a production-reachable capability, and this certification's Razorpay-specific findings are historical: an accurate record of what was independently verified about that connector _while it existed_, not a description of current production reachability. The `hubspot:deal-update` findings are unaffected by the removal and remain current — as of this update, `hubspot:deal-update` is the only capability the "CLAIM FULLY CERTIFIED" verdict above actually describes in present-tense production terms.
 
 **Update (2026-08-25 audit-fix pass):** `github:pr-merge` (and `github:pr-fetch`) also became production-reachable on 2026-08-19 (§3.17), ten days before the update above was written, but was missed by it. Precisely: Phase 3D's certification document is dated 2026-08-09 and contains zero mentions of GitHub — it predates the connector entirely and never assessed it. `github:pr-merge` is therefore **not covered by the "CLAIM FULLY CERTIFIED" verdict above**, in either direction; nothing here should be read as either certifying or doubting its authorization strength. §3.17's own test suite (22 hermetic unit tests, 4 integration tests through the real `POST /execute` bootstrap chain) independently demonstrates policy-denial-makes-zero-calls and credential isolation for GitHub specifically, but that is §3.17's claim, not a Phase-3D-style adversarial certification. Separately, and more directly relevant to this claim's "no exceptions" wording: `docs/VERIFICATION-GAPS.md` G-30 found, and same-day resolved, that `github:pr-merge` had no entry in `CANONICAL_CAPABILITY_POLICY_BINDINGS`, meaning the structural capability-to-policy binding 2.22 describes briefly did not extend to it. That specific gap is now closed (2.22's own update); it does not retroactively make Phase 3D's certification cover GitHub — `hubspot:deal-update` remains the only capability this section's "CLAIM FULLY CERTIFIED" verdict describes.
 
-
-
 ---
-
-
 
 ## 2.24 Authorization Is Caller-Type-Agnostic
 
-
-
 The authorization pipeline's outcome depends only on the requested action, the governing policy, and the independently-verified facts bearing on it — never on what kind of system, model, or entity submitted the request. This is the source-code basis for the positioning claim that Parmana protects institutional authority against execution risk from any source (AI agents, humans, applications, automated systems, third-party systems, compromised systems), not only AI: the mechanism does not special-case any of them, including ones it has no name for.
-
-
 
 Directly validated, not inferred from the absence of AI-specific code: `BusinessTransactionMapper.fromRequest` (`packages/api/src/mappers/BusinessTransactionMapper.ts:28`) casts the caller-declared `authority` field with no runtime validation against the `AuthorityType` enum (`USER | ROLE | SERVICE | ORGANIZATION`, `packages/shared/src/domain/authority.ts`) — an arbitrary string reaches the runtime unfiltered. `RuntimeEngine`, `PolicyEngine`, `SignalIntentBinder`, and `CapabilityPolicyBinder` contain zero references to `authority` or caller identity anywhere in their source (confirmed by direct grep across all four files). A regression test submits two transactions through the real `POST /execute` route, identical in every field except `authority.authorityType` — one declaring the conventional `"USER"`, the other declaring `"FULLY_AUTONOMOUS_AI_AGENT_NEVER_SEEN_BEFORE"`, a value that is not a member of the enum at all — and asserts byte-identical decisions (`outcome`, `matchedRuleId`, and, for the rejection case, the exact error text) on both the APPROVE and REJECT paths.
 
-
-
 Independently confirmed by the Strategic Positioning source-code validation audit (2026-08-09, read-only): the caller-authentication layer (`StaticKeyAuthenticator`, `packages/api/src/auth/StaticKeyAuthenticator.ts`) authenticates by opaque API-key hash comparison only, with no concept of caller category either — the same identity mechanism a human operator, a script, an AI agent, or a third-party integration would all use identically.
 
-
-
-**Scope, precisely:** this claim covers `hubspot:deal-update` and, since 2026-08-19, `github:pr-merge`/`github:pr-fetch` (§3.17; missed by the 2026-08-24 pass that last touched this paragraph — see 2.23's own 2026-08-25 update) — the capabilities actually production-reachable today (`razorpay:refund-create` was covered when this claim was originally written and validated, but no longer exists as a registered capability, removed 2026-08-12) — and the general-purpose pipeline mechanism itself, which the regression test below exercises independently of any specific capability. The mechanism's caller-agnosticism does not depend on which capability is invoked (2.24's own evidence is about `RuntimeEngine`/`PolicyEngine`/`SignalIntentBinder`/`CapabilityPolicyBinder` never reading caller identity at all, not about per-capability behavior), so this claim's substance is unaffected by G-30 — G-30 is about policy *binding* coverage, not caller-type discrimination. It does not claim that a non-AI caller has actually been exercised against a live production deployment — only that the mechanism contains no code path that could distinguish one caller kind from another to begin with.
-
-
+**Scope, precisely:** this claim covers `hubspot:deal-update` and, since 2026-08-19, `github:pr-merge`/`github:pr-fetch` (§3.17; missed by the 2026-08-24 pass that last touched this paragraph — see 2.23's own 2026-08-25 update) — the capabilities actually production-reachable today (`razorpay:refund-create` was covered when this claim was originally written and validated, but no longer exists as a registered capability, removed 2026-08-12) — and the general-purpose pipeline mechanism itself, which the regression test below exercises independently of any specific capability. The mechanism's caller-agnosticism does not depend on which capability is invoked (2.24's own evidence is about `RuntimeEngine`/`PolicyEngine`/`SignalIntentBinder`/`CapabilityPolicyBinder` never reading caller identity at all, not about per-capability behavior), so this claim's substance is unaffected by G-30 — G-30 is about policy _binding_ coverage, not caller-type discrimination. It does not claim that a non-AI caller has actually been exercised against a live production deployment — only that the mechanism contains no code path that could distinguish one caller kind from another to begin with.
 
 Evidence
 
+- packages/api/tests/integration/authority-type-agnostic-execution.integration.test.ts (2 cases: identical APPROVE, identical REJECT, across a conventional and a non-enum `authorityType`)
 
+- packages/api/src/mappers/BusinessTransactionMapper.ts (unvalidated `authority` cast)
 
-* packages/api/tests/integration/authority-type-agnostic-execution.integration.test.ts (2 cases: identical APPROVE, identical REJECT, across a conventional and a non-enum `authorityType`)
+- packages/shared/src/domain/authority.ts (`AuthorityType` enum)
 
-* packages/api/src/mappers/BusinessTransactionMapper.ts (unvalidated `authority` cast)
+- packages/api/src/auth/StaticKeyAuthenticator.ts (caller-type-agnostic authentication)
 
-* packages/shared/src/domain/authority.ts (`AuthorityType` enum)
+- Repo-wide grep confirming zero `authority`/caller-identity references in RuntimeEngine.ts, PolicyEngine.ts, SignalIntentBinder.ts, CapabilityPolicyBinding.ts (as of this check, 2026-08-09, the last file lived at `packages/policy/src/`; moved to `packages/capability-registry/src/` 2026-08-26 — same file content, unaffected by the move)
 
-* packages/api/src/auth/StaticKeyAuthenticator.ts (caller-type-agnostic authentication)
-
-* Repo-wide grep confirming zero `authority`/caller-identity references in RuntimeEngine.ts, PolicyEngine.ts, SignalIntentBinder.ts, CapabilityPolicyBinding.ts (as of this check, 2026-08-09, the last file lived at `packages/policy/src/`; moved to `packages/capability-registry/src/` 2026-08-26 — same file content, unaffected by the move)
-
-* examples/tutorials/100-authorization-caller-type-agnostic/run.ts (runnable narrative, library-level: `"USER"` vs. `"FULLY_AUTONOMOUS_AI_AGENT_NEVER_SEEN_BEFORE"` produce byte-identical outcomes and reasons on both the APPROVE and REJECT paths)
-
-
+- examples/tutorials/100-authorization-caller-type-agnostic/run.ts (runnable narrative, library-level: `"USER"` vs. `"FULLY_AUTONOMOUS_AI_AGENT_NEVER_SEEN_BEFORE"` produce byte-identical outcomes and reasons on both the APPROVE and REJECT paths)
 
 ---
 
-
-
 ## 2.25 Strategic Positioning — Independently Validated, YES (Pass 4)
 
-
-
-*"Only what you authorize should become real"* — the specific invariant underlying the "We Are Not in the AI Race" positioning — was independently, repeatedly source-code-validated across four passes (`docs/architecture/strategic-positioning-validation.md`, the living record). The first three passes reached **PARTIALLY SUPPORTED**: the authorization mechanism itself was fully validated for every capability actually reachable in production, but `payments:execute` (vendor-payment) existed in committed code with unverified caller-declared signals, gated only by `NODE_ENV`, not by any authorization-strength property — a capability that would have violated the claim had it ever been enabled as it then existed.
-
-
+_"Only what you authorize should become real"_ — the specific invariant underlying the "We Are Not in the AI Race" positioning — was independently, repeatedly source-code-validated across four passes (`docs/architecture/strategic-positioning-validation.md`, the living record). The first three passes reached **PARTIALLY SUPPORTED**: the authorization mechanism itself was fully validated for every capability actually reachable in production, but `payments:execute` (vendor-payment) existed in committed code with unverified caller-declared signals, gated only by `NODE_ENV`, not by any authorization-strength property — a capability that would have violated the claim had it ever been enabled as it then existed.
 
 **The fourth pass, run fresh with no reliance on the first three passes' conclusions, upgraded the verdict to SUPPORTED BY IMPLEMENTATION — YES.** The structural change: `payments:execute` was removed from the repository entirely (`docs/VERIFICATION-GAPS.md` G-27), not gated more tightly. `createConnectorRegistry.ts`, at the time of this pass, registered exactly three connectors in production wiring — `test-fixture` (a `NODE_ENV=test`-only, unbound, no-production-implication connector introduced solely to keep shared test infrastructure executable), `razorpay`, `hubspot` — and `payments:execute` had no connector to resolve to in any environment, independently confirmed by a dedicated regression test asserting this across `test`, `production`, and `development` `NODE_ENV` values. The fourth pass separately, freshly re-scrutinized the replacement test-only connector itself for new bypass risk (rather than assuming it safe by association with the removal) and found none: it is fail-closed by the identical mechanism every other connector in this registry uses, and unbound from `CapabilityPolicyBinding.ts`'s governance entirely.
 
@@ -878,63 +544,37 @@ Evidence
 
 **Update (2026-08-25 audit-fix pass):** the "exactly two" count directly above was itself already wrong the day it was written. `createConnectorRegistry.ts` conditionally registers a third connector, `github` (`createGitHubConnector`, `github:pr-fetch`/`github:pr-merge`, §3.17), wired in on 2026-08-19 — five days before the 2026-08-24 pass re-counted the file and still reported two. Confirmed directly by re-reading `createConnectorRegistry.ts` itself, which conditionally registers `test-fixture`, `hubspot`, and `github`. This does not change the YES verdict — GitHub's authorization mechanism is the same caller-agnostic pipeline, and `payments:execute` still has no connector — but it is the second time in this section's history a connector count was asserted without actually re-deriving it from the file, and the miscount stood for a full day of otherwise-careful documentation-currency work. `docs/VERIFICATION-GAPS.md` G-30 has the fuller account of what else this same miscount caused to be missed (§2.22's binding-coverage claim).
 
-
-
 **Honesty constraint, carried from the fourth pass's own report, not rounded away here:** that pass re-executed only 2 of the 10 negative tests cited across this validation's history fresh (`authority-type-agnostic-execution.integration.test.ts`; `create-connector-registry.test.ts`'s new absence case) — the other 8 were cited from code paths confirmed structurally unchanged by the removal, not individually re-run in that session. Multi-tenant/cross-institution authority isolation and the direct-database-write bypass finding were explicitly left as "unchanged, not re-traced," not re-asserted clean. The YES verdict means the specific invariant is now supported without a known exception for every capability this repository currently exposes — it is not a claim that every adjacent property was re-proven from scratch in the same session. Full precision on this distinction: `docs/architecture/strategic-positioning-validation.md` §6 ("Final Answer").
-
-
 
 Evidence
 
+- docs/architecture/strategic-positioning-validation.md (full four-pass history, claim-by-claim matrices, execution control path, bypass analysis, negative-test evidence for each pass)
 
+- docs/VERIFICATION-GAPS.md G-27 (the removal this upgrade rests on)
 
-* docs/architecture/strategic-positioning-validation.md (full four-pass history, claim-by-claim matrices, execution control path, bypass analysis, negative-test evidence for each pass)
+- packages/api/tests/unit/bootstrap/create-connector-registry.test.ts ("payments:execute has no connector to resolve to in any environment")
 
-* docs/VERIFICATION-GAPS.md G-27 (the removal this upgrade rests on)
+- packages/api/tests/integration/authority-type-agnostic-execution.integration.test.ts (re-run fresh in pass 4, 2/2 passing, confirming no regression)
 
-* packages/api/tests/unit/bootstrap/create-connector-registry.test.ts ("payments:execute has no connector to resolve to in any environment")
-
-* packages/api/tests/integration/authority-type-agnostic-execution.integration.test.ts (re-run fresh in pass 4, 2/2 passing, confirming no regression)
-
-* packages/api/src/bootstrap/createConnectorRegistry.ts, createTestFixtureConnector.ts (the exact production registration state pass 4 verified)
-
-
+- packages/api/src/bootstrap/createConnectorRegistry.ts, createTestFixtureConnector.ts (the exact production registration state pass 4 verified)
 
 ---
 
-
-
 ## 2.26 Policy Governance (Maker-Checker)
-
-
 
 Policy content changes now go through a human-only, maker-checker approval flow before taking effect, closing the prior gap that policy authoring was entirely outside Parmana's own governance surface: any caller with write access to `policies/` could change what a policy allows with no second party involved and no durable, signed record of who approved it.
 
-
-
 **Lifecycle and the four endpoints.** A change moves `PENDING_APPROVAL` → `APPROVED`/`REJECTED`, exactly once, never back (`packages/shared/src/domain/pending-policy-change.ts`). Four endpoints in `packages/api/src/routes/pending-policy-changes.ts` cover the full flow — `POST /:name/:version/pending-changes` (propose, line 243), `GET /pending-changes` (list with embedded diff, line 381), `POST /pending-changes/:id/approve` (line 459), `POST /pending-changes/:id/reject` (line 553) — and every one of the four calls `requireHumanCaller()` before doing anything else (lines 341, 396, 474, 568). `isHumanCaller()` itself (`packages/api/src/auth/isHumanCaller.ts`) is unit-tested directly (`packages/api/tests/unit/isHumanCaller.test.ts`, 3 cases: USER accepted, undefined credentialHolderType fails closed, ROLE/SERVICE/ORGANIZATION all denied the same as unset), and each endpoint is separately exercised at the HTTP level in `packages/api/tests/integration/pending-policy-changes-governance.integration.test.ts` (non-human denial on propose, list, approve, and reject).
-
-
 
 **Maker ≠ checker.** `SameActorCannotApproveOwnChangeError` is thrown independently on both approve (`pending-policy-changes.ts:492`) and reject (`:598`) when `proposedBy === req.callerId`, verified by `"rejects the maker approving its own change with 403 SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE"` and `"rejects the maker rejecting its own change with 403 SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE"` in the same integration suite.
 
-
-
 **Step-up authorization (Layer 4).** Approve/reject additionally require a `PolicyChangeStepUpAuthorization` envelope (`packages/shared/src/domain/policy-change-step-up-authorization.ts`) signed by the checker's own key, on top of — never instead of — their bearer token. `PolicyChangeStepUpVerifier` (`packages/api/src/auth/PolicyChangeStepUpVerifier.ts`) reuses `@parmana/envelope-verifier`'s `NonceStore` interface with a dedicated instance/table (`createPolicyChangeStepUpNonceStore.ts`, `SupabasePolicyChangeStepUpNonceStore`) so step-up replay protection never shares a namespace with execution-authorization or approval-artifact nonces. The integration suite proves a missing envelope, an expired one, and a replayed one are each independently rejected, alongside wrong-id/wrong-action/wrong-key cases. Per-check diagnostic detail is logged server-side only (`console.error`, never in the HTTP response) — an earlier draft of this endpoint leaked that detail into the 403 body; caught and fixed before merge, not shipped.
 
-
-
-**File write and signing, in the safer order.** `PolicyChangeApprovalService.approve()` (`packages/api/src/governance/PolicyChangeApprovalService.ts`) signs and durably persists the `PolicyChangeApprovalRecord` *before* writing the live `policies/{name}/{version}/policy.json` file (`policyChangeApprovalRecordRepository.create()` at line 113, `policyRepository.save()` at line 115) — not merely documented as the intent but proven: `packages/api/tests/unit/PolicyChangeApprovalService.test.ts` injects a failure at each step independently and confirms (1) when the file write fails, the signed record still exists and independently verifies, and (2) when persisting the record fails, the file write is never attempted at all. The whole service runs before `PendingPolicyChangeRepository.resolve()`, so a failure anywhere in it leaves the pending change untouched rather than falsely marked `APPROVED`.
-
-
+**File write and signing, in the safer order.** `PolicyChangeApprovalService.approve()` (`packages/api/src/governance/PolicyChangeApprovalService.ts`) signs and durably persists the `PolicyChangeApprovalRecord` _before_ writing the live `policies/{name}/{version}/policy.json` file (`policyChangeApprovalRecordRepository.create()` at line 113, `policyRepository.save()` at line 115) — not merely documented as the intent but proven: `packages/api/tests/unit/PolicyChangeApprovalService.test.ts` injects a failure at each step independently and confirms (1) when the file write fails, the signed record still exists and independently verifies, and (2) when persisting the record fails, the file write is never attempted at all. The whole service runs before `PendingPolicyChangeRepository.resolve()`, so a failure anywhere in it leaves the pending change untouched rather than falsely marked `APPROVED`.
 
 **Content hash at decision time (G-24).** Separately from the governance write path, `RuntimeEngine.execute()` now stamps `ExecutionTrustRecord.transaction.policy.contentHash` with a hash of the policy document actually loaded for that decision (`packages/runtime/src/RuntimeEngine.ts`, computed at line 204 via the same `TrustRecordHasher` every other artifact hash in this codebase uses, merged into the trust-record-bound copy only — never into the caller-submitted `BusinessTransaction`, which is already persisted, contentHash-free, before this point). `packages/runtime/tests/e2e/runtime.e2e.test.ts`'s `"stamps transaction.policy.contentHash on the Execution Trust Record with a hash of the real loaded policy content (G-24, policy-governance milestone)"` proves the stamped value equals an independently-computed hash of the real on-disk `vendor-payment/2.0.0` policy, and differs when the content differs.
 
-
-
-**Deploy/startup integrity check.** `verifyPolicyGovernanceIntegrityAtStartup()` (`packages/api/src/governance/verifyPolicyGovernanceIntegrityAtStartup.ts`) compares every approved `(policyName, policyVersion)`'s live file against `PolicyChangeApprovalRecordRepository.findMostRecentFor(...).contentHashAfter`, catching a file edited outside the pending-change API. It is fired from `server.ts` (line 89) *after* `app.listen()` (line 74) without being awaited, and is deliberately fail-open — the opposite discipline of `assertStorageConfigured`/`assertSigningKeyMaterialConfigured` earlier in the same file. Four distinct log events keep outcomes from blurring together: `policy_governance_integrity_check_unavailable` ("couldn't check"), `policy_governance_integrity_mismatch` ("checked, found a problem"), and `policy_governance_integrity_check_passed` ("checked, clean"). A re-approved version is checked exactly once, against the most recent record, and one bad pair never blocks the check for the rest — all proven by `packages/api/tests/unit/verifyPolicyGovernanceIntegrityAtStartup.test.ts`'s 7 cases.
-
-
+**Deploy/startup integrity check.** `verifyPolicyGovernanceIntegrityAtStartup()` (`packages/api/src/governance/verifyPolicyGovernanceIntegrityAtStartup.ts`) compares every approved `(policyName, policyVersion)`'s live file against `PolicyChangeApprovalRecordRepository.findMostRecentFor(...).contentHashAfter`, catching a file edited outside the pending-change API. It is fired from `server.ts` (line 89) _after_ `app.listen()` (line 74) without being awaited, and is deliberately fail-open — the opposite discipline of `assertStorageConfigured`/`assertSigningKeyMaterialConfigured` earlier in the same file. Four distinct log events keep outcomes from blurring together: `policy_governance_integrity_check_unavailable` ("couldn't check"), `policy_governance_integrity_mismatch` ("checked, found a problem"), and `policy_governance_integrity_check_passed` ("checked, clean"). A re-approved version is checked exactly once, against the most recent record, and one bad pair never blocks the check for the rest — all proven by `packages/api/tests/unit/verifyPolicyGovernanceIntegrityAtStartup.test.ts`'s 7 cases.
 
 **`governance-ui`: a read-only internal tool, by design.** `packages/governance-ui` is a small standalone Express package (server-rendered templates, no client-side JS or build step) covering propose/list/diff-review only. It has exactly five routes — `GET`/`POST /login`, `POST /logout`, `GET /` (list), `GET /pending-changes/:id` (diff) — and no route, form, or template anywhere targets `/approve` or `/reject`; the diff page's instructions tell a checker to run `scripts/sign-policy-change-step-up.ts` locally and submit the result themselves, with their own bearer token, outside this UI entirely. A submitted API key is validated once against `GET /callers/me`, then held only in an in-memory, server-side `express-session` — it is attached as the outbound `Authorization` header on every call this UI makes to `packages/api` and never appears in any rendered response; a live check against a real running API, performed during the 2026-08-18 session that added this section, confirmed the raw key string is absent from every page produced. `packages/governance-ui/tests/integration/app.integration.test.ts`'s `"escapes attacker-controlled content (reason, proposer) rather than rendering it raw"` proves a maker-supplied `reason`/`proposedBy` containing a `<script>` tag renders escaped, not executable, in the checker's browser.
 
@@ -942,218 +582,134 @@ Policy content changes now go through a human-only, maker-checker approval flow 
 
 Evidence (update)
 
-* `packages/governance-ui/src/routes/login.ts`
-* `packages/governance-ui/tests/integration/app.integration.test.ts`: 11 sequential `POST /login` attempts, the 11th returns 429
-
-
+- `packages/governance-ui/src/routes/login.ts`
+- `packages/governance-ui/tests/integration/app.integration.test.ts`: 11 sequential `POST /login` attempts, the 11th returns 429
 
 **Deliberate scope boundaries, not gaps.** Two things are intentionally not built: `@parmana/sdk` does not yet expose these four endpoints — `governance-ui` calls `packages/api` directly over plain `fetch`, and adding SDK methods is deferred until a second real consumer exists beyond this UI, not an oversight. And approve/reject remain CLI-only by design: `governance-ui` never handles step-up private key material, since the entire security guarantee of step-up authorization rests on that key never leaving the checker's own machine — a web UI collecting it would defeat the property the mechanism exists to provide.
 
-
-
 **Independently audited, separately from the build.** A follow-up audit re-verified every claim above from source rather than trusting the build session's own summary: re-running the full test suite fresh, tracing the approve flow's actual code order end to end, independently re-computing the content-hash-at-decision-time value from scratch (a hand-rolled canonicalization and sha256 implementation, not the codebase's own hasher) against a live execution, and grepping for any private-key material or alternate bypass path. It found two real, narrow defects — both fixed and covered by a new regression test: a single stray NUL byte in `verifyPolicyGovernanceIntegrityAtStartup.ts` (cosmetic — it made the file render as a binary diff in git, not a functional bug) and a real gap in the fail-open guarantee, where `runPolicyGovernanceIntegrityCheckAtStartup.ts` constructed `PolicyChangeCrypto` synchronously, outside the promise `.catch()` meant to guard it, so a future constructor failure could have propagated and crashed the process after the port was already bound. `packages/api/tests/unit/runPolicyGovernanceIntegrityCheckAtStartup.test.ts` proves the fix: confirmed failing against the pre-fix code, then confirmed passing against the fix.
-
-
 
 **Deployment status.** This claim is about what exists in the repository and is proven correct by the tests cited above, not about what is currently running in any live environment. The backend (maker-checker endpoints, step-up auth, sign-then-write ordering, content-hash-at-decision-time, the startup integrity check) is committed and pushed to `origin/main`. Whether `parmana-api.fly.dev` / `parmana-api-live.fly.dev` are running this code has not been checked as part of this claim and is not asserted here.
 
-
-
-**Open question: internal vs. external policy authoring.** The system described above resolves *how* a policy change is approved once Parmana is the system of record for that approval. It does not resolve *whether* Parmana should be the system of record at all: an alternative architecture — policies authored and approved in an external system, with Parmana staying strictly read-only/enforcement-only for policy content (loading and evaluating whatever content it is handed, verifying its provenance, never hosting the approval workflow itself) — remains a live, undecided option. Nothing in the codebase picks a side; the maker-checker system exists because policy authoring was previously outside any governance surface at all (this section's opening claim), not because "build it internally" was compared against and preferred over the external alternative. Treat this as an open question, not a resolved default.
-
-
+**Open question: internal vs. external policy authoring.** The system described above resolves _how_ a policy change is approved once Parmana is the system of record for that approval. It does not resolve _whether_ Parmana should be the system of record at all: an alternative architecture — policies authored and approved in an external system, with Parmana staying strictly read-only/enforcement-only for policy content (loading and evaluating whatever content it is handed, verifying its provenance, never hosting the approval workflow itself) — remains a live, undecided option. Nothing in the codebase picks a side; the maker-checker system exists because policy authoring was previously outside any governance surface at all (this section's opening claim), not because "build it internally" was compared against and preferred over the external alternative. Treat this as an open question, not a resolved default.
 
 **Open question: the human-vs-AI-agent identity problem.** `isHumanCaller()` (`packages/api/src/auth/isHumanCaller.ts`) checks `credentialHolderType === AuthorityType.USER` — a value set once, at credential-issuance time, by whoever provisions the credential. Nothing in this codebase, or in any bearer-token/asymmetric-key scheme generally, technically verifies that the entity that generated the key material and holds the private key is a human rather than an automated system with access to the provisioning step. This is a known, general limitation of software-based identity, not a Parmana-specific gap, and not one a purely technical fix within this codebase can close: a credential's `USER` flag is exactly as trustworthy as the process that set it, never more. The current mitigation is operational, not code-enforced: the standing rule is that key generation and step-up signing for a checker's credential must happen on a device with no AI agent access, so that whatever holds the resulting private key is, by the constraints of that device, a human acting directly. No code path in `PolicyChangeStepUpVerifier`, `isHumanCaller`, or anywhere else in this feature checks or enforces that rule — it is a process control sitting outside the system, the same category as "don't commit your private key," not a guarantee this repository's tests can prove.
 
-
-
-**Preventive Git-layer enforcement: CI check exists and is fail-closed; enabling it as a required check is blocked by GitHub plan/visibility, not by anything in this codebase.** The maker-checker API above governs every write that goes through `pending-policy-changes.ts`, but it cannot by itself prevent a direct edit to `policies/{name}/{version}/policy.json` committed straight to the repository, bypassing the approval workflow entirely. `scripts/verify-policy-changes-approved.ts` closes the detection half of that gap: given a list of changed policy files (or `--full-scan`), it hashes each file's live content (`PolicyChangeCrypto.hashPolicyContent`) and checks it against `policy_change_approval_records`' `content_hash_after` for that `(policyName, policyVersion)`, via a read-only Supabase `anon` credential scoped by RLS to that one table (`supabase/migrations/20260818150000_add_ci_read_only_policy_for_approval_records.sql`) — deliberately not `DATABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, which would grant read+write on every table. It is fail-**closed** by design, the opposite discipline from `verifyPolicyGovernanceIntegrityAtStartup`'s fail-open startup check: a missing approval record, a content-hash mismatch, *and* any failure to complete the check at all (Supabase unreachable, a malformed response) are all treated identically as a failure — there is no "couldn't check, let it pass" path. `.github/workflows/ci.yml`'s `verify-policy-approvals` job runs this on every push and pull request against whichever `policies/**/policy.json` files changed, and already fails the job (non-zero exit) on a bypass — this is not advisory logging. What is genuinely missing is the last step: telling GitHub to treat that job's pass/fail as a required condition for merging into `main` (via branch protection). Attempting to enable it this session (`PUT /repos/{owner}/{repo}/branches/main/protection`, admin-authenticated) failed with a real, externally-imposed constraint: `403 Upgrade to GitHub Pro or make this repository public to enable this feature` — branch protection rules are not available on a private repository under this account's current GitHub plan. This is exactly the condition the CI job's own header comment already anticipated ("if/when this repo's plan or visibility ever allows branch protection to be enabled"), not a gap introduced or overlooked by this pass. **Precise current state:** a direct `git push` to `main` containing an unapproved `policy.json` edit will be caught and reported by CI (the job fails, visibly, on that commit) but is not currently *prevented* from landing on `main` — detection is real and automatic; prevention requires either a paid GitHub plan or making this proprietary, evaluation-only repository public, and no decision has been made to do either.
+**Preventive Git-layer enforcement: CI check exists and is fail-closed; enabling it as a required check is blocked by GitHub plan/visibility, not by anything in this codebase.** The maker-checker API above governs every write that goes through `pending-policy-changes.ts`, but it cannot by itself prevent a direct edit to `policies/{name}/{version}/policy.json` committed straight to the repository, bypassing the approval workflow entirely. `scripts/verify-policy-changes-approved.ts` closes the detection half of that gap: given a list of changed policy files (or `--full-scan`), it hashes each file's live content (`PolicyChangeCrypto.hashPolicyContent`) and checks it against `policy_change_approval_records`' `content_hash_after` for that `(policyName, policyVersion)`, via a read-only Supabase `anon` credential scoped by RLS to that one table (`supabase/migrations/20260818150000_add_ci_read_only_policy_for_approval_records.sql`) — deliberately not `DATABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, which would grant read+write on every table. It is fail-**closed** by design, the opposite discipline from `verifyPolicyGovernanceIntegrityAtStartup`'s fail-open startup check: a missing approval record, a content-hash mismatch, _and_ any failure to complete the check at all (Supabase unreachable, a malformed response) are all treated identically as a failure — there is no "couldn't check, let it pass" path. `.github/workflows/ci.yml`'s `verify-policy-approvals` job runs this on every push and pull request against whichever `policies/**/policy.json` files changed, and already fails the job (non-zero exit) on a bypass — this is not advisory logging. What is genuinely missing is the last step: telling GitHub to treat that job's pass/fail as a required condition for merging into `main` (via branch protection). Attempting to enable it this session (`PUT /repos/{owner}/{repo}/branches/main/protection`, admin-authenticated) failed with a real, externally-imposed constraint: `403 Upgrade to GitHub Pro or make this repository public to enable this feature` — branch protection rules are not available on a private repository under this account's current GitHub plan. This is exactly the condition the CI job's own header comment already anticipated ("if/when this repo's plan or visibility ever allows branch protection to be enabled"), not a gap introduced or overlooked by this pass. **Precise current state:** a direct `git push` to `main` containing an unapproved `policy.json` edit will be caught and reported by CI (the job fails, visibly, on that commit) but is not currently _prevented_ from landing on `main` — detection is real and automatic; prevention requires either a paid GitHub plan or making this proprietary, evaluation-only repository public, and no decision has been made to do either.
 
 **Legacy-policy backfill: current state and exact pause point.** Confirmed by direct query against the live `pending_policy_changes` and `policy_change_approval_records` tables (2026-08-19): all 10 pre-existing policies — `access-control`, `connector-capability`, `customer-refund`, `database-change`, `github-pr-approval`, `hubspot-deal-update`, `llm-tool-call`, `production-deployment`, `rag-document-access`, `vendor-payment` — were proposed through the real `POST /:name/:version/pending-changes` endpoint on 2026-08-19 between 01:47:43 and 01:47:47 UTC, each proposed by the same caller (`charak1987`). Zero rows exist in `policy_change_approval_records` — no policy, legacy or otherwise, has ever completed the approval flow. This is exactly the state maker≠checker is designed to produce and enforce: `SameActorCannotApproveOwnChangeError` (above) means the proposer cannot approve their own ten proposals, and per the operating rule above, whoever does approve them must generate and use their step-up signing key on a separate device with no AI agent access — the same discipline that governs every other checker action under this feature, applied without exception to the backfill. Work is paused precisely at "awaiting a second, genuinely distinct human checker's availability to perform that approval on a disconnected device" — nothing else; there is no unresolved technical or code issue blocking it. All ten pending changes remain safely `PENDING_APPROVAL`: `pending_policy_changes` has no expiry mechanism (`packages/shared/src/domain/pending-policy-change.ts`), the database-level partial unique index (`ux_pending_policy_changes_open`, `supabase/migrations/20260818120000_add_policy_governance_tables.sql`) prevents a second, conflicting proposal for the same `(policy_name, policy_version)` while one is open, and none of the ten live policy files have been touched, so the pause creates no window of unenforced or inconsistent policy content.
 
-
-
 Evidence
 
+- `packages/shared/src/domain/pending-policy-change.ts`, `policy-change-approval-record.ts`, `policy-change-step-up-authorization.ts`
 
+- `packages/api/src/routes/pending-policy-changes.ts`, `auth/isHumanCaller.ts`, `auth/PolicyChangeStepUpVerifier.ts`, `governance/PolicyChangeApprovalService.ts`, `governance/verifyPolicyGovernanceIntegrityAtStartup.ts`, `bootstrap/runPolicyGovernanceIntegrityCheckAtStartup.ts`, `server.ts`
 
-* `packages/shared/src/domain/pending-policy-change.ts`, `policy-change-approval-record.ts`, `policy-change-step-up-authorization.ts`
+- `packages/runtime/src/RuntimeEngine.ts` (content-hash-at-decision-time wiring)
 
+- `packages/crypto/src/PolicyChangeCrypto.ts`, `PolicyChangeStepUpAuthorizationCrypto.ts`
 
+- `packages/policy/src/FilePolicyRepository.ts` (`save()`, the write-side path-traversal guard added alongside this milestone)
 
-* `packages/api/src/routes/pending-policy-changes.ts`, `auth/isHumanCaller.ts`, `auth/PolicyChangeStepUpVerifier.ts`, `governance/PolicyChangeApprovalService.ts`, `governance/verifyPolicyGovernanceIntegrityAtStartup.ts`, `bootstrap/runPolicyGovernanceIntegrityCheckAtStartup.ts`, `server.ts`
+- `scripts/verify-policy-changes-approved.ts` (preventive CI/deploy-time gate, fail-closed, Supabase-backed content-hash verification), `.github/workflows/ci.yml`'s `verify-policy-approvals` job (runs it on every push/PR), `supabase/migrations/20260818150000_add_ci_read_only_policy_for_approval_records.sql` (scoped read-only RLS credential)
 
+- `packages/api/tests/unit/isHumanCaller.test.ts`, `PolicyChangeStepUpVerifier.test.ts`, `PolicyChangeApprovalService.test.ts`, `verifyPolicyGovernanceIntegrityAtStartup.test.ts`, `runPolicyGovernanceIntegrityCheckAtStartup.test.ts`
 
+- `packages/api/tests/integration/pending-policy-changes-governance.integration.test.ts` (23 cases: human-only enforcement on all four endpoints, maker≠checker on approve/reject, step-up missing/expired/replayed/wrong-id/wrong-action/wrong-key, file write + signed record content, path-traversal rejection on `proposedContent.policyVersion`)
 
-* `packages/runtime/src/RuntimeEngine.ts` (content-hash-at-decision-time wiring)
+- `packages/runtime/tests/e2e/runtime.e2e.test.ts` (content-hash-at-decision-time, real on-disk policy content)
 
+- `packages/governance-ui/src/app.ts`, `routes/login.ts`, `routes/pendingChanges.ts`, `views/diff.ts`
 
+- `packages/governance-ui/tests/unit/apiClient.test.ts`, `tests/integration/app.integration.test.ts` (17 cases: unauthenticated redirect, login/logout, list/diff rendering, no approve/reject controls, XSS-escaping, session invalidation on a revoked key)
 
-* `packages/crypto/src/PolicyChangeCrypto.ts`, `PolicyChangeStepUpAuthorizationCrypto.ts`
-
-
-
-* `packages/policy/src/FilePolicyRepository.ts` (`save()`, the write-side path-traversal guard added alongside this milestone)
-
-
-
-* `scripts/verify-policy-changes-approved.ts` (preventive CI/deploy-time gate, fail-closed, Supabase-backed content-hash verification), `.github/workflows/ci.yml`'s `verify-policy-approvals` job (runs it on every push/PR), `supabase/migrations/20260818150000_add_ci_read_only_policy_for_approval_records.sql` (scoped read-only RLS credential)
-
-
-
-* `packages/api/tests/unit/isHumanCaller.test.ts`, `PolicyChangeStepUpVerifier.test.ts`, `PolicyChangeApprovalService.test.ts`, `verifyPolicyGovernanceIntegrityAtStartup.test.ts`, `runPolicyGovernanceIntegrityCheckAtStartup.test.ts`
-
-
-
-* `packages/api/tests/integration/pending-policy-changes-governance.integration.test.ts` (23 cases: human-only enforcement on all four endpoints, maker≠checker on approve/reject, step-up missing/expired/replayed/wrong-id/wrong-action/wrong-key, file write + signed record content, path-traversal rejection on `proposedContent.policyVersion`)
-
-
-
-* `packages/runtime/tests/e2e/runtime.e2e.test.ts` (content-hash-at-decision-time, real on-disk policy content)
-
-
-
-* `packages/governance-ui/src/app.ts`, `routes/login.ts`, `routes/pendingChanges.ts`, `views/diff.ts`
-
-
-
-* `packages/governance-ui/tests/unit/apiClient.test.ts`, `tests/integration/app.integration.test.ts` (17 cases: unauthenticated redirect, login/logout, list/diff rendering, no approve/reject controls, XSS-escaping, session invalidation on a revoked key)
-
-* `examples/tutorials/103-policy-governance-maker-checker/run.ts` (runnable narrative, real HTTP server: human-only enforcement, maker ≠ checker, missing-step-up denial, and a distinct checker's valid step-up envelope resulting in both a written `policy.json` and a signed, persisted approval record)
-
-
+- `examples/tutorials/103-policy-governance-maker-checker/run.ts` (runnable narrative, real HTTP server: human-only enforcement, maker ≠ checker, missing-step-up denial, and a distinct checker's valid step-up envelope resulting in both a written `policy.json` and a signed, persisted approval record)
 
 ---
-
-
 
 ## 2.27 Policy-Freshness Enforcement at Execution Time
 
-
-
 A signed Execution Authorization is bound to the exact policy content it was decided under, not merely the policy's `(name, version)` identifier: `RuntimeEngine.execute()` computes `policyContentHash` — a hash of the policy document actually loaded for that decision, via the same `TrustRecordHasher` other artifact hashes in this codebase use — and includes it inside the signed `ExecutionAuthorizationPayload` (`packages/runtime/src/RuntimeEngine.ts`). This is distinct from 2.26's "Content hash at decision time (G-24)", which stamps a content hash onto the persisted `ExecutionTrustRecord` for audit purposes; this hash is signed into the authorization itself and independently re-checked before execution is allowed to proceed.
-
-
 
 `ExecutionGateway` optionally accepts a `PolicyRepository` (`ExecutionGatewayOptions.policyRepository`). When supplied, and when the authorization being verified carries a `policyContentHash` (older authorizations signed before this check existed do not), the gateway reloads the policy at the authorization's own `(policyName, policyVersion)` and recomputes its current content hash, comparing it against the signed value. A mismatch — whether from the policy's content changing in place or the policy no longer existing at that name/version at all — sets `policyStillCurrent: false`, is reported in `GatewayVerificationResult.policyContentMismatch`, and fails `verify()` before the connector is ever invoked, exactly like the existing `businessTransactionHash` check it sits alongside in the same ordered check sequence (`packages/execution-gateway/src/ExecutionGateway.ts`).
 
-
-
 This check is opt-in and additive, not a behavior change for existing deployments: omitting `policyRepository`, or verifying an authorization signed before `policyContentHash` existed, leaves `policyStillCurrent` absent (not failed) — the same "absent means skipped" convention `hashMismatch` already used — and the pre-existing replay-detection logic (`isSoleFailureNonceReplay`) treats an absent/undefined check as passing, so it does not spuriously reclassify a stale-policy rejection as a nonce replay.
-
-
 
 Evidence
 
+- `packages/runtime/src/RuntimeEngine.ts` (`policyContentHash` computed and signed into the authorization payload)
 
+- `packages/execution-gateway/src/ExecutionGateway.ts` (`policyRepository` option, `policyStillCurrent` check, `policyContentMismatch` reporting)
 
-* `packages/runtime/src/RuntimeEngine.ts` (`policyContentHash` computed and signed into the authorization payload)
+- `packages/execution-gateway/src/GatewayVerificationResult.ts` (`policyStillCurrent`, `policyContentMismatch` fields)
 
-* `packages/execution-gateway/src/ExecutionGateway.ts` (`policyRepository` option, `policyStillCurrent` check, `policyContentMismatch` reporting)
-
-* `packages/execution-gateway/src/GatewayVerificationResult.ts` (`policyStillCurrent`, `policyContentMismatch` fields)
-
-* `packages/execution-gateway/tests/unit/policy-freshness.test.ts` (7 cases: unchanged-policy pass, changed-content-since-signing failure with named mismatch, `execute()` throwing with the mismatch named, policy no longer existing at that name/version, check skipped — not failed — when no `policyRepository` is wired, check skipped — not failed — when the authorization carries no `policyContentHash`, a nonce-replay-only failure still correctly classified when the policy check was skipped)
-
-
+- `packages/execution-gateway/tests/unit/policy-freshness.test.ts` (7 cases: unchanged-policy pass, changed-content-since-signing failure with named mismatch, `execute()` throwing with the mismatch named, policy no longer existing at that name/version, check skipped — not failed — when no `policyRepository` is wired, check skipped — not failed — when the authorization carries no `policyContentHash`, a nonce-replay-only failure still correctly classified when the policy check was skipped)
 
 ---
-
-
 
 ## 2.28 KeyId-Aware Key Resolution with Expiry/Revocation Checking
 
-
-
 Signature verification can resolve the verifying key per-authorization by `keyId` instead of always using one static configured public key, enabling more than one key to be valid at once (for example, during a rotation window) without a restart. `EnvelopeVerifier` accepts optional `keyProvider` and `keyExpiryStore` options (`packages/envelope-verifier/src/EnvelopeVerifier.ts`); `ExecutionGateway` forwards its own same-named optional options straight through to the `EnvelopeVerifier` it composes (`packages/execution-gateway/src/ExecutionGateway.ts`).
-
-
 
 When `keyProvider` is supplied, each authorization's own `authorization.keyId` is resolved through it (`FileKeyProvider.getPublicKey(keyId)`) instead of the single static `publicKey`; when `keyExpiryStore` is also supplied, the resolved keyId is first checked against it, and a `revoked: true` entry, or an `expiresAt` at or before the verification instant, causes resolution to fail before any key material is even read. Failure at either step — key not found, key unreadable, expired, or revoked — fails closed: `resolveKey()` returns `undefined` rather than throwing or silently falling back to the static `publicKey`, which surfaces as `checks.keyValid: false` and an overall failed verification. A `keyId` with no entry in `keyExpiryStore` at all is treated as always valid (the same "absent means not opted in" convention as 2.27's `policyStillCurrent`). Omitting `keyProvider` entirely preserves the exact prior static-`publicKey` behavior, with `keyValid` staying absent (not `false`) from the result, since key resolution then isn't part of verification's checks at all.
 
-
-
 `FileKeyExpiryStore` (`packages/crypto/src/KeyExpiry.ts`) is the reference `KeyExpiryStore` implementation: it reads one small sidecar JSON file beside the PEM key files `FileKeyProvider` already reads from the same configured key directory (`<keyDirectory>/key-expiry.json`), keyed by `keyId`, with `expiresAt`/`revoked` both optional per entry. A `keyId` absent from the file, or the file itself being absent, means "no expiry, always valid" — the safe default that keeps every deployment that doesn't opt into key expiry behaving exactly as it does today. Malformed JSON, or a value of the wrong shape, throws rather than silently treating the key as unexpiring.
-
-
 
 Evidence
 
+- `packages/envelope-verifier/src/EnvelopeVerifier.ts` (`keyProvider`, `keyExpiryStore` options; `resolveKey()`; `checks.keyValid`)
 
+- `packages/execution-gateway/src/ExecutionGateway.ts` (forwards `keyProvider`/`keyExpiryStore` to its composed `EnvelopeVerifier`)
 
-* `packages/envelope-verifier/src/EnvelopeVerifier.ts` (`keyProvider`, `keyExpiryStore` options; `resolveKey()`; `checks.keyValid`)
+- `packages/crypto/src/KeyExpiry.ts` (`KeyExpiryStore` interface, `FileKeyExpiryStore`)
 
-* `packages/execution-gateway/src/ExecutionGateway.ts` (forwards `keyProvider`/`keyExpiryStore` to its composed `EnvelopeVerifier`)
-
-* `packages/crypto/src/KeyExpiry.ts` (`KeyExpiryStore` interface, `FileKeyExpiryStore`)
-
-* `packages/envelope-verifier/tests/unit/envelope-verifier.test.ts`: "resolves the public key via keyProvider using the authorization's own keyId", "fails closed when keyProvider has no key for the authorization's keyId", "fails closed when the resolved key is expired per keyExpiryStore", "fails closed when the resolved key is revoked per keyExpiryStore", "a keyId with no keyExpiryStore entry is treated as always valid", "omitting keyProvider preserves today's exact static-publicKey behavior, with keyValid absent"
+- `packages/envelope-verifier/tests/unit/envelope-verifier.test.ts`: "resolves the public key via keyProvider using the authorization's own keyId", "fails closed when keyProvider has no key for the authorization's keyId", "fails closed when the resolved key is expired per keyExpiryStore", "fails closed when the resolved key is revoked per keyExpiryStore", "a keyId with no keyExpiryStore entry is treated as always valid", "omitting keyProvider preserves today's exact static-publicKey behavior, with keyValid absent"
 
 **Scope, precisely — this claim covers the ExecutionAuthorization/Gateway envelope only.** `docs/VERIFICATION-GAPS.md` gap 53 (2026-09-11 PQC audit) found the durable evidence artifacts this system actually keeps long-term — Trust Records, Refusal Records, Audit Events — had none of this: all three signers hardcoded the literal keyId `"default"` for new signatures, with no way to rotate without overwriting that key in place and breaking every prior signature. Closed the same day with `PARMANA_VERIFICATION_KEY_ID`/`PARMANA_VERIFICATION_SECONDARY_KEY_ID`, mirroring this section's own `PARMANA_GATEWAY_KEY_ID` precedent — see that gap entry for full detail.
 
-* `packages/crypto/tests/unit/key-expiry.test.ts` (6 cases: missing file, keyId absent from an existing file, parsed `expiresAt` as a real `Date`, `revoked: true`, malformed JSON throws, non-object JSON throws)
-
-
+- `packages/crypto/tests/unit/key-expiry.test.ts` (6 cases: missing file, keyId absent from an existing file, parsed `expiresAt` as a real `Date`, `revoked: true`, malformed JSON throws, non-object JSON throws)
 
 **Update (2026-09-09):** the verification-side machinery above (`keyProvider`, resolved by `authorization.keyId`) had, until this date, never been exercised by anything but the single shared `"default"` keyId — nothing on the signing side ever produced an authorization carrying a different one. `docs/VERIFICATION-GAPS.md` G-32 found and same-day-closed that gap: `RuntimeAuthorizationSigner` (`packages/runtime/src/RuntimeAuthorizationSigner.ts`) now resolves the signing keyId per-transaction via a new `TenantKeyResolver` (`packages/runtime/src/TenantKeyResolver.ts`), signing under a dedicated `tenant.<tenantId>` key when `transaction.metadata.tenantId` is set and that key has been provisioned (same `FileKeyProvider` layout, `scripts/generate-keypair.ts --key-id tenant.<tenantId>`), and falling back to the shared `"default"` key otherwise. This is opt-in per tenant, not a change to the default (single-key) path: a deployment with no tenant-specific keys provisioned behaves exactly as before. See G-32 for the full fix and its own explicitly-stated residual gaps (manual provisioning only, no KMS/HSM/rotation automation, silent fallback on an unprovisioned tenantId).
 
-* `packages/runtime/src/TenantKeyResolver.ts`, `packages/runtime/src/RuntimeAuthorizationSigner.ts`, `packages/runtime/src/RuntimeEngine.ts`
+- `packages/runtime/src/TenantKeyResolver.ts`, `packages/runtime/src/RuntimeAuthorizationSigner.ts`, `packages/runtime/src/RuntimeEngine.ts`
 
-* `packages/runtime/tests/unit/tenant-key-resolver.test.ts` (5 cases), `packages/runtime/tests/unit/execution-authorization-wiring.test.ts` (2 new cases: tenant-keyed authorization verifies under its own tenant's public key and fails under the shared default public key; no-tenantId transaction still signs under `"default"`)
-
-
+- `packages/runtime/tests/unit/tenant-key-resolver.test.ts` (5 cases), `packages/runtime/tests/unit/execution-authorization-wiring.test.ts` (2 new cases: tenant-keyed authorization verifies under its own tenant's public key and fails under the shared default public key; no-tenantId transaction still signs under `"default"`)
 
 ---
-
-
 
 ## 2.29 Signal-Freshness Enforcement at Execution Time (G-31)
 
-
-
 A signed Execution Authorization is also bound to the exact runtime signals its decision rested on, not merely the policy and content it approved: `RuntimeEngine.execute()` computes `signalsHash` — a canonical hash of the `PolicySignals` object evaluated for that decision, via the same `TrustRecordHasher` idiom 2.27's `policyContentHash` uses — and includes it inside the signed `ExecutionAuthorizationPayload` (`packages/runtime/src/RuntimeEngine.ts`). This closes the one gap 2.27 left open: policy content was already re-checked at the execution boundary, but the vendor status, risk exposure, market conditions, or other real-world facts a policy's `boundSignals`/`SignalStateVerifier` cares about were verified once, pre-authorization, and never again.
-
-
 
 `ExecutionRequest` carries the same `signals` the authorization was signed under (`packages/execution-system/src/ExecutionRequest.ts`, populated by `ExecutionRequestBuilder` from the persisted `BusinessTransaction.signals`), and `ExecutionGateway` optionally accepts a `SignalStateVerifier` (`ExecutionGatewayOptions.signalStateVerifier` — the same port `@parmana/policy` already defines and `RuntimeEngine` already uses pre-authorization, reused here rather than reimplemented). When supplied, and when the authorization carries a `signalsHash` and the request carries `signals` (older authorizations signed before this check existed carry neither), the gateway recomputes the signals hash and compares it to the signed value — a mismatch sets `signalsStillCurrent: false` and is reported in `GatewayVerificationResult.signalsHashMismatch`. When the hash matches, the gateway independently re-verifies those signals against real-world state via `SignalStateVerifier.findViolations` — any divergence also sets `signalsStillCurrent: false`, reported in `GatewayVerificationResult.signalDivergence`, and fails `verify()` before the connector is ever invoked, in the same ordered check sequence `policyStillCurrent` sits in (`packages/execution-gateway/src/ExecutionGateway.ts`).
 
-
-
 This check is opt-in and additive, not a behavior change for existing deployments: omitting `signalStateVerifier`, or verifying an authorization signed before `signalsHash` existed, or a request carrying no `signals`, leaves `signalsStillCurrent` absent (not failed) — the same "absent means skipped" convention `policyStillCurrent` already uses — and `isSoleFailureNonceReplay` treats an absent/undefined check as passing, so it does not spuriously reclassify a stale-signals rejection as a nonce replay. In production, only capabilities with a configured `SignalStateVerifier` (today, `hubspot-deal-update` via `createHubSpotSignalStateVerifier`) get a real re-verification; every other action's `findViolations` call returns an empty array (nothing to check), the same discipline every capability-scoped `SignalStateVerifier` implementation already follows. The check also only has effect when decision and execution are actually separated in time; this codebase's own `RuntimeEngine`/`ExecutionGateway` wiring runs both synchronously in one call today, so its practical value is for a `SignedExecutionAuthorization` handed to a decoupled downstream receiver (e.g. an `HttpExecutionSystem`-based deployment) that verifies and executes independently, potentially much later, up to `maxTtlSeconds` — exactly the use this authorization type's own "receiving systems" doc comment describes as supported.
-
-
 
 Evidence
 
+- `packages/shared/src/domain/execution-authorization.ts` (`signalsHash` on `ExecutionAuthorizationPayload`)
 
+- `packages/runtime/src/RuntimeEngine.ts` (`signalsHash` computed and signed into the authorization payload)
 
-* `packages/shared/src/domain/execution-authorization.ts` (`signalsHash` on `ExecutionAuthorizationPayload`)
+- `packages/runtime/src/ExecutionRequestBuilder.ts`, `packages/execution-system/src/ExecutionRequest.ts` (`signals` carried through to the execution boundary)
 
-* `packages/runtime/src/RuntimeEngine.ts` (`signalsHash` computed and signed into the authorization payload)
+- `packages/execution-gateway/src/ExecutionGateway.ts` (`signalStateVerifier` option, `signalsStillCurrent` check, `signalsHashMismatch`/`signalDivergence` reporting)
 
-* `packages/runtime/src/ExecutionRequestBuilder.ts`, `packages/execution-system/src/ExecutionRequest.ts` (`signals` carried through to the execution boundary)
+- `packages/execution-gateway/src/GatewayVerificationResult.ts` (`signalsStillCurrent`, `signalsHashMismatch`, `signalDivergence` fields)
 
-* `packages/execution-gateway/src/ExecutionGateway.ts` (`signalStateVerifier` option, `signalsStillCurrent` check, `signalsHashMismatch`/`signalDivergence` reporting)
+- `packages/api/src/bootstrap/executionGatewaySignalStateVerifier.ts` (late-binding singleton resolving the Gateway↔verifier circular construction dependency in production wiring), `packages/api/src/bootstrap/createExecutionGateway.ts`, `packages/api/src/application.ts`
 
-* `packages/execution-gateway/src/GatewayVerificationResult.ts` (`signalsStillCurrent`, `signalsHashMismatch`, `signalDivergence` fields)
+- `packages/execution-gateway/tests/unit/signal-freshness.test.ts` (8 cases: unchanged-signals pass, verifier-reported drift failure with named divergence, `execute()` throwing with the divergence named, request signals no longer hash-matching the authorization, check skipped — not failed — when no `signalStateVerifier` is wired, when the authorization carries no `signalsHash`, and when the request carries no `signals`, a nonce-replay-only failure still correctly classified when the signals check was skipped)
 
-* `packages/api/src/bootstrap/executionGatewaySignalStateVerifier.ts` (late-binding singleton resolving the Gateway↔verifier circular construction dependency in production wiring), `packages/api/src/bootstrap/createExecutionGateway.ts`, `packages/api/src/application.ts`
+- `packages/crypto/tests/unit/authorization-envelope.test.ts` (3 cases: `signalsHash` included and verifies unchanged, omitted when not supplied, a tampered `signalsHash` fails signature verification)
 
-* `packages/execution-gateway/tests/unit/signal-freshness.test.ts` (8 cases: unchanged-signals pass, verifier-reported drift failure with named divergence, `execute()` throwing with the divergence named, request signals no longer hash-matching the authorization, check skipped — not failed — when no `signalStateVerifier` is wired, when the authorization carries no `signalsHash`, and when the request carries no `signals`, a nonce-replay-only failure still correctly classified when the signals check was skipped)
+- `packages/runtime/tests/unit/execution-authorization-wiring.test.ts` (1 case, through the real `RuntimeBuilder`/`RuntimeEngine`/`ExecutionComponent` wiring: the produced authorization's `signalsHash` matches an independently recomputed hash of the transaction's signals, and the `ExecutionRequest` reaching the execution system carries those same signals)
 
-* `packages/crypto/tests/unit/authorization-envelope.test.ts` (3 cases: `signalsHash` included and verifies unchanged, omitted when not supplied, a tampered `signalsHash` fails signature verification)
+- `docs/VERIFICATION-GAPS.md` G-31 (full narrative, including what this does and does not close)
 
-* `packages/runtime/tests/unit/execution-authorization-wiring.test.ts` (1 case, through the real `RuntimeBuilder`/`RuntimeEngine`/`ExecutionComponent` wiring: the produced authorization's `signalsHash` matches an independently recomputed hash of the transaction's signals, and the `ExecutionRequest` reaching the execution system carries those same signals)
-
-* `docs/VERIFICATION-GAPS.md` G-31 (full narrative, including what this does and does not close)
-
-* `examples/tutorials/98-signal-freshness-enforcement/run.ts` (runnable narrative: one authorization, two independent receiving systems — one whose live re-check finds nothing changed and executes, one that finds the vendor blocked since authorization and is rejected with the divergence named, before its connector is ever invoked)
-
-
+- `examples/tutorials/98-signal-freshness-enforcement/run.ts` (runnable narrative: one authorization, two independent receiving systems — one whose live re-check finds nothing changed and executes, one that finds the vendor blocked since authorization and is rejected with the divergence named, before its connector is ever invoked)
 
 ---
-
-
 
 ## 2.30 Policy-Authoring and Deployment Observability Warnings
 
@@ -1167,13 +723,13 @@ Both checks are purely additive: no existing behavior changes, no policy that pr
 
 Evidence
 
-* `packages/policy/src/PolicyValidator.ts` (`findUncoveredFacts`)
-* `packages/policy/src/PolicyRouter.ts` (`policy_boundSignals_coverage_incomplete` warning)
-* `packages/policy/tests/unit/PolicyValidator.test.ts` (4 cases: fully covered, no rule facts, one uncovered fact, uncovered facts nested inside `all`/`any` while a bound fact is correctly excluded)
-* `packages/policy/tests/unit/PolicyRouter-boundSignals-coverage.test.ts` (2 cases: no warning when coverage is complete, warning fired with the exact policy id/version/uncovered-facts payload when it is not)
-* `packages/runtime/src/RuntimeEngine.ts` (`runtime_engine_constructed` log line)
-* `packages/runtime/tests/unit/optional-protections-logging.test.ts` (3 cases: both protections absent, only `signalStateVerifier` configured, only `capabilityPolicyBinder` configured)
-* Full repo `npx tsc -b`, `npx eslint . --ext .ts`, and `npm test` (`vitest run`) all clean: 1451 passed, 37 pre-existing skips, 0 failed — no regressions
+- `packages/policy/src/PolicyValidator.ts` (`findUncoveredFacts`)
+- `packages/policy/src/PolicyRouter.ts` (`policy_boundSignals_coverage_incomplete` warning)
+- `packages/policy/tests/unit/PolicyValidator.test.ts` (4 cases: fully covered, no rule facts, one uncovered fact, uncovered facts nested inside `all`/`any` while a bound fact is correctly excluded)
+- `packages/policy/tests/unit/PolicyRouter-boundSignals-coverage.test.ts` (2 cases: no warning when coverage is complete, warning fired with the exact policy id/version/uncovered-facts payload when it is not)
+- `packages/runtime/src/RuntimeEngine.ts` (`runtime_engine_constructed` log line)
+- `packages/runtime/tests/unit/optional-protections-logging.test.ts` (3 cases: both protections absent, only `signalStateVerifier` configured, only `capabilityPolicyBinder` configured)
+- Full repo `npx tsc -b`, `npx eslint . --ext .ts`, and `npm test` (`vitest run`) all clean: 1451 passed, 37 pre-existing skips, 0 failed — no regressions
 
 **Update (2026-09-09):** the "deliberately warn-only" design above traded false-positive noise for a real cost: running the real `vendor-payment` policy live (Tutorial 105) surfaced the warning, and checking all 10 real policies in `policies/` found every single one had uncovered facts, none reviewed or documented — a warning nobody reviewing a running system would see, indistinguishable from a genuinely forgotten binding. `docs/VERIFICATION-GAPS.md` G-33 found and same-day-closed this: a new `Policy.unboundSignalReasons` field lets a policy author acknowledge, with a specific reason, exactly which facts have no genuine Intent-side equivalent (mirroring `INTENTIONALLY_UNBOUND_CAPABILITIES`'s "reviewed exemption, not silence" pattern, scoped per-policy instead of centralized). `PolicyValidator.validate()` now fails closed — throws for any rule-referenced fact neither bound nor acknowledged — and `PolicyRouter.load()`'s warning is gone, replaced by that throw. All 10 real policies were updated: 8 got per-fact `unboundSignalReasons`, and 2 (`connector-capability`, `customer-refund`) turned out to have a genuinely bindable amount fact that had simply never been bound (`parameters.amount`, the same pattern `vendor-payment` already used) — a real scope-drift gap fixed, not merely documented around. See G-33 for full evidence and the residual (a reason is a documented claim, not a proof that the fact is truly unbindable).
 
@@ -1181,15 +737,13 @@ Evidence
 
 ---
 
-
-
 ## 2.31 Signed Caller-Capability Claim, Checked at the Connector Layer
 
-**What this closes, precisely.** A prior internal audit found that `DefaultConnectorPolicy.assertAllowed()` (`packages/execution-control/src/ConnectorPolicy.ts`) only checked the *connector's* declared capabilities (`connector.capabilities.includes(action)`) and three pre-computed `verifiedTransaction` booleans — it had no way to independently confirm that the *caller* who submitted the request was ever cleared for the specific capability now being executed. That confirmation happened exactly once, at the API edge (`isCapabilityAllowed()` in `packages/api/src/routes/execute.ts`), and its result was then discarded — nothing carried it forward into the signed authorization or to the connector layer.
+**What this closes, precisely.** A prior internal audit found that `DefaultConnectorPolicy.assertAllowed()` (`packages/execution-control/src/ConnectorPolicy.ts`) only checked the _connector's_ declared capabilities (`connector.capabilities.includes(action)`) and three pre-computed `verifiedTransaction` booleans — it had no way to independently confirm that the _caller_ who submitted the request was ever cleared for the specific capability now being executed. That confirmation happened exactly once, at the API edge (`isCapabilityAllowed()` in `packages/api/src/routes/execute.ts`), and its result was then discarded — nothing carried it forward into the signed authorization or to the connector layer.
 
 **What was added.** `ExecutionAuthorizationPayload` (`packages/shared/src/domain/execution-authorization.ts`) gained two optional signed fields, following the exact precedent `policyContentHash`/`signalsHash` set (optional so every pre-existing authorization keeps verifying unchanged): `submittedBy` (the caller id, already threaded into `BusinessTransaction.metadata.submittedBy` but never previously reaching the signed payload) and `grantedCapability` (the capability `isCapabilityAllowed()` confirmed for that caller, at the moment it confirmed it). `execute.ts` now carries `grantedCapability` forward onto `transaction.metadata` alongside the existing `submittedBy` write, server-set and never trusted from the client. `RuntimeEngine.execute()` reads both from `transaction.metadata` and passes them to `RuntimeAuthorizationSigner`/`AuthorizationSigner`, which sign them into the payload exactly like every other field there (`ArtifactSigner` signs the complete canonical payload, not an enumerated subset). `DefaultConnectorPolicy.assertAllowed()` now additionally checks: when the authorization's `grantedCapability` is present, it must equal the action actually being executed (`request.executableContent.action`) — a mismatch is rejected before the connector's own credential is ever resolved.
 
-**What this is, honestly.** This is defense-in-depth, not a fix for a live exploit. `ExecutionGateway.verify()` already independently re-verifies the authorization's cryptographic signature before `ExecutionGateway.execute()` is ever called, and `ExecutionControlService.execute()` (the only production call site reaching `ConnectorPolicy.assertAllowed()`) is only reachable through that path today — a repo-wide search confirms no other code constructs a `GatewayExecutionRequest` and calls it directly. The new check does not re-verify the signature a second time at the connector layer; it checks *internal consistency* of a value that is already inside the same signed payload `verifiedTransaction.authorizationVerified` already vouches for. Its value is specifically against a *future* code path that might reach `ConnectorPolicy.assertAllowed()` without going through today's single, already-verified route (a plugin system, an admin override endpoint, a differently-wired deployment) — in that scenario, the caller-capability claim travels with the authorization itself rather than depending on whatever new code path remembers to set `verifiedTransaction` correctly. It does not, and cannot, defend against an attacker who already has in-process code execution and a reference to internal wiring — that attacker can fabricate `grantedCapability` exactly as easily as they could already fabricate the `verifiedTransaction` booleans, since both arrive over the same trust boundary.
+**What this is, honestly.** This is defense-in-depth, not a fix for a live exploit. `ExecutionGateway.verify()` already independently re-verifies the authorization's cryptographic signature before `ExecutionGateway.execute()` is ever called, and `ExecutionControlService.execute()` (the only production call site reaching `ConnectorPolicy.assertAllowed()`) is only reachable through that path today — a repo-wide search confirms no other code constructs a `GatewayExecutionRequest` and calls it directly. The new check does not re-verify the signature a second time at the connector layer; it checks _internal consistency_ of a value that is already inside the same signed payload `verifiedTransaction.authorizationVerified` already vouches for. Its value is specifically against a _future_ code path that might reach `ConnectorPolicy.assertAllowed()` without going through today's single, already-verified route (a plugin system, an admin override endpoint, a differently-wired deployment) — in that scenario, the caller-capability claim travels with the authorization itself rather than depending on whatever new code path remembers to set `verifiedTransaction` correctly. It does not, and cannot, defend against an attacker who already has in-process code execution and a reference to internal wiring — that attacker can fabricate `grantedCapability` exactly as easily as they could already fabricate the `verifiedTransaction` booleans, since both arrive over the same trust boundary.
 
 **Update (Sep 7, 2026, NF-004):** the guarantee this claim describes previously held only for `POST /execute`. `POST /transactions` — a second, independent entry point into the identical `application.execute()` pipeline — performed the same caller-capability admission check (`isCapabilityAllowed()`) but never carried the confirmed capability into `transaction.metadata.grantedCapability`, and only audited denials, never grants. A transaction submitted via `/transactions` therefore signed an authorization missing `grantedCapability` that the equivalent `/execute` submission would have carried. `packages/api/src/routes/transactions.ts` now performs the identical `caller.capability_granted` audit write and `metadata.grantedCapability` assignment `execute.ts` already did, by direct duplication of the existing logic (the surrounding capability-check/audit block was already duplicated between the two routes before this change; a new shared abstraction was deliberately not introduced for a fix this small). New test: `packages/api/tests/integration/caller-auth.integration.test.ts`, `"POST /transactions parity with POST /execute (NF-004)"` — both routes, given the same caller, now produce a response whose `authorization.payload.grantedCapability` equals the executed action, and both emit exactly one `caller.capability_granted` event. Commit `7da8f0d`.
 
@@ -1197,23 +751,21 @@ Evidence
 
 Evidence
 
-* `packages/shared/src/domain/execution-authorization.ts` (`submittedBy`, `grantedCapability` on `ExecutionAuthorizationPayload`)
-* `packages/shared/src/domain/metadata.ts` (`grantedCapability` on `TransactionMetadata`)
-* `packages/api/src/routes/execute.ts` and `packages/api/src/routes/transactions.ts` (both carry `grantedCapability` onto `transaction.metadata`, server-set, alongside the existing `submittedBy` write — see Update above)
-* `packages/crypto/src/AuthorizationSigner.ts`, `packages/runtime/src/RuntimeAuthorizationSigner.ts`, `packages/runtime/src/RuntimeEngine.ts` (threading into the signed payload)
-* `packages/execution-control/src/ConnectorPolicy.ts` (`DefaultConnectorPolicy.assertAllowed()`'s new consistency check)
-* `packages/crypto/tests/unit/authorization-envelope.test.ts` (3 new cases: fields included and verify unchanged when supplied, omitted when not supplied, a tampered `grantedCapability` fails signature verification)
-* `packages/runtime/tests/unit/execution-authorization-wiring.test.ts` (2 new cases: both fields threaded through from `transaction.metadata` end-to-end through the real `RuntimeBuilder`/`RuntimeEngine` wiring; both correctly absent when metadata carries neither)
-* `packages/execution-control/tests/unit/connector-policy-granted-capability.test.ts` (3 cases: execution allowed when `grantedCapability` matches the executed action, execution allowed when `grantedCapability` is absent — caller-auth was disabled, execution rejected when `grantedCapability` names a different action than the one executed)
-* Full repo `npx tsc -b`, `npx eslint . --ext .ts`, and `npm test` (`vitest run`) all clean: 1463 passed, 38 pre-existing skips, 0 failed — no regressions
+- `packages/shared/src/domain/execution-authorization.ts` (`submittedBy`, `grantedCapability` on `ExecutionAuthorizationPayload`)
+- `packages/shared/src/domain/metadata.ts` (`grantedCapability` on `TransactionMetadata`)
+- `packages/api/src/routes/execute.ts` and `packages/api/src/routes/transactions.ts` (both carry `grantedCapability` onto `transaction.metadata`, server-set, alongside the existing `submittedBy` write — see Update above)
+- `packages/crypto/src/AuthorizationSigner.ts`, `packages/runtime/src/RuntimeAuthorizationSigner.ts`, `packages/runtime/src/RuntimeEngine.ts` (threading into the signed payload)
+- `packages/execution-control/src/ConnectorPolicy.ts` (`DefaultConnectorPolicy.assertAllowed()`'s new consistency check)
+- `packages/crypto/tests/unit/authorization-envelope.test.ts` (3 new cases: fields included and verify unchanged when supplied, omitted when not supplied, a tampered `grantedCapability` fails signature verification)
+- `packages/runtime/tests/unit/execution-authorization-wiring.test.ts` (2 new cases: both fields threaded through from `transaction.metadata` end-to-end through the real `RuntimeBuilder`/`RuntimeEngine` wiring; both correctly absent when metadata carries neither)
+- `packages/execution-control/tests/unit/connector-policy-granted-capability.test.ts` (3 cases: execution allowed when `grantedCapability` matches the executed action, execution allowed when `grantedCapability` is absent — caller-auth was disabled, execution rejected when `grantedCapability` names a different action than the one executed)
+- Full repo `npx tsc -b`, `npx eslint . --ext .ts`, and `npm test` (`vitest run`) all clean: 1463 passed, 38 pre-existing skips, 0 failed — no regressions
 
 ---
 
-
-
 ## 2.32 Per-Caller Tamper-Evident Chaining on the Caller-Authentication Audit Trail
 
-**What this closes.** `docs/site/trust-and-claims/objections-and-evidence.mdx` (Domain 3) found that `caller_audit_events` rows were signed (§2.19-adjacent signing milestone, `AuditEventCrypto`) but not chained: unlike `ExecutionTrustRecord`'s `previousChainHash`/`chainHash` (`ExecutionChainCrypto`), a deleted `caller_audit_events` row was undetectable by any mechanism this repo had — a signature proves a *surviving* row wasn't edited, it says nothing about a row that's simply gone.
+**What this closes.** `docs/site/trust-and-claims/objections-and-evidence.mdx` (Domain 3) found that `caller_audit_events` rows were signed (§2.19-adjacent signing milestone, `AuditEventCrypto`) but not chained: unlike `ExecutionTrustRecord`'s `previousChainHash`/`chainHash` (`ExecutionChainCrypto`), a deleted `caller_audit_events` row was undetectable by any mechanism this repo had — a signature proves a _surviving_ row wasn't edited, it says nothing about a row that's simply gone.
 
 **Why not a single global chain.** `caller.authenticated` fires on every authenticated request to every route — `caller_audit_events` is the highest-write-volume table in this system. A global hash chain needs each new row to know its immediate predecessor's hash before writing, which ordinarily means a lock serializing every write through one predecessor lookup — putting that lock on the busiest table would risk a real production bottleneck.
 
@@ -1223,14 +775,14 @@ Evidence
 
 Evidence
 
-* `supabase/migrations/20260906120000_add_per_caller_chain_to_caller_audit_events.sql` (`chain_hash`, `previous_chain_hash`, `chain_position` columns, nullable and additive; synced into `scripts/apply-all-migrations.sql`)
-* `packages/api/src/auth/SupabaseCallerAuditSink.ts` (`record()`'s per-caller advisory-lock transaction, chain-link computation)
-* `packages/crypto/src/CallerAuditChainVerifier.ts` (new, standalone chain verification)
-* `packages/api/tests/unit/supabase-caller-audit-sink.test.ts` (13 cases, including: a new caller starts at `chain_position: 1` with `previous_chain_hash: null`; a second event from the same caller chains to the first with an incremented position; two different callers get independent chains, both starting at position 1; an insert failure mid-transaction rejects the promise with no row persisted; a chained event's signature covers the folded-in `previousChainHash`/`chainPosition`, and a tampered chained event fails verification)
-* `packages/crypto/tests/unit/caller-audit-chain-verifier.test.ts` (5 cases: an unbroken three-event chain verifies; a deleted middle row is caught via the resulting `previousChainHash` mismatch; a modified event is caught via its own signature failing; unchained rows verify on signature alone with no linkage required; an empty chain is valid)
-* `packages/api/tests/integration/supabase-caller-audit-sink.integration.test.ts` (extended: chain fields present and correctly linked against a real Postgres advisory lock, not just the unit-level fake pool)
-* docs/site's "Caller Audit Trail" concept page, for the reader-facing writeup this evidence supports
-* Full repo `npx tsc -b`, `npx eslint . --ext .ts`, and `npm test` (`vitest run`) all clean: 1493 passed, 38 pre-existing skips, 0 failed — no regressions
+- `supabase/migrations/20260906120000_add_per_caller_chain_to_caller_audit_events.sql` (`chain_hash`, `previous_chain_hash`, `chain_position` columns, nullable and additive; synced into `scripts/apply-all-migrations.sql`)
+- `packages/api/src/auth/SupabaseCallerAuditSink.ts` (`record()`'s per-caller advisory-lock transaction, chain-link computation)
+- `packages/crypto/src/CallerAuditChainVerifier.ts` (new, standalone chain verification)
+- `packages/api/tests/unit/supabase-caller-audit-sink.test.ts` (13 cases, including: a new caller starts at `chain_position: 1` with `previous_chain_hash: null`; a second event from the same caller chains to the first with an incremented position; two different callers get independent chains, both starting at position 1; an insert failure mid-transaction rejects the promise with no row persisted; a chained event's signature covers the folded-in `previousChainHash`/`chainPosition`, and a tampered chained event fails verification)
+- `packages/crypto/tests/unit/caller-audit-chain-verifier.test.ts` (5 cases: an unbroken three-event chain verifies; a deleted middle row is caught via the resulting `previousChainHash` mismatch; a modified event is caught via its own signature failing; unchained rows verify on signature alone with no linkage required; an empty chain is valid)
+- `packages/api/tests/integration/supabase-caller-audit-sink.integration.test.ts` (extended: chain fields present and correctly linked against a real Postgres advisory lock, not just the unit-level fake pool)
+- docs/site's "Caller Audit Trail" concept page, for the reader-facing writeup this evidence supports
+- Full repo `npx tsc -b`, `npx eslint . --ext .ts`, and `npm test` (`vitest run`) all clean: 1493 passed, 38 pre-existing skips, 0 failed — no regressions
 
 ---
 
@@ -1246,16 +798,16 @@ Evidence
 
 Evidence
 
-* `packages/shared/src/domain/execution-trust-record.ts` (`authorization?: SignedExecutionAuthorization` field)
-* `packages/runtime/src/BusinessTrustRecordBuilder.ts` (captures `context.authorization` into the draft, conditionally, to satisfy `exactOptionalPropertyTypes`)
-* `packages/crypto/src/VerificationCrypto.ts` (`canonicalRecord()` includes `authorization`)
-* `supabase/migrations/20260907120000_add_authorization_and_hybrid_signatures_to_execution_trust_records.sql` (`authorization_json`, `schema_version`, `signatures_json` columns, all nullable)
-* `packages/storage/src/supabase/SupabaseExecutionTrustRecordRepository.ts` (`create()`/`findByTransactionId()` persist and retrieve all three)
-* `packages/crypto/tests/unit/verification-crypto-authorization.test.ts` (4 cases: verifies with authorization absent; verifies with it present, hash differs from the same record without it; fails closed on a tampered authorization; a record built with the literal pre-fix draft shape hashes identically to one built with `authorization: undefined`)
-* `packages/runtime/tests/unit/business-trust-record-builder.test.ts` (2 cases: captures a present authorization onto the built record; leaves the key genuinely absent, not `undefined`, when RuntimeContext has none)
-* `packages/storage/tests/unit/supabase-execution-trust-record-repository.test.ts` (2 new cases: full round-trip of `authorization`/`schemaVersion`/`signatures` against a fake `pg.Pool`; a legacy row with none of the three persisted returns them as genuinely absent)
-* `python/parmana/models/trust_record.py` regenerated to match (`npm run check:python-models` clean)
-* Full repo `npx tsc -b`, `npx eslint . --ext .ts`, and `npx vitest run` all clean: 1514 passed, 38 pre-existing skips, 0 failed. Commit `6303801`
+- `packages/shared/src/domain/execution-trust-record.ts` (`authorization?: SignedExecutionAuthorization` field)
+- `packages/runtime/src/BusinessTrustRecordBuilder.ts` (captures `context.authorization` into the draft, conditionally, to satisfy `exactOptionalPropertyTypes`)
+- `packages/crypto/src/VerificationCrypto.ts` (`canonicalRecord()` includes `authorization`)
+- `supabase/migrations/20260907120000_add_authorization_and_hybrid_signatures_to_execution_trust_records.sql` (`authorization_json`, `schema_version`, `signatures_json` columns, all nullable)
+- `packages/storage/src/supabase/SupabaseExecutionTrustRecordRepository.ts` (`create()`/`findByTransactionId()` persist and retrieve all three)
+- `packages/crypto/tests/unit/verification-crypto-authorization.test.ts` (4 cases: verifies with authorization absent; verifies with it present, hash differs from the same record without it; fails closed on a tampered authorization; a record built with the literal pre-fix draft shape hashes identically to one built with `authorization: undefined`)
+- `packages/runtime/tests/unit/business-trust-record-builder.test.ts` (2 cases: captures a present authorization onto the built record; leaves the key genuinely absent, not `undefined`, when RuntimeContext has none)
+- `packages/storage/tests/unit/supabase-execution-trust-record-repository.test.ts` (2 new cases: full round-trip of `authorization`/`schemaVersion`/`signatures` against a fake `pg.Pool`; a legacy row with none of the three persisted returns them as genuinely absent)
+- `python/parmana/models/trust_record.py` regenerated to match (`npm run check:python-models` clean)
+- Full repo `npx tsc -b`, `npx eslint . --ext .ts`, and `npx vitest run` all clean: 1514 passed, 38 pre-existing skips, 0 failed. Commit `6303801`
 
 ---
 
@@ -1277,140 +829,98 @@ Evidence
 
 Evidence
 
-* `packages/api/src/governance/verifyPolicyGovernanceIntegrityAtStartup.ts` (`"signature-invalid"`, `"chain-broken"` mismatch reasons)
-* `packages/api/src/governance/PolicyChangeApprovalService.ts` (`previousRecordHash` computation)
-* `packages/shared/src/domain/policy-change-approval-record.ts` (`previousRecordHash` field)
-* `packages/crypto/src/PolicyChangeCrypto.ts` (`canonicalRecord()` includes `previousRecordHash`)
-* `packages/api/src/bootstrap/policyGovernanceIntegrityCheckRunner.ts`, `schedulePolicyGovernanceIntegrityCheck.ts`, `runPolicyGovernanceIntegrityCheckAtStartup.ts`, `server.ts`
-* `supabase/migrations/20260907130000_add_previous_record_hash_to_policy_change_approval_records.sql`, `packages/storage/src/supabase/SupabasePolicyChangeApprovalRecordRepository.ts`
-* `packages/policy/src/PolicyValidator.ts` (`validateRegex()` length cap + nested-quantifier heuristic, `findUncoveredFacts()` surfaced via `coverageWarnings`)
-* `packages/api/src/routes/pending-policy-changes.ts` (`coverageWarnings` on propose response and diff listing)
-* `scripts/backfill-legacy-policy-approvals.ts` (dry-run by default; excludes any pair with an open `PendingPolicyChange`)
-* `packages/api/tests/unit/verifyPolicyGovernanceIntegrityAtStartup.test.ts` (9 cases, including new `"signature-invalid"`/`"chain-broken"` coverage)
-* Independent audit artifact (2026-09-07): https://claude.ai/code/artifact/0a454f3f-055c-47c1-a4ff-5401ad582dd0
-* Commits `437f5ec` (signature verification, chaining, continuous checks, minor hardening, dead-code removal), `4e1a8e3` (backfill-script fix)
+- `packages/api/src/governance/verifyPolicyGovernanceIntegrityAtStartup.ts` (`"signature-invalid"`, `"chain-broken"` mismatch reasons)
+- `packages/api/src/governance/PolicyChangeApprovalService.ts` (`previousRecordHash` computation)
+- `packages/shared/src/domain/policy-change-approval-record.ts` (`previousRecordHash` field)
+- `packages/crypto/src/PolicyChangeCrypto.ts` (`canonicalRecord()` includes `previousRecordHash`)
+- `packages/api/src/bootstrap/policyGovernanceIntegrityCheckRunner.ts`, `schedulePolicyGovernanceIntegrityCheck.ts`, `runPolicyGovernanceIntegrityCheckAtStartup.ts`, `server.ts`
+- `supabase/migrations/20260907130000_add_previous_record_hash_to_policy_change_approval_records.sql`, `packages/storage/src/supabase/SupabasePolicyChangeApprovalRecordRepository.ts`
+- `packages/policy/src/PolicyValidator.ts` (`validateRegex()` length cap + nested-quantifier heuristic, `findUncoveredFacts()` surfaced via `coverageWarnings`)
+- `packages/api/src/routes/pending-policy-changes.ts` (`coverageWarnings` on propose response and diff listing)
+- `scripts/backfill-legacy-policy-approvals.ts` (dry-run by default; excludes any pair with an open `PendingPolicyChange`)
+- `packages/api/tests/unit/verifyPolicyGovernanceIntegrityAtStartup.test.ts` (9 cases, including new `"signature-invalid"`/`"chain-broken"` coverage)
+- Independent audit artifact (2026-09-07): https://claude.ai/code/artifact/0a454f3f-055c-47c1-a4ff-5401ad582dd0
+- Commits `437f5ec` (signature verification, chaining, continuous checks, minor hardening, dead-code removal), `4e1a8e3` (backfill-script fix)
 
 ---
 
 ## 2.35 Execution-Time Policy Governance Verification (Prevention, Feature-Flagged)
 
-**What this adds.** 2.34 (and 2.26 before it) detect a Policy Governance bypass after the fact — at process startup, or every 5 minutes thereafter. This section adds real prevention on top: a policy with no `PolicyChangeApprovalRecord`, an approval record whose signature does not verify, or live content that no longer matches its approval record's `contentHashAfter` can now be refused *before* `PolicyEngine` ever evaluates a rule in it, not merely flagged up to 5 minutes later.
+**What this adds.** 2.34 (and 2.26 before it) detect a Policy Governance bypass after the fact — at process startup, or every 5 minutes thereafter. This section adds real prevention on top: a policy with no `PolicyChangeApprovalRecord`, an approval record whose signature does not verify, or live content that no longer matches its approval record's `contentHashAfter` can now be refused _before_ `PolicyEngine` ever evaluates a rule in it, not merely flagged up to 5 minutes later.
 
-**Where it actually lives.** A prior implementation runbook assumed the choke point was `packages/api/src/execution-gateway/ExecutionGateway.ts` — that path does not exist. Reading the source directly found the real, single choke point for every policy evaluation to be `RuntimeEngine.execute()` (`packages/runtime/src/RuntimeEngine.ts:210,325` — `policyRouter.load()` then `policyEngine.evaluate()`); `packages/execution-gateway/src/ExecutionGateway.ts` is a separate package that runs *after* authorization, for connector execution, and never calls `PolicyEngine.evaluate()` at all. The new check (`packages/policy/src/types/PolicyExecutionVerifier.ts`, concrete implementation `packages/api/src/governance/PolicyGovernanceExecutionVerifier.ts`) is wired in immediately after the existing G-24 `policyContentHash` computation and before `capabilityPolicyBinder`/`signalIntentBinder` — checking a narrower guarantee against a policy that might itself be illegitimate is meaningless, the same reasoning §2.22/TD-22 already documents for why capability binding runs before signal-intent binding.
+**Where it actually lives.** A prior implementation runbook assumed the choke point was `packages/api/src/execution-gateway/ExecutionGateway.ts` — that path does not exist. Reading the source directly found the real, single choke point for every policy evaluation to be `RuntimeEngine.execute()` (`packages/runtime/src/RuntimeEngine.ts:210,325` — `policyRouter.load()` then `policyEngine.evaluate()`); `packages/execution-gateway/src/ExecutionGateway.ts` is a separate package that runs _after_ authorization, for connector execution, and never calls `PolicyEngine.evaluate()` at all. The new check (`packages/policy/src/types/PolicyExecutionVerifier.ts`, concrete implementation `packages/api/src/governance/PolicyGovernanceExecutionVerifier.ts`) is wired in immediately after the existing G-24 `policyContentHash` computation and before `capabilityPolicyBinder`/`signalIntentBinder` — checking a narrower guarantee against a policy that might itself be illegitimate is meaningless, the same reasoning §2.22/TD-22 already documents for why capability binding runs before signal-intent binding.
 
 **Same optional-dependency idiom as every other pluggable protection in `RuntimeEngine`.** `policyExecutionVerifier` is a new, trailing, optional constructor parameter — the same pattern `signalStateVerifier`/`capabilityPolicyBinder` already use. When omitted, current behavior is unchanged. When supplied and it finds a violation, that becomes an ordinary `PolicyDecision` with `outcome: REJECT` and `matchedRuleId: "policy-execution-verification-violation"` — flowing through the exact same refusal-recording (RFC-0021) and fail-closed `ExecutionGate.enforce()` path every other rejection already uses. No new throw-and-audit-separately mechanism was added; a prior runbook proposed one, and it was deliberately not built, since it would have bypassed the trust/refusal-recording pipeline every other rejection in this codebase goes through.
 
 **Feature-flagged, default OFF — this was a decision, not an oversight.** `createPolicyExecutionVerifier()` (`packages/api/src/bootstrap/createPolicyExecutionVerifier.ts`) returns `undefined` unless `POLICY_EXECUTION_VERIFICATION_ENFORCED=true` is set. This is deliberate: as of this writing, every real production policy in this system is still `PENDING_APPROVAL` with zero rows in `policy_change_approval_records` (2.26's "Legacy-policy backfill" entry, ten policies proposed 2026-08-19). Enabling this gate unconditionally would refuse every execution in the system today, not merely a genuine bypass. Before writing any code, this exact tradeoff was put to the user directly (an always-on gate vs. a warn-only stage vs. a feature flag vs. not building it yet); the user chose the feature-flagged default-off option, specifically to avoid a choice between bricking production and fabricating synthetic approvals for the ten real pending policies to work around it — the latter being exactly what 2.34's backfill-script fix (`4e1a8e3`) already refused to do for a different reason.
 
-**What this does not change.** The CI merge-gate requirement described in 2.26 ("Preventive Git-layer enforcement") is unchanged — still fail-closed in CI, still not a *required* GitHub status check, still blocked by GitHub plan/repository-visibility limits external to this codebase, not attempted again here.
+**What this does not change.** The CI merge-gate requirement described in 2.26 ("Preventive Git-layer enforcement") is unchanged — still fail-closed in CI, still not a _required_ GitHub status check, still blocked by GitHub plan/repository-visibility limits external to this codebase, not attempted again here.
 
 Evidence
 
-* `packages/policy/src/types/PolicyExecutionVerifier.ts` (`PolicyExecutionVerifier`/`PolicyExecutionViolation`, undefined-means-clean)
-* `packages/api/src/governance/PolicyGovernanceExecutionVerifier.ts` (concrete implementation: no-record / bad-signature / content-mismatch checks, in that order)
-* `packages/api/src/bootstrap/createPolicyExecutionVerifier.ts` (env-var gate, documents why default is off)
-* `packages/runtime/src/RuntimeEngine.ts` (constructor param, observability log field, `execute()` wiring before capability/signal-intent binding), `RuntimeBuilder.ts` (`withPolicyExecutionVerifier`), `RuntimeFactory.ts`, `packages/api/src/application.ts`
-* `packages/api/tests/unit/PolicyGovernanceExecutionVerifier.test.ts` (4 cases: no record, bad signature, content mismatch, clean)
-* `packages/api/tests/unit/bootstrap/create-policy-execution-verifier.test.ts` (3 cases: unset, non-`"true"` values, enabled)
-* `packages/runtime/tests/e2e/runtime.e2e.test.ts` (2 new cases: a configured violation rejects before `PolicyEngine` runs; no violation leaves execution unaffected), `packages/runtime/tests/unit/optional-protections-logging.test.ts` (1 new case)
-* `examples/tutorials/104-policy-governance-execution-verification/run.ts` (runnable narrative, no HTTP server: an approved policy executes normally, a policy with no approval record is refused, a policy edited outside the governed API is refused and independently caught by `verifyPolicyGovernanceIntegrityAtStartup()` too, and a tampered approval record is refused on signature failure — added in the same pass as this evidence update, registered in `scripts/run-examples.ts`)
-* Full repo `npx tsc -b` and `npx vitest run` clean: 1544 passed, 38 pre-existing skips, 0 failed. Commit `7a1aa37`
+- `packages/policy/src/types/PolicyExecutionVerifier.ts` (`PolicyExecutionVerifier`/`PolicyExecutionViolation`, undefined-means-clean)
+- `packages/api/src/governance/PolicyGovernanceExecutionVerifier.ts` (concrete implementation: no-record / bad-signature / content-mismatch checks, in that order)
+- `packages/api/src/bootstrap/createPolicyExecutionVerifier.ts` (env-var gate, documents why default is off)
+- `packages/runtime/src/RuntimeEngine.ts` (constructor param, observability log field, `execute()` wiring before capability/signal-intent binding), `RuntimeBuilder.ts` (`withPolicyExecutionVerifier`), `RuntimeFactory.ts`, `packages/api/src/application.ts`
+- `packages/api/tests/unit/PolicyGovernanceExecutionVerifier.test.ts` (4 cases: no record, bad signature, content mismatch, clean)
+- `packages/api/tests/unit/bootstrap/create-policy-execution-verifier.test.ts` (3 cases: unset, non-`"true"` values, enabled)
+- `packages/runtime/tests/e2e/runtime.e2e.test.ts` (2 new cases: a configured violation rejects before `PolicyEngine` runs; no violation leaves execution unaffected), `packages/runtime/tests/unit/optional-protections-logging.test.ts` (1 new case)
+- `examples/tutorials/104-policy-governance-execution-verification/run.ts` (runnable narrative, no HTTP server: an approved policy executes normally, a policy with no approval record is refused, a policy edited outside the governed API is refused and independently caught by `verifyPolicyGovernanceIntegrityAtStartup()` too, and a tampered approval record is refused on signature failure — added in the same pass as this evidence update, registered in `scripts/run-examples.ts`)
+- Full repo `npx tsc -b` and `npx vitest run` clean: 1544 passed, 38 pre-existing skips, 0 failed. Commit `7a1aa37`
 
 ---
-
-
 
 # 3. Conditional Claims
 
-
-
 The following claims are true only under an explicitly stated scope. The scope clause is load-bearing: removing it makes the claim false.
 
-
-
 ---
-
-
 
 ## 3.1 Non-Bypassable Envelope Verification (Scoped)
 
-
-
 For any system running the Parmana envelope verifier, execution requests not authorized by Parmana are cryptographically impossible to accept.
-
-
 
 This claim holds only for a receiving system that (a) runs @parmana/envelope-verifier and (b) gates every execution-triggering code path behind its verification result. Parmana enforces nothing at the network level. A receiving system that does not call the verifier, or that calls it but does not act on a failing result, is not covered by this claim.
 
-
-
 Evidence
 
-
-
-* @parmana/envelope-verifier (EnvelopeVerifier.verify, requireParmanaAuthorization)
-
-
+- @parmana/envelope-verifier (EnvelopeVerifier.verify, requireParmanaAuthorization)
 
 ---
-
-
 
 ## 3.2 Fleet-Wide Single-Use Requires a Shared NonceStore
 
-
-
 Single-use enforcement of an authorization's nonce is scoped to whichever NonceStore instance performs the check. If multiple independent receiving systems, or multiple instances of the same system, each use their own NonceStore, the same authorization can be accepted once per instance. Fleet-wide single-use requires every instance to share one persistent NonceStore that survives a process restart, not a per-process, in-memory one.
-
-
 
 Parmana's own production gateway does this by default. `packages/api/src/bootstrap/createNonceStore.ts` wires in `SupabaseNonceStore` (`packages/storage/src/supabase/SupabaseNonceStore.ts`), a durable, Postgres-backed NonceStore shared across every process pointed at the same Supabase project, and fails closed at startup if it is not configured, rather than silently falling back to a per-process `MemoryNonceStore`. A receiving system that does not share a persistent NonceStore (whether by choice, misconfiguration, or because it is not Parmana's own gateway) still has its exposure window bounded by the envelope's short TTL, not unlimited. This is the general, deployment-agnostic version of the claim, and still the correct one for any `@parmana/envelope-verifier` integrator supplying their own NonceStore choice; `MemoryNonceStore` remains available and correct for tests.
 
-
-
 Evidence
 
+- NonceStore / MemoryNonceStore / SupabaseNonceStore
 
+- packages/api/src/bootstrap/createNonceStore.ts (production wiring; fails closed when Supabase is not configured, never falls back to in-memory)
 
-* NonceStore / MemoryNonceStore / SupabaseNonceStore
+- packages/storage/tests/integration/supabase-nonce-store.integration.test.ts: "a nonce consumed through one store instance is still consumed by a fresh instance against the same backing" (the fleet-sharing / restart-survival proof) and "two simultaneous checkAndRecord calls for the same nonce: exactly one succeeds" (a real concurrent-INSERT race against Postgres, not a simulated one)
 
-* packages/api/src/bootstrap/createNonceStore.ts (production wiring; fails closed when Supabase is not configured, never falls back to in-memory)
-
-* packages/storage/tests/integration/supabase-nonce-store.integration.test.ts: "a nonce consumed through one store instance is still consumed by a fresh instance against the same backing" (the fleet-sharing / restart-survival proof) and "two simultaneous checkAndRecord calls for the same nonce: exactly one succeeds" (a real concurrent-INSERT race against Postgres, not a simulated one)
-
-* packages/envelope-verifier/README.md ("Claims", "PRODUCTION WARNING: MemoryNonceStore")
-
-
+- packages/envelope-verifier/README.md ("Claims", "PRODUCTION WARNING: MemoryNonceStore")
 
 ---
-
-
 
 ## 3.3 Connector SDK Foundation (Scoped)
 
-
-
 @parmana/connector-sdk defines a Connector authoring contract (Connector, ConnectorRequest, ConnectorResponse, ConnectorExecutionContext, ConnectorCapability, ConnectorMetadata, ConnectorVersion, ConnectorHealth, ConnectorFactory) and extends execution-control's ConnectorRegistry, CredentialVault, and ConnectorPolicy seams without modifying them. This claim covers only the foundation: two reference connectors (HttpConnector, MockConnector), a credential-provider seam (StaticCredentialProvider, EnvironmentCredentialProvider), and deterministic connector evidence attached to the existing Execution Trust Record via the existing, unmodified ExecutionEvidence.attributes path and the existing TrustRecordHasher. It does not claim any enterprise-specific connector, any cloud secret-manager integration, or any change to Phase 1's Runtime, Policy Engine, Execution Gateway, Replay, Receipt Generation, Verification, or REST API; all of which remain exactly as evidenced elsewhere in this document.
-
-
 
 Evidence
 
+- packages/connector-sdk/src (Connector, CredentialProvider, MockConnector) — ConnectorRegistry itself is not defined here; it lives at packages/execution-control/src/ConnectorRegistry.ts, extended (not duplicated) by connector-sdk, per the seam described above
 
+- packages/connector-sdk/tests/unit (4 files, 32 tests: registry, credential-provider leak checks, MockConnector, reference-policy evaluation)
 
-* packages/connector-sdk/src (Connector, CredentialProvider, MockConnector) — ConnectorRegistry itself is not defined here; it lives at packages/execution-control/src/ConnectorRegistry.ts, extended (not duplicated) by connector-sdk, per the seam described above
-
-* packages/connector-sdk/tests/unit (4 files, 32 tests: registry, credential-provider leak checks, MockConnector, reference-policy evaluation)
-
-* policies/connector-capability/1.0.0/policy.json (reference policy: ALLOW crm:read, BLOCK crm:delete, threshold-gated payments:refund, default BLOCK, no approval-workflow outcome)
+- policies/connector-capability/1.0.0/policy.json (reference policy: ALLOW crm:read, BLOCK crm:delete, threshold-gated payments:refund, default BLOCK, no approval-workflow outcome)
 
 **Update (2026-08-24 documentation-currency pass):** `HttpConnector`, `SdkConnectorExecutor`, and `CapabilityConnectorPolicy` no longer live in `packages/connector-sdk/src` — all three moved to `packages/execution-gateway` during the Phase 1C execution-ownership refactor (the same refactor §3.10's own "Update (execution-ownership refactor, Phase 1C)" paragraph documents for the HubSpot connector; this section was never given the equivalent update at the time). Current locations: `packages/execution-gateway/src/HttpConnector.ts`, `packages/execution-gateway/src/connector-execution/SdkConnectorExecutor.ts`, `packages/execution-gateway/src/connector-runtime/CapabilityConnectorPolicy.ts`. The previously-cited "45 tests" count was also stale — `packages/connector-sdk/tests/unit` now holds 4 files / 32 tests (re-run and confirmed); the HttpConnector-timeout, end-to-end Gateway integration, and Trust Record hash-boundary regression tests this section originally described moved to `packages/execution-gateway/tests` along with the classes they exercise.
 
-
-
 ---
-
-
 
 ## 3.8 Deployed Environment: Full Chain via a Permanent Public Endpoint (Scoped) — Historical: Razorpay connector removed 2026-08-12
 
@@ -1418,55 +928,29 @@ Evidence
 
 Closes the last gap 3.7 (now removed; see this claim's own history in `docs/site/changelog.mdx`) left open: a real Razorpay-initiated webhook delivery had previously been proven only against a temporary `cloudflared` tunnel run locally, with no standing infrastructure. This claim proved the identical full chain — a real refund, a real Razorpay-initiated webhook, signature-verified, correlated, and closed into a signed Settlement Confirmation — against Parmana's actual deployed instance, reachable at a permanent public URL, continuously running, not a one-time local exercise.
 
-
-
 **Deployment**: `parmana-api`, a single Docker image (see DEPLOYMENT.md), running on Fly.io across two machines in the `lhr` region (`fly.toml` declares `primary_region = 'bom'`; the actually running machines are `lhr` — this claim states the observed region, not the configured one). Durable storage (`PARMANA_STORAGE=supabase`) and the webhook/settlement event stores are Supabase-backed, shared across both machines. The API requires caller authentication at every route except `/health`, `/ready`, `/openapi.yaml`, `/documentation`, `POST /refusal/verify`, and `POST /audit/verify` (2.16): an unauthenticated `POST /execute` was observed returning `401` with `WWW-Authenticate: Bearer realm="Parmana"`, never falling open.
-
-
 
 `POST /webhooks/razorpay` is registered permanently — not through a tunnel — at `https://parmana-api.fly.dev/webhooks/razorpay`, in the Razorpay Dashboard's Test Mode, for `refund.processed` and `refund.failed`.
 
-
-
 **Procedure**: one authenticated, gated 100-paise refund was created through the full production `POST /execute` chain against the same manually captured test-mode payment 3.4/3.7 use, executed against the deployed instance. Razorpay created the refund (id redacted `rfnd_**********T9Cj`) and, independently, delivered a genuine `refund.processed` webhook to the permanent endpoint above. The deployed instance's webhook route verified its signature against the rotated `RAZORPAY_WEBHOOK_SECRET`, persisted the event, and the deployed settlement poll loop (`scripts/process-razorpay-settlements.ts`, `pollIntervalMs: 15000`) drained it: fetch-verified the refund's real status directly from Razorpay, and appended a signed `SETTLED` Settlement Confirmation (`confirmationId dcb06247-6e7a-4adf-b709-5da407f0b054`, `fetchedRefundStatus: "processed"`) to the Execution Trust Record, surfaced correctly on `GET /verification/{businessTransactionId}`. Elapsed time from `POST /execute` to the signed `SETTLED` confirmation: approximately 48 seconds.
-
-
 
 Correlation is proven by construction, not just observation: `RazorpaySettlementProcessor` never queries Razorpay for refunds on its own — `runOnce()` only drains events already sitting in the durable webhook event store, and the only code path that ever writes to that store is the webhook route, only after signature verification succeeds. Since the business transaction id driving this refund was freshly generated for this exercise, a matching event could only have entered the store via a genuinely delivered, correctly signed webhook POST from Razorpay to the permanent endpoint above.
 
-
-
 This claim is scoped narrowly: one real delivery, test mode only, against a permanent endpoint. It does not claim live-mode operation, load-bearing traffic, or high availability — the deployment runs two machines for redundancy, not for capacity or failover behavior that has been tested. [FUTURE] live-mode operation remains open (see 3.4/Future Claims).
-
-
 
 Evidence
 
+- `fly.toml`, `Dockerfile`, `docker/entrypoint.sh` (deployment shape)
 
+- `packages/api/src/routes/ready.ts` (readiness probe distinguishing Supabase-backed storage from in-memory)
 
-* `fly.toml`, `Dockerfile`, `docker/entrypoint.sh` (deployment shape)
+- `packages/api/src/middleware/caller-auth.ts` (401 + `WWW-Authenticate` on missing credential, observed live against the deployed instance)
 
+- `scripts/process-razorpay-settlements.ts` (the deployed settlement poll loop; `RAZORPAY_SETTLEMENT_POLL_INTERVAL_MS`) — **deleted 2026-08-12** along with the rest of the Razorpay connector; cited here as an accurate historical record of what this file did while it existed, not as a currently-resolvable path
 
-
-* `packages/api/src/routes/ready.ts` (readiness probe distinguishing Supabase-backed storage from in-memory)
-
-
-
-* `packages/api/src/middleware/caller-auth.ts` (401 + `WWW-Authenticate` on missing credential, observed live against the deployed instance)
-
-
-
-* `scripts/process-razorpay-settlements.ts` (the deployed settlement poll loop; `RAZORPAY_SETTLEMENT_POLL_INTERVAL_MS`) — **deleted 2026-08-12** along with the rest of the Razorpay connector; cited here as an accurate historical record of what this file did while it existed, not as a currently-resolvable path
-
-
-
-* Live smoke test performed against `https://parmana-api.fly.dev` this session: unauthenticated `POST /execute` → `401`; one authenticated 100-paise refund via `POST /execute`; `GET /verification/{businessTransactionId}` polled until `settlement.status: "SETTLED"` (confirmationId `dcb06247-6e7a-4adf-b709-5da407f0b054`, `fetchedRefundStatus: "processed"`, refund id redacted `rfnd_**********T9Cj`)
-
-
+- Live smoke test performed against `https://parmana-api.fly.dev` this session: unauthenticated `POST /execute` → `401`; one authenticated 100-paise refund via `POST /execute`; `GET /verification/{businessTransactionId}` polled until `settlement.status: "SETTLED"` (confirmationId `dcb06247-6e7a-4adf-b709-5da407f0b054`, `fetchedRefundStatus: "processed"`, refund id redacted `rfnd_**********T9Cj`)
 
 ---
-
-
 
 ## 3.9 Deployed Environment: Live-Mode Full Chain (Scoped) — Historical: Razorpay connector removed 2026-08-12
 
@@ -1474,47 +958,25 @@ Evidence
 
 Closes the gap 3.8 (and the now-removed 3.4) left open: every live claim before this one was against Razorpay's test-mode API only. This claim proved the identical full chain — a real refund, a real Razorpay-initiated webhook, signature-verified, correlated, and closed into a signed Settlement Confirmation — in Razorpay **Live Mode**, against a second, separately deployed instance.
 
-
-
 **Deployment**: `parmana-api-live`, the same Docker image (see DEPLOYMENT.md), running on Fly.io in the `sin` region (`fly.live.toml` declares `primary_region = 'sin'`; the actually running machines are also `sin` — no region mismatch this time, unlike 3.8's `parmana-api`). Durable storage (`PARMANA_STORAGE=supabase`) and the webhook/settlement event stores are Supabase-backed, shared across both machines. `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET` are a live-mode (`rzp_live_`) key pair, distinct from every other credential used elsewhere in this document. Caller authentication is enforced identically to 3.8: an unauthenticated `POST /execute` was observed returning `401` with `WWW-Authenticate: Bearer realm="Parmana"` against this deployment specifically.
-
-
 
 `POST /webhooks/razorpay` is registered permanently at `https://parmana-api-live.fly.dev/webhooks/razorpay`, in the Razorpay Dashboard's **Live Mode** specifically (not Test Mode — see 3.7/3.8 for the debugging cost of getting this wrong), for `refund.processed` and `refund.failed`.
 
-
-
 **Procedure**: a real ₹10.00 Payment Link was created and paid with a real card, live, through Razorpay-hosted checkout. One authenticated, policy-gated 100-paise refund was then created through the full production `POST /execute` chain against that payment (`pay_` id redacted below). Razorpay created the refund (id redacted `rfnd_**********WnNG`) and, independently, delivered a genuine `refund.processed` webhook to the permanent endpoint above. The deployed instance's webhook route verified its signature, persisted the event, and the deployed settlement poll loop drained it: fetch-verified the refund's real status directly from Razorpay, and appended a signed `SETTLED` Settlement Confirmation (`confirmationId 6a334df8-190d-4835-9050-b54e6657e05f`, `fetchedRefundStatus: "processed"`), surfaced correctly on `GET /verification/{businessTransactionId}`. Elapsed time from `POST /execute` to the signed `SETTLED` confirmation: approximately 43 seconds.
-
-
 
 Correlation is proven by construction, for the same reason 3.8 states: the settlement processor never queries Razorpay on its own initiative — `runOnce()` only drains events already sitting in the durable webhook event store, and the only writer to that store is the webhook route, only after signature verification succeeds. The `businessTransactionId` driving this refund was freshly generated for this exercise, so a matching event could only have entered the store via a genuinely delivered, correctly signed Live Mode webhook POST from Razorpay.
 
-
-
 This claim is scoped narrowly and deliberately: **one** real-money refund (₹1.00 / 100 paise), one deployed instance, one live-mode webhook delivery. It does not claim volume, sustained load, high availability, or tested failover behavior — `parmana-api-live` runs the same two-machine shape as `parmana-api` for redundancy, not capacity or failover that has been exercised. It does not claim Razorpay payout creation (RazorpayX remains a distinct, unimplemented item — see Future Claims), and it does not claim any change to Phase 1's Runtime, Policy Engine, Execution Gateway, Replay, Receipt Generation, Verification, or REST API.
-
-
 
 Evidence
 
+- `fly.live.toml` (app `parmana-api-live`, `primary_region = 'sin'`) — **deleted 2026-08-12** along with the rest of the Razorpay connector; cited here as an accurate historical record, not as a currently-resolvable path
 
+- `packages/api/src/middleware/caller-auth.ts` (401 + `WWW-Authenticate` on missing credential, observed live against this deployment)
 
-* `fly.live.toml` (app `parmana-api-live`, `primary_region = 'sin'`) — **deleted 2026-08-12** along with the rest of the Razorpay connector; cited here as an accurate historical record, not as a currently-resolvable path
-
-
-
-* `packages/api/src/middleware/caller-auth.ts` (401 + `WWW-Authenticate` on missing credential, observed live against this deployment)
-
-
-
-* Live execution performed against `https://parmana-api-live.fly.dev` this session: unauthenticated `POST /execute` → `401`; a real ₹10 Payment Link paid live with a real card; one authenticated 100-paise refund via `POST /execute` against that payment; `GET /verification/{businessTransactionId}` polled until `settlement.status: "SETTLED"` (confirmationId `6a334df8-190d-4835-9050-b54e6657e05f`, `fetchedRefundStatus: "processed"`, refund id redacted `rfnd_**********WnNG`)
-
-
+- Live execution performed against `https://parmana-api-live.fly.dev` this session: unauthenticated `POST /execute` → `401`; a real ₹10 Payment Link paid live with a real card; one authenticated 100-paise refund via `POST /execute` against that payment; `GET /verification/{businessTransactionId}` polled until `settlement.status: "SETTLED"` (confirmationId `6a334df8-190d-4835-9050-b54e6657e05f`, `fetchedRefundStatus: "processed"`, refund id redacted `rfnd_**********WnNG`)
 
 ---
-
-
 
 ## 3.10 HubSpot Deal Stage/Amount Update Connector (Scoped)
 
@@ -1524,10 +986,11 @@ Evidence
 
 Learning directly from this codebase's own Razorpay incidents, both fixes are structural in this connector's first version rather than retrofitted after the fact:
 
-* **Placeholder-credential guard, from day one.** `RazorpayConnector` originally had no guard against sending its built-in test-mode placeholder credential to Razorpay's real production API — it survived only because Razorpay happened to reject an unrecognized key, an accident of Razorpay's behavior, not a guarantee this codebase controlled (see 3.4's "defense-in-depth fix" paragraph, added only after the gap was noticed). `HubSpotConnector` refuses, before any network call, to send `HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN` to HubSpot's real API (`https://api.hubapi.com`) unless `baseUrl` is explicitly overridden to a mock server — the same shape of guard, present from this connector's very first version, not added after an incident.
+- **Placeholder-credential guard, from day one.** `RazorpayConnector` originally had no guard against sending its built-in test-mode placeholder credential to Razorpay's real production API — it survived only because Razorpay happened to reject an unrecognized key, an accident of Razorpay's behavior, not a guarantee this codebase controlled (see 3.4's "defense-in-depth fix" paragraph, added only after the gap was noticed). `HubSpotConnector` refuses, before any network call, to send `HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN` to HubSpot's real API (`https://api.hubapi.com`) unless `baseUrl` is explicitly overridden to a mock server — the same shape of guard, present from this connector's very first version, not added after an incident.
 
 **Update (execution-ownership refactor, Phase 1C):** `HubSpotConnector`'s executable class -- including the property allowlist guard and the placeholder-credential guard both described above -- was migrated verbatim to `GatewayHubSpotAdapter` (`packages/execution-gateway/src/connector-execution/GatewayHubSpotAdapter.ts`), mirroring 3.4's identical Razorpay migration exactly (same commit, same "migrated verbatim... only the executable class moved" pattern). `HubSpotDealUpdateService` and `HubSpotDealUpdateHarness` no longer exist anywhere in the repository; capability identifiers and DTOs (`HubSpotCapabilities.ts`, `HubSpotTypes.ts`) stayed in `@parmana/connector-hubspot` and are imported into the adapter. `MockHubSpotServer.ts` is unchanged at its original path.
-* **No bridge variable, from day one.** `createRazorpayCredentialProvider.ts`'s `NODE_ENV=test` branch originally read a word-order-swapped bridge variable (`TEST_RAZORPAY_KEY_ID`/`SECRET` instead of the documented `RAZORPAY_TEST_KEY_ID`/`SECRET`), fixed only after the fact (this document's own "fix: distinguish policy denial..." and credential-provider commits). `createHubSpotCredentialProvider.ts` reads `TEST_HUBSPOT_PRIVATE_APP_TOKEN` directly — the exact name documented in `.env.example` — with no intermediate variable to drift out of sync. Production reads `HUBSPOT_PRIVATE_APP_TOKEN`; if unset outside test mode, `createHubSpotCredentialProvider()` returns `undefined` and `createConnectorRegistry.ts` does not register the HubSpot connector at all, so `hubspot:deal-fetch`/`hubspot:deal-update` simply have no connector to resolve to (`ConnectorSdkRegistry`'s existing "No connector registered for capability" fail-closed error) — the same fail-closed absence behavior as `RAZORPAY_KEY_ID`/`SECRET`, not a startup crash or a fallback to mock credentials.
+
+- **No bridge variable, from day one.** `createRazorpayCredentialProvider.ts`'s `NODE_ENV=test` branch originally read a word-order-swapped bridge variable (`TEST_RAZORPAY_KEY_ID`/`SECRET` instead of the documented `RAZORPAY_TEST_KEY_ID`/`SECRET`), fixed only after the fact (this document's own "fix: distinguish policy denial..." and credential-provider commits). `createHubSpotCredentialProvider.ts` reads `TEST_HUBSPOT_PRIVATE_APP_TOKEN` directly — the exact name documented in `.env.example` — with no intermediate variable to drift out of sync. Production reads `HUBSPOT_PRIVATE_APP_TOKEN`; if unset outside test mode, `createHubSpotCredentialProvider()` returns `undefined` and `createConnectorRegistry.ts` does not register the HubSpot connector at all, so `hubspot:deal-fetch`/`hubspot:deal-update` simply have no connector to resolve to (`ConnectorSdkRegistry`'s existing "No connector registered for capability" fail-closed error) — the same fail-closed absence behavior as `RAZORPAY_KEY_ID`/`SECRET`, not a startup crash or a fallback to mock credentials.
 
 `MockHubSpotServer` (`packages/connector-hubspot/src/MockHubSpotServer.ts`) is a hermetic, in-memory stand-in for the Deals subset of the CRM Objects API (`GET`/`PATCH /crm/v3/objects/deals/:id`) used by every default test run; it never makes or receives real network traffic beyond localhost.
 
@@ -1546,9 +1009,9 @@ A third, narrower point this milestone originally left unresolved: `preAuthorize
 
 **Test posture, in the order specified for this milestone:**
 
-* **Hermetic first, as originally shipped.** `packages/connector-hubspot/tests/unit/` (42 tests, all passing, no network calls beyond localhost): `hubspot-connector.test.ts` (12 — fetch, dealstage-only update, combined dealstage+amount update, deny-by-default property guard before any network call, empty-update rejection, non-2xx/timeout fail-closed, bad-credential-shape rejection, token never leaked into a thrown error or response metadata, placeholder-credential guard against the real endpoint and its mock-server exemption); `hubspot-deal-update-policy.test.ts` (9 — schema validation and every rule branch, including that no rule ever produces `require_override`); `hubspot-deal-update-signals.test.ts` (12 — `isHubSpotStageTransitionAllowed`'s forward/backward/terminal/unrecognized-stage cases, `buildHubSpotDealUpdateSignals`'s delta/threshold arithmetic and boundSignals-safe omission of absent fields); `hubspot-deal-update-harness.test.ts` (9 — the full authorize → verify → execute → confirm chain against `MockHubSpotServer` for approved dealstage-only, combined, and pre-authorized-over-threshold-amount cases; policy replay with no second HTTP call; token isolation from the receipt; `businessTransactionHash` tamper rejection). **Current location, after the Phase 1C migration and TD-23 (see updates above):** `hubspot-connector.test.ts` moved to `packages/execution-gateway/tests/unit/` (12 tests, unchanged); `hubspot-deal-update-harness.test.ts` no longer exists (`HubSpotDealUpdateHarness` was deleted, not migrated); a new `HubSpotSignalStateVerifier.test.ts` (10 tests) covers the TD-23 Approval Artifact verification instead. **Update (independent claims audit, 2026-08-19):** `packages/execution-gateway/tests/unit/credential-non-exposure.test.ts` (2 tests, new) closes the one credential-isolation property that had not previously been asserted by a dedicated test — that a resolved credential is never retained as `GatewayHubSpotAdapter` instance state between calls, rather than merely being true by inspection of the constructor. Every other credential-isolation property this audit checked (redaction to a one-way fingerprint, error-message isolation, response-metadata safety, zero API calls on policy denial) already had real, passing coverage below; this file was added, not to re-prove them, but to close the one genuine gap. Current total: 45 unit tests across the two packages, all passing.
-* **Policy-denial-makes-zero-calls.** Proven at two layers. At the connector-execution layer (`packages/execution-gateway/tests/unit/hubspot-connector.test.ts`, following the Phase 1C migration above), a denied stage transition or over-threshold amount change makes zero `PATCH` calls, asserted by reading the deal directly off `MockHubSpotServer` afterward and confirming it is byte-for-byte unchanged — the same assertion style Razorpay's own policy-denial cases use. At the HTTP boundary (`packages/api/tests/integration/hubspot-deal-update.integration.test.ts`, 6 tests, all passing — count corrected 2026-08-24, previously cited as 3), a policy `REJECTED` decision reached through the real, production-wired `POST /execute` — the same generic caller-supplied-signals mechanism the now-deleted `razorpay-refund.integration.test.ts`'s own denial test once exercised — is caught in `ExecutionGate.enforce` before `ExecutionComponent` ever dispatches to the connector: `response.status === 403`, `response.body.code === "POLICY_DENIED"`, and (strengthening beyond Razorpay's own precedent, which only checks the mock server's resulting state) a `fetch` spy asserting literally zero calls reached the mock server's base URL at all, for both a disallowed stage transition and an over-threshold amount change.
-* **Gated live suite second — now run live, not merely confirmed to skip.** `packages/api/tests/integration/hubspot-live.integration.test.ts` (3 tests), gated behind `ALLOW_LIVE_HUBSPOT=1` + `TEST_HUBSPOT_PRIVATE_APP_TOKEN` (must start with `pat-`, checked before any network call — mirroring `RAZORPAY_TEST_KEY_ID`'s `rzp_test_` check) + `TEST_HUBSPOT_DEAL_ID` for the third, mutating case, skipped by default so this stays opt-in rather than default `npm test` behavior. An earlier session confirmed only that the suite skips cleanly with no credentials configured; this session ran it live, to completion, against a real HubSpot developer/test account, all **3/3 passing**:
+- **Hermetic first, as originally shipped.** `packages/connector-hubspot/tests/unit/` (42 tests, all passing, no network calls beyond localhost): `hubspot-connector.test.ts` (12 — fetch, dealstage-only update, combined dealstage+amount update, deny-by-default property guard before any network call, empty-update rejection, non-2xx/timeout fail-closed, bad-credential-shape rejection, token never leaked into a thrown error or response metadata, placeholder-credential guard against the real endpoint and its mock-server exemption); `hubspot-deal-update-policy.test.ts` (9 — schema validation and every rule branch, including that no rule ever produces `require_override`); `hubspot-deal-update-signals.test.ts` (12 — `isHubSpotStageTransitionAllowed`'s forward/backward/terminal/unrecognized-stage cases, `buildHubSpotDealUpdateSignals`'s delta/threshold arithmetic and boundSignals-safe omission of absent fields); `hubspot-deal-update-harness.test.ts` (9 — the full authorize → verify → execute → confirm chain against `MockHubSpotServer` for approved dealstage-only, combined, and pre-authorized-over-threshold-amount cases; policy replay with no second HTTP call; token isolation from the receipt; `businessTransactionHash` tamper rejection). **Current location, after the Phase 1C migration and TD-23 (see updates above):** `hubspot-connector.test.ts` moved to `packages/execution-gateway/tests/unit/` (12 tests, unchanged); `hubspot-deal-update-harness.test.ts` no longer exists (`HubSpotDealUpdateHarness` was deleted, not migrated); a new `HubSpotSignalStateVerifier.test.ts` (10 tests) covers the TD-23 Approval Artifact verification instead. **Update (independent claims audit, 2026-08-19):** `packages/execution-gateway/tests/unit/credential-non-exposure.test.ts` (2 tests, new) closes the one credential-isolation property that had not previously been asserted by a dedicated test — that a resolved credential is never retained as `GatewayHubSpotAdapter` instance state between calls, rather than merely being true by inspection of the constructor. Every other credential-isolation property this audit checked (redaction to a one-way fingerprint, error-message isolation, response-metadata safety, zero API calls on policy denial) already had real, passing coverage below; this file was added, not to re-prove them, but to close the one genuine gap. Current total: 45 unit tests across the two packages, all passing.
+- **Policy-denial-makes-zero-calls.** Proven at two layers. At the connector-execution layer (`packages/execution-gateway/tests/unit/hubspot-connector.test.ts`, following the Phase 1C migration above), a denied stage transition or over-threshold amount change makes zero `PATCH` calls, asserted by reading the deal directly off `MockHubSpotServer` afterward and confirming it is byte-for-byte unchanged — the same assertion style Razorpay's own policy-denial cases use. At the HTTP boundary (`packages/api/tests/integration/hubspot-deal-update.integration.test.ts`, 6 tests, all passing — count corrected 2026-08-24, previously cited as 3), a policy `REJECTED` decision reached through the real, production-wired `POST /execute` — the same generic caller-supplied-signals mechanism the now-deleted `razorpay-refund.integration.test.ts`'s own denial test once exercised — is caught in `ExecutionGate.enforce` before `ExecutionComponent` ever dispatches to the connector: `response.status === 403`, `response.body.code === "POLICY_DENIED"`, and (strengthening beyond Razorpay's own precedent, which only checks the mock server's resulting state) a `fetch` spy asserting literally zero calls reached the mock server's base URL at all, for both a disallowed stage transition and an over-threshold amount change.
+- **Gated live suite second — now run live, not merely confirmed to skip.** `packages/api/tests/integration/hubspot-live.integration.test.ts` (3 tests), gated behind `ALLOW_LIVE_HUBSPOT=1` + `TEST_HUBSPOT_PRIVATE_APP_TOKEN` (must start with `pat-`, checked before any network call — mirroring `RAZORPAY_TEST_KEY_ID`'s `rzp_test_` check) + `TEST_HUBSPOT_DEAL_ID` for the third, mutating case, skipped by default so this stays opt-in rather than default `npm test` behavior. An earlier session confirmed only that the suite skips cleanly with no credentials configured; this session ran it live, to completion, against a real HubSpot developer/test account, all **3/3 passing**:
 
   1. `hubspot:deal-fetch` against a deliberately non-existent deal id (`999999999999`), driven through the full production `POST /execute` chain, reached a real, distinguishable `4xx` HTTP response from `api.hubapi.com` — a genuine round trip, not a network failure (reachability only, mirroring `razorpay-live.integration.test.ts`'s non-existent-payment-id cases). One real call observed against `https://api.hubapi.com/crm/v3/objects/deals/999999999999...`, status ≥ 400.
   2. A policy denial (disallowed dealstage transition, `closedlost` → `qualifiedtobuy`) through the same `POST /execute` path returned `403`/`POLICY_DENIED`, and a `fetch` spy confirmed literally zero calls reached `api.hubapi.com` for the denial — `ExecutionGate.enforce` rejects before `ExecutionComponent` ever dispatches to the connector.
@@ -1566,35 +1029,31 @@ A third, narrower point this milestone originally left unresolved: `preAuthorize
 
 Evidence
 
-* `packages/execution-gateway/src/connector-execution/GatewayHubSpotAdapter.ts`, `createGatewayHubSpotConnector.ts` (the executable connector; Bearer-auth PATCH to HubSpot's CRM API, the deny-by-default property allowlist check, and the placeholder-credential guard)
+- `packages/execution-gateway/src/connector-execution/GatewayHubSpotAdapter.ts`, `createGatewayHubSpotConnector.ts` (the executable connector; Bearer-auth PATCH to HubSpot's CRM API, the deny-by-default property allowlist check, and the placeholder-credential guard)
 
-* `packages/connector-hubspot/src` (`HubSpotCapabilities`, `HubSpotMetadata`, `MockHubSpotServer`, `HubSpotTypes`, `HubSpotDealUpdateSignals`, `HubSpotDealUpdateReceipt`, `HubSpotCapabilityExecution`, `HubSpotSignalStateVerifier` — TD-23)
+- `packages/connector-hubspot/src` (`HubSpotCapabilities`, `HubSpotMetadata`, `MockHubSpotServer`, `HubSpotTypes`, `HubSpotDealUpdateSignals`, `HubSpotDealUpdateReceipt`, `HubSpotCapabilityExecution`, `HubSpotSignalStateVerifier` — TD-23)
 
-* `packages/execution-gateway/tests/unit/hubspot-connector.test.ts` (moved from connector-hubspot in the Phase 1C migration, 12 tests), `packages/connector-hubspot/tests/unit/hubspot-deal-update-policy.test.ts`, `hubspot-deal-update-signals.test.ts`, `HubSpotSignalStateVerifier.test.ts` (TD-23), `packages/execution-gateway/tests/unit/credential-non-exposure.test.ts` (independent claims audit, 2026-08-19, 2 tests: credential lifecycle) — 45 tests total
+- `packages/execution-gateway/tests/unit/hubspot-connector.test.ts` (moved from connector-hubspot in the Phase 1C migration, 12 tests), `packages/connector-hubspot/tests/unit/hubspot-deal-update-policy.test.ts`, `hubspot-deal-update-signals.test.ts`, `HubSpotSignalStateVerifier.test.ts` (TD-23), `packages/execution-gateway/tests/unit/credential-non-exposure.test.ts` (independent claims audit, 2026-08-19, 2 tests: credential lifecycle) — 45 tests total
 
-* `policies/hubspot-deal-update/1.0.0/policy.json`
+- `policies/hubspot-deal-update/1.0.0/policy.json`
 
-* `packages/api/src/bootstrap/createHubSpotConnector.ts` (delegates to `createGatewayHubSpotConnector`), `createHubSpotCredentialProvider.ts` (production registration; fails closed, the connector is never registered, when `HUBSPOT_PRIVATE_APP_TOKEN` is unset outside test mode), `createHubSpotSignalStateVerifier.ts` (TD-23), `createConnectorRegistry.ts` (conditional registration), `createConnectorAuthenticator.ts` (hubspot added to the trusted connector identity list)
+- `packages/api/src/bootstrap/createHubSpotConnector.ts` (delegates to `createGatewayHubSpotConnector`), `createHubSpotCredentialProvider.ts` (production registration; fails closed, the connector is never registered, when `HUBSPOT_PRIVATE_APP_TOKEN` is unset outside test mode), `createHubSpotSignalStateVerifier.ts` (TD-23), `createConnectorRegistry.ts` (conditional registration), `createConnectorAuthenticator.ts` (hubspot added to the trusted connector identity list)
 
-* `packages/api/tests/integration/hubspot-deal-update.integration.test.ts` (6 tests, count corrected 2026-08-24 — grew via later TD-22/TD-23 work, previously cited as 3): an approved dealstage update through a real `POST /execute` request against the production bootstrap chain (`createExecutionSystem`), landing on `MockHubSpotServer`; a policy-denied stage transition and a policy-denied over-threshold amount change through the same path, each making zero calls to the mock server (`fetch`-spy asserted); a signal/state-verification mismatch rejection; a TD-22 capability/policy-binding-violation rejection; a TD-23 unbacked-pre-authorization rejection
+- `packages/api/tests/integration/hubspot-deal-update.integration.test.ts` (6 tests, count corrected 2026-08-24 — grew via later TD-22/TD-23 work, previously cited as 3): an approved dealstage update through a real `POST /execute` request against the production bootstrap chain (`createExecutionSystem`), landing on `MockHubSpotServer`; a policy-denied stage transition and a policy-denied over-threshold amount change through the same path, each making zero calls to the mock server (`fetch`-spy asserted); a signal/state-verification mismatch rejection; a TD-22 capability/policy-binding-violation rejection; a TD-23 unbacked-pre-authorization rejection
 
-* `packages/api/tests/integration/hubspot-live.integration.test.ts` (3 tests, gated behind `ALLOW_LIVE_HUBSPOT=1` + `TEST_HUBSPOT_PRIVATE_APP_TOKEN` + `TEST_HUBSPOT_DEAL_ID` for the third case; skipped by default) and `packages/api/tests/helpers/hubspot-live-availability.ts` (the gating logic, originally written mirroring the now-deleted `razorpay-live-availability.ts`). Run live in an earlier session with all three variables configured: **3/3 passing** against a real HubSpot developer/test account — reachability, zero-calls-on-denial, and the non-destructive amount nudge-then-revert against the real test deal (redacted `********0850`), all described above.
+- `packages/api/tests/integration/hubspot-live.integration.test.ts` (3 tests, gated behind `ALLOW_LIVE_HUBSPOT=1` + `TEST_HUBSPOT_PRIVATE_APP_TOKEN` + `TEST_HUBSPOT_DEAL_ID` for the third case; skipped by default) and `packages/api/tests/helpers/hubspot-live-availability.ts` (the gating logic, originally written mirroring the now-deleted `razorpay-live-availability.ts`). Run live in an earlier session with all three variables configured: **3/3 passing** against a real HubSpot developer/test account — reachability, zero-calls-on-denial, and the non-destructive amount nudge-then-revert against the real test deal (redacted `********0850`), all described above.
 
-* SDK dogfooding pass, this session (no live HubSpot credentials available in this environment, so this covers what could actually be checked): `npx tsc --noEmit` against the rewritten file and the full `packages/api/src` project graph, zero errors; `npm run build` in `typescript/` producing `typescript/dist/`, then `node --input-type=module -e "import * as sdk from '@parmana/sdk'; ..."` from the repo root confirming the package resolves through the npm workspace link with every symbol this rewrite imports (`ParmanaClient`, `HttpTransport`, `ExecutionRejectedError`, `InternalServerError`) present; `npx vitest run packages/api/tests/integration/hubspot-live.integration.test.ts` with `ALLOW_LIVE_HUBSPOT` unset, confirming the file imports and skips cleanly (1 file, 3 tests, all skipped — no import, construction, or type error). The live-network-specific assertions above were not re-run.
+- SDK dogfooding pass, this session (no live HubSpot credentials available in this environment, so this covers what could actually be checked): `npx tsc --noEmit` against the rewritten file and the full `packages/api/src` project graph, zero errors; `npm run build` in `typescript/` producing `typescript/dist/`, then `node --input-type=module -e "import * as sdk from '@parmana/sdk'; ..."` from the repo root confirming the package resolves through the npm workspace link with every symbol this rewrite imports (`ParmanaClient`, `HttpTransport`, `ExecutionRejectedError`, `InternalServerError`) present; `npx vitest run packages/api/tests/integration/hubspot-live.integration.test.ts` with `ALLOW_LIVE_HUBSPOT` unset, confirming the file imports and skips cleanly (1 file, 3 tests, all skipped — no import, construction, or type error). The live-network-specific assertions above were not re-run.
 
-* `.env.example` (`HUBSPOT_PRIVATE_APP_TOKEN`, `TEST_HUBSPOT_PRIVATE_APP_TOKEN`, `ALLOW_LIVE_HUBSPOT`, `TEST_HUBSPOT_DEAL_ID`, `HUBSPOT_BASE_URL`)
+- `.env.example` (`HUBSPOT_PRIVATE_APP_TOKEN`, `TEST_HUBSPOT_PRIVATE_APP_TOKEN`, `ALLOW_LIVE_HUBSPOT`, `TEST_HUBSPOT_DEAL_ID`, `HUBSPOT_BASE_URL`)
 
-* Full monorepo suite run this session (`npm test`, `TEST_HUBSPOT_PRIVATE_APP_TOKEN`/`ALLOW_LIVE_HUBSPOT`/`TEST_HUBSPOT_DEAL_ID` configured so the HubSpot live suite ran rather than skipped): 710 passed, 35 skipped (the remaining gated live suites this environment did not opt into — Supabase, Razorpay), 0 failed. A separate, prior run of this same suite with no live credentials configured observed 707 passed / 37 skipped, confirming the HubSpot live suite's 3 tests move cleanly from skipped to passing and nothing else regresses. `npm run typecheck` and `npm run lint` both clean in both runs.
+- Full monorepo suite run this session (`npm test`, `TEST_HUBSPOT_PRIVATE_APP_TOKEN`/`ALLOW_LIVE_HUBSPOT`/`TEST_HUBSPOT_DEAL_ID` configured so the HubSpot live suite ran rather than skipped): 710 passed, 35 skipped (the remaining gated live suites this environment did not opt into — Supabase, Razorpay), 0 failed. A separate, prior run of this same suite with no live credentials configured observed 707 passed / 37 skipped, confirming the HubSpot live suite's 3 tests move cleanly from skipped to passing and nothing else regresses. `npm run typecheck` and `npm run lint` both clean in both runs.
 
-**Update (Phase 3D certification follow-up):** `redactHubSpotToken` (`HubSpotTypes.ts`) no longer truncates the literal Private App token (previously: first 12 characters plus an ellipsis — for HubSpot the bearer token *is* the entire credential, so this was a genuine fragment of the actual secret). It now returns a one-way, truncated SHA-256 fingerprint (`fp_` + 12 hex chars), preserving the operational "same token used across these executions" signal with zero credential bytes reaching `ConnectorResponse.metadata`, the Trust Record, or the `POST /execute` response body. `hubspot-connector.test.ts`'s redaction test now asserts the response body contains no substring of the token at all.
+**Update (Phase 3D certification follow-up):** `redactHubSpotToken` (`HubSpotTypes.ts`) no longer truncates the literal Private App token (previously: first 12 characters plus an ellipsis — for HubSpot the bearer token _is_ the entire credential, so this was a genuine fragment of the actual secret). It now returns a one-way, truncated SHA-256 fingerprint (`fp_` + 12 hex chars), preserving the operational "same token used across these executions" signal with zero credential bytes reaching `ConnectorResponse.metadata`, the Trust Record, or the `POST /execute` response body. `hubspot-connector.test.ts`'s redaction test now asserts the response body contains no substring of the token at all.
 
 **Update (GitHub connector, §3.17):** the credential-isolation pattern this section describes — provider-resolved, `execute()`-scoped-local, redacted to a one-way fingerprint before it can reach any response or audit record, zero external API calls on policy denial — is no longer HubSpot-specific. §3.17 proves the identical guarantee for `@parmana/connector-github`'s structurally different, ephemeral (per-execution-minted, never cached) credential model, evidence that this pattern is foundational to Parmana's connector architecture rather than a property of any one connector's implementation.
 
-
-
 ---
-
-
 
 ## 3.11 Durable, Third-Party-Verifiable Refusal and Audit Records (RFC-0021, Scoped)
 
@@ -1606,42 +1065,39 @@ Separately, and closing the analogous gap for caller-authentication audit trails
 
 **Scope, precisely — two caveats, both load-bearing:**
 
-1. **Refusal Record writing is evidentiary and fails open, deliberately, not fail-closed like caller-auth audit writes (2.19).** `RuntimeEngine.writeRefusalRecord` runs after `Decision` is built but is explicitly barred, by its own comment, from affecting, delaying past that synchronous attempt, or blocking the `executionGate.enforce()` rejection that follows it — a write failure is logged (`refusal_record_write_failed`) and swallowed, never thrown. The rejection itself is unaffected either way: a request that should be denied is still denied, correctly, whether or not its evidentiary record lands. What can be silently missing is the durable proof of *why*, not the correctness of the refusal itself. `RefusalRecordBuilder`/`RefusalRecordRepository` are also optional at construction (`RuntimeFactory`'s `refusalRecords` parameter); when omitted, no Refusal Record is ever written, by design, not by failure. Verified: `packages/runtime/tests/unit/refusal-record-fail-open.test.ts`.
+1. **Refusal Record writing is evidentiary and fails open, deliberately, not fail-closed like caller-auth audit writes (2.19).** `RuntimeEngine.writeRefusalRecord` runs after `Decision` is built but is explicitly barred, by its own comment, from affecting, delaying past that synchronous attempt, or blocking the `executionGate.enforce()` rejection that follows it — a write failure is logged (`refusal_record_write_failed`) and swallowed, never thrown. The rejection itself is unaffected either way: a request that should be denied is still denied, correctly, whether or not its evidentiary record lands. What can be silently missing is the durable proof of _why_, not the correctness of the refusal itself. `RefusalRecordBuilder`/`RefusalRecordRepository` are also optional at construction (`RuntimeFactory`'s `refusalRecords` parameter); when omitted, no Refusal Record is ever written, by design, not by failure. Verified: `packages/runtime/tests/unit/refusal-record-fail-open.test.ts`.
 
-   **Considered and rejected (2026-08-19): making this write atomic/fail-closed with the rejection response** (write the record synchronously before returning to the caller; a storage failure would surface as `500` instead of `403`). Rejected because it does not strengthen the property that actually matters — the request is already unconditionally denied, correctly, the instant `Decision` is built, regardless of whether the evidentiary write ever runs — and it introduces a new one: a Supabase hiccup would turn a *correct* policy rejection into an opaque server error, a genuine availability regression (and a storage-pressure denial-of-service vector) for zero corresponding security gain. "Fail-closed" is the right discipline for whether a dangerous action executes; the refusal record is evidence *about* a decision already enforced, not a gate on it. The existing remedy for a durability gap — logging `refusal_record_write_failed` loudly for an operator to reconcile — is the correct one; blocking the caller's response on it is not.
+   **Considered and rejected (2026-08-19): making this write atomic/fail-closed with the rejection response** (write the record synchronously before returning to the caller; a storage failure would surface as `500` instead of `403`). Rejected because it does not strengthen the property that actually matters — the request is already unconditionally denied, correctly, the instant `Decision` is built, regardless of whether the evidentiary write ever runs — and it introduces a new one: a Supabase hiccup would turn a _correct_ policy rejection into an opaque server error, a genuine availability regression (and a storage-pressure denial-of-service vector) for zero corresponding security gain. "Fail-closed" is the right discipline for whether a dangerous action executes; the refusal record is evidence _about_ a decision already enforced, not a gate on it. The existing remedy for a durability gap — logging `refusal_record_write_failed` loudly for an operator to reconcile — is the correct one; blocking the caller's response on it is not.
+
 2. **Only production (Supabase) audit sinks sign.** `SupabaseCallerAuditSink` signs every event; `InMemoryCallerAuditSink` (test wiring, `NODE_ENV=test`) does not. This claim is therefore about the production deployment path specifically, not every configuration this codebase can run in. Existing rows written before this capability shipped remain unsigned; `signature_json` is nullable and additive, honestly reflecting that history rather than backfilling a signature that was never actually produced at write time. (At the time this capability shipped, the same split also applied to `SupabaseRazorpayWebhookAuditSink`/`InMemoryRazorpayWebhookAuditSink`; both were deleted along with the rest of the Razorpay connector on 2026-08-12 and no longer exist.)
 
 A third, narrower operational note, not a scope caveat on the claim itself: `SupabaseCallerAuditSink` currently writes via a direct Postgres connection rather than PostgREST. This originated as a narrow workaround for a PostgREST schema-cache issue with one new column (Supabase support ticket SU-437429), but a production-readiness audit (2026-09-09) found the pattern has since been extended deliberately, repo-wide: **8 of the 9** `Supabase*` storage classes now write via `PostgresPoolFactory` rather than PostgREST/supabase-js, per `SupabaseExecutionTrustRecordRepository.ts`'s own comment — "part of removing PostgREST from every Supabase-backed table's failure modes, not just the audit sinks that broke first." This is no longer a single revertible patch pending one support ticket; it is the storage layer's current architecture. `SupabaseClientFactory` (the supabase-js/PostgREST client class this workaround originally planned to revert to) had zero remaining call sites as of that audit and was deleted the same day, along with its now-unused `@supabase/supabase-js` dependency (`docs/VERIFICATION-GAPS.md` G-34) — a revert, if SU-437429 is ever resolved, would mean reintroducing a PostgREST client, not restoring one that still exists.
 
 Evidence
 
-* `packages/crypto/src/RefusalCrypto.ts`, `AuditEventCrypto.ts`
+- `packages/crypto/src/RefusalCrypto.ts`, `AuditEventCrypto.ts`
 
-* `packages/runtime/src/RefusalRecordBuilder.ts`, `RuntimeEngine.ts` (`writeRefusalRecord`, fail-open by design)
+- `packages/runtime/src/RefusalRecordBuilder.ts`, `RuntimeEngine.ts` (`writeRefusalRecord`, fail-open by design)
 
-* `packages/shared/src/domain/refusal-record.ts`, `repositories/refusal-record-repository.ts`
+- `packages/shared/src/domain/refusal-record.ts`, `repositories/refusal-record-repository.ts`
 
-* `packages/storage/src/memory/MemoryRefusalRecordRepository.ts`, `supabase/SupabaseRefusalRecordRepository.ts`
+- `packages/storage/src/memory/MemoryRefusalRecordRepository.ts`, `supabase/SupabaseRefusalRecordRepository.ts`
 
-* `packages/api/src/routes/refusal-verify.ts`, `refusal-get.ts`, `audit-verify.ts`
+- `packages/api/src/routes/refusal-verify.ts`, `refusal-get.ts`, `audit-verify.ts`
 
-* `packages/api/src/auth/SupabaseCallerAuditSink.ts`, `InMemoryCallerAuditSink.ts` (signs / does not sign, respectively)
+- `packages/api/src/auth/SupabaseCallerAuditSink.ts`, `InMemoryCallerAuditSink.ts` (signs / does not sign, respectively)
 
-* `04-INCIDENTS-LOG.md`, INC-7 ("Audit-sink events were durable but unsigned") — the incident this capability closes, including the PostgREST workaround noted above
+- `04-INCIDENTS-LOG.md`, INC-7 ("Audit-sink events were durable but unsigned") — the incident this capability closes, including the PostgREST workaround noted above
 
-* `docs/rfcs/RFC-0021-Refusal-Record.md`
+- `docs/rfcs/RFC-0021-Refusal-Record.md`
 
-* `packages/api/tests/integration/refusal-record.integration.test.ts` (6 tests), `audit-verify.integration.test.ts` (4 tests, corrected 2026-08-24, previously cited as 5): real `POST /refusal/verify` and `POST /audit/verify` HTTP requests — valid signature accepted, tampered payload rejected, mounted ahead of caller-auth (no credential required)
+- `packages/api/tests/integration/refusal-record.integration.test.ts` (6 tests), `audit-verify.integration.test.ts` (4 tests, corrected 2026-08-24, previously cited as 5): real `POST /refusal/verify` and `POST /audit/verify` HTTP requests — valid signature accepted, tampered payload rejected, mounted ahead of caller-auth (no credential required)
 
-* `packages/runtime/tests/unit/refusal-record-fail-open.test.ts` (2 tests): a Refusal Record write failure does not affect the returned rejection
+- `packages/runtime/tests/unit/refusal-record-fail-open.test.ts` (2 tests): a Refusal Record write failure does not affect the returned rejection
 
-* `packages/storage/tests/unit/supabase-refusal-record-repository.test.ts` (4 tests)
-
-
+- `packages/storage/tests/unit/supabase-refusal-record-repository.test.ts` (4 tests)
 
 ---
-
-
 
 ## 3.12 `@parmana/sign`: Open-Core Extraction of the Signing Primitives (Scoped)
 
@@ -1651,21 +1107,17 @@ The signing/verification/canonical-hashing primitives this document's cryptograp
 
 Independently checkable at the time of this writing: the repository carries an OpenSSF Best Practices passing badge (project #13926) and a weekly/on-push OpenSSF Scorecard, and its README states tagged releases carry SLSA Build Level 3 provenance and are signed keylessly with `cosign` via GitHub's OIDC identity.
 
-**Scope, precisely:** this claim is about the existence, license, and stated security posture of an external repository, verified by fetching it directly — not something this repository's own `npm test` run proves, and not something re-verified on every audit pass of this document. Verifying it currently required an external fetch outside the citation discipline the rest of this document uses (a file, a line, or a specific test in *this* repo); treat this claim as weaker evidentiary footing than every other claim above for that reason. `@parmana/sign`'s `SignatureVerifier` does **not** yet recognize the `signatures`/`schemaVersion` hybrid envelope shape (`docs/VERIFICATION-GAPS.md` G-4's update) — a third-party verifier using this package today checks the legacy single-signature field only, which is by design (that field is still computed identically for hybrid-signed records) but is not a full hybrid-signature check.
+**Scope, precisely:** this claim is about the existence, license, and stated security posture of an external repository, verified by fetching it directly — not something this repository's own `npm test` run proves, and not something re-verified on every audit pass of this document. Verifying it currently required an external fetch outside the citation discipline the rest of this document uses (a file, a line, or a specific test in _this_ repo); treat this claim as weaker evidentiary footing than every other claim above for that reason. `@parmana/sign`'s `SignatureVerifier` does **not** yet recognize the `signatures`/`schemaVersion` hybrid envelope shape (`docs/VERIFICATION-GAPS.md` G-4's update) — a third-party verifier using this package today checks the legacy single-signature field only, which is by design (that field is still computed identically for hybrid-signed records) but is not a full hybrid-signature check.
 
 **Update (2026-09-11):** independently re-verified via `gh api repos/pavancharak/parmana-sign` as part of that day's PQC production-readiness audit (`docs/VERIFICATION-GAPS.md` gap 51) -- still real, public, Apache-2.0, actively pushed to. Its own README confirms this section's description exactly (canonical serialization, `Dilithium3SignatureProvider`, no key management, no policy logic). The hybrid-envelope gap above still holds: a third party wanting to fully verify a hybrid-signed Execution Trust Record today should use this repository's own `packages/crypto/src/OfflineVerifier.ts` (or its Python counterpart, `python/parmana/crypto/offline_verifier.py`), not `@parmana/sign`, until that external package is separately updated to recognize the `signatures` array -- work this repository's own build cannot perform.
 
 Evidence
 
-* `github.com/pavancharak/parmana-sign` (external repository; README, badge row, `LICENSE`)
+- `github.com/pavancharak/parmana-sign` (external repository; README, badge row, `LICENSE`)
 
-* `packages/crypto/src/providers/signature/Dilithium3SignatureProvider.ts`, `packages/crypto/src/SignatureVerifier.ts`, `packages/crypto/src/CanonicalSerializer.ts` (this repository's own, internal versions of the primitives `@parmana/sign` ships as `Dilithium3SignatureProvider`/`SignatureVerifier`/`CanonicalSerializer`; corrected 2026-08-24 — `SignatureVerifier.ts`/`CanonicalSerializer.ts` live directly under `packages/crypto/src`, not under `providers/signature/` alongside `Dilithium3SignatureProvider.ts`). `@parmana/sign`'s `ArtifactHasher` has no direct internal equivalent by that name in this repository; the closest analogues are the purpose-specific `TrustRecordHasher.ts`, `ReceiptHasher.ts`, and `ExecutableContentHasher.ts`, each hashing one canonical artifact type rather than one general-purpose hasher covering all of them.
-
-
+- `packages/crypto/src/providers/signature/Dilithium3SignatureProvider.ts`, `packages/crypto/src/SignatureVerifier.ts`, `packages/crypto/src/CanonicalSerializer.ts` (this repository's own, internal versions of the primitives `@parmana/sign` ships as `Dilithium3SignatureProvider`/`SignatureVerifier`/`CanonicalSerializer`; corrected 2026-08-24 — `SignatureVerifier.ts`/`CanonicalSerializer.ts` live directly under `packages/crypto/src`, not under `providers/signature/` alongside `Dilithium3SignatureProvider.ts`). `@parmana/sign`'s `ArtifactHasher` has no direct internal equivalent by that name in this repository; the closest analogues are the purpose-specific `TrustRecordHasher.ts`, `ReceiptHasher.ts`, and `ExecutableContentHasher.ts`, each hashing one canonical artifact type rather than one general-purpose hasher covering all of them.
 
 ---
-
-
 
 ## 3.13 Hybrid (Ed25519 + ML-DSA-65) Signing Capability (Scoped)
 
@@ -1681,33 +1133,29 @@ The secondary (ML-DSA-65) key lives at a distinct keyId, `default-secondary` (`D
 
 Evidence
 
-* `packages/crypto/src/HybridSignatureProvider.ts`
+- `packages/crypto/src/HybridSignatureProvider.ts`
 
-* `packages/shared/src/domain/signature-entry.ts`, `execution-trust-record.ts`, `receipt.ts` (the additive `schemaVersion`/`signatures` fields)
+- `packages/shared/src/domain/signature-entry.ts`, `execution-trust-record.ts`, `receipt.ts` (the additive `schemaVersion`/`signatures` fields)
 
-* `packages/shared/src/config/CryptoAlgorithms.ts` (`CryptoModes`), `ConfigValidation.ts` (`parseCryptoMode`), `Config.ts` (`crypto.mode`)
+- `packages/shared/src/config/CryptoAlgorithms.ts` (`CryptoModes`), `ConfigValidation.ts` (`parseCryptoMode`), `Config.ts` (`crypto.mode`)
 
-* `packages/crypto/src/VerificationCrypto.ts` (`signHybrid`, hybrid-aware `verifySignature`/`verify`), `ReceiptCrypto.ts` (hybrid-aware `createReceipt`)
+- `packages/crypto/src/VerificationCrypto.ts` (`signHybrid`, hybrid-aware `verifySignature`/`verify`), `ReceiptCrypto.ts` (hybrid-aware `createReceipt`)
 
-* `packages/crypto/src/KeyProvider.ts` (`DEFAULT_SECONDARY_KEY_ID`), `scripts/generate-keypair.ts` (`--force`-gated overwrite protection), `package.json` (`generate:hybrid-secondary-key`)
+- `packages/crypto/src/KeyProvider.ts` (`DEFAULT_SECONDARY_KEY_ID`), `scripts/generate-keypair.ts` (`--force`-gated overwrite protection), `package.json` (`generate:hybrid-secondary-key`)
 
-* `packages/runtime/src/BusinessTrustRecordBuilder.ts` (calls `signHybrid()` additively when `CRYPTO_MODE=hybrid`)
+- `packages/runtime/src/BusinessTrustRecordBuilder.ts` (calls `signHybrid()` additively when `CRYPTO_MODE=hybrid`)
 
-* `packages/crypto/tests/unit/hybrid-signature-provider.test.ts` (7 tests: sign+verify round trip, tampered second signature rejected, second signature missing entirely rejected — not a silent downgrade to single-signature verification, duplicated single-algorithm array rejected, signature from the wrong keypair rejected, tampered artifact rejected, missing secondary key file fails closed on `sign()`)
+- `packages/crypto/tests/unit/hybrid-signature-provider.test.ts` (7 tests: sign+verify round trip, tampered second signature rejected, second signature missing entirely rejected — not a silent downgrade to single-signature verification, duplicated single-algorithm array rejected, signature from the wrong keypair rejected, tampered artifact rejected, missing secondary key file fails closed on `sign()`)
 
-* `packages/runtime/tests/unit/verification-service-hybrid.test.ts` (4 tests, through the real `BusinessTrustRecordBuilder` → `VerificationService` path): a hybrid-signed record verifies end to end with two independent signature entries present; a legacy-shaped record with `schemaVersion`/`signatures` stripped still verifies unchanged even while the process runs `CRYPTO_MODE=hybrid`; a hybrid record with a corrupted secondary signature is rejected; a hybrid record with the secondary signature stripped entirely is rejected
+- `packages/runtime/tests/unit/verification-service-hybrid.test.ts` (4 tests, through the real `BusinessTrustRecordBuilder` → `VerificationService` path): a hybrid-signed record verifies end to end with two independent signature entries present; a legacy-shaped record with `schemaVersion`/`signatures` stripped still verifies unchanged even while the process runs `CRYPTO_MODE=hybrid`; a hybrid record with a corrupted secondary signature is rejected; a hybrid record with the secondary signature stripped entirely is rejected
 
-* `packages/runtime/tests/integration/receipt-hybrid.integration.test.ts` (2 tests, through the real `ReceiptService` path): a hybrid-signed Receipt's `signatures` independently re-verify via `HybridSignatureProvider` from outside the class that produced them; a tampered hybrid Receipt signature is rejected
+- `packages/runtime/tests/integration/receipt-hybrid.integration.test.ts` (2 tests, through the real `ReceiptService` path): a hybrid-signed Receipt's `signatures` independently re-verify via `HybridSignatureProvider` from outside the class that produced them; a tampered hybrid Receipt signature is rejected
 
-* `packages/shared/tests/unit/config-validation.test.ts` (`parseCryptoMode` cases: selects the configured mode, defaults to `single` when unset, throws naming the invalid value)
+- `packages/shared/tests/unit/config-validation.test.ts` (`parseCryptoMode` cases: selects the configured mode, defaults to `single` when unset, throws naming the invalid value)
 
-* `docs/VERIFICATION-GAPS.md` G-4 (the gap-tracking record of exactly which signing surfaces this covers and which it doesn't)
-
-
+- `docs/VERIFICATION-GAPS.md` G-4 (the gap-tracking record of exactly which signing surfaces this covers and which it doesn't)
 
 ---
-
-
 
 ## 3.14 Per-Caller Rate Limiting on `/execute` (Scoped)
 
@@ -1719,34 +1167,32 @@ The `/execute` limiter is keyed by authenticated caller identity (`req.callerId`
 
 Evidence
 
-* `packages/api/src/middleware/rate-limit.ts` (`createExecuteRateLimiter`, `createHealthReadyRateLimiter`)
-* `packages/api/src/app.ts` (mounting: health/ready limiter shared across both routes; execute limiter conditional on `callerAuth !== "disabled"`, mounted ahead of `createExecuteRouter`)
-* `packages/shared/src/config/Config.ts` (`RateLimitConfig`, `RATE_LIMIT_EXECUTE_PER_MINUTE` / `RATE_LIMIT_HEALTH_PER_MINUTE`, defaults 30/300)
-* `packages/api/tests/integration/rate-limit.integration.test.ts`: normal traffic under the limit passes unaffected; traffic over the limit gets a clean 429 with `Retry-After` and zero new execution-audit events; a rate-limited caller does not block a different caller's traffic (per-key, not global); the health/ready limiter is shared across both routes; rate limiting is skipped entirely when `callerAuth` is `"disabled"`; an omitted `rateLimit` option falls back to the documented defaults
+- `packages/api/src/middleware/rate-limit.ts` (`createExecuteRateLimiter`, `createHealthReadyRateLimiter`)
+- `packages/api/src/app.ts` (mounting: health/ready limiter shared across both routes; execute limiter conditional on `callerAuth !== "disabled"`, mounted ahead of `createExecuteRouter`)
+- `packages/shared/src/config/Config.ts` (`RateLimitConfig`, `RATE_LIMIT_EXECUTE_PER_MINUTE` / `RATE_LIMIT_HEALTH_PER_MINUTE`, defaults 30/300)
+- `packages/api/tests/integration/rate-limit.integration.test.ts`: normal traffic under the limit passes unaffected; traffic over the limit gets a clean 429 with `Retry-After` and zero new execution-audit events; a rate-limited caller does not block a different caller's traffic (per-key, not global); the health/ready limiter is shared across both routes; rate limiting is skipped entirely when `callerAuth` is `"disabled"`; an omitted `rateLimit` option falls back to the documented defaults
 
 **Update (2026-09-10):** the fleet-wide scope gap this claim's own "Scope, precisely" paragraph named above is now closable. New `PostgresRateLimitStore` (`packages/storage/src/postgres/PostgresRateLimitStore.ts`), a real `express-rate-limit` `Store` backed by an atomic `INSERT ... ON CONFLICT` upsert against a new `rate_limit_counters` table (`supabase/migrations/20260910120000_add_rate_limit_counters.sql`). `createRateLimitStore.ts` wires it in when `DATABASE_URL` is configured -- both limiters then share counts fleet-wide, closing the `limitPerMinute * machineCount` gap for any deployment that scales past one machine. Deliberately not fail-closed the way `NonceStore`'s `DATABASE_URL` requirement is: without a configured database, both limiters fall back to the in-process default with a loud startup warning rather than refusing to start, since a looser-than-configured capacity ceiling is not the same class of gap as a missing security check. See `docs/VERIFICATION-GAPS.md` G-41. This deployment's current shape (`fly.toml`'s `min_machines_running = 1`) means the gap this update closes was not yet live-exploitable here, but the fix removes the blocker to scaling out.
 
 Evidence (update)
 
-* `packages/storage/src/postgres/PostgresRateLimitStore.ts`, `packages/api/src/bootstrap/createRateLimitStore.ts`
-* `packages/storage/tests/unit/postgres-rate-limit-store.test.ts` (7 cases), `packages/api/tests/unit/bootstrap/create-rate-limit-store.test.ts` (3 cases: test / production-without-DATABASE_URL / production-with-DATABASE_URL)
+- `packages/storage/src/postgres/PostgresRateLimitStore.ts`, `packages/api/src/bootstrap/createRateLimitStore.ts`
+- `packages/storage/tests/unit/postgres-rate-limit-store.test.ts` (7 cases), `packages/api/tests/unit/bootstrap/create-rate-limit-store.test.ts` (3 cases: test / production-without-DATABASE_URL / production-with-DATABASE_URL)
 
 ---
 
-
-
 ## 3.15 SDK Dogfooding: Documented Quickstarts Now Proven to Actually Run (Scoped)
 
-**Scope, precisely:** this claim covers the two documented "quickstart" example scripts — `python/examples/quickstart/run.py` and its closest TypeScript equivalent, `typescript/examples/02-execute.ts` — now being proven to actually work by an automated test, plus the real bugs found while proving that. It does **not** cover the other 11 numbered example scripts in `python/examples/`, the other 4 in `typescript/examples/`, or either SDK's full API surface; those remain unexercised by any test, same as before this pass. It is a narrower, complementary claim to 3.10's HubSpot-live-suite-through-the-SDK update above, not a restatement of it — that one is about a *test suite* driving requests through an SDK; this one is about *documentation examples* being provably correct, not just plausible-looking code that happens to parse.
+**Scope, precisely:** this claim covers the two documented "quickstart" example scripts — `python/examples/quickstart/run.py` and its closest TypeScript equivalent, `typescript/examples/02-execute.ts` — now being proven to actually work by an automated test, plus the real bugs found while proving that. It does **not** cover the other 11 numbered example scripts in `python/examples/`, the other 4 in `typescript/examples/`, or either SDK's full API surface; those remain unexercised by any test, same as before this pass. It is a narrower, complementary claim to 3.10's HubSpot-live-suite-through-the-SDK update above, not a restatement of it — that one is about a _test suite_ driving requests through an SDK; this one is about _documentation examples_ being provably correct, not just plausible-looking code that happens to parse.
 
-Before this pass, both quickstart scripts already imported their respective SDK (`parmana` / `@parmana/sdk`) rather than raw HTTP — that part did not need rewriting. What neither had was anything that actually *ran* them: `typescript/examples/` is explicitly excluded from `typescript/tsconfig.json`'s own `include` list, so nothing in this repository has ever built, type-checked, or executed it, and no test imported `python/examples/quickstart/run.py` either. Both were, until now, hand-written code that had never been mechanically proven to still work as the surrounding schema evolved.
+Before this pass, both quickstart scripts already imported their respective SDK (`parmana` / `@parmana/sdk`) rather than raw HTTP — that part did not need rewriting. What neither had was anything that actually _ran_ them: `typescript/examples/` is explicitly excluded from `typescript/tsconfig.json`'s own `include` list, so nothing in this repository has ever built, type-checked, or executed it, and no test imported `python/examples/quickstart/run.py` either. Both were, until now, hand-written code that had never been mechanically proven to still work as the surrounding schema evolved.
 
 **What dogfooding this found, checked directly against the current schema and each SDK's actual exported members, not assumed:**
 
-* Every file in `typescript/examples/` (5 example scripts, 2 shared helpers) imported `@parmana/typescript-sdk` — a package name that has never existed anywhere in this repository's history, under any name this workspace has ever had (`@parmana/legacy-reference` before this session's earlier TypeScript-SDK-audit pass, `@parmana/sdk` after it). None of these files could have ever been run as committed.
-* `typescript/examples/02-execute.ts` and `typescript/examples/shared/transaction.ts` referenced `AuthorityType.USER` and `BusinessTransactionStatus.RECEIVED` as if they were runtime enum members. This SDK's hand-maintained models type both fields as plain `string`/string-union types with no such runtime enum exported at all (`import * as sdk from "@parmana/sdk"; sdk.AuthorityType` is `undefined`) — both files would have thrown immediately on execution.
-* `typescript/examples/04-replay.ts` called `client.replay({ businessTransactionId: "..." })`, an object, where `ParmanaClient.replay()` takes a plain `string` — would have sent a malformed request path.
-* `python/examples/quickstart/run.py` passed plain Python strings (`"SERVICE"`, `"RECEIVED"`) where the real generated dataclasses (`Authority.authority_type`, `BusinessTransaction.status`) declare actual `AuthorityType`/`BusinessTransactionStatus` enum types — confirmed by `mypy`, not inferred. Harmless on the wire (a `str, Enum` member and a plain string with the same value serialize identically, so this never caused a wrong request), but a genuine type-safety defect the language's own type checker would have caught immediately had anything ever run it in that mode.
+- Every file in `typescript/examples/` (5 example scripts, 2 shared helpers) imported `@parmana/typescript-sdk` — a package name that has never existed anywhere in this repository's history, under any name this workspace has ever had (`@parmana/legacy-reference` before this session's earlier TypeScript-SDK-audit pass, `@parmana/sdk` after it). None of these files could have ever been run as committed.
+- `typescript/examples/02-execute.ts` and `typescript/examples/shared/transaction.ts` referenced `AuthorityType.USER` and `BusinessTransactionStatus.RECEIVED` as if they were runtime enum members. This SDK's hand-maintained models type both fields as plain `string`/string-union types with no such runtime enum exported at all (`import * as sdk from "@parmana/sdk"; sdk.AuthorityType` is `undefined`) — both files would have thrown immediately on execution.
+- `typescript/examples/04-replay.ts` called `client.replay({ businessTransactionId: "..." })`, an object, where `ParmanaClient.replay()` takes a plain `string` — would have sent a malformed request path.
+- `python/examples/quickstart/run.py` passed plain Python strings (`"SERVICE"`, `"RECEIVED"`) where the real generated dataclasses (`Authority.authority_type`, `BusinessTransaction.status`) declare actual `AuthorityType`/`BusinessTransactionStatus` enum types — confirmed by `mypy`, not inferred. Harmless on the wire (a `str, Enum` member and a plain string with the same value serialize identically, so this never caused a wrong request), but a genuine type-safety defect the language's own type checker would have caught immediately had anything ever run it in that mode.
 
 All four fixed. `typescript/examples/02-execute.ts` was additionally refactored into an exported `runExecuteExample(endpoint?)` (previously a bare top-level script with no importable entry point) and `python/examples/quickstart/run.py`'s body into an exported `run_quickstart(endpoint?)` returning the `ExecutionTrustRecord` — both changes made specifically so a test could call them, not a stylistic preference.
 
@@ -1754,12 +1200,12 @@ All four fixed. `typescript/examples/02-execute.ts` was additionally refactored 
 
 Evidence
 
-* `typescript/examples/01-health.ts`, `02-execute.ts`, `03-verify.ts`, `04-replay.ts`, `05-policy-validation.ts`, `shared/client.ts`, `shared/transaction.ts` (package-name fix, all 7 files); `02-execute.ts`, `shared/transaction.ts` (enum-misuse fix); `04-replay.ts` (`client.replay()` argument fix)
-* `typescript/test/integration/examples.integration.test.ts` (1 test): runs `runExecuteExample` against a real local server, asserts `trustRecordId` present, one `APPROVED` execution, `ed25519` signature
-* `python/examples/quickstart/run.py` (`run_quickstart` extraction, `AuthorityType`/`BusinessTransactionStatus` enum fix); `python/examples/quickstart/README.md` (stale prerequisites/output rewritten from a real run)
-* `python/tests/test_quickstart_example.py` (1 test): spawns a real local server with caller-auth disabled (matching the documented manual setup exactly, since `run_quickstart` never supplies an `api_key`), runs `run_quickstart` against it, asserts the returned record and the script's own printed output both match
-* `mypy examples/quickstart/run.py` (Python): 3 errors before this pass's enum fix (2 real type mismatches plus one pre-existing, unrelated `datetime.UTC` 3.10-compatibility notice, unchanged), 1 after (only the unrelated notice remains)
-* `npx tsc --noEmit` against `typescript/examples/**/*.ts` (TypeScript, checked directly — `typescript/tsconfig.json` itself does not cover this directory): clean after all fixes
+- `typescript/examples/01-health.ts`, `02-execute.ts`, `03-verify.ts`, `04-replay.ts`, `05-policy-validation.ts`, `shared/client.ts`, `shared/transaction.ts` (package-name fix, all 7 files); `02-execute.ts`, `shared/transaction.ts` (enum-misuse fix); `04-replay.ts` (`client.replay()` argument fix)
+- `typescript/test/integration/examples.integration.test.ts` (1 test): runs `runExecuteExample` against a real local server, asserts `trustRecordId` present, one `APPROVED` execution, `ed25519` signature
+- `python/examples/quickstart/run.py` (`run_quickstart` extraction, `AuthorityType`/`BusinessTransactionStatus` enum fix); `python/examples/quickstart/README.md` (stale prerequisites/output rewritten from a real run)
+- `python/tests/test_quickstart_example.py` (1 test): spawns a real local server with caller-auth disabled (matching the documented manual setup exactly, since `run_quickstart` never supplies an `api_key`), runs `run_quickstart` against it, asserts the returned record and the script's own printed output both match
+- `mypy examples/quickstart/run.py` (Python): 3 errors before this pass's enum fix (2 real type mismatches plus one pre-existing, unrelated `datetime.UTC` 3.10-compatibility notice, unchanged), 1 after (only the unrelated notice remains)
+- `npx tsc --noEmit` against `typescript/examples/**/*.ts` (TypeScript, checked directly — `typescript/tsconfig.json` itself does not cover this directory): clean after all fixes
 
 ---
 
@@ -1771,15 +1217,15 @@ Extends `ApiKeyEntry` with an optional `allowedCapabilities` field: the set of c
 
 Evidence
 
-* `packages/shared/src/config/ApiKeyEntry.ts` (`allowedCapabilities`, fail-closed-by-default doc comment, `"*"` wildcard convention)
-* `packages/shared/src/config/ConfigValidation.ts` (`parseApiKeys` validates `allowedCapabilities` the same way as `allowedPrincipalIds`)
-* `packages/api/src/auth/isCapabilityAllowed.ts` (fail-closed check, wildcard handling)
-* `packages/api/src/routes/execute.ts` / `transactions.ts` (enforced before `application.execute()`; `403 CAPABILITY_NOT_ALLOWED`; denial audited via `recordCallerAuditEvent`)
-* `packages/api/src/auth/CallerAuditSink.ts` (`caller.capability_denied` event type, `capability` field)
-* `packages/api/src/routes/callers-me.ts` (`GET /callers/me`, resolved identity/scope, no key material)
-* `supabase/migrations/20260812120000_add_capability_to_caller_audit_events.sql` (additive `capability` column, widened `type` CHECK constraint; not yet applied to any live project)
-* `packages/api/tests/unit/isCapabilityAllowed.test.ts`, `packages/api/tests/integration/caller-capability-scoping.integration.test.ts` (allow/deny/fail-closed-default/wildcard, denial precedes policy evaluation, audit content, `/callers/me` self-lookup and resolved-defaults)
-* Repo-wide check confirming zero caller-auth-enabled test or production wiring exists for `hubspot:deal-update`: `hubspot-deal-update.integration.test.ts`, `hubspot-live.integration.test.ts` both construct their app with `callerAuth: "disabled"`. The Razorpay connector this section previously cited the same way no longer exists in this codebase at all (removed 2026-08-12).
+- `packages/shared/src/config/ApiKeyEntry.ts` (`allowedCapabilities`, fail-closed-by-default doc comment, `"*"` wildcard convention)
+- `packages/shared/src/config/ConfigValidation.ts` (`parseApiKeys` validates `allowedCapabilities` the same way as `allowedPrincipalIds`)
+- `packages/api/src/auth/isCapabilityAllowed.ts` (fail-closed check, wildcard handling)
+- `packages/api/src/routes/execute.ts` / `transactions.ts` (enforced before `application.execute()`; `403 CAPABILITY_NOT_ALLOWED`; denial audited via `recordCallerAuditEvent`)
+- `packages/api/src/auth/CallerAuditSink.ts` (`caller.capability_denied` event type, `capability` field)
+- `packages/api/src/routes/callers-me.ts` (`GET /callers/me`, resolved identity/scope, no key material)
+- `supabase/migrations/20260812120000_add_capability_to_caller_audit_events.sql` (additive `capability` column, widened `type` CHECK constraint; not yet applied to any live project)
+- `packages/api/tests/unit/isCapabilityAllowed.test.ts`, `packages/api/tests/integration/caller-capability-scoping.integration.test.ts` (allow/deny/fail-closed-default/wildcard, denial precedes policy evaluation, audit content, `/callers/me` self-lookup and resolved-defaults)
+- Repo-wide check confirming zero caller-auth-enabled test or production wiring exists for `hubspot:deal-update`: `hubspot-deal-update.integration.test.ts`, `hubspot-live.integration.test.ts` both construct their app with `callerAuth: "disabled"`. The Razorpay connector this section previously cited the same way no longer exists in this codebase at all (removed 2026-08-12).
 
 ---
 
@@ -1787,7 +1233,7 @@ Evidence
 
 `@parmana/connector-github` is a new, standalone workspace package, structurally parallel to `@parmana/connector-hubspot` (3.10): capability identifiers, schemas, and metadata live in the connector package; the executable adapter and credential provider are Gateway-owned (`packages/execution-gateway/src/connector-execution/`), imported back by the connector package's own comments as the reason nothing execution-shaped lives there. It authorizes two GitHub REST API actions this milestone: fetching a pull request's state (`github:pr-fetch`, read-only, used to learn mergeable/head-SHA state) and merging a pull request (`github:pr-merge`, the guarded execution). Anything else GitHub's API surface offers — review submission, comments, other object types, any webhook/event-driven trigger — is out of scope this milestone.
 
-**Credential model, structurally different from every other connector this codebase has had (Razorpay, historical; HubSpot, current): ephemeral, not static.** `GitHubAppCredentialProvider` (`packages/execution-gateway/src/connector-execution/GitHubAppCredentialProvider.ts`) holds a GitHub App's private key, appId, and installationId at construction, and on every `resolve()` call signs a fresh RS256 JWT (`signGitHubAppJwt`, `packages/connector-github/src/GitHubAppJwt.ts` — pure JWT construction with no network call, deliberately the one piece of this connector that stays in the connector package rather than the Gateway, since it makes no execution-shaped call itself) and exchanges it for a short-lived (~1 hour) GitHub App installation access token via a real network call to GitHub's `access_tokens` endpoint. The private key itself never leaves `GitHubAppCredentialProvider`, is never logged, and never appears in any thrown error; only the resulting installation token is returned, and only for the single `execute()` call that requested it — `CredentialProvider.resolve()` is called fresh by the Execution Gateway immediately before each execution, never cached or reused upstream, so "mint a new short-lived token per execution, never store it" required no new mechanism, only an implementation of the same `CredentialProvider` interface HubSpot's static-token model already uses. That is itself evidence the credential-isolation pattern (3.10's own "Pattern: Universal Across Credential Models") generalizes across credential *models*, not merely across connectors that happen to share one.
+**Credential model, structurally different from every other connector this codebase has had (Razorpay, historical; HubSpot, current): ephemeral, not static.** `GitHubAppCredentialProvider` (`packages/execution-gateway/src/connector-execution/GitHubAppCredentialProvider.ts`) holds a GitHub App's private key, appId, and installationId at construction, and on every `resolve()` call signs a fresh RS256 JWT (`signGitHubAppJwt`, `packages/connector-github/src/GitHubAppJwt.ts` — pure JWT construction with no network call, deliberately the one piece of this connector that stays in the connector package rather than the Gateway, since it makes no execution-shaped call itself) and exchanges it for a short-lived (~1 hour) GitHub App installation access token via a real network call to GitHub's `access_tokens` endpoint. The private key itself never leaves `GitHubAppCredentialProvider`, is never logged, and never appears in any thrown error; only the resulting installation token is returned, and only for the single `execute()` call that requested it — `CredentialProvider.resolve()` is called fresh by the Execution Gateway immediately before each execution, never cached or reused upstream, so "mint a new short-lived token per execution, never store it" required no new mechanism, only an implementation of the same `CredentialProvider` interface HubSpot's static-token model already uses. That is itself evidence the credential-isolation pattern (3.10's own "Pattern: Universal Across Credential Models") generalizes across credential _models_, not merely across connectors that happen to share one.
 
 `GatewayGitHubAdapter` (`packages/execution-gateway/src/connector-execution/GatewayGitHubAdapter.ts`) is deny-by-default and fail-closed with the same discipline as `GatewayHubSpotAdapter`, deliberately: a merge naming any method outside `GITHUB_ALLOWED_MERGE_METHODS` (`merge`/`squash`/`rebase`) is refused before any network call; a non-2xx GitHub response fails closed rather than returning a partial success; and — mirroring 3.10's own "placeholder-credential guard, from day one" lesson learned from the Razorpay incidents — this connector refuses, before any network call, to send `GITHUB_TEST_MODE_PLACEHOLDER_TOKEN` to GitHub's real API (`https://api.github.com`) unless `baseUrl` is explicitly overridden to a mock server, present from this connector's first version. `expectedHeadSha`, when the caller supplies it, is forwarded as GitHub's own `sha` merge parameter — GitHub itself refuses the merge (422) if the PR's actual head has moved since policy evaluated it, closing the same class of stale-decision gap `SignalIntentBinder` closes for amount/target fields elsewhere in this codebase.
 
@@ -1799,22 +1245,22 @@ Evidence
 
 **Test posture, in the order specified for this milestone:**
 
-* **Hermetic first.** 22 unit tests, all passing, no network calls beyond localhost: `packages/connector-github/tests/unit/GitHubAppJwt.test.ts` (4 — RS256 signature correctness against real keypairs, `iat`/`exp` clock-drift backdating); `packages/execution-gateway/tests/unit/github-connector.test.ts` (12 — fetch, merge, stale-head rejection via GitHub's own 422, deny-by-default unsupported merge method before any network call, non-2xx/timeout fail-closed, bad-credential-shape rejection, token never leaked into a thrown error, token never placed in response metadata beyond a one-way fingerprint, placeholder-credential guard against the real endpoint, no credential-shaped instance field at construction, and — the credential-lifecycle property 3.10 needed a dedicated `credential-non-exposure.test.ts` to add after the fact — a test asserting a prior call's credential is never reused across two sequential `execute()` calls with two different tokens, present here from this connector's first version); `packages/execution-gateway/tests/unit/github-app-credential-provider.test.ts` (6 — real JWT-authenticated token mint against the mock server, handle branding, a fresh token minted on every `resolve()` call with no caching, private key never leaked into a thrown error, private key/token never placed in the resolved handle's identifiers, malformed access-token response fails closed without a raw parse error).
-* **Policy-denial-makes-zero-calls.** Proven at the HTTP boundary (`packages/api/tests/integration/github-pr-merge.integration.test.ts`, 4 tests, all passing): a real merge through the production-wired `POST /execute` landing on `MockGitHubServer` (the strongest proof — the PR actually merges on the mock server, not just a `200` response); two policy `REJECTED` decisions (failed status checks, excessive risk score) each caught in `ExecutionGate.enforce` before `ExecutionComponent` ever dispatches to the connector — `response.status === 403`, `response.body.code === "POLICY_DENIED"`, and a `fetch` spy asserting literally zero calls reached the mock server's base URL, for *either* the merge endpoint or the credential-mint (`access_tokens`) exchange; and a credential-isolation check confirming neither the installation token nor any PEM-shaped fragment appears anywhere in the `/execute` response body.
-* **Gated live suite, written this milestone, not yet run live.** `packages/api/tests/integration/github-pr-merge-live.integration.test.ts` (2 tests) and `packages/api/tests/helpers/github-live-availability.ts` (the gating logic, mirroring `hubspot-live-availability.ts`), gated behind `ALLOW_LIVE_GITHUB=1` + a real `TEST_GITHUB_APP_ID`/`TEST_GITHUB_INSTALLATION_ID`/`TEST_GITHUB_APP_PRIVATE_KEY` triple. Confirmed this session only that the suite type-checks, lints, and skips cleanly with no import or construction error when these are unset (which is how it actually ran in this environment — the separate `TEST_GITHUB_APP_ID`/`TEST_GITHUB_INSTALLATION_ID`/`TEST_GITHUB_APP_PRIVATE_KEY` triple that actually gates this suite, distinct from the production `GITHUB_*` variables, is unset in this environment's `.env`, so no live credentials were usable regardless of what the production variables happen to contain). It was **not** run live against a real GitHub App installation this session — that is open work for whoever next configures a real `TEST_GITHUB_*` triple. Its design deliberately covers only two, non-destructive cases when it does run: (1) reachability — driving `github:pr-merge` through the real SDK against a real repository but a pull request number guaranteed not to exist, proving the full ephemeral-credential-mint → connector-dispatch chain reaches GitHub's real API without ever being able to merge anything; (2) policy denial making zero real GitHub calls against the production (non-mock) connector. **Deliberately has no mutating (merge) case**, unlike 3.10's own HubSpot live suite's nudge-then-revert amount case: a HubSpot deal's `amount` is a numeric field, safe to nudge and revert to its exact original value, but a GitHub PR merge has no equivalent — the merge commit is already in the base branch's history the instant the merge succeeds, and there is no general, safe "revert a merge" operation to automate (force-pushing the head branch ref back to its pre-merge SHA does not undo the merge commit already on the base branch, and risks destroying unrelated commits if the ref moved since). Proving the real merge path end to end against a real, disposable test PR is left to a deliberate manual live run, not something this suite performs unattended.
+- **Hermetic first.** 22 unit tests, all passing, no network calls beyond localhost: `packages/connector-github/tests/unit/GitHubAppJwt.test.ts` (4 — RS256 signature correctness against real keypairs, `iat`/`exp` clock-drift backdating); `packages/execution-gateway/tests/unit/github-connector.test.ts` (12 — fetch, merge, stale-head rejection via GitHub's own 422, deny-by-default unsupported merge method before any network call, non-2xx/timeout fail-closed, bad-credential-shape rejection, token never leaked into a thrown error, token never placed in response metadata beyond a one-way fingerprint, placeholder-credential guard against the real endpoint, no credential-shaped instance field at construction, and — the credential-lifecycle property 3.10 needed a dedicated `credential-non-exposure.test.ts` to add after the fact — a test asserting a prior call's credential is never reused across two sequential `execute()` calls with two different tokens, present here from this connector's first version); `packages/execution-gateway/tests/unit/github-app-credential-provider.test.ts` (6 — real JWT-authenticated token mint against the mock server, handle branding, a fresh token minted on every `resolve()` call with no caching, private key never leaked into a thrown error, private key/token never placed in the resolved handle's identifiers, malformed access-token response fails closed without a raw parse error).
+- **Policy-denial-makes-zero-calls.** Proven at the HTTP boundary (`packages/api/tests/integration/github-pr-merge.integration.test.ts`, 4 tests, all passing): a real merge through the production-wired `POST /execute` landing on `MockGitHubServer` (the strongest proof — the PR actually merges on the mock server, not just a `200` response); two policy `REJECTED` decisions (failed status checks, excessive risk score) each caught in `ExecutionGate.enforce` before `ExecutionComponent` ever dispatches to the connector — `response.status === 403`, `response.body.code === "POLICY_DENIED"`, and a `fetch` spy asserting literally zero calls reached the mock server's base URL, for _either_ the merge endpoint or the credential-mint (`access_tokens`) exchange; and a credential-isolation check confirming neither the installation token nor any PEM-shaped fragment appears anywhere in the `/execute` response body.
+- **Gated live suite, written this milestone, not yet run live.** `packages/api/tests/integration/github-pr-merge-live.integration.test.ts` (2 tests) and `packages/api/tests/helpers/github-live-availability.ts` (the gating logic, mirroring `hubspot-live-availability.ts`), gated behind `ALLOW_LIVE_GITHUB=1` + a real `TEST_GITHUB_APP_ID`/`TEST_GITHUB_INSTALLATION_ID`/`TEST_GITHUB_APP_PRIVATE_KEY` triple. Confirmed this session only that the suite type-checks, lints, and skips cleanly with no import or construction error when these are unset (which is how it actually ran in this environment — the separate `TEST_GITHUB_APP_ID`/`TEST_GITHUB_INSTALLATION_ID`/`TEST_GITHUB_APP_PRIVATE_KEY` triple that actually gates this suite, distinct from the production `GITHUB_*` variables, is unset in this environment's `.env`, so no live credentials were usable regardless of what the production variables happen to contain). It was **not** run live against a real GitHub App installation this session — that is open work for whoever next configures a real `TEST_GITHUB_*` triple. Its design deliberately covers only two, non-destructive cases when it does run: (1) reachability — driving `github:pr-merge` through the real SDK against a real repository but a pull request number guaranteed not to exist, proving the full ephemeral-credential-mint → connector-dispatch chain reaches GitHub's real API without ever being able to merge anything; (2) policy denial making zero real GitHub calls against the production (non-mock) connector. **Deliberately has no mutating (merge) case**, unlike 3.10's own HubSpot live suite's nudge-then-revert amount case: a HubSpot deal's `amount` is a numeric field, safe to nudge and revert to its exact original value, but a GitHub PR merge has no equivalent — the merge commit is already in the base branch's history the instant the merge succeeds, and there is no general, safe "revert a merge" operation to automate (force-pushing the head branch ref back to its pre-merge SHA does not undo the merge commit already on the base branch, and risks destroying unrelated commits if the ref moved since). Proving the real merge path end to end against a real, disposable test PR is left to a deliberate manual live run, not something this suite performs unattended.
 
 Evidence
 
-* `packages/execution-gateway/src/connector-execution/GatewayGitHubAdapter.ts`, `createGatewayGitHubConnector.ts`, `GitHubAppCredentialProvider.ts`, `createGatewayGitHubCredentialProvider.ts` (the executable connector and ephemeral credential provider; Bearer-auth GitHub REST calls, the deny-by-default merge-method allowlist check, the placeholder-credential guard, and the JWT-mint → installation-token exchange)
-* `packages/connector-github/src` (`GitHubCapabilities`, `GitHubMetadata`, `GitHubTypes`, `GitHubAppJwt`, `MockGitHubServer`)
-* `packages/connector-github/tests/unit/GitHubAppJwt.test.ts` (4), `packages/execution-gateway/tests/unit/github-connector.test.ts` (12), `packages/execution-gateway/tests/unit/github-app-credential-provider.test.ts` (6) — 22 hermetic unit tests total
-* `policies/github-pr-approval/1.0.0/policy.json`
-* `packages/api/src/bootstrap/createGitHubConnector.ts` (delegates to `createGatewayGitHubConnector`), `createGitHubCredentialProvider.ts` (production registration; fails closed, the connector is never registered, when any of `GITHUB_APP_ID`/`GITHUB_INSTALLATION_ID`/`GITHUB_APP_PRIVATE_KEY` is unset outside test mode), `createConnectorRegistry.ts` (conditional registration), `createConnectorAuthenticator.ts` (`github` added to the trusted connector identity list)
-* `packages/api/tests/integration/github-pr-merge.integration.test.ts` (4 tests): an approved merge through a real `POST /execute` request against the production bootstrap chain (`createExecutionSystem`), landing on `MockGitHubServer`; two policy-denied cases, each making zero calls to the mock server (`fetch`-spy asserted); a credential-isolation check on the response body
-* `packages/api/tests/integration/github-pr-merge-live.integration.test.ts` (2 tests, gated behind `ALLOW_LIVE_GITHUB=1` + `TEST_GITHUB_APP_ID`/`TEST_GITHUB_INSTALLATION_ID`/`TEST_GITHUB_APP_PRIVATE_KEY`; skipped by default) and `packages/api/tests/helpers/github-live-availability.ts` (the gating logic, mirroring `hubspot-live-availability.ts`). Confirmed this session only to skip cleanly with no live credentials configured — not yet run live against a real GitHub App installation (see test posture above).
-* `tests/architecture/execution-boundary.test.ts` (Phase 1D public API boundary check, allowlist extended to cover `createGatewayGitHubConnector`/`createGatewayGitHubCredentialProvider`)
-* `.env.example` (`GITHUB_APP_ID`, `GITHUB_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY`, `TEST_GITHUB_APP_ID`, `TEST_GITHUB_INSTALLATION_ID`, `TEST_GITHUB_APP_PRIVATE_KEY`, `ALLOW_LIVE_GITHUB`, `TEST_GITHUB_REPOSITORY`, `TEST_GITHUB_PULL_NUMBER`, `GITHUB_BASE_URL`)
-* Full monorepo suite run this session (`npx vitest run`, no live GitHub credentials configured so the live suite skipped as designed): 1227 passed, 37 skipped, 0 failed. `npx tsc -b` and `eslint .` both clean. Commit: `e0ba416` (wiring + hermetic tests), this session (live-test file + this document update).
+- `packages/execution-gateway/src/connector-execution/GatewayGitHubAdapter.ts`, `createGatewayGitHubConnector.ts`, `GitHubAppCredentialProvider.ts`, `createGatewayGitHubCredentialProvider.ts` (the executable connector and ephemeral credential provider; Bearer-auth GitHub REST calls, the deny-by-default merge-method allowlist check, the placeholder-credential guard, and the JWT-mint → installation-token exchange)
+- `packages/connector-github/src` (`GitHubCapabilities`, `GitHubMetadata`, `GitHubTypes`, `GitHubAppJwt`, `MockGitHubServer`)
+- `packages/connector-github/tests/unit/GitHubAppJwt.test.ts` (4), `packages/execution-gateway/tests/unit/github-connector.test.ts` (12), `packages/execution-gateway/tests/unit/github-app-credential-provider.test.ts` (6) — 22 hermetic unit tests total
+- `policies/github-pr-approval/1.0.0/policy.json`
+- `packages/api/src/bootstrap/createGitHubConnector.ts` (delegates to `createGatewayGitHubConnector`), `createGitHubCredentialProvider.ts` (production registration; fails closed, the connector is never registered, when any of `GITHUB_APP_ID`/`GITHUB_INSTALLATION_ID`/`GITHUB_APP_PRIVATE_KEY` is unset outside test mode), `createConnectorRegistry.ts` (conditional registration), `createConnectorAuthenticator.ts` (`github` added to the trusted connector identity list)
+- `packages/api/tests/integration/github-pr-merge.integration.test.ts` (4 tests): an approved merge through a real `POST /execute` request against the production bootstrap chain (`createExecutionSystem`), landing on `MockGitHubServer`; two policy-denied cases, each making zero calls to the mock server (`fetch`-spy asserted); a credential-isolation check on the response body
+- `packages/api/tests/integration/github-pr-merge-live.integration.test.ts` (2 tests, gated behind `ALLOW_LIVE_GITHUB=1` + `TEST_GITHUB_APP_ID`/`TEST_GITHUB_INSTALLATION_ID`/`TEST_GITHUB_APP_PRIVATE_KEY`; skipped by default) and `packages/api/tests/helpers/github-live-availability.ts` (the gating logic, mirroring `hubspot-live-availability.ts`). Confirmed this session only to skip cleanly with no live credentials configured — not yet run live against a real GitHub App installation (see test posture above).
+- `tests/architecture/execution-boundary.test.ts` (Phase 1D public API boundary check, allowlist extended to cover `createGatewayGitHubConnector`/`createGatewayGitHubCredentialProvider`)
+- `.env.example` (`GITHUB_APP_ID`, `GITHUB_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY`, `TEST_GITHUB_APP_ID`, `TEST_GITHUB_INSTALLATION_ID`, `TEST_GITHUB_APP_PRIVATE_KEY`, `ALLOW_LIVE_GITHUB`, `TEST_GITHUB_REPOSITORY`, `TEST_GITHUB_PULL_NUMBER`, `GITHUB_BASE_URL`)
+- Full monorepo suite run this session (`npx vitest run`, no live GitHub credentials configured so the live suite skipped as designed): 1227 passed, 37 skipped, 0 failed. `npx tsc -b` and `eslint .` both clean. Commit: `e0ba416` (wiring + hermetic tests), this session (live-test file + this document update).
 
 **Pattern, stated precisely: credential isolation is now demonstrated across two structurally different credential models, not merely two connectors sharing one.** HubSpot's static, caller-independent, long-lived Private App token and GitHub's ephemeral, per-execution-minted installation token both flow through the same `CredentialProvider`/`execute()`-scoped-local discipline, both redact to a one-way fingerprint before reaching any response or audit record, and both make zero external API calls on policy denial. No actor — AI, human, application, or attacker — ever holds a working execution credential directly for either connector; only Parmana's own systems execute after authorization clears. What remains unvalidated for GitHub specifically, honestly stated: the live round trip against a real GitHub App installation (the mechanism is proven hermetically; the real-network exercise is open work, see above).
 
@@ -1826,26 +1272,26 @@ Evidence
 
 **New, required to run Parmana at all (`DEPLOYMENT.md`, `Dockerfile`):**
 
-* **A container process.** One Docker image (`Dockerfile`), one process per container, running `packages/api/dist/server.js`, deployable to any Docker-based platform — validated with a bare `docker build`/`docker run`, not tied to a specific PaaS's proprietary build system (3.8/3.9's own `fly.io` deployments are one instance of this, not the only supported target).
-* **Signing key material.** Two key pairs (`default`, the authorization-signing key; `gateway`, the Execution Gateway's attestation-signing key — deliberately separate, `PARMANA_GATEWAY_KEY_ID` overridable) are required in `PARMANA_KEY_DIR`. Neither is generated automatically, and the image's `keys/` directory ships empty on purpose — key material must never be baked into the image (`Dockerfile`'s own comment). Supplied either as mounted `.pem` files or via `PARMANA_KEY_MATERIAL_JSON`. `assertSigningKeyMaterialConfigured.ts` (`packages/api/src/bootstrap/`) fails closed at boot — before the port binds — if neither is present.
-* **A Postgres database, via Supabase, for anything other than a disposable single instance.** `PARMANA_STORAGE=memory` (the default) needs no external database for business-transaction/execution-trust-record data — but the caller-authentication audit trail (`CallerAuditSink`) and the envelope-verifier's replay-protection store (`NonceStore`) are **always** Supabase-backed in any non-test deployment, never falling back to in-memory regardless of `PARMANA_STORAGE`, and both fail closed at boot if `DATABASE_URL` is not configured — via `assertDatabaseUrlConfigured.ts`, called unconditionally from `createCallerAuditSink.ts`/`createNonceStore.ts` (not `assertStorageConfigured.ts`, which validates only business-transaction/execution-trust-record storage, gated on `PARMANA_STORAGE=supabase`; see that file's own doc comment). `SUPABASE_URL` itself is not read by this check — `DATABASE_URL` is the only variable that satisfies it, a documented, temporary substitute pending resolution of Supabase ticket SU-437429. In practice, precisely stated: a real deployment always needs Supabase for the audit trail and nonce store; `PARMANA_STORAGE=supabase` additionally routes business-transaction/execution-trust-record storage through the same database rather than memory. There is no configuration under which a real (non-test) deployment runs with zero external database.
-* **The schema applied to that database, manually.** `supabase/migrations/` must be applied to the target Supabase project before a real deployment can serve traffic — either `supabase db push` (Supabase CLI, if linked) or `scripts/apply-all-migrations.sql` (a concatenation of every migration file, idempotent, safe to re-run) via the Dashboard SQL Editor. This is a manual operational step, not something the container performs on its own at boot.
-* **Caller authentication configuration.** `PARMANA_API_KEYS` (a JSON array of `{callerId, keyHash}` entries) is required; the process refuses to start without it, unless `PARMANA_AUTH_DISABLED=true` is explicitly set for local development only (logs a loud warning on every boot — never set in a real deployment).
+- **A container process.** One Docker image (`Dockerfile`), one process per container, running `packages/api/dist/server.js`, deployable to any Docker-based platform — validated with a bare `docker build`/`docker run`, not tied to a specific PaaS's proprietary build system (3.8/3.9's own `fly.io` deployments are one instance of this, not the only supported target).
+- **Signing key material.** Two key pairs (`default`, the authorization-signing key; `gateway`, the Execution Gateway's attestation-signing key — deliberately separate, `PARMANA_GATEWAY_KEY_ID` overridable) are required in `PARMANA_KEY_DIR`. Neither is generated automatically, and the image's `keys/` directory ships empty on purpose — key material must never be baked into the image (`Dockerfile`'s own comment). Supplied either as mounted `.pem` files or via `PARMANA_KEY_MATERIAL_JSON`. `assertSigningKeyMaterialConfigured.ts` (`packages/api/src/bootstrap/`) fails closed at boot — before the port binds — if neither is present.
+- **A Postgres database, via Supabase, for anything other than a disposable single instance.** `PARMANA_STORAGE=memory` (the default) needs no external database for business-transaction/execution-trust-record data — but the caller-authentication audit trail (`CallerAuditSink`) and the envelope-verifier's replay-protection store (`NonceStore`) are **always** Supabase-backed in any non-test deployment, never falling back to in-memory regardless of `PARMANA_STORAGE`, and both fail closed at boot if `DATABASE_URL` is not configured — via `assertDatabaseUrlConfigured.ts`, called unconditionally from `createCallerAuditSink.ts`/`createNonceStore.ts` (not `assertStorageConfigured.ts`, which validates only business-transaction/execution-trust-record storage, gated on `PARMANA_STORAGE=supabase`; see that file's own doc comment). `SUPABASE_URL` itself is not read by this check — `DATABASE_URL` is the only variable that satisfies it, a documented, temporary substitute pending resolution of Supabase ticket SU-437429. In practice, precisely stated: a real deployment always needs Supabase for the audit trail and nonce store; `PARMANA_STORAGE=supabase` additionally routes business-transaction/execution-trust-record storage through the same database rather than memory. There is no configuration under which a real (non-test) deployment runs with zero external database.
+- **The schema applied to that database, manually.** `supabase/migrations/` must be applied to the target Supabase project before a real deployment can serve traffic — either `supabase db push` (Supabase CLI, if linked) or `scripts/apply-all-migrations.sql` (a concatenation of every migration file, idempotent, safe to re-run) via the Dashboard SQL Editor. This is a manual operational step, not something the container performs on its own at boot.
+- **Caller authentication configuration.** `PARMANA_API_KEYS` (a JSON array of `{callerId, keyHash}` entries) is required; the process refuses to start without it, unless `PARMANA_AUTH_DISABLED=true` is explicitly set for local development only (logs a loud warning on every boot — never set in a real deployment).
 
 **Not new, not replaced:** an integrated business's own operational database, its own audit/SIEM infrastructure, and every external system a connector calls (HubSpot's CRM, GitHub's API, and — one level removed — Paytm's own API, which Parmana never calls directly at all; see 3.22) are untouched by any of the above. Parmana holds no credential for and makes no call to a connector's external system unless that connector is explicitly configured (3.10/3.17's own "fails closed to connector-not-registered, never a partially-configured provider" pattern) — an unconfigured connector has zero footprint against the system it would have integrated with. Parmana's own database (Supabase) stores only Parmana's authorization/audit/execution-trust-record data, never an integrated business's operational records; callers provide business context to Parmana via signals in each request, not the reverse.
 
-**What this claim does not assert:** deployment footprint, cost, or scaling characteristics beyond what `DEPLOYMENT.md` documents (this is a correctness/completeness claim about *what infrastructure is required*, not a capacity or performance claim); a packaged one-command installer, database-schema auto-migration at boot, or a signing-key-generation tool — none of these exist in this repository today (schema application and key generation are both manual operator steps, described above and in `DEPLOYMENT.md`, not automated by anything Parmana ships).
+**What this claim does not assert:** deployment footprint, cost, or scaling characteristics beyond what `DEPLOYMENT.md` documents (this is a correctness/completeness claim about _what infrastructure is required_, not a capacity or performance claim); a packaged one-command installer, database-schema auto-migration at boot, or a signing-key-generation tool — none of these exist in this repository today (schema application and key generation are both manual operator steps, described above and in `DEPLOYMENT.md`, not automated by anything Parmana ships).
 
 Evidence
 
-* `DEPLOYMENT.md` (the authoritative deployment runbook this claim is drawn from: required configuration, storage, schema application, caller authentication, health checks, graceful shutdown)
-* `Dockerfile` (single-image, single-process build; `keys/` deliberately empty in the image; non-root runtime user)
-* `packages/api/src/bootstrap/assertStorageConfigured.ts` (business-transaction/execution-trust-record storage, gated on PARMANA_STORAGE=supabase), `assertSigningKeyMaterialConfigured.ts` (fail-closed startup validation, before the port binds)
-* `packages/api/src/bootstrap/assertDatabaseUrlConfigured.ts`, called unconditionally from `createCallerAuditSink.ts`/`createNonceStore.ts` (the actual fail-closed check for CallerAuditSink/NonceStore described above; checks DATABASE_URL only)
-* `packages/shared/src/config/StorageProviders.ts` (`memory`/`postgres`/`supabase`), `packages/shared/src/config/Config.ts` (the sole `process.env` read site for application config)
-* `supabase/migrations/` (schema source), `scripts/apply-all-migrations.sql` (manual application path with no CLI link)
-* `fly.toml` (3.8's own currently-deployed instance — one concrete instantiation of this deployment shape, not evidence that Fly.io specifically is required). `fly.live.toml` (3.9's own instance) was deleted 2026-08-12 along with the rest of the Razorpay connector it deployed; §3.9 is now historical, so this section cites only the still-current `fly.toml`.
-* `createConnectorRegistry.ts` (3.10/3.17: HubSpot/GitHub each registered conditionally on their own credentials; absent, the connector is simply not registered — no partial-configuration state, no effect on Parmana's own boot)
+- `DEPLOYMENT.md` (the authoritative deployment runbook this claim is drawn from: required configuration, storage, schema application, caller authentication, health checks, graceful shutdown)
+- `Dockerfile` (single-image, single-process build; `keys/` deliberately empty in the image; non-root runtime user)
+- `packages/api/src/bootstrap/assertStorageConfigured.ts` (business-transaction/execution-trust-record storage, gated on PARMANA_STORAGE=supabase), `assertSigningKeyMaterialConfigured.ts` (fail-closed startup validation, before the port binds)
+- `packages/api/src/bootstrap/assertDatabaseUrlConfigured.ts`, called unconditionally from `createCallerAuditSink.ts`/`createNonceStore.ts` (the actual fail-closed check for CallerAuditSink/NonceStore described above; checks DATABASE_URL only)
+- `packages/shared/src/config/StorageProviders.ts` (`memory`/`postgres`/`supabase`), `packages/shared/src/config/Config.ts` (the sole `process.env` read site for application config)
+- `supabase/migrations/` (schema source), `scripts/apply-all-migrations.sql` (manual application path with no CLI link)
+- `fly.toml` (3.8's own currently-deployed instance — one concrete instantiation of this deployment shape, not evidence that Fly.io specifically is required). `fly.live.toml` (3.9's own instance) was deleted 2026-08-12 along with the rest of the Razorpay connector it deployed; §3.9 is now historical, so this section cites only the still-current `fly.toml`.
+- `createConnectorRegistry.ts` (3.10/3.17: HubSpot/GitHub each registered conditionally on their own credentials; absent, the connector is simply not registered — no partial-configuration state, no effect on Parmana's own boot)
 
 ---
 
@@ -1857,12 +1303,12 @@ Extends the caller-binding checks 2.16/G-24's `isPrincipalAllowed` fix and 3.16'
 
 Evidence
 
-* `packages/api/src/auth/CallerAuditSink.ts` (`caller.principal_denied` variant, `principalId` field — "the `authority.principalId` a caller attempted to assert but was not permitted to")
-* `packages/api/src/routes/execute.ts`, `transactions.ts` (both call sites: `recordCallerAuditEvent` before the `403` response, immediately after `isPrincipalAllowed` returns `false`)
-* `packages/api/src/auth/SupabaseCallerAuditSink.ts` (persists the new `principal` column)
-* `supabase/migrations/20260816120000_add_principal_to_caller_audit_events.sql` (additive `principal` column; synced into `scripts/apply-all-migrations.sql`)
-* `packages/api/tests/integration/caller-principal-scoping.integration.test.ts` (new, 6 tests): a scoped-in principal is allowed and no `caller.principal_denied` event is recorded; an out-of-scope principal is blocked with `403` before `application.execute()` is reached and a `caller.principal_denied` event is recorded carrying the asserted `principalId`/`callerId` and never the raw key; both `POST /execute` and `POST /transactions` covered identically
-* `packages/api/tests/unit/supabase-caller-audit-sink.test.ts`, `packages/api/tests/integration/supabase-caller-audit-sink.integration.test.ts` (extended for the new column/event shape)
+- `packages/api/src/auth/CallerAuditSink.ts` (`caller.principal_denied` variant, `principalId` field — "the `authority.principalId` a caller attempted to assert but was not permitted to")
+- `packages/api/src/routes/execute.ts`, `transactions.ts` (both call sites: `recordCallerAuditEvent` before the `403` response, immediately after `isPrincipalAllowed` returns `false`)
+- `packages/api/src/auth/SupabaseCallerAuditSink.ts` (persists the new `principal` column)
+- `supabase/migrations/20260816120000_add_principal_to_caller_audit_events.sql` (additive `principal` column; synced into `scripts/apply-all-migrations.sql`)
+- `packages/api/tests/integration/caller-principal-scoping.integration.test.ts` (new, 6 tests): a scoped-in principal is allowed and no `caller.principal_denied` event is recorded; an out-of-scope principal is blocked with `403` before `application.execute()` is reached and a `caller.principal_denied` event is recorded carrying the asserted `principalId`/`callerId` and never the raw key; both `POST /execute` and `POST /transactions` covered identically
+- `packages/api/tests/unit/supabase-caller-audit-sink.test.ts`, `packages/api/tests/integration/supabase-caller-audit-sink.integration.test.ts` (extended for the new column/event shape)
 
 ---
 
@@ -1872,22 +1318,22 @@ Closes `docs/VERIFICATION-GAPS.md` G-29: before this capability, four admission-
 
 **Two different audit disciplines, deliberately, matching where each rejection actually happens in the request pipeline:**
 
-1. **The UUID-format check and the two errors thrown inside `application.execute()`** (`BusinessTransactionValidationError`, `DuplicateBusinessTransactionError`) all run inside `execute.ts`/`transactions.ts`'s route handler, mounted *after* caller-auth middleware — the same layer 3.16/3.19's checks already run at. These reuse `recordCallerAuditEvent`'s existing fail-closed discipline (2.19) exactly: audited before the `400`/`409` response, and a write failure itself fails the request (`503 AUDIT_UNAVAILABLE`) rather than letting the rejection go unrecorded.
-2. **Malformed/oversized request body** is rejected by `express.json()` itself, *before* caller-auth middleware — or any route handler — ever runs (`app.ts`'s mounting order: `express.json()` at line 127, caller-auth at line ~172, both ahead of every route). There is no caller identity to protect the accountability of at this point, and `error-handler.ts` is a single-pass terminal middleware, not naturally positioned to fail the response closed the way a route handler can. This one path is therefore deliberately **fail-open**, mirroring RefusalRecord's own reasoning (3.11's first scope caveat) rather than 2.19's: the request is already correctly rejected either way, and failing the response closed on top of a correct `400`/`413` would trade it for an opaque `500` with no corresponding security gain. A write failure here is logged (`structural_rejection_audit_write_failed`), never thrown. `createErrorHandler(auditSink?)` (replacing the former plain `errorHandler` export) is how the audit sink reaches this one file; every other error branch in `error-handler.ts` is unaffected, since each of those is reached only via a route handler that already owns its own audit call.
+1. **The UUID-format check and the two errors thrown inside `application.execute()`** (`BusinessTransactionValidationError`, `DuplicateBusinessTransactionError`) all run inside `execute.ts`/`transactions.ts`'s route handler, mounted _after_ caller-auth middleware — the same layer 3.16/3.19's checks already run at. These reuse `recordCallerAuditEvent`'s existing fail-closed discipline (2.19) exactly: audited before the `400`/`409` response, and a write failure itself fails the request (`503 AUDIT_UNAVAILABLE`) rather than letting the rejection go unrecorded.
+2. **Malformed/oversized request body** is rejected by `express.json()` itself, _before_ caller-auth middleware — or any route handler — ever runs (`app.ts`'s mounting order: `express.json()` at line 127, caller-auth at line ~172, both ahead of every route). There is no caller identity to protect the accountability of at this point, and `error-handler.ts` is a single-pass terminal middleware, not naturally positioned to fail the response closed the way a route handler can. This one path is therefore deliberately **fail-open**, mirroring RefusalRecord's own reasoning (3.11's first scope caveat) rather than 2.19's: the request is already correctly rejected either way, and failing the response closed on top of a correct `400`/`413` would trade it for an opaque `500` with no corresponding security gain. A write failure here is logged (`structural_rejection_audit_write_failed`), never thrown. `createErrorHandler(auditSink?)` (replacing the former plain `errorHandler` export) is how the audit sink reaches this one file; every other error branch in `error-handler.ts` is unaffected, since each of those is reached only via a route handler that already owns its own audit call.
 
 `callerId` is therefore present on a `caller.structural_rejected` event exactly when caller-auth ran first and identified a caller before the structural check failed — populated for all three route-handler-level checks, absent for the pre-caller-auth malformed-body case.
 
 Evidence
 
-* `packages/api/src/auth/CallerAuditSink.ts` (`caller.structural_rejected` variant, `businessTransactionId` field)
-* `packages/api/src/auth/SupabaseCallerAuditSink.ts` (persists the new `business_transaction_id` column)
-* `packages/api/src/routes/execute.ts`, `transactions.ts` (UUID-format check: fail-closed audit before `400`; `catch` block around `application.execute()`: fail-closed audit for `BusinessTransactionValidationError`/`DuplicateBusinessTransactionError` before `next(error)`)
-* `packages/api/src/middleware/error-handler.ts` (`createErrorHandler(auditSink?)`, `auditStructuralRejectionBestEffort` — fail-open, logs and swallows its own failure)
-* `packages/api/src/app.ts` (threads `options.callerAuth.auditSink` into `createErrorHandler`, mirroring how `execute.ts`/`transactions.ts` are already threaded)
-* `supabase/migrations/20260824090000_add_structural_rejected_to_caller_audit_events.sql` (widened `type` CHECK constraint; additive `business_transaction_id` column; synced into `scripts/apply-all-migrations.sql`)
-* `packages/api/tests/integration/structural-validation-audit.integration.test.ts` (new, 9 tests): malformed `businessTransactionId` audited with the declared value and `callerId`, both `POST /execute` and `POST /transactions`; a non-string `businessTransactionId` leaves the field absent, not a garbage value; a mismatched `metadata.businessTransactionId` (`BusinessTransactionValidationError`) audited with its reason; a resubmitted `businessTransactionId` (`DuplicateBusinessTransactionError`) audited on the second call only, not the first, successful one; malformed JSON and an oversized body each audited with no `callerId` and no `businessTransactionId`; malformed JSON with caller-auth disabled still returns a correct `400` with nothing to assert on the audit side (no sink exists to write to); the valid path records no `caller.structural_rejected` event at all
-* `packages/api/tests/unit/supabase-caller-audit-sink.test.ts` (extended, 2 new cases: the new column maps correctly with and without a known caller/businessTransactionId)
-* Full repo `npx tsc -b`, `npx eslint . --ext .ts`, and `npm test` (`vitest run`) all clean: 1243 passed, 37 pre-existing skips, 0 failed — no regressions
+- `packages/api/src/auth/CallerAuditSink.ts` (`caller.structural_rejected` variant, `businessTransactionId` field)
+- `packages/api/src/auth/SupabaseCallerAuditSink.ts` (persists the new `business_transaction_id` column)
+- `packages/api/src/routes/execute.ts`, `transactions.ts` (UUID-format check: fail-closed audit before `400`; `catch` block around `application.execute()`: fail-closed audit for `BusinessTransactionValidationError`/`DuplicateBusinessTransactionError` before `next(error)`)
+- `packages/api/src/middleware/error-handler.ts` (`createErrorHandler(auditSink?)`, `auditStructuralRejectionBestEffort` — fail-open, logs and swallows its own failure)
+- `packages/api/src/app.ts` (threads `options.callerAuth.auditSink` into `createErrorHandler`, mirroring how `execute.ts`/`transactions.ts` are already threaded)
+- `supabase/migrations/20260824090000_add_structural_rejected_to_caller_audit_events.sql` (widened `type` CHECK constraint; additive `business_transaction_id` column; synced into `scripts/apply-all-migrations.sql`)
+- `packages/api/tests/integration/structural-validation-audit.integration.test.ts` (new, 9 tests): malformed `businessTransactionId` audited with the declared value and `callerId`, both `POST /execute` and `POST /transactions`; a non-string `businessTransactionId` leaves the field absent, not a garbage value; a mismatched `metadata.businessTransactionId` (`BusinessTransactionValidationError`) audited with its reason; a resubmitted `businessTransactionId` (`DuplicateBusinessTransactionError`) audited on the second call only, not the first, successful one; malformed JSON and an oversized body each audited with no `callerId` and no `businessTransactionId`; malformed JSON with caller-auth disabled still returns a correct `400` with nothing to assert on the audit side (no sink exists to write to); the valid path records no `caller.structural_rejected` event at all
+- `packages/api/tests/unit/supabase-caller-audit-sink.test.ts` (extended, 2 new cases: the new column maps correctly with and without a known caller/businessTransactionId)
+- Full repo `npx tsc -b`, `npx eslint . --ext .ts`, and `npm test` (`vitest run`) all clean: 1243 passed, 37 pre-existing skips, 0 failed — no regressions
 
 ---
 
@@ -1901,10 +1347,10 @@ New `GET /trust-records` returns the complete signed Execution Trust Record (tra
 
 Evidence
 
-* `packages/api/src/routes/trust-records.ts` (`GET /trust-records`)
-* `packages/runtime/src/ExecutionTrustApplication.ts` (`listTrustRecords()`): paginates the existing `BusinessTransactionService.list()` and resolves each page entry via the existing `ExecutionTrustRecordRepository.findByTransactionId()`, deliberately not a new repository-level `list()` method, since every transaction has exactly one Trust Record and this avoids requiring every repository implementation (in-memory, Supabase, and any future one) to grow new query surface
-* `openapi/openapi.yaml` (`operationId: listTrustRecords`), `schemas/responses/trust-records-list-response.schema.json`
-* `packages/api/tests/unit/trust-record-api.test.ts`: 3 new cases (empty before any execution; the full record matches the `/execute` response's own `trustRecordId` after one; `since`/`until` date-range filtering)
+- `packages/api/src/routes/trust-records.ts` (`GET /trust-records`)
+- `packages/runtime/src/ExecutionTrustApplication.ts` (`listTrustRecords()`): paginates the existing `BusinessTransactionService.list()` and resolves each page entry via the existing `ExecutionTrustRecordRepository.findByTransactionId()`, deliberately not a new repository-level `list()` method, since every transaction has exactly one Trust Record and this avoids requiring every repository implementation (in-memory, Supabase, and any future one) to grow new query surface
+- `openapi/openapi.yaml` (`operationId: listTrustRecords`), `schemas/responses/trust-records-list-response.schema.json`
+- `packages/api/tests/unit/trust-record-api.test.ts`: 3 new cases (empty before any execution; the full record matches the `/execute` response's own `trustRecordId` after one; `since`/`until` date-range filtering)
 
 ---
 
@@ -1931,7 +1377,7 @@ The connector endpoint the remote service exposes is never `/execute` and never 
 
 **Correction (same session, after gaining access to the real `parmana-paytm-agent` repository):** this section originally described an invented `{businessTransactionId, capability, action, target, parameters}` wire request and a `completed`/`ambiguous`/`failed` response status enum, neither of which the real connector service implements. Verified against that repository's actual `POST /connector/paytm-refund` handler (`src/server/index.ts`, `executeAuthorizedConnectorRequest`), the real contract is a `{transaction: {businessTransactionId, intent: {action: "paytm-refund", target, parameters: {orderId, txnId, refId, amount}}}, authorization: {payload: {businessTransactionId, grantedCapability}}}` request envelope and a `{businessTransactionId, action, target, parameters, success, executedAt, metadata}` response — no status enum, only a boolean `success`. `GatewayPaytmAdapter`, `PaytmTypes.ts` (`connector-paytm`), `MockPaytmConnectorServer`, and all three Paytm test files were corrected to match this real contract before this document was updated; the earlier, incorrect version was never deployed or exercised against the real service. Parmana's own internal capability id stays the namespaced `paytm:refund` everywhere except the one outbound wire body, which uses the real service's hyphenated `"paytm-refund"` (`PAYTM_AGENT_WIRE_ACTION`).
 
-**Idempotency, no second authoritative store introduced, and no ambiguous-status enum to lean on:** the real connector service does not derive `refId` itself and has no server-side idempotency store wired into this route (a `RefundIdempotencyStore` exists in that codebase but is unused there) — it is the *caller's* responsibility to supply a stable `refId`. `GatewayPaytmAdapter` closes that gap: `deriveDeterministicPaytmRefId(orderId, transactionId)` (`connector-paytm/src/PaytmTypes.ts`) is a pure SHA-256-based hash, no `Date.now()`/`Math.random()`, so a retried request for the same `(orderId, transactionId)` always derives and sends the identical `refId`, regardless of Parmana's own `businessTransactionId` (which differs across distinct authorization attempts for the same logical refund). A non-success response (`success: false`, covering both a definite Paytm decline and anything less certain) is returned as a clean, non-throwing `ConnectorResponse` — never an exception, which upstream code could otherwise treat as transient and retry with a fresh `refId`. Replay protection for the Parmana side of a retry is the existing, unmodified nonce/trust-record machinery every other capability already relies on; this milestone adds no parallel transaction store.
+**Idempotency, no second authoritative store introduced, and no ambiguous-status enum to lean on:** the real connector service does not derive `refId` itself and has no server-side idempotency store wired into this route (a `RefundIdempotencyStore` exists in that codebase but is unused there) — it is the _caller's_ responsibility to supply a stable `refId`. `GatewayPaytmAdapter` closes that gap: `deriveDeterministicPaytmRefId(orderId, transactionId)` (`connector-paytm/src/PaytmTypes.ts`) is a pure SHA-256-based hash, no `Date.now()`/`Math.random()`, so a retried request for the same `(orderId, transactionId)` always derives and sends the identical `refId`, regardless of Parmana's own `businessTransactionId` (which differs across distinct authorization attempts for the same logical refund). A non-success response (`success: false`, covering both a definite Paytm decline and anything less certain) is returned as a clean, non-throwing `ConnectorResponse` — never an exception, which upstream code could otherwise treat as transient and retry with a fresh `refId`. Replay protection for the Parmana side of a retry is the existing, unmodified nonce/trust-record machinery every other capability already relies on; this milestone adds no parallel transaction store.
 
 **Capability and policy binding:** exactly one capability, `paytm:refund` (`PAYTM_REFUND_CAPABILITY`, `packages/connector-paytm/src/PaytmCapabilities.ts`) — no `paytm:*` wildcard, no other Paytm action. Bound in `CANONICAL_CAPABILITY_POLICY_BINDINGS` (`packages/capability-registry/src/CapabilityPolicyBinding.ts`) to `customer-refund@1.0.0` — a pre-existing policy this milestone did not need to modify (`policies/customer-refund/1.0.0/policy.json`: approves when `refundEligible`/`managerApproved`/`fraudCheckPassed` are all true and `refundAmount` (bound to `parameters.amount`) is at or below 10000; rejects an excessive amount, a failed fraud check, or anything else via an unconditional `reject-default` fallback). Not added to `INTENTIONALLY_UNBOUND_CAPABILITIES` — this milestone's own explicit instruction — so `assertConnectorCapabilitiesBound.ts`'s fail-closed startup guardrail actively protects it, exactly like `hubspot:*`/`github:*`.
 
@@ -1941,32 +1387,31 @@ The connector endpoint the remote service exposes is never `/execute` and never 
 
 **Test posture, in the order specified for this milestone:**
 
-* **Hermetic first.** 51 unit tests, all passing, no network calls beyond localhost: `packages/connector-paytm/tests/unit/paytm-types.test.ts` (32 — credential-shape guard, one-way secret redaction never containing a literal substring, the deny-by-default parameter allowlist, `deriveDeterministicPaytmRefId`'s determinism/independence-from-businessTransactionId, `PaytmAgentRefundExecutionResult`'s shape guard across the real response fields and every malformed variant); `packages/execution-gateway/tests/unit/paytm-connector.test.ts` (19 — approved forward with the mock's own Paytm-invocation counter at exactly 1, the real wire contract's exact field names/action string, deny-by-default before any network call, capability mismatch, bad-credential-shape rejection, invalid connector authentication (401) with the mock's Paytm-invocation counter at exactly 0, non-2xx/timeout fail-closed, malformed-response rejection, response-binding-mismatch cases (top-level `businessTransactionId`/`action` and nested `parameters.orderId`/`parameters.txnId`), non-throwing `success: false` handling with the raw Paytm result code surfaced and no internal retry, same-`refId`-on-retry idempotency, secret redaction in both response metadata and thrown-error messages, the placeholder-credential guard, and the HTTPS-required-outside-test guard).
-* **Policy-denial-makes-zero-calls, proven at the HTTP boundary**, mirroring 3.10/3.17's own "reads the mock server's/mock connector's state directly afterward" discipline exactly: `packages/api/tests/integration/paytm-refund.integration.test.ts` (6 tests) — Scenario B (an approved refund, `amount: 500`/`managerApproved: true`/`refundEligible: true`/`fraudCheckPassed: true`) reaches `POST /connector/paytm-refund` on the mock connector service exactly once; Scenario A (`amount: 50000`/`managerApproved: false`) is rejected with `403`/`POLICY_DENIED` with a `fetch`-spy-confirmed zero calls to the mock connector's base URL and the mock's own Paytm-invocation counter at `0`; an excessive-amount case and a failed-fraud-check case, both zero-call; the authorized-amount-vs-executed-amount binding-tamper case (`refundAmount: 500` declared against `parameters.amount: 50000` actually in the Intent) caught by the pre-existing, unmodified `SignalIntentBinder` before `PolicyEngine.evaluate` ever runs, zero-call; and the capability/policy substitution case (`paytm:refund` paired with `hubspot-deal-update/1.0.0`, a real, loadable policy with no `boundSignals` for it) caught by `CapabilityPolicyBinder`, zero-call. All six use the identical `customer-refund@1.0.0` policy reference — the different outcomes come entirely from the payload/signals, per this milestone's own explicit requirement.
-* **No gated live suite exists this milestone**, honestly stated rather than glossed over: unlike 3.10/3.17's `ALLOW_LIVE_HUBSPOT`/`ALLOW_LIVE_GITHUB` suites, there is no `ALLOW_LIVE_PAYTM` suite, because this milestone has no reachable `parmana-paytm-agent` deployment to run it against — that repository is out of this codebase's scope entirely, not merely uncredentialed. Building and running a live suite against a real deployment of that service is open work for whoever next has one reachable.
+- **Hermetic first.** 51 unit tests, all passing, no network calls beyond localhost: `packages/connector-paytm/tests/unit/paytm-types.test.ts` (32 — credential-shape guard, one-way secret redaction never containing a literal substring, the deny-by-default parameter allowlist, `deriveDeterministicPaytmRefId`'s determinism/independence-from-businessTransactionId, `PaytmAgentRefundExecutionResult`'s shape guard across the real response fields and every malformed variant); `packages/execution-gateway/tests/unit/paytm-connector.test.ts` (19 — approved forward with the mock's own Paytm-invocation counter at exactly 1, the real wire contract's exact field names/action string, deny-by-default before any network call, capability mismatch, bad-credential-shape rejection, invalid connector authentication (401) with the mock's Paytm-invocation counter at exactly 0, non-2xx/timeout fail-closed, malformed-response rejection, response-binding-mismatch cases (top-level `businessTransactionId`/`action` and nested `parameters.orderId`/`parameters.txnId`), non-throwing `success: false` handling with the raw Paytm result code surfaced and no internal retry, same-`refId`-on-retry idempotency, secret redaction in both response metadata and thrown-error messages, the placeholder-credential guard, and the HTTPS-required-outside-test guard).
+- **Policy-denial-makes-zero-calls, proven at the HTTP boundary**, mirroring 3.10/3.17's own "reads the mock server's/mock connector's state directly afterward" discipline exactly: `packages/api/tests/integration/paytm-refund.integration.test.ts` (6 tests) — Scenario B (an approved refund, `amount: 500`/`managerApproved: true`/`refundEligible: true`/`fraudCheckPassed: true`) reaches `POST /connector/paytm-refund` on the mock connector service exactly once; Scenario A (`amount: 50000`/`managerApproved: false`) is rejected with `403`/`POLICY_DENIED` with a `fetch`-spy-confirmed zero calls to the mock connector's base URL and the mock's own Paytm-invocation counter at `0`; an excessive-amount case and a failed-fraud-check case, both zero-call; the authorized-amount-vs-executed-amount binding-tamper case (`refundAmount: 500` declared against `parameters.amount: 50000` actually in the Intent) caught by the pre-existing, unmodified `SignalIntentBinder` before `PolicyEngine.evaluate` ever runs, zero-call; and the capability/policy substitution case (`paytm:refund` paired with `hubspot-deal-update/1.0.0`, a real, loadable policy with no `boundSignals` for it) caught by `CapabilityPolicyBinder`, zero-call. All six use the identical `customer-refund@1.0.0` policy reference — the different outcomes come entirely from the payload/signals, per this milestone's own explicit requirement.
+- **No gated live suite exists this milestone**, honestly stated rather than glossed over: unlike 3.10/3.17's `ALLOW_LIVE_HUBSPOT`/`ALLOW_LIVE_GITHUB` suites, there is no `ALLOW_LIVE_PAYTM` suite, because this milestone has no reachable `parmana-paytm-agent` deployment to run it against. Building and running a live suite against a real deployment of that service is open work for whoever next has one reachable. **This does not mean that repository is unmaintained or unaudited — see the 2026-09-14 correction below.**
+
+**Correction (2026-09-14, GAP-3 remediation — see `GAPS.md` and `docs/VERIFICATION-GAPS.md` G-43):** two claims above are now out of date, not because anything in this milestone's own scope was wrong, but because a real gap was found and closed in `parmana-paytm-agent` itself. Line-1913's "This codebase never has access to, and never needs, that repository's source" and line-1946's "that repository is out of this codebase's scope entirely" were both true as _architectural_ statements (this repository still never holds a Paytm merchant key and never calls Paytm's API directly) but were read, incorrectly, as implying that repository's own audit posture was permanently someone else's problem. An independent audit (GAPS.md, GAP-3) found `parmana-paytm-agent`'s `executeAuthorizedConnectorRequest` (`src/server/handler.ts`) recorded nothing — not even a console log — for either a successful or a rejected refund on its side of the trust boundary, despite already correctly verifying the Ed25519 authorization signature (ADR-0009 Phase 2B) before ever calling Paytm. Closed directly in that repository: `src/parmana/audit.ts` (new; `pg` is that repository's first-ever runtime dependency) now records `authorization.verified` immediately after signature verification succeeds, then `execution.completed`/`execution.rejected` after the Paytm call resolves — two rows, not one, so a crash between verification and execution remains visible rather than silently unrecorded. These rows land in the _same_ `execution_audit_events` table this codebase's own `SupabaseExecutionAuditSink` writes to (`packages/storage/src/supabase/SupabaseExecutionAuditSink.ts`, new — see §2.16 for the analogous durability fix already made to `CallerAuditSink`, and `docs/VERIFICATION-GAPS.md` G-42 for this side's own writeup), correlated by `businessTransactionId` — the one identifier both services actually share, since Parmana's own `authorizationId` is never forwarded across this wire boundary (see the correction two paragraphs above). `parmana-paytm-agent`'s rows are deliberately unsigned and unchained (`signature_json`/`chain_hash`/`chain_position` NULL): that service holds Parmana's public key only, never a private signing key. Verified: `parmana-paytm-agent`'s own test suite, 40/40 passing including 3 new cases asserting the exact event sequence and reasons recorded (success, verification-failure, and Paytm-decline paths); this repository's monorepo suite, 592/592 passing from repo root.
 
 Evidence
 
-* `packages/connector-paytm/src` (`PaytmCapabilities`, `PaytmMetadata`, `PaytmTypes`, `MockPaytmConnectorServer`) — passive capability/schema definitions and the hermetic connector-service stand-in
-* `packages/execution-gateway/src/connector-execution/GatewayPaytmAdapter.ts`, `createGatewayPaytmConnector.ts` — the executable, remote-forwarding connector; added to `tests/unit/public-api-boundary.test.ts`'s "must not be exported from the public package entry" list alongside `GatewayHubSpotAdapter`/`GatewayHttpAdapter`
-* `packages/connector-paytm/tests/unit/paytm-types.test.ts` (32), `packages/execution-gateway/tests/unit/paytm-connector.test.ts` (19) — 51 hermetic unit tests total
-* `policies/customer-refund/1.0.0/policy.json` (pre-existing, unmodified)
-* `packages/capability-registry/src/CapabilityPolicyBinding.ts` (`paytm:refund` -> `customer-refund@1.0.0`), `packages/capability-registry/tests/unit/CapabilityPolicyBinder.test.ts` (hand-maintained bound-capability set updated to include `paytm:refund`)
-* `packages/api/src/bootstrap/createPaytmConnector.ts`, `createPaytmCredentialProvider.ts`, `assertPaytmConnectorConfigured.ts` (fail-closed partial-configuration guard, called from `server.ts`), `createConnectorRegistry.ts` (conditional registration, `PAYTM_CONNECTOR_TIMEOUT_MS`-derived per-registration timeout), `createConnectorAuthenticator.ts` (`paytm` / `spiffe://parmana/connectors/paytm-refund` added to the trusted connector identity list)
-* `packages/api/tests/integration/paytm-refund.integration.test.ts` (6 tests): Scenario A/B, excessive-amount, failed-fraud-check, binding-tamper, and capability/policy-substitution cases, each zero-call-on-denial proven by both a `fetch` spy and the mock connector service's own call/invocation counters
-* `docs/connectors/PAYTM_CONNECTOR.md` (architecture, environment variables, the two-authentication-layer distinction, denied/approved flow, replay/idempotency and ambiguous-status handling, staging -> production setup)
-* `.env.example` (`PAYTM_CONNECTOR_URL`, `PAYTM_CONNECTOR_SHARED_SECRET`, `PAYTM_CONNECTOR_TIMEOUT_MS`, `TEST_PAYTM_CONNECTOR_SHARED_SECRET`)
-* Full monorepo suite run this session (`npx vitest run`): all new tests passing; `npx tsc -b` clean.
+- `packages/connector-paytm/src` (`PaytmCapabilities`, `PaytmMetadata`, `PaytmTypes`, `MockPaytmConnectorServer`) — passive capability/schema definitions and the hermetic connector-service stand-in
+- `packages/execution-gateway/src/connector-execution/GatewayPaytmAdapter.ts`, `createGatewayPaytmConnector.ts` — the executable, remote-forwarding connector; added to `tests/unit/public-api-boundary.test.ts`'s "must not be exported from the public package entry" list alongside `GatewayHubSpotAdapter`/`GatewayHttpAdapter`
+- `packages/connector-paytm/tests/unit/paytm-types.test.ts` (32), `packages/execution-gateway/tests/unit/paytm-connector.test.ts` (19) — 51 hermetic unit tests total
+- `policies/customer-refund/1.0.0/policy.json` (pre-existing, unmodified)
+- `packages/capability-registry/src/CapabilityPolicyBinding.ts` (`paytm:refund` -> `customer-refund@1.0.0`), `packages/capability-registry/tests/unit/CapabilityPolicyBinder.test.ts` (hand-maintained bound-capability set updated to include `paytm:refund`)
+- `packages/api/src/bootstrap/createPaytmConnector.ts`, `createPaytmCredentialProvider.ts`, `assertPaytmConnectorConfigured.ts` (fail-closed partial-configuration guard, called from `server.ts`), `createConnectorRegistry.ts` (conditional registration, `PAYTM_CONNECTOR_TIMEOUT_MS`-derived per-registration timeout), `createConnectorAuthenticator.ts` (`paytm` / `spiffe://parmana/connectors/paytm-refund` added to the trusted connector identity list)
+- `packages/api/tests/integration/paytm-refund.integration.test.ts` (6 tests): Scenario A/B, excessive-amount, failed-fraud-check, binding-tamper, and capability/policy-substitution cases, each zero-call-on-denial proven by both a `fetch` spy and the mock connector service's own call/invocation counters
+- `docs/connectors/PAYTM_CONNECTOR.md` (architecture, environment variables, the two-authentication-layer distinction, denied/approved flow, replay/idempotency and ambiguous-status handling, audit trail, staging -> production setup)
+- `.env.example` (`PAYTM_CONNECTOR_URL`, `PAYTM_CONNECTOR_SHARED_SECRET`, `PAYTM_CONNECTOR_TIMEOUT_MS`, `TEST_PAYTM_CONNECTOR_SHARED_SECRET`)
+- **2026-09-14 audit-trail correction (GAP-1/GAP-3):** `packages/storage/src/supabase/SupabaseExecutionAuditSink.ts` (new), `supabase/migrations/20260914120000_add_execution_audit_events.sql`, `20260914130000_add_business_transaction_correlation_to_execution_audit_events.sql`, `20260914140000_add_authorization_verified_to_execution_audit_events.sql` (new), `packages/api/src/bootstrap/createExecutionAuditSink.ts` (updated), `packages/execution-control/src/types.ts`/`ExecutionControlService.ts` (`businessTransactionId` + `authorization.verified` type added) — this repository's side; `parmana-paytm-agent`'s own `src/parmana/audit.ts` (new) and `tests/unit/execute-authorized-connector-request.test.ts` (3 new cases) — that repository's side, out of this repo but directly modified and verified this session
+- Full monorepo suite run this session (`npx vitest run`): all new tests passing; `npx tsc -b` clean.
 
 **Scope, precisely:** one capability (`paytm:refund`) forwarding to one fixed remote endpoint (`POST /connector/paytm-refund`) on the configured connector service. Not in scope: any other Paytm API (charge, payout, settlement query), a webhook/event-driven confirmation path analogous to the historical Razorpay connector's (§3.8/§3.9), a `PaytmSignalStateVerifier` independently re-deriving `refundEligible`/`managerApproved`/`fraudCheckPassed` (`customer-refund/1.0.0`'s own `unboundSignalReasons` already document these as independent-system facts the Intent cannot express — no analogous "read capability" exists to re-verify them against, unlike HubSpot's deal-fetch), and — stated plainly, not glossed over — the actual `parmana-paytm-agent` service and its own idempotent-`refId`/checksum-verification implementation, which live entirely outside this repository and were not built, run, or verified by this milestone. What this milestone verifies is Parmana's side of the contract: it authorizes correctly, forwards exactly what was authorized and nothing else, validates what comes back before trusting it, and never calls anything when denied.
 
 ---
 
-
-
 # Maturity Assessment (TRL)
-
-
 
 This is the repo owner's own maturity assessment, layered on the evidence already cited above. It is not a new technical claim in the sense sections 2 and 3 use that word, and it does not carry its own separate test evidence — it is an interpretation of evidence that does.
 
@@ -1976,210 +1421,142 @@ This is the repo owner's own maturity assessment, layered on the evidence alread
 
 Not claimed by this assessment: sustained volume, load-bearing traffic, high availability, multi-tenant production operation, or any current standing-public-endpoint proof for any capability.
 
-
-
 ---
-
-
 
 # 4. Future Claims (Pending Evidence)
 
-
-
 The following claims are planned but are intentionally withheld until supported by implementation, testing, audit, and documented proof.
 
+- [FUTURE] HubSpot Contacts and Companies objects: no implementation exists. The HubSpot connector (3.10) covers Deal `dealstage`/`amount` update only.
 
+- [FUTURE] HubSpot deal delete/archive: no implementation exists; deny-by-default this milestone touches only `dealstage`/`amount` on existing deals.
 
+- [FUTURE] HubSpot webhook/event-driven trigger: no implementation exists. This milestone is request-response only (`POST /execute` → connector PATCH); there is no asynchronous confirmation loop analogous to the webhook-receipt/settlement-closure mechanism the now-removed Razorpay connector had (see historical §3.8/§3.9; that mechanism took several scoped milestones to build for Razorpay while the connector existed, and none of that has been started for HubSpot, nor would it be, for a connector that no longer exists — the corrected pointer, replacing this item's own previously-broken `(3.5)`/`(3.6/3.7)` section references, which named sections that do not exist anywhere in this document).
 
-* [FUTURE] HubSpot Contacts and Companies objects: no implementation exists. The HubSpot connector (3.10) covers Deal `dealstage`/`amount` update only.
+- [FUTURE] Caller-auth enabled on the HubSpot and GitHub connector integration paths: not started for either. 3.16's caller-to-capability scoping mechanism is implemented and tested, but both connectors' integration tests construct their app with `callerAuth: "disabled"` and no `ApiKeyEntry` (`github-pr-merge.integration.test.ts`, `github-pr-merge-live.integration.test.ts`, same as HubSpot's), so neither `hubspot:deal-update` nor `github:pr-merge` — the capabilities actually reachable in production today (2.23's 2026-08-25 update) — is scoped by caller yet. This is the specific follow-on work that would make 3.16 meaningful for real CRM-moving and PR-merging traffic, not merely test fixtures. (Corrected 2026-08-25: this item previously named `hubspot:deal-update` as "the only capability actually reachable in production," missing `github:pr-merge`'s addition on 2026-08-19 — the same miscount §2.25's 2026-08-25 update and `docs/VERIFICATION-GAPS.md` G-30 trace in full.)
 
-* [FUTURE] HubSpot deal delete/archive: no implementation exists; deny-by-default this milestone touches only `dealstage`/`amount` on existing deals.
+- [FUTURE] HubSpot multi-object transactions: no implementation exists; each `hubspot:deal-update` call is a single Deal PATCH, not a coordinated multi-object write.
 
-* [FUTURE] HubSpot webhook/event-driven trigger: no implementation exists. This milestone is request-response only (`POST /execute` → connector PATCH); there is no asynchronous confirmation loop analogous to the webhook-receipt/settlement-closure mechanism the now-removed Razorpay connector had (see historical §3.8/§3.9; that mechanism took several scoped milestones to build for Razorpay while the connector existed, and none of that has been started for HubSpot, nor would it be, for a connector that no longer exists — the corrected pointer, replacing this item's own previously-broken `(3.5)`/`(3.6/3.7)` section references, which named sections that do not exist anywhere in this document).
+- [FUTURE] HubSpot per-pipeline stage-transition configuration: `HUBSPOT_DEFAULT_STAGE_ORDER` (3.10) is one global stage order; `isHubSpotStageTransitionAllowed` accepts a `stageOrder` override but nothing wires it to a deal's actual `pipeline` property yet — see 3.10's "open decisions" for what this would take.
 
-* [FUTURE] Caller-auth enabled on the HubSpot and GitHub connector integration paths: not started for either. 3.16's caller-to-capability scoping mechanism is implemented and tested, but both connectors' integration tests construct their app with `callerAuth: "disabled"` and no `ApiKeyEntry` (`github-pr-merge.integration.test.ts`, `github-pr-merge-live.integration.test.ts`, same as HubSpot's), so neither `hubspot:deal-update` nor `github:pr-merge` — the capabilities actually reachable in production today (2.23's 2026-08-25 update) — is scoped by caller yet. This is the specific follow-on work that would make 3.16 meaningful for real CRM-moving and PR-merging traffic, not merely test fixtures. (Corrected 2026-08-25: this item previously named `hubspot:deal-update` as "the only capability actually reachable in production," missing `github:pr-merge`'s addition on 2026-08-19 — the same miscount §2.25's 2026-08-25 update and `docs/VERIFICATION-GAPS.md` G-30 trace in full.)
+- [FUTURE] Stripe connector: no implementation exists; would implement @parmana/connector-sdk's Connector interface.
 
-* [FUTURE] HubSpot multi-object transactions: no implementation exists; each `hubspot:deal-update` call is a single Deal PATCH, not a coordinated multi-object write.
+- [FUTURE] GitHub connector live verification: superseded by §3.17 — the connector itself is implemented, hermetically tested (22 unit + 4 integration tests), and wired into production. What remains open is a live run against a real GitHub App installation (the gated suite is written and confirmed to skip cleanly, but has not yet been run with real credentials in any session), and any capability beyond `github:pr-fetch`/`github:pr-merge` (review submission, comments, other object types, webhooks).
 
-* [FUTURE] HubSpot per-pipeline stage-transition configuration: `HUBSPOT_DEFAULT_STAGE_ORDER` (3.10) is one global stage order; `isHubSpotStageTransitionAllowed` accepts a `stageOrder` override but nothing wires it to a deal's actual `pipeline` property yet — see 3.10's "open decisions" for what this would take.
+- [FUTURE] Salesforce connector: no implementation exists.
 
-* [FUTURE] Stripe connector: no implementation exists; would implement @parmana/connector-sdk's Connector interface.
+- [FUTURE] SAP connector: no implementation exists.
 
-* [FUTURE] GitHub connector live verification: superseded by §3.17 — the connector itself is implemented, hermetically tested (22 unit + 4 integration tests), and wired into production. What remains open is a live run against a real GitHub App installation (the gated suite is written and confirmed to skip cleanly, but has not yet been run with real credentials in any session), and any capability beyond `github:pr-fetch`/`github:pr-merge` (review submission, comments, other object types, webhooks).
+- [FUTURE] ServiceNow connector: no implementation exists.
 
-* [FUTURE] Salesforce connector: no implementation exists.
+- [FUTURE] Workday connector: no implementation exists.
 
-* [FUTURE] SAP connector: no implementation exists.
+- [FUTURE] Slack connector: no implementation exists.
 
-* [FUTURE] ServiceNow connector: no implementation exists.
+- [FUTURE] Jira connector: no implementation exists.
 
-* [FUTURE] Workday connector: no implementation exists.
+- [FUTURE] Database connector: no implementation exists.
 
-* [FUTURE] Slack connector: no implementation exists.
+- [FUTURE] Cloud credential providers: HashiCorp Vault, AWS Secrets Manager, Azure Key Vault, and Google Secret Manager CredentialProvider implementations. Only the CredentialProvider interface seam exists today (StaticCredentialProvider, EnvironmentCredentialProvider); no cloud SDK dependency has been added.
 
-* [FUTURE] Jira connector: no implementation exists.
+- Every production Runtime enforces the canonical trust pipeline.
 
-* [FUTURE] Database connector: no implementation exists.
+- Every production API request executes through the canonical runtime. **Reconciliation note (not a promotion — remains withheld pending whatever broader evidence standard this section applies):** Phase 3D's Property C bypass search (`docs/architecture/phase3d-independent-authorization-certification.md` §5.2) traced every route `packages/api/src/app.ts` mounts and confirmed only `POST /execute` reaches `application.execute()`/`RuntimeEngine`; every other route is read-only, verification-only, or a passive audit sink that never calls `executionSystem.execute()` or any connector. This is direct, current evidence bearing on this specific claim, scoped to the routes and connectors that exist today — flagged here so it isn't lost, without this reconciliation pass itself deciding whether it now meets this section's bar for promotion to §2.
 
-* [FUTURE] Cloud credential providers: HashiCorp Vault, AWS Secrets Manager, Azure Key Vault, and Google Secret Manager CredentialProvider implementations. Only the CredentialProvider interface seam exists today (StaticCredentialProvider, EnvironmentCredentialProvider); no cloud SDK dependency has been added.
+- Replay semantically verifies every trust artifact.
 
-* Every production Runtime enforces the canonical trust pipeline.
+- Every guarantee is fully proven through conformance testing.
 
-* Every production API request executes through the canonical runtime. **Reconciliation note (not a promotion — remains withheld pending whatever broader evidence standard this section applies):** Phase 3D's Property C bypass search (`docs/architecture/phase3d-independent-authorization-certification.md` §5.2) traced every route `packages/api/src/app.ts` mounts and confirmed only `POST /execute` reaches `application.execute()`/`RuntimeEngine`; every other route is read-only, verification-only, or a passive audit sink that never calls `executionSystem.execute()` or any connector. This is direct, current evidence bearing on this specific claim, scoped to the routes and connectors that exist today — flagged here so it isn't lost, without this reconciliation pass itself deciding whether it now meets this section's bar for promotion to §2.
+- Every guarantee includes complete independent verification evidence.
 
-* Replay semantically verifies every trust artifact.
+- A general, named credential-brokering _mechanism_ — a formal product capability letting an arbitrary future connector class (e.g. third-party cloud credentials via AWS STS, per `02-REMAINING.md`'s Tier 2 roadmap) prove "AI never possesses execution credentials" without bespoke per-connector work — does not exist; only the `CredentialProvider`/session-credential-vault pattern each connector individually implements does. **Narrowed by Phase 3D (2.22/2.23):** for the connectors covered by that certification (Razorpay, HubSpot, at the time it was performed — Razorpay was removed from this codebase 2026-08-12, HubSpot remains the one production-reachable connector today), the underlying property this future item describes — the AI-facing `/execute` request path never comes into possession of the raw connector credential, which is resolved only after authorization is fully decided, confined to the connector-execution layer — was independently traced end-to-end and verified true (`docs/architecture/phase3d-independent-authorization-certification.md` §3). What remains genuinely future is only the generalized, connector-class-agnostic mechanism, not the property itself for these two connectors. (Certification's own disclosed caveat, 2.23: a short, non-functional fingerprint of the credential, not the credential itself, reaches the caller-visible response — see 3.4/3.10.)
 
-* Every guarantee is fully proven through conformance testing.
+- Enterprise-grade key custody: current key storage is local PEM files read by FileKeyProvider; no KMS, HSM, or cloud key vault integration exists.
 
-* Every guarantee includes complete independent verification evidence.
+- Authority, Intent, and Evidence verification checks in verification-service.ts. Only integrity, signature, and authorization binding are implemented today (2.15). The prior six-stage pipeline package (@parmana/verification) was retired in Session 5; it had no real implementation and no real test coverage; its stage architecture is not being resurrected. Authority/Intent/Evidence checks, if built, will be added directly to verification-service.ts. Tracked for Session 6.
 
-* A general, named credential-brokering *mechanism* — a formal product capability letting an arbitrary future connector class (e.g. third-party cloud credentials via AWS STS, per `02-REMAINING.md`'s Tier 2 roadmap) prove "AI never possesses execution credentials" without bespoke per-connector work — does not exist; only the `CredentialProvider`/session-credential-vault pattern each connector individually implements does. **Narrowed by Phase 3D (2.22/2.23):** for the connectors covered by that certification (Razorpay, HubSpot, at the time it was performed — Razorpay was removed from this codebase 2026-08-12, HubSpot remains the one production-reachable connector today), the underlying property this future item describes — the AI-facing `/execute` request path never comes into possession of the raw connector credential, which is resolved only after authorization is fully decided, confined to the connector-execution layer — was independently traced end-to-end and verified true (`docs/architecture/phase3d-independent-authorization-certification.md` §3). What remains genuinely future is only the generalized, connector-class-agnostic mechanism, not the property itself for these two connectors. (Certification's own disclosed caveat, 2.23: a short, non-functional fingerprint of the credential, not the credential itself, reaches the caller-visible response — see 3.4/3.10.)
+- Algorithm migration: re-keying from one signature provider to another (for example Ed25519 to ML-DSA-65) while retaining the ability to verify previously-signed records. AuthorizationVerifier does not dispatch verification based on the envelope's algorithm field; a verifying process supports exactly one configured SIGNATURE_PROVIDER at a time.
 
-* Enterprise-grade key custody: current key storage is local PEM files read by FileKeyProvider; no KMS, HSM, or cloud key vault integration exists.
+- [FUTURE] `CRYPTO_MODE=hybrid` running anywhere in staging or production: the capability described in 3.13 is built and tested but not wired into any deployed environment. `PRIMARY_SIGNATURE_PROVIDER=ed25519` alone remains the configuration everywhere this codebase currently runs, including `parmana-api-live.fly.dev` (3.9).
 
-* Authority, Intent, and Evidence verification checks in verification-service.ts. Only integrity, signature, and authorization binding are implemented today (2.15). The prior six-stage pipeline package (@parmana/verification) was retired in Session 5; it had no real implementation and no real test coverage; its stage architecture is not being resurrected. Authority/Intent/Evidence checks, if built, will be added directly to verification-service.ts. Tracked for Session 6.
-
-* Algorithm migration: re-keying from one signature provider to another (for example Ed25519 to ML-DSA-65) while retaining the ability to verify previously-signed records. AuthorizationVerifier does not dispatch verification based on the envelope's algorithm field; a verifying process supports exactly one configured SIGNATURE_PROVIDER at a time.
-
-* [FUTURE] `CRYPTO_MODE=hybrid` running anywhere in staging or production: the capability described in 3.13 is built and tested but not wired into any deployed environment. `PRIMARY_SIGNATURE_PROVIDER=ed25519` alone remains the configuration everywhere this codebase currently runs, including `parmana-api-live.fly.dev` (3.9).
-
-* [FUTURE] `@parmana/sign` recognizing the hybrid `signatures`/`schemaVersion` envelope shape (3.13's own caveat): third-party verification of a hybrid-signed record via the public SDK today checks only the legacy Ed25519 `signature` field, a genuine but partial verification. No work on `@parmana/sign` itself is in scope of this repository.
-
-
+- [FUTURE] `@parmana/sign` recognizing the hybrid `signatures`/`schemaVersion` envelope shape (3.13's own caveat): third-party verification of a hybrid-signed record via the public SDK today checks only the legacy Ed25519 `signature` field, a genuine but partial verification. No work on `@parmana/sign` itself is in scope of this repository.
 
 These claims will be promoted to the Supported Technical Claims section only after the required evidence is complete.
 
-
-
 ---
-
-
 
 # 5. Claims We Intentionally Do Not Make
 
-
-
 Parmana intentionally avoids claims that exceed the available implementation evidence.
-
-
 
 Examples include:
 
+- Execution is impossible to bypass under all circumstances.
 
+- Mathematical proof of execution correctness.
 
-* Execution is impossible to bypass under all circumstances.
+- Cryptographic proof of every aspect of runtime behavior.
 
-* Mathematical proof of execution correctness.
+- Guaranteed regulatory compliance.
 
-* Cryptographic proof of every aspect of runtime behavior.
+- Absolute prevention of all unauthorized execution.
 
-* Guaranteed regulatory compliance.
+- Tamper-proof operation in every deployment environment.
 
-* Absolute prevention of all unauthorized execution.
+- Elimination of all software defects or operational risks.
 
-* Tamper-proof operation in every deployment environment.
+- "Non-bypassable" or "the single execution authority" as an unscoped, system-wide claim. Envelope verification (@parmana/envelope-verifier) is opt-in per receiving endpoint and enforces nothing at the network level; see Conditional Claim 3.1 for the scoped version of this claim that is actually supported.
 
-* Elimination of all software defects or operational risks.
-
-* "Non-bypassable" or "the single execution authority" as an unscoped, system-wide claim. Envelope verification (@parmana/envelope-verifier) is opt-in per receiving endpoint and enforces nothing at the network level; see Conditional Claim 3.1 for the scoped version of this claim that is actually supported.
-
-* Deterministic signature output for post-quantum (ML-DSA-65) signing. ML-DSA-65 signatures are randomized by design: signing the same message twice with the same key produces two different, independently valid signatures. Only signature verification is deterministic. Determinism-of-output claims (2.8) apply to Ed25519 only.
-
-
+- Deterministic signature output for post-quantum (ML-DSA-65) signing. ML-DSA-65 signatures are randomized by design: signing the same message twice with the same key produces two different, independently valid signatures. Only signature verification is deterministic. Determinism-of-output claims (2.8) apply to Ed25519 only.
 
 Such claims depend on deployment environments, operational controls, and assumptions beyond the scope of the reference implementation.
 
-
-
 ---
-
-
 
 # Claim Lifecycle
 
-
-
 Every technical claim follows the same lifecycle.
-
-
 
 Idea
 
-
-
 ↓
-
-
 
 Implementation
 
-
-
 ↓
-
-
 
 Automated Tests
 
-
-
 ↓
-
-
 
 Audit
 
-
-
 ↓
-
-
 
 Documented Proof
 
-
-
 ↓
-
-
 
 Public Claim
 
-
-
 A claim SHOULD NOT be published before completing this lifecycle.
-
-
 
 ---
 
-
-
 # Engineering Principle
-
-
 
 Parmana favors evidence-backed engineering claims over marketing claims.
 
-
-
 Every public technical claim should be traceable to:
 
+- implementation
 
+- automated tests
 
-* implementation
+- audit evidence
 
-* automated tests
+- documented proofs
 
-* audit evidence
-
-* documented proofs
-
-* independent verification (where applicable)
-
-
+- independent verification (where applicable)
 
 This discipline ensures that Parmana's public positioning remains aligned with its implementation and verifiable technical capabilities.
-
-
-
