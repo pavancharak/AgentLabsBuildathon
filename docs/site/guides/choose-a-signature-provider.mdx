@@ -75,25 +75,28 @@ node_modules/.bin/tsx examples/tutorials/52-hybrid-signatures/run.ts
 Algorithm : ed25519
 Key ID    : default
 Length    : 88 characters
-Verified : true
 
 Algorithm : dilithium3
-Key ID    : pq
+Key ID    : default-secondary
 Length    : 4412 characters
+
 Verified : true
 ```
 
 `CryptoBootstrap.createHybrid()` builds both a primary and secondary `CryptoProvider` from
 `PRIMARY_SIGNATURE_PROVIDER` and `SECONDARY_SIGNATURE_PROVIDER`, and produces one bundle
-signed by both. This is the migration path: an artifact signed by both algorithms can be
-verified by a consumer that only trusts one of them yet, while you migrate the rest.
+signed by both. The secondary key's id is `default-secondary` (`PARMANA_VERIFICATION_SECONDARY_KEY_ID`,
+see [Cryptography](/cryptography/overview)), not `pq`, that key id is only used by the
+standalone Dilithium3 tutorial above. This is the migration path: an artifact signed by both
+algorithms can be verified by a consumer that only trusts one of them yet, while you migrate
+the rest.
 
 ## Verify
 
 All three runs above printed `Verified : true` for the algorithm(s) they exercised. The
-hybrid run's two signature lengths (88 and 4,412 characters)
-match the standalone Ed25519 and ML-DSA-65 runs exactly, the hybrid bundle isn't a different
-computation, it's both existing ones run together.
+hybrid run's two signature lengths (88 and 4,412 characters) match the standalone Ed25519 and
+ML-DSA-65 runs exactly, the hybrid bundle isn't a different computation, it's both existing
+ones run together.
 
 ## Key/algorithm binding guard
 

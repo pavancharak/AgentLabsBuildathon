@@ -22,8 +22,10 @@ it approves and rejects correctly.
 
 ### 1. Write the policy document
 
-A Policy is a JSON file at `<policyDir>/<name>/<version>/policy.json`. Create
-`policies/high-value-payment/1.0.0/policy.json`:
+A Policy is a JSON file at `<policyDir>/<name>/<version>/policy.json`. This exact policy
+already ships at `examples/tutorials/14-custom-policy/policies/high-value-payment/1.0.0/policy.json`
+(step 3 below runs it directly, no file creation needed to follow along). Its core, the two
+rules this walkthrough exercises:
 
 ```json
 {
@@ -103,10 +105,14 @@ A Policy is a JSON file at `<policyDir>/<name>/<version>/policy.json`. Create
 }
 ```
 
-Note the trailing `reject-default` rule: without it, an unmatched transaction still
-rejects (fail-closed is the engine's default, not something the policy has to opt into),
-but writing it explicitly documents the reject-by-default behavior for anyone reading the
-policy file itself.
+The real file has more rules than shown above: a lower-value approve path (`paymentAmount`
+at or below 10000, no director approval needed), and individual rejection rules for an
+unverified vendor, unverified invoice, unapproved payment, insufficient funds, an invalid
+amount, and high risk score, each with its own specific reason string, plus the trailing
+`reject-default` catch-all shown above. Without that catch-all, an unmatched transaction
+still rejects (fail-closed is the engine's default, not something the policy has to opt
+into), but writing it explicitly documents the reject-by-default behavior for anyone reading
+the policy file itself.
 
 <Note>
   `PolicyValidator.validate()` fails closed on any rule-referenced fact that is
@@ -158,9 +164,16 @@ directly, no server required.
 node_modules/.bin/tsx examples/tutorials/14-custom-policy/run.ts
 ```
 
+Before the transaction result, you'll see several `policy_rule_conflict_detected` log lines.
+These are `PolicyValidator.findRuleConflicts()`'s advisory output, harmless, not a failure:
+this policy's extra rejection rules share some overlapping conditions the conflict checker
+can't fully reason about, so it flags them for manual review rather than guessing. See
+[Policies and the decision](/concepts/policies-and-the-decision) for what this check does
+and doesn't catch.
+
 ## Verify
 
-Real output:
+Real output, captured from an actual run:
 
 ```json
 "decision": {
@@ -175,14 +188,14 @@ Real output:
 Verification: { "status": "VERIFIED", "trustRecordHash": "c22620765972e43e39470d1631cd061de156a4a3a2367d791a23c40dfd32ea3a" }
 ```
 
-Now confirm the reject path. In a scratch copy of `transaction.json`, set
+Now confirm the reject path. In a scratch copy of
+`examples/tutorials/14-custom-policy/transaction.json`, set
 `"financeDirectorApproved": false`, and rerun. This is what actually happens, not what you
-might expect:
+might expect (verified against a real run):
 
 ```
-RuntimeError: Execution rejected: High-value vendor payment rejected because Finance
-Director approval is required.
-    at ExecutionGate.enforce (packages/runtime/src/ExecutionGate.ts:38:11)
+RuntimeError: Execution rejected: High-value vendor payment rejected because Finance Director approval is required.
+    at ExecutionGate.enforce (packages/runtime/src/ExecutionGate.ts:28:11)
 ```
 
 A `REJECTED` decision does not come back as a normal object with `outcome: "REJECTED"`,
