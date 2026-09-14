@@ -374,6 +374,54 @@ paths:
             schema:
               $ref: "#/components/schemas/transaction-create-request.schema"
             examples:
+              test-fixture-flow:
+                summary: Real captured request, currently runnable (test:fixture-execute,
+                  the generic NODE_ENV=test-only capability, APPROVED). Click Try It with
+                  this example against a server started with NODE_ENV=test -- this exact
+                  request/response pair was captured live against this endpoint on
+                  2026-09-14. Prefer this example over vendor-payment-flow below, which is
+                  historical and no longer executes against a current server, see its own
+                  summary.
+                value:
+                  businessTransactionId: e54187e6-431f-4e1c-9c0e-ff2cb5d6d40a
+                  metadata:
+                    businessTransactionId: e54187e6-431f-4e1c-9c0e-ff2cb5d6d40a
+                    correlationId: 9c039d73-7fb1-461f-908f-c646c905633c
+                    sourceSystem: docs-api-reference
+                    submittedBy: docs-example
+                    submittedAt: '2026-09-14T17:17:50.000Z'
+                  authority:
+                    authorityId: f10f016f-b7c0-443e-8307-d26f5fa98067
+                    authorityType: SERVICE
+                    principalId: docs-example-caller
+                    displayName: Docs Example Caller
+                    issuedAt: '2026-09-14T17:17:50.000Z'
+                  authorization:
+                    authorizationId: 5f112f4c-a43d-41dd-bfee-66a49efe33de
+                    authorityId: f10f016f-b7c0-443e-8307-d26f5fa98067
+                    purpose: 'API reference example: refund authorization'
+                    issuedAt: '2026-09-14T17:17:50.000Z'
+                  intent:
+                    intentId: 462c2efd-3b88-4f59-8c47-8ba01a63d37e
+                    authorizationId: 5f112f4c-a43d-41dd-bfee-66a49efe33de
+                    action: test:fixture-execute
+                    target: vendor://payments
+                    parameters:
+                      amount: 1000
+                      currency: USD
+                    createdAt: '2026-09-14T17:17:50.000Z'
+                  policy:
+                    name: vendor-payment
+                    version: 2.0.0
+                    schemaVersion: 1.0.0
+                  signals:
+                    vendorVerified: true
+                    invoiceVerified: true
+                    paymentApproved: true
+                    sufficientFunds: true
+                    paymentAmount: 1000
+                    riskScore: 5
+                    vendorId: vendor://payments
               vendor-payment-flow:
                 summary: Real captured request (vendor-payment 2.0.0, APPROVED)
                 value:
@@ -425,6 +473,160 @@ paths:
               schema:
                 $ref: "#/components/schemas/execution-trust-record.schema"
               examples:
+                test-fixture-flow:
+                  summary: Real captured response, currently runnable (pairs with the
+                    test-fixture-flow request example above; APPROVED)
+                  value:
+                    trustRecordId: 7ec8745e-fa10-4506-a247-c5a8b794eaa5
+                    businessTransactionId: e54187e6-431f-4e1c-9c0e-ff2cb5d6d40a
+                    transaction:
+                      businessTransactionId: e54187e6-431f-4e1c-9c0e-ff2cb5d6d40a
+                      metadata:
+                        businessTransactionId: e54187e6-431f-4e1c-9c0e-ff2cb5d6d40a
+                        correlationId: 9c039d73-7fb1-461f-908f-c646c905633c
+                        sourceSystem: docs-api-reference
+                        submittedBy: docs-example
+                        submittedAt: '2026-09-14T17:17:50.000Z'
+                      authority:
+                        authorityId: f10f016f-b7c0-443e-8307-d26f5fa98067
+                        authorityType: SERVICE
+                        principalId: docs-example-caller
+                        displayName: Docs Example Caller
+                        issuedAt: '2026-09-14T17:17:50.000Z'
+                      authorization:
+                        authorizationId: 5f112f4c-a43d-41dd-bfee-66a49efe33de
+                        authorityId: f10f016f-b7c0-443e-8307-d26f5fa98067
+                        purpose: 'API reference example: refund authorization'
+                        issuedAt: '2026-09-14T17:17:50.000Z'
+                      intent:
+                        intentId: 462c2efd-3b88-4f59-8c47-8ba01a63d37e
+                        authorizationId: 5f112f4c-a43d-41dd-bfee-66a49efe33de
+                        action: test:fixture-execute
+                        target: vendor://payments
+                        parameters:
+                          amount: 1000
+                          currency: USD
+                        createdAt: '2026-09-14T17:17:50.000Z'
+                      policy:
+                        name: vendor-payment
+                        version: 2.0.0
+                        schemaVersion: 1.0.0
+                        contentHash: 27b396d84540aa792d88566da38537b671195c0c0049bac3aca41d4544a12b1a
+                      signals:
+                        vendorVerified: true
+                        invoiceVerified: true
+                        paymentApproved: true
+                        sufficientFunds: true
+                        paymentAmount: 1000
+                        riskScore: 5
+                        vendorId: vendor://payments
+                      status: RECEIVED
+                      createdAt: '2026-09-14T17:17:55.617Z'
+                    authorization:
+                      payload:
+                        version: 1
+                        authorizationId: 381ef27a-0955-4085-9e5d-e4223fef2986
+                        nonce: ed25c17c-c0b2-4600-b445-3c8cb557ac12
+                        decisionId: b83deff8-ef50-49d0-830f-741cba8f5668
+                        businessTransactionId: e54187e6-431f-4e1c-9c0e-ff2cb5d6d40a
+                        policyName: vendor-payment
+                        policyVersion: 2.0.0
+                        policyContentHash: 27b396d84540aa792d88566da38537b671195c0c0049bac3aca41d4544a12b1a
+                        signalsHash: 50d0c4e1e3b0190c2074068627086e59049b0d2d224a71cb4fc9adf7124be287
+                        submittedBy: docs-example
+                        authorizedAt: '2026-09-14T17:17:55.627Z'
+                        expiresAt: '2026-09-14T17:19:55.627Z'
+                        businessTransactionHash: ba5498ce2474e9ef58a9c368c70fd4cf0a497a84199218783d3b2992799a77bc
+                      signature: HZaohm/v3xrJTp+VrcJmLLcIG1SMl3LyPcHQUF6UHo7J9Z/KY92brpU92xVnPhVJJMaB+fd7nVRQ96k3OP7DBQ==
+                      keyId: default
+                      algorithm: ed25519
+                    overrides: []
+                    executions:
+                    - executionId: 21a57d3e-bed5-4a73-8af9-2ac2d7e8326e
+                      businessTransactionId: e54187e6-431f-4e1c-9c0e-ff2cb5d6d40a
+                      decision:
+                        decisionId: b83deff8-ef50-49d0-830f-741cba8f5668
+                        intentId: 462c2efd-3b88-4f59-8c47-8ba01a63d37e
+                        policy:
+                          name: vendor-payment
+                          version: 2.0.0
+                          schemaVersion: 1.0.0
+                        signals:
+                          vendorVerified: true
+                          invoiceVerified: true
+                          paymentApproved: true
+                          sufficientFunds: true
+                          paymentAmount: 1000
+                          riskScore: 5
+                          vendorId: vendor://payments
+                        outcome: APPROVED
+                        reason: Vendor payment authorized. Vendor verification, invoice verification, payment approval, funding, and risk assessment requirements were satisfied.
+                        evaluatedAt: '2026-09-14T17:17:55.626Z'
+                      status: COMPLETED
+                      mode: SYNC
+                      startedAt: '2026-09-14T17:17:55.631Z'
+                      metadata:
+                        authorizationId: 381ef27a-0955-4085-9e5d-e4223fef2986
+                      previousChainHash: null
+                      chainHash: f6f885358ddb3c820b3499d45c2a90a2624032ceece7bd53ece36809783e3220
+                      chainSignature:
+                        algorithm: ed25519
+                        keyId: default
+                        value: uXnVWKHYHDf8xRsl9oYdfFCem3f0n6IBzm2uYmxDnEkIU8FyOKxxWxeTidnF3A0UH2XSNNIROeeRzET6X/67BQ==
+                        signedAt: '2026-09-14T17:17:55.652Z'
+                      evidence:
+                        businessTransactionId: e54187e6-431f-4e1c-9c0e-ff2cb5d6d40a
+                        action: test:fixture-execute
+                        target: vendor://payments
+                        parameters:
+                          amount: 1000
+                          currency: USD
+                        success: true
+                        executedAt: '2026-09-14T17:17:55.646Z'
+                        attributes:
+                          connector:
+                            connectorId: test-fixture
+                            connectorVersion: 1.0.0
+                            capability: test:fixture-execute
+                            sanitizedEndpoint: vendor://payments
+                            credentialProviderId: static
+                            requestSummary:
+                              businessTransactionId: e54187e6-431f-4e1c-9c0e-ff2cb5d6d40a
+                              action: test:fixture-execute
+                              target: vendor://payments
+                              parameters:
+                                amount: 1000
+                                currency: USD
+                            responseSummary:
+                              success: true
+                              metadata: {}
+                            startedAt: '2026-09-14T17:17:55.645Z'
+                            completedAt: '2026-09-14T17:17:55.646Z'
+                            connectorEvidenceHash: 887b000a355c96ca432c7a709b24b50e89d879bc50699bc5b5280a957d981f70
+                      completedAt: '2026-09-14T17:17:55.650Z'
+                    verifications:
+                    - verificationId: 0e7de678-bb48-4fa0-ad53-3664d78d954b
+                      businessTransactionId: e54187e6-431f-4e1c-9c0e-ff2cb5d6d40a
+                      status: VERIFIED
+                      message: Execution Trust Record verified successfully.
+                      verifiedAt: '2026-09-14T17:17:55.661Z'
+                      trustRecordHash: cd261f8b33ebd435ce31bdcafc971044aae165d12695446f587068052ce52807
+                    receipts:
+                    - receiptId: cf5f9ef1-1e53-459a-8f58-01c9dbe50f84
+                      businessTransactionId: e54187e6-431f-4e1c-9c0e-ff2cb5d6d40a
+                      trustRecordHash: cd261f8b33ebd435ce31bdcafc971044aae165d12695446f587068052ce52807
+                      receiptHash: 3a028e197e0c297761fd675696a6d418ffb67a10a07954cf4ed004e4ceb9f4f0
+                      issuedAt: '2026-09-14T17:17:55.662Z'
+                      algorithm: ed25519
+                      signature: S0rbIGkdEIWtk1fVqcEq8I+d2xUZHZQW28SFDolnLcd3hYYAWz2YQ+LkvlQc9OzbPE0vF/75VUrvlvIcbaOTAw==
+                    createdAt: '2026-09-14T17:17:55.652Z'
+                    updatedAt: '2026-09-14T17:17:55.652Z'
+                    trustRecordHash: cd261f8b33ebd435ce31bdcafc971044aae165d12695446f587068052ce52807
+                    signature:
+                      algorithm: ed25519
+                      keyId: default
+                      value: lPz+IbGAQwPuLEzB7fEgiKU3dZTEeT3aIFqC/6LIRMBGK7UZor2nVkmItNUXu9RBCziAUH3yj2EchtwX6GAXBQ==
+                      signedAt: '2026-09-14T17:17:55.655Z'
                 vendor-payment-flow:
                   summary: Real captured response
                   value:
@@ -691,6 +893,49 @@ paths:
             schema:
               $ref: "#/components/schemas/transaction-create-request.schema"
             examples:
+              test-fixture-flow:
+                summary: Real captured request, currently runnable (test:fixture-execute,
+                  the generic NODE_ENV=test-only capability, APPROVED). Prefer this over
+                  vendor-payment-flow-transactions-endpoint below, which depends on a
+                  connector removed from this repository, see the POST /execute
+                  description above for the same caveat.
+                value:
+                  businessTransactionId: 4cfe5661-42a6-4db0-8372-2d24dca235f2
+                  metadata:
+                    businessTransactionId: 4cfe5661-42a6-4db0-8372-2d24dca235f2
+                    sourceSystem: docs-api-reference
+                    submittedBy: docs-example
+                  authority:
+                    authorityId: be8afa44-ee3c-44c2-a4a2-ba119e128948
+                    authorityType: SERVICE
+                    principalId: docs-example-caller
+                    issuedAt: '2026-09-14T17:18:27.000Z'
+                  authorization:
+                    authorizationId: 81a1c120-d296-458b-bbe5-824a8617f23a
+                    authorityId: be8afa44-ee3c-44c2-a4a2-ba119e128948
+                    purpose: 'API reference example: transactions endpoint'
+                    issuedAt: '2026-09-14T17:18:27.000Z'
+                  intent:
+                    intentId: ceb89d68-13ac-4ff9-b7b9-dd0e15637baa
+                    authorizationId: 81a1c120-d296-458b-bbe5-824a8617f23a
+                    action: test:fixture-execute
+                    target: vendor://payments
+                    parameters:
+                      amount: 250
+                      currency: USD
+                    createdAt: '2026-09-14T17:18:27.000Z'
+                  policy:
+                    name: vendor-payment
+                    version: 2.0.0
+                    schemaVersion: 1.0.0
+                  signals:
+                    vendorVerified: true
+                    invoiceVerified: true
+                    paymentApproved: true
+                    sufficientFunds: true
+                    paymentAmount: 250
+                    riskScore: 5
+                    vendorId: vendor://payments
               vendor-payment-flow-transactions-endpoint:
                 summary: Real captured request (vendor-payment 2.0.0, APPROVED), includes a
                   client-supplied status and an unrecognized top-level field to
@@ -746,6 +991,157 @@ paths:
               schema:
                 $ref: "#/components/schemas/execution-trust-record.schema"
               examples:
+                test-fixture-flow:
+                  summary: Real captured response, currently runnable (pairs with the
+                    test-fixture-flow request example above; APPROVED, 201)
+                  value:
+                    trustRecordId: 2770d2b5-9464-4c74-87aa-7a23ae4be7cd
+                    businessTransactionId: 4cfe5661-42a6-4db0-8372-2d24dca235f2
+                    transaction:
+                      businessTransactionId: 4cfe5661-42a6-4db0-8372-2d24dca235f2
+                      metadata:
+                        businessTransactionId: 4cfe5661-42a6-4db0-8372-2d24dca235f2
+                        sourceSystem: docs-api-reference
+                        submittedBy: docs-example
+                      authority:
+                        authorityId: be8afa44-ee3c-44c2-a4a2-ba119e128948
+                        authorityType: SERVICE
+                        principalId: docs-example-caller
+                        issuedAt: '2026-09-14T17:18:27.000Z'
+                      authorization:
+                        authorizationId: 81a1c120-d296-458b-bbe5-824a8617f23a
+                        authorityId: be8afa44-ee3c-44c2-a4a2-ba119e128948
+                        purpose: 'API reference example: transactions endpoint'
+                        issuedAt: '2026-09-14T17:18:27.000Z'
+                      intent:
+                        intentId: ceb89d68-13ac-4ff9-b7b9-dd0e15637baa
+                        authorizationId: 81a1c120-d296-458b-bbe5-824a8617f23a
+                        action: test:fixture-execute
+                        target: vendor://payments
+                        parameters:
+                          amount: 250
+                          currency: USD
+                        createdAt: '2026-09-14T17:18:27.000Z'
+                      policy:
+                        name: vendor-payment
+                        version: 2.0.0
+                        schemaVersion: 1.0.0
+                        contentHash: 27b396d84540aa792d88566da38537b671195c0c0049bac3aca41d4544a12b1a
+                      signals:
+                        vendorVerified: true
+                        invoiceVerified: true
+                        paymentApproved: true
+                        sufficientFunds: true
+                        paymentAmount: 250
+                        riskScore: 5
+                        vendorId: vendor://payments
+                      status: RECEIVED
+                      createdAt: '2026-09-14T17:18:27.958Z'
+                    authorization:
+                      payload:
+                        version: 1
+                        authorizationId: 232afef4-b320-4596-906c-b6adf6ef83ff
+                        nonce: b138d6ca-c509-4b3d-a2d1-09abd113d5a0
+                        decisionId: ac059ca3-9c2c-4e32-b4ad-bb8787444b2c
+                        businessTransactionId: 4cfe5661-42a6-4db0-8372-2d24dca235f2
+                        policyName: vendor-payment
+                        policyVersion: 2.0.0
+                        policyContentHash: 27b396d84540aa792d88566da38537b671195c0c0049bac3aca41d4544a12b1a
+                        signalsHash: 7518e06daf697fbdbacfb7f0f88d42cbe24aefae6e82b3801e60efa22c62f12c
+                        submittedBy: docs-example
+                        authorizedAt: '2026-09-14T17:18:27.960Z'
+                        expiresAt: '2026-09-14T17:20:27.960Z'
+                        businessTransactionHash: aa491841d05ce70f7f7157fbb8ba6fee0c4f886ea5fc16fa22de21e1bcaf25da
+                      signature: 01OnI4GwrHrDeVneUHn01CnLnkwRN+pTHYQmHfEFJUIjIKIHmqe28QWe6KEcEYkzAhtJIS8ZmpvNVvW2pn5IBA==
+                      keyId: default
+                      algorithm: ed25519
+                    overrides: []
+                    executions:
+                    - executionId: d5a2dfb7-c642-43bc-a8ad-132df83a4a5a
+                      businessTransactionId: 4cfe5661-42a6-4db0-8372-2d24dca235f2
+                      decision:
+                        decisionId: ac059ca3-9c2c-4e32-b4ad-bb8787444b2c
+                        intentId: ceb89d68-13ac-4ff9-b7b9-dd0e15637baa
+                        policy:
+                          name: vendor-payment
+                          version: 2.0.0
+                          schemaVersion: 1.0.0
+                        signals:
+                          vendorVerified: true
+                          invoiceVerified: true
+                          paymentApproved: true
+                          sufficientFunds: true
+                          paymentAmount: 250
+                          riskScore: 5
+                          vendorId: vendor://payments
+                        outcome: APPROVED
+                        reason: Vendor payment authorized. Vendor verification, invoice verification, payment approval, funding, and risk assessment requirements were satisfied.
+                        evaluatedAt: '2026-09-14T17:18:27.960Z'
+                      status: COMPLETED
+                      mode: SYNC
+                      startedAt: '2026-09-14T17:18:27.963Z'
+                      metadata:
+                        authorizationId: 232afef4-b320-4596-906c-b6adf6ef83ff
+                      previousChainHash: null
+                      chainHash: bb16b8a121a770e956bd2b81ca23e9f73fc69ce5213d6711b4f3aa29aed37d5f
+                      chainSignature:
+                        algorithm: ed25519
+                        keyId: default
+                        value: wgxGxFN6lFvet10b3M01GliPAnazoYFFHh498w6vc/Stm1xTpe9af/Ee+9SsngEylzqs4E7EAbfG8+ehgyOHCw==
+                        signedAt: '2026-09-14T17:18:27.975Z'
+                      evidence:
+                        businessTransactionId: 4cfe5661-42a6-4db0-8372-2d24dca235f2
+                        action: test:fixture-execute
+                        target: vendor://payments
+                        parameters:
+                          amount: 250
+                          currency: USD
+                        success: true
+                        executedAt: '2026-09-14T17:18:27.971Z'
+                        attributes:
+                          connector:
+                            connectorId: test-fixture
+                            connectorVersion: 1.0.0
+                            capability: test:fixture-execute
+                            sanitizedEndpoint: vendor://payments
+                            credentialProviderId: static
+                            requestSummary:
+                              businessTransactionId: 4cfe5661-42a6-4db0-8372-2d24dca235f2
+                              action: test:fixture-execute
+                              target: vendor://payments
+                              parameters:
+                                amount: 250
+                                currency: USD
+                            responseSummary:
+                              success: true
+                              metadata: {}
+                            startedAt: '2026-09-14T17:18:27.971Z'
+                            completedAt: '2026-09-14T17:18:27.971Z'
+                            connectorEvidenceHash: af0c1560344e9376c903ad77ae5574ae5cb7f81e968d286b9e33e66b790059ea
+                      completedAt: '2026-09-14T17:18:27.973Z'
+                    verifications:
+                    - verificationId: db0a48c7-893f-4cec-982f-f95e23608e5b
+                      businessTransactionId: 4cfe5661-42a6-4db0-8372-2d24dca235f2
+                      status: VERIFIED
+                      message: Execution Trust Record verified successfully.
+                      verifiedAt: '2026-09-14T17:18:27.981Z'
+                      trustRecordHash: 05fe72e8943fca8f451f631cd4f3ae61f8b62e0e8e92410d13166c67605d7892
+                    receipts:
+                    - receiptId: 0601d04d-3d3c-4b0c-9b37-e811b7eb8375
+                      businessTransactionId: 4cfe5661-42a6-4db0-8372-2d24dca235f2
+                      trustRecordHash: 05fe72e8943fca8f451f631cd4f3ae61f8b62e0e8e92410d13166c67605d7892
+                      receiptHash: f95295cb63aa045e17835fc06b367cb5305878e8ce13b268c9b72371c0da05f6
+                      issuedAt: '2026-09-14T17:18:27.981Z'
+                      algorithm: ed25519
+                      signature: PYhfZtyR+ON2X94ik82TSlh+IgBJT3PPz9FieAwgwepHR7K+LDNOHtVwpCbOakw2z3yeF+S/a8CGRBwGLUSxCA==
+                    createdAt: '2026-09-14T17:18:27.975Z'
+                    updatedAt: '2026-09-14T17:18:27.975Z'
+                    trustRecordHash: 05fe72e8943fca8f451f631cd4f3ae61f8b62e0e8e92410d13166c67605d7892
+                    signature:
+                      algorithm: ed25519
+                      keyId: default
+                      value: 7q+9s+1mzxTdnwL5ogZnVHdNP4RqrBfJICu+tYdtQw+JObBcLVi1BESqin8KpJ+uZrmo+AcEgigmyKmCnc4ADQ==
+                      signedAt: '2026-09-14T17:18:27.977Z'
                 vendor-payment-flow-transactions-endpoint:
                   summary: "Real captured response, the client-supplied status (APPROVED) and
                     unexpectedField from the request example above are both

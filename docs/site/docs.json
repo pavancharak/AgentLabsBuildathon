@@ -59,7 +59,15 @@
               "guides/choose-a-signature-provider",
               "guides/deploy-patterns",
               "guides/live-api-and-demos",
-              "guides/end-to-end-paytm-flow"
+              "guides/end-to-end-paytm-flow",
+              "guides/python-sdk-overview",
+              "guides/python-sdk-quickstart",
+              "guides/python-sdk-ai-agents",
+              "guides/python-sdk-production",
+              "guides/typescript-sdk-overview",
+              "guides/typescript-sdk-quickstart",
+              "guides/typescript-sdk-ai-agents",
+              "guides/typescript-sdk-production"
             ]
           },
           {
