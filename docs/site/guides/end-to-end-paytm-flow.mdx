@@ -79,8 +79,8 @@ sequenceDiagram
 - `npm install` at the repo root, to run `scripts/generate-api-key.ts`.
 
 **Migrations required on the Supabase project first** (idempotent, safe to re-run; this
-repo's `npm run migrate` doesn't actually work — see `docs/VERIFICATION-GAPS.md` G-36 — apply
-these directly via a `pg` connection instead):
+repo's `npm run migrate` doesn't actually work, apply these directly via a `pg` connection
+instead):
 
 - `supabase/migrations/20260914120000_add_execution_audit_events.sql`
 - `supabase/migrations/20260914130000_add_business_transaction_correlation_to_execution_audit_events.sql`
@@ -184,10 +184,9 @@ Set the **identical value** on both projects:
 - On the connector deployment: `PAYTM_CONNECTOR_SHARED_SECRET=<the exact same value>`
 
 Missing either variable on the Parmana side means `paytm:refund` simply isn't registered as
-a capability at all (this codebase's connectors are optional by default — see
-`docs/VERIFICATION-GAPS.md`'s "Gaps checked and found not applicable" entry on that
-design). A mismatch between the two returns `{"error":"unauthorized"}` (401) instantly.
-Redeploy both after setting these.
+a capability at all (this codebase's connectors are optional by default, this is deliberate,
+not an oversight). A mismatch between the two returns `{"error":"unauthorized"}` (401)
+instantly. Redeploy both after setting these.
 
 ## Building the request body
 

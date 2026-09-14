@@ -1,6 +1,6 @@
 ---
 title: "Caller Audit Trail"
-description: "Every caller-authentication event — success, denial, or structural rejection — is signed, durable, and, per caller, chained so a deleted row is detectable."
+description: "Every caller-authentication event (success, denial, or structural rejection) is signed, durable, and, per caller, chained so a deleted row is detectable."
 ---
 
 <Info>
@@ -13,9 +13,9 @@ description: "Every caller-authentication event — success, denial, or structur
 
 ## What it is
 
-Every event at the caller-authentication layer — a successful authentication, a rejection, a
+Every event at the caller-authentication layer, a successful authentication, a rejection, a
 denied capability or principal, a non-human credential hitting a governance endpoint, or a
-structurally malformed request — produces a `CallerAuditEvent`, written through a
+structurally malformed request, produces a `CallerAuditEvent`, written through a
 `CallerAuditSink`. This is a separate trail from [Execution Trust
 Records](/concepts/execution-trust-records) and [Refusal Records](/concepts/refusal-records):
 those two answer "was this specific business action approved or rejected," this one answers
@@ -50,9 +50,9 @@ export interface CallerAuditSink {
 
 ## Two implementations, one deliberate split
 
-- **`InMemoryCallerAuditSink`** — `NODE_ENV=test` only. Process-local, unsigned, unchained.
-- **`SupabaseCallerAuditSink`** — every other environment. Fails closed at startup
-  (`assertDatabaseUrlConfigured`) if `DATABASE_URL` isn't configured — there is no silent
+- **`InMemoryCallerAuditSink`**, `NODE_ENV=test` only. Process-local, unsigned, unchained.
+- **`SupabaseCallerAuditSink`**, every other environment. Fails closed at startup
+  (`assertDatabaseUrlConfigured`) if `DATABASE_URL` isn't configured, there is no silent
   fallback to the in-memory sink outside tests. Every event is signed
   (`AuditEventCrypto`, same `DEFAULT_KEY_ID` signing stack as every other artifact this
   system produces) before being written, and, since the per-caller chaining milestone
@@ -61,10 +61,10 @@ export interface CallerAuditSink {
 ## Per-caller tamper-evident chaining
 
 A signature proves a _surviving_ row wasn't edited. It says nothing about a row that's simply
-gone — and `caller.authenticated` fires on every authenticated request to every route, making
+gone, and `caller.authenticated` fires on every authenticated request to every route, making
 `caller_audit_events` the highest-write-volume table in this system. A single global hash
 chain (each row signing over the previous row's hash) would need a lock serializing every
-write through one predecessor lookup — a real bottleneck on the busiest table.
+write through one predecessor lookup, a real bottleneck on the busiest table.
 
 Instead, each caller gets an independent chain:
 
@@ -76,28 +76,28 @@ Caller Alice:                          Caller Bob (independent):
 ```
 
 `SupabaseCallerAuditSink.record()`, when the event carries a `callerId`, opens a transaction
-and takes a Postgres advisory lock scoped to `hashtext(callerId)` — this serializes only that
+and takes a Postgres advisory lock scoped to `hashtext(callerId)`, this serializes only that
 caller's own concurrent writes, never a different caller's. It reads that caller's most recent
 `chain_hash`/`chain_position` (`ORDER BY id DESC LIMIT 1`), folds `previousChainHash`/
-`chainPosition` into the exact object `AuditEventCrypto` already signs — the existing
-`signature_json` column covers the chain link too, no second signature column — and computes
+`chainPosition` into the exact object `AuditEventCrypto` already signs, the existing
+`signature_json` column covers the chain link too, no second signature column, and computes
 `chainHash` via `TrustRecordHasher`, the same idiom `RuntimeEngine` uses for
 `policyContentHash`/`signalsHash`.
 
-Events with no `callerId` (the earliest possible rejection — malformed JSON or an oversized
-body, rejected before caller-auth middleware or any route handler runs — and
+Events with no `callerId` (the earliest possible rejection, malformed JSON or an oversized
+body, rejected before caller-auth middleware or any route handler runs, and
 `caller.rejected`, no caller identified) get `NULL` chain fields: there's no per-caller chain
 to link them into, the same "absent means not covered" discipline every other optional column
 on this table follows.
 
 <Warning>
   **What this catches, and what it doesn't.** Deleting any row for a caller who
-  has other rows before or after it breaks the chain — the surviving next row's
+  has other rows before or after it breaks the chain, the surviving next row's
   `previousChainHash` still points at the deleted row's hash, which no longer
   matches what's now immediately before it. It does **not** catch deleting an
   entire caller's history at once (nothing remains to show a gap), and it does
   not detect reordering or deletion across *different* callers' independent
-  chains. Both are stated limits, not oversights — see `docs/CLAIMS.md` §2.32.
+  chains. Both are stated limits, not oversights, see `docs/CLAIMS.md` §2.32.
 </Warning>
 
 ## Verifying a chain, standalone
@@ -116,13 +116,13 @@ if (!result.valid) {
 }
 ```
 
-No network call, no database, no running Parmana process — the same standalone discipline
+No network call, no database, no running Parmana process, the same standalone discipline
 [Verify a trust record independently](/guides/verify-independently) demonstrates for
 `ExecutionTrustRecord`, extended here to the caller-audit trail.
 
 ## Verifying one event over HTTP, without a caller credential
 
-**`POST /audit/verify`** — takes `{ event, signature }` directly (not a lookup by id) and
+**`POST /audit/verify`**, takes `{ event, signature }` directly (not a lookup by id) and
 returns `{ valid }`. Deliberately mounted **ahead of** caller-auth middleware
 (`packages/api/src/app.ts`), mirroring `POST /refusal/verify`'s exact reasoning ([Refusal
 Records](/concepts/refusal-records)): no API key needed, nothing but the artifact and
@@ -132,11 +132,11 @@ for this route's error shapes.
 
 ## Related
 
-- [Refusal Records](/concepts/refusal-records) — the policy-REJECT-path evidence trail;
+- [Refusal Records](/concepts/refusal-records), the policy-REJECT-path evidence trail;
   `POST /audit/verify` and `POST /refusal/verify` share the same open-verification design.
-- [Execution Trust Records](/concepts/execution-trust-records) — the APPROVE-path counterpart,
+- [Execution Trust Records](/concepts/execution-trust-records), the APPROVE-path counterpart,
   with its own, longer-standing `previousChainHash`/`chainHash` chaining
   (`ExecutionChainCrypto`) that the per-caller chain above follows the same idiom of.
-- [Authentication](/api-reference/authentication) — the layer this trail audits.
+- [Authentication](/api-reference/authentication), the layer this trail audits.
 - [Limitations](/security/limitations): "Insider threat / audit tampering," the full
   evidence this page's claims are drawn from.

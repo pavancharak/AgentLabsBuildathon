@@ -4,20 +4,12 @@ description: "The real mechanism that closes the check-vs-use gap between author
 ---
 
 <Info>
-  **[AVAILABLE], and wired into the default server as of commit `651497a`
-  (2026-07-11).** Earlier revisions of this page said the opposite, see the
-  correction below.
+  **[AVAILABLE]**, wired into the default server unconditionally.
+  `packages/api/src/bootstrap/createExecutionSystem.ts` builds a real
+  `ExecutionGateway`, so every `POST /execute` against the stock server gets the
+  hash recompute-and-compare described below. See [The
+  gateway](/concepts/the-gateway) for the full, current mechanism.
 </Info>
-
-<Warning>
-  **This page previously said the default local server does NOT enforce content
-  binding.** That was true through commit `4740aee` (2026-07-08). As of
-  `651497a`, `packages/api/src/bootstrap/createExecutionSystem.ts`
-  unconditionally builds a real `ExecutionGateway`, so every `POST /execute`
-  against the stock server does get the hash recompute-and-compare described
-  below. See [The gateway](/concepts/the-gateway) for the full, current
-  mechanism and the one caveat that remains (only one connector is registered).
-</Warning>
 
 ## The problem: check-vs-use (TOCTOU)
 
@@ -99,21 +91,21 @@ system (`packages/crypto/src/ExecutableContentHasher.ts`), the signing side and 
 side run identical canonical serialization and hashing, never two parallel
 implementations of the same computation.
 
-## The same gap, one layer out: signal freshness (G-31)
+## The same gap, one layer out: signal freshness
 
 `businessTransactionHash` closes TOCTOU for _what_ gets executed. It says nothing about
-_why_ it was approved. A decision rests on runtime signals — vendor status, risk exposure,
+_why_ it was approved. A decision rests on runtime signals: vendor status, risk exposure,
 market conditions, whatever a policy's `boundSignals`/`SignalStateVerifier` cares about
-(see [Policies and the decision](/concepts/policies-and-the-decision)) — and those are
-independently re-verified against real-world state, but only once, before the authorization
+(see [Policies and the decision](/concepts/policies-and-the-decision)), and those are
+independently verified against real-world state, but only once, before the authorization
 is signed. Nothing re-checked whether they were _still_ true by the time a receiving system
 got around to executing: an authorization is a portable artifact, valid for
 `authorizationTtlSeconds`/`maxTtlSeconds`, and a system that verifies it a while after
 Parmana signed it had no way to tell "the vendor was verified when this was authorized"
 from "the vendor is verified right now."
 
-`RuntimeEngine.execute()` now signs a `signalsHash` — a canonical hash of the runtime
-`PolicySignals` the decision was evaluated against — into the payload, the direct sibling
+`RuntimeEngine.execute()` signs a `signalsHash`, a canonical hash of the runtime
+`PolicySignals` the decision was evaluated against, into the payload, the direct sibling
 of `policyContentHash` above. When a `SignalStateVerifier` is supplied,
 `ExecutionGateway.verify()` recomputes that hash from the signals on the incoming request
 and compares it to the signed value (tamper/mismatch check, same shape as
@@ -136,14 +128,12 @@ if (currentSignalsHash !== signalsHash) {
 ```
 
 Two receiving systems can hold the exact same authorization, the exact same declared
-signals, and the exact same `signalsHash`, and still disagree — because what differs is
-what each one's own live check finds _right then_. That is the entire point: this is a
-freshness check, not a tamper check. See `examples/tutorials/98-signal-freshness-enforcement`
-for both outcomes run side by side, and `docs/VERIFICATION-GAPS.md` G-31 in the source
-repository for the full scope caveats — most importantly, this only has teeth for a
-capability with a `SignalStateVerifier` actually configured (today, `hubspot-deal-update`),
-and only when decision and execution are genuinely separated in time, which the default
-in-process wiring is not.
+signals, and the exact same `signalsHash`, and still disagree, because what differs is what
+each one's own live check finds _right then_. That is the entire point: this is a freshness
+check, not a tamper check. See `examples/tutorials/98-signal-freshness-enforcement` for both
+outcomes run side by side. This only has teeth for a capability with a `SignalStateVerifier`
+actually configured (today, `hubspot-deal-update`), and only when decision and execution are
+genuinely separated in time, which the default in-process wiring is not.
 
 ## What this proves, precisely scoped
 
@@ -159,14 +149,13 @@ in-process wiring is not.
 This is real, tested protection, for a **gateway-integrated system**. It is not a
 network-level guarantee, and it is not automatically true of every Parmana deployment.
 
-## Confirmed: the default local server now enforces this
+## The default local server enforces this
 
-This was traced directly, not assumed. `packages/api/src/bootstrap/createExecutionSystem.ts`
-unconditionally returns `createExecutionGateway()` (commit `651497a`, 2026-07-11), and
-`packages/api/src/server.ts` always passes that gateway into `createApplication()`. There is
-no code path where the server skips gateway verification. See [The gateway](/concepts/the-gateway)
-for the current, wired mechanism and its one real caveat: only one connector is registered
-by default, an action with no matching connector fails closed rather than skipping checks.
+`packages/api/src/bootstrap/createExecutionSystem.ts` unconditionally returns
+`createExecutionGateway()`, and `packages/api/src/server.ts` always passes that gateway into
+`createApplication()`. There is no code path where the server skips gateway verification.
+See [The gateway](/concepts/the-gateway) for the current, wired mechanism and its one real
+caveat: an action with no registered connector fails closed rather than skipping checks.
 
 ### Demonstrated, at the library level
 

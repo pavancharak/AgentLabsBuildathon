@@ -51,26 +51,26 @@ export interface Connector {
   Every one carries the same self-documenting comment: _"deterministic, in-memory connector
   used until the real enterprise connector is implemented."_ These are reference mocks for
   building against a realistic connector shape, not integrations, they never call SAP,
-  Oracle, Workday, or Salesforce. `packages/api`'s default server registers only
-  `hubspot`, not these four (nor any other capability), see [The
-  gateway](/concepts/the-gateway).
+  Oracle, Workday, or Salesforce. `packages/api`'s default server registers HubSpot, GitHub,
+  Paytm, and Slack, each only when its own credentials are configured, not these four mocks
+  or any other capability, see [The gateway](/concepts/the-gateway).
 
 ## How a Connector is reached
 
-`connector-sdk` never bypasses `execution-control`'s existing seams, it implements them:
+`connector-sdk` builds on `execution-control`'s existing seams rather than bypassing them:
 
 ```
-ExecutionGateway (unchanged)
-  → executionControl.service: ExecutionControlService (execution-control, unchanged)
-     → registry.get(connectorId): SecureConnector (InMemoryConnectorRegistry, unchanged)
-        → InMemorySecureConnector.execute() (unchanged: policy check, one-time session, credential vault)
-           → SdkConnectorExecutor (connector-sdk, new: adapts Connector into ConnectorExecutor)
+ExecutionGateway
+  → executionControl.service: ExecutionControlService
+     → registry.get(connectorId): SecureConnector (InMemoryConnectorRegistry)
+        → InMemorySecureConnector.execute() (policy check, one-time session, credential vault)
+           → SdkConnectorExecutor (adapts Connector into ConnectorExecutor)
               → Connector.execute(...) → HttpConnector | MockConnector
 ```
 
 `ConnectorSdkRegistry` (`packages/connector-sdk/src/ConnectorRegistry.ts`) extends
 `execution-control`'s `ConnectorRegistry` by composing an `InMemoryConnectorRegistry`
-internally, it implements the same `get()` contract, so it's a drop-in wherever a plain
+internally. It implements the same `get()` contract, so it's a drop-in wherever a plain
 `ConnectorRegistry` is expected, while adding metadata/version/health/credential-provider
 registration.
 
@@ -81,9 +81,8 @@ connector without ever passing through the Runtime or the AI caller.
 ## What still doesn't exist
 
 No _real_ connector for SAP, Oracle, Workday, or Salesforce exists, only the reference mocks
-above. No connector, mock or real, exists for OpenAI, Anthropic, ServiceNow, Slack, Jira,
-GitHub, or any database driver, all `[FUTURE]`, see CLAIMS.md. Building any of these means
-implementing `Connector` from `@parmana/connector-sdk` and registering it with a
-`ConnectorSdkRegistry`, and, to reach the default server, editing its bootstrap (see [The
-gateway](/concepts/the-gateway)), the SDK contract is real, a pre-built connector for your
-target system mostly is not.
+above. No connector, mock or real, exists for OpenAI, Anthropic, ServiceNow, Jira, or any
+database driver. Building any of these means implementing `Connector` from
+`@parmana/connector-sdk` and registering it with a `ConnectorSdkRegistry`, and, to reach the
+default server, editing its bootstrap (see [The gateway](/concepts/the-gateway)). The SDK
+contract is real, a pre-built connector for your target system mostly is not.

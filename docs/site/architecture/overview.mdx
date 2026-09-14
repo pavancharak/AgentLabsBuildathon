@@ -3,10 +3,7 @@ title: "Architecture Overview"
 description: "How Parmana's packages fit together, and which parts of the pipeline actually run today."
 ---
 
-<Info>
-  **[AVAILABLE]**. One correction to this page's own prior claim is called out
-  below.
-</Info>
+**[AVAILABLE]**
 
 Parmana is an npm/TypeScript monorepo (`packages/*`) plus two SDKs (`typescript/`,
 `python/`). Every package is independently testable; `packages/api` is the only one that
@@ -33,21 +30,16 @@ packages/runtime (ExecutionTrustApplication → Runtime → RuntimeEngine)
 ExecutionTrustRecord (returned to caller)
 ```
 
-<Warning>
-  **Updated 2026-07-12: this section is stale and describes an old code path.**
-  As of commit `651497a`, `packages/api/src/bootstrap/createExecutionSystem.ts`
-  unconditionally returns `createExecutionGateway()`, there is no longer an
-  optional-gateway code path, and `packages/api/src/application.ts`'s
-  `createApplication()` requires an `executionSystem` argument (`server.ts`
-  always supplies one). **`packages/execution-gateway` and
-  `packages/execution-control` are in the default request path today.** Every
-  `POST /execute` against the stock local server gets independent
-  content-binding re-verification, and an action with no registered connector
-  fails closed rather than skipping the check. See [Quickstart](/quickstart)
-  step 3 for a verified live run, and [Content Binding &
-  TOCTOU](/concepts/content-binding-toctou), which already reflects this same
-  correction (checked directly this pass, not assumed).
-</Warning>
+<Note>
+  `packages/api/src/bootstrap/createExecutionSystem.ts` unconditionally returns
+  `createExecutionGateway()`. There is no optional-gateway code path:
+  `packages/execution-gateway` and `packages/execution-control` are in the
+  default request path. Every `POST /execute` against the stock local server
+  gets independent content-binding re-verification, and an action with no
+  registered connector fails closed rather than skipping the check. See
+  [Quickstart](/quickstart) step 3 for a live run, and [Content Binding &
+  TOCTOU](/concepts/content-binding-toctou) for the mechanism itself.
+</Note>
 
 ## Package map
 
@@ -63,10 +55,10 @@ see [@parmana/receipt](/reference/receipt) and [@parmana/replay](/reference/repl
 today that implementation is always a full `ExecutionGateway`, not a bypass.
 
 **Content-binding / release control**: `envelope-verifier` (`[AVAILABLE]` library),
-`execution-gateway` (`[AVAILABLE]`, wired unconditionally into the default server as of
-commit `651497a`), `execution-control` (`[PARTIAL]`, real, tested, and in the default
-request path for the one connector currently registered; not yet the finished
-cross-system claim for arbitrary connectors; see [Roadmap](/roadmap)).
+`execution-gateway` (`[AVAILABLE]`, wired unconditionally into the default server),
+`execution-control` (`[PARTIAL]`, real, tested, and in the default request path for the
+connectors currently registered; not yet the finished cross-system claim for arbitrary
+connectors, see [Roadmap](/roadmap)).
 
 **SDKs**: `python/` (`[AVAILABLE]`), `typescript/` (`[PARTIAL]`, real client code, but its
 entire test suite is currently empty and its HTTP transport does not raise on 4xx/5xx
@@ -78,5 +70,4 @@ The gateway and execution-control remain separate packages from `runtime` so a c
 service that embeds only the trust core (no HTTP server, no connectors) doesn't have to pay
 for a `Connector`, `NonceStore`, and public key it doesn't need. The default `packages/api`
 server is not that minimal case: it always builds the full gateway, as shown above. See
-[Content Binding & TOCTOU](/concepts/content-binding-toctou) for the mechanism itself — it is
-current, not the older gateway-optional description this page's own history once implied.
+[Content Binding & TOCTOU](/concepts/content-binding-toctou) for the mechanism itself.

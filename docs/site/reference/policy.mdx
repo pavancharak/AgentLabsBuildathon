@@ -56,15 +56,11 @@ npm install @parmana/policy
   **boundSignals coverage is fail-closed, not advisory.** A rule can decide on a
   fact (e.g. `amount`) that isn't declared in `boundSignals`, silently
   forfeiting `SignalIntentBinder`'s protection for that fact.
-  `PolicyValidator.validate()` now throws `PolicyValidationError` for any such
-  fact unless it's explicitly acknowledged in `unboundSignalReasons` with a
-  reason — this used to be only a `policy_boundSignals_coverage_incomplete`
-  console warning at `PolicyRouter.load()` that never blocked anything; it
-  changed after a production-readiness audit found every real policy in this
-  repo had unreviewed uncovered facts. A fact with no genuine Intent-side
-  equivalent (`vendorVerified`, `riskScore`) still doesn't belong in
-  `boundSignals` — it now belongs in `unboundSignalReasons` instead, with a
-  reason. See `docs/CLAIMS.md` §2.30 and `docs/VERIFICATION-GAPS.md` G-33.
+  `PolicyValidator.validate()` throws `PolicyValidationError` for any such fact
+  unless it's explicitly acknowledged in `unboundSignalReasons` with a reason. A
+  fact with no genuine Intent-side equivalent (`vendorVerified`, `riskScore`)
+  still doesn't belong in `boundSignals`; it belongs in `unboundSignalReasons`
+  instead, with a reason.
 </Note>
 
 ### Types
@@ -76,10 +72,10 @@ npm install @parmana/policy
 `SignalIntentBindingViolation` (`{ signalKey, intentPath, signalValue, intentValue }`).
 
 <Note>
-  Both enums previously also had a third value, `REQUIRE_OVERRIDE` — defined but
+  Both enums previously also had a third value, `REQUIRE_OVERRIDE`: defined but
   never used by any real policy, and `DecisionBuilder` collapsed it to the same
   `DecisionOutcome.REJECTED` as an ordinary `REJECT` in any case. Removed as
-  dead code (`docs/VERIFICATION-GAPS.md` G-38).
+  dead code.
 </Note>
 
 ## Minimal example

@@ -4,8 +4,7 @@ description: "Write a custom Policy, evaluate a transaction against it, and conf
 ---
 
 <Info>
-  **[AVAILABLE]**, every command below was run in this session against the
-  repo's actual code, commit `651497a`.
+  **[AVAILABLE]**, every command below runs against the repo's actual code.
 </Info>
 
 ## Goal
@@ -123,8 +122,8 @@ policy file itself.
   no Intent-side equivalent, so each needs its own `unboundSignalReasons` entry
   explaining why, not silence. See [Policies and the
   decision](/concepts/policies-and-the-decision) for the mechanism and why it
-  exists, and `docs/VERIFICATION-GAPS.md` G-33 for why this became fail-closed
-  rather than an easily-missed load-time warning.
+  exists: failing closed here, instead of an easily-missed load-time warning, is
+  what makes an uncovered fact impossible to ship by accident.
 </Note>
 
 ### 2. Reference it from a Business Transaction
@@ -161,7 +160,7 @@ node_modules/.bin/tsx examples/tutorials/14-custom-policy/run.ts
 
 ## Verify
 
-Real output, this session:
+Real output:
 
 ```json
 "decision": {
@@ -177,8 +176,8 @@ Verification: { "status": "VERIFIED", "trustRecordHash": "c22620765972e43e39470d
 ```
 
 Now confirm the reject path. In a scratch copy of `transaction.json`, set
-`"financeDirectorApproved": false`, and rerun. This is what actually happens, tested in this
-session, not what you might expect:
+`"financeDirectorApproved": false`, and rerun. This is what actually happens, not what you
+might expect:
 
 ```
 RuntimeError: Execution rejected: High-value vendor payment rejected because Finance
@@ -233,7 +232,6 @@ wins, with nothing surfacing that the second rule is partly or wholly shadowed.
   `eq`/`neq`/numeric comparisons, and `all` conjunctions where at least one
   conjunct is provably disjoint from the other side) — anything more complex is
   reported as `NEEDS_REVIEW`, an honest "can't tell," never a guessed answer.
-  See `docs/VERIFICATION-GAPS.md` G-38 and G-39.
 </Note>
 
 ## Troubleshoot

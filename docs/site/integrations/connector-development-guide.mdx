@@ -5,8 +5,9 @@ description: "How to implement a Connector against @parmana/connector-sdk, every
 
 <Info>
   **[AVAILABLE] as a library**, `packages/connector-sdk`, **[AVAILABLE] wired
-  into the default server for HubSpot specifically**, a code change for anything
-  beyond that one today, see the warning below.
+  into the default server** for HubSpot, GitHub, Paytm, and Slack, each
+  registering only when its own credentials are configured. Adding another
+  connector is a code change today, see the warning below.
 </Info>
 
 ## Connector responsibilities, and what a Connector must never do
@@ -147,15 +148,12 @@ without any change to its schema or hashing pipeline.
 ## What reaching the default server actually requires
 
 <Warning>
-This is the part that's easy to assume is configuration and isn't. **Update (Phase 2A),
-historical record:** the default *production* server used to register a connector
-(`vendor-payment`) unconditionally, including in production; that was a trust gap (a
-request would get a genuinely signed success Trust Record with no real vendor ever
-contacted) and was closed by gating it to `NODE_ENV=test` only. **Final update
-(2026-08-09):** `vendor-payment` was subsequently removed from the repository entirely —
-`createVendorPaymentConnector.ts` and its dedicated credential provider no longer exist in
-any form — rather than kept as a gated reference example. See `docs/VERIFICATION-GAPS.md`
-G-27 in the source repository. The real, current registration pattern, copied verbatim from
+This is the part that's easy to assume is configuration and isn't. A capability is only
+reachable on the default server when its connector is registered in
+`createConnectorRegistry.ts`, gated behind that connector's own credentials being
+configured. There is no unconditional or environment-only registration path: a capability
+with a signed `APPROVED` decision but no registered connector fails closed at dispatch, it
+never silently succeeds. The real, current registration pattern, copied verbatim from
 source:
 
 ```typescript
@@ -185,32 +183,27 @@ if (hubspotCredentialProvider === undefined) {
 ```
 
 Adding a connector to the running server means editing two files:
-`createConnectorRegistry.ts` (register it, following the shape above — return `undefined`
+`createConnectorRegistry.ts` (register it, following the shape above, return `undefined`
 in production until a real implementation exists, exactly like
 `createHubSpotCredentialProvider.ts` already does) and `createConnectorAuthenticator.ts`
-(trust its identity, add an entry to its hardcoded list). **Not** `createConnectorRoute.ts`
-— despite its name, that file's `route()` function is dead code in the current production
+(trust its identity, add an entry to its hardcoded list). **Not** `createConnectorRoute.ts`,
+despite its name, that file's `route()` function is dead code in the current production
 wiring (`createExecutionGateway.ts` always supplies `executionControl.service`, which makes
 the only branch that calls `route()` unreachable); editing it has no effect on which
 connector actually handles a request. There is no dynamic registration path, no environment
-variable that adds a connector, this is a code change today. HubSpot is the one connector
-actually reachable in the default production server today (GitHub is also registered, for
-`github:pr-fetch`/`github:pr-merge`), see [HubSpot](/integrations/hubspot) for that
-connector specifically. See
-[the Phase 2A production-connectors report](/../architecture/phase2a-production-connectors.md)
-for the vendor-payment before/after this superseded.
+variable that adds a connector, this is a code change today. HubSpot, GitHub, Paytm, and
+Slack are the connectors actually reachable in the default production server, see
+[HubSpot](/integrations/hubspot) for that connector specifically.
 
 </Warning>
 
 ## The pattern, proven twice: Razorpay and HubSpot
 
 <Note>
-  Razorpay was deliberately removed from the codebase in full, 2026-08-12 (see
-  `docs/CLAIMS.md`'s "Key Compromise Notice" section and the connector-removal
-  history in the source repository). The lessons below are kept as a historical,
-  worked example — a second real connector, built after HubSpot's own lessons
-  already existed to apply — not a claim that Razorpay is still registered
-  anywhere in this codebase today.
+  Razorpay was deliberately removed from the codebase in full. The lessons below
+  are kept as a historical, worked example (a second real connector, built after
+  HubSpot's own lessons already existed to apply), not a claim that Razorpay is
+  still registered anywhere in this codebase today.
 </Note>
 
 Both connectors implemented everything above, but the two builds themselves are the more
@@ -223,7 +216,7 @@ surface. Razorpay started with refund creation only, not payouts, not subscripti
 the rest of the payments API. HubSpot started with one property update on one object type,
 a Deal's `dealstage`, optionally alongside `amount`, not Contacts, not Companies, not
 delete. Widen scope in a later milestone, once the first one is fully proven, see
-[HubSpot](/integrations/hubspot)'s own [FUTURE] section on its page.
+[HubSpot](/integrations/hubspot)'s own [ROADMAP] section on its page.
 
 **Two structural guards belong in a connector's first version, not a follow-up fix.**
 
@@ -276,8 +269,7 @@ HubSpot's first live amount-change test run failed with a policy denial the test
 didn't expect, because the test's own signals payload omitted `proposedAmount`,
 `SignalIntentBinder` correctly rejected the mismatch before the intended amount-threshold
 rule ever ran. That's not a connector defect, it's the binding working exactly as designed,
-against a test's own mistake this time instead of a caller's, and it's written up that way
-in `docs/CLAIMS.md` §3.10 rather than quietly fixed and left undocumented.
+against a test's own mistake this time instead of a caller's.
 
 ## Troubleshoot
 

@@ -29,12 +29,12 @@ a type, but only the first two have a real class behind them. Setting
 `PARMANA_STORAGE=postgres` or `sqlite` throws immediately at startup, by design (fails
 closed rather than silently falling back).
 
-| Provider   | Status                                                            | Notes                                                                                                                                                        |
-| ---------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `memory`   | [AVAILABLE]                                                       | In-process, non-persistent. Used throughout this site's live examples (`PARMANA_STORAGE=memory`) so they have no external dependency.                        |
-| `supabase` | [AVAILABLE] (source), not independently re-verified in this audit | `SupabaseStorageProvider`, `SupabaseBusinessTransactionRepository`, `SupabaseExecutionTrustRecordRepository`. This repo's committed `.env` defaults to this. |
-| `postgres` | Declared, not implemented                                         | Throws at startup.                                                                                                                                           |
-| `sqlite`   | Declared, not implemented                                         | Throws at startup.                                                                                                                                           |
+| Provider   | Status                    | Notes                                                                                                                                                        |
+| ---------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `memory`   | [AVAILABLE]               | In-process, non-persistent. Used throughout this site's live examples (`PARMANA_STORAGE=memory`) so they have no external dependency.                        |
+| `supabase` | [AVAILABLE]               | `SupabaseStorageProvider`, `SupabaseBusinessTransactionRepository`, `SupabaseExecutionTrustRecordRepository`. This repo's committed `.env` defaults to this. |
+| `postgres` | Declared, not implemented | Throws at startup.                                                                                                                                           |
+| `sqlite`   | Declared, not implemented | Throws at startup.                                                                                                                                           |
 
 ## What's stored
 

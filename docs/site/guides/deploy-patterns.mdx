@@ -198,16 +198,15 @@ environment-variable toggle for this today, it's a code change.
 - **No KMS/HSM.** Both private keys are files on disk, exactly the exposure that produced
   the incident noted on [Security](/security/overview). `KeyProviders` declares `aws-kms`,
   `azure-key-vault`, `gcp-kms`, and `hsm` as config values with zero implementing classes.
-  Setting `KEY_PROVIDER` to one of these now fails startup loudly rather than silently
-  running as if it were `local` (`docs/VERIFICATION-GAPS.md` G-40).
+  Setting `KEY_PROVIDER` to one of these fails startup loudly rather than silently running
+  as if it were `local`.
 - **Single process, single instance.** No shared `NonceStore` across replicas, a fleet of
-  these processes would each accept the same authorization once, not once fleet-wide
-  (CLAIMS.md 3.2).
-- **Zero connectors registered by default.** `hubspot` registers only when its
-  credentials are configured (`HUBSPOT_PRIVATE_APP_TOKEN`); with it unset, every
-  capability fails closed with "No connector registered for capability." See [Add a
-  connector with the Connector SDK](/guides/add-a-connector) for what adding another
-  requires today.
+  these processes would each accept the same authorization once, not once fleet-wide.
+- **Connectors register only when their own credentials are configured.** HubSpot, GitHub,
+  Paytm, and Slack each check for their own credential environment variable at startup and
+  register only if it's present; with none configured, every capability fails closed with
+  "No connector registered for capability." See [Add a connector with the Connector
+  SDK](/guides/add-a-connector) for what adding another requires today.
 
 ## Troubleshoot
 

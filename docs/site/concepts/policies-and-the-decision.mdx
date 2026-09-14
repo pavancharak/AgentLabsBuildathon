@@ -48,11 +48,11 @@ typically makes the reject-by-default behavior explicit in the policy document i
 ## Binding a signal to the executed Intent
 
 Evaluating `transaction.signals` alone has a gap: nothing, by itself, connects those signals
-to `transaction.intent` — the action, target, and parameters that actually get signed and
+to `transaction.intent`, the action, target, and parameters that actually get signed and
 executed if the Decision is `APPROVED`. A caller could declare signals describing a small,
 fully-verified action while `intent` executes something else entirely, and still receive a
-signed `APPROVED` trust record for it. This was a real, live bypass, not a hypothetical one —
-see [Security](/security/overview) for what it looked like in practice and how severe it was.
+signed `APPROVED` trust record for it. This was a real, live bypass, not a hypothetical one.
+See [Security](/security/overview) for what it looked like in practice and how severe it was.
 
 `Policy.boundSignals` is the fix: an optional map from a signal key to an `intent` dot-path.
 Every entry declares "this signal must equal this exact field of what's actually executed":
@@ -65,7 +65,7 @@ Every entry declares "this signal must equal this exact field of what's actually
 ```
 
 `SignalIntentBinder` (`packages/policy/src/SignalIntentBinder.ts`) checks every declared
-binding by strict equality — a signal the caller never declared at all counts as a violation,
+binding by strict equality. A signal the caller never declared at all counts as a violation,
 not a pass, since `undefined` almost never equals a real `intent` value:
 
 ```typescript
@@ -83,7 +83,7 @@ for (const [signalKey, intentPath] of Object.entries(bindings)) {
 `RuntimeEngine.execute` (`packages/runtime/src/RuntimeEngine.ts`) runs this check immediately
 before `PolicyEngine.evaluate`, over the exact signals about to be evaluated and the exact
 `intent` that will be signed and executed if approved. A violation is built into an ordinary
-`PolicyDecision` with outcome `REJECT` and a reason naming every mismatched field — no rule is
+`PolicyDecision` with outcome `REJECT` and a reason naming every mismatched field. No rule is
 ever evaluated, and no authorization is ever generated for a mismatched request, the same
 fail-closed shape as any other policy rejection (see [Write your first
 policy](/guides/write-your-first-policy) for what a rejection actually does).
@@ -92,16 +92,15 @@ policy](/guides/write-your-first-policy) for what a rejection actually does).
   **Binding is opt-in, per field, per policy.** `boundSignals` only closes the
   *decoupling* between what a policy evaluates and what executes, for the
   specific fields a policy author declares bound. It does not independently
-  verify that an *unbound* signal is actually true — `vendorVerified`,
+  verify that an *unbound* signal is actually true. `vendorVerified`,
   `paymentApproved`, `riskScore`, and similar remain caller-declared
-  attestations with no independent verification, exactly as before. Closing that
-  gap for real means fetch-verifying those signals from an independent source,
-  the way `HubSpotSignalStateVerifier` already does for `currentDealStage` and a
-  few other `hubspot-deal-update` signals — real, valuable, and not yet extended
-  to policy signals generally. See [HubSpot](/integrations/hubspot) for the one
-  connector where fetch-verification of *some* signals is real today, and its
-  exact scope, and `docs/CLAIMS.md` §2.29/G-31 for the newer, execution-boundary
-  half of the same idea.
+  attestations with no independent verification. Closing that gap for real means
+  fetch-verifying those signals from an independent source, the way
+  `HubSpotSignalStateVerifier` already does for `currentDealStage` and a few
+  other `hubspot-deal-update` signals, real and valuable, though not yet
+  extended to policy signals generally. See [HubSpot](/integrations/hubspot) for
+  the one connector where fetch-verification of *some* signals is real today,
+  and its exact scope.
 </Warning>
 
 ## Minimal example
@@ -148,13 +147,13 @@ From `policies/vendor-payment/2.0.0/policy.json`, a real policy in this repo:
 <Note>
   Trimmed for this example: the real file also has an `unboundSignalReasons`
   field naming a reason for each of `vendorVerified`, `invoiceVerified`,
-  `paymentApproved`, `sufficientFunds`, and `riskScore` —
-  `PolicyValidator.validate()` now fails closed on any rule-referenced fact that
-  is neither in `boundSignals` nor `unboundSignalReasons`
-  (`docs/VERIFICATION-GAPS.md` G-33), so a policy shaped exactly like the
-  excerpt above, with nothing said about those five facts, would refuse to load.
-  See [Write your first policy](/guides/write-your-first-policy) for a complete,
-  loadable example with both fields.
+  `paymentApproved`, `sufficientFunds`, and `riskScore`.
+  `PolicyValidator.validate()` fails closed on any rule-referenced fact that is
+  neither in `boundSignals` nor `unboundSignalReasons`, so a policy shaped
+  exactly like the excerpt above, with nothing said about those five facts,
+  would refuse to load. See [Write your first
+  policy](/guides/write-your-first-policy) for a complete, loadable example with
+  both fields.
 </Note>
 
 ## What a Decision records

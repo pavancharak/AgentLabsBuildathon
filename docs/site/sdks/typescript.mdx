@@ -8,15 +8,12 @@ description: "Real client code, bearer-key authentication, and a typed error tax
   installable with a plain `npm install @parmana/sdk`. This page said otherwise
   ("private, not published to any registry") until 2026-09-14; that was stale
   even at v1.1.1, confirmed live against the npm registry while fixing this
-  page. The original three gaps (no bearer-key auth, an unused error taxonomy,
-  an empty test suite) were closed in an earlier pass. A follow-up full SDK
-  audit found and fixed three more real issues: inaccurate model types (fields
-  marked required that the real API doesn't require, and a missing
-  `settlementConfirmations`/`signature` field), two missing capabilities (`POST
-  /verify`, `GET /version`), and one capability missing from both maintained
-  SDKs (`POST /transactions`). v1.1.2, adding `createBusinessTransaction()` (see
-  below), published 2026-09-14, confirmed via `npm view @parmana/sdk version`.
-  See the fix history at the bottom of this page.
+  page. Bearer-key authentication, a real thrown error taxonomy, and full test
+  coverage are all in place, along with corrected model types (see below),
+  `client.verify()`/`client.version()`, and `client.createTransaction()`.
+  v1.1.2, adding `createBusinessTransaction()` (see below), published
+  2026-09-14, confirmed via `npm view @parmana/sdk version`. See the fix history
+  at the bottom of this page.
 </Info>
 
 <Note>
@@ -113,11 +110,10 @@ try {
 | request timeout                                                  | `TimeoutError`           |
 
 All extend `ParmanaError`, which carries a stable `code` (`ErrorCode` enum) and optional
-`cause`/`requestId`. `403` (`AuthorizationError`) is a real status this API returns —
-an authenticated caller asserting an `authority.principalId` it isn't permitted to assert
-(`isPrincipalAllowed`, `packages/api/src/routes/execute.ts`) — found live during this pass and
-added to the [Error catalog](/api-reference/error-catalog) and the OpenAPI spec alongside this
-fix, both re-verified against source and a live server.
+`cause`/`requestId`. `403` (`AuthorizationError`) is a real status this API returns: an
+authenticated caller asserting an `authority.principalId` it isn't permitted to assert
+(`isPrincipalAllowed`, `packages/api/src/routes/execute.ts`), documented in the
+[Error catalog](/api-reference/error-catalog) and the OpenAPI spec.
 
 <Note>
 **One route is deliberately exempt from this mapping.** `POST /policies/validate` never uses
@@ -129,47 +125,39 @@ before the route's own handler runs, using the shared envelope like every other 
 [Error handling](/api-reference/error-handling).
 </Note>
 
-## Model types, corrected against the real schemas
+## Model types, matched to the real schemas
 
-`typescript/src/models/*.ts` is hand-maintained, unlike the Python SDK's generated models — a
-full audit spot-checked every field against the real JSON schemas
-(`schemas/common/*.schema.json`) and found real inaccuracies, all fixed this pass:
+`typescript/src/models/*.ts` is hand-maintained, unlike the Python SDK's generated models, and
+kept in sync field-for-field against the real JSON schemas (`schemas/common/*.schema.json`):
 
-- `Authority.displayName`, `Verification.message` — were marked required; the real API makes them
-  optional.
-- `Authorization.expiresAt` — missing entirely; now present (optional).
-- `BusinessTransactionMetadata` — every field except `businessTransactionId` was marked required;
-  the real API requires only `businessTransactionId`. The most significant of these: it forced
-  callers to supply fields (`tenantId`, `correlationId`, `sourceSystem`, `submittedBy`,
-  `submittedAt`) the real API doesn't need.
-- `ExecutionTrustRecord` — was missing the required `signature` field and the optional
-  `settlementConfirmations` field (and the `SettlementConfirmation`/`Signature` models
-  themselves) entirely.
-- `Override.authorityId` — **wrong field name**, should be `approvedBy` (the real schema has no
-  `authorityId` on `Override` at all); also missing the optional `justification` field. Currently
-  unreachable in practice (no route in this repository creates an `Override`), but wrong is wrong.
-- `Decision.outcome`, `Execution.status`, `Execution.mode`, `BusinessTransaction.status` — were
-  bare `string`; now literal unions matching the real enums exactly.
-- `Execution` — was missing `completedAt`, `evidence`, and `metadata` entirely: real, commonly-used
-  fields (evidence in particular is where Connector evidence lives) with no way to read them
-  through this SDK's types before this pass.
+- `Authority.displayName` and `Verification.message` are optional, matching the real API.
+- `Authorization.expiresAt` is present (optional).
+- `BusinessTransactionMetadata` requires only `businessTransactionId`; every other field
+  (`tenantId`, `correlationId`, `sourceSystem`, `submittedBy`, `submittedAt`) is optional,
+  matching the real API.
+- `ExecutionTrustRecord` includes the required `signature` field and the optional
+  `settlementConfirmations` field, with their own `SettlementConfirmation`/`Signature` models.
+- `Override.approvedBy` is the real field name (the real schema has no `authorityId` on
+  `Override`), plus the optional `justification` field. Currently unreachable in practice, no
+  route in this repository creates an `Override`.
+- `Decision.outcome`, `Execution.status`, `Execution.mode`, and `BusinessTransaction.status`
+  are literal unions matching the real enums, not bare `string`.
+- `Execution` includes `completedAt`, `evidence` (where Connector evidence lives), and
+  `metadata`.
 
-## Two capabilities added this pass, previously unreachable from this SDK
+## `client.verify()` and `client.version()`
 
-- **`client.verify(businessTransactionId)`** — `POST /verify`, runs a fresh verification and
-  appends a new `Verification` to the record's history. Before this pass, the SDK could only read
-  a cached verification via `getLatestVerification()` (`GET /verification/:id`); there was no way
-  to trigger a fresh one at all.
-- **`client.version()`** — `GET /version`. Had no method anywhere in the SDK.
+- **`client.verify(businessTransactionId)`**: `POST /verify`, runs a fresh verification and
+  appends a new `Verification` to the record's history. `getLatestVerification()`
+  (`GET /verification/:id`) reads a cached verification; this triggers a fresh one.
+- **`client.version()`**: `GET /version`.
 
-## `POST /transactions`, missing from both maintained SDKs, now added
+## `POST /transactions`
 
-`client.createTransaction(transaction)` — a second, independent entry point into the identical
-execution pipeline as `execute()` (`POST /execute`), differing only in its `201` status code.
-Confirmed stable before adding: the route has existed since near the start of this repository's
-history (18 commits into a 141-commit history), was touched by the most recent security-fix
-commit in lockstep with `/execute`, and has dedicated test coverage
-(`packages/api/tests/unit/transactions-api.test.ts`) — not a new or evolving surface.
+`client.createTransaction(transaction)` is a second, independent entry point into the
+identical execution pipeline as `execute()` (`POST /execute`), differing only in its `201`
+status code. It's a stable, long-standing route with dedicated test coverage
+(`packages/api/tests/unit/transactions-api.test.ts`), not a new or evolving surface.
 
 ## `createBusinessTransaction()`, no more hand-synced ids
 
@@ -240,38 +228,34 @@ npm run test    # vitest
 
 ## Test suite
 
-Previously 9 files, 0 bytes each, "9 passed" trivially. Now 157 tests across 16 files
-(`npx vitest run` from the repo root: **run from the repo root**, not `typescript/`; several
-tests read `PARMANA_POLICY_DIR` relative to `process.cwd()` and fail with confusing
-`PolicyNotFoundError`-shaped errors otherwise, the exact false alarm chased at length in
-`docs/VERIFICATION-GAPS.md`'s 2026-09-14 session entry): unit tests for every error-mapping
-case (`test/HttpTransport.test.ts`, `test/Errors.test.ts`), unit tests for
+157 tests across 16 files. **Run `npx vitest run` from the repo root**, not `typescript/`:
+several tests read `PARMANA_POLICY_DIR` relative to `process.cwd()` and fail with confusing
+`PolicyNotFoundError`-shaped errors otherwise. Coverage includes: unit tests for every
+error-mapping case (`test/HttpTransport.test.ts`, `test/Errors.test.ts`), unit tests for
 `createBusinessTransaction()` (`test/createBusinessTransaction.test.ts`, 11 cases), unit tests
-for the three capabilities added in the model-audit pass (`test/NewApiMethods.test.ts`), a
-retry-logic suite
-(`test/RetryPolicy.test.ts`, real backoff on idempotent GETs against 502/503/504, POSTs never
-retried, matching the Python SDK's own retry behavior), per-route unit suites
-(`test/AuditApi.test.ts`, `test/HealthApi.test.ts`, `test/PolicyApi.test.ts`,
-`test/RefusalApi.test.ts`, `test/ReplayApi.test.ts`, `test/RuntimeApi.test.ts`,
-`test/VerificationApi.test.ts`), and two integration suites that boot the actual `@parmana/api`
-Express application: real `StaticKeyAuthenticator`, real `PolicyEngine`, real Ed25519 signing,
-the real, `NODE_ENV=test`-only generic test-fixture connector (`createTestFixtureConnector.ts`,
-successor to the now-removed `vendor-payment`, see `docs/VERIFICATION-GAPS.md` G-27), on a
-real OS-assigned TCP port and drive it with the real `ParmanaClient` over real HTTP:
+for `client.verify()`/`client.version()`/`client.createTransaction()`
+(`test/NewApiMethods.test.ts`), a retry-logic suite (`test/RetryPolicy.test.ts`, real backoff
+on idempotent GETs against 502/503/504, POSTs never retried, matching the Python SDK's own
+retry behavior), per-route unit suites (`test/AuditApi.test.ts`, `test/HealthApi.test.ts`,
+`test/PolicyApi.test.ts`, `test/RefusalApi.test.ts`, `test/ReplayApi.test.ts`,
+`test/RuntimeApi.test.ts`, `test/VerificationApi.test.ts`), and two integration suites that
+boot the actual `@parmana/api` Express application: real `StaticKeyAuthenticator`, real
+`PolicyEngine`, real Ed25519 signing, the real, `NODE_ENV=test`-only generic test-fixture
+connector (`createTestFixtureConnector.ts`, successor to the now-removed `vendor-payment`), on
+a real OS-assigned TCP port, driven by the real `ParmanaClient` over real HTTP:
 `test/integration/parmana-client.integration.test.ts` (a real `401`, a real `403`, a real `400`,
 a real policy rejection, a real `404`, a real `409` duplicate, plus `version()`, `verify()`, and
 `createTransaction()`, each asserted against the exact typed result and exact message the server
 returned) and `test/integration/examples.integration.test.ts` (runs the quickstart example
 script itself, see [Changelog](/changelog)).
 
-## What's still true from before
+## Errors defined but never thrown
 
 `typescript/src/errors/` also declares `VerificationError` and `ReplayError`. Neither is thrown
 anywhere: no verified HTTP condition in this API corresponds to them (`POST /verify` and
-`POST /replay` return their semantic result — `VERIFIED`/`FAILED`, or a replay outcome — inside
-an ordinary `200`, not as an error). They remain defined, unused, for the same reason they were
-before this pass: inventing a throw condition for them would be describing behavior the real API
-doesn't have.
+`POST /replay` return their semantic result, `VERIFIED`/`FAILED`, or a replay outcome, inside
+an ordinary `200`, not as an error). They remain defined, unused: inventing a throw condition
+for them would describe behavior the real API doesn't have.
 
 ## Next
 

@@ -5,17 +5,16 @@ description: "Exactly 3 checks, always run, always reported independently."
 
 <Info>
   **[AVAILABLE]**, precisely scoped.
-  `packages/runtime/src/services/verification-service.ts`. CLAIMS.md 2.15.
+  `packages/runtime/src/services/verification-service.ts`.
 </Info>
 
-<Warning>
+<Note>
   An earlier six-stage verification pipeline (`@parmana/verification`) existed
-  and was **deleted** ("retired in Session 5, it had no real implementation and
-  no real test coverage," per CLAIMS.md §4). It is not documented here as
-  existing. If you see references to Authority/Intent/Evidence verification
-  stages elsewhere, they describe that retired package or a not-yet-built future
-  addition, not current behavior.
-</Warning>
+  and was removed, it had no real implementation and no test coverage. It is not
+  documented here as existing. If you see references to Authority/Intent/
+  Evidence verification stages elsewhere, they describe that retired package or
+  a not-yet-built future addition, not current behavior.
+</Note>
 
 ## The 3 checks, exactly
 
@@ -42,8 +41,8 @@ first (`runChecks()` accumulates failures into an array rather than short-circui
 | `client.verification.get_latest(id)` | `GET /verification/:id` | Reads back the **most recent** `Verification` without re-verifying                  |
 
 These are genuinely different routes (`packages/api/src/routes/verify.ts` vs.
-`verify-get.ts`), not the same endpoint called twice, a distinction the Python SDK only
-got right this session (see [Python SDK](/sdks/python)).
+`verify-get.ts`), not the same endpoint called twice. See [Python SDK](/sdks/python) for how
+each SDK exposes them.
 
 ## Real output
 

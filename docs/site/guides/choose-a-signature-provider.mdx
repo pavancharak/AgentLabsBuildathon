@@ -3,10 +3,7 @@ title: "Choose a Signature Provider"
 description: "Ed25519 by default, ML-DSA-65 (post-quantum) as a configured alternative, and hybrid signing with both at once. What each one actually requires and costs."
 ---
 
-<Info>
-  **[AVAILABLE]**, all three runs below are real output from this session,
-  commit `651497a`, Node 24.
-</Info>
+<Info>**[AVAILABLE]**, all three runs below are real output, Node 24.</Info>
 
 ## Goal
 
@@ -63,9 +60,9 @@ That's roughly 50x larger, a real bandwidth and storage cost, not just a config 
 <Warning>
   **Run this twice and the signature will differ both times, even with the same
   key and the same message.** ML-DSA-65 signatures are randomized, not
-  deterministic (CLAIMS.md §5). Only *verification* is deterministic. Don't
-  build tooling, caching, or dedup logic that assumes identical input produces
-  an identical ML-DSA-65 signature, it won't.
+  deterministic. Only *verification* is deterministic. Don't build tooling,
+  caching, or dedup logic that assumes identical input produces an identical
+  ML-DSA-65 signature, it won't.
 </Warning>
 
 ### 3. Hybrid: both at once
@@ -93,8 +90,8 @@ verified by a consumer that only trusts one of them yet, while you migrate the r
 
 ## Verify
 
-All three runs above printed `Verified : true` for the algorithm(s) they exercised,
-confirmed in this session. The hybrid run's two signature lengths (88 and 4,412 characters)
+All three runs above printed `Verified : true` for the algorithm(s) they exercised. The
+hybrid run's two signature lengths (88 and 4,412 characters)
 match the standalone Ed25519 and ML-DSA-65 runs exactly, the hybrid bundle isn't a different
 computation, it's both existing ones run together.
 
@@ -102,8 +99,7 @@ computation, it's both existing ones run together.
 
 Signing or verifying with the wrong key type for the configured provider fails closed with
 an error naming both the expected and actual key type, it does not silently dispatch based
-on the key's own type (`assertKeyType`, used by both signature providers, CLAIMS.md 2.13).
-This is what caught the mismatch in tutorial 51 before this guide's own fix, see
+on the key's own type (`assertKeyType`, used by both signature providers). See
 [Determinism and clocks](/concepts/determinism-and-clocks) for an unrelated but similarly
 precise scoping note.
 
@@ -116,8 +112,8 @@ precise scoping note.
   higher, native support was added there.
 - **No algorithm migration in production.** `AuthorizationVerifier` supports exactly one
   configured `PRIMARY_SIGNATURE_PROVIDER` at a time for envelope verification, re-keying while
-  retaining the ability to verify previously-signed records is an explicit Future Claim, not
-  yet built (CLAIMS.md §4, [Roadmap](/roadmap)).
+  retaining the ability to verify previously-signed records is not yet built, see
+  [Roadmap](/roadmap).
 
 ## Next
 

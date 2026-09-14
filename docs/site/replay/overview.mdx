@@ -39,9 +39,8 @@ A separate, real package: `ReplayEngine`, `ReplayPipeline`, `ReplayExecutor`,
 (`ReplayDeterminism.test.ts`, "should produce identical output regardless of input order";
 `ReplayEngine.test.ts`; 9 tests total).
 
-**This corrects a previous version of this page**: `ReplayEngine.replay()` genuinely
-re-evaluates the original policy against the recorded signals, using a real `PolicyEngine`,
-not just a signature or hash recheck:
+`ReplayEngine.replay()` genuinely re-evaluates the original policy against the recorded
+signals, using a real `PolicyEngine`, not just a signature or hash recheck:
 
 ```typescript
 // packages/replay/src/ReplayEngine.ts:38-62 (abridged, real source)
@@ -63,11 +62,10 @@ re-evaluation, scoped to one execution's decision outcome, not the fuller claim 
   surface.
 </Warning>
 
-## What CLAIMS.md's "semantic verification" Future Claim still withholds
+## What "semantic verification" still withholds
 
-CLAIMS.md §4 lists _"Replay semantically verifies every trust artifact"_ as a Future Claim,
-not a Supported one. That claim is broader than what `ReplayEngine` does today: "every trust
-artifact" implies re-evaluating every execution across a record and every artifact type, not
-one execution's decision outcome. `ReplayEngine`'s real, narrower behavior above doesn't
-contradict CLAIMS.md, it's evidence toward a scoped piece of that future claim, not the whole
-of it. See [Roadmap](/roadmap).
+"Replay semantically verifies every trust artifact" is a future goal, not current behavior.
+That's broader than what `ReplayEngine` does today: "every trust artifact" implies
+re-evaluating every execution across a record and every artifact type, not one execution's
+decision outcome. `ReplayEngine`'s real, narrower behavior above is a scoped piece of that
+future goal, not the whole of it. See [Roadmap](/roadmap).

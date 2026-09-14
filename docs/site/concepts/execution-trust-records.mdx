@@ -115,45 +115,40 @@ trust_record = client.execution.execute(transaction)     # POST /execute
 trust_record = client.trust_records.get(transaction_id)  # GET /trust-records/:id
 ```
 
-Captured from a live local run (2026-07-12), trimmed, against the transaction as it existed
-then. **The `action`/`connectorId`/`capability` fields below reflect `payments:execute`
-(vendor-payment), which has since been removed from the repository entirely — see
-`docs/VERIFICATION-GAPS.md` G-27 in the source repository — not re-captured against a live
-run for this update; illustrative of the shape, not a value you'll reproduce running
-`test:fixture-execute` or a real connector today:**
+Captured from a live local run, 2026-09-14, trimmed:
 
 ```json
 {
-  "trust_record_id": "cabb41d7-1ab5-4cc9-a950-5c4300c6a826",
-  "business_transaction_id": "be045836-0016-4c96-838e-a8934cbe0ee9",
+  "trust_record_id": "9c82c5c6-b465-41c8-8a03-ac07ec839c20",
+  "business_transaction_id": "40ba54d1-1038-443c-80ec-9cd6ad7757a1",
   "executions": [
     {
-      "execution_id": "8f5605e9-19ee-48e7-9863-132aa565b037",
+      "execution_id": "1d637081-aaba-476f-9d6c-8170a2088359",
       "decision": {
         "outcome": "APPROVED",
         "reason": "Vendor payment authorized. ..."
       },
       "status": "COMPLETED",
       "evidence": {
-        "action": "payments:execute",
+        "action": "test:fixture-execute",
         "target": "vendor://payments",
         "parameters": { "amount": 1000, "currency": "USD" },
         "success": true,
         "attributes": {
           "connector": {
-            "connectorId": "vendor-payment",
-            "capability": "payments:execute"
+            "connectorId": "test-fixture",
+            "capability": "test:fixture-execute"
           }
         }
       },
-      "metadata": { "authorizationId": "7824fffb-dbb2-4046-9436-fbbd0ea777fa" }
+      "metadata": { "authorizationId": "e48ff9c8-cdc6-4f63-9324-864471731aaf" }
     }
   ],
   "verifications": [
-    { "status": "VERIFIED", "trust_record_hash": "fdb313e8..." }
+    { "status": "VERIFIED", "trust_record_hash": "a08a0413..." }
   ],
-  "receipts": [{ "algorithm": "ed25519", "receipt_hash": "5e0ab23f..." }],
-  "trust_record_hash": "fdb313e82c7cd86cf5f1dfb0ab90ac72f550a67a91891ebfce9462a73e9da103",
+  "receipts": [{ "algorithm": "ed25519", "receipt_hash": "18840a7c..." }],
+  "trust_record_hash": "a08a041317a6f28307a30c97147ef320e896578153118e978f7998a63cf52037",
   "signature": { "algorithm": "ed25519", "key_id": "default" }
 }
 ```

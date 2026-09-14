@@ -3,10 +3,7 @@ title: "Error Handling"
 description: "The shared error envelope, when the code field is present versus absent, and the two verified gaps where implementation doesn't match the envelope's own design."
 ---
 
-<Info>
-  **[AVAILABLE]**. `packages/api/src/middleware/error-handler.ts`, verified
-  against a live server in this session.
-</Info>
+<Info>**[AVAILABLE]**. `packages/api/src/middleware/error-handler.ts`.</Info>
 
 ## The envelope
 
@@ -67,10 +64,9 @@ matches. The caller sees only:
 with a 500, no `code`, and no indication of which field was missing. The real cause is
 visible only in the server's own log.
 
-### 2. A regression: "no Connector registered" lost its code, this pass
+### 2. A regression: "no Connector registered" lost its code
 
-Re-verified live against the current server, not carried over from an earlier capture: the
-"no Connector registered for this action" case used to reach the client as a coded
+The "no Connector registered for this action" case used to reach the client as a coded
 `RuntimeError` (`{"error":"No connector registered for action: <action>.","code":
 "RUNTIME_ERROR"}`). It no longer does. `ConnectorSdkRegistry.resolveCapability`
 (`packages/connector-sdk/src/ConnectorRegistry.ts`) now throws a raw, uncaught `Error: No
@@ -81,9 +77,9 @@ connector registered for capability '<capability>'.` that also fails the handler
 { "error": "Internal Server Error" }
 ```
 
-This is listed here as a **product regression to fix in
-`packages/connector-sdk`/`packages/execution-control`**, most likely a side effect of the
-recent capability-routing refactor, not a documentation change made in this pass. See the
+This is a **product regression to fix in
+`packages/connector-sdk`/`packages/execution-control`**, most likely a side effect of a
+capability-routing refactor. See the
 [Error catalog](/api-reference/error-catalog) for the full, current, real behavior of every
 route.
 

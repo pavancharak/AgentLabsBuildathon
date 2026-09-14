@@ -40,10 +40,10 @@ authorizes, the exact `policyName`/`policyVersion` that produced the decision, a
 covered in depth on [The gateway](/concepts/the-gateway), and further optional fields
 covering questions content binding alone doesn't reach: `policyContentHash` (the exact
 policy _content_, not just its version string, that produced the decision), `signalsHash`
-(the runtime `PolicySignals` the decision was evaluated against — vendor status, risk
+(the runtime `PolicySignals` the decision was evaluated against: vendor status, risk
 exposure, and similar), and `submittedBy`/`grantedCapability` (the authenticated caller and
 the capability the API-edge caller-to-capability check confirmed for them, carried forward
-as a signed fact rather than discarded once the request passes — see
+as a signed fact rather than discarded once the request passes, see
 [@parmana/execution-control](/reference/execution-control) for where a receiving system
 checks this against the executed action). All four are optional so authorizations signed
 before any of them existed keep verifying unchanged; see [The gateway](/concepts/the-gateway)
@@ -74,7 +74,7 @@ key and the envelope itself. Every property below exists so that check is meanin
 - **Policy- and signal-fresh, when opted in.** `policyContentHash`/`signalsHash` let a
   receiving gateway recompute and re-verify, at execution time, whether the policy content
   and the real-world conditions the decision rested on are still what they were at
-  authorization time — the same TOCTOU gap `businessTransactionHash` closes for the payload
+  authorization time, the same TOCTOU gap `businessTransactionHash` closes for the payload
   itself, extended to policy and signals. See [Content Binding &
   TOCTOU](/concepts/content-binding-toctou) for both.
 - **Algorithm agile.** Ed25519 by default; ML-DSA-65 (FIPS 204) selectable via

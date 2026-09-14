@@ -28,7 +28,7 @@ KEY_PROVIDER=local
 PARMANA_KEY_DIR=./keys
 PARMANA_GATEWAY_KEY_ID=gateway       # optional, defaults to "gateway"
 TRUST_PROFILE=v1
-LOG_LEVEL=...                # read into config; gates @parmana/shared's createLogger/getLogger (2026-09-10), not yet threaded through every console.* call site, see Roadmap
+LOG_LEVEL=...                # read into config; gates @parmana/shared's createLogger/getLogger, not yet threaded through every console.* call site, see Roadmap
 PARMANA_POLICY_DIR=...
 HUBSPOT_PRIVATE_APP_TOKEN=...  # credential for the hubspot connector, omit to leave it unregistered
 PARMANA_API_KEYS=...         # required, fails closed if unset, see Authentication
@@ -75,14 +75,15 @@ skips needing this key.
 - **Single process, single instance.** No HA, no load balancer assumed. Whether replicas
   share replay-nonce state depends on `NODE_ENV`: `MemoryNonceStore` (`NODE_ENV=test`, as
   above) is process-local, each process would accept the same authorization once, not once
-  fleet-wide (CLAIMS.md 3.2). Outside `NODE_ENV=test`, `SupabaseNonceStore` is durable and
-  shared across replicas pointed at the same Supabase project, but this deployment shape is
-  still one process behind no load balancer.
-- **Zero connectors registered by default.** `hubspot` registers only when its
-  credentials are configured (`HUBSPOT_PRIVATE_APP_TOKEN`). See [The
-  gateway](/concepts/the-gateway) for what adding another requires today.
+  fleet-wide. Outside `NODE_ENV=test`, `SupabaseNonceStore` is durable and shared across
+  replicas pointed at the same Supabase project, but this deployment shape is still one
+  process behind no load balancer.
+- **No connectors registered unless their credentials are configured.** HubSpot, GitHub,
+  Paytm, and Slack each register only when their own environment variable is set
+  (`HUBSPOT_PRIVATE_APP_TOKEN` and similar). See [The gateway](/concepts/the-gateway) for
+  what adding a new connector requires.
 
 ## Node version
 
 Root `package.json` requires Node ≥ 22. ML-DSA-65 (post-quantum signing) specifically
-requires Node ≥ 24 for native `node:crypto` support (CLAIMS.md 2.14).
+requires Node ≥ 24 for native `node:crypto` support.

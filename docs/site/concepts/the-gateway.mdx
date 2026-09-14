@@ -1,19 +1,15 @@
 ---
 title: "The Gateway"
-description: "The sole boundary through which Parmana releases approved execution requests to connectors. Wired into the default server unconditionally, as of commit 651497a."
+description: "The sole boundary through which Parmana releases approved execution requests to connectors. Wired into the default server unconditionally."
 ---
 
 <Info>**[AVAILABLE]**. `packages/execution-gateway`, 25 tests.</Info>
 
-<Warning>
-  **This page corrects a claim this site made through 2026-07-08**: earlier
-  material says the gateway is "a library you wire in, not a default," and that
-  a stock `packages/api` server gets no content-binding enforcement. That was
-  true then. As of commit `651497a` (2026-07-11),
+<Note>
   `packages/api/src/bootstrap/createExecutionSystem.ts` unconditionally returns
   `createExecutionGateway()`, there is no server code path that skips it. See
-  [Quickstart](/quickstart) for a verified live run.
-</Warning>
+  [Quickstart](/quickstart) for a live run.
+</Note>
 
 ## What it is
 
@@ -38,11 +34,10 @@ to `RuntimeEngine` or `RuntimePipeline` is required to use it. It composes
 three more, each optional and additive: recomputing the executable content hash and
 comparing it to `businessTransactionHash` (always attempted); recomputing the _current_
 policy content hash and comparing it to `policyContentHash`, when a `PolicyRepository` is
-supplied (`policyStillCurrent`, CLAIMS.md §2.27); and independently re-verifying the
-authorization's declared runtime signals against real-world state, when a
-`SignalStateVerifier` is supplied (`signalsStillCurrent`, CLAIMS.md §2.29, G-31) — see
-[Content Binding & TOCTOU](/concepts/content-binding-toctou) for the full mechanism of the
-latter two.
+supplied (`policyStillCurrent`); and independently re-verifying the authorization's declared
+runtime signals against real-world state, when a `SignalStateVerifier` is supplied
+(`signalsStillCurrent`). See [Content Binding & TOCTOU](/concepts/content-binding-toctou) for
+the full mechanism of the latter two.
 
 ```typescript
 // packages/execution-gateway/src/ExecutionGateway.ts:150-165
@@ -105,44 +100,29 @@ follows this exact shape, using `executionControl` rather than a direct `connect
 
 A `Connector` is what the gateway hands verified, frozen content to after every check
 passes. `HttpConnector` and `MockConnector` are reference implementations in
-`@parmana/connector-sdk`. One real, production-registered connector exists today,
-[`hubspot`](/integrations/hubspot) (whenever `HUBSPOT_PRIVATE_APP_TOKEN` is configured),
-making genuine external API calls, not scripted responses (`github` also registers, for
-`github:pr-fetch`/`github:pr-merge`). A second connector, `razorpay`, was previously
-registered here too; it was deliberately removed from the repository entirely, 2026-08-12,
-see `docs/CLAIMS.md`'s "Key Compromise Notice" section in the source repository. Four
-enterprise-named mocks also exist in the codebase
+`@parmana/connector-sdk`. Four real, production-registered connectors exist today,
+[`hubspot`](/integrations/hubspot), `github`, `paytm`, and `slack`, each making genuine
+external API calls, not scripted responses, and each registering only when its own
+credentials are configured. A `razorpay` connector was previously registered here too; it was deliberately removed from
+the repository entirely (see [Changelog](/changelog)).
+Four enterprise-named mocks also exist in the codebase
 (`packages/connector-sdk/src/connectors/{sap,oracle,workday,salesforce}/`), each an explicit
 `MockConnector` wrapper, self-documented as _"deterministic, in-memory, used until the real
 enterprise connector is implemented."_ These are reference mocks, not integrations, are
 never registered by `packages/api/src/bootstrap`, and should not be represented as SAP,
 Oracle, Workday, or Salesforce connectivity.
 
-<Warning>
-**Update (Phase 2A), historical record, superseded below:** `vendor-payment`
-(`packages/api/src/bootstrap/createVendorPaymentConnector.ts`) previously registered a
-`MockConnector` unconditionally, including in production — see
-[the production certification and fix](/../architecture/phase2a-production-connectors.md)
-for why that was a trust gap. Phase 2A made it register only when `NODE_ENV=test`; **in
-production, no connector backed `payments:execute`** from that point on, and it failed
-closed with the same `"No connector registered for capability"` error any other
-unregistered action gets.
-
-**Final update (2026-08-09):** `payments:execute`/vendor-payment was never on the product
-roadmap as a real capability, so rather than building the independent signal verification
-that would have been required to keep it, it was removed from the repository entirely —
-`createVendorPaymentConnector.ts` no longer exists, in any form, in any environment. See
-`docs/VERIFICATION-GAPS.md` G-27 in the source repository. A generic, `NODE_ENV=test`-only
-connector (`createTestFixtureConnector.ts`, capability `test:fixture-execute`) now serves
-the narrow role of giving this repository's own shared test fixtures something to execute
-against; it is internal test scaffolding, not a product feature, and is not documented
-further here.
+<Note>
+  A generic, `NODE_ENV=test`-only connector (`createTestFixtureConnector.ts`,
+  capability `test:fixture-execute`) also exists, giving this repository's own
+  test fixtures and the [Quickstart](/quickstart) something to execute
+  against. It's internal test scaffolding, not a product feature.
 
 Adding a real connector to the running server is a bootstrap code change today
 (`createConnectorRegistry.ts`, `createConnectorAuthenticator.ts`), not configuration. See
 [Add a connector with the Connector SDK](/integrations/connector-development-guide).
 
-</Warning>
+</Note>
 
 ## Failure reporting
 

@@ -9,16 +9,15 @@ description: "Generated models, bearer-key authentication, and a typed error tax
   an editable local install until 2026-09-14; both were stale, confirmed against
   the live PyPI registry while fixing this page. 79 passing tests, 0
   placeholders, `black`/`ruff`/`mypy --strict` all clean across the whole
-  package. Three gaps found in an earlier full SDK audit (no bearer-key auth;
-  two real error-taxonomy bugs; a `PolicyApi.validate()` bug) were closed and
-  re-verified in that pass, including against a real running local server. A
-  later pass added `test_quickstart_example.py`, proving the documented
-  quickstart script itself runs. v1.1.2 added `create_business_transaction()`
-  (see below) and the `offline_verifier.py` fix. Two quick follow-up releases,
-  v1.1.3 and v1.1.4, corrected the published package metadata (repo name, docs
-  domain, added a `Website` URL); v1.1.4, published 2026-09-14, is the current
-  version, confirmed against the live PyPI registry. See [Changelog](/changelog)
-  and the fix history at the bottom of this page.
+  package. Bearer-key authentication, the error taxonomy below, and
+  `PolicyApi.validate()` are all closed and verified against a real running
+  local server. `test_quickstart_example.py` proves the documented quickstart
+  script itself runs. v1.1.2 added `create_business_transaction()` (see below)
+  and the `offline_verifier.py` fix. Two quick follow-up releases, v1.1.3 and
+  v1.1.4, corrected the published package metadata (repo name, docs domain,
+  added a `Website` URL); v1.1.4, published 2026-09-14, is the current version,
+  confirmed against the live PyPI registry. See [Changelog](/changelog) and the
+  fix history at the bottom of this page.
 </Info>
 
 ## Install
@@ -65,9 +64,9 @@ of `packages/shared/src/domain/*.ts` (and `CryptoAlgorithms.ts`) by
 `python/scripts/generate_models.ts`, not hand-aligned copies. A drift guard
 (`npm run check:python-models`, wired into CI) regenerates into memory and fails the build
 if the committed output would change. Spot-checked field-for-field against the real JSON
-schemas this pass (`Authority.display_name` optional, `Authorization.expires_at` optional,
+schemas (`Authority.display_name` optional, `Authorization.expires_at` optional,
 `BusinessTransactionMetadata` correctly optional-except-`business_transaction_id`,
-`ExecutionTrustRecord.settlement_confirmations` optional) — all accurate, no drift found.
+`ExecutionTrustRecord.settlement_confirmations` optional): accurate, no drift found.
 
 Enums are real Python `str, Enum` classes (e.g. `SignatureAlgorithm`,
 `VerificationStatus`), not bare strings.
@@ -100,27 +99,15 @@ test double) using `responses`-mocked HTTP built from real, verified response sh
 `python/tests/test_live_server_integration.py`.
 
 <Warning>
-**Two real bugs found and fixed this pass, previously live and untested against real
-conditions:**
-1. **`403` was mapped to `ExecutionRejectedError`.** The real `403` is the caller-principal-scoping
-   check (`isPrincipalAllowed`, "Caller is not permitted to assert this authority.principalId.") —
-   nothing to do with policy rejection. Now a dedicated `AuthorizationError`.
-2. **Real policy rejection reached the caller as `500`, code `RUNTIME_ERROR`, message starting
-   `"Execution rejected:"`** — there was no dedicated status code for it at the time.
-   `build_http_error` previously classified purely by status code, so this real condition raised
-   generic `ServerError`, never the SDK's own purpose-built `ExecutionRejectedError`.
-
-The previous test for the `403` case (`test_403_raises_execution_rejected_error`) encoded this
-same wrong assumption with a fabricated response body, not a real captured one — fixed alongside
-the source.
-
-**Since superseded again, current behavior is the table above.** A later server-side fix (see
-[Error catalog](/api-reference/error-catalog)) gave policy rejection its own dedicated `403`
-with `code: "POLICY_DENIED"`, replacing the `500`/`RUNTIME_ERROR` shape bug #2 describes.
-`build_http_error` checks for `code == "POLICY_DENIED"` ahead of the generic `403` branch, so it
-still doesn't collide with bug #1's caller-identity `403` (no `code`). A real risk-rejected
-`test:fixture-execute` execution raises `ExecutionRejectedError` with `status_code == 403` today,
-not `500`.
+**Two error-classification edge cases worth knowing about, both closed:**
+1. `403` from the caller-principal-scoping check (`isPrincipalAllowed`, "Caller is not
+   permitted to assert this authority.principalId.") is unrelated to policy rejection and
+   maps to a dedicated `AuthorizationError`, not `ExecutionRejectedError`.
+2. Policy rejection has its own dedicated `403` with `code: "POLICY_DENIED"` (see
+   [Error catalog](/api-reference/error-catalog)), distinct from the caller-identity `403`
+   above (no `code`). `build_http_error` checks for `code == "POLICY_DENIED"` ahead of the
+   generic `403` branch, so the two never collide. A risk-rejected `test:fixture-execute`
+   execution raises `ExecutionRejectedError` with `status_code == 403`.
 
 </Warning>
 
@@ -144,20 +131,18 @@ client.trust_records.get(id)                    # GET /trust-records/:id
 client.policy.validate(policy_id, policy_version) # POST /policies/validate
 ```
 
-`client.transactions.create()` was missing entirely before this pass — a real capability
-(`POST /transactions`, a second independent entry point into the identical execution pipeline as
-`execute()`, differing only in its `201` status code) with zero SDK coverage. `policy.validate`
-takes `(policy_id, policy_version)`, not a policy document, matching what the route actually
-reads.
+`client.transactions.create()` covers `POST /transactions`, a second independent entry point
+into the identical execution pipeline as `execute()`, differing only in its `201` status
+code. `policy.validate` takes `(policy_id, policy_version)`, not a policy document, matching
+what the route actually reads.
 
 <Note>
-**`policy.validate()` bug fixed this pass.** `POST /policies/validate` never uses the shared
-`{error, code?}` envelope at `400`/`404`: every status it returns (`200`, `400`, `404`) is
-`{valid, errors}`, the caller's answer, not an SDK-level failure. Before this pass, an unknown
-policy raised `NotFoundError` instead of returning `{"valid": False, "errors": [...]}` as
-documented. `401` is not exempted: it's generated by caller-auth middleware before this route's
-own handler runs, using the shared envelope like every other route. See
-[Error handling](/api-reference/error-handling).
+**`POST /policies/validate` never uses the shared `{error, code?}` envelope at `400`/`404`.**
+Every status it returns (`200`, `400`, `404`) is `{valid, errors}`, the caller's answer, not
+an SDK-level failure, so `policy.validate()` returns `{"valid": False, "errors": [...]}` for
+an unknown policy rather than raising `NotFoundError`. `401` is not exempted: it's generated
+by caller-auth middleware before this route's own handler runs, using the shared envelope like
+every other route. See [Error handling](/api-reference/error-handling).
 </Note>
 
 ## `create_business_transaction()`, no more hand-synced ids
@@ -209,9 +194,8 @@ generated ids round-trip correctly through a real running server, not just in is
 
 ## Test suite
 
-Previously 26 tests, real but incomplete (no auth coverage, wrong assumption baked into the `403`
-test, no real-server integration test). Now 79, `pytest`, confirmed against a real run this pass:
-unit tests for every error-mapping case including the two fixed bugs, bearer-key header
+79 tests, `pytest`, confirmed against a real run: unit tests for every error-mapping case
+including the two classification cases above, bearer-key header
 attachment tests, `create_business_transaction()` (9 cases, `tests/test_builders.py`), and three
 real-server integration suites. `test_live_server_integration.py` spawns the actual
 `@parmana/api` process (`npx tsx packages/api/src/server.ts`, the same entry point `npm run dev`
@@ -225,11 +209,9 @@ for `run_builder_example()` (see above), additionally asserting every builder-de
 round-trips correctly.
 
 <Note>
-  `ruff`/`black`/`mypy --strict` all reverified clean across the whole package
-  as of 2026-09-14 (a prior pass had explicitly left this claim unrepeated,
-  dev-tooling extras not installed at the time). `python -m ruff check .`,
-  `python -m black --check .`, `python -m mypy` all pass with zero findings,
-  confirmed directly, not assumed.
+  `ruff`/`black`/`mypy --strict` are clean across the whole package: `python -m
+  ruff check .`, `python -m black --check .`, and `python -m mypy` all pass with
+  zero findings.
 </Note>
 
 ## Next

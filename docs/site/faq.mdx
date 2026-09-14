@@ -7,16 +7,15 @@ description: "Direct answers, including the ones that aren't flattering."
   <Accordion title="Does Parmana prevent an AI from executing an unauthorized action?">
     Within a scope that's now the default, yes, see [Content Binding &
     TOCTOU](/concepts/content-binding-toctou) and [The
-    gateway](/concepts/the-gateway). As of commit `651497a`, the default local
-    server wires the Execution Gateway unconditionally, every `POST /execute`
-    gets independent content-binding re-verification, and the one registered
-    connector runs behind [credential
-    isolation](/concepts/credential-isolation), so the calling AI never holds
-    that connector's credential. What's still scoped: only one connector is
-    registered by default, adding another today is a bootstrap code change, and
-    Parmana enforces nothing at the network level, this is a property of a
-    gateway-integrated system, not a network guarantee. That's the explicit
-    subject of the [Roadmap](/roadmap)'s three "unavoidability" moves.
+    gateway](/concepts/the-gateway). The default local server wires the
+    Execution Gateway unconditionally, every `POST /execute` gets independent
+    content-binding re-verification, and every registered connector runs behind
+    [credential isolation](/concepts/credential-isolation), so the calling AI
+    never holds that connector's credential. What's still scoped: adding a new
+    connector today is a deliberate bootstrap code change, not something the
+    architecture does for you, and Parmana enforces nothing at the network
+    level, this is a property of a gateway-integrated system, not a network
+    guarantee. See [Limitations](/security/limitations) for the full picture.
   </Accordion>
   <Accordion title="Is Parmana's signing key stored securely?">
     Today it's a PEM file on disk, read by `FileKeyProvider`, the only
@@ -26,15 +25,13 @@ description: "Direct answers, including the ones that aren't flattering."
     [Cryptography](/cryptography/overview) and [Roadmap](/roadmap).
   </Accordion>
   <Accordion title="Which SDK should I use?">
-    Either — both are [AVAILABLE] and actively maintained. Python's models are
+    Either, both are published and actively maintained. Python's models are
     generated from the same TypeScript domain types the server uses,
-    drift-guarded in CI; the TypeScript SDK's models are hand-maintained but
-    spot-checked against the real schemas. Both raise a typed exception per HTTP
-    status and are tested against a real running server, not just mocks. The
-    TypeScript package is private and not published to a registry
-    (`@parmana/sdk` in `typescript/package.json`, install from a local path or
-    git reference); Python installs with `pip install -e ./python`. See [Python
-    SDK](/sdks/python) and [TypeScript SDK](/sdks/typescript).
+    drift-guarded in CI; the TypeScript SDK's models are hand-maintained and
+    kept in sync against the real schemas. Both raise a typed exception per HTTP
+    status and are tested against a real running server, not just mocks. `npm
+    install @parmana/sdk`, `pip install parmana`. See [Python SDK](/sdks/python)
+    and [TypeScript SDK](/sdks/typescript).
   </Accordion>
   <Accordion title="Can I use Go / Java / .NET?">
     Not via an SDK, none exists. Call the [REST
@@ -61,7 +58,7 @@ description: "Direct answers, including the ones that aren't flattering."
   <Accordion title="Is this API authenticated?">
     Yes. Every route except `/health`, `/ready`, `/openapi.yaml`, and
     `/documentation` requires a bearer key and fails closed with a `401` if it's
-    missing or wrong (`createCallerAuthenticator.ts`, commit `5c688b4`). See
+    missing or wrong (`createCallerAuthenticator.ts`). See
     [Authentication](/api-reference/authentication). This is a separate question
     from whether the underlying business action was authorized, see
     [Security](/security/overview) for that boundary.

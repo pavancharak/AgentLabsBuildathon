@@ -3,10 +3,7 @@ title: "Detect Tampering"
 description: "Mutate a parameter, a signature, and a nonce, run the same verification each time, and watch each one fail. This mirrors the always-running negative-path tutorials."
 ---
 
-<Info>
-  **[AVAILABLE]**, all three runs below are real output from this session,
-  commit `651497a`.
-</Info>
+<Info>**[AVAILABLE]**, all three runs below are real output.</Info>
 
 ## Goal
 
@@ -105,8 +102,8 @@ the signature itself.
 
 All three runs above completed with their respective `✓ ... detected.` line and a non-zero
 distinguishing signal (`hashMatches: false`, `Signature Verified: false`,
-`Nonce Unseen: false`), confirmed in this session. None of the three silently passed, none
-threw an unrelated error instead of the expected rejection.
+`Nonce Unseen: false`). None of the three silently passed, none threw an unrelated error
+instead of the expected rejection.
 
 ## Troubleshoot
 
