@@ -341,6 +341,81 @@ PyPI respectively; the root-cause fix is committed on `main`.
 
 ---
 
+## INC-11 — `parmana-paytm-agent` production outage: a newly-required env var shipped before it was provisioned (DEPLOYMENT)
+
+**What:** the 2026-09-14 GAP-3 remediation (execution-audit trail, see `REMEDIATION.md`) added
+`src/parmana/audit.ts` to `parmana-paytm-agent` (a separate repository) and made `DATABASE_URL`
+a required startup variable — `loadConfig()`'s `required("DATABASE_URL")` throws if it's unset,
+and that throw happens at module load (`export const config = loadConfig();`,
+`src/server/handler.ts`), the moment the deployed function first runs. The commit was pushed to
+that repository's `main`, which is linked to a Vercel project (`parmana-paytm-agent`,
+auto-deploys on push). `DATABASE_URL` had never been configured in that Vercel project's
+Environment Variables — this codebase does not manage that project's Vercel configuration, and
+nothing checked whether the new requirement had been provisioned there before the code that
+needed it went live.
+
+**Impact:** every invocation of the deployed function failed with the `DATABASE_URL is
+required...` error until the variable was added and the project redeployed. Exact downtime
+window not measured (no monitoring/alerting caught it; found by manually checking the Vercel
+dashboard after this incident's own root-cause discussion prompted the check, not by an
+automated signal) — the failure was loud and immediate (a clear, actionable thrown error, not a
+silent corruption), consistent with this codebase's own fail-closed discipline (G-13 and
+others), but loud-and-immediate still means "down" until a human notices and acts.
+
+**Resolution:** `DATABASE_URL` added to the Vercel project's Environment Variables (Production),
+value set to the same Postgres connection string this repository's own `.env` uses (so
+`parmana-paytm-agent`'s audit writes land in the same `execution_audit_events` table GAP-1/GAP-3
+correlate through), project redeployed. Recovery confirmed directly: `GET
+https://parmana-paytm-agent.vercel.app/health` returns `200 {"status":"ok","service":
+"parmana-paytm-agent"}`.
+
+**Root cause:** no check, anywhere in either repository's pipeline, verifies that a newly
+`required()` environment variable is actually configured in a target deployment's environment
+_before_ the code requiring it ships there. `parmana-paytm-agent`'s own `npm run build`
+(`tsc --noEmit`) only type-checks; it never executes `loadConfig()`, so a missing required
+variable is invisible until the first real production request.
+
+**Considered and rejected, in favor of a cheaper fix (recorded here since the reasoning is the
+useful part, not just the conclusion):**
+
+- _Runtime "did my own config regress" detection_ — would require the process to persist its
+  own prior configuration state somewhere durable to compare against on the next boot. The only
+  durable store available is the database itself, so detecting "my database connection broke"
+  would require the database connection to still work to read the comparison state. Circular;
+  does not work.
+- _A CI job diffing each repo's required-env-var list against the live Vercel project's
+  configured variables_ — would actually catch this class of incident, but costs real, ongoing
+  infrastructure: a Vercel API token held in CI (a new secret to protect), and a maintained
+  manifest of "what's required" that can itself drift out of sync with the code. Disproportionate
+  for a single incident; revisit if this recurs.
+
+**Recommended, not yet implemented:** a `vercel-build` script (Vercel's own recognized script
+name, run during the build with the same environment variables the deployment will have) that
+imports `src/server/handler.ts` — the same module whose top-level `loadConfig()` call already
+throws on a missing required variable. A missing variable then fails the _build_, and Vercel
+does not promote a failed build to production; the previous working deployment keeps serving
+instead of the new, broken one going live. No new dependency, no new secret, no separate
+manifest — it reuses the exact `required()` calls already in the code, so it cannot drift out of
+sync with what's actually required. This would have turned this incident into a failed build
+visible in the deploy log, not a live outage.
+
+**Relationship to GAP-2 (see `REMEDIATION.md`, `docs/VERIFICATION-GAPS.md`):** this incident
+prompted revisiting GAP-2's "should Paytm connector configuration fail closed on full absence"
+question. The two are different variables with different intended postures — `DATABASE_URL` is
+unconditionally required by design (an audit trail with no working store is a fail-closed
+requirement, not a bug), while Paytm connector configuration is deliberately optional, per
+`assertPaytmConnectorConfigured.ts`'s own doc comment. This incident does not change that
+distinction or reopen GAP-2 — it confirms the value of failing loudly on a genuinely required
+variable, exactly what `DATABASE_URL`'s `required()` call already did correctly here.
+
+**Still open:** the `vercel-build` build-time check above (recommended, pending a decision on
+whether to add it), and the same question for whether AgentLabsBuildathon's own Vercel
+deployment (if any) has an equivalent build-time check for its own required variables
+(`DATABASE_URL`, `PARMANA_KEY_DIR`, etc.) — not verified as part of this incident, since this
+incident's own scope was `parmana-paytm-agent` specifically.
+
+---
+
 ## Minor / dead-code findings (logged, non-urgent)
 
 - `LedgerSerializer.serialize()` — replacer-array misuse silently drops nested payload
