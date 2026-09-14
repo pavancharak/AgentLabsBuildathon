@@ -4,16 +4,34 @@ description: "Generated models, bearer-key authentication, and a typed error tax
 ---
 
 <Info>
-  **[AVAILABLE]**, `python/`, v1.0.5. 64 passing tests, 0 placeholders. Three
-  gaps found in a full SDK audit (no bearer-key auth; two real error-taxonomy
-  bugs; a `PolicyApi.validate()` bug) were closed and re-verified in that pass,
-  including against a real running local server. A later pass added
-  `test_quickstart_example.py`, proving the documented quickstart script itself
-  runs (see [Changelog](/changelog)). See the fix history at the bottom of this
-  page.
+  **[AVAILABLE]**, **published**, `parmana` on PyPI, v1.1.2. Real, public,
+  installable with a plain `pip install parmana` — this page said `v1.0.5` and
+  described only an editable local install until 2026-09-14; both were stale,
+  confirmed against the live PyPI registry while fixing this page. 79 passing
+  tests, 0 placeholders, `black`/`ruff`/`mypy --strict` all clean across the
+  whole package. Three gaps found in an earlier full SDK audit (no bearer-key
+  auth; two real error-taxonomy bugs; a `PolicyApi.validate()` bug) were closed
+  and re-verified in that pass, including against a real running local server. A
+  later pass added `test_quickstart_example.py`, proving the documented
+  quickstart script itself runs. 2026-09-14 added
+  `create_business_transaction()` (see below), a real `examples/builder/` demo
+  proving it end to end against a real server, and fixed one real, unrelated
+  `mypy` gap found while re-verifying tooling cleanliness for this page's own
+  claim (`offline_verifier.py`: a `bytes | None` passed to `base64.b64decode`
+  without a type guard — runtime behavior was already safe, caught by a broad
+  `except Exception`, but the static type was wrong; now an explicit
+  `isinstance` check with a clear error message). See [Changelog](/changelog)
+  and the fix history at the bottom of this page.
 </Info>
 
 ## Install
+
+```bash
+pip install parmana
+```
+
+Real registry install — confirmed live against PyPI while fixing this page's own stale
+claim otherwise. To build from source inside this monorepo instead:
 
 ```bash
 pip install -e ./python
@@ -145,31 +163,88 @@ own handler runs, using the shared envelope like every other route. See
 [Error handling](/api-reference/error-handling).
 </Note>
 
+## `create_business_transaction()`, no more hand-synced ids
+
+Added 2026-09-14. A `BusinessTransaction` has three id pairs the server's own
+`BusinessTransactionValidator` cross-checks before policy ever runs —
+`metadata.business_transaction_id` must equal `business_transaction_id`,
+`authorization.authority_id` must equal `authority.authority_id`, `intent.authorization_id`
+must equal `authorization.authorization_id` — and every "X must match Y" `400` documented in
+[the end-to-end Paytm guide](/guides/end-to-end-paytm-flow) came from hand-building a request
+and getting one of those wrong. `create_business_transaction()` derives all three
+automatically:
+
+```python
+from parmana import ParmanaClient, PolicyReference, create_business_transaction
+
+client = ParmanaClient(endpoint=endpoint)
+
+transaction = create_business_transaction(
+    principal_id="alice@example.com",  # must match your key's allowed_principal_ids
+    purpose="Vendor payment approval",
+    action="vendor-payment",
+    target="vendor/vendor-123",
+    parameters={"amount": 100, "currency": "USD"},
+    policy=PolicyReference(name="vendor-payment", version="2.0.0", schema_version="1.0.0"),
+    signals={
+        "vendorVerified": True,
+        "invoiceVerified": True,
+        "paymentApproved": True,
+        "sufficientFunds": True,
+        "paymentAmount": 100,
+        "riskScore": 5,
+        "vendorId": "vendor/vendor-123",  # boundSignals: SignalIntentBinder rejects this
+        # request unless this exactly equals `target` above
+    },
+)
+
+trust_record = client.execution.execute(transaction)
+```
+
+`business_transaction_id` defaults to a fresh `uuid4()` if you don't supply one — a value you
+do supply is your own responsibility to keep unique per attempt, since it also doubles as the
+server's idempotency key. `authority_type` defaults to `AuthorityType.SERVICE` (never
+`"AGENT"`, which doesn't exist server-side). See `examples/builder/run.py` (the same flow as
+`examples/quickstart/run.py`, side by side, for direct comparison) and
+`tests/test_builders.py` (9 unit tests) / `tests/test_builder_example.py` (proves the
+generated ids round-trip correctly through a real running server, not just in isolation).
+
 ## Test suite
 
 Previously 26 tests, real but incomplete (no auth coverage, wrong assumption baked into the `403`
-test, no real-server integration test). Now 64, `pytest`, confirmed against a real run this pass:
+test, no real-server integration test). Now 79, `pytest`, confirmed against a real run this pass:
 unit tests for every error-mapping case including the two fixed bugs, bearer-key header
-attachment tests, and two real-server integration suites. `test_live_server_integration.py`
-spawns the actual `@parmana/api` process (`npx tsx packages/api/src/server.ts`, the same entry
-point `npm run dev` runs) on a real OS-assigned TCP port and drives it with the real
-`ParmanaClient` over real HTTP: a real `401`, a real `403`, a real `400`, a real policy
-rejection, a real `404`, a real `409` duplicate, and the `policy.validate()` `404` case, each
-asserted against the exact typed result and exact message the server returned.
-`test_quickstart_example.py` does the same for `run_quickstart()`, the quickstart example script
-itself, additionally asserting its documented printed output still matches what it actually
-prints (see [Changelog](/changelog)).
+attachment tests, `create_business_transaction()` (9 cases, `tests/test_builders.py`), and three
+real-server integration suites. `test_live_server_integration.py` spawns the actual
+`@parmana/api` process (`npx tsx packages/api/src/server.ts`, the same entry point `npm run dev`
+runs) on a real OS-assigned TCP port and drives it with the real `ParmanaClient` over real HTTP:
+a real `401`, a real `403`, a real `400`, a real policy rejection, a real `404`, a real `409`
+duplicate, and the `policy.validate()` `404` case, each asserted against the exact typed result
+and exact message the server returned. `test_quickstart_example.py` does the same for
+`run_quickstart()`, the quickstart example script itself, additionally asserting its documented
+printed output still matches what it actually prints. `test_builder_example.py` does the same
+for `run_builder_example()` (see above), additionally asserting every builder-derived id pair
+round-trips correctly.
 
 <Note>
-  `ruff`/`black`/`mypy` were not reverified in this pass — the dev-tooling
-  extras were not installed in this environment. `pytest` (48/48) and
-  live-server verification were run directly; the type/lint claim from an
-  earlier pass is not repeated here as current.
+  `ruff`/`black`/`mypy --strict` all reverified clean across the whole package
+  as of 2026-09-14 (a prior pass had explicitly left this claim unrepeated,
+  dev-tooling extras not installed at the time) — `python -m ruff check .`,
+  `python -m black --check .`, `python -m mypy` all pass with zero findings,
+  confirmed directly, not assumed.
 </Note>
 
 ## Next
 
 <CardGroup cols={2}>
+  <Card
+    title="End-to-end: agent → Parmana → Paytm"
+    icon="route"
+    href="/guides/end-to-end-paytm-flow"
+  >
+    The full, no-ambiguity runbook this SDK builds toward — real infrastructure,
+    every error message, every fix.
+  </Card>
   <Card title="TypeScript SDK" icon="js" href="/sdks/typescript">
     The other maintained SDK — same bearer-key model, same error taxonomy shape.
   </Card>

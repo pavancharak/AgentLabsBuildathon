@@ -75,3 +75,30 @@ describe("typescript/examples/02-execute.ts against a real local @parmana/api in
     expect(trustRecord.signature.algorithm).toBe("ed25519");
   });
 });
+
+describe("typescript/examples/06-create-business-transaction.ts against a real local @parmana/api instance", () => {
+  it("runs end to end via createBusinessTransaction() and returns a real, signed, APPROVED Execution Trust Record", async () => {
+    const { runCreateBusinessTransactionExample } =
+      await import("../../examples/06-create-business-transaction.js");
+
+    const trustRecord = await runCreateBusinessTransactionExample(endpoint);
+
+    expect(trustRecord.trustRecordId).toBeTruthy();
+    expect(trustRecord.executions).toHaveLength(1);
+    expect(trustRecord.executions[0]?.decision.outcome).toBe("APPROVED");
+    expect(trustRecord.signature.algorithm).toBe("ed25519");
+
+    // The property this example exists to prove: every id pair the
+    // builder derives round-trips correctly through a real server,
+    // not just in isolated unit tests (createBusinessTransaction.test.ts).
+    expect(trustRecord.transaction.metadata.businessTransactionId).toBe(
+      trustRecord.businessTransactionId,
+    );
+    expect(trustRecord.transaction.authorization.authorityId).toBe(
+      trustRecord.transaction.authority.authorityId,
+    );
+    expect(trustRecord.transaction.intent.authorizationId).toBe(
+      trustRecord.transaction.authorization.authorizationId,
+    );
+  });
+});

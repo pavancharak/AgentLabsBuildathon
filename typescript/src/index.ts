@@ -58,6 +58,15 @@ export { HttpTransport } from "./transport/HttpTransport.js";
 export * from "./models/index.js";
 
 // -----------------------------------------------------------------------------
+// Builders
+// -----------------------------------------------------------------------------
+
+export {
+  createBusinessTransaction,
+  type CreateBusinessTransactionOptions,
+} from "./builders/createBusinessTransaction.js";
+
+// -----------------------------------------------------------------------------
 // SDK Errors
 // -----------------------------------------------------------------------------
 

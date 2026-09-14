@@ -24,8 +24,8 @@ from typing import Any
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
-from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from cryptography.hazmat.primitives.hashes import SHA256, Hash
+from cryptography.hazmat.primitives.serialization import load_pem_public_key
 
 from .canonical import canonical_serialize
 
@@ -109,6 +109,9 @@ def verify_execution_trust_record_offline(
             if not isinstance(public_key, Ed25519PublicKey):
                 raise ValueError("supplied public key is not an Ed25519 key")
 
+            if not isinstance(signature_value, str):
+                raise ValueError("signature.value is missing or not a string")
+
             import base64
 
             signature_bytes = base64.b64decode(signature_value)
@@ -121,9 +124,7 @@ def verify_execution_trust_record_offline(
                 f'signature verification failed for keyId "{key_id}" ({algorithm}).'
             )
         except Exception as error:  # noqa: BLE001 -- reported, not swallowed
-            errors.append(
-                f'error verifying keyId "{key_id}" ({algorithm}): {error}'
-            )
+            errors.append(f'error verifying keyId "{key_id}" ({algorithm}): {error}')
 
     if trust_record.get("signatures"):
         errors.append(

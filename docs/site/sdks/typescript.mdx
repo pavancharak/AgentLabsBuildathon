@@ -4,24 +4,36 @@ description: "Real client code, bearer-key authentication, and a typed error tax
 ---
 
 <Info>
-  **[AVAILABLE]**, `typescript/src/`, v1.0.0. The original three gaps (no
-  bearer-key auth, an unused error taxonomy, an empty test suite) were closed in
-  an earlier pass. A follow-up full SDK audit found and fixed three more real
-  issues: inaccurate model types (fields marked required that the real API
-  doesn't require, and a missing `settlementConfirmations`/`signature` field),
-  two missing capabilities (`POST /verify`, `GET /version`), and one capability
-  missing from both maintained SDKs (`POST /transactions`). All re-verified
-  against a real running local server. See the fix history at the bottom of this
-  page.
+  **[AVAILABLE]**, **published**, `@parmana/sdk` on npm, v1.1.2. Real, public,
+  installable with a plain `npm install @parmana/sdk` — this page said otherwise
+  ("private, not published to any registry") until 2026-09-14; that was stale
+  even at v1.1.1, confirmed live against the npm registry while fixing this
+  page. The original three gaps (no bearer-key auth, an unused error taxonomy,
+  an empty test suite) were closed in an earlier pass. A follow-up full SDK
+  audit found and fixed three more real issues: inaccurate model types (fields
+  marked required that the real API doesn't require, and a missing
+  `settlementConfirmations`/`signature` field), two missing capabilities (`POST
+  /verify`, `GET /version`), and one capability missing from both maintained
+  SDKs (`POST /transactions`). 2026-09-14 added `createBusinessTransaction()`
+  (see below) and 11 new tests, all re-verified against a real running local
+  server. See the fix history at the bottom of this page.
 </Info>
 
-<Warning>
-  **The package is named `@parmana/sdk` in `typescript/package.json`**, private,
-  not published to any registry a normal `npm install` could resolve. Install
-  from a local path or a git reference instead. (Renamed from
+<Note>
+  Package name history, for anyone who finds an old reference: renamed from
   `@parmana/legacy-reference`, itself renamed from `@parmana/typescript-sdk` —
-  see [Changelog](/changelog) for when.)
-</Warning>
+  see [Changelog](/changelog) for when. `@parmana/sdk` is the current, correct,
+  published name.
+</Note>
+
+## Install
+
+```bash
+npm install @parmana/sdk
+```
+
+Real registry install — `npm view @parmana/sdk version` returns the current published
+version directly from npm, confirmed while fixing this page's own stale claim otherwise.
 
 ## Bearer-key authentication
 
@@ -150,25 +162,83 @@ history (18 commits into a 141-commit history), was touched by the most recent s
 commit in lockstep with `/execute`, and has dedicated test coverage
 (`packages/api/tests/unit/transactions-api.test.ts`) — not a new or evolving surface.
 
-## Install
+## `createBusinessTransaction()`, no more hand-synced ids
+
+Added 2026-09-14. A `BusinessTransaction` has three id pairs the server's own
+`BusinessTransactionValidator` cross-checks before policy ever runs —
+`metadata.businessTransactionId` must equal `businessTransactionId`,
+`authorization.authorityId` must equal `authority.authorityId`, `intent.authorizationId` must
+equal `authorization.authorizationId` — and every "X must match Y" `400` documented in
+[the end-to-end Paytm guide](/guides/end-to-end-paytm-flow) came from hand-building a request
+object and getting one of those wrong. `createBusinessTransaction()` derives all three
+automatically:
+
+```typescript
+import {
+  createBusinessTransaction,
+  ParmanaClient,
+  HttpTransport,
+} from "@parmana/sdk";
+
+const client = new ParmanaClient({
+  endpoint,
+  transport: new HttpTransport({ endpoint }),
+});
+
+const transaction = createBusinessTransaction({
+  principalId: "alice@example.com", // must match your key's allowedPrincipalIds
+  purpose: "Vendor payment approval",
+  action: "vendor-payment",
+  target: "vendor/vendor-123",
+  parameters: { amount: 100, currency: "USD" },
+  policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+  signals: {
+    vendorVerified: true,
+    invoiceVerified: true,
+    paymentApproved: true,
+    sufficientFunds: true,
+    paymentAmount: 100,
+    riskScore: 5,
+    vendorId: "vendor/vendor-123", // boundSignals: SignalIntentBinder rejects this
+    // request unless this exactly equals `target` above
+  },
+});
+
+const trustRecord = await client.execute(transaction);
+```
+
+`businessTransactionId` defaults to a fresh `crypto.randomUUID()` if you don't supply one — a
+value you do supply is your own responsibility to keep unique per attempt, since it also
+doubles as the server's idempotency key. `authorityType` defaults to `"SERVICE"` (never
+`"AGENT"`, which doesn't exist server-side). See
+`typescript/examples/06-create-business-transaction.ts` (the same flow as
+`02-execute.ts`, side by side, for direct comparison) and
+`typescript/test/createBusinessTransaction.test.ts` (11 unit tests) /
+`typescript/test/integration/examples.integration.test.ts` (proves the generated ids round-trip
+correctly through a real running server, not just in isolation).
+
+## Building from source / contributing
+
+Installing the published package (above) is the right path for using the SDK. To build from
+source inside this monorepo instead:
 
 ```bash
 npm install --workspace=typescript
-# or, from another project:
-npm install /path/to/parmana-exp/typescript
-```
-
-```bash
 npm run build   # typescript/
 npm run test    # vitest
 ```
 
 ## Test suite
 
-Previously 9 files, 0 bytes each, "9 passed" trivially. Now 129 tests across 15 files, `npm run
-test` (`vitest run`), confirmed against a real run this pass: unit tests for every error-mapping
-case (`test/HttpTransport.test.ts`, `test/Errors.test.ts`), unit tests for the three
-capabilities added in the model-audit pass (`test/NewApiMethods.test.ts`), a retry-logic suite
+Previously 9 files, 0 bytes each, "9 passed" trivially. Now 157 tests across 16 files
+(`npx vitest run` from the repo root — **run from the repo root**, not `typescript/`; several
+tests read `PARMANA_POLICY_DIR` relative to `process.cwd()` and fail with confusing
+`PolicyNotFoundError`-shaped errors otherwise, the exact false alarm chased at length in
+`docs/VERIFICATION-GAPS.md`'s 2026-09-14 session entry): unit tests for every error-mapping
+case (`test/HttpTransport.test.ts`, `test/Errors.test.ts`), unit tests for
+`createBusinessTransaction()` (`test/createBusinessTransaction.test.ts`, 11 cases), unit tests
+for the three capabilities added in the model-audit pass (`test/NewApiMethods.test.ts`), a
+retry-logic suite
 (`test/RetryPolicy.test.ts`, real backoff on idempotent GETs against 502/503/504, POSTs never
 retried, matching the Python SDK's own retry behavior), per-route unit suites
 (`test/AuditApi.test.ts`, `test/HealthApi.test.ts`, `test/PolicyApi.test.ts`,
@@ -196,6 +266,14 @@ doesn't have.
 ## Next
 
 <CardGroup cols={2}>
+  <Card
+    title="End-to-end: agent → Parmana → Paytm"
+    icon="route"
+    href="/guides/end-to-end-paytm-flow"
+  >
+    The full, no-ambiguity runbook this SDK builds toward — real infrastructure,
+    every error message, every fix.
+  </Card>
   <Card title="Python SDK" icon="python" href="/sdks/python">
     The other maintained SDK — same bearer-key model, generated (not
     hand-maintained) models.

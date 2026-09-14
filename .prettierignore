@@ -3,3 +3,7 @@
 # next build regenerates them un-prettied, which would silently re-fail format:check.
 openapi/openapi.bundled.yaml
 docs/site/openapi.bundled.yaml
+
+# pytest cache artifacts (already gitignored; Prettier doesn't read
+# .gitignore on its own, so it needs its own entry here too).
+**/.pytest_cache/
