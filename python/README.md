@@ -126,6 +126,7 @@ Each of these is also available under its own namespace (e.g. `client.execution.
 
 ## Documentation
 
+- Website: https://parmanasystems.com/
 - Documentation: https://docs.parmanasystems.com
 - GitHub: https://github.com/pavancharak/parmana
 - Issues: https://github.com/pavancharak/parmana/issues

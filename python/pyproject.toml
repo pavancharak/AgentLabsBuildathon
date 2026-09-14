@@ -69,6 +69,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/pavancharak/parmana"
+Website = "https://parmanasystems.com/"
 Documentation = "https://docs.parmanasystems.com"
 Repository = "https://github.com/pavancharak/parmana"
 Issues = "https://github.com/pavancharak/parmana/issues"
