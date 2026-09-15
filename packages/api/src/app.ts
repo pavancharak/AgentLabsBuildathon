@@ -17,6 +17,8 @@ import type { ExecutionTrustApplication } from "@parmana/runtime";
 import { createExecuteRouter } from "./routes/execute.js";
 import healthRoutes from "./routes/health.js";
 import openapiRoutes from "./routes/openapi.js";
+import openapiJsonRoutes from "./routes/openapi-json.js";
+import apiManifestRoutes from "./routes/api-manifest.js";
 import { createReceiptRouter } from "./routes/receipt.js";
 
 import { createReplayRouter } from "./routes/replay.js";
@@ -146,8 +148,9 @@ export function createApp(
   /**
    * System
    *
-   * /health, /ready, /openapi.yaml, /documentation, and /reference are
-   * the routes exempt from caller authentication: liveness/readiness
+   * /health, /ready, /openapi.yaml, /openapi.json, /api-manifest.json,
+   * /documentation, and /reference are the routes exempt from caller
+   * authentication: liveness/readiness
    * probes and API documentation consumers must be able to reach them
    * with no credential (a caller cannot discover how to get a key from a
    * spec it is not allowed to read, and a PaaS orchestrator has no API
@@ -166,6 +169,8 @@ export function createApp(
     createReadyRouter({ authDisabled: options.callerAuth === "disabled" }),
   );
   app.use("/openapi.yaml", openapiRoutes);
+  app.use("/openapi.json", openapiJsonRoutes);
+  app.use("/api-manifest.json", apiManifestRoutes);
   app.use("/documentation", documentationRoutes);
   app.use("/reference", referenceRoutes);
 

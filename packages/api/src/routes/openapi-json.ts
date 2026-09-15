@@ -25,6 +25,17 @@ if (!spec.paths) {
   throw new Error("OpenAPI bundle contains no paths.");
 }
 
+/**
+ * JSON counterpart to GET /openapi.yaml, same bundled spec
+ * (openapi/openapi.bundled.yaml), same content either way -- YAML is
+ * a strict superset of JSON's data model, so parsing the committed
+ * YAML and re-serializing it is lossless. Exists because some
+ * tooling (and most AI coding agents) expects a machine-readable spec
+ * at a `.json` path by convention, not everything that consumes
+ * OpenAPI parses YAML. Serialized once at startup, not per-request.
+ */
+const specJson = JSON.stringify(spec);
+
 const router = Router();
 
 router.get("/", (_req, res) => {
@@ -33,7 +44,7 @@ router.get("/", (_req, res) => {
     "X-Content-Type-Options": "nosniff",
   });
 
-  res.type("application/yaml").send(specYaml);
+  res.type("application/json").send(specJson);
 });
 
 export default router;

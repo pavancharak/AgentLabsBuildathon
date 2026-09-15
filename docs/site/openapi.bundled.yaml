@@ -196,6 +196,99 @@ paths:
             application/yaml:
               schema:
                 type: string
+  /openapi.json:
+    get:
+      tags:
+        - System
+      summary: Get the OpenAPI spec, as JSON
+      operationId: getOpenApiSpecJson
+      description: >
+        The same bundled spec as GET /openapi.yaml, JSON-serialized instead of
+        YAML, see packages/api/src/routes/openapi-json.ts. Exists because some
+        tooling, and most AI coding agents, expects a machine-readable spec at a
+        .json path by convention. Both routes describe the identical spec; pick
+        whichever format your tooling consumes.
+      security: []
+      responses:
+        "200":
+          description: The complete OpenAPI 3.1 document, JSON, self-contained (no
+            external $ref).
+          content:
+            application/json:
+              schema:
+                type: object
+  /api-manifest.json:
+    get:
+      tags:
+        - System
+      summary: Machine-readable SDK and discovery manifest
+      operationId: getApiManifest
+      description: >
+        A single machine-readable index for coding agents and tooling: the
+        OpenAPI spec locations, the rendered documentation views, the
+        authentication scheme, and both official SDKs (TypeScript and Python)
+        with their real, current package name, registry, and version, read
+        directly from each package's own manifest at startup, see
+        packages/api/src/routes/api-manifest.ts. Go and Java are reported as
+        null: no SDK exists for those languages in this repository (see
+        /sdks/other-languages on the documentation site). Exempt from caller
+        authentication for the same reason GET /openapi.json is.
+      security: []
+      responses:
+        "200":
+          description: The manifest, JSON.
+          content:
+            application/json:
+              schema:
+                type: object
+              examples:
+                liveCapture:
+                  summary: Real captured response
+                  value:
+                    name: Parmana
+                    apiVersion: v1
+                    buildVersion: 0.4.0
+                    openapi:
+                      json: /openapi.json
+                      yaml: /openapi.yaml
+                    documentation:
+                      site: https://docs.parmanasystems.com
+                      swaggerUi: /documentation
+                      redoc: /reference
+                    authentication:
+                      type: bearer
+                      header: "Authorization: Bearer <key>"
+                      docs: https://docs.parmanasystems.com/api-reference/authentication
+                    sdks:
+                      typescript:
+                        package: "@parmana/sdk"
+                        registry: npm
+                        version: 1.1.2
+                        install: npm install @parmana/sdk
+                        docs: https://docs.parmanasystems.com/sdks/typescript
+                        reference: https://docs.parmanasystems.com/sdks/reference/typescript/classes/ParmanaClient
+                      python:
+                        package: parmana
+                        registry: pypi
+                        version: 1.1.4
+                        install: pip install parmana
+                        docs: https://docs.parmanasystems.com/sdks/python
+                        reference: https://docs.parmanasystems.com/sdks/reference/python/client
+                      go: null
+                      java: null
+                    connectorSdks:
+                      typescript:
+                        package: "@parmana/connector-sdk"
+                        registry: npm
+                        version: 0.1.0
+                        install: npm install @parmana/connector-sdk
+                        docs: https://docs.parmanasystems.com/reference/connector-sdk
+                      python:
+                        package: parmana-connector-sdk
+                        registry: pypi
+                        version: 0.1.0
+                        install: pip install parmana-connector-sdk
+                        docs: https://docs.parmanasystems.com/reference/connector-sdk-python
   /version:
     get:
       tags:
