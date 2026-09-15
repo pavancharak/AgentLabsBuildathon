@@ -62,6 +62,9 @@ tags:
   - name: Policies
     description: Policy existence/readability check
 
+  - name: Policy Governance
+    description: Maker-checker proposal, listing, approval, and rejection of policy changes
+
   - name: Refusal Records
     description: Durable, signed evidence that a policy decision rejected a transaction (RFC-0021)
 
@@ -2443,6 +2446,356 @@ paths:
                     valid: false
                     errors:
                       - "Policy 'does-not-exist' version '9.9.9' was not found."
+
+  /policies/{name}/{version}/pending-changes:
+    post:
+      tags:
+        - Policy Governance
+      summary: Propose a policy change (maker)
+      operationId: proposePolicyChange
+      description: >
+        Proposes a change to a policy's content (Policy Governance,
+        maker-checker). {version} is the existing version this proposal is a
+        change against ("the version being replaced"); proposedContent's own
+        policyVersion may equal it (an in-place content patch) or differ (a
+        version bump). Requires a human-authenticated caller
+        (credentialHolderType USER); a SERVICE-credentialed or unverified
+        caller is denied with 403 NON_HUMAN_CALLER_DENIED, and a signed
+        caller.non_human_denied audit event is recorded. proposedContent is
+        validated with the same rules POST /policies/validate checks, plus:
+        proposedContent.policyId must equal {name}, and
+        proposedContent.policyVersion must match ^[A-Za-z0-9._-]+$.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^[A-Za-z0-9._-]+$"
+        - name: version
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^[A-Za-z0-9._-]+$"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/requests/propose-policy-change-request.schema.json"
+      responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "201":
+          description: Pending Policy Change created.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/pending-policy-change-response.schema.json"
+              examples:
+                proposed:
+                  summary: Real captured response
+                  value:
+                    pendingPolicyChangeId: 6f4e4020-adf5-4449-938d-27aab58f66b7
+                    policyName: openapi-capture-demo
+                    policyVersion: 1.0.0
+                    proposedContent:
+                      policyId: openapi-capture-demo
+                      policyVersion: 1.0.0
+                      schemaVersion: 1.0.0
+                      rules:
+                        - id: always-approve
+                          condition: { always: true }
+                          outcome:
+                            {
+                              action: approve,
+                              reason: OpenAPI spec capture fixture,
+                            }
+                    proposedBy: human-maker
+                    proposedAt: "2026-09-15T03:47:13.920Z"
+                    status: PENDING_APPROVAL
+                    reason: Capture a real Pending Policy Change for the OpenAPI spec
+        "400":
+          description: name/version pattern invalid, reason missing, proposedContent malformed, or proposedContent fails Policy validation.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                missingReason:
+                  summary: Real captured response
+                  value:
+                    error: reason is required.
+        "403":
+          description: Caller is not human-credentialed (NON_HUMAN_CALLER_DENIED).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                nonHuman:
+                  summary: Shape, derived from NonHumanCallerDeniedError source (not independently captured in this run)
+                  value:
+                    error: "This action requires a caller credential provisioned as a verified human (credentialHolderType: USER)."
+                    code: NON_HUMAN_CALLER_DENIED
+
+  /policies/pending-changes:
+    get:
+      tags:
+        - Policy Governance
+      summary: List pending policy changes (maker-checker)
+      operationId: listPendingPolicyChanges
+      description: >
+        Lists Pending Policy Changes, each alongside a diff view: current
+        (the live content at (policyName, policyVersion) today, or null if
+        that version has never been published) and proposed (the change's
+        own proposedContent). Requires a human-authenticated caller, the
+        same discipline as POST .../pending-changes.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [PENDING_APPROVAL, APPROVED, REJECTED]
+      responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "200":
+          description: Pending Policy Changes, with diff.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/pending-changes-list-response.schema.json"
+              examples:
+                oneOpen:
+                  summary: Real captured response
+                  value:
+                    changes:
+                      - pendingPolicyChangeId: 6f4e4020-adf5-4449-938d-27aab58f66b7
+                        policyName: openapi-capture-demo
+                        policyVersion: 1.0.0
+                        proposedContent:
+                          policyId: openapi-capture-demo
+                          policyVersion: 1.0.0
+                          schemaVersion: 1.0.0
+                          rules:
+                            - id: always-approve
+                              condition: { always: true }
+                              outcome:
+                                {
+                                  action: approve,
+                                  reason: OpenAPI spec capture fixture,
+                                }
+                        proposedBy: human-maker
+                        proposedAt: "2026-09-15T03:47:13.920Z"
+                        status: PENDING_APPROVAL
+                        reason: Capture a real Pending Policy Change for the OpenAPI spec
+                        diff:
+                          current: null
+                          proposed:
+                            policyId: openapi-capture-demo
+                            policyVersion: 1.0.0
+                            schemaVersion: 1.0.0
+                            rules:
+                              - id: always-approve
+                                condition: { always: true }
+                                outcome:
+                                  {
+                                    action: approve,
+                                    reason: OpenAPI spec capture fixture,
+                                  }
+        "400":
+          description: status query param is not one of PENDING_APPROVAL, APPROVED, REJECTED.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+        "403":
+          description: Caller is not human-credentialed (NON_HUMAN_CALLER_DENIED).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+
+  /policies/pending-changes/{id}/approve:
+    post:
+      tags:
+        - Policy Governance
+      summary: Approve a pending policy change (checker)
+      operationId: approvePolicyChange
+      description: >
+        Approves a Pending Policy Change (checker). Requires, in order, all
+        fail-closed: a human-authenticated caller distinct from the proposer
+        (maker != checker, 403 SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE
+        otherwise), and a valid step-up authorization envelope proving fresh,
+        explicit intent (403 STEP_UP_AUTHORIZATION_INVALID on a missing,
+        malformed, expired, replayed, wrong-id, wrong-action, or
+        wrong-key-signed envelope). Once both pass, this writes the live
+        policies/{policyName}/{policyVersion}/policy.json file and records a
+        signed PolicyChangeApprovalRecord BEFORE marking the change APPROVED,
+        so a failure partway through never leaves a pending change falsely
+        resolved with no corresponding live effect. Per-check step-up
+        diagnostic detail is logged server-side only, never in this response.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/requests/approve-policy-change-request.schema.json"
+      responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "200":
+          description: Approved. The live policy.json file has been written.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/pending-policy-change-response.schema.json"
+              examples:
+                approved:
+                  summary: Real captured response
+                  value:
+                    pendingPolicyChangeId: 6f4e4020-adf5-4449-938d-27aab58f66b7
+                    policyName: openapi-capture-demo
+                    policyVersion: 1.0.0
+                    proposedContent:
+                      policyId: openapi-capture-demo
+                      policyVersion: 1.0.0
+                      schemaVersion: 1.0.0
+                      rules:
+                        - id: always-approve
+                          condition: { always: true }
+                          outcome:
+                            {
+                              action: approve,
+                              reason: OpenAPI spec capture fixture,
+                            }
+                    proposedBy: human-maker
+                    proposedAt: "2026-09-15T03:47:13.920Z"
+                    status: APPROVED
+                    reason: Capture a real Pending Policy Change for the OpenAPI spec
+                    resolvedBy: human-checker
+                    resolvedAt: "2026-09-15T03:48:03.586Z"
+        "403":
+          description: NON_HUMAN_CALLER_DENIED, SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE, or STEP_UP_AUTHORIZATION_INVALID.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                sameActor:
+                  summary: Real captured response
+                  value:
+                    error: "Pending Policy Change '307d8265-1171-49a4-b13f-fc3d3ae323e3' was proposed by this same caller — the proposer (maker) may not also approve or reject it (checker)."
+                    code: SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE
+                stepUpInvalid:
+                  summary: Real captured response
+                  value:
+                    error: The step-up authorization envelope is missing, invalid, expired, replayed, or does not match this request.
+                    code: STEP_UP_AUTHORIZATION_INVALID
+        "404":
+          description: No Pending Policy Change exists for this id.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                notFound:
+                  summary: Real captured response
+                  value:
+                    error: "Pending Policy Change '00000000-0000-0000-0000-000000000000' not found."
+                    code: PENDING_POLICY_CHANGE_NOT_FOUND
+        "500":
+          description: Server misconfigured, no PolicyChangeApprovalService provided. Fails closed, never marks the change APPROVED without applying its live effect.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+
+  /policies/pending-changes/{id}/reject:
+    post:
+      tags:
+        - Policy Governance
+      summary: Reject a pending policy change (checker)
+      operationId: rejectPolicyChange
+      description: >
+        Rejects a Pending Policy Change (checker). Same discipline as
+        approve (human, maker != checker, step-up authorization), but never
+        touches the live policy file, a rejection is purely a repository
+        state transition with no PolicyChangeApprovalRecord of its own.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/requests/reject-policy-change-request.schema.json"
+      responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "200":
+          description: Rejected.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/pending-policy-change-response.schema.json"
+              examples:
+                rejected:
+                  summary: Real captured response
+                  value:
+                    pendingPolicyChangeId: 5617ba3c-fb07-437d-9131-232b84bbb863
+                    policyName: openapi-capture-demo-reject
+                    policyVersion: 1.0.0
+                    proposedContent:
+                      policyId: openapi-capture-demo-reject
+                      policyVersion: 1.0.0
+                      schemaVersion: 1.0.0
+                      rules:
+                        - id: always-approve
+                          condition: { always: true }
+                          outcome:
+                            {
+                              action: approve,
+                              reason: OpenAPI spec capture fixture,
+                            }
+                    proposedBy: human-maker
+                    proposedAt: "2026-09-15T03:48:09.512Z"
+                    status: REJECTED
+                    reason: Capture a real rejected Pending Policy Change for the OpenAPI spec
+                    resolvedBy: human-checker
+                    resolvedAt: "2026-09-15T03:48:21.422Z"
+                    rejectionReason: Does not meet the bar for this fixture
+        "400":
+          description: rejectionReason missing or empty.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+        "403":
+          description: NON_HUMAN_CALLER_DENIED, SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE, or STEP_UP_AUTHORIZATION_INVALID.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+        "404":
+          description: No Pending Policy Change exists for this id.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
 
 components:
   schemas:

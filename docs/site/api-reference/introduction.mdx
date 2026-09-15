@@ -1,17 +1,19 @@
 ---
 title: "REST API Introduction"
-description: "22 paths, generated from openapi/openapi.yaml into the sidebar under REST API. This page covers what that spec can't express."
+description: "26 paths, generated from openapi/openapi.yaml into the sidebar under REST API. This page covers what that spec can't express."
 ---
 
 <Info>
   **[AVAILABLE]**. Every path in the sidebar under **REST API** is generated
   from `openapi/openapi.yaml`, which is structurally validated in CI (`npm run
   lint:openapi`, plus `openapi-bundle-refs.test.ts`'s $ref-integrity checks) on
-  every push. There is, today, no automated check that every route actually
-  mounted in `packages/api/src/app.ts` has a matching spec path; this page's
-  list is kept in sync by hand. `GET /documentation` and `GET /reference` are
-  deliberately excluded: rendered doc surfaces, not API resources, see [Three
-  views of the same spec](#three-views-of-the-same-spec) below.
+  every push, and cross-checked against `packages/api/src/app.ts`'s real mounted
+  routes by `openapi-route-parity.test.ts`: every real route needs a matching
+  spec path, and every spec path needs a real, currently-mounted route behind
+  it, in both directions, or the test fails by name. `GET /documentation` and
+  `GET /reference` are the one explicit, allowlisted exception: rendered doc
+  surfaces, not API resources, see [Three views of the same
+  spec](#three-views-of-the-same-spec) below.
 </Info>
 
 ## Base URL
