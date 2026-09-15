@@ -14,7 +14,7 @@ readme = { file = "README.md", content-type = "text/markdown" }
 
 requires-python = ">=3.10"
 
-license = { text = "Apache-2.0" }
+license = { text = "SEE LICENSE IN LICENSE" }
 
 authors = [
     { name = "Parmana" }
@@ -36,7 +36,7 @@ classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: Information Technology",
 
-    "License :: OSI Approved :: Apache Software License",
+    "License :: Other/Proprietary License",
 
     "Operating System :: OS Independent",
 
