@@ -2420,6 +2420,63 @@ changed (executes normally), one that finds the vendor has since been blocked (r
 `signalsStillCurrent: false`, `signalDivergence` naming the mismatch, connector never
 invoked) — confirmed by an actual run of the script, not merely read for plausibility.
 
+**G-44. `PolicyEngine.evaluate()`'s structured rule-match trace was computed, then discarded
+before anything durable was written. Found by an independent read-only audit
+(`docs/investigations/2026-09-15-evidence-anchor-gap-audit.md`, GAP-2, 2026-09-15). RESOLVED
+same day.** `packages/policy/src/PolicyEngine.ts:35-55` returns `matchedRuleId`,
+`evaluatedRules` (a count), and `matchedPath` (the full ordered rule-id trace) as part of its
+`PolicyDecision` — but `DecisionBuilder.build()`
+(`packages/runtime/src/DecisionBuilder.ts:32-51`), the very next step, built the `Decision`
+that actually gets persisted and signed from only `outcome` and `reason` (a free-text
+string); all three structured trace fields were dropped in that one call. Every signed
+`ExecutionTrustRecord` and `RefusalRecord` therefore carried prose explaining a decision, not
+the structured, independently re-checkable rule citation that already existed one function
+call earlier.
+
+**Fix:** `Decision` (`packages/shared/src/domain/decision.ts`) gained three new optional
+fields — `matchedRuleId`, `evaluatedRules`, `matchedPath` — same optionality pattern as
+`PolicyReference.contentHash` (G-24): caller-unsettable, absent only on a `Decision` built
+before this field existed, never a breaking change to anything constructing one without them.
+`DecisionBuilder.build()` now copies all three verbatim from `PolicyDecision`. Mirrored into
+the hand-authored TypeScript SDK model (`typescript/src/models/execution.ts`), the JSON
+schema (`schemas/common/decision.schema.json`, including an updated example), and the
+generated Python SDK model (`python/parmana/models/execution.py`, regenerated via `npm run
+generate:python-models`, not hand-edited).
+
+**Verified:** `packages/runtime/tests/unit/DecisionBuilder.test.ts` (3 new cases: trace
+carried through on APPROVE, trace carried through on REJECT — not only the approved path,
+existing fields unchanged). Full workspace `npx tsc -b` clean. Full repo suite: 1809 passed
+(3 more than before, exactly the three new cases), 42 skipped, 0 failed. Python suite: 79
+passed. Also confirmed live: a real transaction submitted to a locally-running instance
+(`test:fixture-execute` against `vendor-payment@2.0.0`, the same real policy and connector
+`docs/site/quickstart.mdx` uses) returned a real `ExecutionTrustRecord` whose
+`executions[0].decision` carried `matchedRuleId: "approve-payment"`, `evaluatedRules: 1`,
+`matchedPath: ["approve-payment"]` — not merely unit-tested in isolation.
+
+**G-45. The policy-governance evidence-anchor chain (G-24 / §2.27 /
+`PolicyGovernanceExecutionVerifier`) is real and tested, but a passing check leaves no
+artifact of its own, and none of it references connector-execution evidence.** Found by the
+same audit (GAP-4, 2026-09-15) — and the audit's own first pass got this wrong before finding
+G-24/§2.27/§2.26 in `docs/CLAIMS.md` and correcting itself; see that document's §4 for the
+full account, kept rather than silently rewritten. `PolicyGovernanceExecutionVerifier.verify()`
+(`packages/api/src/governance/PolicyGovernanceExecutionVerifier.ts:31-63`) checks a policy's
+most recent `PolicyChangeApprovalRecord` exists, verifies, and content-hash-matches before
+that policy is evaluated — exactly the Record-1-to-Record-2 binding an "evidence anchor"
+needs — but returns bare `undefined` on success: nothing is written or signed to say "this
+decision was checked against approval record X and passed." Only a _failure_ leaves a durable
+trace (an ordinary policy rejection, already signed via the existing `RefusalRecord` path).
+Separately, and unaddressed by any existing mechanism: nothing in G-24, §2.27, or
+`PolicyGovernanceExecutionVerifier` ever references `ConnectorEvidence`/
+`connectorEvidenceHash` (`packages/execution-gateway/src/connector-execution/ConnectorEvidence.ts`)
+— policy content is bound to the decision, never the decision bound to what a connector
+subsequently did, beyond both happening to sit inside the same overall signed
+`ExecutionTrustRecord` envelope. Also note: `POLICY_EXECUTION_VERIFICATION_ENFORCED` is off
+by default and cannot safely be turned on in this deployment today regardless of this gap —
+see `docs/CLAIMS.md` §2.26's own "Legacy-policy backfill" entry (zero of the 10 live policies
+have a completed approval record as of that section's own last-checked date, 2026-08-19; not
+independently re-verified this session, no live database credentials in scope). Not fixed
+this session; read-only audit only.
+
 ### cosmetic
 
 **G-10. CLAIMS.md citations that are vague or indirect** rather than pointing at a specific

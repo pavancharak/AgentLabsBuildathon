@@ -160,6 +160,22 @@ Evidence
 
 - packages/runtime/tests/integration/receipt.integration.test.ts, receipt-hybrid.integration.test.ts
 
+**Structured decision trace (2026-09-15, docs/VERIFICATION-GAPS.md G-44).** The signed
+evidence above now records _how_ a decision was reached, not only _that_ it was and _why_ as
+free text. `PolicyEngine.evaluate()` computes `matchedRuleId`, `evaluatedRules`, and
+`matchedPath` (the complete ordered rule-id trace) as part of its `PolicyDecision`
+(packages/policy/src/PolicyEngine.ts); `DecisionBuilder.build()`
+(packages/runtime/src/DecisionBuilder.ts) now carries all three through, verbatim, into the
+`Decision` that actually gets signed and persisted (packages/shared/src/domain/decision.ts) —
+previously it carried forward only `outcome` and `reason`, dropping the structured trace
+before it reached any durable artifact. Optional fields, same pattern as
+`PolicyReference.contentHash` (G-24): absent only on a `Decision` built before this field
+existed, never a breaking change. Mirrored into the TypeScript SDK model, the JSON schema, and
+the generated Python SDK model. Found and fixed same day by an independent read-only audit,
+docs/investigations/2026-09-15-evidence-anchor-gap-audit.md (GAP-2); verified via
+packages/runtime/tests/unit/DecisionBuilder.test.ts and a real live execution against a
+locally-running instance (see docs/VERIFICATION-GAPS.md G-44).
+
 ---
 
 ## 2.6 Independent Verification
@@ -590,6 +606,26 @@ Evidence (update)
 **Independently audited, separately from the build.** A follow-up audit re-verified every claim above from source rather than trusting the build session's own summary: re-running the full test suite fresh, tracing the approve flow's actual code order end to end, independently re-computing the content-hash-at-decision-time value from scratch (a hand-rolled canonicalization and sha256 implementation, not the codebase's own hasher) against a live execution, and grepping for any private-key material or alternate bypass path. It found two real, narrow defects — both fixed and covered by a new regression test: a single stray NUL byte in `verifyPolicyGovernanceIntegrityAtStartup.ts` (cosmetic — it made the file render as a binary diff in git, not a functional bug) and a real gap in the fail-open guarantee, where `runPolicyGovernanceIntegrityCheckAtStartup.ts` constructed `PolicyChangeCrypto` synchronously, outside the promise `.catch()` meant to guard it, so a future constructor failure could have propagated and crashed the process after the port was already bound. `packages/api/tests/unit/runPolicyGovernanceIntegrityCheckAtStartup.test.ts` proves the fix: confirmed failing against the pre-fix code, then confirmed passing against the fix.
 
 **Deployment status.** This claim is about what exists in the repository and is proven correct by the tests cited above, not about what is currently running in any live environment. The backend (maker-checker endpoints, step-up auth, sign-then-write ordering, content-hash-at-decision-time, the startup integrity check) is committed and pushed to `origin/main`. Whether `parmana-api.fly.dev` / `parmana-api-live.fly.dev` are running this code has not been checked as part of this claim and is not asserted here.
+
+**Gap found (2026-09-15, docs/VERIFICATION-GAPS.md G-45): a passing execution-time governance
+check leaves no artifact of its own, and connector-execution evidence is never bound into
+this chain at all.** `PolicyGovernanceExecutionVerifier.verify()`
+(packages/api/src/governance/PolicyGovernanceExecutionVerifier.ts) — the class this section's
+"Content hash at decision time (G-24)" and 2.27's policy-freshness check both feed into when
+`POLICY_EXECUTION_VERIFICATION_ENFORCED=true` — checks a policy's most recent
+`PolicyChangeApprovalRecord` exists, verifies, and content-hash-matches, then returns bare
+`undefined` on success. Nothing is written or signed recording that the check ran and passed;
+only a failure (an ordinary policy rejection) leaves a durable trace, via the existing
+`RefusalRecord` path. Separately, no code anywhere references `ConnectorEvidence`/
+`connectorEvidenceHash` (packages/execution-gateway/src/connector-execution/ConnectorEvidence.ts)
+alongside the policy-governance chain — policy content is bound to the decision, never the
+decision bound to what a connector subsequently did, beyond both sitting inside the same
+overall signed `ExecutionTrustRecord`. Neither gap changes anything already claimed above,
+which is about policy content integrity specifically, not about a complete
+declared-perimeter-to-executed-action evidence chain; found by an independent read-only
+audit, docs/investigations/2026-09-15-evidence-anchor-gap-audit.md (GAP-4), whose own first
+pass initially concluded no such linkage existed at all before finding this section and
+correcting itself — see that document's §4.
 
 **Open question: internal vs. external policy authoring.** The system described above resolves _how_ a policy change is approved once Parmana is the system of record for that approval. It does not resolve _whether_ Parmana should be the system of record at all: an alternative architecture — policies authored and approved in an external system, with Parmana staying strictly read-only/enforcement-only for policy content (loading and evaluating whatever content it is handed, verifying its provenance, never hosting the approval workflow itself) — remains a live, undecided option. Nothing in the codebase picks a side; the maker-checker system exists because policy authoring was previously outside any governance surface at all (this section's opening claim), not because "build it internally" was compared against and preferred over the external alternative. Treat this as an open question, not a resolved default.
 

@@ -37,6 +37,19 @@
       "type": "string",
       "description": "Human-readable explanation, taken from the matching Policy rule's outcome.reason."
     },
+    "matchedRuleId": {
+      "type": "string",
+      "description": "Identifier of the Policy rule that matched, or \"none\" when no rule matched. Absent on a Decision built before this field existed (docs/VERIFICATION-GAPS.md G-44)."
+    },
+    "evaluatedRules": {
+      "type": "integer",
+      "description": "Number of rules evaluated before reaching a match (or exhausting the rule list). Same optionality as matchedRuleId."
+    },
+    "matchedPath": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Ordered rule-id trace evaluation walked to reach matchedRuleId. Same optionality as matchedRuleId."
+    },
     "evaluatedAt": {
       "type": "string",
       "format": "date-time",
@@ -62,6 +75,9 @@
       },
       "outcome": "APPROVED",
       "reason": "Vendor payment authorized. Vendor verification, invoice verification, payment approval, funding, and risk assessment requirements were satisfied.",
+      "matchedRuleId": "approve-payment",
+      "evaluatedRules": 1,
+      "matchedPath": ["approve-payment"],
       "evaluatedAt": "2026-07-07T16:38:59.326Z"
     }
   ]

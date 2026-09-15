@@ -9,6 +9,12 @@ export interface Decision {
   readonly signals: Record<string, unknown>;
   readonly outcome: DecisionOutcome;
   readonly reason?: string;
+  /** Identifier of the Policy rule that matched, or "none". Absent on a Decision built before this field existed. */
+  readonly matchedRuleId?: string;
+  /** Number of rules evaluated before reaching a match (or exhausting the rule list). */
+  readonly evaluatedRules?: number;
+  /** Ordered rule-id trace evaluation walked to reach matchedRuleId. */
+  readonly matchedPath?: readonly string[];
   readonly evaluatedAt: Date;
 }
 

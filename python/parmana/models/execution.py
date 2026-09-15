@@ -39,6 +39,12 @@ class Decision:
 
     reason: str | None = None
 
+    matched_rule_id: str | None = None
+
+    evaluated_rules: float | None = None
+
+    matched_path: list[str] | None = None
+
 
 class ExecutionStatus(str, Enum):
     PROCESSING = "PROCESSING"

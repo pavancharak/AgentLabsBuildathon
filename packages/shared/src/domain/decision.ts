@@ -52,6 +52,33 @@ export interface Decision {
   readonly reason?: string;
 
   /**
+   * Identifier of the Policy rule that matched, or "none" when no rule
+   * matched. Optional and caller-unsettable, the same pattern as
+   * PolicyReference.contentHash (G-24): a request-supplied Decision
+   * never carries this -- it is copied verbatim from
+   * PolicyEngine.evaluate()'s PolicyDecision by DecisionBuilder, never
+   * computed here. Absent only on a Decision built before this field
+   * existed (docs/VERIFICATION-GAPS.md G-44); every Decision built
+   * going forward carries it.
+   */
+  readonly matchedRuleId?: string;
+
+  /**
+   * Number of rules PolicyEngine evaluated before reaching a match (or
+   * exhausting the rule list). Same provenance and optionality as
+   * matchedRuleId above.
+   */
+  readonly evaluatedRules?: number;
+
+  /**
+   * Ordered rule-id trace PolicyEngine walked to reach matchedRuleId --
+   * lets an auditor independently reconstruct exactly how this
+   * Decision was reached, not merely which rule ultimately matched.
+   * Same provenance and optionality as matchedRuleId above.
+   */
+  readonly matchedPath?: readonly string[];
+
+  /**
    * UTC timestamp when evaluation completed.
    */
   readonly evaluatedAt: Date;
