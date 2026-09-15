@@ -26,12 +26,12 @@ info:
     must never be set in a real deployment.
 
   contact:
-    name: Parmana
-    email: support@parmana.ai
+    name: Parmana Systems
+    email: founder@parmanasystems.com
 
   license:
-    name: Apache-2.0
-    identifier: Apache-2.0
+    name: Proprietary, source-available for evaluation only, see LICENSE
+    url: https://github.com/pavancharak/AgentLabsBuildathon/blob/main/LICENSE
 
 servers:
   - url: http://localhost:3000
