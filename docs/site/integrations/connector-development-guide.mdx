@@ -1,6 +1,6 @@
 ---
 title: "Connector Development Guide"
-description: "How to implement a Connector against @parmana/connector-sdk, every example uses MockConnector or HttpConnector, no enterprise-specific example."
+description: "How to implement a Connector against @parmana/connector-sdk, every example uses MockConnector, no enterprise-specific example."
 ---
 
 <Info>
@@ -9,6 +9,13 @@ description: "How to implement a Connector against @parmana/connector-sdk, every
   registering only when its own credentials are configured. Adding another
   connector is a code change today, see the warning below.
 </Info>
+
+<Note>
+  Examples below are TypeScript. Building a connector from Python instead? The
+  identical contract is published as [`parmana-connector-sdk` on
+  PyPI](https://pypi.org/project/parmana-connector-sdk/0.1.0/) — see [Connector
+  SDK (Python)](/reference/connector-sdk-python).
+</Note>
 
 ## Connector responsibilities, and what a Connector must never do
 
@@ -54,14 +61,20 @@ capability throws at connector construction, not at execution time. By conventio
 
 ## Registering a connector
 
-```typescript
-import {
-  ConnectorSdkRegistry,
-  StaticCredentialProvider,
-  healthyNow,
-} from "@parmana/connector-sdk";
+**This step is internal, not something `npm install @parmana/connector-sdk` alone gives you.**
+`@parmana/connector-sdk` lets you build and test a `Connector` in isolation. Wiring a built
+connector into a live Parmana deployment happens through `GatewayConnectorRegistry`
+(`@parmana/execution-gateway`) — a private, unpublished package internal to this repository,
+the same way `packages/api/src/bootstrap/*` registers HubSpot, GitHub, Paytm, and Slack
+today. If you're building a connector against the published `@parmana/connector-sdk` for your
+own deployment, this section shows the shape of that internal step, not an API surface you can
+call from outside this repository.
 
-const registry = new ConnectorSdkRegistry();
+```typescript
+import { GatewayConnectorRegistry } from "@parmana/execution-gateway";
+import { StaticCredentialProvider, healthyNow } from "@parmana/connector-sdk";
+
+const registry = new GatewayConnectorRegistry();
 
 registry.register({
   connector: new ExampleConnector(),

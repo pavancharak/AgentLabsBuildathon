@@ -14,6 +14,7 @@ export default defineConfig({
 
     // Integration tests can take longer
     testTimeout: 30000,
+    hookTimeout: 30000,
 
     setupFiles: [join(here, "vitest.setup.ts")],
   },

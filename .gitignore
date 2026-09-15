@@ -36,6 +36,14 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 **/*.egg-info/
+.venv/
+**/.venv/
+.mypy_cache/
+**/.mypy_cache/
+.ruff_cache/
+**/.ruff_cache/
+.pytest_cache/
+**/.pytest_cache/
 
 # Local/test artifacts
 scratch-live-test-body.json
@@ -63,5 +71,7 @@ EXECUTION-PATH-TRACED.md
 REAL-GAPS-FOUND.md
 FIXES-FOR-REAL-GAPS.md
 ALL-FIXES-COMPLETE.md
+
+.vercel
 
 .vercel

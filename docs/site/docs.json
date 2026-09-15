@@ -124,6 +124,7 @@
               "reference/envelope-verifier",
               "reference/execution-gateway",
               "reference/connector-sdk",
+              "reference/connector-sdk-python",
               "reference/runtime",
               "reference/storage",
               "reference/replay",

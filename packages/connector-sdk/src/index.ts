@@ -16,3 +16,11 @@ export * from "./ConnectorMetadata.js";
 export * from "./ConnectorFactory.js";
 export * from "./CredentialProvider.js";
 export * from "./MockConnector.js";
+
+// Four enterprise-named reference mocks: deterministic MockConnector
+// instances shaped like a real integration, not real integrations. See
+// each connector's own Metadata export for what capability it declares.
+export * from "./connectors/oracle/index.js";
+export * from "./connectors/salesforce/index.js";
+export * from "./connectors/sap/index.js";
+export * from "./connectors/workday/index.js";
