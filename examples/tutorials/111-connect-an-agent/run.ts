@@ -137,7 +137,7 @@ console.log("goes through. Scenario 1's connector dispatch is also real: it");
 console.log("reaches a hermetic mock Paytm connector service, not a stub.");
 console.log();
 
-const executionSystem = createExecutionSystem();
+const executionSystem = await createExecutionSystem();
 const application = createApplication(executionSystem);
 const auditSink = new InMemoryCallerAuditSink();
 const app = createApp(application, {

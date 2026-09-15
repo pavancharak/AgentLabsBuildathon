@@ -110,7 +110,7 @@ try {
     },
   });
 
-  const executionSystem = createExecutionSystem();
+  const executionSystem = await createExecutionSystem();
   const application = createApplication(executionSystem);
 
   const transaction = dealUpdateTransaction({

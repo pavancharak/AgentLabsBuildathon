@@ -21,7 +21,7 @@ console.log("Tutorial 88 - Malformed Request Handling");
 console.log("==================================================");
 console.log();
 
-const executionSystem = createExecutionSystem();
+const executionSystem = await createExecutionSystem();
 const application = createApplication(executionSystem);
 const app = createApp(application, { callerAuth: "disabled" });
 

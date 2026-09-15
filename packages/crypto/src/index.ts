@@ -60,6 +60,7 @@ export * from "./Signer.js";
 export * from "./SignerBootstrap.js";
 export * from "./providers/signer/LocalFileSigner.js";
 export * from "./providers/signer/KmsSigner.js";
+export * from "./providers/SignerKeyProviderAdapter.js";
 
 // -----------------------------------------------------------------------------
 // Provider Interfaces

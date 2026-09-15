@@ -79,7 +79,7 @@ console.log("Tutorial 73 - Refusal Records");
 console.log("==================================================");
 console.log();
 
-const executionSystem = createExecutionSystem();
+const executionSystem = await createExecutionSystem();
 const application = createApplication(executionSystem);
 
 // riskScore: 999 fails vendor-payment/2.0.0's own risk-score rule

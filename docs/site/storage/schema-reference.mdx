@@ -1,0 +1,210 @@
+---
+title: "Database Schema Reference"
+description: "Every live table: what it's for, its columns, which migration built it, what code owns it — plus a library of real SQL for troubleshooting, audit, and verification."
+---
+
+<Info>
+  Repo copy of this guide: `docs/architecture/DATABASE_SCHEMA_REFERENCE.md`,
+  kept in sync with this page. Verified against the live production database and
+  all 28 `supabase/migrations/*.sql` files. See [Storage](/storage/overview)
+  first for the conceptual model.
+</Info>
+
+**Connecting:** the application connects directly via Postgres (`DATABASE_URL`), not through
+PostgREST — a direct connection bypasses Row Level Security the same way a table owner does.
+RLS below matters for what a different credential (e.g. Supabase's `anon` role) could see,
+not what the application's own connection can.
+
+## Quick index
+
+| Table                                   | Purpose                                                                       | Owning code                                    |
+| --------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------- |
+| `business_transactions`                 | The initial received request, as submitted                                    | `SupabaseBusinessTransactionRepository`        |
+| `executions`                            | Append-only log of execution attempts                                         | `SupabaseExecutionTrustRecordRepository`       |
+| `execution_trust_records`               | The signed, final trust record                                                | `SupabaseExecutionTrustRecordRepository`       |
+| `verifications`                         | Log of independent verification calls                                         | `SupabaseExecutionTrustRecordRepository`       |
+| `receipts`                              | Signed receipts                                                               | `SupabaseExecutionTrustRecordRepository`       |
+| `settlement_confirmations`              | Signed settlement confirmations                                               | `SupabaseExecutionTrustRecordRepository`       |
+| `overrides`                             | `OverrideService` backing table — deliberately unreachable, expect empty      | `SupabaseExecutionTrustRecordRepository`       |
+| `refusal_records`                       | Signed record of a policy/binding REJECT                                      | `SupabaseRefusalRecordRepository`              |
+| `caller_audit_events`                   | Every caller-auth decision — highest write volume                             | `SupabaseCallerAuditSink`                      |
+| `execution_audit_events`                | Execution lifecycle events — **shared cross-repo with `parmana-paytm-agent`** | `SupabaseExecutionAuditSink`                   |
+| `pending_policy_changes`                | Maker-checker: a proposed change awaiting approval                            | `SupabasePendingPolicyChangeRepository`        |
+| `policy_change_approval_records`        | Maker-checker: signed approval/rejection                                      | `SupabasePolicyChangeApprovalRecordRepository` |
+| `consumed_nonces`                       | Replay protection: Gateway Authorization envelopes                            | `SupabaseNonceStore`                           |
+| `consumed_approval_nonces`              | Replay protection: Approval Artifacts (separate namespace)                    | `SupabaseApprovalNonceStore`                   |
+| `consumed_policy_change_step_up_nonces` | Replay protection: checker step-up key (separate namespace)                   | `SupabasePolicyChangeStepUpNonceStore`         |
+| `challenge_records`                     | Investigation records — the only mutable table                                | `PostgresChallengeRecordRepository`            |
+| `rate_limit_counters`                   | Fleet-wide rate limits — the only table without RLS                           | `PostgresRateLimitStore`                       |
+
+<Warning>
+  Three Razorpay tables (`razorpay_webhook_events`,
+  `razorpay_webhook_audit_events`, `razorpay_daily_refund_reservations`) were
+  dropped 2026-09-16 — orphaned schema from the Razorpay connector, removed from
+  this codebase entirely on 2026-08-12.
+</Warning>
+
+## Tables that share one shape
+
+`consumed_nonces`, `consumed_approval_nonces`, `consumed_policy_change_step_up_nonces` are
+three **deliberately separate** tables, not duplication — each backs a distinct trust
+domain's nonce namespace (a Gateway envelope, an Approval Artifact, a checker's step-up
+key), issued by different parties. Sharing one table would let a coincidental collision
+between unrelated namespaces falsely report "already consumed." All three: `TEXT PRIMARY KEY`
+nonce column (the PK **is** the atomicity mechanism — a concurrent duplicate insert hits
+Postgres `23505 unique_violation`, mapped to "already consumed," no separate locking
+needed), `expires_at TIMESTAMPTZ NOT NULL`, `consumed_at TIMESTAMPTZ DEFAULT now()`.
+
+`executions`, `verifications`, `receipts`, `overrides` also share a near-identical shape:
+an id, a `business_transaction_id` FK (`ON DELETE RESTRICT`), a JSONB payload column, a
+timestamp, and a `seq BIGSERIAL` (added by `20260711120000` for exact insertion-order —
+millisecond timestamps can tie under fast concurrent appends).
+
+## Tables worth extra attention
+
+**`caller_audit_events`** — the most-altered table in the schema (8 migrations). Its `type`
+CHECK constraint was widened 5 times. One of those widenings
+(`20260911090000_add_capability_granted_to_caller_audit_events.sql`) was a **bug-fix**:
+application code had already been writing `'caller.capability_granted'` before any
+migration allowed it, so every successful authenticated request failed closed with `503
+AUDIT_UNAVAILABLE` until fixed. Adding a new event type here and forgetting the matching
+migration reproduces this exact outage. Chained **per `caller_id`** via a Postgres advisory
+lock on `hashtext(caller_id)`, not one global lock.
+
+**`execution_audit_events`** — the only table written to by code outside this repository.
+`parmana-paytm-agent` writes directly to it (its own `src/parmana/audit.ts`), correlated by
+`business_transaction_id` (not `authorization_id`, which is Parmana-internal and never
+crosses the trust boundary). Its rows are unsigned/unchained — that service holds only
+Parmana's public key, never a private key. Chained **per `authorization_id`** on this
+repo's own side.
+
+**`policy_change_approval_records`** — the only table with a real RLS policy attached
+(`anon` role, read-only, for CI). As of this writing, zero rows — none of the 10 real
+production policies have been approved by a distinct human checker yet. Expected, not a bug.
+
+**`challenge_records`** — the only mutable table in the schema. Every other table here is
+append-only by convention; this one is explicitly updated as an investigation proceeds.
+Deliberately unsigned: the writer and the party who could misrepresent it are the same
+party, so a signature would prove tamper-evidence of bytes without addressing the actual
+trust question.
+
+**`rate_limit_counters`** — the only table without RLS enabled (deliberately — no business
+data, no dashboard access path). See `docs/VERIFICATION-GAPS.md` G-49 (repo root) for why
+this table's keys are now prefixed per rate limiter.
+
+## Common SQL for troubleshooting, audit, and verification
+
+### Trace one transaction across every table
+
+The single most useful query — everything that happened for one `business_transaction_id`:
+
+```sql
+SELECT 'business_transactions' AS source, created_at AS at, status::text AS detail
+  FROM business_transactions WHERE business_transaction_id = $1
+UNION ALL
+SELECT 'executions', created_at, (execution_json->>'status')
+  FROM executions WHERE business_transaction_id = $1
+UNION ALL
+SELECT 'execution_trust_records', created_at, trust_record_hash
+  FROM execution_trust_records WHERE business_transaction_id = $1
+UNION ALL
+SELECT 'refusal_records', created_at, refusal_record_hash
+  FROM refusal_records WHERE business_transaction_id = $1
+UNION ALL
+SELECT 'execution_audit_events', occurred_at, type || COALESCE(': ' || reason, '')
+  FROM execution_audit_events WHERE business_transaction_id = $1
+UNION ALL
+SELECT 'caller_audit_events', occurred_at, type
+  FROM caller_audit_events WHERE business_transaction_id = $1
+ORDER BY at;
+```
+
+This is the exact pattern used to find that `parmana-paytm-agent` had recorded
+`authorization.verified` for a transaction Parmana's own logs only showed a generic `500`
+for.
+
+### Trace one caller's audit history
+
+```sql
+SELECT type, route, occurred_at, capability, principal_id, reason
+FROM caller_audit_events
+WHERE caller_id = $1
+ORDER BY occurred_at DESC LIMIT 50;
+```
+
+### Check a rate limiter's current state for a caller
+
+```sql
+SELECT key, count, reset_time, (reset_time > now()) AS window_still_active
+FROM rate_limit_counters
+WHERE key = 'execute:' || $1;
+```
+
+### Audit the maker-checker approval queue
+
+```sql
+SELECT policy_name, policy_version, proposed_by, proposed_at, reason
+FROM pending_policy_changes
+WHERE status = 'PENDING_APPROVAL'
+ORDER BY proposed_at;
+```
+
+### Migration-sync verification (files vs. tracking table)
+
+```bash
+node -e '
+require("dotenv").config();
+const fs = require("fs");
+const { Pool } = require("pg");
+const pool = new Pool({ connectionString: process.env.DATABASE_URL, min: 1 });
+const fileVersions = fs.readdirSync("supabase/migrations")
+  .filter(f => f.endsWith(".sql")).map(f => f.split("_")[0]).sort();
+(async () => {
+  const { rows } = await pool.query("SELECT version FROM supabase_migrations.schema_migrations ORDER BY version");
+  const dbVersions = rows.map(r => r.version).sort();
+  console.log("Files:", fileVersions.length, "Tracked:", dbVersions.length);
+  console.log("Untracked:", fileVersions.filter(v => !dbVersions.includes(v)));
+  await pool.end();
+})();
+'
+```
+
+### Check a table's actual CHECK constraints
+
+Several tables' constraints have been widened repeatedly — don't trust the original
+`CREATE TABLE` statement alone:
+
+```sql
+SELECT conname, pg_get_constraintdef(oid) AS definition
+FROM pg_constraint
+WHERE conrelid = 'caller_audit_events'::regclass AND contype = 'c';
+```
+
+### Find foreign keys pointing at a table (before ever dropping one)
+
+```sql
+SELECT tc.table_name AS referencing_table, tc.constraint_name
+FROM information_schema.table_constraints tc
+JOIN information_schema.constraint_column_usage ccu
+  ON tc.constraint_name = ccu.constraint_name
+WHERE tc.constraint_type = 'FOREIGN KEY' AND ccu.table_name = $1;
+```
+
+See the repo copy, `docs/architecture/DATABASE_SCHEMA_REFERENCE.md`, for the complete
+per-table column reference and additional queries (row-count health snapshots, RLS status
+listing, nonce-consumption checks).
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Storage" icon="database" href="/storage/overview">
+    The conceptual model this reference builds on.
+  </Card>
+  <Card
+    title="Caller Audit Trail"
+    icon="list-check"
+    href="/concepts/caller-audit-trail"
+  >
+    The concept `caller_audit_events` backs.
+  </Card>
+</CardGroup>

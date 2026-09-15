@@ -29,7 +29,7 @@ console.log("Tutorial 108 - Public-Key Discovery");
 console.log("==================================================");
 console.log();
 
-const executionSystem = createExecutionSystem();
+const executionSystem = await createExecutionSystem();
 const application = createApplication(executionSystem);
 const app = createApp(application, { callerAuth: "disabled" });
 

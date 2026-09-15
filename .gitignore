@@ -76,3 +76,5 @@ ALL-FIXES-COMPLETE.md
 .vercel
 
 .vercel
+
+.env*

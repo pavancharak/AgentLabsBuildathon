@@ -164,7 +164,7 @@ beforeAll(async () => {
     await import("../../../packages/api/src/application.js");
   const { createApp } = await import("../../../packages/api/src/app.js");
 
-  const executionSystem = createExecutionSystem();
+  const executionSystem = await createExecutionSystem();
   const application = createApplication(executionSystem);
 
   const authenticator = new StaticKeyAuthenticator([

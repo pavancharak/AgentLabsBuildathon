@@ -2,8 +2,16 @@ import type { Store } from "express-rate-limit";
 import { PostgresPoolFactory, PostgresRateLimitStore } from "@parmana/storage";
 
 /**
- * Creates the shared Store backing POST /execute and GET /health,/ready
- * rate limiting.
+ * Creates one Store backing either POST /execute's or GET /health,/ready's
+ * rate limiting -- NOT shared between them (found 2026-09-15: it used
+ * to be a single Store passed to both limiters, but express-rate-limit
+ * v8 throws `ERR_ERL_STORE_REUSE` the moment a second limiter's init()
+ * runs against an already-initialized Store). Call this once per
+ * limiter, each with its own `prefix` (e.g. "execute:" and "health:") so
+ * their counters can't collide in the shared rate_limit_counters table
+ * -- PostgresPoolFactory.create() underneath is a process-wide
+ * singleton, so calling this twice does not open a second database
+ * connection pool.
  *
  * Test wiring (NODE_ENV=test): undefined -- express-rate-limit falls
  * back to its own in-process MemoryStore, exactly as before this store
@@ -27,7 +35,7 @@ import { PostgresPoolFactory, PostgresRateLimitStore } from "@parmana/storage";
  * not absent) -- refusing to start over that would break every
  * single-instance and local deployment that works correctly today.
  */
-export function createRateLimitStore(): Store | undefined {
+export function createRateLimitStore(prefix: string): Store | undefined {
   if (process.env.NODE_ENV === "test") {
     return undefined;
   }
@@ -46,5 +54,5 @@ export function createRateLimitStore(): Store | undefined {
     return undefined;
   }
 
-  return new PostgresRateLimitStore(PostgresPoolFactory.create());
+  return new PostgresRateLimitStore(PostgresPoolFactory.create(), prefix);
 }

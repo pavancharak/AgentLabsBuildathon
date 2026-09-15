@@ -94,7 +94,7 @@ async function startServer(
   authenticator: InstanceType<typeof StaticKeyAuthenticator>,
   auditSink: InstanceType<typeof InMemoryCallerAuditSink>,
 ) {
-  const executionSystem = createExecutionSystem();
+  const executionSystem = await createExecutionSystem();
   const application = createApplication(executionSystem);
   const app = createApp(application, {
     callerAuth: { authenticator, auditSink },

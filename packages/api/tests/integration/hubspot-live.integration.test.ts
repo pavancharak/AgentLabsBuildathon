@@ -95,7 +95,7 @@ describe.skipIf(!hubspotLiveConfigured)(
       // own default, HubSpot's real base URL (https://api.hubapi.com).
       delete process.env.HUBSPOT_BASE_URL;
 
-      const executionSystem = createExecutionSystem();
+      const executionSystem = await createExecutionSystem();
       const application = createApplication(executionSystem);
       const app = createApp(application, { callerAuth: "disabled" });
 

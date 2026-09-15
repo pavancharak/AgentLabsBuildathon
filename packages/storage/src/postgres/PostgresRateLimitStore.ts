@@ -52,14 +52,46 @@ export interface RateLimitStoreLike {
 export class PostgresRateLimitStore implements RateLimitStoreLike {
   private windowMs = 60_000;
 
-  constructor(private readonly pool: Pool) {}
+  /**
+   * Namespaces this store's keys within the shared rate_limit_counters
+   * table (found 2026-09-15): express-rate-limit v8 refuses to let one
+   * Store *instance* back more than one limiter (`ERR_ERL_STORE_REUSE`),
+   * so the execute and health/ready limiters each need their own
+   * PostgresRateLimitStore instance. Both can still safely share the
+   * same underlying Pool/table -- prefix keeps their counters from
+   * colliding even in the (currently impossible, callerId vs. IP-keyed)
+   * case where a raw key value happened to match across the two.
+   * Defaults to "" so any other pre-existing construction of this class
+   * (if unprefixed keys are genuinely fine for its use case) is
+   * unaffected.
+   */
+  /**
+   * Public, not an implementation-detail private field: this is
+   * express-rate-limit's own documented Store.prefix contract ("Optional
+   * value that the store prepends to keys... used by the double-count
+   * check to avoid false-positives when a key is counted twice, but
+   * with different prefixes") -- exposing it with this exact name is
+   * what lets express-rate-limit's own reuse/double-count validation
+   * recognize two PostgresRateLimitStore instances with different
+   * prefixes as legitimately distinct, resolving ERR_ERL_STORE_REUSE.
+   * This class still does its own prepending in every method below;
+   * the library does not do that on this class's behalf.
+   */
+  readonly prefix: string;
+
+  constructor(
+    private readonly pool: Pool,
+    prefix: string = "",
+  ) {
+    this.prefix = prefix;
+  }
 
   init(options: { windowMs: number }): void {
     this.windowMs = options.windowMs;
   }
 
   async get(key: string): Promise<ClientRateLimitInfo | undefined> {
-    const { rows } = await this.pool.query(SELECT_SQL, [key]);
+    const { rows } = await this.pool.query(SELECT_SQL, [this.prefix + key]);
     const row = rows[0] as RateLimitRow | undefined;
 
     if (!row) {
@@ -73,7 +105,7 @@ export class PostgresRateLimitStore implements RateLimitStoreLike {
     const resetTime = new Date(Date.now() + this.windowMs);
 
     const { rows } = await this.pool.query(INCREMENT_SQL, [
-      key,
+      this.prefix + key,
       resetTime,
       this.windowMs,
     ]);
@@ -83,11 +115,11 @@ export class PostgresRateLimitStore implements RateLimitStoreLike {
   }
 
   async decrement(key: string): Promise<void> {
-    await this.pool.query(DECREMENT_SQL, [key]);
+    await this.pool.query(DECREMENT_SQL, [this.prefix + key]);
   }
 
   async resetKey(key: string): Promise<void> {
-    await this.pool.query(DELETE_SQL, [key]);
+    await this.pool.query(DELETE_SQL, [this.prefix + key]);
   }
 }
 

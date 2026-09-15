@@ -24,9 +24,13 @@ description = "Known-fake fixtures, examples, and hashes, verified during the 20
 
 regexes = [
   # Fake PEM bodies used across FileKeyProvider / signing-key bootstrap tests.
-  # The "key material" is the literal word "existing", "from-env", or
-  # "mounted", never real key bytes.
-  '''-----BEGIN (PRIVATE|PUBLIC) KEY-----\\n(existing|from-env|mounted)\\n-----END (PRIVATE|PUBLIC) KEY-----''',
+  # The "key material" is the literal word "existing", "from-env",
+  # "gateway-from-env", or "mounted", never real key bytes. "gateway-from-env"
+  # added 2026-09-16 (assert-signing-key-material-configured.test.ts's new
+  # regression test for materializing the separate "gateway" attestation key
+  # under KEY_PROVIDER=aws-kms -- see docs/VERIFICATION-GAPS.md G-48/G-49's
+  # troubleshooting guide).
+  '''-----BEGIN (PRIVATE|PUBLIC) KEY-----\\n(existing|from-env|gateway-from-env|mounted)\\n-----END (PRIVATE|PUBLIC) KEY-----''',
 
   # SHA-256 hash of the publicly documented local-dev demo caller key
   # (raw key "my-secret-api-key", see docs/site/api-reference/authentication.mdx

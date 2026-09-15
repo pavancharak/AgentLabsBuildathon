@@ -72,7 +72,7 @@ describe("GitHub caller-to-capability scoping (HTTP boundary, caller-auth enable
 
     process.env.GITHUB_BASE_URL = mockServer.baseUrl;
 
-    const executionSystem = createExecutionSystem();
+    const executionSystem = await createExecutionSystem();
     const application = createApplication(executionSystem);
 
     const authenticator = new StaticKeyAuthenticator([

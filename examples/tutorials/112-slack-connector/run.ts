@@ -98,7 +98,7 @@ console.log("Tutorial 112 - Slack Connector");
 console.log("==================================================");
 console.log();
 
-const executionSystem = createExecutionSystem();
+const executionSystem = await createExecutionSystem();
 const application = createApplication(executionSystem);
 
 try {

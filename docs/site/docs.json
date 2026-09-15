@@ -49,6 +49,7 @@
           {
             "group": "Guides",
             "pages": [
+              "guides/full-integration-overview",
               "guides/write-your-first-policy",
               "guides/authorize-and-execute",
               "guides/add-a-connector",
@@ -245,6 +246,7 @@
               "replay/overview",
               "cryptography/overview",
               "storage/overview",
+              "storage/schema-reference",
               "reference/shared",
               "reference/crypto",
               "reference/policy",

@@ -10,6 +10,7 @@ const ENV_KEYS = [
   "NODE_ENV",
   "PARMANA_KEY_DIR",
   "PARMANA_KEY_MATERIAL_JSON",
+  "KEY_PROVIDER",
 ] as const;
 
 describe("assertSigningKeyMaterialConfigured", () => {
@@ -157,5 +158,45 @@ describe("assertSigningKeyMaterialConfigured", () => {
     });
 
     expect(() => assertSigningKeyMaterialConfigured()).toThrow(/privateKeyPem/);
+  });
+
+  it("still materializes a non-default key (e.g. the gateway attestation key) from PARMANA_KEY_MATERIAL_JSON when KEY_PROVIDER=aws-kms", () => {
+    // Regression test: KEY_PROVIDER=aws-kms moves only the "default"
+    // signing key's custody to KMS. It must not skip materializing
+    // other keyIds this env var carries -- e.g. "gateway", the
+    // separate attestation key createGatewayKeyPair.ts still reads
+    // from local disk regardless of KEY_PROVIDER. Returning early
+    // before materializeFromEnvIfConfigured() ran (this function's
+    // original shape) silently skipped "gateway" too, which crashed
+    // every request in production the moment KEY_PROVIDER=aws-kms
+    // was set (2026-09-15).
+    process.env.NODE_ENV = "production";
+    process.env.KEY_PROVIDER = "aws-kms";
+    process.env.PARMANA_KEY_DIR = join(tempDir, "materialized");
+    process.env.PARMANA_KEY_MATERIAL_JSON = JSON.stringify({
+      gateway: {
+        privateKeyPem:
+          "-----BEGIN PRIVATE KEY-----\ngateway-from-env\n-----END PRIVATE KEY-----\n",
+        publicKeyPem:
+          "-----BEGIN PUBLIC KEY-----\ngateway-from-env\n-----END PUBLIC KEY-----\n",
+      },
+    });
+
+    expect(() => assertSigningKeyMaterialConfigured()).not.toThrow();
+
+    const privateContent = readFileSync(
+      join(tempDir, "materialized", "gateway.private.pem"),
+      "utf8",
+    );
+    expect(privateContent).toContain("gateway-from-env");
+  });
+
+  it("does not require a local default.private.pem when KEY_PROVIDER=aws-kms", () => {
+    process.env.NODE_ENV = "production";
+    process.env.KEY_PROVIDER = "aws-kms";
+    process.env.PARMANA_KEY_DIR = tempDir;
+    delete process.env.PARMANA_KEY_MATERIAL_JSON;
+
+    expect(() => assertSigningKeyMaterialConfigured()).not.toThrow();
   });
 });

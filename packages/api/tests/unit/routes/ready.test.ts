@@ -7,10 +7,10 @@ import { createExecutionSystem } from "../../../src/bootstrap/createExecutionSys
 
 const ENV_KEYS = ["NODE_ENV", "PARMANA_STORAGE", "DATABASE_URL"] as const;
 
-function buildApp(
+async function buildApp(
   callerAuth: Parameters<typeof createApp>[1]["callerAuth"] = "disabled",
 ) {
-  const executionSystem = createExecutionSystem();
+  const executionSystem = await createExecutionSystem();
   const application = createApplication(executionSystem);
   return createApp(application, { callerAuth });
 }
@@ -31,7 +31,7 @@ describe("GET /ready", () => {
   });
 
   it("reports READY without touching Supabase when NODE_ENV=test", async () => {
-    const response = await request(buildApp()).get("/ready");
+    const response = await request(await buildApp()).get("/ready");
 
     expect(response.status).toBe(200);
     expect(response.body.status).toBe("READY");
@@ -39,14 +39,14 @@ describe("GET /ready", () => {
   });
 
   it("surfaces authDisabled:true and a warning when callerAuth is disabled", async () => {
-    const response = await request(buildApp("disabled")).get("/ready");
+    const response = await request(await buildApp("disabled")).get("/ready");
 
     expect(response.body.authDisabled).toBe(true);
     expect(typeof response.body.warning).toBe("string");
   });
 
   it("surfaces authDisabled:false when caller auth is enabled", async () => {
-    const app = buildApp({
+    const app = await buildApp({
       authenticator: { authenticate: () => undefined },
       auditSink: { record: async () => {} },
     });
@@ -63,7 +63,7 @@ describe("GET /ready", () => {
     // outside NODE_ENV=test, by design, independent of PARMANA_STORAGE
     // -- so flipping env before buildApp() would throw for a reason
     // unrelated to what this test exercises).
-    const app = buildApp();
+    const app = await buildApp();
 
     process.env.NODE_ENV = "production";
     process.env.PARMANA_STORAGE = "memory";
@@ -81,7 +81,7 @@ describe("GET /ready", () => {
     // reads process.env fresh per request, independent of how the app
     // was constructed, so flipping env only around the request itself
     // still exercises the live-storage branch faithfully.
-    const app = buildApp();
+    const app = await buildApp();
 
     process.env.NODE_ENV = "production";
     process.env.PARMANA_STORAGE = "supabase";

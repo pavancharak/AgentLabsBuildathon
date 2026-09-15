@@ -91,7 +91,7 @@ function vendorPaymentTransaction(): BusinessTransaction {
 }
 
 async function startServer(auditSink: FailingCallerAuditSink) {
-  const executionSystem = createExecutionSystem();
+  const executionSystem = await createExecutionSystem();
   const application = createApplication(executionSystem);
   const authenticator = new StaticKeyAuthenticator([
     {

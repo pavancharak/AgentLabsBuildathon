@@ -13,8 +13,8 @@ const { createApplication } =
   await import("../../../packages/api/src/application.js");
 const { createApp } = await import("../../../packages/api/src/app.js");
 
-function buildApp() {
-  const executionSystem = createExecutionSystem();
+async function buildApp() {
+  const executionSystem = await createExecutionSystem();
   const application = createApplication(executionSystem);
   return createApp(application, { callerAuth: "disabled" });
 }
@@ -47,7 +47,7 @@ try {
     "Scenario 1: NODE_ENV=test -- reports READY without touching any real database",
   );
   console.log("--------------------------------------------------");
-  const app1 = buildApp();
+  const app1 = await buildApp();
   const server1 = await startServer(app1);
   const response1 = await fetch(`${server1.baseUrl}/ready`);
   const body1 = await response1.json();
@@ -60,7 +60,7 @@ try {
     "Scenario 2: Outside test mode, but storage is explicitly memory-backed -- still READY, no database touched",
   );
   console.log("--------------------------------------------------");
-  const app2 = buildApp(); // built under NODE_ENV=test so construction's own eager checks don't throw
+  const app2 = await buildApp(); // built under NODE_ENV=test so construction's own eager checks don't throw
   const server2 = await startServer(app2);
   process.env.NODE_ENV = "production";
   process.env.PARMANA_STORAGE = "memory";
@@ -76,7 +76,7 @@ try {
   );
   console.log("--------------------------------------------------");
   process.env.NODE_ENV = "test"; // restore before construction, same reasoning as scenario 2
-  const app3 = buildApp();
+  const app3 = await buildApp();
   const server3 = await startServer(app3);
   process.env.NODE_ENV = "production";
   process.env.PARMANA_STORAGE = "supabase";

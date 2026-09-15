@@ -47,13 +47,15 @@ assertSigningKeyMaterialConfigured();
 await assertKmsSigningKeyReachable();
 assertPaytmConnectorConfigured();
 
-const executionSystem = createExecutionSystem();
+const executionSystem = await createExecutionSystem();
 
 const application = createApplication(executionSystem);
 
 const callerAuth = createCallerAuthenticator();
 
-const rateLimitStore = createRateLimitStore();
+const executeRateLimitStore = createRateLimitStore("execute:");
+
+const healthRateLimitStore = createRateLimitStore("health:");
 
 const app = createApp(application, {
   callerAuth: callerAuth.disabled
@@ -64,7 +66,8 @@ const app = createApp(application, {
       },
   rateLimit: {
     ...loadConfig().rateLimit,
-    ...(rateLimitStore ? { store: rateLimitStore } : {}),
+    ...(executeRateLimitStore ? { executeStore: executeRateLimitStore } : {}),
+    ...(healthRateLimitStore ? { healthStore: healthRateLimitStore } : {}),
   },
   ...(callerAuth.disabled
     ? {}

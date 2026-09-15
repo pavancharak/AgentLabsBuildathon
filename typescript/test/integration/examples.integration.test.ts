@@ -39,7 +39,7 @@ beforeAll(async () => {
   const { createExecutionSystem } =
     await import("../../../packages/api/src/bootstrap/createExecutionSystem.js");
 
-  const executionSystem = createExecutionSystem();
+  const executionSystem = await createExecutionSystem();
   const application = createApplication(executionSystem);
 
   // callerAuth: "disabled", no apiKey -- matches the example's own

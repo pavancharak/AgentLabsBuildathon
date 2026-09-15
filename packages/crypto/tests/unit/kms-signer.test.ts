@@ -100,7 +100,7 @@ describe("KmsSigner", () => {
       input: Record<string, unknown>;
     };
     expect(call.input).toMatchObject({
-      KeyId: "test-key",
+      KeyId: "alias/test-key",
       MessageType: "RAW",
       SigningAlgorithm: "ED25519_SHA_512",
     });
@@ -127,6 +127,57 @@ describe("KmsSigner", () => {
     expect(keyObject.export({ format: "der", type: "spki" })).toEqual(
       realPublicKeyDer,
     );
+  });
+
+  describe("resolveKmsKeyId (keyId -> AWS KMS identifier mapping)", () => {
+    async function keyIdSentToKms(logicalKeyId: string): Promise<string> {
+      const KmsSigner = await freshKmsSigner();
+
+      sendMock.mockImplementation(
+        (command: { constructor: { name: string } }) => {
+          if (command.constructor.name === "DescribeKeyCommand") {
+            return Promise.resolve({
+              KeyMetadata: { KeySpec: "ECC_NIST_EDWARDS25519" },
+            });
+          }
+          throw new Error(`unexpected command: ${command.constructor.name}`);
+        },
+      );
+
+      const signer = await KmsSigner.create();
+      await signer.hasKey(logicalKeyId);
+
+      const call = sendMock.mock.calls[0]![0] as {
+        input: Record<string, unknown>;
+      };
+      return call.input.KeyId as string;
+    }
+
+    it('prefixes a bare logical keyId with alias/ (e.g. DEFAULT_KEY_ID = "default")', async () => {
+      expect(await keyIdSentToKms("default")).toBe("alias/default");
+    });
+
+    it("prefixes a tenant-scoped logical keyId the same way", async () => {
+      expect(await keyIdSentToKms("tenant.acme")).toBe("alias/tenant.acme");
+    });
+
+    it("passes an already-prefixed alias/ name through unchanged", async () => {
+      expect(await keyIdSentToKms("alias/parmana-ed25519-signer")).toBe(
+        "alias/parmana-ed25519-signer",
+      );
+    });
+
+    it("passes a full key ARN through unchanged", async () => {
+      const arn =
+        "arn:aws:kms:ap-south-1:013659367671:key/2787acce-db19-4cd6-88ed-ce2c1319096b";
+      expect(await keyIdSentToKms(arn)).toBe(arn);
+    });
+
+    it("passes a raw KMS key UUID through unchanged", async () => {
+      expect(await keyIdSentToKms("2787acce-db19-4cd6-88ed-ce2c1319096b")).toBe(
+        "2787acce-db19-4cd6-88ed-ce2c1319096b",
+      );
+    });
   });
 
   it("getMetadata() maps ECC_NIST_EDWARDS25519 to the ed25519 SignatureAlgorithm", async () => {

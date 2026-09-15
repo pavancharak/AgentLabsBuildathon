@@ -96,7 +96,7 @@ describe.skipIf(!gitHubLiveConfigured)(
       // default, GitHub's real base URL (https://api.github.com).
       delete process.env.GITHUB_BASE_URL;
 
-      const executionSystem = createExecutionSystem();
+      const executionSystem = await createExecutionSystem();
       const application = createApplication(executionSystem);
       const app = createApp(application, { callerAuth: "disabled" });
 

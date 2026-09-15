@@ -30,7 +30,7 @@ console.log("Tutorial 90 - OpenAPI Self-Description");
 console.log("==================================================");
 console.log();
 
-const executionSystem = createExecutionSystem();
+const executionSystem = await createExecutionSystem();
 const application = createApplication(executionSystem);
 const app = createApp(application, { callerAuth: "disabled" });
 

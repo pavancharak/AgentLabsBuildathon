@@ -80,7 +80,7 @@ describe("HubSpot deal update (HTTP boundary)", () => {
     // get rejected by this mock server as a mismatched credential.
     process.env.TEST_HUBSPOT_PRIVATE_APP_TOKEN = TOKEN;
 
-    const executionSystem = createExecutionSystem();
+    const executionSystem = await createExecutionSystem();
     const application = createApplication(executionSystem);
     const app = createApp(application, { callerAuth: "disabled" });
 

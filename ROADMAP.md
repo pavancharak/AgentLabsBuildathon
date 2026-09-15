@@ -222,6 +222,44 @@ package) does not yet recognize the hybrid `signatures`/`schemaVersion` envelope
 
 separate, external work, not something this repository's own build performs
 
+\* **FIXED (2026-09-16), root cause found — not the error-handling gap it first looked
+like.** `ExecutionGateway.execute()` throwing on `[signatureVerified,
+businessTransactionHashMatches, nonceUnseen]` all false together (found 2026-09-15
+via a real Pfinite refund request) traced back to one root cause, not three
+independent failures: `businessTransactionHashMatches`/`nonceUnseen` both
+short-circuit to `false` whenever `signatureVerified` is `false` (see
+`ExecutionGateway.verify()`'s own `passed`/`priorChecksPassed` gating), so this was
+always a single bug wearing three symptoms. That bug: `createExecutionGateway.ts`
+passed `keyProvider: new FileKeyProvider()` to `ExecutionGateway` unconditionally,
+regardless of `KEY_PROVIDER` — and `EnvelopeVerifier.resolveKey()` uses `keyProvider`
+(when supplied at all) for **every** authorization it verifies, not only
+tenant-scoped ones, contradicting this same file's own 2026-09-15 "KNOWN GAP" comment
+that called this path "currently inert." Under `KEY_PROVIDER=aws-kms`, every
+authorization was signed by the real KMS key (via `SignerBootstrap`) but verified
+against a stale local `default.public.pem` left over from before the KMS migration
+— signing and verification silently used different keys, so signature verification
+failed on every real request. Fixed with `SignerKeyProviderAdapter`
+(`packages/crypto/src/providers/SignerKeyProviderAdapter.ts`, new) adapting a
+`Signer` to `KeyProvider`'s read-only surface (`getPrivateKey()` throws, matching
+`KmsSigner`'s own "throws loudly rather than silently" precedent) so signing and
+per-authorization verification now share the same resolved `Signer` and therefore
+the same real key. Verified against live production traffic: a real Pfinite refund
+request now passes every Gateway check and reaches actual connector execution — it
+still gets an HTTP 500, but now from the separate `parmana-paytm-agent` connector
+service itself (`PaytmConnector "paytm" request to the Paytm connector service
+failed with HTTP 500`), not from this codebase. Traced via the shared
+`execution_audit_events` table (both repos write to it) to Paytm's real API itself
+returning a non-JSON 503 — expected, since no real Paytm merchant credentials are
+configured in `parmana-paytm-agent` yet; external to both repositories.
+
+**Full documentation of this entire migration:**
+`docs/operations/aws-kms-vercel-oidc-setup-guide.md` (step-by-step setup for a new
+developer/project) and `docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md`
+(narrative account of every bug found doing this the first time, root causes, fixes,
+and a quick diagnostic checklist). Full technical postmortem for the two most
+significant bugs (the signing/verification key divergence, and the rate-limiter
+store-reuse crash) is `docs/VERIFICATION-GAPS.md` G-48 and G-49.
+
 \---
 
 \# Phase 5 — Storage
@@ -422,14 +460,24 @@ Several items above (three-role flow, tiered approval, WORM storage for approval
 
 ---
 
-## Secrets, Signing-Key Custody & Connector Signature Hardening — Future Work (Not Yet Built)
+## Secrets, Signing-Key Custody & Connector Signature Hardening — Future Work (Partially Built)
 
-Found by a 2026-09-13 code-level audit (reading `process.env` call sites and the actual connector wire protocol across both this repo and the separate `parmana-paytm-agent` repo, not documentation). Full accepted design in `docs/adr/ADR-0009-KMS-Secrets-And-Connector-Signature-Hardening.md`. Nothing below is committed, scheduled, or in progress — this section records the accepted target design, not a plan with dates.
+Found by a 2026-09-13 code-level audit (reading `process.env` call sites and the actual connector wire protocol across both this repo and the separate `parmana-paytm-agent` repo, not documentation). Full accepted design in `docs/adr/ADR-0009-KMS-Secrets-And-Connector-Signature-Hardening.md`. **Update (2026-09-15): two of the four items below are now built** (gateway signing key → AWS KMS; Paytm wire-protocol signature verification) — see each section. The remaining two (connector secrets → Secrets Manager; GitHub App elimination) are still accepted design only, nothing committed or scheduled.
 
-### Gateway signing key → AWS KMS (sign-without-release)
+### Gateway signing key → AWS KMS (sign-without-release) — DONE (2026-09-15)
 
-**Problem it would solve:** `PARMANA_KEY_MATERIAL_JSON` / `./keys/*.private.pem` put the Ed25519 private key that signs every Execution Authorization, Trust Record, Refusal Record, and Attestation directly on disk or in the environment. Anything with the process's filesystem access can read it and forge records for actions Parmana's policy engine never approved.
-**Why not built:** requires a real refactor, not a config change — AWS KMS never exports private key material, so the seven call sites that currently do `KeyProvider.getPrivateKey()` + local `crypto.sign()` (`packages/crypto/src/VerificationCrypto.ts`, `RefusalCrypto.ts`, `AuditEventCrypto.ts`, `ReceiptCrypto.ts`, `PolicyChangeCrypto.ts`, `ExecutionChainCrypto.ts`, `packages/runtime/src/RuntimeAuthorizationSigner.ts`) need a new `sign(keyId, data)` abstraction instead of a `KeyObject`. AWS KMS added Ed25519 support in November 2025, so this needs no signature-algorithm migration once built.
+**Problem it solved:** `PARMANA_KEY_MATERIAL_JSON` / `./keys/*.private.pem` put the Ed25519 private key that signs every Execution Authorization, Trust Record, Refusal Record, and Attestation directly on disk or in the environment. Anything with the process's filesystem access can read it and forge records for actions Parmana's policy engine never approved.
+**Status:** built. All seven call sites (`packages/crypto/src/VerificationCrypto.ts`, `RefusalCrypto.ts`, `AuditEventCrypto.ts`, `ReceiptCrypto.ts`, `PolicyChangeCrypto.ts`, `ExecutionChainCrypto.ts`, `packages/runtime/src/RuntimeAuthorizationSigner.ts`) plus `packages/api/src/routes/keys.ts` resolve signing/verification through `SignerBootstrap.create()`, which returns a real `KmsSigner` (`packages/crypto/src/providers/signer/KmsSigner.ts`) when `KEY_PROVIDER=aws-kms`. Fixed 2026-09-15: `KmsSigner` was passing the logical keyId (e.g. `"default"`) straight through as AWS KMS's `KeyId` parameter, an invalid format; it now maps `keyId` → `alias/<keyId>`, passing an already-qualified alias/ARN/raw key ID through unchanged. Verified end-to-end against a real AWS KMS key (`ECC_NIST_EDWARDS25519`/`ED25519_SHA_512`) under a least-privilege IAM identity scoped to that one key.
+**Update (2026-09-15, later same day):** the Vercel→AWS OIDC IAM role is now built. IAM OIDC identity provider trusting `https://oidc.vercel.com/pavan-dev-singh-charaks-projects` (Team issuer mode), IAM role `arn:aws:iam::013659367671:role/parmana-vercel-kms-signer` with a trust policy scoped to `owner:pavan-dev-singh-charaks-projects:project:parmana-api-real:environment:production` (production only — preview/development are not trusted), and a least-privilege policy (`kms:Sign`/`kms:GetPublicKey`/`kms:DescribeKey` on exactly the one gateway key ARN, no key-management actions — a narrower policy than the local-admin `parmana-kms-operator` user has). `@vercel/oidc-aws-credentials-provider` is already a declared dependency (`packages/api`, `packages/crypto`).
+**Update (2026-09-15, later same day): live in production, verified end-to-end.** `AWS_ROLE_ARN`/`AWS_REGION=ap-south-1`/`KEY_PROVIDER=aws-kms` are set on the live Vercel project (`parmana-api-real`), and `AssumeRoleWithWebIdentity` via Vercel's OIDC token is confirmed working against a real deployment (`GET /keys/default` returns a real KMS-backed public key, `POST /execute` reaches business logic). Getting there surfaced three more real gaps than the ones already listed above, none visible from code review alone:
+
+- `createGatewayPublicKey()` (`packages/api/src/bootstrap/createGatewayPublicKey.ts`) read a local file unconditionally regardless of `KEY_PROVIDER` — outside ADR-0009's original seven-call-site audit. Fixed to resolve through `SignerBootstrap`, which required making the whole `createExecutionSystem()` chain async (~20 call sites across `server.ts`, `api/index.ts`, tests, and tutorials updated to `await` it).
+- Vercel Functions cannot obtain the OIDC token at module-load/cold-start time, only during actual request handling (`@vercel/oidc`'s own documented constraint) — `api/index.ts` had to be restructured to lazily build the app on the first real request instead of eagerly at module top level.
+- `assertSigningKeyMaterialConfigured()`'s early-return for `KEY_PROVIDER=aws-kms` also skipped materializing the _separate_ "gateway" attestation key (`createGatewayKeyPair.ts`, DEFAULT_GATEWAY_KEY_ID="gateway") — never meant to move to KMS at all. Fixed to only skip the "default" key's local-file check, not materialization of other keys `PARMANA_KEY_MATERIAL_JSON` carries.
+
+Also found and fixed the same day, surfaced by the same production testing (unrelated to KMS): `express-rate-limit` v8's `ERR_ERL_STORE_REUSE` — `createApp()` was passing one shared `PostgresRateLimitStore` instance to both the `/execute` and `/health`,`/ready` limiters, which the library's own documented contract disallows. **Correction:** this validation only logs the violation (`console.error`) rather than throwing — verified directly against the installed library's source — so it was not, as first assumed, the direct cause of the 500s observed that night (those traced to the signing/verification key divergence below); still a real contract violation worth fixing regardless. Fixed with per-limiter store instances (`RateLimitOption.executeStore`/`healthStore`, replacing the single `store` field) and prefix-based key namespacing (`PostgresRateLimitStore`'s new `prefix` parameter, matching `express-rate-limit`'s own documented `Store.prefix` contract). See `docs/VERIFICATION-GAPS.md` G-49 and `examples/tutorials/115-per-limiter-rate-limit-stores/` for the full corrected account.
+
+**Still not done:** deleting `PARMANA_KEY_MATERIAL_JSON` from Vercel/`.env` (ADR-0009 step 4) — explicitly a last step, only after everything above has been live and verified for a while, not rushed the same day.
 
 ### Opaque connector secrets → AWS Secrets Manager
 
@@ -441,10 +489,10 @@ Found by a 2026-09-13 code-level audit (reading `process.env` call sites and the
 **Problem it would solve:** `GITHUB_APP_PRIVATE_KEY` is a static master key in `.env`; only the installation token it mints is actually ephemeral.
 **Why not built:** requires registering a Vercel Connect GitHub connector (an interactive, browser-based install/consent step) and replacing `createGitHubCredentialProvider.ts`'s production branch — not yet done.
 
-### Paytm connector wire protocol → add signature verification
+### Paytm connector wire protocol → add signature verification — DONE
 
-**Problem it would solve:** traced `GatewayPaytmAdapter.ts` against `parmana-paytm-agent`'s `executeAuthorizedConnectorRequest` (`src/server/handler.ts`) and found the `authorization.payload` sent over the wire is unsigned JSON — the receiving service only checks a bearer shared secret and string-matches `businessTransactionId`. Whoever holds `PAYTM_CONNECTOR_SHARED_SECRET` can call `POST /connector/paytm-refund` directly with self-chosen parameters, skipping Parmana's policy engine entirely.
-**Why not built:** this is the deepest item — it requires a coordinated change across two independently deployed repositories (Parmana signs a canonical payload with the gateway key; `parmana-paytm-agent` fetches Parmana's public key via the existing `GET /keys/:keyId` and verifies it before executing), not yet scheduled.
+**Problem it solved:** traced `GatewayPaytmAdapter.ts` against `parmana-paytm-agent`'s `executeAuthorizedConnectorRequest` (`src/server/handler.ts`) and found the `authorization.payload` sent over the wire is unsigned JSON — the receiving service only checked a bearer shared secret and string-matched `businessTransactionId`. Whoever holds `PAYTM_CONNECTOR_SHARED_SECRET` could call `POST /connector/paytm-refund` directly with self-chosen parameters, skipping Parmana's policy engine entirely.
+**Status:** built, across both repositories. `GatewayPaytmAdapter.ts` signs the canonical payload via `SignerBootstrap`/`Signer.sign()` and includes `signature`/`keyId` in the outbound request; `parmana-paytm-agent`'s `executeAuthorizedConnectorRequest` fetches Parmana's public key via `GET /keys/:keyId` and verifies it before calling Paytm (see `docs/CLAIMS.md` §3.22's "ADR-0009 Phase 2B" reference). This is additive to the existing bearer-secret check, not a replacement.
 
 ### Open question this future work depends on
 

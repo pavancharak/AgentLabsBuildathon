@@ -103,7 +103,7 @@ try {
     },
   });
 
-  const executionSystem = createExecutionSystem();
+  const executionSystem = await createExecutionSystem();
   const application = createApplication(executionSystem);
 
   // The caller declares signals as if the deal were still at an early,

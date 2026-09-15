@@ -124,6 +124,9 @@ const examples = [
   "examples/tutorials/110-hybrid-signature-downgrade-protection/run.ts",
   "examples/tutorials/111-connect-an-agent/run.ts",
   "examples/tutorials/112-slack-connector/run.ts",
+  "examples/tutorials/113-kms-key-id-resolution/run.ts",
+  "examples/tutorials/114-signing-verification-key-agreement/run.ts",
+  "examples/tutorials/115-per-limiter-rate-limit-stores/run.ts",
   "examples/scenarios/expense-approval/run.ts",
   "examples/scenarios/purchase-order/run.ts",
 ];

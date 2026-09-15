@@ -73,13 +73,21 @@ export interface RateLimitOption {
   readonly healthPerMinute: number;
 
   /**
-   * Shared Store backing both limiters below (see
-   * createRateLimitStore.ts). Optional: omitted, each limiter falls
-   * back to express-rate-limit's own in-process MemoryStore, exactly
-   * the behavior every existing call site had before this field
-   * existed.
+   * Separate Store instances for the execute and health/ready limiters
+   * (see createRateLimitStore.ts). Deliberately two distinct fields,
+   * not one shared `store` (this field's original, single-store shape,
+   * found 2026-09-15 to be a real production bug): express-rate-limit
+   * v8 refuses to let the same Store instance back more than one
+   * limiter (`ERR_ERL_STORE_REUSE`), throwing at limiter construction
+   * time -- passing one shared instance to both createExecuteRateLimiter
+   * and createHealthReadyRateLimiter crashed every request on a fresh
+   * Vercel cold start. Optional: omitted, each limiter falls back to
+   * express-rate-limit's own in-process MemoryStore, exactly the
+   * behavior every existing call site had before this field existed.
    */
-  readonly store?: Store;
+  readonly executeStore?: Store;
+
+  readonly healthStore?: Store;
 }
 
 const DEFAULT_EXECUTE_PER_MINUTE = 30;
@@ -159,7 +167,7 @@ export function createApp(
    */
   const healthReadyRateLimiter = createHealthReadyRateLimiter(
     healthPerMinute,
-    options.rateLimit?.store,
+    options.rateLimit?.healthStore,
   );
 
   app.use("/health", healthReadyRateLimiter, healthRoutes);
@@ -240,7 +248,12 @@ export function createApp(
   app.use(
     "/execute",
     ...(options.callerAuth !== "disabled"
-      ? [createExecuteRateLimiter(executePerMinute, options.rateLimit?.store)]
+      ? [
+          createExecuteRateLimiter(
+            executePerMinute,
+            options.rateLimit?.executeStore,
+          ),
+        ]
       : []),
     createExecuteRouter(
       application,

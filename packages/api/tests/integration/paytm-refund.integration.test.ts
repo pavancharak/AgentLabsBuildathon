@@ -69,7 +69,7 @@ describe("Paytm refund (HTTP boundary)", () => {
     // ambiently absent.
     process.env.TEST_PAYTM_CONNECTOR_SHARED_SECRET = SECRET;
 
-    const executionSystem = createExecutionSystem();
+    const executionSystem = await createExecutionSystem();
     const application = createApplication(executionSystem);
     const app = createApp(application, { callerAuth: "disabled" });
 

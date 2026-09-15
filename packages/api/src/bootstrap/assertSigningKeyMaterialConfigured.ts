@@ -33,13 +33,6 @@ export function assertSigningKeyMaterialConfigured(): void {
 
   const config = loadConfig();
 
-  // ADR-0009: KEY_PROVIDER=aws-kms has no local key directory to
-  // materialize or validate -- see assertKmsSigningKeyReachable()
-  // below, called separately (it's async; this function stays
-  // synchronous so its existing fail-closed contract and every test
-  // asserting a synchronous throw are unaffected).
-  if (config.keys.provider === KeyProviders.AWS_KMS) return;
-
   const keyDirectory = config.keys.keyDirectory;
 
   // Config.ts types keyDirectory as a required string but actually
@@ -58,6 +51,23 @@ export function assertSigningKeyMaterialConfigured(): void {
   }
 
   materializeFromEnvIfConfigured(keyDirectory);
+
+  // ADR-0009: KEY_PROVIDER=aws-kms moves only the "default" signing
+  // key's custody to KMS -- it never touched the separate "gateway"
+  // attestation key (createGatewayKeyPair.ts, DEFAULT_GATEWAY_KEY_ID
+  // = "gateway"), which stays local-file-backed regardless of
+  // KEY_PROVIDER (see its own doc comment: "different trust domain").
+  // materializeFromEnvIfConfigured() above must still run for THAT
+  // key's sake even when KEY_PROVIDER=aws-kms -- returning early
+  // before it ran (this function's original ADR-0009 shape) silently
+  // skipped materializing "gateway" too, which crashed every request
+  // in production the moment KEY_PROVIDER=aws-kms was set, since
+  // nothing else in this codebase materializes that key file. Only
+  // the DEFAULT_KEY_ID-specific existence check below is skipped for
+  // aws-kms -- that key genuinely has no local file under this
+  // provider; assertKmsSigningKeyReachable() (async, called
+  // separately) is its equivalent fail-closed check.
+  if (config.keys.provider === KeyProviders.AWS_KMS) return;
 
   const privatePath = join(keyDirectory, `${DEFAULT_KEY_ID}.private.pem`);
   const publicPath = join(keyDirectory, `${DEFAULT_KEY_ID}.public.pem`);

@@ -63,6 +63,18 @@ Use `SERVICE`, never `"AGENT"` — that value doesn't exist in `AuthorityType`. 
 single-purpose agent; `/callers/me`'s `unrestrictedCapabilities` is literally
 `allowedCapabilities.includes("*")`.
 
+<Warning>
+  **If you're the deployment operator adding this key** (not just the agent
+  developer): `PARMANA_API_KEYS` is one environment variable holding a JSON
+  **array**. Two real mistakes were made hand-editing a live deployment's value
+  in a hosting dashboard: pasting the new entry as the *entire* value instead of
+  appending it to the array (every caller gets a 500 until fixed — the server
+  fails closed on malformed JSON), and losing existing entries by replacing
+  rather than appending. Always paste the complete array — every existing entry
+  plus the new one. Full account:
+  `docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md`.
+</Warning>
+
 **4. Verify the key before writing agent code:**
 
 ```bash
@@ -147,17 +159,17 @@ and "the action executed" are two separately-verifiable claims — never conflat
 
 Every row is cited to the exact source producing it:
 
-| Status | `code`                   | Source                                                              | Meaning                                                                                                              | Do this                                                                                         |
-| ------ | ------------------------ | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `200`  | —                        | Decision `APPROVE`                                                  | Authorized; a signed decision exists. Dispatch (if any) happens after.                                               | Report authorization only — not execution, unless separately confirmed.                         |
-| `400`  | —                        | Invalid `businessTransactionId` / body shape                        | Structural rejection, before auth or policy.                                                                         | Fix request construction.                                                                       |
-| `403`  | (none)                   | `principalId` not permitted                                         | Caller can't assert that principal.                                                                                  | Use your own `callerId`.                                                                        |
-| `403`  | `CAPABILITY_NOT_ALLOWED` | `intent.action` not in your key's `allowedCapabilities`             | **Most common real-world bug.** Exact-string mismatch.                                                               | Compare `/callers/me`'s `allowedCapabilities` to your `intent.action`, character for character. |
-| `403`  | `POLICY_DENIED`          | `ExecutionGate.enforce` — uniform for _every_ rejection cause       | A real, correct decision. `message` names the actual rule that matched (excessive amount, failed fraud check, etc.). | Respect it. Never retry with altered parameters.                                                |
-| `404`  | —                        | `PolicyNotFoundError`                                               | `policy.name`/`version` not deployed on this instance.                                                               | Check spelling/version and confirm deployment.                                                  |
-| `409`  | —                        | `DuplicateBusinessTransactionError`                                 | Reused `businessTransactionId`.                                                                                      | Fresh UUID per attempt; design idempotency separately if needed.                                |
-| `500`  | —                        | Generic fallback — **also catches an unregistered-connector error** | Ambiguous by design. Very often "APPROVED, but no connector registered," not a bug in your agent.                    | Check server logs for the exact message before assuming it's your bug.                          |
-| (none) | —                        | Timeout/network                                                     | Unknown whether Parmana ever received it.                                                                            | Treat as unresolved — never guess APPROVED or REJECTED.                                         |
+| Status | `code`                   | Source                                                                                                                                                              | Meaning                                                                                                                                                                                                  | Do this                                                                                                                                                                                                                                  |
+| ------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `200`  | —                        | Decision `APPROVE`                                                                                                                                                  | Authorized; a signed decision exists. Dispatch (if any) happens after.                                                                                                                                   | Report authorization only — not execution, unless separately confirmed.                                                                                                                                                                  |
+| `400`  | —                        | Invalid `businessTransactionId` / body shape                                                                                                                        | Structural rejection, before auth or policy.                                                                                                                                                             | Fix request construction.                                                                                                                                                                                                                |
+| `403`  | (none)                   | `principalId` not permitted                                                                                                                                         | Caller can't assert that principal.                                                                                                                                                                      | Use your own `callerId`.                                                                                                                                                                                                                 |
+| `403`  | `CAPABILITY_NOT_ALLOWED` | `intent.action` not in your key's `allowedCapabilities`                                                                                                             | **Most common real-world bug.** Exact-string mismatch.                                                                                                                                                   | Compare `/callers/me`'s `allowedCapabilities` to your `intent.action`, character for character.                                                                                                                                          |
+| `403`  | `POLICY_DENIED`          | `ExecutionGate.enforce` — uniform for _every_ rejection cause                                                                                                       | A real, correct decision. `message` names the actual rule that matched (excessive amount, failed fraud check, etc.).                                                                                     | Respect it. Never retry with altered parameters.                                                                                                                                                                                         |
+| `404`  | —                        | `PolicyNotFoundError`                                                                                                                                               | `policy.name`/`version` not deployed on this instance.                                                                                                                                                   | Check spelling/version and confirm deployment.                                                                                                                                                                                           |
+| `409`  | —                        | `DuplicateBusinessTransactionError`                                                                                                                                 | Reused `businessTransactionId`.                                                                                                                                                                          | Fresh UUID per attempt; design idempotency separately if needed.                                                                                                                                                                         |
+| `500`  | —                        | Generic fallback — catches an unregistered-connector error **and** `ExecutionGateway` rejecting a signed envelope (bad signature, tampered content, replayed nonce) | Deliberately ambiguous by design, not a flaw in the error handler. Very often "APPROVED, but no connector registered" — or a Parmana-side signing/verification bug with nothing to do with your request. | Check server logs for the exact message before assuming it's your bug — `docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md` (repo root) documents a real example of this exact failure mode caused entirely server-side. |
+| (none) | —                        | Timeout/network                                                                                                                                                     | Unknown whether Parmana ever received it.                                                                                                                                                                | Treat as unresolved — never guess APPROVED or REJECTED.                                                                                                                                                                                  |
 
 ## Common mistakes
 
@@ -167,6 +179,8 @@ Every row is cited to the exact source producing it:
 - Treating `POLICY_DENIED` as a bug instead of a correct decision.
 - Claiming execution from `APPROVED` alone, without confirming connector registration.
 - Granting `"*"` "to get it working" and never narrowing it.
+- Hand-editing `PARMANA_API_KEYS` by pasting a single entry instead of the complete array.
+- Assuming a `500` always means your request was wrong — it's deliberately ambiguous by design.
 
 ## Reference implementation
 
@@ -175,6 +189,15 @@ were found and fixed in it: the exact `CAPABILITY_NOT_ALLOWED` mistake from the 
 (`"refund"` instead of `"paytm:refund"`), and error handling that crashed instead of resolving
 unrecognized failures to an unresolved client-side state. See that repository's README for the full
 writeup.
+
+**Second round, entirely on Parmana's own side (2026-09-15/16):** after those agent-side fixes, this
+same integration hit a sequence of purely Parmana-operator issues onboarding as a new caller on a
+freshly KMS-migrated deployment: no `PARMANA_API_KEYS` entry at all (401) → a malformed hand-edited
+entry (500 for every caller) → no `allowedPrincipalIds` grant for the asserted principal (403) → a
+genuine Parmana-side bug where the gateway's signing and verification paths silently used different
+keys after a KMS migration (500, unrelated to the request itself —
+`examples/tutorials/114-signing-verification-key-agreement/` reproduces it). None of these were agent
+bugs. Full account: `docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md`.
 
 ## Next
 

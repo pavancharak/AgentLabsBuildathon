@@ -90,7 +90,7 @@ console.log("Tutorial 77 - Caller Ownership Scoping");
 console.log("==================================================");
 console.log();
 
-const executionSystem = createExecutionSystem();
+const executionSystem = await createExecutionSystem();
 const application = createApplication(executionSystem);
 
 const transaction = vendorPaymentTransaction("caller-a");

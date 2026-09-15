@@ -65,7 +65,7 @@ describe("GitHub PR merge (HTTP boundary)", () => {
 
     process.env.GITHUB_BASE_URL = mockServer.baseUrl;
 
-    const executionSystem = createExecutionSystem();
+    const executionSystem = await createExecutionSystem();
     const application = createApplication(executionSystem);
     const app = createApp(application, { callerAuth: "disabled" });
 

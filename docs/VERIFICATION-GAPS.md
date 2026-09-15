@@ -1084,6 +1084,123 @@ No fix attempted this session — this is a decision for whoever turns
 `POLICY_EXECUTION_VERIFICATION_ENFORCED` on for the first time, not a code change to make
 unilaterally. See `02-REMAINING.md` Tier 0.
 
+**G-48. `createExecutionGateway.ts` passed an unconditional `new FileKeyProvider()` as
+`ExecutionGateway`'s `keyProvider`, regardless of `KEY_PROVIDER` — silently verifying every
+authorization against a stale local key once `KEY_PROVIDER=aws-kms` was turned on, while
+signing correctly used the real KMS key. RESOLVED 2026-09-16, the day after ADR-0009's KMS
+migration went live.** Found via real production traffic (a live Pfinite refund attempt),
+not a code review: `POST /execute` returned an opaque HTTP 500, and Vercel's runtime logs
+showed `Execution Gateway rejected request: failed checks [signatureVerified,
+businessTransactionHashMatches, nonceUnseen]`. Initially misdiagnosed the night before
+(2026-09-15, ROADMAP.md's "Secrets, Signing-Key Custody" section) as three independent
+verification failures needing investigation; they are not independent —
+`businessTransactionHashMatches` and `nonceUnseen` both short-circuit to `false` inside
+`ExecutionGateway.verify()` whenever `signatureVerified` is `false` (`passed`/
+`priorChecksPassed` gating), so this was always one root cause wearing three symptoms.
+
+**Root cause:** `EnvelopeVerifier.resolveKey()` (`packages/envelope-verifier/src/EnvelopeVerifier.ts`)
+uses `keyProvider` — when supplied at all — to resolve the verification key for **every**
+authorization, not only ones signed under a non-default (tenant-scoped) keyId.
+`createExecutionGateway.ts` unconditionally constructed `new FileKeyProvider()` and passed
+it as `keyProvider`, a leftover from before ADR-0009's KMS migration that the migration's
+own seven-call-site audit (`docs/adr/ADR-0009-...md`) never covered, because
+`ExecutionGateway`'s own key-lookup wiring for Gap 2A (tenant-key verification) was outside
+that audit's scope. The night before (2026-09-15), this was found and explicitly assessed
+as `KNOWN GAP... currently inert under KEY_PROVIDER=aws-kms, not actively broken` — that
+assessment was wrong: it is exercised on every request, not only tenant-scoped ones.
+Consequence in production: `RuntimeAuthorizationSigner` signed every authorization with the
+real KMS key (`SignerBootstrap` → `KmsSigner`), but `ExecutionGateway`'s verification path
+resolved the verification key via `FileKeyProvider.getPublicKey("default")`, reading
+whatever stale `default.public.pem` happened to still be materialized on
+`/tmp` from `PARMANA_KEY_MATERIAL_JSON`'s pre-KMS-migration entry (materialization itself
+was fixed to still run under `aws-kms` by a same-night, earlier fix — see ROADMAP.md — but
+that fix's own side effect was to keep this stale key present and readable, not to remove
+it). Signing key and verifying key silently diverged: every real authorization failed
+signature verification, permanently, with no error at startup (`assertKmsSigningKeyReachable()`
+only checks that the KMS key itself is reachable, not that every `EnvelopeVerifier`
+consumer is configured to use it).
+
+**Fix:** new `SignerKeyProviderAdapter`
+(`packages/crypto/src/providers/SignerKeyProviderAdapter.ts`) adapts a `Signer` to
+`KeyProvider`'s read-only surface (`getPublicKey`/`getMetadata`/`hasKey`/`listKeys`
+delegate; `getPrivateKey()` always throws — a `Signer` never releases private key material
+by design, matching `KmsSigner`'s own "throw loudly rather than fail silently" precedent).
+`createExecutionGateway.ts` now resolves one `Signer` via `SignerBootstrap.create()` and
+shares it between `createGatewayPublicKey(signer)` and `new SignerKeyProviderAdapter(signer)`,
+so the static publicKey and the per-authorization keyProvider path are guaranteed to agree
+on the same backend — under `KEY_PROVIDER=local` this is `LocalFileSigner` (unchanged
+behavior, byte-for-byte the same as before `Signer` existed); under `aws-kms` both now
+correctly resolve through the real KMS key.
+
+**Verified:** `packages/crypto/tests/unit/signer-key-provider-adapter.test.ts` (6 new
+cases: delegation of each read method, `getPrivateKey()` throwing, `listKeys()` delegating
+when supported and throwing when not). Full workspace `npx tsc -b` clean. Full repo suite:
+1838 passed, 42 skipped, 0 failed. Verified live against production: a real Pfinite refund
+request (`businessTransactionId: b8323ba6-72eb-4509-a724-e7e4ddd5adf3`) now passes every
+Gateway check and reaches actual connector execution — confirmed independently by
+`parmana-paytm-agent`'s own audit trail (the two repos share one `execution_audit_events`
+table) recording `authorization.verified` for that same transaction, something no real
+request had achieved since `KEY_PROVIDER=aws-kms` was first turned on. The request's
+eventual failure past that point (`Paytm returned non-JSON response (HTTP 503)`) is
+external to both repos — no real Paytm merchant credentials are configured yet — and is
+not part of this gap.
+
+**G-49. `express-rate-limit` v8's `ERR_ERL_STORE_REUSE` violated the library's documented
+Store-sharing contract on every Vercel cold start whenever `DATABASE_URL` was configured.
+RESOLVED 2026-09-16.** Found the same night as G-48, via the same live-production
+debugging: Vercel runtime logs showed `ValidationError: A Store instance must not be shared
+across multiple rate limiters` alongside a request that returned HTTP 500. Pre-existing
+bug, unrelated to the KMS migration — surfaced only because Vercel's serverless cold-start
+behavior exercises `createApp()`'s construction path far more frequently than the previous,
+always-running deployment target did.
+
+**Correction (verified directly against the installed library's own source,
+`node_modules/express-rate-limit/dist/index.mjs`, `wrappedValidations`): this validation
+does not throw.** Every validation in `express-rate-limit` v8 is wrapped in a try/catch that
+catches `ValidationError` and only logs it (`logger.error`, default `console.error`) — it
+never re-throws or crashes the process. The original write-up of this entry (and the
+troubleshooting guide it was based on) stated this validation "crashed the process" /
+"caused every request to 500," inferred from seeing the log line appear next to a real 500
+— that causal claim was never actually verified and does not hold up against the library's
+real behavior. The 500 observed that night was caused by a separate, genuinely fatal,
+still-unfixed bug at the time (G-48's signing/verification key divergence) logged in the
+same request. Corrected here, in `Tutorial 115` (`examples/tutorials/115-per-limiter-rate-limit-stores/`,
+which reproduces the actual logged-not-thrown behavior directly against the real library),
+and in `docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md`.
+
+**Still a real bug worth fixing, independent of the corrected causal claim above:** sharing
+one `Store` instance across two limiters violates this library's own documented contract
+regardless of whether the current installed version happens to only warn about it — a
+future `express-rate-limit` version, or a deployment that sets a stricter `validate` config,
+could make this fatal for real. It may also cause subtler, non-crashing correctness issues
+in the library's internal per-store bookkeeping that were not investigated once the
+crash-causation theory was corrected.
+
+**Root cause:** `createRateLimitStore()` (`packages/api/src/bootstrap/createRateLimitStore.ts`)
+returned one `PostgresRateLimitStore` instance, and both `api/index.ts` and `server.ts`
+passed that same instance to both `createHealthReadyRateLimiter` and
+`createExecuteRateLimiter` (`app.ts`). `express-rate-limit` v8 added a runtime check
+refusing to let one `Store` instance back more than one limiter.
+
+**Fix:** `RateLimitOption` (`packages/api/src/app.ts`) now takes two fields,
+`executeStore`/`healthStore`, replacing the single `store` field. `createRateLimitStore(prefix)`
+takes a required `prefix` argument and must be called once per limiter (`"execute:"` /
+`"health:"`); `PostgresRateLimitStore` gained a `prefix` constructor parameter, exposed as a
+**public** field named exactly `prefix` (not a private implementation detail) because
+`express-rate-limit`'s own `Store` type declares an optional `prefix?: string` specifically
+for its double-count/reuse-detection logic — matching that name and visibility is what lets
+the library recognize two differently-prefixed stores as legitimately distinct, not a
+naming coincidence. `PostgresPoolFactory.create()` underneath is already a process-wide
+singleton, so calling `createRateLimitStore()` twice does not open a second database
+connection.
+
+**Verified:** `packages/storage/tests/unit/postgres-rate-limit-store.test.ts` (new, 4
+cases: prefix prepended on `increment`/`get`/`decrement`/`resetKey`, defaults to no prefix
+when omitted). `packages/api/tests/unit/bootstrap/create-rate-limit-store.test.ts` gained a
+case asserting two different prefixes produce two distinct `Store` instances. Full repo
+suite passing. Verified live against production: 5 consecutive `/health` requests plus
+`/keys/default` and `/execute`, no `ERR_ERL_STORE_REUSE` recurrence in Vercel runtime logs.
+
 ### pre-production
 
 **G-4. Hybrid/post-quantum signing was dead configuration in production. PARTIALLY

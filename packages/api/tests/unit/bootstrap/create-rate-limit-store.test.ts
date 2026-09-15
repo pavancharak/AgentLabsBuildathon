@@ -31,14 +31,14 @@ describe("createRateLimitStore", () => {
     process.env.NODE_ENV = "test";
     delete process.env.DATABASE_URL;
 
-    expect(createRateLimitStore()).toBeUndefined();
+    expect(createRateLimitStore("execute:")).toBeUndefined();
   });
 
   it("returns undefined and warns loudly when not test and DATABASE_URL is unconfigured", () => {
     process.env.NODE_ENV = "production";
     delete process.env.DATABASE_URL;
 
-    const result = createRateLimitStore();
+    const result = createRateLimitStore("execute:");
 
     expect(result).toBeUndefined();
     expect(console.warn).toHaveBeenCalledWith(
@@ -51,7 +51,22 @@ describe("createRateLimitStore", () => {
     process.env.DATABASE_URL =
       "postgresql://user:pass@example.supabase.co:5432/postgres";
 
-    expect(createRateLimitStore()).toBeInstanceOf(PostgresRateLimitStore);
+    expect(createRateLimitStore("execute:")).toBeInstanceOf(
+      PostgresRateLimitStore,
+    );
     expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("returns two independent Store instances for two different prefixes, never the same instance", () => {
+    process.env.NODE_ENV = "production";
+    process.env.DATABASE_URL =
+      "postgresql://user:pass@example.supabase.co:5432/postgres";
+
+    const executeStore = createRateLimitStore("execute:");
+    const healthStore = createRateLimitStore("health:");
+
+    expect(executeStore).toBeInstanceOf(PostgresRateLimitStore);
+    expect(healthStore).toBeInstanceOf(PostgresRateLimitStore);
+    expect(executeStore).not.toBe(healthStore);
   });
 });

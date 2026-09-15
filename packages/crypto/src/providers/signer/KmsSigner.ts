@@ -24,6 +24,37 @@ import { CryptoError } from "../../errors/CryptoError.js";
 const SUPPORTED_KEY_SPEC = "ECC_NIST_EDWARDS25519";
 const SIGNING_ALGORITHM = "ED25519_SHA_512";
 
+const RAW_KMS_KEY_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Maps a Parmana logical keyId (e.g. "default", "tenant.acme") to the
+ * identifier AWS KMS's own APIs actually accept -- a key ID (UUID), a
+ * full ARN, or an alias name/ARN (which must carry the "alias/"
+ * prefix). Every call site in this codebase passes a bare logical
+ * keyId straight from KeyProvider.DEFAULT_KEY_ID / TenantKeyResolver
+ * (e.g. "default", "tenant.acme"); none of those are valid KMS
+ * identifiers on their own, so passing them through unchanged (this
+ * class's original behavior) always fails against real AWS with
+ * ValidationException/NotFoundException. Mirrors FileKeyProvider's own
+ * keyId -> "<keyId>.private.pem" filename convention: here, keyId ->
+ * "alias/<keyId>". A caller that already supplies a real ARN, an
+ * explicit "alias/..." name, or a raw key ID (UUID) is passed through
+ * unchanged so this never double-prefixes or breaks an already-correct
+ * identifier.
+ */
+export function resolveKmsKeyId(keyId: string): string {
+  if (keyId.startsWith("arn:") || keyId.startsWith("alias/")) {
+    return keyId;
+  }
+
+  if (RAW_KMS_KEY_ID_PATTERN.test(keyId)) {
+    return keyId;
+  }
+
+  return `alias/${keyId}`;
+}
+
 function algorithmFromKeySpec(keySpec: string | undefined): SignatureAlgorithm {
   if (keySpec === SUPPORTED_KEY_SPEC) {
     return SignatureAlgorithms.ED25519;
@@ -76,7 +107,7 @@ export class KmsSigner implements Signer {
   async sign(keyId: string, data: Uint8Array): Promise<string> {
     const response = await this.client.send(
       new SignCommand({
-        KeyId: keyId,
+        KeyId: resolveKmsKeyId(keyId),
         Message: data,
         MessageType: "RAW",
         SigningAlgorithm: SIGNING_ALGORITHM,
@@ -92,7 +123,7 @@ export class KmsSigner implements Signer {
 
   async getPublicKey(keyId: string): Promise<KeyObject> {
     const response = await this.client.send(
-      new GetPublicKeyCommand({ KeyId: keyId }),
+      new GetPublicKeyCommand({ KeyId: resolveKmsKeyId(keyId) }),
     );
 
     if (!response.PublicKey) {
@@ -110,7 +141,7 @@ export class KmsSigner implements Signer {
 
   async getMetadata(keyId: string): Promise<KeyMetadata> {
     const response = await this.client.send(
-      new DescribeKeyCommand({ KeyId: keyId }),
+      new DescribeKeyCommand({ KeyId: resolveKmsKeyId(keyId) }),
     );
 
     return {
@@ -121,7 +152,9 @@ export class KmsSigner implements Signer {
 
   async hasKey(keyId: string): Promise<boolean> {
     try {
-      await this.client.send(new DescribeKeyCommand({ KeyId: keyId }));
+      await this.client.send(
+        new DescribeKeyCommand({ KeyId: resolveKmsKeyId(keyId) }),
+      );
 
       return true;
     } catch (error) {
