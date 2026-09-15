@@ -242,6 +242,41 @@ function parseSignatureAlgorithm(sourceFile: ts.SourceFile): EnumSpec {
   );
 }
 
+/**
+ * Converts `export type X = "A" | "B" | ...` (a plain string-literal
+ * union, no numeric/computed members) into the same EnumSpec shape
+ * parseEnum() produces from a real `enum` declaration -- Python has no
+ * such distinction, and unlike DecisionOutcome/PolicyOutcome (real TS
+ * enums on both sides of a package boundary, deliberately kept
+ * separate and explicitly mapped between at the boundary, e.g.
+ * DecisionBuilder.toDecisionOutcome()), a plain string-literal union
+ * type is structurally compatible wherever it's reused, so no such
+ * mapping is needed for a type like this.
+ */
+function tryParseStringUnionTypeAlias(
+  stmt: ts.Statement,
+): EnumSpec | undefined {
+  if (!ts.isTypeAliasDeclaration(stmt) || !isExported(stmt)) {
+    return undefined;
+  }
+
+  if (!ts.isUnionTypeNode(stmt.type)) {
+    return undefined;
+  }
+
+  const members: { name: string; value: string }[] = [];
+
+  for (const member of stmt.type.types) {
+    if (!ts.isLiteralTypeNode(member) || !ts.isStringLiteral(member.literal)) {
+      return undefined;
+    }
+
+    members.push({ name: member.literal.text, value: member.literal.text });
+  }
+
+  return { kind: "enum", name: stmt.name.text, members };
+}
+
 function loadSourceFile(filePath: string): ts.SourceFile {
   const text = fs.readFileSync(filePath, "utf-8");
 
@@ -259,6 +294,12 @@ function registerDomainFile(fileName: string): void {
     } else if (ts.isEnumDeclaration(stmt) && isExported(stmt)) {
       const spec = parseEnum(stmt);
       registry.set(spec.name, spec);
+    } else {
+      const unionSpec = tryParseStringUnionTypeAlias(stmt);
+
+      if (unionSpec) {
+        registry.set(unionSpec.name, unionSpec);
+      }
     }
   }
 }
@@ -326,7 +367,11 @@ const MODULES: ModuleSpec[] = [
   },
   {
     file: "policy",
-    types: ["PolicyReference"],
+    types: [
+      "PolicyGovernanceAnchorStatus",
+      "PolicyGovernanceAnchor",
+      "PolicyReference",
+    ],
     docSource: "domain/policy-reference.ts",
   },
   {

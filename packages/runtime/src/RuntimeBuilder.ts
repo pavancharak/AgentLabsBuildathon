@@ -13,6 +13,7 @@ import {
 
 import type {
   PolicyExecutionVerifier,
+  PolicyGovernanceAnchorResolver,
   PolicyRepository,
   SignalStateVerifier,
 } from "@parmana/policy";
@@ -48,6 +49,8 @@ export class RuntimeBuilder {
 
   private policyExecutionVerifier?: PolicyExecutionVerifier;
 
+  private policyGovernanceAnchorResolver?: PolicyGovernanceAnchorResolver;
+
   /**
    * Configure policy directory.
    */
@@ -76,6 +79,21 @@ export class RuntimeBuilder {
    */
   public withPolicyExecutionVerifier(verifier: PolicyExecutionVerifier): this {
     this.policyExecutionVerifier = verifier;
+
+    return this;
+  }
+
+  /**
+   * Configure a Policy Governance evidence anchor resolver (G-45).
+   * Optional -- omitting this leaves current behavior unchanged (no
+   * governance anchor is resolved or recorded). Unlike
+   * withPolicyExecutionVerifier above, safe to wire unconditionally:
+   * this never blocks or rejects execution.
+   */
+  public withPolicyGovernanceAnchorResolver(
+    resolver: PolicyGovernanceAnchorResolver,
+  ): this {
+    this.policyGovernanceAnchorResolver = resolver;
 
     return this;
   }
@@ -196,6 +214,7 @@ export class RuntimeBuilder {
       this.signalStateVerifier,
       capabilityPolicyBinder,
       this.policyExecutionVerifier,
+      this.policyGovernanceAnchorResolver,
     );
 
     //

@@ -1,5 +1,6 @@
 import type {
   PolicyExecutionVerifier,
+  PolicyGovernanceAnchorResolver,
   PolicyRepository,
   SignalStateVerifier,
 } from "@parmana/policy";
@@ -44,6 +45,7 @@ export class RuntimeFactory {
     refusalRecords?: RefusalRecordRepository,
     signalStateVerifier?: SignalStateVerifier,
     policyExecutionVerifier?: PolicyExecutionVerifier,
+    policyGovernanceAnchorResolver?: PolicyGovernanceAnchorResolver,
   ): ExecutionTrustApplication {
     //
     // Application Services
@@ -74,6 +76,12 @@ export class RuntimeFactory {
 
     if (policyExecutionVerifier) {
       builder.withPolicyExecutionVerifier(policyExecutionVerifier);
+    }
+
+    if (policyGovernanceAnchorResolver) {
+      builder.withPolicyGovernanceAnchorResolver(
+        policyGovernanceAnchorResolver,
+      );
     }
 
     const runtime: Runtime = builder

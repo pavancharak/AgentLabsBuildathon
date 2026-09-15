@@ -112,4 +112,50 @@ describe("ConnectorEvidence", () => {
     expect(JSON.stringify(evidence)).not.toContain("sk_live_secret");
     expect(JSON.stringify(evidence)).not.toContain("sk_live_leaked");
   });
+
+  // docs/VERIFICATION-GAPS.md G-45 (Record 3): every connector in this
+  // codebase today only observes and hashes its own HTTP response, none
+  // independently verifies a vendor-originated cryptographic
+  // confirmation -- this should be visible in the evidence itself, not
+  // only in prose documentation.
+  it("defaults vendorConfirmationVerified to false when the caller doesn't pass it", async () => {
+    const evidence = await buildConnectorEvidence({
+      connectorId: "stripe",
+      connectorVersion: { major: 1, minor: 2, patch: 3 },
+      credentialProviderId: "static",
+      request: fixtureRequest(),
+      response: fixtureResponse(),
+      startedAt: new Date(),
+      completedAt: new Date(),
+      crypto,
+    });
+
+    expect(evidence.vendorConfirmationVerified).toBe(false);
+  });
+
+  it("records vendorConfirmationVerified: true when a caller explicitly asserts it, and folds it into the hash", async () => {
+    const startedAt = new Date("2026-01-01T00:00:00.000Z");
+    const completedAt = new Date("2026-01-01T00:00:01.000Z");
+    const shared = {
+      connectorId: "stripe",
+      connectorVersion: { major: 1, minor: 2, patch: 3 },
+      credentialProviderId: "static",
+      request: fixtureRequest(),
+      response: fixtureResponse(),
+      startedAt,
+      completedAt,
+      crypto,
+    };
+
+    const unverified = await buildConnectorEvidence(shared);
+    const verified = await buildConnectorEvidence({
+      ...shared,
+      vendorConfirmationVerified: true,
+    });
+
+    expect(verified.vendorConfirmationVerified).toBe(true);
+    expect(verified.connectorEvidenceHash).not.toBe(
+      unverified.connectorEvidenceHash,
+    );
+  });
 });

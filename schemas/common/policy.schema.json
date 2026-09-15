@@ -22,6 +22,31 @@
       "type": "string",
       "description": "Signals schema version expected by the policy.",
       "examples": ["1.0.0"]
+    },
+    "contentHash": {
+      "type": "string",
+      "description": "sha256 of the canonicalized policy.json content actually loaded for this decision (G-24). Server-computed, never caller-settable; absent on a request-supplied PolicyReference and on a PolicyReference built before this field existed. Only present on the copy embedded in an Execution Trust Record's transaction.policy."
+    },
+    "governanceAnchor": {
+      "type": "object",
+      "description": "Whether the policy content above is traceable to a completed Policy Governance approval, resolved at decision time (G-45). Absent on a PolicyReference built before this field existed. Its presence does not imply POLICY_EXECUTION_VERIFICATION_ENFORCED is on -- only that the lookup ran and recorded what it found, which may honestly be \"no approval record exists for this policy yet.\"",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "VERIFIED",
+            "NO_APPROVAL_RECORD",
+            "SIGNATURE_INVALID",
+            "CONTENT_MISMATCH"
+          ]
+        },
+        "approvalRecordId": {
+          "type": "string",
+          "description": "The PolicyChangeApprovalRecord this anchor resolved against. Present only when a record was found at all -- absent for NO_APPROVAL_RECORD."
+        }
+      }
     }
   },
   "examples": [
@@ -29,6 +54,15 @@
       "name": "vendor-payment",
       "version": "2.0.0",
       "schemaVersion": "1.0.0"
+    },
+    {
+      "name": "vendor-payment",
+      "version": "2.0.0",
+      "schemaVersion": "1.0.0",
+      "contentHash": "3f2504e04f8964e7ad0dbb0cf7fea1b4e0e1e0a3a1e1a4b6c8e0d5f6a7b8c9d0",
+      "governanceAnchor": {
+        "status": "NO_APPROVAL_RECORD"
+      }
     }
   ]
 }

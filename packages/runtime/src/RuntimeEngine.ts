@@ -26,6 +26,8 @@ import {
   type CapabilityPolicyBinder,
   type PolicyDecision,
   type PolicyExecutionVerifier,
+  type PolicyGovernanceAnchor,
+  type PolicyGovernanceAnchorResolver,
   type SignalIntentBindingViolation,
   type SignalStateVerifier,
   type SignalStateViolation,
@@ -150,6 +152,21 @@ export class RuntimeEngine {
      * (packages/api) for why this defaults to unconfigured.
      */
     private readonly policyExecutionVerifier?: PolicyExecutionVerifier,
+    /**
+     * Evidentiary counterpart to policyExecutionVerifier
+     * (docs/VERIFICATION-GAPS.md G-45): never blocks execution, only
+     * records what it found. Optional and trailing for the same
+     * backward-compatibility reason as every other optional dependency
+     * above. When omitted, no governance anchor is resolved --
+     * current behavior, unchanged. When supplied, its result is merged
+     * onto the trust-record-bound copy of transaction.policy alongside
+     * contentHash (G-24), regardless of outcome -- a NO_APPROVAL_RECORD
+     * result is recorded exactly like a VERIFIED one, never treated as
+     * a failure. A resolver error is caught and logged, never allowed
+     * to affect the real authorization outcome -- this is evidence,
+     * not enforcement.
+     */
+    private readonly policyGovernanceAnchorResolver?: PolicyGovernanceAnchorResolver,
   ) {
     if (!pipeline) {
       throw new Error("RuntimePipeline is required.");
@@ -189,6 +206,8 @@ export class RuntimeEngine {
         this.capabilityPolicyBinder !== undefined,
       policyExecutionVerifierConfigured:
         this.policyExecutionVerifier !== undefined,
+      policyGovernanceAnchorResolverConfigured:
+        this.policyGovernanceAnchorResolver !== undefined,
       refusalRecordingConfigured:
         this.refusalRecordBuilder !== undefined &&
         this.refusalRecordRepository !== undefined,
@@ -229,6 +248,32 @@ export class RuntimeEngine {
     //
 
     const policyContentHash = await this.policyContentHasher.hash(policy);
+
+    //
+    // Policy Governance evidence anchor (G-45) -- purely evidentiary,
+    // never allowed to affect the real authorization outcome. See
+    // policyGovernanceAnchorResolver's own constructor doc comment.
+    //
+
+    let policyGovernanceAnchor: PolicyGovernanceAnchor | undefined;
+
+    if (this.policyGovernanceAnchorResolver) {
+      try {
+        policyGovernanceAnchor =
+          await this.policyGovernanceAnchorResolver.resolve(
+            policy.policyId,
+            policy.policyVersion,
+            policyContentHash,
+          );
+      } catch (error) {
+        console.error({
+          event: "policy_governance_anchor_resolution_failed",
+          policyName: policy.policyId,
+          policyVersion: policy.policyVersion,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
 
     //
     // Policy Governance execution-time verification (2026-09-07)
@@ -503,6 +548,9 @@ export class RuntimeEngine {
         policy: {
           ...transaction.policy,
           contentHash: policyContentHash,
+          ...(policyGovernanceAnchor !== undefined && {
+            governanceAnchor: policyGovernanceAnchor,
+          }),
         },
       },
       decision,

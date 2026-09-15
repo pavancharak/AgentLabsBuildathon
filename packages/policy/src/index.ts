@@ -28,6 +28,12 @@ export type {
   PolicyExecutionViolation,
 } from "./types/PolicyExecutionVerifier.js";
 
+export type {
+  PolicyGovernanceAnchor,
+  PolicyGovernanceAnchorResolver,
+  PolicyGovernanceAnchorStatus,
+} from "./types/PolicyGovernanceAnchor.js";
+
 export {
   CANONICAL_CAPABILITY_POLICY_BINDINGS,
   CapabilityPolicyBinder,

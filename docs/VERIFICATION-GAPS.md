@@ -2454,28 +2454,94 @@ passed. Also confirmed live: a real transaction submitted to a locally-running i
 `matchedPath: ["approve-payment"]` — not merely unit-tested in isolation.
 
 **G-45. The policy-governance evidence-anchor chain (G-24 / §2.27 /
-`PolicyGovernanceExecutionVerifier`) is real and tested, but a passing check leaves no
-artifact of its own, and none of it references connector-execution evidence.** Found by the
-same audit (GAP-4, 2026-09-15) — and the audit's own first pass got this wrong before finding
+`PolicyGovernanceExecutionVerifier`) is real and tested, but a passing check left no
+artifact of its own, and none of it references connector-execution evidence.** Found by an
+independent audit (`docs/investigations/2026-09-15-evidence-anchor-gap-audit.md`, GAP-4,
+2026-09-15) — and the audit's own first pass got this wrong before finding
 G-24/§2.27/§2.26 in `docs/CLAIMS.md` and correcting itself; see that document's §4 for the
-full account, kept rather than silently rewritten. `PolicyGovernanceExecutionVerifier.verify()`
-(`packages/api/src/governance/PolicyGovernanceExecutionVerifier.ts:31-63`) checks a policy's
-most recent `PolicyChangeApprovalRecord` exists, verifies, and content-hash-matches before
-that policy is evaluated — exactly the Record-1-to-Record-2 binding an "evidence anchor"
-needs — but returns bare `undefined` on success: nothing is written or signed to say "this
-decision was checked against approval record X and passed." Only a _failure_ leaves a durable
-trace (an ordinary policy rejection, already signed via the existing `RefusalRecord` path).
-Separately, and unaddressed by any existing mechanism: nothing in G-24, §2.27, or
-`PolicyGovernanceExecutionVerifier` ever references `ConnectorEvidence`/
-`connectorEvidenceHash` (`packages/execution-gateway/src/connector-execution/ConnectorEvidence.ts`)
-— policy content is bound to the decision, never the decision bound to what a connector
-subsequently did, beyond both happening to sit inside the same overall signed
-`ExecutionTrustRecord` envelope. Also note: `POLICY_EXECUTION_VERIFICATION_ENFORCED` is off
-by default and cannot safely be turned on in this deployment today regardless of this gap —
-see `docs/CLAIMS.md` §2.26's own "Legacy-policy backfill" entry (zero of the 10 live policies
-have a completed approval record as of that section's own last-checked date, 2026-08-19; not
-independently re-verified this session, no live database credentials in scope). Not fixed
-this session; read-only audit only.
+full account, kept rather than silently rewritten. The positive-pass-artifact half of this
+gap was **RESOLVED the same day**; the connector-evidence half remains open.
+
+**Fix (positive-pass artifact):** new `PolicyGovernanceAnchorResolver`
+(`packages/api/src/governance/PolicyGovernanceAnchorResolver.ts`) performs the identical three
+checks `PolicyGovernanceExecutionVerifier` does — approval record exists, its signature
+verifies, its `contentHashAfter` matches the live content — but always returns a status
+(`VERIFIED` | `NO_APPROVAL_RECORD` | `SIGNATURE_INVALID` | `CONTENT_MISMATCH`) instead of
+throw-shaped pass/fail, and never blocks execution: a resolver error is caught and logged,
+never allowed to affect the real authorization outcome (see
+`RuntimeEngine.execute()`'s try/catch around the resolve call). Unlike
+`PolicyGovernanceExecutionVerifier`, wired **unconditionally**
+(`createPolicyGovernanceAnchorResolver.ts`, no `POLICY_EXECUTION_VERIFICATION_ENFORCED`
+gate) — there is no outage risk, since a resolution never rejects anything. `PolicyReference`
+(`packages/shared/src/domain/policy-reference.ts`) gained a `governanceAnchor` field, merged
+onto the trust-record-bound copy of `transaction.policy` alongside `contentHash` (G-24), so an
+`ExecutionTrustRecord` now honestly records `NO_APPROVAL_RECORD` for every one of this
+deployment's current policies rather than being silent about the question.
+
+**Verified:** `packages/api/tests/unit/PolicyGovernanceAnchorResolver.test.ts` (5 cases,
+mirrors `PolicyGovernanceExecutionVerifier.test.ts`'s own fixtures exactly: all four status
+outcomes, plus a case confirming it never throws). `packages/runtime/tests/e2e/runtime.e2e.test.ts`
+(2 new cases: the resolver's result is stamped onto the real trust record with the real
+policy name/version/content-hash it was called with, and a resolver that throws never blocks
+or alters a real APPROVED outcome). Full workspace `npx tsc -b` clean. Full repo suite: 1819
+passed (10 more than G-44's post-fix baseline of 1809 — the 5 above, 2 more from
+G-46 below, and 2 more from a schema/SDK gap found and fixed in the same pass, see below), 42
+skipped, 0 failed. Python suite: 79 passed. Verified live against a locally-running instance:
+`policyGovernanceAnchorResolverConfigured: true` at startup (vs.
+`policyExecutionVerifierConfigured: false`, confirming the two are independently gated as
+designed), and a real executed transaction's `transaction.policy.governanceAnchor` came back
+`{"status": "NO_APPROVAL_RECORD"}` — the honest, expected answer given G-1's still-open
+backfill.
+
+**Also found and fixed in the same pass, unrelated to G-45 itself:** `PolicyReference.contentHash`
+(G-24, shipped 2026-08-19) had never actually been added to `schemas/common/policy.schema.json`
+or the TypeScript SDK's hand-authored `PolicyReference` model
+(`typescript/src/models/policy.ts`) — `additionalProperties: true` meant the schema never
+rejected it, but SDK consumers had no typed way to read a field the server had been sending
+for weeks. Fixed alongside `governanceAnchor` in both places, since leaving one documented and
+the other not would have been more confusing than either state alone. Separately,
+`python/scripts/generate_models.ts` had no support for a plain `export type X = "A" | "B"`
+string-literal union type alias (only real TS `enum` declarations) — needed for
+`PolicyGovernanceAnchorStatus`, since a real cross-package `enum` would have required an
+explicit boundary-mapping function like `DecisionBuilder.toDecisionOutcome()` for no benefit
+here. Added `tryParseStringUnionTypeAlias()`, a small, generically reusable addition to the
+generator (not special-cased to this one field), verified via `npm run check:python-models`
+producing a correct Python `Enum` and the regenerated `python/parmana/models/policy.py`
+passing the full Python suite.
+
+**Remaining, not attempted this session:** the connector-evidence half of the original
+finding. Nothing links `ConnectorEvidence`/`connectorEvidenceHash`
+(`packages/execution-gateway/src/connector-execution/ConnectorEvidence.ts`) to the
+policy-governance chain above — policy content is bound to the decision, the decision now
+carries an honest governance anchor, but neither references what a connector subsequently
+did, beyond both sitting inside the same overall signed `ExecutionTrustRecord` envelope. This
+would need a real design (what does "this connector call was authorized under a governed
+policy" even mean structurally), not a small addition like the one above — genuinely new
+scope. Also still true: `POLICY_EXECUTION_VERIFICATION_ENFORCED` (the enforcement gate,
+distinct from the anchor resolver above) remains off by default and cannot safely be turned
+on until G-1's legacy-policy backfill completes — see `docs/CLAIMS.md` §2.26's "Legacy-policy
+backfill" entry.
+
+**G-46. No evidence recorded whether a connector's response included an independent,
+vendor-originated cryptographic confirmation, as opposed to only what Parmana's own HTTP call
+observed.** Found by the same audit (GAP-3, 2026-09-15). RESOLVED same day.
+`ConnectorEvidence` (`packages/execution-gateway/src/connector-execution/ConnectorEvidence.ts`)
+gained `vendorConfirmationVerified: boolean`, defaulting to `false` and folded into
+`connectorEvidenceHash` like every other field. Confirmed by grep before adding this field:
+zero of the four connectors in this codebase (`GatewayHubSpotAdapter`, `GatewayGitHubAdapter`,
+`GatewaySlackAdapter`, `GatewayPaytmAdapter`) verify a vendor-response signature — for Paytm
+specifically, that verification lives entirely in a separate out-of-process repository
+(`parmana-paytm-agent`), already documented in `docs/CLAIMS.md` §3.22. This field makes that
+architectural limitation visible in the evidence itself, in every trust record, rather than
+only in prose documentation an auditor would need to already know to go read — and gives a
+future connector that does add real vendor-signature verification somewhere to record it
+(`BuildConnectorEvidenceOptions.vendorConfirmationVerified`, an explicit opt-in, not inferred).
+
+**Verified:** `packages/execution-gateway/tests/unit/evidence-hashing.test.ts` (2 new cases:
+defaults to `false` when not passed, and an explicit `true` changes `connectorEvidenceHash`).
+Confirmed live against the same local run as G-45 above: a real executed
+`test:fixture-execute` transaction's `executions[0].evidence.attributes.connector.vendorConfirmationVerified`
+came back `false`.
 
 ### cosmetic
 

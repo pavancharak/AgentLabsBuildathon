@@ -12,7 +12,11 @@ from @parmana/shared, so it cannot be generated from source.
 from .authority import AuthorityType, Authority
 from .authorization import Authorization
 from .intent import Intent
-from .policy import PolicyReference
+from .policy import (
+    PolicyGovernanceAnchorStatus,
+    PolicyGovernanceAnchor,
+    PolicyReference,
+)
 from .business_transaction import (
     BusinessTransactionMetadata,
     BusinessTransactionStatus,
@@ -59,6 +63,8 @@ __all__ = [
     "ExecutionTrustRecord",
     "Intent",
     "Override",
+    "PolicyGovernanceAnchor",
+    "PolicyGovernanceAnchorStatus",
     "PolicyReference",
     "Receipt",
     "RefusalBindingViolation",

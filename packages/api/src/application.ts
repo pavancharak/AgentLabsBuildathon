@@ -25,6 +25,7 @@ import {
 import { createHubSpotSignalStateVerifier } from "./bootstrap/createHubSpotSignalStateVerifier.js";
 import { executionGatewaySignalStateVerifier } from "./bootstrap/executionGatewaySignalStateVerifier.js";
 import { createPolicyExecutionVerifier } from "./bootstrap/createPolicyExecutionVerifier.js";
+import { createPolicyGovernanceAnchorResolver } from "./bootstrap/createPolicyGovernanceAnchorResolver.js";
 
 const config = loadConfig();
 
@@ -54,5 +55,6 @@ export function createApplication(executionSystem: ExecutionSystem) {
     refusalRecordRepository,
     signalStateVerifier,
     createPolicyExecutionVerifier(),
+    createPolicyGovernanceAnchorResolver(),
   );
 }

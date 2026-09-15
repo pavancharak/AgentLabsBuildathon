@@ -176,6 +176,18 @@ docs/investigations/2026-09-15-evidence-anchor-gap-audit.md (GAP-2); verified vi
 packages/runtime/tests/unit/DecisionBuilder.test.ts and a real live execution against a
 locally-running instance (see docs/VERIFICATION-GAPS.md G-44).
 
+**Vendor-confirmation visibility (2026-09-15, docs/VERIFICATION-GAPS.md G-46).**
+`ConnectorEvidence` (packages/execution-gateway/src/connector-execution/ConnectorEvidence.ts)
+gained `vendorConfirmationVerified: boolean`, defaulting to `false` and folded into
+`connectorEvidenceHash`. Confirmed by grep before adding it: none of this codebase's four
+connectors (HubSpot, GitHub, Slack, Paytm) independently verify a vendor-originated
+cryptographic confirmation — for Paytm, that verification lives entirely in the separate
+`parmana-paytm-agent` repository (§3.22 below). This makes that architectural limitation
+visible in every piece of evidence itself, not only in prose documentation, and gives a future
+connector that does add real vendor-signature verification somewhere to record it. Found and
+fixed same day by the same audit (GAP-3); verified via
+packages/execution-gateway/tests/unit/evidence-hashing.test.ts and a real live execution.
+
 ---
 
 ## 2.6 Independent Verification
@@ -607,25 +619,41 @@ Evidence (update)
 
 **Deployment status.** This claim is about what exists in the repository and is proven correct by the tests cited above, not about what is currently running in any live environment. The backend (maker-checker endpoints, step-up auth, sign-then-write ordering, content-hash-at-decision-time, the startup integrity check) is committed and pushed to `origin/main`. Whether `parmana-api.fly.dev` / `parmana-api-live.fly.dev` are running this code has not been checked as part of this claim and is not asserted here.
 
-**Gap found (2026-09-15, docs/VERIFICATION-GAPS.md G-45): a passing execution-time governance
-check leaves no artifact of its own, and connector-execution evidence is never bound into
-this chain at all.** `PolicyGovernanceExecutionVerifier.verify()`
+**Positive-pass evidence anchor, added 2026-09-15 (docs/VERIFICATION-GAPS.md G-45).** A gap
+found the same day was fixed the same day: `PolicyGovernanceExecutionVerifier.verify()`
 (packages/api/src/governance/PolicyGovernanceExecutionVerifier.ts) — the class this section's
 "Content hash at decision time (G-24)" and 2.27's policy-freshness check both feed into when
 `POLICY_EXECUTION_VERIFICATION_ENFORCED=true` — checks a policy's most recent
-`PolicyChangeApprovalRecord` exists, verifies, and content-hash-matches, then returns bare
-`undefined` on success. Nothing is written or signed recording that the check ran and passed;
-only a failure (an ordinary policy rejection) leaves a durable trace, via the existing
-`RefusalRecord` path. Separately, no code anywhere references `ConnectorEvidence`/
-`connectorEvidenceHash` (packages/execution-gateway/src/connector-execution/ConnectorEvidence.ts)
-alongside the policy-governance chain — policy content is bound to the decision, never the
-decision bound to what a connector subsequently did, beyond both sitting inside the same
-overall signed `ExecutionTrustRecord`. Neither gap changes anything already claimed above,
-which is about policy content integrity specifically, not about a complete
-declared-perimeter-to-executed-action evidence chain; found by an independent read-only
+`PolicyChangeApprovalRecord` exists, verifies, and content-hash-matches, but returns bare
+`undefined` on success, leaving no durable trace that the check ran and passed. New
+`PolicyGovernanceAnchorResolver` (packages/api/src/governance/PolicyGovernanceAnchorResolver.ts)
+performs the identical three checks but always returns a status (`VERIFIED` |
+`NO_APPROVAL_RECORD` | `SIGNATURE_INVALID` | `CONTENT_MISMATCH`), never blocks execution (a
+resolver error is caught and logged, never allowed to affect the real outcome), and — unlike
+the enforcement verifier — is wired unconditionally, with no
+`POLICY_EXECUTION_VERIFICATION_ENFORCED` gate, since resolving is never itself a rejection
+risk. `PolicyReference.contentHash`'s sibling field, `governanceAnchor`
+(packages/shared/src/domain/policy-reference.ts), carries the result on the trust-record-bound
+copy of `transaction.policy` — every `ExecutionTrustRecord` now honestly records
+`NO_APPROVAL_RECORD` for this deployment's current policies rather than being silent about the
+question. Verified via packages/api/tests/unit/PolicyGovernanceAnchorResolver.test.ts and two
+new packages/runtime/tests/e2e/runtime.e2e.test.ts cases (result stamped correctly; a
+resolver failure never blocks a real execution), plus a live check against a locally-running
+instance.
+
+**Still open:** connector-execution evidence is not bound into this chain — nothing links
+`ConnectorEvidence`/`connectorEvidenceHash`
+(packages/execution-gateway/src/connector-execution/ConnectorEvidence.ts) to the
+policy-governance chain above; policy content is bound to the decision, the decision now
+carries an honest governance anchor, but neither references what a connector subsequently
+did, beyond both sitting inside the same overall signed `ExecutionTrustRecord`. This needs a
+real design, not a small addition — genuinely new scope, not attempted. Separately,
+`POLICY_EXECUTION_VERIFICATION_ENFORCED` itself (the enforcement gate, distinct from the
+anchor resolver above) remains off by default and cannot safely turn on until the
+"Legacy-policy backfill" entry below completes. Both gaps found by an independent read-only
 audit, docs/investigations/2026-09-15-evidence-anchor-gap-audit.md (GAP-4), whose own first
-pass initially concluded no such linkage existed at all before finding this section and
-correcting itself — see that document's §4.
+pass initially concluded no policy-content-to-governance linkage existed at all before finding
+this section and correcting itself — see that document's §4.
 
 **Open question: internal vs. external policy authoring.** The system described above resolves _how_ a policy change is approved once Parmana is the system of record for that approval. It does not resolve _whether_ Parmana should be the system of record at all: an alternative architecture — policies authored and approved in an external system, with Parmana staying strictly read-only/enforcement-only for policy content (loading and evaluating whatever content it is handed, verifying its provenance, never hosting the approval workflow itself) — remains a live, undecided option. Nothing in the codebase picks a side; the maker-checker system exists because policy authoring was previously outside any governance surface at all (this section's opening claim), not because "build it internally" was compared against and preferred over the external alternative. Treat this as an open question, not a resolved default.
 

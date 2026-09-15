@@ -30,6 +30,26 @@ export interface ConnectorEvidence {
   readonly startedAt: string;
   readonly completedAt: string;
   readonly connectorEvidenceHash: string;
+
+  /**
+   * Whether this evidence includes an independent, vendor-originated
+   * cryptographic confirmation (e.g. a signature or checksum the
+   * vendor itself produced over its own response), as opposed to only
+   * what this connector's own HTTP call observed and Parmana hashed.
+   * Defaults to false and, as of this field's introduction
+   * (docs/VERIFICATION-GAPS.md G-45's Record-3 half), no connector in
+   * this codebase sets it true -- confirmed for every in-process
+   * adapter (HubSpot, GitHub, Slack) and, for the one connector that
+   * touches real money (Paytm), documented explicitly in
+   * GatewayPaytmAdapter's own doc comment: that adapter forwards to a
+   * separate out-of-process service which holds Paytm's own checksum
+   * verification, out of this codebase's reach. Exists so this
+   * architectural limitation is visible in every piece of evidence
+   * itself, not only in prose documentation -- and so a future
+   * connector that does add real vendor-signature verification has
+   * somewhere to record it.
+   */
+  readonly vendorConfirmationVerified: boolean;
 }
 
 const SENSITIVE_KEY_PATTERN =
@@ -79,6 +99,14 @@ export interface BuildConnectorEvidenceOptions {
   readonly startedAt: Date;
   readonly completedAt: Date;
   readonly crypto: CryptoProvider;
+
+  /**
+   * Set true only by a caller that has independently verified a
+   * vendor-originated cryptographic confirmation over this specific
+   * response -- see ConnectorEvidence.vendorConfirmationVerified.
+   * Defaults to false; no current call site passes true.
+   */
+  readonly vendorConfirmationVerified?: boolean;
 }
 
 export async function buildConnectorEvidence(
@@ -108,6 +136,7 @@ export async function buildConnectorEvidence(
     responseSummary,
     startedAt: options.startedAt.toISOString(),
     completedAt: options.completedAt.toISOString(),
+    vendorConfirmationVerified: options.vendorConfirmationVerified ?? false,
   };
 
   const connectorEvidenceHash = await hasher.hash(unhashed);

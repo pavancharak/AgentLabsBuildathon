@@ -418,6 +418,180 @@ describe("RuntimeEngine E2E", () => {
     );
   });
 
+  it("stamps transaction.policy.governanceAnchor from the configured resolver, and never lets it affect the real outcome (G-45)", async () => {
+    let resolveCalledWith: [string, string, string] | undefined;
+
+    const policyGovernanceAnchorResolver = {
+      resolve: async (
+        policyName: string,
+        policyVersion: string,
+        policyContentHash: string,
+      ) => {
+        resolveCalledWith = [policyName, policyVersion, policyContentHash];
+
+        return { status: "NO_APPROVAL_RECORD" as const };
+      },
+    };
+
+    const runtime = new RuntimeEngine(
+      pipeline,
+      router,
+      policyEngine,
+      signalIntentBinder,
+      new DecisionBuilder(),
+      new ExecutionGate(),
+      new ExecutionBuilder(),
+      trustPipeline,
+      authorizationSigner,
+      120,
+      [],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      policyGovernanceAnchorResolver,
+    );
+
+    const transaction: BusinessTransaction = {
+      businessTransactionId: "tx-governance-anchor",
+
+      metadata: {
+        executionMode: "SYNC",
+      } as unknown as TransactionMetadata,
+
+      authority: {} as Authority,
+
+      authorization: {} as Authorization,
+
+      intent: {
+        intentId: "intent-governance-anchor",
+        authorizationId: "authorization-governance-anchor",
+        action: "payments:execute",
+        target: "vendor://payments",
+        parameters: {
+          amount: 100,
+        },
+        createdAt: new Date(),
+      },
+
+      policy: {
+        name: "vendor-payment",
+        version: "2.0.0",
+        schemaVersion: "1.0.0",
+      },
+
+      signals: {
+        vendorVerified: true,
+        invoiceVerified: true,
+        paymentApproved: true,
+        sufficientFunds: true,
+        paymentAmount: 100,
+        riskScore: 10,
+        vendorId: "vendor://payments",
+      },
+
+      status: BusinessTransactionStatus.RECEIVED,
+
+      createdAt: new Date(),
+    };
+
+    const result = await runtime.execute(transaction);
+
+    // Real APPROVE outcome, unaffected by the resolver -- this is
+    // evidence, not enforcement.
+    expect(result.trustRecord.executions[0]?.decision.outcome).toBe("APPROVED");
+
+    expect(resolveCalledWith?.[0]).toBe("vendor-payment");
+    expect(resolveCalledWith?.[1]).toBe("2.0.0");
+    // Resolved with the same content hash G-24 stamps alongside it.
+    expect(resolveCalledWith?.[2]).toBe(
+      result.trustRecord.transaction.policy.contentHash,
+    );
+
+    expect(result.trustRecord.transaction.policy.governanceAnchor).toEqual({
+      status: "NO_APPROVAL_RECORD",
+    });
+  });
+
+  it("never lets a policyGovernanceAnchorResolver failure block a real execution (G-45, evidence not enforcement)", async () => {
+    const policyGovernanceAnchorResolver = {
+      resolve: async () => {
+        throw new Error("simulated resolver failure");
+      },
+    };
+
+    const runtime = new RuntimeEngine(
+      pipeline,
+      router,
+      policyEngine,
+      signalIntentBinder,
+      new DecisionBuilder(),
+      new ExecutionGate(),
+      new ExecutionBuilder(),
+      trustPipeline,
+      authorizationSigner,
+      120,
+      [],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      policyGovernanceAnchorResolver,
+    );
+
+    const transaction: BusinessTransaction = {
+      businessTransactionId: "tx-governance-anchor-failure",
+
+      metadata: {
+        executionMode: "SYNC",
+      } as unknown as TransactionMetadata,
+
+      authority: {} as Authority,
+
+      authorization: {} as Authorization,
+
+      intent: {
+        intentId: "intent-governance-anchor-failure",
+        authorizationId: "authorization-governance-anchor-failure",
+        action: "payments:execute",
+        target: "vendor://payments",
+        parameters: {
+          amount: 100,
+        },
+        createdAt: new Date(),
+      },
+
+      policy: {
+        name: "vendor-payment",
+        version: "2.0.0",
+        schemaVersion: "1.0.0",
+      },
+
+      signals: {
+        vendorVerified: true,
+        invoiceVerified: true,
+        paymentApproved: true,
+        sufficientFunds: true,
+        paymentAmount: 100,
+        riskScore: 10,
+        vendorId: "vendor://payments",
+      },
+
+      status: BusinessTransactionStatus.RECEIVED,
+
+      createdAt: new Date(),
+    };
+
+    const result = await runtime.execute(transaction);
+
+    expect(result.trustRecord.executions[0]?.decision.outcome).toBe("APPROVED");
+    expect(
+      result.trustRecord.transaction.policy.governanceAnchor,
+    ).toBeUndefined();
+  });
+
   it("fails safely on invalid transaction", async () => {
     const runtime = new RuntimeEngine(
       pipeline,
