@@ -170,6 +170,36 @@
                     "pages": ["sdks/reference/typescript/variables/VERSION"]
                   }
                 ]
+              },
+              {
+                "group": "Python SDK Reference",
+                "pages": [
+                  "sdks/reference/python/api/audit_api",
+                  "sdks/reference/python/api/execution_api",
+                  "sdks/reference/python/api/policy_api",
+                  "sdks/reference/python/api/receipt_api",
+                  "sdks/reference/python/api/refusal_api",
+                  "sdks/reference/python/api/replay_api",
+                  "sdks/reference/python/api/transaction_api",
+                  "sdks/reference/python/api/trust_record_api",
+                  "sdks/reference/python/api/verification_api",
+                  "sdks/reference/python/builders",
+                  "sdks/reference/python/client",
+                  "sdks/reference/python/config/client_config",
+                  "sdks/reference/python/config/transport",
+                  "sdks/reference/python/crypto/canonical",
+                  "sdks/reference/python/crypto/offline_verifier",
+                  "sdks/reference/python/errors/api_error",
+                  "sdks/reference/python/errors/configuration_error",
+                  "sdks/reference/python/errors/http_error",
+                  "sdks/reference/python/errors/network_error",
+                  "sdks/reference/python/errors/replay_error",
+                  "sdks/reference/python/errors/verification_error",
+                  "sdks/reference/python/models/replay_result",
+                  "sdks/reference/python/serialization/decoder",
+                  "sdks/reference/python/serialization/encoder",
+                  "sdks/reference/python/transport/http_transport"
+                ]
               }
             ]
           },

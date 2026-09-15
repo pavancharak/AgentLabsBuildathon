@@ -72,6 +72,18 @@ schemas (`Authority.display_name` optional, `Authorization.expires_at` optional,
 Enums are real Python `str, Enum` classes (e.g. `SignatureAlgorithm`,
 `VerificationStatus`), not bare strings.
 
+<Note>
+  The auto-generated [Python SDK reference](/sdks/reference/python/client)
+  (built from real docstrings, see below) deliberately excludes
+  `python/parmana/models/*.py`: these dataclasses carry no per-field docstrings
+  for a doc-generation tool to render, since they're generated code, not
+  hand-written. For field-by-field shape, see the [TypeScript SDK reference's
+  Interfaces](/sdks/reference/typescript/interfaces/BusinessTransaction),
+  generated from the exact same source this page describes above, field for
+  field identical modulo the `camelCase`/`snake_case` naming convention each
+  language uses.
+</Note>
+
 ## Errors, correctly mapped to real conditions
 
 ```python
@@ -231,5 +243,13 @@ round-trips correctly.
   </Card>
   <Card title="Error catalog" icon="list" href="/api-reference/error-catalog">
     Every error the real API returns, independent of any SDK.
+  </Card>
+  <Card
+    title="Python SDK reference"
+    icon="book-open"
+    href="/sdks/reference/python/client"
+  >
+    Every class and method, generated from the real docstrings, in the sidebar
+    under SDKs.
   </Card>
 </CardGroup>

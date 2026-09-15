@@ -1,0 +1,194 @@
+---
+sidebar_label: client
+title: parmana.client
+---
+
+Parmana Client.
+
+Main entry point for the Parmana Python SDK.
+
+## ParmanaClient Objects
+
+```python
+class ParmanaClient()
+```
+
+Parmana SDK Client.
+
+Parmana ensures AI executes only policy-compliant actions.
+
+## Example
+
+> > > client = ParmanaClient(
+> > > ... endpoint="http://localhost:3000",
+> > > ... )
+
+> > > trust_record = client.execution.execute(transaction)
+
+> > > verification = client.verification.verify(
+> > > ... transaction.business_transaction_id,
+> > > ... )
+
+#### \_\_init\_\_
+
+```python
+def __init__(*,
+             endpoint: str,
+             api_key: str | None = None,
+             timeout: int = DEFAULT_TIMEOUT,
+             max_retries: int = DEFAULT_MAX_RETRIES,
+             backoff_factor: float = DEFAULT_BACKOFF_FACTOR,
+             debug: bool = False) -> None
+```
+
+Create a Parmana SDK client.
+
+## Raises
+
+ConfigurationError:
+If `endpoint` is missing or empty. Mirrors
+typescript/src/client/ParmanaClient.ts's identical
+fail-fast check.
+
+This client is synchronous only. There is no async variant.
+
+## Parameters
+
+endpoint:
+Base URL of the Parmana Runtime.
+
+api_key:
+Caller bearer key, minted by scripts/generate-api-key.ts. Sent
+as `Authorization: Bearer &lt;api_key>` on every request. Omit
+only against a Runtime started with PARMANA_AUTH_DISABLED=true
+(local development only); every other deployment rejects an
+unauthenticated request with a 401 before a Business
+Transaction is even constructed. See
+/api-reference/authentication.
+
+timeout:
+HTTP timeout in seconds, applied per request.
+
+max_retries:
+Retry attempts for idempotent (GET) requests that fail with
+a connection error or a 502/503/504 response. POST requests
+(execute, verify, receipt, replay) are never retried.
+
+backoff_factor:
+Exponential backoff factor between retries, in seconds.
+
+debug:
+Enable request/response debug logging on the "parmana" logger.
+
+#### endpoint
+
+```python
+@property
+def endpoint() -> str
+```
+
+Parmana Runtime endpoint.
+
+#### version
+
+```python
+@property
+def version() -> str
+```
+
+Parmana SDK version.
+
+#### health
+
+```python
+def health() -> dict[str, Any]
+```
+
+Returns the Runtime health status.
+
+#### execute
+
+```python
+def execute(transaction: BusinessTransaction) -> ExecutionTrustRecord
+```
+
+Execute a Business Transaction.
+
+#### verify
+
+```python
+def verify(business_transaction_id: str) -> Verification
+```
+
+Run a fresh verification of an Execution Trust Record, appending
+a new Verification to its history. Distinct from
+get_latest_verification(), which reads the most recent one
+without re-verifying.
+
+#### get_latest_verification
+
+```python
+def get_latest_verification(business_transaction_id: str) -> Verification
+```
+
+Returns the latest Verification, without performing a fresh one.
+
+#### create_transaction
+
+```python
+def create_transaction(
+        transaction: BusinessTransaction) -> ExecutionTrustRecord
+```
+
+Creates (executes) a Business Transaction via POST /transactions,
+a second, independent entry point into the identical execution
+pipeline as execute() (POST /execute).
+
+#### transaction
+
+```python
+def transaction(business_transaction_id: str) -> BusinessTransaction
+```
+
+Retrieves a Business Transaction.
+
+#### trust_record
+
+```python
+def trust_record(business_transaction_id: str) -> ExecutionTrustRecord
+```
+
+Retrieves an Execution Trust Record.
+
+#### validate_policy
+
+```python
+def validate_policy(policy_id: str, policy_version: str) -> dict[str, Any]
+```
+
+Validates that a policy (name + version) is loadable.
+
+#### refusal_record
+
+```python
+def refusal_record(business_transaction_id: str) -> RefusalRecord
+```
+
+Retrieves a Refusal Record by Business Transaction ID.
+
+#### verify_refusal_record
+
+```python
+def verify_refusal_record(record: RefusalRecord) -> bool
+```
+
+Verifies a Refusal Record's signature.
+
+#### verify_audit_event
+
+```python
+def verify_audit_event(event: dict[str, Any], signature: Signature) -> bool
+```
+
+Verifies a signed caller-authentication or Razorpay-webhook
+audit event's signature.

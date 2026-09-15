@@ -1,0 +1,33 @@
+---
+sidebar_label: offline_verifier
+title: parmana.crypto.offline_verifier
+---
+
+Standalone, offline verification of an Execution Trust Record.
+
+Python counterpart to packages/crypto/src/OfflineVerifier.ts (PQC
+audit RED-1, docs/VERIFICATION-GAPS.md) -- proves the canonical
+serialization algorithm and Ed25519 verification are independently
+reproducible in a second language, not just documented as "should be
+portable." Zero network calls, zero disk reads (beyond files the
+caller explicitly passes in), zero environment variables.
+
+ML-DSA-65 (Dilithium3) verification is intentionally out of scope
+here: the `cryptography` package version this SDK currently depends
+on does not yet expose `cryptography.hazmat.primitives.asymmetric.
+ml_dsa`. A hybrid-signed record's `signatures` array cannot be
+independently checked from Python until that support lands upstream
+and this module is updated to use it -- stated plainly rather than
+silently skipped or faked.
+
+#### verify_execution_trust_record_offline
+
+```python
+def verify_execution_trust_record_offline(
+        trust_record: dict[str, Any],
+        public_keys: dict[str, str]) -> OfflineVerificationResult
+```
+
+`trust_record` is a plain dict, exactly as `json.load()` would
+produce from a Trust Record JSON file or API response body.
+`public_keys` maps keyId -> PEM-encoded public key text.
