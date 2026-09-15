@@ -4,7 +4,7 @@
   "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
   "functions": {
     "api/index.ts": {
-      "includeFiles": "{openapi/**,policies/**}"
+      "includeFiles": "{openapi/**,policies/**,node_modules/swagger-ui-dist/**}"
     }
   }
 }
