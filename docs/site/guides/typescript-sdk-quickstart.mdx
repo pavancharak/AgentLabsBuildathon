@@ -6,7 +6,7 @@ description: "Install to your first authorized execution with the TypeScript SDK
 <Note>
   This walkthrough uses `test:fixture-execute`, a generic, credential-free
   capability built for local testing, evaluated against a policy named
-  `vendor-payment`. That policy name is unrelated to any connector — it's just
+  `vendor-payment`. That policy name is unrelated to any connector, it's just
   the example policy this transaction runs against. See
   [Quickstart](/quickstart) for the same flow driven from the repository
   directly rather than an installed package; this page installs `@parmana/sdk`
@@ -16,7 +16,7 @@ description: "Install to your first authorized execution with the TypeScript SDK
 ## Prerequisites
 
 - **Node.js** installed (`node --version`)
-- A running Parmana Runtime to talk to — either your own deployment, or the local
+- A running Parmana Runtime to talk to: either your own deployment, or the local
   in-memory server this walkthrough starts from a clone of this repository
 
 <Steps>
@@ -51,7 +51,7 @@ description: "Install to your first authorized execution with the TypeScript SDK
     ```
 
     With `NODE_ENV=test`, a generic, credential-free test connector (`test-fixture`) registers
-    automatically — no connector credentials required for this walkthrough. Every other route,
+    automatically, no connector credentials required for this walkthrough. Every other route,
     including `/version`, fails closed with a `401` until you send the demo bearer key the
     committed `.env` ships for local development, raw key `my-secret-api-key`:
 
@@ -72,7 +72,7 @@ description: "Install to your first authorized execution with the TypeScript SDK
     npm install @parmana/sdk
     ```
 
-    Real, published package — `npm view @parmana/sdk version` confirms the current version
+    Real, published package. `npm view @parmana/sdk version` confirms the current version
     directly from npm.
 
   </Step>
@@ -181,7 +181,7 @@ proves it stays runnable):
 The full `ExecutionTrustRecord` also includes `executions[0].decision`
 (`outcome: "APPROVED"`), `executions[0].evidence` (what the connector actually did), and the
 `signature` block covered in [Verify independently](/guides/verify-independently). Field names
-are `camelCase` here — the same record from the Python SDK uses `snake_case` for the same
+are `camelCase` here; the same record from the Python SDK uses `snake_case` for the same
 fields (see [Python SDK Quickstart](/guides/python-sdk-quickstart)).
 
   </Step>
@@ -189,19 +189,19 @@ fields (see [Python SDK Quickstart](/guides/python-sdk-quickstart)).
 
 ## Troubleshooting
 
-**`NetworkError: connect ECONNREFUSED`** — the Runtime isn't running, or you're pointed at
+**`NetworkError: connect ECONNREFUSED`**: the Runtime isn't running, or you're pointed at
 the wrong `endpoint`. Confirm step 1's `curl http://localhost:3000/health` succeeds first.
 
-**`AuthenticationError` on every call** — either you omitted `apiKey` against a server that
+**`AuthenticationError` on every call**: either you omitted `apiKey` against a server that
 doesn't have `PARMANA_AUTH_DISABLED=true` set, or the key is wrong. The demo key above,
 `my-secret-api-key`, only works against a server started exactly as shown in step 1.
 
-**`ExecutionRejectedError: Execution rejected: ...`** — the policy evaluated your signals
+**`ExecutionRejectedError: Execution rejected: ...`**: the policy evaluated your signals
 and declined. The message names which rule failed; check
 [Write your first policy](/guides/write-your-first-policy) for how `vendor-payment@2.0.0`
 reads its signals, or loosen the signals in your own test transaction to see it pass.
 
-**A `400` about a mismatched id** — you built the `BusinessTransaction` object by hand
+**A `400` about a mismatched id**: you built the `BusinessTransaction` object by hand
 instead of through `createBusinessTransaction()`. See [`createBusinessTransaction()`, no
 more hand-synced ids](/sdks/typescript#createbusinesstransaction-no-more-hand-synced-ids)
 for exactly which three id pairs the server cross-checks.

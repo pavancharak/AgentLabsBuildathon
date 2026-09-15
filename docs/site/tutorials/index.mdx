@@ -7,7 +7,7 @@ description: "Numbered examples in examples/tutorials/, grouped by what they dem
   **[AVAILABLE]**, 93 run unattended in CI via `npm run examples`
   (`scripts/run-examples.ts`), confirmed passing this pass; one (09, noted
   below) needs a live server and runs individually. Numbering has a few
-  intentional gaps (61, 63-68, 85) — retired when the Razorpay connector was
+  intentional gaps (61, 63-68, 85), retired when the Razorpay connector was
   deliberately removed from the codebase, never reused, see the note below. See
   [Detect tampering](/guides/detect-tampering) and [Choose a signature
   provider](/guides/choose-a-signature-provider) for guides built directly on
@@ -127,7 +127,7 @@ live with real output.
 <Accordion title="Signal/Intent binding (62)">
 
 <Info>
-  Tutorials 61, 63-68, and 85 don't exist — all retired when the Razorpay
+  Tutorials 61, 63-68, and 85 don't exist. All were retired when the Razorpay
   connector was deliberately removed from the codebase (`docs/CLAIMS.md`'s "Key
   Compromise Notice" section and the connector-removal history), never reused.
   `examples/README.md` in the source repository is the authoritative, current
@@ -154,11 +154,11 @@ scope.
 </Accordion>
 <Accordion title="Refusal records and signed audit events (73-75)">
 
-| #   | Name                     | Demonstrates                                                                                                                                     |
-| --- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 73  | Refusal Records          | A policy `REJECT` producing a durable, signed Refusal Record, retrievable and independently verifiable afterward                                 |
-| 74  | Refusal Record Fail-Open | A Refusal Record write failure never blocking, delaying, or changing the actual rejection a caller receives — the record is evidence, not a gate |
-| 75  | Signed Audit Events      | Caller-authentication audit events signed with the same root of trust as every other Parmana artifact, tampering detectable                      |
+| #   | Name                     | Demonstrates                                                                                                                                    |
+| --- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 73  | Refusal Records          | A policy `REJECT` producing a durable, signed Refusal Record, retrievable and independently verifiable afterward                                |
+| 74  | Refusal Record Fail-Open | A Refusal Record write failure never blocking, delaying, or changing the actual rejection a caller receives; the record is evidence, not a gate |
+| 75  | Signed Audit Events      | Caller-authentication audit events signed with the same root of trust as every other Parmana artifact, tampering detectable                     |
 
 </Accordion>
 <Accordion title="Caller scoping and concurrency (76-78)">
@@ -223,33 +223,33 @@ scope.
   above.
 </Info>
 
-**105 — Tenant Key Isolation.** Demonstrates the per-tenant signing-key fix: a transaction
+**105: Tenant Key Isolation.** Demonstrates the per-tenant signing-key fix: a transaction
 with a provisioned `tenant.<tenantId>` key signs and verifies only under that key, an
 unprovisioned tenantId falls back silently to the shared default key, and a transaction with
-no tenantId is unaffected. Newly added to `scripts/run-examples.ts`'s list — it existed and
+no tenantId is unaffected. Newly added to `scripts/run-examples.ts`'s list: it existed and
 worked standalone since its own commit, but `npm run examples` never exercised it until now.
 
-**106 — API Key Issuance (Writing a New Policy).** A brand-new `policies/api-key-issuance/1.0.0`
+**106: API Key Issuance (Writing a New Policy).** A brand-new `policies/api-key-issuance/1.0.0`
 policy and worked example showing how to author a policy correctly under the fail-closed
 `boundSignals` discipline and zero-conflict shape from the start, rather than retrofitting it
 afterward the way all 10 pre-existing policies needed. Also in `scripts/run-examples.ts`'s
 list from its first commit.
 
-**107 — Offline Verification.** `verifyExecutionTrustRecordOffline` verifying a genuine
-record, a tampered one, and a wrong-key attempt, with zero disk/network/env-var access — one
+**107: Offline Verification.** `verifyExecutionTrustRecordOffline` verifying a genuine
+record, a tampered one, and a wrong-key attempt, with zero disk/network/env-var access. One
 level stronger than [Verify a trust record independently](/guides/verify-independently)'s
 "server process stopped" proof.
 
-**108 — Public-Key Discovery.** `GET /keys/:keyId` and `GET /.well-known/jwks.json`,
+**108: Public-Key Discovery.** `GET /keys/:keyId` and `GET /.well-known/jwks.json`,
 unauthenticated, plus the full chain: a key fetched over real HTTP verifies a real record
 fully offline via Tutorial 107's function, with zero further server calls.
 
-**109 — Durable-Evidence Key Rotation.** `PARMANA_VERIFICATION_KEY_ID` rotating the Trust
+**109: Durable-Evidence Key Rotation.** `PARMANA_VERIFICATION_KEY_ID` rotating the Trust
 Record/Refusal Record/Audit Event signing key to a freshly generated keyId without
-invalidating any already-issued signature — the property that was previously false (the only
+invalidating any already-issued signature. That property was previously false (the only
 prior "rotation" was overwriting the key file in place).
 
-**110 — Hybrid-Signature Downgrade Protection.** The opt-in `HYBRID_SIGNATURE_REQUIRED` flag
+**110: Hybrid-Signature Downgrade Protection.** The opt-in `HYBRID_SIGNATURE_REQUIRED` flag
 closing the gap where a hybrid-signed record's ML-DSA-65 signature could be silently stripped
 with no cryptographic trace, while leaving every already-issued record (default policy,
 unaffected) exactly as verifiable as before.

@@ -1,5 +1,6 @@
 import express from "express";
 import documentationRoutes from "./routes/documentation.js";
+import referenceRoutes from "./routes/reference.js";
 
 import { createErrorHandler } from "./middleware/error-handler.js";
 import { createCallerAuthMiddleware } from "./middleware/caller-auth.js";
@@ -42,7 +43,7 @@ import type { PolicyChangeApprovalService } from "./governance/PolicyChangeAppro
  * Every call site must state its caller-auth choice explicitly:
  * either a real authenticator/auditSink pair, or the literal
  * string "disabled" to mount the app with no caller-auth
- * middleware at all. There is no default — silently omitting
+ * middleware at all. There is no default: silently omitting
  * this option is exactly the failure mode this type exists to
  * rule out (see docs/CLAIMS.md and the July 2026 audit closeout).
  */
@@ -145,13 +146,13 @@ export function createApp(
   /**
    * System
    *
-   * /health, /ready, and /openapi.yaml are the routes exempt from
-   * caller authentication: liveness/readiness probes and API
-   * documentation consumers must be able to reach them with no
-   * credential (a caller cannot discover how to get a key from a spec it
-   * is not allowed to read, and a PaaS orchestrator has no API key at
-   * all). Everything below this line, including "/" and "/version",
-   * sits behind the middleware when it is provided.
+   * /health, /ready, /openapi.yaml, /documentation, and /reference are
+   * the routes exempt from caller authentication: liveness/readiness
+   * probes and API documentation consumers must be able to reach them
+   * with no credential (a caller cannot discover how to get a key from a
+   * spec it is not allowed to read, and a PaaS orchestrator has no API
+   * key at all). Everything below this line, including "/" and
+   * "/version", sits behind the middleware when it is provided.
    */
   const healthReadyRateLimiter = createHealthReadyRateLimiter(
     healthPerMinute,
@@ -166,6 +167,7 @@ export function createApp(
   );
   app.use("/openapi.yaml", openapiRoutes);
   app.use("/documentation", documentationRoutes);
+  app.use("/reference", referenceRoutes);
 
   /**
    * RFC-0021: deliberately exempt from caller-auth, alongside the

@@ -164,7 +164,7 @@ paths:
       operationId: getKey
       description: >
         Deliberately unauthenticated, like GET /audit/verify and GET
-        /refusal/verify — a third party (regulator, auditor, customer tool)
+        /refusal/verify. A third party (regulator, auditor, customer tool)
         fetching the key it needs to independently verify a signature cannot be
         required to already hold a Parmana credential to reach it. Returns the
         current or any still-retained historical key's public half; a keyId
@@ -212,7 +212,7 @@ paths:
                     description: >
                       Node's native JWK export for this key's algorithm, when
                       available. Ed25519 exports as kty "OKP"; ML-DSA-65 exports
-                      as kty "AKP" (the IETF JOSE/COSE key type for ML-DSA — not
+                      as kty "AKP" (the IETF JOSE/COSE key type for ML-DSA, not
                       an identifier this codebase invented). Omitted, not null,
                       when unavailable.
         "404":
@@ -225,7 +225,7 @@ paths:
       operationId: getJwks
       description: >
         Same unauthenticated, third-party-verification purpose as GET
-        /keys/{keyId} — this is the enumeration form. Not a standards-pure RFC
+        /keys/{keyId}, this is the enumeration form. Not a standards-pure RFC
         7517 JWK Set (not every entry necessarily has a `jwk` field), but a
         superset any consumer that only wants `.jwk` per entry can filter down
         to.
@@ -283,7 +283,7 @@ paths:
         Returns 404 with {"error":"No authenticated caller identity available."}
         when no caller identity is present on the request, which in practice
         only happens when caller authentication is disabled
-        (PARMANA_AUTH_DISABLED=true, local development only) — under normal,
+        (PARMANA_AUTH_DISABLED=true, local development only). Under normal,
         authenticated operation this route always has a callerId by the time it
         runs.
       responses:
@@ -360,7 +360,7 @@ paths:
         entirely.** That example is a real request/response pair captured before
         the removal; resubmitting it against a current server no longer produces
         the shown APPROVED result; it falls into the "no Connector registered"
-        case instead, since no connector — production or test — registers
+        case instead, since no connector (production or test) registers
         `payments:execute` any longer. It is retained here as a real, historical
         illustration of the response shape, not as a currently-runnable example.
         The `vendor-payment/2.0.0` policy file itself is unaffected and still

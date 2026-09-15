@@ -14,12 +14,38 @@ Local: `http://localhost:3000` (see [Quickstart](/quickstart) for starting the s
 raw spec is also served at `GET /openapi.yaml`, see [Deploy
 patterns](/guides/deploy-patterns#the-openapi-spec-endpoint).
 
-## Full reference
+## Three views of the same spec
 
-Every route, request/response shape, and status code is generated from
-[`openapi/openapi.yaml`](https://github.com/pavancharak/parmana/blob/main/openapi/openapi.yaml)
-in the sidebar under **REST API**, each with real captured examples and a working curl
-snippet. This page and its siblings cover what a spec can't express:
+Every route, request/response shape, and status code ultimately comes from one file,
+[`openapi/openapi.yaml`](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/openapi/openapi.yaml),
+version-controlled alongside the code that implements it. That one spec drives three
+surfaces, so none of them can drift from what the server actually does:
+
+<CardGroup cols={3}>
+  <Card title="This site" icon="book-open" href="/api-reference/introduction">
+    Guides, SDKs, and the per-route reference in the sidebar under **REST API**,
+    each with real captured examples and a working curl snippet.
+  </Card>
+  <Card
+    title="GET /documentation"
+    icon="flask"
+    href="/guides/deploy-patterns#the-openapi-spec-endpoint"
+  >
+    A live Swagger UI on every deployment, with **Try it out** wired to a real
+    bearer key, for hands-on testing, not just reading.
+  </Card>
+  <Card
+    title="GET /reference"
+    icon="scale-balanced"
+    href="/guides/deploy-patterns#the-openapi-spec-endpoint"
+  >
+    A read-only, single-page ReDoc view of the full spec, no **Try it out**
+    button, built for auditors and integration partners who just need to read
+    it.
+  </Card>
+</CardGroup>
+
+This page and its siblings cover what a spec can't express:
 
 <CardGroup cols={2}>
   <Card title="Authentication" icon="key" href="/api-reference/authentication">

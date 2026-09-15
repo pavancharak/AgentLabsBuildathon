@@ -11,12 +11,12 @@ description: "How to authenticate API requests: the bearer key model, what gets 
 ## Send a bearer key
 
 Every route requires `Authorization: Bearer <key>` except `GET /health`, `GET /ready`,
-`GET /openapi.yaml`, and `GET /documentation` (liveness/readiness probes and API
-documentation), `POST /refusal/verify` and `POST /audit/verify` (unauthenticated,
-independently third-party-verifiable signature checks — a credential-gated route
+`GET /openapi.yaml`, `GET /documentation`, and `GET /reference` (liveness/readiness probes and
+API documentation), `POST /refusal/verify` and `POST /audit/verify` (unauthenticated,
+independently third-party-verifiable signature checks; a credential-gated route
 cannot be how a party with no Parmana credential verifies a signature), and, added
 2026-09-11 for the same reason, `GET /keys/:keyId` and `GET /.well-known/jwks.json`
-(public-key discovery — see [Verify a trust record
+(public-key discovery, see [Verify a trust record
 independently](/guides/verify-independently)). All mounted ahead of the caller-auth
 middleware in `packages/api/src/app.ts`; every other route sits behind it.
 
@@ -68,7 +68,7 @@ every route becomes reachable by anyone who can reach the port.
 
 <Info>**[AVAILABLE]**, `packages/api/src/middleware/rate-limit.ts`.</Info>
 
-`POST /execute` — the endpoint that signs and writes to the database on every request — is
+`POST /execute` (the endpoint that signs and writes to the database on every request) is
 rate-limited **per authenticated caller identity** (the `callerId` this page establishes), not
 by IP: a design-partner integration commonly calls from a shared backend IP, where an IP-keyed
 limit would either starve every caller behind it or be loose enough to mean nothing. It is
@@ -78,8 +78,8 @@ limit keyed by IP instead, since both are legitimately polled on a fixed interva
 health-check infrastructure and must never be tight enough to throttle that.
 
 A rejected request gets `429`, `{"error":"Rate limit exceeded. Try again later.","code":
-"RATE_LIMITED"}`, and a `Retry-After` header, and never reaches policy evaluation or signing —
-no nonce is consumed and nothing is signed for a request this middleware rejects. Both limits
+"RATE_LIMITED"}`, and a `Retry-After` header, and never reaches policy evaluation or signing.
+No nonce is consumed and nothing is signed for a request this middleware rejects. Both limits
 have working defaults sized for a design-partner evaluation deployment, not high-volume
 production traffic, and are independently configurable per deployment via
 `RATE_LIMIT_EXECUTE_PER_MINUTE` / `RATE_LIMIT_HEALTH_PER_MINUTE` (see `.env.example`).

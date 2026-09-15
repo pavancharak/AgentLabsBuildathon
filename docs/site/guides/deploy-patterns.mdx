@@ -186,11 +186,24 @@ file and, like `GET /health`, is exempt from caller authentication, see
 get a key from a spec it isn't allowed to read, the same reasoning Stripe and most public
 API providers apply to their own spec/docs endpoints.
 
-**Exposing it in production is almost always the right default.** The spec contains no
+Two more routes render that same spec, exempt from caller authentication for the identical
+reason, and neither one keeps its own separate copy, so none of the three can drift from
+what the server actually does:
+
+- **`GET /documentation`**: a Swagger UI instance (`packages/api/src/routes/documentation.ts`,
+  the `swagger-ui-express` package) that reads `openapi/openapi.bundled.yaml` from disk at
+  startup, with **Try it out** wired up for testing a real request against this exact
+  deployment without leaving the browser.
+- **`GET /reference`**: a single-page ReDoc view (`packages/api/src/routes/reference.ts`) that
+  fetches `GET /openapi.yaml` live, client-side, in the browser. No interactive form. Built
+  for reading the complete spec top to bottom, auditors and integration partners who want the
+  whole surface at a glance, not a form to fill in.
+
+**Exposing all three in production is almost always the right default.** The spec contains no
 secrets, only route shapes and example payloads with already-rotated or synthetic IDs. If
 your deployment has a reason to hide API surface area entirely (an internal-only service
-behind a network boundary where even the shape of the API is sensitive), the route can be
-disabled by not mounting `openapiRoutes` in `packages/api/src/app.ts`, there is no
+behind a network boundary where even the shape of the API is sensitive), any of the three
+routes can be disabled by not mounting it in `packages/api/src/app.ts`, there is no
 environment-variable toggle for this today, it's a code change.
 
 ## What this deployment does not give you

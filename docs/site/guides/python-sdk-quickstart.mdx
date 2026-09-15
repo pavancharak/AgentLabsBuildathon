@@ -7,15 +7,16 @@ description: "Get Parmana running end-to-end with the Python SDK: build a transa
   This walks through the same flow as the top-level [Quickstart](/quickstart),
   with more explanation at each step and a focus on the SDK's own ergonomics. If
   you just want the fastest path to a working local server, use
-  [Quickstart](/quickstart) instead — this page assumes you're already inside a
-  local clone of [the Parmana repo](https://github.com/pavancharak/parmana) with
-  a server you can point at.
+  [Quickstart](/quickstart) instead. This page assumes you're already inside a
+  local clone of [the Parmana
+  repo](https://github.com/pavancharak/AgentLabsBuildathon) with a server you
+  can point at.
 </Note>
 
 ## Prerequisites
 
 - **Python 3.8+** (`python --version`)
-- **Node.js** (to run the Parmana server locally — `node --version`)
+- **Node.js** (to run the Parmana server locally, `node --version`)
 - A local clone of the Parmana repo, with `npm install` already run in it
 
 <Steps>
@@ -37,7 +38,7 @@ description: "Get Parmana running end-to-end with the Python SDK: build a transa
     ```
 
     With `NODE_ENV=test`, a generic, credential-free test connector (`test-fixture`) registers
-    automatically — no external credentials needed for this walkthrough. See [Quickstart](/quickstart)
+    automatically, no external credentials needed for this walkthrough. See [Quickstart](/quickstart)
     for what each flag does and how to generate a local Gateway keypair if you haven't already.
 
   </Step>
@@ -47,7 +48,7 @@ description: "Get Parmana running end-to-end with the Python SDK: build a transa
     pip install parmana
     ```
 
-    Real PyPI package — see [Python SDK](/sdks/python) for the current published version and what's
+    Real PyPI package. See [Python SDK](/sdks/python) for the current published version and what's
     inside it (generated models, a typed error taxonomy, a real bearer-key `requests.Session()`).
 
   </Step>
@@ -61,14 +62,14 @@ description: "Get Parmana running end-to-end with the Python SDK: build a transa
 
     The committed `.env` in the repo ships one demo caller key for local development:
     `callerId: "demo"`, raw key `my-secret-api-key`. `api_key` is optional only against a server
-    started with `PARMANA_AUTH_DISABLED=true` — every real deployment requires one, and an
+    started with `PARMANA_AUTH_DISABLED=true`. Every real deployment requires one, and an
     omitted/wrong key raises `AuthenticationError`, not a silent failure.
 
   </Step>
 
   <Step title="Build a Business Transaction">
     `create_business_transaction()` derives every id pair the server checks for internal consistency
-    — see [why that matters](/sdks/python#create_business_transaction-no-more-hand-synced-ids) — so
+    (see [why that matters](/sdks/python#create_business_transaction-no-more-hand-synced-ids)), so
     there's nothing to hand-assemble and get wrong:
 
     ```python
@@ -88,8 +89,8 @@ description: "Get Parmana running end-to-end with the Python SDK: build a transa
             "sufficientFunds": True,
             "paymentAmount": 1000,
             "riskScore": 5,
-            # vendor-payment@2.0.0 declares boundSignals: { "vendorId": "target" } —
-            # this must exactly equal `target` above, checked before policy evaluation
+            # vendor-payment@2.0.0 declares boundSignals: { "vendorId": "target" }.
+            # This must exactly equal `target` above, checked before policy evaluation
             # ever runs, or the request is rejected as a binding-tamper attempt.
             "vendorId": "vendor://payments",
         },
@@ -99,13 +100,13 @@ description: "Get Parmana running end-to-end with the Python SDK: build a transa
     ```
 
     `test:fixture-execute` is a generic, credential-free capability built for exactly this kind of
-    walkthrough — it's unrelated to any real connector, and only registers when the server runs with
+    walkthrough. It's unrelated to any real connector, and only registers when the server runs with
     `NODE_ENV=test`.
 
   </Step>
 
   <Step title="Execute it">
-    One call runs the policy decision and, if approved, the connector — there's no separate
+    One call runs the policy decision and, if approved, the connector. There's no separate
     "authorize" step:
 
     ```python
@@ -119,7 +120,7 @@ description: "Get Parmana running end-to-end with the Python SDK: build a transa
     ```
 
     If the policy denies the transaction, `execute()` raises `ExecutionRejectedError` with the
-    policy's own reason in the message — it never returns a "REJECTED" status you'd have to check for.
+    policy's own reason in the message. It never returns a "REJECTED" status you'd have to check for.
 
   </Step>
 
@@ -135,7 +136,7 @@ description: "Get Parmana running end-to-end with the Python SDK: build a transa
     ```
 
     This same call, run for real against a local server, is captured verbatim in
-    [Quickstart's "Real output" step](/quickstart) — expect the same shape (a fresh hash each run,
+    [Quickstart's "Real output" step](/quickstart). Expect the same shape (a fresh hash each run,
     since the transaction and timestamp differ). See [Execution Trust
     Records](/concepts/execution-trust-records) for the complete field-by-field shape, and [Verify
     independently](/guides/verify-independently) to check the signature yourself instead of trusting
@@ -198,13 +199,13 @@ the demo key matches what's in the repo's committed `.env`, or that `PARMANA_AUT
 is actually set if you intended to skip auth.
 
 **`ExecutionRejectedError`**
-The named policy denied the transaction — the exception message is the policy's own reason. Check
+The named policy denied the transaction. The exception message is the policy's own reason. Check
 that every signal the policy references is present in `signals`, and that any `boundSignals`
 field (like `vendorId` above) exactly matches its bound intent field.
 
 **`ValidationError` (400), often "X must equal Y"**
 A hand-built transaction had two of the three cross-checked id pairs out of sync. Use
-`create_business_transaction()` instead of constructing the object by hand — it makes this class
+`create_business_transaction()` instead of constructing the object by hand. It makes this class
 of mistake structurally impossible.
 
 ## Next

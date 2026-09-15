@@ -32,22 +32,22 @@ Parmana's public key. Production caller-authentication audit events
 are signed the same way, verifiable at `POST /audit/verify`. Two scope caveats: Refusal
 Record writing is evidentiary and fails open by design (a rejection is never blocked or
 delayed by it; only the durable record can go silently missing, never the correctness of
-the rejection itself), and only production (Supabase) audit sinks sign — the in-memory
+the rejection itself), and only production (Supabase) audit sinks sign; the in-memory
 test sinks don't.
 
 **Hybrid (Ed25519 + ML-DSA-65) signing capability, not yet deployed (3.13).** Trust
 Records and Receipts can be dual-signed with both a classical and a post-quantum
 algorithm at once, with verification requiring both signatures independently, fail-closed.
-This is a built, tested capability — `CRYPTO_MODE=hybrid` is real, validated
-configuration — but it is opt-in and not running anywhere today: every deployed
+This is a built, tested capability (`CRYPTO_MODE=hybrid` is real, validated
+configuration), but it is opt-in and not running anywhere today: every deployed
 environment signs Ed25519 alone.
 **Caveat:** `@parmana/sign`, the public verification SDK, does not yet recognize the
 hybrid envelope shape; a third party verifying a hybrid-signed record through it today
-checks the legacy Ed25519 signature only — a genuine but partial verification, not the
+checks the legacy Ed25519 signature only, a genuine but partial verification, not the
 full hybrid guarantee. This repository's own `packages/crypto/src/OfflineVerifier.ts`
 (TypeScript) and `python/parmana/crypto/offline_verifier.py` (Python, Ed25519 only)
 do recognize the hybrid envelope and check both signatures independently, offline,
-with zero network access — use these for a full hybrid check today, not `@parmana/sign`,
+with zero network access. Use these for a full hybrid check today, not `@parmana/sign`,
 until that separate, external package is updated.
 
 **Hybrid-signature downgrade resistance, opt-in.** A genuinely hybrid-signed record's

@@ -12,7 +12,7 @@ description: "Install to your first authorized execution in under 10 minutes, us
   `intent.target` (see [Policies and the
   decision](/concepts/policies-and-the-decision)), so the execute step below
   sets both to the same value. Code samples below are shown for Python and
-  TypeScript — pick whichever matches your client.
+  TypeScript. Pick whichever matches your client.
 </Note>
 
 <Steps>
@@ -72,8 +72,8 @@ description: "Install to your first authorized execution in under 10 minutes, us
 
   <Step title="Authenticate: every other route requires a bearer key">
     `/health` is the one route exempt from caller authentication (along with `/ready`,
-    `/openapi.yaml`, and `/documentation`). Everything else, including `/version`, fails closed
-    with a `401` before a Business Transaction is even constructed:
+    `/openapi.yaml`, `/documentation`, and `/reference`). Everything else, including
+    `/version`, fails closed with a `401` before a Business Transaction is even constructed:
 
     ```bash
     curl http://localhost:3000/version
@@ -219,7 +219,7 @@ description: "Install to your first authorized execution in under 10 minutes, us
     </CodeGroup>
 
     Full runnable versions: `python/examples/quickstart/run.py` and
-    `typescript/examples/06-create-business-transaction.ts` — these are exactly the
+    `typescript/examples/06-create-business-transaction.ts`, these are exactly the
     transactions shown above. `python/tests/test_quickstart_example.py` and
     `typescript/test/integration/examples.integration.test.ts` run them against a real,
     freshly-spawned server on every test run, so both examples are verified to work, not just
