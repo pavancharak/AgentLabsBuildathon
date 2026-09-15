@@ -37,21 +37,24 @@ surfaces, so none of them can drift from what the server actually does:
   <Card
     title="GET /documentation"
     icon="flask"
-    href="/guides/deploy-patterns#the-openapi-spec-endpoint"
+    href="https://parmana-api-real.vercel.app/documentation/"
   >
-    A live Swagger UI on every deployment, with **Try it out** wired to a real
+    Live Swagger UI on the real deployment, with **Try it out** wired to a real
     bearer key, for hands-on testing, not just reading.
   </Card>
   <Card
     title="GET /reference"
     icon="scale-balanced"
-    href="/guides/deploy-patterns#the-openapi-spec-endpoint"
+    href="https://parmana-api-real.vercel.app/reference"
   >
-    A read-only, single-page ReDoc view of the full spec, no **Try it out**
+    Live, read-only, single-page ReDoc view of the full spec, no **Try it out**
     button, built for auditors and integration partners who just need to read
     it.
   </Card>
 </CardGroup>
+
+Every route's own base URL, including on your own deployment, not just the one linked above,
+is documented on [Deploy patterns](/guides/deploy-patterns#the-openapi-spec-endpoint).
 
 This page and its siblings cover what a spec can't express:
 
