@@ -641,19 +641,27 @@ new packages/runtime/tests/e2e/runtime.e2e.test.ts cases (result stamped correct
 resolver failure never blocks a real execution), plus a live check against a locally-running
 instance.
 
-**Still open:** connector-execution evidence is not bound into this chain — nothing links
-`ConnectorEvidence`/`connectorEvidenceHash`
-(packages/execution-gateway/src/connector-execution/ConnectorEvidence.ts) to the
-policy-governance chain above; policy content is bound to the decision, the decision now
-carries an honest governance anchor, but neither references what a connector subsequently
-did, beyond both sitting inside the same overall signed `ExecutionTrustRecord`. This needs a
-real design, not a small addition — genuinely new scope, not attempted. Separately,
-`POLICY_EXECUTION_VERIFICATION_ENFORCED` itself (the enforcement gate, distinct from the
-anchor resolver above) remains off by default and cannot safely turn on until the
-"Legacy-policy backfill" entry below completes. Both gaps found by an independent read-only
-audit, docs/investigations/2026-09-15-evidence-anchor-gap-audit.md (GAP-4), whose own first
-pass initially concluded no policy-content-to-governance linkage existed at all before finding
-this section and correcting itself — see that document's §4.
+**Connector-evidence linkage, added same day.** `ExecutionTrustRecord` gained `evidenceAnchor`
+(packages/shared/src/domain/evidence-anchor.ts), built by
+`BusinessTrustRecordBuilder.buildEvidenceAnchor()`
+(packages/runtime/src/BusinessTrustRecordBuilder.ts): an explicit `{policyContentHash,
+governanceAnchorStatus, connectorEvidenceHash, anchorHash}` pointer, entirely within
+`packages/runtime` — `RuntimeContext` already carries both the resolved governance anchor and
+the connector's evidence by the time the trust record is assembled, so no cross-package
+interface change was needed. Not a new cryptographic guarantee on its own (both were already
+covered by `trustRecordHash`/`signature`), but a single, explicitly-named pointer an auditor
+can check without reconstructing the binding themselves. Verified via
+packages/runtime/tests/unit/BusinessTrustRecordBuilder.test.ts and a real live execution.
+
+Separately, unaffected by this fix: `POLICY_EXECUTION_VERIFICATION_ENFORCED` itself (the
+enforcement gate, distinct from the anchor resolver above) remains off by default and cannot
+safely turn on until the "Legacy-policy backfill" entry below completes, and G-47's
+enforcement-severity question (docs/VERIFICATION-GAPS.md) is unaffected — this fix makes the
+evidence more complete, not what enforcement does with a mismatch. All found by an
+independent read-only audit, docs/investigations/2026-09-15-evidence-anchor-gap-audit.md
+(GAP-4), whose own first pass initially concluded no policy-content-to-governance linkage
+existed at all before finding this section and correcting itself — see that document's §4 and
+its same-day addendum.
 
 **Open question: internal vs. external policy authoring.** The system described above resolves _how_ a policy change is approved once Parmana is the system of record for that approval. It does not resolve _whether_ Parmana should be the system of record at all: an alternative architecture — policies authored and approved in an external system, with Parmana staying strictly read-only/enforcement-only for policy content (loading and evaluating whatever content it is handed, verifying its provenance, never hosting the approval workflow itself) — remains a live, undecided option. Nothing in the codebase picks a side; the maker-checker system exists because policy authoring was previously outside any governance surface at all (this section's opening claim), not because "build it internally" was compared against and preferred over the external alternative. Treat this as an open question, not a resolved default.
 

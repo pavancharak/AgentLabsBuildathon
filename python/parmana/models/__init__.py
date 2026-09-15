@@ -34,7 +34,7 @@ from .execution import (
 from .override import Override
 from .receipt import Receipt
 from .verification import VerificationStatus, Verification
-from .trust_record import ExecutionTrustRecord
+from .trust_record import EvidenceAnchor, ExecutionTrustRecord
 from .execution_authorization import (
     ExecutionAuthorizationPayload,
     SignedExecutionAuthorization,
@@ -55,6 +55,7 @@ __all__ = [
     "BusinessTransactionStatus",
     "Decision",
     "DecisionOutcome",
+    "EvidenceAnchor",
     "Execution",
     "ExecutionAuthorizationPayload",
     "ExecutionEvidence",

@@ -3,10 +3,15 @@ import crypto from "node:crypto";
 import {
   CryptoBootstrap,
   DEFAULT_KEY_ID,
+  TrustRecordHasher,
   VerificationCrypto,
 } from "@parmana/crypto";
 
-import { ExecutionTrustRecord, loadConfig } from "@parmana/shared";
+import {
+  EvidenceAnchor,
+  ExecutionTrustRecord,
+  loadConfig,
+} from "@parmana/shared";
 
 import { RuntimeContext } from "./context/RuntimeContext.js";
 
@@ -19,12 +24,81 @@ type TrustRecordDraft = Omit<
 >;
 
 /**
+ * Safely reads executions[0].evidence.attributes.connector.connectorEvidenceHash
+ * without assuming its shape -- `attributes` is a generic, execution-
+ * system-specific bag (ExecutionEvidence.attributes' own doc comment),
+ * so this only trusts what it can directly confirm is a string.
+ */
+function readConnectorEvidenceHash(
+  context: RuntimeContext,
+): string | undefined {
+  const connector = context.execution?.evidence?.attributes?.connector;
+
+  if (
+    connector !== null &&
+    typeof connector === "object" &&
+    "connectorEvidenceHash" in connector &&
+    typeof (connector as { connectorEvidenceHash: unknown })
+      .connectorEvidenceHash === "string"
+  ) {
+    return (connector as { connectorEvidenceHash: string })
+      .connectorEvidenceHash;
+  }
+
+  return undefined;
+}
+
+/**
  * Builds the canonical Execution Trust Record.
  */
 export class BusinessTrustRecordBuilder {
   private readonly crypto = new VerificationCrypto();
 
+  private readonly evidenceAnchorHasher = new TrustRecordHasher(
+    CryptoBootstrap.create(),
+  );
+
   private readonly config = loadConfig();
+
+  /**
+   * Builds the explicit evidence-anchor binding (G-45's residual
+   * "Record 3 is outside all three [policy-governance] mechanisms"
+   * gap) -- see EvidenceAnchor's own doc comment for exactly what this
+   * does and does not add over the implicit binding trustRecordHash
+   * already provides. Undefined when there is nothing to anchor at
+   * all (should not occur for any real Trust Record, since G-24
+   * always stamps policyContentHash, but stays honest rather than
+   * assuming).
+   */
+  private async buildEvidenceAnchor(
+    context: RuntimeContext,
+  ): Promise<EvidenceAnchor | undefined> {
+    const policyContentHash = context.transaction.policy.contentHash;
+    const governanceAnchorStatus =
+      context.transaction.policy.governanceAnchor?.status;
+    const connectorEvidenceHash = readConnectorEvidenceHash(context);
+
+    if (
+      policyContentHash === undefined &&
+      governanceAnchorStatus === undefined &&
+      connectorEvidenceHash === undefined
+    ) {
+      return undefined;
+    }
+
+    const anchorHash = await this.evidenceAnchorHasher.hash({
+      policyContentHash,
+      governanceAnchorStatus,
+      connectorEvidenceHash,
+    });
+
+    return {
+      ...(policyContentHash !== undefined && { policyContentHash }),
+      ...(governanceAnchorStatus !== undefined && { governanceAnchorStatus }),
+      ...(connectorEvidenceHash !== undefined && { connectorEvidenceHash }),
+      anchorHash,
+    };
+  }
 
   /**
    * Builds an immutable Execution Trust Record
@@ -36,6 +110,8 @@ export class BusinessTrustRecordBuilder {
     }
 
     const now = new Date();
+
+    const evidenceAnchor = await this.buildEvidenceAnchor(context);
 
     const draft: TrustRecordDraft = {
       trustRecordId: crypto.randomUUID(),
@@ -55,6 +131,8 @@ export class BusinessTrustRecordBuilder {
       verifications: context.verification ? [context.verification] : [],
 
       receipts: context.receipt ? [context.receipt] : [],
+
+      ...(evidenceAnchor !== undefined && { evidenceAnchor }),
 
       createdAt: now,
 

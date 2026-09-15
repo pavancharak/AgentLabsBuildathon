@@ -3921,6 +3921,43 @@ components:
           format: date-time
           description: UTC timestamp when the Execution Trust Record was last extended
             with a new immutable artifact.
+        evidenceAnchor:
+          type: object
+          description: Explicit binding linking policy-governance provenance
+            (transaction.policy.contentHash/governanceAnchor) to what a
+            connector actually did (executions[].evidence.attributes.connector).
+            Not a new cryptographic guarantee on its own -- both were already
+            covered by trustRecordHash/signature -- but a single,
+            explicitly-named pointer an auditor can check without reconstructing
+            the binding themselves. Absent on a Trust Record built before this
+            field existed.
+          additionalProperties: false
+          required:
+            - anchorHash
+          properties:
+            policyContentHash:
+              type: string
+              description: Copied from transaction.policy.contentHash (G-24). Present on every
+                real Execution Trust Record.
+            governanceAnchorStatus:
+              type: string
+              enum:
+                - VERIFIED
+                - NO_APPROVAL_RECORD
+                - SIGNATURE_INVALID
+                - CONTENT_MISMATCH
+              description: Copied from transaction.policy.governanceAnchor.status (G-45).
+                Absent only when no governance anchor resolver was configured
+                for this deployment.
+            connectorEvidenceHash:
+              type: string
+              description: Copied from
+                executions[0].evidence.attributes.connector.connectorEvidenceHash,
+                when a real connector executed.
+            anchorHash:
+              type: string
+              description: sha256 of the canonicalized {policyContentHash,
+                governanceAnchorStatus, connectorEvidenceHash} above.
       examples:
         - trustRecordId: 759e916e-66d2-48c3-8869-55d557acf155
           businessTransactionId: eed2a972-1bf5-4166-8472-761f76fbf1b2

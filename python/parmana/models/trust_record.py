@@ -1,7 +1,7 @@
 """
 GENERATED FILE -- DO NOT EDIT BY HAND.
 
-Generated from packages/shared/src/domain/execution-trust-record.ts by
+Generated from packages/shared/src/domain/evidence-anchor.ts, domain/execution-trust-record.ts by
 python/scripts/generate_models.ts. Run "npm run
 generate:python-models" to regenerate.
 """
@@ -15,9 +15,21 @@ from .business_transaction import BusinessTransaction
 from .execution import Execution
 from .execution_authorization import SignedExecutionAuthorization
 from .override import Override
+from .policy import PolicyGovernanceAnchorStatus
 from .receipt import Receipt
 from .signature import Signature, SignatureEntry
 from .verification import Verification
+
+
+@dataclass(frozen=True)
+class EvidenceAnchor:
+    anchor_hash: str
+
+    policy_content_hash: str | None = None
+
+    governance_anchor_status: PolicyGovernanceAnchorStatus | None = None
+
+    connector_evidence_hash: str | None = None
 
 
 @dataclass(frozen=True)
@@ -49,3 +61,5 @@ class ExecutionTrustRecord:
     schema_version: float | None = None
 
     signatures: list[SignatureEntry] | None = None
+
+    evidence_anchor: EvidenceAnchor | None = None

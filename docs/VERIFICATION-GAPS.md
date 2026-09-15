@@ -2546,18 +2546,41 @@ generator (not special-cased to this one field), verified via `npm run check:pyt
 producing a correct Python `Enum` and the regenerated `python/parmana/models/policy.py`
 passing the full Python suite.
 
-**Remaining, not attempted this session:** the connector-evidence half of the original
-finding. Nothing links `ConnectorEvidence`/`connectorEvidenceHash`
-(`packages/execution-gateway/src/connector-execution/ConnectorEvidence.ts`) to the
-policy-governance chain above — policy content is bound to the decision, the decision now
-carries an honest governance anchor, but neither references what a connector subsequently
-did, beyond both sitting inside the same overall signed `ExecutionTrustRecord` envelope. This
-would need a real design (what does "this connector call was authorized under a governed
-policy" even mean structurally), not a small addition like the one above — genuinely new
-scope. Also still true: `POLICY_EXECUTION_VERIFICATION_ENFORCED` (the enforcement gate,
-distinct from the anchor resolver above) remains off by default and cannot safely be turned
-on until G-1's legacy-policy backfill completes — see `docs/CLAIMS.md` §2.26's "Legacy-policy
-backfill" entry.
+**Connector-evidence half, RESOLVED 2026-09-15, same day as the rest of G-45.** New
+`EvidenceAnchor` domain type (`packages/shared/src/domain/evidence-anchor.ts`), a new field
+on `ExecutionTrustRecord` itself, built by `BusinessTrustRecordBuilder.buildEvidenceAnchor()`
+(`packages/runtime/src/BusinessTrustRecordBuilder.ts`) purely within `packages/runtime` — no
+cross-package interface changes, since `RuntimeContext` already carries both
+`transaction.policy.contentHash`/`governanceAnchor` and
+`execution.evidence.attributes.connector.connectorEvidenceHash` by the time the trust record
+gets assembled (confirmed by reading `RuntimeEngine.execute()`'s own ordering before
+building this: the governance anchor is resolved and merged before `this.pipeline.execute()`
+runs). Not a new cryptographic guarantee on its own — all three were already covered by
+`trustRecordHash`/`signature`, since they already sit inside the one object that gets hashed
+— but a single, explicitly-named, independently-computed pointer (`anchorHash`, over
+`{policyContentHash, governanceAnchorStatus, connectorEvidenceHash}`) an auditor can check
+without already knowing to reconstruct the binding themselves from `transaction.policy` and
+`executions[].evidence.attributes.connector` separately. Absent only when there is nothing to
+anchor at all (no policy content hash, no governance anchor, no connector evidence — should
+not occur for any real record, since G-24 always stamps `policyContentHash`).
+
+**Verified:** `packages/runtime/tests/unit/BusinessTrustRecordBuilder.test.ts` (4 cases: all
+three inputs present and `anchorHash` independently recomputed and matched; a partial anchor
+when no connector executed, e.g. no connector registered for the capability; entirely absent
+when there's nothing to anchor; a different `governanceAnchorStatus` produces a different
+`anchorHash` and a different overall `trustRecordHash` for otherwise-identical inputs). Full
+workspace `npx tsc -b` clean. Full repo suite: 1823 passed, 42 skipped, 0 failed. Verified
+live against a locally-running instance: a real executed `test:fixture-execute` transaction's
+`evidenceAnchor` came back
+`{policyContentHash, governanceAnchorStatus: "NO_APPROVAL_RECORD", connectorEvidenceHash,
+anchorHash}`, all four populated from real values, not placeholders.
+
+**Still true, unaffected by this fix:** `POLICY_EXECUTION_VERIFICATION_ENFORCED` (the
+enforcement gate, distinct from the anchor resolver) remains off by default and cannot safely
+be turned on until G-1's legacy-policy backfill completes — see `docs/CLAIMS.md` §2.26's
+"Legacy-policy backfill" entry. G-47's enforcement-severity design question is also
+unaffected: this fix makes the _evidence_ more complete, it does not change what enforcement
+does with a mismatch.
 
 **G-46. No evidence recorded whether a connector's response included an independent,
 vendor-originated cryptographic confirmation, as opposed to only what Parmana's own HTTP call

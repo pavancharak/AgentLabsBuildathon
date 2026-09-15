@@ -319,6 +319,7 @@ const DOMAIN_FILES = [
   "override.ts",
   "receipt.ts",
   "verification.ts",
+  "evidence-anchor.ts",
   "execution-trust-record.ts",
   "execution-authorization.ts",
   "refusal-record.ts",
@@ -422,8 +423,8 @@ const MODULES: ModuleSpec[] = [
   },
   {
     file: "trust_record",
-    types: ["ExecutionTrustRecord"],
-    docSource: "domain/execution-trust-record.ts",
+    types: ["EvidenceAnchor", "ExecutionTrustRecord"],
+    docSource: "domain/evidence-anchor.ts, domain/execution-trust-record.ts",
   },
   {
     file: "execution_authorization",

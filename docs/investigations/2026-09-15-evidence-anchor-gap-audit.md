@@ -232,3 +232,18 @@ design question for whenever `POLICY_EXECUTION_VERIFICATION_ENFORCED` is actuall
 — tracked so it isn't decided implicitly by default behavior nobody chose on purpose. See
 `docs/VERIFICATION-GAPS.md` G-47 and `02-REMAINING.md`'s Tier 0 for where this is registered
 going forward.
+
+## Addendum, same day: GAP-4's connector-evidence half closed
+
+§4's "Remaining, not attempted this session" note above turned out to be closeable the same
+day, once actually scoped: `RuntimeContext` already carries both the governance-anchor result
+and the connector's evidence by the time the trust record is assembled, so no cross-package
+interface change was needed after all — the earlier worry (crossing `ConnectorExecutor`,
+used by multiple implementations) didn't apply once traced precisely; only one implementation
+exists, and the actual linking point (`BusinessTrustRecordBuilder`) sits entirely within
+`packages/runtime`, downstream of both already-resolved values. New `evidenceAnchor` field on
+`ExecutionTrustRecord`, an explicit `{policyContentHash, governanceAnchorStatus,
+connectorEvidenceHash, anchorHash}` pointer. See `docs/VERIFICATION-GAPS.md` G-45 for the
+full writeup and verification. §5's table below is left as originally written, not edited in
+place, matching this document's own practice of recording corrections as addenda rather than
+silently rewriting earlier conclusions.

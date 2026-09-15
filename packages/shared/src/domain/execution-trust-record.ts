@@ -6,6 +6,7 @@ import { Receipt } from "./receipt.js";
 import { Signature } from "./signature.js";
 import { SignatureEntry } from "./signature-entry.js";
 import { SignedExecutionAuthorization } from "./execution-authorization.js";
+import { EvidenceAnchor } from "./evidence-anchor.js";
 
 /**
  * Parmana Trust Core
@@ -141,4 +142,15 @@ export interface ExecutionTrustRecord {
    * was last extended with a new immutable artifact.
    */
   readonly updatedAt: Date;
+
+  /**
+   * Explicit binding artifact linking policy-governance provenance
+   * (transaction.policy.contentHash/governanceAnchor, G-24/G-45) to
+   * what a connector actually did (executions[].evidence.attributes.connector,
+   * G-46) -- see EvidenceAnchor's own doc comment
+   * (docs/VERIFICATION-GAPS.md G-45's residual "Record 3 is outside
+   * all three [policy-governance] mechanisms" note). Absent on a
+   * Trust Record built before this field existed.
+   */
+  readonly evidenceAnchor?: EvidenceAnchor;
 }

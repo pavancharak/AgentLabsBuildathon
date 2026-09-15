@@ -10,6 +10,7 @@ export * from "./override.js";
 export * from "./verification.js";
 export * from "./receipt.js";
 export * from "./execution-trust-record.js";
+export * from "./evidence-anchor.js";
 export * from "./refusal-record.js";
 export * from "./challenge-record.js";
 export * from "./authority.js";
