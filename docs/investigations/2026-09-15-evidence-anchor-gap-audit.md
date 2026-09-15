@@ -191,3 +191,44 @@ open.
    anchor) has no design yet; genuinely new scope, not a fix to something partially built.
 
 No files outside `docs/investigations/` were changed to produce this document.
+
+## Addendum, same day: GAP-5, found after GAP-4/GAP-3 were fixed (G-45/G-46)
+
+After `PolicyGovernanceAnchorResolver` (G-45) and `vendorConfirmationVerified` (G-46) shipped,
+a design question surfaced about `PolicyGovernanceExecutionVerifier` — the pre-existing,
+still-feature-flagged-off enforcement gate G-45's resolver deliberately does not replace or
+change: **should a policy-governance mismatch actually stop execution, and should every kind
+of mismatch be treated the same way?**
+
+**What exists today.** `PolicyGovernanceExecutionVerifier.verify()`
+(`packages/api/src/governance/PolicyGovernanceExecutionVerifier.ts:31-63`) returns one of
+three distinct failure reasons — no approval record at all, an approval record whose
+signature doesn't verify, or live content that no longer matches the approval record's
+`contentHashAfter` — but `RuntimeEngine` treats all three identically: an ordinary policy
+REJECT, no authorization ever generated
+(`packages/runtime/src/RuntimeEngine.ts:284-291`, `capabilityBindingViolation`'s sibling
+check). Once `PolicyGovernanceAnchorResolver` (G-45) gives every execution a structured,
+always-present answer to "which of these, if any, is true" (`VERIFIED` |
+`NO_APPROVAL_RECORD` | `SIGNATURE_INVALID` | `CONTENT_MISMATCH`), the question of whether
+enforcement should treat all three the same becomes answerable with real data for the first
+time, once enforcement can safely be turned on at all (still blocked on the G-1 backfill).
+
+**GAP-5: `SIGNATURE_INVALID` (a tamper signal) and `NO_APPROVAL_RECORD`/`CONTENT_MISMATCH`
+(which can be honest process gaps, e.g. a legitimate hotfix that hasn't gone through
+governance yet) currently have no way to be handled differently — enforcement, if turned on,
+blocks on all three identically, with no graduated response.** This is a defensible
+conservative default (fail closed on any unknown-legitimacy mismatch is the same discipline
+this codebase applies everywhere else — see `docs/investigations/2026-09-15-evidence-anchor-gap-audit.md`'s
+own GAP-4 finding, and `AuthorizationVerifier`'s fail-closed unrecognized-version handling),
+not a bug. But it means there is no way today to, for example, hard-block only on
+`SIGNATURE_INVALID` while alerting-and-continuing on `NO_APPROVAL_RECORD` during a
+transition period — an all-or-nothing choice a real rollout of enforcement will likely want
+to reconsider once the backfill is complete and enforcement is actually being turned on for
+the first time.
+
+**Verdict:** not a defect in what was built this session (G-45's resolver correctly reports
+the distinction; only the _enforcement_ verifier, unchanged, collapses it). A genuine open
+design question for whenever `POLICY_EXECUTION_VERIFICATION_ENFORCED` is actually turned on
+— tracked so it isn't decided implicitly by default behavior nobody chose on purpose. See
+`docs/VERIFICATION-GAPS.md` G-47 and `02-REMAINING.md`'s Tier 0 for where this is registered
+going forward.

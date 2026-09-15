@@ -41,6 +41,19 @@ the provability layer is done; what remains is the unavoidability layer.
       moved from "not started" to "in-memory scaffold built (`execution-control`, 11
       tests)" — still [PARTIAL], not the finished claim. (Found while building the docs
       site, Session 9.)
+- [ ] **Decide the enforcement severity policy before `POLICY_EXECUTION_VERIFICATION_ENFORCED`
+      is ever turned on (G-47, `docs/VERIFICATION-GAPS.md`)**: `PolicyGovernanceExecutionVerifier`
+      currently blocks execution identically for a forged approval-record signature
+      (`SIGNATURE_INVALID`, active tampering) and an honest process gap
+      (`NO_APPROVAL_RECORD`/`CONTENT_MISMATCH`, e.g. a legitimate hotfix mid-rollout) — no
+      graduated response exists. Not urgent today (the flag is off, blocked on the Tier 0
+      legacy-policy backfill above), but this is exactly the kind of default a security team
+      will ask about before a pilot, and it should be a deliberate choice, not whatever the
+      uniform-blocking code happens to do today. Three options sketched in
+      `docs/investigations/2026-09-15-evidence-anchor-gap-audit.md`'s GAP-5 addendum: keep
+      uniform blocking (simplest, most conservative), graduate by severity (hard-block only
+      on signature tampering, alert-and-continue on process gaps), or make it
+      deployment-configurable. Pick one before flipping the flag, not after.
 
 ---
 
