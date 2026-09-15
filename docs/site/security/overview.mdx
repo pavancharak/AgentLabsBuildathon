@@ -25,7 +25,7 @@ using their own store can each accept the same authorization once. `MemoryNonceS
 loses all state on restart. Every envelope's bounded TTL limits, but does not eliminate,
 the exposure window from either gap.
 
-**Durable, third-party-verifiable refusal and audit records (RFC-0021, 3.11).** Every
+**Durable, third-party-verifiable refusal and audit records (3.11).** Every
 policy rejection produces a signed Refusal Record, independently verifiable at `POST
 /refusal/verify` with no API key or database lookup required, just the artifact and
 Parmana's public key. Production caller-authentication audit events

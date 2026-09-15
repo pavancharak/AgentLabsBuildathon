@@ -10,152 +10,240 @@ description: "Install to your first authorized execution in under 10 minutes, us
   the example policy this transaction runs against. `SignalIntentBinder` rejects
   a transaction whose declared `vendorId` signal doesn't exactly match its
   `intent.target` (see [Policies and the
-  decision](/concepts/policies-and-the-decision)), so step 6 below sets both to
-  the same value.
+  decision](/concepts/policies-and-the-decision)), so the execute step below
+  sets both to the same value. Code samples below are shown for Python and
+  TypeScript — pick whichever matches your client.
 </Note>
 
-## 1. Install dependencies
+<Steps>
+  <Step title="Install dependencies">
+    ```bash
+    npm install
+    ```
+  </Step>
 
-```bash
-npm install
-```
+  <Step title="Generate a local Gateway keypair">
+    The Execution Gateway signs its own attestations with a keypair separate from the
+    authorization-verification key (`keys/default.*.pem`, already committed for local dev). No
+    key is generated automatically, you have to create one:
 
-## 2. Generate a local Gateway keypair
+    ```bash
+    npm run generate:gateway-keys
+    ```
 
-The Execution Gateway signs its own attestations with a keypair separate from the
-authorization-verification key (`keys/default.*.pem`, already committed for local dev). No
-key is generated automatically, you have to create one:
+    This runs `scripts/generate-keypair.ts --algorithm ed25519 --key-id gateway`, writing
+    `keys/gateway.private.pem` / `keys/gateway.public.pem`. `keys/` is gitignored, this stays
+    local. See [Deploy patterns](/guides/deploy-patterns) for how to manage keys outside local dev.
 
-```bash
-npm run generate:gateway-keys
-```
+  </Step>
 
-This runs `scripts/generate-keypair.ts --algorithm ed25519 --key-id gateway`, writing
-`keys/gateway.private.pem` / `keys/gateway.public.pem`. `keys/` is gitignored, this stays
-local. See [Deploy patterns](/guides/deploy-patterns) for how to manage keys outside local dev.
+  <Step title="Start the Runtime locally">
+    The committed `.env` defaults to Supabase-backed storage. To run fully locally with no
+    external dependency, override storage to `memory` **and** set `NODE_ENV=test`. Both are
+    required: `PARMANA_STORAGE=memory` alone only affects where Business Transactions and Trust
+    Records are stored, two other components, the Execution Gateway's replay-nonce store and the
+    caller-authentication audit trail, independently default to Supabase outside `NODE_ENV=test`.
+    With `NODE_ENV=test`, a generic, test-only connector (`test-fixture`) registers
+    automatically, no credential environment variable required:
 
-## 3. Start the Runtime locally
+    ```bash
+    NODE_ENV=test \
+      PARMANA_STORAGE=memory \
+      PARMANA_POLICY_DIR=/absolute/path/to/policies \
+      npm run dev
+    ```
 
-The committed `.env` defaults to Supabase-backed storage. To run fully locally with no
-external dependency, override storage to `memory` **and** set `NODE_ENV=test`. Both are
-required: `PARMANA_STORAGE=memory` alone only affects where Business Transactions and Trust
-Records are stored, two other components, the Execution Gateway's replay-nonce store and the
-caller-authentication audit trail, independently default to Supabase outside `NODE_ENV=test`.
-With `NODE_ENV=test`, a generic, test-only connector (`test-fixture`) registers
-automatically, no credential environment variable required:
+    Confirm it's up:
 
-```bash
-NODE_ENV=test \
-  PARMANA_STORAGE=memory \
-  PARMANA_POLICY_DIR=/absolute/path/to/policies \
-  npm run dev
-```
+    ```bash
+    curl http://localhost:3000/health
+    # {"status":"UP"}
+    ```
 
-Confirm it's up:
+    <Note>
+      The Execution Gateway is wired into this server unconditionally. Every `POST
+      /execute` is independently re-verified and routed through a real Connector. An
+      action with no registered connector fails closed with `"No connector
+      registered for action"`, it does not silently skip enforcement. See [The
+      gateway](/concepts/the-gateway).
+    </Note>
 
-```bash
-curl http://localhost:3000/health
-# {"status":"UP"}
-```
+  </Step>
 
-<Note>
-  The Execution Gateway is wired into this server unconditionally. Every `POST
-  /execute` is independently re-verified and routed through a real Connector. An
-  action with no registered connector fails closed with `"No connector
-  registered for action"`, it does not silently skip enforcement. See [The
-  gateway](/concepts/the-gateway).
-</Note>
+  <Step title="Authenticate: every other route requires a bearer key">
+    `/health` is the one route exempt from caller authentication (along with `/ready`,
+    `/openapi.yaml`, and `/documentation`). Everything else, including `/version`, fails closed
+    with a `401` before a Business Transaction is even constructed:
 
-## 4. Every other route requires a bearer key
+    ```bash
+    curl http://localhost:3000/version
+    # {"error":"authentication required"}
+    ```
 
-`/health` is the one route exempt from caller authentication (along with `/ready`,
-`/openapi.yaml`, and `/documentation`). Everything else, including `/version`, fails closed
-with a `401` before a Business Transaction is even constructed:
+    The committed `.env` ships one demo caller key for local development, `callerId: "demo"`,
+    raw key `my-secret-api-key` (only its SHA-256 hash is ever stored, see
+    [Authentication](/api-reference/authentication)). Send it as a bearer token and the same
+    route succeeds:
 
-```bash
-curl http://localhost:3000/version
-# {"error":"authentication required"}
-```
+    ```bash
+    curl http://localhost:3000/version \
+      -H "Authorization: Bearer my-secret-api-key"
+    # {"name":"Parmana","version":"0.4.0","api":"v1"}
+    ```
 
-The committed `.env` ships one demo caller key for local development, `callerId: "demo"`,
-raw key `my-secret-api-key` (only its SHA-256 hash is ever stored, see
-[Authentication](/api-reference/authentication)). Send it as a bearer token and the same
-route succeeds:
+    This is real, fail-closed authentication, not a placeholder, see
+    [Authentication](/api-reference/authentication) for how keys are minted and rotated outside
+    this demo key.
 
-```bash
-curl http://localhost:3000/version \
-  -H "Authorization: Bearer my-secret-api-key"
-# {"name":"Parmana","version":"0.4.0","api":"v1"}
-```
+  </Step>
 
-This is real, fail-closed authentication, not a placeholder, see
-[Authentication](/api-reference/authentication) for how keys are minted and rotated outside
-this demo key.
+  <Step title="Install the SDK">
+    <CodeGroup>
+      ```bash Python
+      pip install parmana
+      ```
 
-## 5. Install the Python SDK
+      ```bash TypeScript
+      npm install @parmana/sdk
+      ```
+    </CodeGroup>
 
-```bash
-pip install parmana
-```
+    The SDK sends the bearer key from the previous step on every request:
 
-The SDK sends the bearer key from step 4 on every request:
+    <CodeGroup>
+      ```python Python
+      from parmana import ParmanaClient
 
-```python
-from parmana import ParmanaClient
+      client = ParmanaClient(endpoint="http://localhost:3000", api_key="my-secret-api-key")
+      ```
 
-client = ParmanaClient(endpoint="http://localhost:3000", api_key="my-secret-api-key")
-```
+      ```typescript TypeScript
+      import { ParmanaClient, HttpTransport } from "@parmana/sdk";
 
-## 6. Execute a Business Transaction
+      const endpoint = "http://localhost:3000";
+      const apiKey = "my-secret-api-key";
 
-`create_business_transaction()` derives every id pair the server checks for consistency, so
-there's nothing to hand-assemble and get wrong:
+      const client = new ParmanaClient({
+        endpoint,
+        apiKey,
+        transport: new HttpTransport({ endpoint, apiKey }),
+      });
+      ```
+    </CodeGroup>
 
-```python
-from parmana import ParmanaClient, PolicyReference, create_business_transaction
+  </Step>
 
-client = ParmanaClient(endpoint="http://localhost:3000", api_key="my-secret-api-key")
+  <Step title="Execute a Business Transaction">
+    The `createBusinessTransaction` helper derives every id pair the server checks for
+    consistency, so there's nothing to hand-assemble and get wrong:
 
-transaction = create_business_transaction(
-    principal_id="python-sdk",
-    purpose="Quickstart demo",
-    action="test:fixture-execute",
-    target="vendor://payments",
-    parameters={"amount": 1000, "currency": "USD"},
-    policy=PolicyReference(name="vendor-payment", version="2.0.0", schema_version="1.0.0"),
-    signals={
-        "vendorVerified": True,
-        "invoiceVerified": True,
-        "paymentApproved": True,
-        "sufficientFunds": True,
-        "paymentAmount": 1000,
-        "riskScore": 5,
-        "vendorId": "vendor://payments",
-    },
-)
+    <CodeGroup>
+      ```python Python
+      from parmana import ParmanaClient, PolicyReference, create_business_transaction
 
-trust_record = client.execution.execute(transaction)
-print(trust_record.trust_record_hash)
-```
+      client = ParmanaClient(endpoint="http://localhost:3000", api_key="my-secret-api-key")
 
-Full runnable version: `python/examples/quickstart/run.py`, this is exactly the transaction
-it sends. `python/tests/test_quickstart_example.py` runs this script against a real,
-freshly-spawned server on every test run, so this example is verified to work, not just
-syntax-checked.
+      transaction = create_business_transaction(
+          principal_id="python-sdk",
+          purpose="Quickstart demo",
+          action="test:fixture-execute",
+          target="vendor://payments",
+          parameters={"amount": 1000, "currency": "USD"},
+          policy=PolicyReference(name="vendor-payment", version="2.0.0", schema_version="1.0.0"),
+          signals={
+              "vendorVerified": True,
+              "invoiceVerified": True,
+              "paymentApproved": True,
+              "sufficientFunds": True,
+              "paymentAmount": 1000,
+              "riskScore": 5,
+              "vendorId": "vendor://payments",
+          },
+      )
 
-## 7. Real output
+      trust_record = client.execution.execute(transaction)
+      print(trust_record.trust_record_hash)
+      ```
 
-Captured from an actual run against a local server, 2026-09-14:
+      ```typescript TypeScript
+      import {
+        ParmanaClient,
+        HttpTransport,
+        createBusinessTransaction,
+        ExecutionRejectedError,
+      } from "@parmana/sdk";
 
-```
-Trust Record Hash: a08a041317a6f28307a30c97147ef320e896578153118e978f7998a63cf52037
-```
+      const endpoint = "http://localhost:3000";
+      const apiKey = "my-secret-api-key";
 
-The full `ExecutionTrustRecord` includes the `signature` block, `executions[0].decision`
-(`outcome: "APPROVED"`, evaluated by the `vendor-payment` policy), `executions[0].evidence`
-(what the connector actually did, including a `connectorEvidenceHash`), and an initial
-`verifications` / `receipts` history. See [Trust Record](/concepts/execution-trust-records) for the
-complete shape, or `python/examples/quickstart/README.md` for the full captured JSON.
+      const client = new ParmanaClient({
+        endpoint,
+        apiKey,
+        transport: new HttpTransport({ endpoint, apiKey }),
+      });
+
+      const transaction = createBusinessTransaction({
+        principalId: "typescript-sdk-quickstart",
+        purpose: "Quickstart demo",
+        action: "test:fixture-execute",
+        target: "vendor://payments",
+        parameters: { amount: 1000, currency: "USD" },
+        policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+        signals: {
+          vendorVerified: true,
+          invoiceVerified: true,
+          paymentApproved: true,
+          sufficientFunds: true,
+          paymentAmount: 1000,
+          riskScore: 5,
+          vendorId: "vendor://payments", // must exactly equal `target`
+        },
+      });
+
+      async function main() {
+        try {
+          const trustRecord = await client.execute(transaction);
+          console.log("Trust Record ID:", trustRecord.trustRecordId);
+        } catch (error) {
+          if (error instanceof ExecutionRejectedError) {
+            console.error("Rejected:", error.message);
+            process.exitCode = 1;
+            return;
+          }
+          throw error;
+        }
+      }
+
+      main();
+      ```
+    </CodeGroup>
+
+    Full runnable versions: `python/examples/quickstart/run.py` and
+    `typescript/examples/06-create-business-transaction.ts` — these are exactly the
+    transactions shown above. `python/tests/test_quickstart_example.py` and
+    `typescript/test/integration/examples.integration.test.ts` run them against a real,
+    freshly-spawned server on every test run, so both examples are verified to work, not just
+    syntax-checked.
+
+  </Step>
+
+  <Step title="Real output">
+    Captured from an actual run against a local server, 2026-09-14:
+
+    ```
+    Trust Record Hash: a08a041317a6f28307a30c97147ef320e896578153118e978f7998a63cf52037
+    ```
+
+    The full `ExecutionTrustRecord` includes the `signature` block, `executions[0].decision`
+    (`outcome: "APPROVED"`, evaluated by the `vendor-payment` policy), `executions[0].evidence`
+    (what the connector actually did, including a `connectorEvidenceHash`), and an initial
+    `verifications` / `receipts` history. See [Trust Record](/concepts/execution-trust-records) for the
+    complete shape, or `python/examples/quickstart/README.md` for the full captured JSON. For
+    the equivalent captured TypeScript output (`camelCase` field names, same record shape), see
+    [TypeScript SDK Quickstart](/guides/typescript-sdk-quickstart)'s own "Real output" step.
+
+  </Step>
+</Steps>
 
 ## Next
 

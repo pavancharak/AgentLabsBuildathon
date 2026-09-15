@@ -16,7 +16,8 @@ description: "Numbered examples in examples/tutorials/, grouped by what they dem
 
 Run any of them directly: `node_modules/.bin/tsx examples/tutorials/<NN-name>/run.ts`.
 
-## Fundamentals (01-24)
+<AccordionGroup>
+<Accordion title="Fundamentals (01-24)">
 
 | #   | Name                     | Demonstrates                                                                                                                                      |
 | --- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -45,7 +46,8 @@ Run any of them directly: `node_modules/.bin/tsx examples/tutorials/<NN-name>/ru
 | 23  | Production Deployment    | Configuration shape for a non-local deployment                                                                                                    |
 | 24  | SDK Integration Patterns | Common client-side call patterns                                                                                                                  |
 
-## Execution authorization and envelope (25-34)
+</Accordion>
+<Accordion title="Execution authorization and envelope (25-34)">
 
 | #   | Name                                 | Demonstrates                                                                                                                      |
 | --- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
@@ -60,7 +62,8 @@ Run any of them directly: `node_modules/.bin/tsx examples/tutorials/<NN-name>/ru
 | 33  | Execution Boundary                   | Where policy evaluation ends and release begins                                                                                   |
 | 34  | Execution Gateway                    | `ExecutionGateway` constructed and exercised directly, see [The gateway](/concepts/the-gateway)                                   |
 
-## Gateway hardening: mutate, verify, watch it fail (35-46)
+</Accordion>
+<Accordion title="Gateway hardening: mutate, verify, watch it fail (35-46)">
 
 The same pattern each time: generate something valid, mutate exactly one thing, re-verify,
 confirm rejection. See [Detect tampering](/guides/detect-tampering) for three of these run
@@ -81,7 +84,8 @@ live with real output.
 | 45  | Connector Bypass      | Attempting to reach a connector without a valid session |
 | 46  | TOCTOU Protection     | The full check-vs-use gap, end to end                   |
 
-## Cryptography (47-52)
+</Accordion>
+<Accordion title="Cryptography (47-52)">
 
 | #   | Name                  | Demonstrates                                                                                                        |
 | --- | --------------------- | ------------------------------------------------------------------------------------------------------------------- |
@@ -92,7 +96,8 @@ live with real output.
 | 51  | Dilithium3            | ML-DSA-65 (post-quantum), signing with the `pq` key, same guide                                                     |
 | 52  | Hybrid Signatures     | Both algorithms signing the same artifact at once, same guide                                                       |
 
-## Execution Permit and Receipt: a separate, unwired path (53-56)
+</Accordion>
+<Accordion title="Execution Permit and Receipt: a separate, unwired path (53-56)">
 
 <Warning>
   None of these four reach `packages/api` or `packages/runtime`. They exercise
@@ -108,7 +113,8 @@ live with real output.
 | 55  | Execution Receipt Verification | `ExecutionReceiptVerifier.verify()`, a structural check, not cryptographic |
 | 56  | Complete Execution Flow        | Permit through receipt through verification, one run                       |
 
-## Credential isolation (57-60)
+</Accordion>
+<Accordion title="Credential isolation (57-60)">
 
 | #   | Name                            | Demonstrates                                                                                                          |
 | --- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -117,7 +123,8 @@ live with real output.
 | 59  | Secure Connectors               | Gateway attestation plus a `SessionCredentialSecureConnector`, including a spoofed-attestation rejection              |
 | 60  | End-to-End Enterprise Execution | The full credential-isolated path, one run                                                                            |
 
-## Signal/Intent binding (62)
+</Accordion>
+<Accordion title="Signal/Intent binding (62)">
 
 <Info>
   Tutorials 61, 63-68, and 85 don't exist — all retired when the Razorpay
@@ -131,7 +138,8 @@ live with real output.
 | --- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 62  | Signal/Intent Binding | `SignalIntentBinder` rejecting a caller-declared signal that doesn't match `intent`, and the same transaction approved once correctly bound. See [Security](/security/overview) for the live bypass this closed. |
 
-## HubSpot: connector, denial, verification, approval artifacts (69-72)
+</Accordion>
+<Accordion title="HubSpot: connector, denial, verification, approval artifacts (69-72)">
 
 See [HubSpot](/integrations/hubspot) for the connector these exercise and its exact proven
 scope.
@@ -143,7 +151,8 @@ scope.
 | 71  | HubSpot Signal-State Verification | `HubSpotSignalStateVerifier` independently fetching the real deal and rejecting a caller-declared `currentDealStage` that disagrees with it                                                 |
 | 72  | HubSpot Approval Artifact         | An over-threshold amount change requiring a real, independently-issued, signed Approval Artifact scoped to the right deal and amount, not a bare `preAuthorizedForAmountChange: true` claim |
 
-## Refusal records and signed audit events (73-75)
+</Accordion>
+<Accordion title="Refusal records and signed audit events (73-75)">
 
 | #   | Name                     | Demonstrates                                                                                                                                     |
 | --- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -151,7 +160,8 @@ scope.
 | 74  | Refusal Record Fail-Open | A Refusal Record write failure never blocking, delaying, or changing the actual rejection a caller receives — the record is evidence, not a gate |
 | 75  | Signed Audit Events      | Caller-authentication audit events signed with the same root of trust as every other Parmana artifact, tampering detectable                      |
 
-## Caller scoping and concurrency (76-78)
+</Accordion>
+<Accordion title="Caller scoping and concurrency (76-78)">
 
 | #   | Name                       | Demonstrates                                                                                                                                 |
 | --- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -159,22 +169,25 @@ scope.
 | 77  | Caller Ownership Scoping   | `isOwnedByCaller()`: one authenticated caller can't read another caller's transaction, trust record, or receipt history                      |
 | 78  | Duplicate Transaction Race | Two concurrent `create()` calls for the identical `businessTransactionId`, exactly one winning, the stored record never silently overwritten |
 
-## Storage and config validation (79-80)
+</Accordion>
+<Accordion title="Storage and config validation (79-80)">
 
 | #   | Name                          | Demonstrates                                                                                                                                  |
 | --- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | 79  | Storage Backend Selection     | `StorageFactory.createFromEnvironment()`, and why `NODE_ENV=test` always resolves to in-memory regardless of other config                     |
 | 80  | Fail-Closed Config Validation | Invalid `CRYPTO_MODE`/`PARMANA_STORAGE`/`PARMANA_API_KEYS` values rejected at load time with a named, specific error, never a silent fallback |
 
-## Multi-connector composition (81-83)
+</Accordion>
+<Accordion title="Multi-connector composition (81-83)">
 
 | #   | Name                                | Demonstrates                                                                                                                                                                                                             |
 | --- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 81  | Connector Execution Gateway         | `GatewayConnectorRegistry` resolving a capability string to its registered connector, each connector failing closed independently when its own credentials are absent                                                    |
 | 82  | Composite Signal-State Verification | `CompositeSignalStateVerifier` composing the real `HubSpotSignalStateVerifier` with a second, illustrative hand-written verifier into the one verifier `RuntimeEngine` accepts, with no cross-contamination between them |
-| 83  | Capability/Policy Binding (TD-22)   | `CapabilityPolicyBinder` closing the gap where a real, fund-moving capability could be paired with the wrong, unprotected policy                                                                                         |
+| 83  | Capability/Policy Binding           | `CapabilityPolicyBinder` closing the gap where a real, fund-moving capability could be paired with the wrong, unprotected policy                                                                                         |
 
-## HTTP surface hardening (84, 88-91)
+</Accordion>
+<Accordion title="HTTP surface hardening (84, 88-91)">
 
 | #   | Name                       | Demonstrates                                                                                                                                                       |
 | --- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -184,7 +197,8 @@ scope.
 | 90  | OpenAPI Self-Description   | `GET /openapi.yaml` serving a valid, unauthenticated, fully-dereferenced OpenAPI 3.1 document, no unresolved `$ref`s                                               |
 | 91  | Graceful Shutdown          | The `SIGTERM`/`SIGINT` handler draining in-flight requests before exit, force-exiting on a hung close after a bounded timeout                                      |
 
-## Real-world fixtures and gateway internals (86-87, 92-93)
+</Accordion>
+<Accordion title="Real-world fixtures and gateway internals (86-87, 92-93)">
 
 | #   | Name                        | Demonstrates                                                                                                                                                                      |
 | --- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -193,58 +207,62 @@ scope.
 | 92  | Public API Boundary         | `@parmana/execution-gateway`'s internal implementation classes checked directly against the real compiled export surface, none reachable from outside                             |
 | 93  | Trust Record Ordering       | A Trust Record's collections preserving insertion order through a full round trip, hash and signature both still valid on reload                                                  |
 
-## SDK and generic verification (94-95)
+</Accordion>
+<Accordion title="SDK and generic verification (94-95)">
 
 | #   | Name                      | Demonstrates                                                                                                                                                 |
 | --- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 94  | SDK HTTP Transport        | The published TypeScript SDK's `HttpTransport`: bearer-key attachment and its full status-code-to-typed-error-class mapping, including `403`/`POLICY_DENIED` |
 | 95  | Generic Approval Verifier | `ApprovalVerifier` exercised directly, connector-agnostic, with its full nine-check breakdown and durable, cross-process replay protection                   |
 
-## Not yet indexed above (96-105)
+</Accordion>
+<Accordion title="Not yet indexed above (96-105)">
 
 <Info>
   Tutorials 96 through 104 exist and pass in CI but aren't yet in the tables
   above.
 </Info>
 
-**105 — Tenant Key Isolation.** Demonstrates the per-tenant signing-key fix
-(`docs/VERIFICATION-GAPS.md` G-32): a transaction with a provisioned `tenant.<tenantId>`
-key signs and verifies only under that key, an unprovisioned tenantId falls back silently to
-the shared default key, and a transaction with no tenantId is unaffected. Newly added to
-`scripts/run-examples.ts`'s list (`docs/VERIFICATION-GAPS.md` G-37) — it existed and worked
-standalone since its own commit, but `npm run examples` never exercised it until now.
+**105 — Tenant Key Isolation.** Demonstrates the per-tenant signing-key fix: a transaction
+with a provisioned `tenant.<tenantId>` key signs and verifies only under that key, an
+unprovisioned tenantId falls back silently to the shared default key, and a transaction with
+no tenantId is unaffected. Newly added to `scripts/run-examples.ts`'s list — it existed and
+worked standalone since its own commit, but `npm run examples` never exercised it until now.
 
 **106 — API Key Issuance (Writing a New Policy).** A brand-new `policies/api-key-issuance/1.0.0`
 policy and worked example showing how to author a policy correctly under the fail-closed
-`boundSignals` discipline (G-33) and zero-conflict shape (G-39) from the start, rather than
-retrofitting it afterward the way all 10 pre-existing policies needed. Also in
-`scripts/run-examples.ts`'s list from its first commit.
+`boundSignals` discipline and zero-conflict shape from the start, rather than retrofitting it
+afterward the way all 10 pre-existing policies needed. Also in `scripts/run-examples.ts`'s
+list from its first commit.
 
-**107 — Offline Verification.** `verifyExecutionTrustRecordOffline` (PQC audit RED-1,
-`docs/VERIFICATION-GAPS.md`) verifying a genuine record, a tampered one, and a wrong-key
-attempt, with zero disk/network/env-var access — one level stronger than [Verify a trust
-record independently](/guides/verify-independently)'s "server process stopped" proof.
+**107 — Offline Verification.** `verifyExecutionTrustRecordOffline` verifying a genuine
+record, a tampered one, and a wrong-key attempt, with zero disk/network/env-var access — one
+level stronger than [Verify a trust record independently](/guides/verify-independently)'s
+"server process stopped" proof.
 
-**108 — Public-Key Discovery.** `GET /keys/:keyId` and `GET /.well-known/jwks.json` (PQC
-audit RED-2), unauthenticated, plus the full chain: a key fetched over real HTTP verifies a
-real record fully offline via Tutorial 107's function, with zero further server calls.
+**108 — Public-Key Discovery.** `GET /keys/:keyId` and `GET /.well-known/jwks.json`,
+unauthenticated, plus the full chain: a key fetched over real HTTP verifies a real record
+fully offline via Tutorial 107's function, with zero further server calls.
 
-**109 — Durable-Evidence Key Rotation.** `PARMANA_VERIFICATION_KEY_ID` (PQC audit RED-3)
-rotating the Trust Record/Refusal Record/Audit Event signing key to a freshly generated
-keyId without invalidating any already-issued signature — the property that was previously
-false (the only prior "rotation" was overwriting the key file in place).
+**109 — Durable-Evidence Key Rotation.** `PARMANA_VERIFICATION_KEY_ID` rotating the Trust
+Record/Refusal Record/Audit Event signing key to a freshly generated keyId without
+invalidating any already-issued signature — the property that was previously false (the only
+prior "rotation" was overwriting the key file in place).
 
-**110 — Hybrid-Signature Downgrade Protection.** The opt-in `HYBRID_SIGNATURE_REQUIRED`
-flag (PQC audit RED-4) closing the gap where a hybrid-signed record's ML-DSA-65 signature
-could be silently stripped with no cryptographic trace, while leaving every already-issued
-record (default policy, unaffected) exactly as verifiable as before.
+**110 — Hybrid-Signature Downgrade Protection.** The opt-in `HYBRID_SIGNATURE_REQUIRED` flag
+closing the gap where a hybrid-signed record's ML-DSA-65 signature could be silently stripped
+with no cryptographic trace, while leaving every already-issued record (default policy,
+unaffected) exactly as verifiable as before.
+
+</Accordion>
+</AccordionGroup>
 
 ## Scenarios
 
 Two production-shaped scenarios also live in `examples/scenarios/`, run manually via `npm
 run examples` (`scripts/run-examples.ts`), not currently part of CI: `expense-approval`,
 `purchase-order`. (A third, `vendor-payment`, existed here until `payments:execute` was
-removed from the repository entirely — see `docs/VERIFICATION-GAPS.md` G-27.)
+removed from the repository entirely.)
 
 ## Next
 

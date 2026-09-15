@@ -21,7 +21,7 @@ Scope is deliberately narrow. A Refusal Record is produced only for a policy dec
 `RuntimeEngine.execute` actually reaches: an ordinary `PolicyEngine.evaluate` REJECT, or a
 `SignalIntentBinder` binding-violation REJECT (see [Policies and the
 decision](/concepts/policies-and-the-decision)). Caller-authentication failures and webhook
-signature failures are a separate, unsigned audit-sink capability (RFC-0021 Non-Goals), treat
+signature failures are a separate, unsigned audit-sink capability by design, treat
 any claim about Refusal Records as "a policy decided to reject," not "every rejection of any
 kind."
 

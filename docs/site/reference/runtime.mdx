@@ -61,11 +61,11 @@ catalog](/api-reference/error-catalog).
   `RuntimeEngine`'s constructor logs a single `runtime_engine_constructed` event
   noting whether `signalStateVerifier`, `capabilityPolicyBinder`, and refusal
   recording are configured for that instance — each is an intentionally
-  optional, capability-scoped dependency (RFC-0022, TD-22), and omitting one is
-  valid, deliberate configuration, not a bug. Before this, an operator reading
-  logs had no way to tell which protections a given deployment was actually
-  running with. Construction-time only, not per-request: the configuration
-  doesn't change per transaction. See `docs/CLAIMS.md` §2.30.
+  optional, capability-scoped dependency, and omitting one is valid, deliberate
+  configuration, not a bug. Before this, an operator reading logs had no way to
+  tell which protections a given deployment was actually running with.
+  Construction-time only, not per-request: the configuration doesn't change per
+  transaction. See `docs/CLAIMS.md` §2.30.
 </Note>
 
 ## A rejected decision throws, it does not return

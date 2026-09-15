@@ -18,123 +18,131 @@ description: "Get Parmana running end-to-end with the Python SDK: build a transa
 - **Node.js** (to run the Parmana server locally — `node --version`)
 - A local clone of the Parmana repo, with `npm install` already run in it
 
-## Step 1: Start the Runtime locally
+<Steps>
+  <Step title="Start the Runtime locally">
+    From the repo root, override storage to run with no external dependency:
 
-From the repo root, override storage to run with no external dependency:
+    ```bash
+    NODE_ENV=test \
+      PARMANA_STORAGE=memory \
+      PARMANA_POLICY_DIR=/absolute/path/to/policies \
+      npm run dev
+    ```
 
-```bash
-NODE_ENV=test \
-  PARMANA_STORAGE=memory \
-  PARMANA_POLICY_DIR=/absolute/path/to/policies \
-  npm run dev
-```
+    Confirm it's up:
 
-Confirm it's up:
+    ```bash
+    curl http://localhost:3000/health
+    # {"status":"UP"}
+    ```
 
-```bash
-curl http://localhost:3000/health
-# {"status":"UP"}
-```
+    With `NODE_ENV=test`, a generic, credential-free test connector (`test-fixture`) registers
+    automatically — no external credentials needed for this walkthrough. See [Quickstart](/quickstart)
+    for what each flag does and how to generate a local Gateway keypair if you haven't already.
 
-With `NODE_ENV=test`, a generic, credential-free test connector (`test-fixture`) registers
-automatically — no external credentials needed for this walkthrough. See [Quickstart](/quickstart)
-for what each flag does and how to generate a local Gateway keypair if you haven't already.
+  </Step>
 
-## Step 2: Install the SDK
+  <Step title="Install the SDK">
+    ```bash
+    pip install parmana
+    ```
 
-```bash
-pip install parmana
-```
+    Real PyPI package — see [Python SDK](/sdks/python) for the current published version and what's
+    inside it (generated models, a typed error taxonomy, a real bearer-key `requests.Session()`).
 
-Real PyPI package — see [Python SDK](/sdks/python) for the current published version and what's
-inside it (generated models, a typed error taxonomy, a real bearer-key `requests.Session()`).
+  </Step>
 
-## Step 3: Connect the client
+  <Step title="Connect the client">
+    ```python
+    from parmana import ParmanaClient
 
-```python
-from parmana import ParmanaClient
+    client = ParmanaClient(endpoint="http://localhost:3000", api_key="my-secret-api-key")
+    ```
 
-client = ParmanaClient(endpoint="http://localhost:3000", api_key="my-secret-api-key")
-```
+    The committed `.env` in the repo ships one demo caller key for local development:
+    `callerId: "demo"`, raw key `my-secret-api-key`. `api_key` is optional only against a server
+    started with `PARMANA_AUTH_DISABLED=true` — every real deployment requires one, and an
+    omitted/wrong key raises `AuthenticationError`, not a silent failure.
 
-The committed `.env` in the repo ships one demo caller key for local development:
-`callerId: "demo"`, raw key `my-secret-api-key`. `api_key` is optional only against a server
-started with `PARMANA_AUTH_DISABLED=true` — every real deployment requires one, and an
-omitted/wrong key raises `AuthenticationError`, not a silent failure.
+  </Step>
 
-## Step 4: Build a Business Transaction
+  <Step title="Build a Business Transaction">
+    `create_business_transaction()` derives every id pair the server checks for internal consistency
+    — see [why that matters](/sdks/python#create_business_transaction-no-more-hand-synced-ids) — so
+    there's nothing to hand-assemble and get wrong:
 
-`create_business_transaction()` derives every id pair the server checks for internal consistency
-— see [why that matters](/sdks/python#create_business_transaction-no-more-hand-synced-ids) — so
-there's nothing to hand-assemble and get wrong:
+    ```python
+    from parmana import PolicyReference, create_business_transaction
 
-```python
-from parmana import PolicyReference, create_business_transaction
+    transaction = create_business_transaction(
+        principal_id="python-sdk-quickstart",
+        purpose="Quickstart demo",
+        action="test:fixture-execute",
+        target="vendor://payments",
+        parameters={"amount": 1000, "currency": "USD"},
+        policy=PolicyReference(name="vendor-payment", version="2.0.0", schema_version="1.0.0"),
+        signals={
+            "vendorVerified": True,
+            "invoiceVerified": True,
+            "paymentApproved": True,
+            "sufficientFunds": True,
+            "paymentAmount": 1000,
+            "riskScore": 5,
+            # vendor-payment@2.0.0 declares boundSignals: { "vendorId": "target" } —
+            # this must exactly equal `target` above, checked before policy evaluation
+            # ever runs, or the request is rejected as a binding-tamper attempt.
+            "vendorId": "vendor://payments",
+        },
+    )
 
-transaction = create_business_transaction(
-    principal_id="python-sdk-quickstart",
-    purpose="Quickstart demo",
-    action="test:fixture-execute",
-    target="vendor://payments",
-    parameters={"amount": 1000, "currency": "USD"},
-    policy=PolicyReference(name="vendor-payment", version="2.0.0", schema_version="1.0.0"),
-    signals={
-        "vendorVerified": True,
-        "invoiceVerified": True,
-        "paymentApproved": True,
-        "sufficientFunds": True,
-        "paymentAmount": 1000,
-        "riskScore": 5,
-        # vendor-payment@2.0.0 declares boundSignals: { "vendorId": "target" } —
-        # this must exactly equal `target` above, checked before policy evaluation
-        # ever runs, or the request is rejected as a binding-tamper attempt.
-        "vendorId": "vendor://payments",
-    },
-)
+    print(transaction.business_transaction_id)
+    ```
 
-print(transaction.business_transaction_id)
-```
+    `test:fixture-execute` is a generic, credential-free capability built for exactly this kind of
+    walkthrough — it's unrelated to any real connector, and only registers when the server runs with
+    `NODE_ENV=test`.
 
-`test:fixture-execute` is a generic, credential-free capability built for exactly this kind of
-walkthrough — it's unrelated to any real connector, and only registers when the server runs with
-`NODE_ENV=test`.
+  </Step>
 
-## Step 5: Execute it
+  <Step title="Execute it">
+    One call runs the policy decision and, if approved, the connector — there's no separate
+    "authorize" step:
 
-One call runs the policy decision and, if approved, the connector — there's no separate
-"authorize" step:
+    ```python
+    from parmana import ExecutionRejectedError
 
-```python
-from parmana import ExecutionRejectedError
+    try:
+        trust_record = client.execution.execute(transaction)
+        print(f"Approved: {trust_record.trust_record_hash}")
+    except ExecutionRejectedError as exc:
+        print(f"Denied: {exc}")
+    ```
 
-try:
-    trust_record = client.execution.execute(transaction)
-    print(f"Approved: {trust_record.trust_record_hash}")
-except ExecutionRejectedError as exc:
-    print(f"Denied: {exc}")
-```
+    If the policy denies the transaction, `execute()` raises `ExecutionRejectedError` with the
+    policy's own reason in the message — it never returns a "REJECTED" status you'd have to check for.
 
-If the policy denies the transaction, `execute()` raises `ExecutionRejectedError` with the
-policy's own reason in the message — it never returns a "REJECTED" status you'd have to check for.
+  </Step>
 
-## Step 6: Read the proof
+  <Step title="Read the proof">
+    `trust_record` is a real, signed `ExecutionTrustRecord`:
 
-`trust_record` is a real, signed `ExecutionTrustRecord`:
+    ```python
+    print(f"Trust Record ID:     {trust_record.trust_record_id}")
+    print(f"Trust Record Hash:   {trust_record.trust_record_hash}")
+    print(f"Signature Algorithm: {trust_record.signature.algorithm}")
+    print(f"Decision:            {trust_record.executions[0].decision.outcome}")
+    print(f"Connector evidence:  {trust_record.executions[0].evidence}")
+    ```
 
-```python
-print(f"Trust Record ID:     {trust_record.trust_record_id}")
-print(f"Trust Record Hash:   {trust_record.trust_record_hash}")
-print(f"Signature Algorithm: {trust_record.signature.algorithm}")
-print(f"Decision:            {trust_record.executions[0].decision.outcome}")
-print(f"Connector evidence:  {trust_record.executions[0].evidence}")
-```
+    This same call, run for real against a local server, is captured verbatim in
+    [Quickstart's "Real output" step](/quickstart) — expect the same shape (a fresh hash each run,
+    since the transaction and timestamp differ). See [Execution Trust
+    Records](/concepts/execution-trust-records) for the complete field-by-field shape, and [Verify
+    independently](/guides/verify-independently) to check the signature yourself instead of trusting
+    this output.
 
-This same call, run for real against a local server, is captured verbatim in
-[Quickstart, step 7](/quickstart#7-real-output) — expect the same shape (a fresh hash each run,
-since the transaction and timestamp differ). See [Execution Trust
-Records](/concepts/execution-trust-records) for the complete field-by-field shape, and [Verify
-independently](/guides/verify-independently) to check the signature yourself instead of trusting
-this output.
+  </Step>
+</Steps>
 
 ## Full script
 

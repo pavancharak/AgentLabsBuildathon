@@ -19,127 +19,131 @@ description: "Install to your first authorized execution with the TypeScript SDK
 - A running Parmana Runtime to talk to — either your own deployment, or the local
   in-memory server this walkthrough starts from a clone of this repository
 
-## 1. Start a local Runtime
+<Steps>
+  <Step title="Start a local Runtime">
+    From a clone of this repository:
 
-From a clone of this repository:
+    ```bash
+    npm install
+    ```
 
-```bash
-npm install
-```
+    Generate a local Gateway signing keypair (the Execution Gateway signs its own attestations
+    with a keypair separate from the authorization-verification key):
 
-Generate a local Gateway signing keypair (the Execution Gateway signs its own attestations
-with a keypair separate from the authorization-verification key):
+    ```bash
+    npm run generate:gateway-keys
+    ```
 
-```bash
-npm run generate:gateway-keys
-```
+    Start the server fully locally, no external database:
 
-Start the server fully locally, no external database:
+    ```bash
+    NODE_ENV=test \
+      PARMANA_STORAGE=memory \
+      PARMANA_POLICY_DIR=/absolute/path/to/policies \
+      npm run dev
+    ```
 
-```bash
-NODE_ENV=test \
-  PARMANA_STORAGE=memory \
-  PARMANA_POLICY_DIR=/absolute/path/to/policies \
-  npm run dev
-```
+    Confirm it's up:
 
-Confirm it's up:
+    ```bash
+    curl http://localhost:3000/health
+    # {"status":"UP"}
+    ```
 
-```bash
-curl http://localhost:3000/health
-# {"status":"UP"}
-```
+    With `NODE_ENV=test`, a generic, credential-free test connector (`test-fixture`) registers
+    automatically — no connector credentials required for this walkthrough. Every other route,
+    including `/version`, fails closed with a `401` until you send the demo bearer key the
+    committed `.env` ships for local development, raw key `my-secret-api-key`:
 
-With `NODE_ENV=test`, a generic, credential-free test connector (`test-fixture`) registers
-automatically — no connector credentials required for this walkthrough. Every other route,
-including `/version`, fails closed with a `401` until you send the demo bearer key the
-committed `.env` ships for local development, raw key `my-secret-api-key`:
+    ```bash
+    curl http://localhost:3000/version -H "Authorization: Bearer my-secret-api-key"
+    # {"name":"Parmana","version":"0.4.0","api":"v1"}
+    ```
 
-```bash
-curl http://localhost:3000/version -H "Authorization: Bearer my-secret-api-key"
-# {"name":"Parmana","version":"0.4.0","api":"v1"}
-```
+    See [Deploy patterns](/guides/deploy-patterns) for running against something other than the
+    in-memory local server.
 
-See [Deploy patterns](/guides/deploy-patterns) for running against something other than the
-in-memory local server.
+  </Step>
 
-## 2. Install the SDK
+  <Step title="Install the SDK">
+    In a separate project (or a new terminal, same repo):
 
-In a separate project (or a new terminal, same repo):
+    ```bash
+    npm install @parmana/sdk
+    ```
 
-```bash
-npm install @parmana/sdk
-```
+    Real, published package — `npm view @parmana/sdk version` confirms the current version
+    directly from npm.
 
-Real, published package — `npm view @parmana/sdk version` confirms the current version
-directly from npm.
+  </Step>
 
-## 3. Build and execute a Business Transaction
+  <Step title="Build and execute a Business Transaction">
+    Create `quickstart.ts`:
 
-Create `quickstart.ts`:
+    ```typescript
+    import {
+      ParmanaClient,
+      HttpTransport,
+      createBusinessTransaction,
+      ExecutionRejectedError,
+    } from "@parmana/sdk";
 
-```typescript
-import {
-  ParmanaClient,
-  HttpTransport,
-  createBusinessTransaction,
-  ExecutionRejectedError,
-} from "@parmana/sdk";
+    const endpoint = "http://localhost:3000";
+    const apiKey = "my-secret-api-key";
 
-const endpoint = "http://localhost:3000";
-const apiKey = "my-secret-api-key";
+    const client = new ParmanaClient({
+      endpoint,
+      apiKey,
+      transport: new HttpTransport({ endpoint, apiKey }),
+    });
 
-const client = new ParmanaClient({
-  endpoint,
-  apiKey,
-  transport: new HttpTransport({ endpoint, apiKey }),
-});
+    const transaction = createBusinessTransaction({
+      principalId: "typescript-sdk-quickstart",
+      purpose: "Quickstart demo",
+      action: "test:fixture-execute",
+      target: "vendor://payments",
+      parameters: { amount: 1000, currency: "USD" },
+      policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+      signals: {
+        vendorVerified: true,
+        invoiceVerified: true,
+        paymentApproved: true,
+        sufficientFunds: true,
+        paymentAmount: 1000,
+        riskScore: 5,
+        vendorId: "vendor://payments", // must exactly equal `target`
+      },
+    });
 
-const transaction = createBusinessTransaction({
-  principalId: "typescript-sdk-quickstart",
-  purpose: "Quickstart demo",
-  action: "test:fixture-execute",
-  target: "vendor://payments",
-  parameters: { amount: 1000, currency: "USD" },
-  policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
-  signals: {
-    vendorVerified: true,
-    invoiceVerified: true,
-    paymentApproved: true,
-    sufficientFunds: true,
-    paymentAmount: 1000,
-    riskScore: 5,
-    vendorId: "vendor://payments", // must exactly equal `target`
-  },
-});
-
-async function main() {
-  try {
-    const trustRecord = await client.execute(transaction);
-    console.log("Business Transaction ID:", transaction.businessTransactionId);
-    console.log("Trust Record ID:        ", trustRecord.trustRecordId);
-    console.log("Signature Algorithm:    ", trustRecord.signature.algorithm);
-    console.log(JSON.stringify(trustRecord, null, 2));
-  } catch (error) {
-    if (error instanceof ExecutionRejectedError) {
-      console.error("Rejected:", error.message);
-      process.exitCode = 1;
-      return;
+    async function main() {
+      try {
+        const trustRecord = await client.execute(transaction);
+        console.log("Business Transaction ID:", transaction.businessTransactionId);
+        console.log("Trust Record ID:        ", trustRecord.trustRecordId);
+        console.log("Signature Algorithm:    ", trustRecord.signature.algorithm);
+        console.log(JSON.stringify(trustRecord, null, 2));
+      } catch (error) {
+        if (error instanceof ExecutionRejectedError) {
+          console.error("Rejected:", error.message);
+          process.exitCode = 1;
+          return;
+        }
+        throw error;
+      }
     }
-    throw error;
-  }
-}
 
-main();
-```
+    main();
+    ```
 
-Run it:
+    Run it:
 
-```bash
-npx tsx quickstart.ts
-```
+    ```bash
+    npx tsx quickstart.ts
+    ```
 
-## 4. Real output
+  </Step>
+
+  <Step title="Real output">
 
 Captured from an actual run against a local server, using the same
 `createBusinessTransaction()` call this page documents (see
@@ -179,6 +183,9 @@ The full `ExecutionTrustRecord` also includes `executions[0].decision`
 `signature` block covered in [Verify independently](/guides/verify-independently). Field names
 are `camelCase` here — the same record from the Python SDK uses `snake_case` for the same
 fields (see [Python SDK Quickstart](/guides/python-sdk-quickstart)).
+
+  </Step>
+</Steps>
 
 ## Troubleshooting
 

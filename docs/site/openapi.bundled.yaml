@@ -169,11 +169,11 @@ paths:
         required to already hold a Parmana credential to reach it. Returns the
         current or any still-retained historical key's public half; a keyId
         whose private key was rotated away from is still resolvable here as long
-        as its files were not deleted (PQC audit RED-3,
-        docs/VERIFICATION-GAPS.md). See packages/crypto/src/OfflineVerifier.ts
-        (and its Python counterpart, python/parmana/crypto/ offline_verifier.py)
-        for a reference verifier that consumes exactly this response's `pem`
-        field with zero further network calls.
+        as its files were not deleted. See
+        packages/crypto/src/OfflineVerifier.ts (and its Python counterpart,
+        python/parmana/crypto/ offline_verifier.py) for a reference verifier
+        that consumes exactly this response's `pem` field with zero further
+        network calls.
       parameters:
         - name: keyId
           in: path
@@ -357,11 +357,10 @@ paths:
 
         **`payments:execute` (`vendor-payment`), shown in the
         vendor-payment-flow example below, was removed from the repository
-        entirely** — see docs/VERIFICATION-GAPS.md G-27 in the source repo. That
-        example is a real request/response pair captured before the removal;
-        resubmitting it against a current server no longer produces the shown
-        APPROVED result; it falls into the "no Connector registered" case
-        instead, since no connector — production or test — registers
+        entirely.** That example is a real request/response pair captured before
+        the removal; resubmitting it against a current server no longer produces
+        the shown APPROVED result; it falls into the "no Connector registered"
+        case instead, since no connector — production or test — registers
         `payments:execute` any longer. It is retained here as a real, historical
         illustration of the response shape, not as a currently-runnable example.
         The `vendor-payment/2.0.0` policy file itself is unaffected and still
