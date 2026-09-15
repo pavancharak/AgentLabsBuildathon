@@ -10,15 +10,19 @@ info:
     through cryptographically verifiable Execution Trust Records.
 
 
-    **Every route requires a caller bearer key, except GET /health.** Send
-    `Authorization: Bearer <key>` on every other request. Keys are issued by
-    `scripts/generate-api-key.ts` and configured server-side via
-    `PARMANA_API_KEYS`; only a hash of each key is ever held by the server,
-    verified in constant time. A missing or invalid credential returns 401
-    before a Business Transaction is even constructed, independent of Policy
-    evaluation and gateway attestation, see `packages/api/src/middleware/caller-auth.ts`
-    and [Authentication](/api-reference/authentication). Local development may
-    set `PARMANA_AUTH_DISABLED=true` to skip this middleware entirely; that flag
+    **Every route requires a caller bearer key**, except the liveness/readiness
+    probes and documentation/verification routes that must be reachable with no
+    credential: GET /health, GET /ready, GET /openapi.yaml, GET /documentation,
+    GET /reference, POST /refusal/verify, POST /audit/verify, GET /keys/{keyId},
+    and GET /.well-known/jwks.json. Send `Authorization: Bearer <key>` on every
+    other request. Keys are issued by `scripts/generate-api-key.ts` and
+    configured server-side via `PARMANA_API_KEYS`; only a hash of each key is
+    ever held by the server, verified in constant time. A missing or invalid
+    credential returns 401 before a Business Transaction is even constructed,
+    independent of Policy evaluation and gateway attestation, see
+    `packages/api/src/middleware/caller-auth.ts` and
+    [Authentication](/api-reference/authentication). Local development may set
+    `PARMANA_AUTH_DISABLED=true` to skip this middleware entirely; that flag
     must never be set in a real deployment.
 
   contact:
@@ -58,6 +62,12 @@ tags:
   - name: Policies
     description: Policy existence/readability check
 
+  - name: Refusal Records
+    description: Durable, signed evidence that a policy decision rejected a transaction (RFC-0021)
+
+  - name: Audit
+    description: Signed caller-authentication audit events, independently third-party-verifiable
+
   - name: System
     description: Operational endpoints
 
@@ -71,8 +81,8 @@ paths:
       description: >
         Minimal liveness response. Not registered under any router file, defined
         directly in packages/api/src/app.ts, ahead of every mounted route.
-        Requires caller authentication, like every route except GET /health.
-        See the security scheme above.
+        Requires caller authentication, like every route not listed as exempt
+        in this document's top-level description. See the security scheme above.
       responses:
         "401":
           $ref: "#/components/responses/Unauthorized"
@@ -101,10 +111,10 @@ paths:
         exactly what this endpoint does and does not check.
 
 
-        **One of two routes exempt from caller authentication** (the other is
-        GET /openapi.yaml). Liveness probes must be able to reach it with no
-        credential, see packages/api/src/app.ts (mounted ahead of the
-        caller-auth middleware).
+        One of several routes exempt from caller authentication, see the top
+        of this document for the full list. Liveness probes must be able to
+        reach it with no credential, see packages/api/src/app.ts (mounted
+        ahead of the caller-auth middleware).
       security: []
       responses:
         "200":
@@ -118,6 +128,58 @@ paths:
                   summary: Real captured response
                   value:
                     status: UP
+
+  /ready:
+    get:
+      tags:
+        - System
+      summary: Readiness check
+      operationId: getReady
+      description: >
+        Readiness probe, distinct from GET /health's pure liveness check:
+        when storage is Supabase-backed, this one actually queries Postgres
+        (SELECT 1, no table rows transferred) so an orchestrator can tell a
+        process that is up but backed by dead storage apart from one that is
+        genuinely ready to serve traffic. When storage is not Supabase-backed
+        (NODE_ENV=test, or PARMANA_STORAGE=memory outside test), there is no
+        external dependency to probe, so this reports READY unconditionally.
+        Exempt from caller authentication for the same reason GET /health is,
+        see packages/api/src/routes/ready.ts.
+      security: []
+      responses:
+        "200":
+          description: Storage reachable, or not Supabase-backed.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/ready-response.schema.json"
+              examples:
+                authEnabled:
+                  summary: Real captured response
+                  value:
+                    status: READY
+                    storage: not-supabase-backed
+                    authDisabled: false
+                authDisabled:
+                  summary: Real captured response
+                  value:
+                    status: READY
+                    storage: not-supabase-backed
+                    authDisabled: true
+                    warning: "PARMANA_AUTH_DISABLED=true -- this deployment is accepting requests with no caller authentication. Must never be set in a real deployment."
+        "503":
+          description: Supabase-backed storage is configured but Postgres could not be reached. Shape derived from packages/api/src/routes/ready.ts's catch branch, not independently reproducible outside a real Supabase-backed deployment.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/ready-response.schema.json"
+              examples:
+                notReady:
+                  summary: Shape, not a live capture
+                  value:
+                    status: NOT_READY
+                    reason: "connect ECONNREFUSED 127.0.0.1:5432"
+                    authDisabled: false
 
   /openapi.yaml:
     get:
@@ -153,7 +215,8 @@ paths:
         Returns hardcoded deployment identifiers. See the response schema
         description: these three literals are not read from package.json,
         environment variables, or build metadata. Requires caller
-        authentication, like every route except GET /health.
+        authentication, like every route not listed as exempt in this
+        document's top-level description.
       responses:
         "401":
           $ref: "#/components/responses/Unauthorized"
@@ -283,8 +346,8 @@ paths:
         raw configured entry: allowedPrincipalIds defaults to [callerId] and
         allowedCapabilities defaults to an empty array when unset on the key,
         see packages/api/src/routes/callers-me.ts. Requires caller
-        authentication, like every route except GET /health, GET /ready, GET
-        /openapi.yaml, and GET /documentation.
+        authentication, like every route not listed as exempt in this
+        document's top-level description.
 
 
         Returns 404 with {"error":"No authenticated caller identity
@@ -1734,6 +1797,139 @@ paths:
                   value:
                     error: Execution Trust Record not found.
 
+  /refusal/verify:
+    post:
+      tags:
+        - Refusal Records
+      summary: Verify a Refusal Record's signature
+      operationId: verifyRefusalRecord
+      description: >
+        Verifies a Refusal Record's signature (RFC-0021). Deliberately
+        mounted before this app's caller-auth middleware, see
+        packages/api/src/app.ts: no caller authentication or API key is
+        required, by design. This is the capability that makes a refusal
+        independently third-party verifiable. It takes the record itself,
+        not a lookup by ID, no database access, no ownership check, nothing
+        but the artifact and Parmana's public key.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/requests/refusal-verify-request.schema.json"
+      responses:
+        "200":
+          description: Verification completed. A 200 does not by itself mean the signature verified, see the valid field.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/verify-result-response.schema.json"
+              examples:
+                valid:
+                  summary: Real captured response
+                  value:
+                    valid: true
+        "400":
+          description: Request body is not a structurally plausible Refusal Record.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                malformed:
+                  summary: Real captured response
+                  value:
+                    error: Request body must be a Refusal Record (refusalRecordId, businessTransactionId, decision, refusalRecordHash, signature required).
+
+  /refusal/{businessTransactionId}:
+    get:
+      tags:
+        - Refusal Records
+      summary: Get a Refusal Record by transaction ID
+      operationId: getRefusalRecord
+      description: >
+        Looks up a Refusal Record by businessTransactionId from Parmana's
+        own storage. Unlike POST /refusal/verify, this route stays behind
+        caller authentication and ownership scoping identically to
+        GET /verify, GET /verification/{businessTransactionId}, and
+        GET /trust-records/{businessTransactionId}: the underlying
+        transaction content (signals, intent parameters) may be sensitive,
+        so lookup is scoped even though independent signature verification
+        (the other route) is not.
+      parameters:
+        - name: businessTransactionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "200":
+          description: Refusal Record found.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/refusal-record-response.schema.json"
+        "404":
+          description: No Refusal Record exists for this businessTransactionId, or it belongs to a different caller (ownership-scoped, same 404-not-403 convention as every other scoped lookup in this API).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                notFound:
+                  summary: Real captured response
+                  value:
+                    error: Refusal Record not found.
+
+  /audit/verify:
+    post:
+      tags:
+        - Audit
+      summary: Verify a signed caller-authentication audit event
+      operationId: verifyAuditEvent
+      description: >
+        Verifies a signed caller-authentication audit event's signature, the
+        same unauthenticated, third-party-verifiable capability as
+        POST /refusal/verify, over the durable caller_audit_events audit
+        trail instead of Refusal Records. No database lookup involved,
+        pure signature-over-bytes verification against the event and
+        signature supplied in the request body. Only production
+        (Supabase) audit sinks sign; in-memory test sinks never produce a
+        genuinely valid signature for this route to confirm.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/requests/audit-verify-request.schema.json"
+      responses:
+        "200":
+          description: Verification completed. A 200 does not by itself mean the signature verified, see the valid field.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/verify-result-response.schema.json"
+              examples:
+                invalid:
+                  summary: Real captured response (this environment's in-memory audit sink never signs, so no genuinely valid signature is capturable here)
+                  value:
+                    valid: false
+        "400":
+          description: Request body is not a structurally plausible { event, signature } pair.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                malformed:
+                  summary: Real captured response
+                  value:
+                    error: "Request body must be { event, signature } (event: type, occurredAt, route; signature: algorithm, keyId, value required)."
+
   /receipt:
     post:
       tags:
@@ -2261,8 +2457,8 @@ components:
         Caller API key issued by scripts/generate-api-key.ts. Sent as
         Authorization: Bearer <key>. Verified against a stored SHA-256 hash
         in constant time by packages/api/src/auth/StaticKeyAuthenticator.ts.
-        Required on every route except GET /health. See
-        /api-reference/authentication.
+        Required on every route not listed as exempt in this document's
+        top-level description. See /api-reference/authentication.
 
   responses:
     Unauthorized:

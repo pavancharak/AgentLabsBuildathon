@@ -126,8 +126,9 @@ simply won't be read.
 
 ## Caller authentication
 
-Every route except `GET /health` requires a caller credential: a bearer key generated in
-step 3, sent as `Authorization: Bearer <key>`. Only a SHA-256 hash of each key is ever held
+Every route requires a caller credential, except the liveness/readiness and documentation/
+verification routes listed on [Authentication](/api-reference/authentication): a bearer key
+generated in step 3, sent as `Authorization: Bearer <key>`. Only a SHA-256 hash of each key is ever held
 by the server, comparisons run in constant time against that hash, and the raw key is never
 logged or written to disk anywhere in this codebase.
 

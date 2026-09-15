@@ -1,11 +1,17 @@
 ---
 title: "REST API Introduction"
-description: "15 routes, enumerated from packages/api/src/app.ts. The full per-route reference is generated from openapi/openapi.yaml; this page covers what the spec can't express."
+description: "22 paths, generated from openapi/openapi.yaml into the sidebar under REST API. This page covers what that spec can't express."
 ---
 
 <Info>
-  **[AVAILABLE]**, every route below is mounted in `packages/api/src/app.ts`. No
-  other routes exist.
+  **[AVAILABLE]**. Every path in the sidebar under **REST API** is generated
+  from `openapi/openapi.yaml`, which is structurally validated in CI (`npm run
+  lint:openapi`, plus `openapi-bundle-refs.test.ts`'s $ref-integrity checks) on
+  every push. There is, today, no automated check that every route actually
+  mounted in `packages/api/src/app.ts` has a matching spec path; this page's
+  list is kept in sync by hand. `GET /documentation` and `GET /reference` are
+  deliberately excluded: rendered doc surfaces, not API resources, see [Three
+  views of the same spec](#three-views-of-the-same-spec) below.
 </Info>
 
 ## Base URL
@@ -87,9 +93,10 @@ SDK](/sdks/python). The TypeScript SDK: `ValidationError`/`AuthenticationError`/
 ## Auth
 
 <Info>
-  **Every route requires a caller bearer key, except `GET /health`.** See
-  [Authentication](/api-reference/authentication) for how to send one and what
-  it does and does not prove.
+  **Every route requires a caller bearer key, except the liveness/readiness
+  probes and documentation/verification routes** listed on
+  [Authentication](/api-reference/authentication). See that page for how to send
+  a key and what it does and does not prove.
 </Info>
 
 ## Rate limiting

@@ -122,7 +122,8 @@ the exposure independently verified across every remote hosting this repository'
 
 ## Caller authentication, principal binding, and ownership scoping: three separate layers
 
-`packages/api` gates every route except `GET /health` behind a caller bearer key, see
+`packages/api` gates every route behind a caller bearer key, except the liveness/readiness
+and documentation/verification routes listed on
 [Authentication](/api-reference/authentication). Three distinct claims, not one, and it
 matters which one you're relying on:
 
