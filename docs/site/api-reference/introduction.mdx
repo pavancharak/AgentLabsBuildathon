@@ -19,8 +19,20 @@ description: "26 paths, generated from openapi/openapi.yaml into the sidebar und
 ## Base URL
 
 Local: `http://localhost:3000` (see [Quickstart](/quickstart) for starting the server). The
-raw spec is also served at `GET /openapi.yaml`, see [Deploy
+raw spec is also served at `GET /openapi.yaml` and, identically, JSON-serialized, at
+`GET /openapi.json` (some tooling and most AI coding agents expect a `.json` path by
+convention; both describe the same spec), see [Deploy
 patterns](/guides/deploy-patterns#the-openapi-spec-endpoint).
+
+<Note>
+  **Are you an AI coding agent?** Fetch `GET /api-manifest.json` first. It's a
+  single machine-readable index: the OpenAPI spec locations above, the auth
+  scheme, and both real SDKs (`@parmana/sdk` on npm, `parmana` on PyPI) with
+  their actual current package name and version, read directly from each
+  package's own manifest, not hand-typed. It never claims a language has an SDK
+  unless one is actually published, see [Other
+  languages](/sdks/other-languages).
+</Note>
 
 ## Three views of the same spec
 

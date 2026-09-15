@@ -72,8 +72,9 @@ description: "Install to your first authorized execution in under 10 minutes, us
 
   <Step title="Authenticate: every other route requires a bearer key">
     `/health` is the one route exempt from caller authentication (along with `/ready`,
-    `/openapi.yaml`, `/documentation`, and `/reference`). Everything else, including
-    `/version`, fails closed with a `401` before a Business Transaction is even constructed:
+    `/openapi.yaml`, `/openapi.json`, `/api-manifest.json`, `/documentation`, and
+    `/reference`). Everything else, including `/version`, fails closed with a `401` before a
+    Business Transaction is even constructed:
 
     ```bash
     curl http://localhost:3000/version

@@ -37,9 +37,10 @@ curl -X POST https://parmana-api-real.vercel.app/execute \
   -d @your-transaction.json
 ```
 
-Every route except `GET /health`, `GET /ready`, `GET /openapi.yaml`, `GET /documentation`,
-`POST /refusal/verify`, `POST /audit/verify`, `GET /keys/:keyId`, and
-`GET /.well-known/jwks.json` requires that `Authorization: Bearer` header.
+Every route except `GET /health`, `GET /ready`, `GET /openapi.yaml`, `GET /openapi.json`,
+`GET /api-manifest.json`, `GET /documentation`, `GET /reference`, `POST /refusal/verify`,
+`POST /audit/verify`, `GET /keys/:keyId`, and `GET /.well-known/jwks.json` requires that
+`Authorization: Bearer` header.
 
 ---
 
@@ -404,15 +405,20 @@ yourself with the `demo` key.
 
 ## Endpoints Reference
 
-**Real code, not aspirational.** Full machine-readable spec: `GET /openapi.yaml` or browse
-`GET /documentation` (Swagger UI). Source of truth: `packages/api/src/app.ts`.
+**Real code, not aspirational.** Full machine-readable spec: `GET /openapi.yaml`
+(or `GET /openapi.json`) or browse `GET /documentation` (Swagger UI) / `GET /reference`
+(ReDoc). Machine-readable discovery index, including both SDKs' real current versions:
+`GET /api-manifest.json`. Source of truth: `packages/api/src/app.ts`.
 
 | Method & path                | Auth     | What it does                                                                                                                                        |
 | ---------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /health`                | none     | Liveness. `{"status":"UP"}`                                                                                                                         |
 | `GET /ready`                 | none     | Readiness, includes `authDisabled`                                                                                                                  |
-| `GET /openapi.yaml`          | none     | The full OpenAPI 3.1 spec                                                                                                                           |
+| `GET /openapi.yaml`          | none     | The full OpenAPI 3.1 spec, YAML                                                                                                                     |
+| `GET /openapi.json`          | none     | The identical spec, JSON                                                                                                                            |
+| `GET /api-manifest.json`     | none     | Machine-readable discovery index: spec locations, auth scheme, both SDKs' real versions                                                             |
 | `GET /documentation`         | none     | Swagger UI over the spec above                                                                                                                      |
+| `GET /reference`             | none     | Read-only ReDoc view of the spec above                                                                                                              |
 | `GET /version`               | required | `{name, version, api}`                                                                                                                              |
 | `GET /callers/me`            | required | The authenticated caller's own identity and resolved scope                                                                                          |
 | `POST /execute`              | required | **The main endpoint.** Submit a `BusinessTransaction`, get back the full signed `ExecutionTrustRecord` (or a `403 POLICY_DENIED` / `500` per above) |

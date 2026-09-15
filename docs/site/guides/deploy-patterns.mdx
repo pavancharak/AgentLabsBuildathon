@@ -187,10 +187,13 @@ file and, like `GET /health`, is exempt from caller authentication, see
 get a key from a spec it isn't allowed to read, the same reasoning Stripe and most public
 API providers apply to their own spec/docs endpoints.
 
-Two more routes render that same spec, exempt from caller authentication for the identical
-reason, and neither one keeps its own separate copy, so none of the three can drift from
+Three more routes build on that same spec, exempt from caller authentication for the
+identical reason, and none keeps its own separate copy, so none of the four can drift from
 what the server actually does:
 
+- **`GET /openapi.json`**: the identical spec, JSON-serialized instead of YAML
+  (`packages/api/src/routes/openapi-json.ts`). Exists because most tooling, and most AI
+  coding agents, expects a machine-readable spec at a `.json` path by convention.
 - **`GET /documentation`**: a Swagger UI instance (`packages/api/src/routes/documentation.ts`,
   the `swagger-ui-express` package) that reads `openapi/openapi.bundled.yaml` from disk at
   startup, with **Try it out** wired up for testing a real request against this exact
@@ -200,10 +203,17 @@ what the server actually does:
   for reading the complete spec top to bottom, auditors and integration partners who want the
   whole surface at a glance, not a form to fill in.
 
-**Exposing all three in production is almost always the right default.** The spec contains no
+A fifth route, **`GET /api-manifest.json`** (`packages/api/src/routes/api-manifest.ts`), is
+not a spec view but a discovery index built for tooling: it points at the four routes above,
+states the auth scheme, and lists both real SDKs with their package name, registry, and
+actual current version, read from each package's own manifest at startup rather than
+hand-typed, so it can't say a version the published package doesn't have. Also exempt from
+caller authentication, for the same reason.
+
+**Exposing all five in production is almost always the right default.** The spec contains no
 secrets, only route shapes and example payloads with already-rotated or synthetic IDs. If
 your deployment has a reason to hide API surface area entirely (an internal-only service
-behind a network boundary where even the shape of the API is sensitive), any of the three
+behind a network boundary where even the shape of the API is sensitive), any of the five
 routes can be disabled by not mounting it in `packages/api/src/app.ts`, there is no
 environment-variable toggle for this today, it's a code change.
 

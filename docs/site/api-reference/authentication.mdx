@@ -11,8 +11,9 @@ description: "How to authenticate API requests: the bearer key model, what gets 
 ## Send a bearer key
 
 Every route requires `Authorization: Bearer <key>` except `GET /health`, `GET /ready`,
-`GET /openapi.yaml`, `GET /documentation`, and `GET /reference` (liveness/readiness probes and
-API documentation), `POST /refusal/verify` and `POST /audit/verify` (unauthenticated,
+`GET /openapi.yaml`, `GET /openapi.json`, `GET /api-manifest.json`, `GET /documentation`, and
+`GET /reference` (liveness/readiness probes, API documentation, and machine-readable
+discovery), `POST /refusal/verify` and `POST /audit/verify` (unauthenticated,
 independently third-party-verifiable signature checks; a credential-gated route
 cannot be how a party with no Parmana credential verifies a signature), and, added
 2026-09-11 for the same reason, `GET /keys/:keyId` and `GET /.well-known/jwks.json`
