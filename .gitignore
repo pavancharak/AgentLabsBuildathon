@@ -29,6 +29,7 @@ node_modules/
 dist/
 **/dist/
 *.tsbuildinfo
+.typedoc-staging/
 
 # Python
 __pycache__/

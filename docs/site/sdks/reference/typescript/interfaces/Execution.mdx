@@ -1,0 +1,87 @@
+---
+title: "Interface: Execution"
+---
+
+Defined in: [typescript/src/models/execution.ts:19](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/execution.ts#L19)
+
+## Properties
+
+### executionId
+
+> `readonly` **executionId**: `string`
+
+Defined in: [typescript/src/models/execution.ts:20](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/execution.ts#L20)
+
+---
+
+### businessTransactionId
+
+> `readonly` **businessTransactionId**: `string`
+
+Defined in: [typescript/src/models/execution.ts:21](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/execution.ts#L21)
+
+---
+
+### decision
+
+> `readonly` **decision**: [`Decision`](/sdks/reference/typescript/interfaces/Decision)
+
+Defined in: [typescript/src/models/execution.ts:22](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/execution.ts#L22)
+
+---
+
+### status
+
+> `readonly` **status**: [`ExecutionStatus`](/sdks/reference/typescript/type-aliases/ExecutionStatus)
+
+Defined in: [typescript/src/models/execution.ts:23](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/execution.ts#L23)
+
+---
+
+### mode
+
+> `readonly` **mode**: [`ExecutionMode`](/sdks/reference/typescript/type-aliases/ExecutionMode)
+
+Defined in: [typescript/src/models/execution.ts:24](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/execution.ts#L24)
+
+---
+
+### startedAt
+
+> `readonly` **startedAt**: `Date`
+
+Defined in: [typescript/src/models/execution.ts:25](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/execution.ts#L25)
+
+---
+
+### completedAt?
+
+> `readonly` `optional` **completedAt?**: `Date`
+
+Defined in: [typescript/src/models/execution.ts:27](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/execution.ts#L27)
+
+Present only for terminal executions.
+
+---
+
+### evidence?
+
+> `readonly` `optional` **evidence?**: `Record`\<`string`, `unknown`\>
+
+Defined in: [typescript/src/models/execution.ts:34](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/execution.ts#L34)
+
+businessTransactionId, action, target, parameters, success,
+executedAt, and an optional attributes bag (e.g. Connector SDK
+evidence). Left as a generic bag here, same as the real schema
+(schemas/common/execution.schema.json), not a nested model.
+
+---
+
+### metadata?
+
+> `readonly` `optional` **metadata?**: `Record`\<`string`, `unknown`\>
+
+Defined in: [typescript/src/models/execution.ts:39](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/execution.ts#L39)
+
+Execution-specific metadata. Currently populated with
+authorizationId when the Execution is APPROVED.

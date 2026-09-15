@@ -72,7 +72,106 @@
           },
           {
             "group": "SDKs",
-            "pages": ["sdks/python", "sdks/typescript", "sdks/other-languages"]
+            "pages": [
+              "sdks/python",
+              "sdks/typescript",
+              "sdks/other-languages",
+              {
+                "group": "TypeScript SDK Reference",
+                "pages": [
+                  {
+                    "group": "Classes",
+                    "pages": [
+                      "sdks/reference/typescript/classes/AuditApi",
+                      "sdks/reference/typescript/classes/AuthenticationError",
+                      "sdks/reference/typescript/classes/AuthorizationError",
+                      "sdks/reference/typescript/classes/ConfigurationError",
+                      "sdks/reference/typescript/classes/ConflictError",
+                      "sdks/reference/typescript/classes/ExecutionApi",
+                      "sdks/reference/typescript/classes/ExecutionRejectedError",
+                      "sdks/reference/typescript/classes/HealthApi",
+                      "sdks/reference/typescript/classes/HttpTransport",
+                      "sdks/reference/typescript/classes/InternalServerError",
+                      "sdks/reference/typescript/classes/NetworkError",
+                      "sdks/reference/typescript/classes/NotFoundError",
+                      "sdks/reference/typescript/classes/ParmanaClient",
+                      "sdks/reference/typescript/classes/ParmanaError",
+                      "sdks/reference/typescript/classes/PolicyApi",
+                      "sdks/reference/typescript/classes/RateLimitError",
+                      "sdks/reference/typescript/classes/ReceiptApi",
+                      "sdks/reference/typescript/classes/RefusalApi",
+                      "sdks/reference/typescript/classes/ReplayApi",
+                      "sdks/reference/typescript/classes/ReplayError",
+                      "sdks/reference/typescript/classes/TimeoutError",
+                      "sdks/reference/typescript/classes/TransactionApi",
+                      "sdks/reference/typescript/classes/TrustRecordApi",
+                      "sdks/reference/typescript/classes/ValidationError",
+                      "sdks/reference/typescript/classes/VerificationApi",
+                      "sdks/reference/typescript/classes/VerificationError"
+                    ]
+                  },
+                  {
+                    "group": "Interfaces",
+                    "pages": [
+                      "sdks/reference/typescript/interfaces/AuditEvent",
+                      "sdks/reference/typescript/interfaces/Authority",
+                      "sdks/reference/typescript/interfaces/Authorization",
+                      "sdks/reference/typescript/interfaces/BusinessTransaction",
+                      "sdks/reference/typescript/interfaces/BusinessTransactionMetadata",
+                      "sdks/reference/typescript/interfaces/Configuration",
+                      "sdks/reference/typescript/interfaces/CreateBusinessTransactionOptions",
+                      "sdks/reference/typescript/interfaces/Decision",
+                      "sdks/reference/typescript/interfaces/Execution",
+                      "sdks/reference/typescript/interfaces/ExecutionTrustRecord",
+                      "sdks/reference/typescript/interfaces/Intent",
+                      "sdks/reference/typescript/interfaces/Override",
+                      "sdks/reference/typescript/interfaces/ParmanaErrorOptions",
+                      "sdks/reference/typescript/interfaces/PolicyReference",
+                      "sdks/reference/typescript/interfaces/PolicyValidationResult",
+                      "sdks/reference/typescript/interfaces/Receipt",
+                      "sdks/reference/typescript/interfaces/RefusalBindingViolation",
+                      "sdks/reference/typescript/interfaces/RefusalIntentSnapshot",
+                      "sdks/reference/typescript/interfaces/RefusalRecord",
+                      "sdks/reference/typescript/interfaces/ReplayResult",
+                      "sdks/reference/typescript/interfaces/RetryPolicy",
+                      "sdks/reference/typescript/interfaces/Signature",
+                      "sdks/reference/typescript/interfaces/Transport",
+                      "sdks/reference/typescript/interfaces/TransportRequest",
+                      "sdks/reference/typescript/interfaces/TransportResponse",
+                      "sdks/reference/typescript/interfaces/Verification"
+                    ]
+                  },
+                  {
+                    "group": "Enumerations",
+                    "pages": [
+                      "sdks/reference/typescript/enumerations/ErrorCode",
+                      "sdks/reference/typescript/enumerations/RetryStrategy"
+                    ]
+                  },
+                  {
+                    "group": "Type Aliases",
+                    "pages": [
+                      "sdks/reference/typescript/type-aliases/BusinessTransactionStatus",
+                      "sdks/reference/typescript/type-aliases/DecisionOutcome",
+                      "sdks/reference/typescript/type-aliases/ExecutionMode",
+                      "sdks/reference/typescript/type-aliases/ExecutionStatus",
+                      "sdks/reference/typescript/type-aliases/SignatureAlgorithm",
+                      "sdks/reference/typescript/type-aliases/VerificationStatus"
+                    ]
+                  },
+                  {
+                    "group": "Functions",
+                    "pages": [
+                      "sdks/reference/typescript/functions/createBusinessTransaction"
+                    ]
+                  },
+                  {
+                    "group": "Variables",
+                    "pages": ["sdks/reference/typescript/variables/VERSION"]
+                  }
+                ]
+              }
+            ]
           },
           {
             "group": "REST API",

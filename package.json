@@ -23,6 +23,7 @@
     "generate:gateway-keys": "tsx scripts/generate-keypair.ts --algorithm ed25519 --key-id gateway",
     "generate:hybrid-secondary-key": "tsx scripts/generate-keypair.ts --algorithm dilithium3 --key-id default-secondary",
     "generate:api-key": "tsx scripts/generate-api-key.ts",
+    "generate:typescript-sdk-reference": "tsx scripts/generate-typescript-sdk-reference.ts",
     "rotate:verification-key": "tsx scripts/rotate-verification-key.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint . --ext .ts",
@@ -59,6 +60,8 @@
     "get-port": "^7.2.0",
     "prettier": "^3.8.4",
     "tsx": "^4.22.4",
+    "typedoc": "^0.28.20",
+    "typedoc-plugin-markdown": "^4.13.0",
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.62.0",
     "vitest": "^4.1.11"

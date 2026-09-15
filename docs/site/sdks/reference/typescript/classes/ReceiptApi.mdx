@@ -1,0 +1,56 @@
+---
+title: "Class: ReceiptApi"
+---
+
+Defined in: [typescript/src/client/ReceiptApi.ts:24](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ReceiptApi.ts#L24)
+
+Receipt API.
+
+## Responsibilities
+
+- Generate execution receipts
+
+This API does NOT:
+
+- execute Business Transactions
+- replay executions
+- verify trust records
+- validate policies
+
+## Constructors
+
+### Constructor
+
+> **new ReceiptApi**(`transport`): `ReceiptApi`
+
+Defined in: [typescript/src/client/ReceiptApi.ts:25](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ReceiptApi.ts#L25)
+
+#### Parameters
+
+##### transport
+
+[`Transport`](/sdks/reference/typescript/interfaces/Transport)
+
+#### Returns
+
+`ReceiptApi`
+
+## Methods
+
+### generate()
+
+> **generate**(`businessTransactionId`): `Promise`\<[`Receipt`](/sdks/reference/typescript/interfaces/Receipt)\>
+
+Defined in: [typescript/src/client/ReceiptApi.ts:30](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ReceiptApi.ts#L30)
+
+Generate an execution receipt.
+
+#### Parameters
+
+##### businessTransactionId
+
+`string`
+
+#### Returns
+
+`Promise`\<[`Receipt`](/sdks/reference/typescript/interfaces/Receipt)\>
