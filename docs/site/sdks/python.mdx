@@ -4,9 +4,10 @@ description: "Generated models, bearer-key authentication, and a typed error tax
 ---
 
 <Info>
-  **[AVAILABLE]**, **published**, `parmana` on PyPI. Real, public, installable
-  with a plain `pip install parmana`. This page said `v1.0.5` and described only
-  an editable local install until 2026-09-14; both were stale, confirmed against
+  **[AVAILABLE]**, **published**, [`parmana` on
+  PyPI](https://pypi.org/project/parmana/1.1.4/). Real, public, installable with
+  a plain `pip install parmana`. This page said `v1.0.5` and described only an
+  editable local install until 2026-09-14; both were stale, confirmed against
   the live PyPI registry while fixing this page. 79 passing tests, 0
   placeholders, `black`/`ruff`/`mypy --strict` all clean across the whole
   package. Bearer-key authentication, the error taxonomy below, and
@@ -54,7 +55,7 @@ health = client.execution.health()  # GET /health, no key required
 
 `api_key` is optional, for the same reason it's optional server-side: local development against a
 server started with `PARMANA_AUTH_DISABLED=true` needs no key. Every real deployment requires
-one — an omitted or wrong key gets a real `401`, raised as `AuthenticationError` (see below), not
+one. An omitted or wrong key gets a real `401`, raised as `AuthenticationError` (see below), not
 a silent failure. See [Authentication](/api-reference/authentication) for how keys are minted.
 
 ## Models are generated, not hand-maintained

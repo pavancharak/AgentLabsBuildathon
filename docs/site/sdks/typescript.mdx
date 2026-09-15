@@ -4,11 +4,12 @@ description: "Real client code, bearer-key authentication, and a typed error tax
 ---
 
 <Info>
-  **[AVAILABLE]**, **published**, `@parmana/sdk` on npm. Real, public,
-  installable with a plain `npm install @parmana/sdk`. This page said otherwise
-  ("private, not published to any registry") until 2026-09-14; that was stale
-  even at v1.1.1, confirmed live against the npm registry while fixing this
-  page. Bearer-key authentication, a real thrown error taxonomy, and full test
+  **[AVAILABLE]**, **published**, [`@parmana/sdk` on
+  npm](https://www.npmjs.com/package/@parmana/sdk). Real, public, installable
+  with a plain `npm install @parmana/sdk`. This page said otherwise ("private,
+  not published to any registry") until 2026-09-14; that was stale even at
+  v1.1.1, confirmed live against the npm registry while fixing this page.
+  Bearer-key authentication, a real thrown error taxonomy, and full test
   coverage are all in place, along with corrected model types (see below),
   `client.verify()`/`client.version()`, and `client.createTransaction()`.
   v1.1.2, adding `createBusinessTransaction()` (see below), published
@@ -63,7 +64,7 @@ const health = await client.health(); // GET /health, no key required
 
 `apiKey` is optional in `Configuration`, for the same reason it's optional server-side: local
 development against a server started with `PARMANA_AUTH_DISABLED=true` needs no key. Every real
-deployment requires one — an omitted or wrong key gets a real `401`, thrown as
+deployment requires one. An omitted or wrong key gets a real `401`, thrown as
 `AuthenticationError` (see below), not a silent failure. See
 [Authentication](/api-reference/authentication) for how keys are minted.
 
@@ -92,7 +93,7 @@ try {
   if (error instanceof ExecutionRejectedError) {
     console.log(error.message); // "Execution rejected: <policy-specific reason>"
   } else if (error instanceof ValidationError) {
-    // 400 — malformed request
+    // 400, malformed request
   }
 }
 ```
