@@ -8,11 +8,16 @@ import { handbookDownloadLeadRepository } from "../repositories.js";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * The PDF lives on the docs site's own domain (a Mintlify deployment,
- * a different origin from this API), never on this API's domain, so
- * a redirect target must be an absolute URL, not a relative one.
+ * Served by this API itself (see routes/handbook-pdf.ts), not the
+ * docs site: PDF file serving on Mintlify requires an Enterprise
+ * plan, confirmed the hard way when a redirect to a Mintlify-hosted
+ * copy 404'd despite every other docs page working. This API is a
+ * plain Vercel serverless Function with no such restriction. Still an
+ * absolute URL, a different origin from where the download page
+ * itself is served (the docs site), so a redirect target must be
+ * absolute regardless of which origin actually hosts the file.
  */
-const PDF_URL = "https://docs.parmanasystems.com/parmana-handbook.pdf";
+const PDF_URL = "https://parmana-api-real.vercel.app/parmana-handbook.pdf";
 
 async function captureLead(email: unknown): Promise<string | null> {
   if (typeof email !== "string" || !EMAIL_PATTERN.test(email.trim())) {

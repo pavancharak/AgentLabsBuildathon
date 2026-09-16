@@ -17,6 +17,7 @@ import type { ExecutionTrustApplication } from "@parmana/runtime";
 import { createExecuteRouter } from "./routes/execute.js";
 import healthRoutes from "./routes/health.js";
 import openapiRoutes from "./routes/openapi.js";
+import handbookPdfRoutes from "./routes/handbook-pdf.js";
 import openapiJsonRoutes from "./routes/openapi-json.js";
 import apiManifestRoutes from "./routes/api-manifest.js";
 import { createReceiptRouter } from "./routes/receipt.js";
@@ -178,6 +179,7 @@ export function createApp(
     createReadyRouter({ authDisabled: options.callerAuth === "disabled" }),
   );
   app.use("/openapi.yaml", openapiRoutes);
+  app.use("/parmana-handbook.pdf", handbookPdfRoutes);
   app.use("/openapi.json", openapiJsonRoutes);
   app.use("/api-manifest.json", apiManifestRoutes);
   app.use("/documentation", documentationRoutes);
