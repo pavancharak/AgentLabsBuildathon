@@ -1919,19 +1919,57 @@ paths:
                       businessTransactionId, decision, refusalRecordHash,
                       signature required).
   /handbook/download-leads:
+    get:
+      tags:
+        - Handbook
+      summary: Capture an email address, then redirect straight to the handbook PDF
+      operationId: getHandbookDownloadLead
+      description: >
+        Backs the plain-HTML-form download at docs/site/handbook/download.mdx --
+        a GET so a `<form method="get">` with no client-side JavaScript can
+        submit it directly, since the docs site host may sandbox or strip inline
+        `<script>` tags. Deliberately mounted before this app's caller-auth
+        middleware, see packages/api/src/app.ts: a visitor downloading the
+        handbook has no Parmana credential yet. Records the email address; does
+        not send a verification email, see migration
+        20260916150000_add_handbook_download_leads.sql's own comment for why
+        that is a deliberate scope boundary, not an oversight.
+      security: []
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        "302":
+          description: Email captured. Redirects to the static PDF file on the docs site's
+            own domain.
+          headers:
+            Location:
+              schema:
+                type: string
+              example: https://docs.parmanasystems.com/parmana-handbook.pdf
+        "400":
+          description: Missing or malformed email address (plain text body, not the shared
+            error envelope, since this route is meant to be hit by a browser
+            form submission, not an API client).
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: A valid email address is required.
     post:
       tags:
         - Handbook
       summary: Capture an email address before unlocking the handbook PDF download
       operationId: createHandbookDownloadLead
       description: >
-        Backs the email-gated PDF download at docs/site/handbook/download.mdx.
-        Deliberately mounted before this app's caller-auth middleware, see
-        packages/api/src/app.ts: a visitor downloading the handbook has no
-        Parmana credential yet. Records the email address; does not send a
-        verification email, see migration
-        20260916150000_add_handbook_download_leads.sql's own comment for why
-        that is a deliberate scope boundary, not an oversight.
+        Backs a programmatic caller that wants a `downloadUrl` back in a JSON
+        response body instead of a redirect -- see GET /handbook/download-leads
+        above for the browser-form variant, which is what the actual docs site
+        page uses. Same capture, same non-verification scope boundary.
       security: []
       requestBody:
         required: true
@@ -1947,7 +1985,8 @@ paths:
                   format: email
       responses:
         "201":
-          description: Email captured. downloadUrl points to the static PDF file.
+          description: Email captured. downloadUrl points to the static PDF file on the
+            docs site's own domain.
           content:
             application/json:
               schema:
@@ -1961,7 +2000,7 @@ paths:
                 captured:
                   summary: Real captured response
                   value:
-                    downloadUrl: /parmana-handbook.pdf
+                    downloadUrl: https://docs.parmanasystems.com/parmana-handbook.pdf
         "400":
           description: Missing or malformed email address.
           content:

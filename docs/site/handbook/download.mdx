@@ -5,91 +5,54 @@ description: "Every chapter in one PDF file. Just an email address, no verificat
 
 <Info>
   One email address, no verification link sent. This just records who asked for
-  the download, it doesn't gate the file behind a confirmed inbox.
+  the download, it doesn't gate the file behind a confirmed inbox. Submitting
+  this form takes you straight to the PDF, no separate click required.
 </Info>
 
-<div id="handbook-download-gate">
-  <form id="handbook-download-form">
-    <input
-      type="email"
-      id="handbook-download-email"
-      placeholder="you@company.com"
-      required
-      style={{
-        padding: "10px 14px",
-        fontSize: "14px",
-        border: "1px solid #ccc",
-        borderRadius: "6px",
-        width: "320px",
-        marginRight: "8px",
-      }}
-    />
-    <button
-      type="submit"
-      style={{
-        padding: "10px 18px",
-        fontSize: "14px",
-        fontWeight: 600,
-        background: "#6366F1",
-        color: "white",
-        border: "none",
-        borderRadius: "6px",
-        cursor: "pointer",
-      }}
-    >
-      Get the PDF
-    </button>
-  </form>
-  <p
-    id="handbook-download-status"
-    style={{ marginTop: "10px", fontSize: "13px" }}
-  ></p>
-</div>
-
-<script
-  dangerouslySetInnerHTML={{
-    __html: `
-      (function () {
-        var form = document.getElementById("handbook-download-form");
-        var status = document.getElementById("handbook-download-status");
-        if (!form) return;
-        form.addEventListener("submit", function (event) {
-          event.preventDefault();
-          var email = document.getElementById("handbook-download-email").value;
-          status.textContent = "Requesting...";
-          fetch("https://parmana-api-real.vercel.app/handbook/download-leads", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: email }),
-          })
-            .then(function (res) {
-              if (!res.ok) throw new Error("Request failed");
-              return res.json();
-            })
-            .then(function (data) {
-              status.innerHTML =
-                'Thanks. <a href="' +
-                data.downloadUrl +
-                '" download>Click here if the download does not start automatically</a>.';
-              window.location.href = data.downloadUrl;
-            })
-            .catch(function () {
-              status.textContent =
-                "Something went wrong. You can also read every chapter directly on this site, starting from the Handbook overview page.";
-            });
-        });
-      })();
-    `,
-  }}
-/>
+<form
+  action="https://parmana-api-real.vercel.app/handbook/download-leads"
+  method="get"
+>
+  <input
+    type="email"
+    name="email"
+    placeholder="you@company.com"
+    required
+    style={{
+      padding: "10px 14px",
+      fontSize: "14px",
+      border: "1px solid #ccc",
+      borderRadius: "6px",
+      width: "320px",
+      marginRight: "8px",
+    }}
+  />
+  <button
+    type="submit"
+    style={{
+      padding: "10px 18px",
+      fontSize: "14px",
+      fontWeight: 600,
+      background: "#6366F1",
+      color: "white",
+      border: "none",
+      borderRadius: "6px",
+      cursor: "pointer",
+    }}
+  >
+    Get the PDF
+  </button>
+</form>
 
 ## What you're downloading
 
-The complete Parmana Handbook: 23 chapters, every
-capability this codebase has, explained by reading the actual source. See the
-[overview page](/handbook/overview) for the full chapter list, or read any
-chapter directly on this site without downloading anything. The PDF is generated
-from the exact same source files as the pages on this site
-(`docs/parmana-handbook/*.md` in the repository), by
-`scripts/generate-handbook-pdf.ts`. It is not a separately-maintained document
-that can drift from what's published here.
+The complete Parmana Handbook: 23 chapters, every capability this codebase has, explained by
+reading the actual source. See the [overview page](/handbook/overview) for the full chapter
+list, or read any chapter directly on this site without downloading anything.
+
+The PDF is generated from the exact same source files as the pages on this site
+(`docs/parmana-handbook/*.md` in the repository), by `scripts/generate-handbook-pdf.ts`. It
+is not a separately-maintained document that can drift from what's published here.
+
+If the download doesn't start after submitting the form above, the direct link is
+[docs.parmanasystems.com/parmana-handbook.pdf](https://docs.parmanasystems.com/parmana-handbook.pdf).
