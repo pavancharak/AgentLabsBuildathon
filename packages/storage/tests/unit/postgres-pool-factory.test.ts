@@ -65,6 +65,7 @@ describe("PostgresPoolFactory", () => {
       connectionString: "postgres://user:pass@localhost:5432/db",
       min: 1,
       keepAlive: true,
+      connectionTimeoutMillis: 5000,
     });
   });
 

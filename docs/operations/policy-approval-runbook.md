@@ -1,15 +1,20 @@
 # Policy Approval Runbook: Moving the 10 Pending Policies to APPROVED
 
-> **Status of this document: a how-to, not a record of completed work.**
-> As of 2026-09-07, none of the 10 policies below have been reviewed or approved by
-> anyone. This runbook describes the real commands and endpoints that exist in this
-> codebase today, verified against source, so that when a genuinely distinct human
-> checker is ready to act, the steps are correct. It does not claim, and must not be
-> edited to claim, that any approval has happened until it actually has.
+> **Update 2026-09-16: completed.** A distinct reviewer, `policy-reviewer-1`, approved
+> all 10 policies below plus 4 additional pre-existing policies that had never been
+> proposed at all (`agent-vendor-payment`, `api-key-issuance`, `expense-reimbursement`,
+> `slack-post-message`), 14 total. Real approvals now exist in
+> `policy_change_approval_records`; `docs/CLAIMS.md` §2.26/§2.35 and
+> `docs/VERIFICATION-GAPS.md` gap 40 have been updated accordingly. Part 6's tracking
+> table below is filled in with the real result. This runbook's steps remain accurate
+> for any future policy needing the same maker-checker flow — kept as a how-to, not
+> archived.
 >
-> `docs/CLAIMS.md` §2.26/§2.35 and `docs/VERIFICATION-GAPS.md` gap 40 will only be
-> updated once real approvals exist in `policy_change_approval_records` — that update
-> is a separate, later task, not part of running this runbook.
+> Original status note, for the record: as of 2026-09-07, none of the 10 policies
+> below had been reviewed or approved by anyone. This runbook described the real
+> commands and endpoints that exist in this codebase, verified against source, so
+> that when a genuinely distinct human checker was ready to act, the steps would be
+> correct.
 
 ## Why this exists
 
@@ -159,20 +164,35 @@ been resolved** (approved, or rejected and replaced by an approved proposal).
 A policy left `PENDING_APPROVAL` or rejected with no approved replacement will
 be refused at execution time the moment this flag is on.
 
-## Part 6: Tracking (fill in as each is actually resolved — do not pre-fill)
+## Part 6: Tracking (filled in as each was actually resolved)
 
-| Policy                | Version | Reviewer | Decision | Resolved at | pendingPolicyChangeId |
-| --------------------- | ------- | -------- | -------- | ----------- | --------------------- |
-| access-control        | 1.0.0   |          |          |             |                       |
-| connector-capability  | 1.0.0   |          |          |             |                       |
-| customer-refund       | 1.0.0   |          |          |             |                       |
-| database-change       | 3.0.0   |          |          |             |                       |
-| github-pr-approval    | 1.0.0   |          |          |             |                       |
-| hubspot-deal-update   | 1.0.0   |          |          |             |                       |
-| llm-tool-call         | 1.0.0   |          |          |             |                       |
-| production-deployment | 1.0.0   |          |          |             |                       |
-| rag-document-access   | 1.0.0   |          |          |             |                       |
-| vendor-payment        | 2.0.0   |          |          |             |                       |
+Every row below reflects the _final_ resolution. Each of the original 10 was
+approved twice: once against the stale 2026-08-19 proposal content (missing
+`unboundSignalReasons`, and for `connector-capability`/`customer-refund`,
+missing `boundSignals`), then re-proposed with current file content and
+re-approved once the drift was caught — see `docs/CLAIMS.md` §2.26's
+"Legacy-policy backfill" entry for the full account. `pendingPolicyChangeId`
+below is the ID of the _final_ (correct-content) proposal, not the first one.
+Four additional policies that predated Policy Governance entirely and had
+never been proposed at all are included too, since they went through the
+same session and the same reviewer.
+
+| Policy                | Version | Reviewer          | Decision | Resolved at (UTC)        | pendingPolicyChangeId                |
+| --------------------- | ------- | ----------------- | -------- | ------------------------ | ------------------------------------ |
+| access-control        | 1.0.0   | policy-reviewer-1 | APPROVED | 2026-09-16T08:44:34.429Z | d9a5b8eb-1615-4273-b8a1-58b9371a8d46 |
+| connector-capability  | 1.0.0   | policy-reviewer-1 | APPROVED | 2026-09-16T08:44:39.232Z | d8fa1807-c822-4cc0-ac51-a85669217436 |
+| customer-refund       | 1.0.0   | policy-reviewer-1 | APPROVED | 2026-09-16T08:44:43.985Z | 2dd9b62a-938e-4d1f-bc6e-e1d60cbbebad |
+| database-change       | 3.0.0   | policy-reviewer-1 | APPROVED | 2026-09-16T08:44:48.721Z | d57291e9-ab7c-4f23-9aa7-776354ab2064 |
+| github-pr-approval    | 1.0.0   | policy-reviewer-1 | APPROVED | 2026-09-16T08:44:53.493Z | d8373b49-1ff7-49c5-804f-c7096d3199fd |
+| hubspot-deal-update   | 1.0.0   | policy-reviewer-1 | APPROVED | 2026-09-16T08:44:57.990Z | 917aef58-0d01-4071-b108-abe29df83904 |
+| llm-tool-call         | 1.0.0   | policy-reviewer-1 | APPROVED | 2026-09-16T08:45:02.475Z | a9fd546c-9ba1-4527-b152-7807c838a974 |
+| production-deployment | 1.0.0   | policy-reviewer-1 | APPROVED | 2026-09-16T08:45:07.006Z | 40cca789-2bfe-42dc-a0b7-087baa7e1aad |
+| rag-document-access   | 1.0.0   | policy-reviewer-1 | APPROVED | 2026-09-16T08:45:11.476Z | f64d924d-cacb-4d7a-b96c-8ab2074028cc |
+| vendor-payment        | 2.0.0   | policy-reviewer-1 | APPROVED | 2026-09-16T08:45:15.988Z | c6dae1d5-f326-4e01-967a-3b4d003297ff |
+| agent-vendor-payment  | 1.0.0   | policy-reviewer-1 | APPROVED | 2026-09-16T08:48:10.092Z | 3b27cd11-d816-45ec-b8ad-ecfd5ec2fa8a |
+| api-key-issuance      | 1.0.0   | policy-reviewer-1 | APPROVED | 2026-09-16T08:48:16.925Z | 4e0b4a10-e4c2-4647-a319-5a848f1f788d |
+| expense-reimbursement | 1.0.0   | policy-reviewer-1 | APPROVED | 2026-09-16T08:48:23.820Z | 63f9903b-c125-4248-ab7c-526cd312f62e |
+| slack-post-message    | 1.0.0   | policy-reviewer-1 | APPROVED | 2026-09-16T08:48:30.864Z | a99a9216-a1b0-4e7e-971c-65520ec2015d |
 
 ## Part 6.5: Before/after state verification queries
 

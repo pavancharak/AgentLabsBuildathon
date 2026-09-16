@@ -10,7 +10,11 @@ import { loadConfig } from "@parmana/shared";
 import {
   CompositeSignalStateVerifier,
   FilePolicyRepository,
+  SupabasePolicyRepository,
+  type PolicyRepository,
 } from "@parmana/policy";
+
+import { PostgresPoolFactory } from "@parmana/storage";
 
 import { RuntimeFactory } from "@parmana/runtime";
 
@@ -29,8 +33,48 @@ import { createPolicyGovernanceAnchorResolver } from "./bootstrap/createPolicyGo
 
 const config = loadConfig();
 
-export const policyRepository = new FilePolicyRepository(
-  config.policy.directory,
+/**
+ * FilePolicyRepository in tests and local dev (memory storage) --
+ * writable disk in both cases, and preserves existing test fixtures'
+ * assumption of file-backed policy content. SupabasePolicyRepository
+ * whenever a real database is configured: Vercel's serverless
+ * Functions run on a read-only filesystem, so
+ * PolicyChangeApprovalService.approve()'s live-policy write fails
+ * with EROFS against FilePolicyRepository in production -- see
+ * migration 20260916060000's own doc comment.
+ *
+ * Constructed lazily, on first actual repository use, not as a
+ * module-scope side effect -- the same discipline repositories.ts's
+ * own lazyRepository() already established (G-15,
+ * docs/VERIFICATION-GAPS.md) and for the identical reason: importing
+ * this module must never itself open a live Postgres connection via
+ * PostgresPoolFactory.create(), only an actual load()/save()/listAll()
+ * call should. An earlier version of this file got that wrong --
+ * constructing SupabasePolicyRepository eagerly here meant
+ * PostgresPoolFactory's singleton pool was created (against whatever
+ * DATABASE_URL happened to be set at import time) before any caller
+ * had a chance to configure it differently, which is exactly the
+ * failure mode examples/tutorials/89-readiness-probe/run.ts's own
+ * "genuinely unreachable database" scenario exists to test.
+ */
+let policyRepositoryInstance: PolicyRepository | undefined;
+
+function getPolicyRepository(): PolicyRepository {
+  policyRepositoryInstance ??=
+    process.env.NODE_ENV !== "test" && config.storage.provider !== "memory"
+      ? new SupabasePolicyRepository(PostgresPoolFactory.create())
+      : new FilePolicyRepository(config.policy.directory);
+
+  return policyRepositoryInstance;
+}
+
+export const policyRepository: PolicyRepository = new Proxy(
+  {} as PolicyRepository,
+  {
+    get(_target, property, receiver) {
+      return Reflect.get(getPolicyRepository(), property, receiver);
+    },
+  },
 );
 
 export function createApplication(executionSystem: ExecutionSystem) {
