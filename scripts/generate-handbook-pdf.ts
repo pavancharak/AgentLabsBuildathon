@@ -36,7 +36,11 @@ function findBrowser(): string {
 const sourceDir = path.resolve(process.cwd(), "docs/parmana-handbook");
 const outputPath = path.resolve(
   process.cwd(),
-  "docs/site/public/parmana-handbook.pdf",
+  // Mintlify serves static assets from their exact path relative to
+  // docs/site/ (e.g. docs/site/logo/logo-light.svg -> /logo/logo-light.svg),
+  // there is no special "public" subfolder convention -- this must
+  // match the downloadUrl POST /handbook/download-leads returns.
+  "docs/site/parmana-handbook.pdf",
 );
 
 const chapterFiles = readdirSync(sourceDir)
