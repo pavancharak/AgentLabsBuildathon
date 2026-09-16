@@ -1,6 +1,7 @@
 import type {
   BusinessTransactionRepository,
   ExecutionTrustRecordRepository,
+  HandbookDownloadLeadRepository,
   PendingPolicyChangeRepository,
   PolicyChangeApprovalRecordRepository,
   RefusalRecordRepository,
@@ -17,6 +18,8 @@ import { MemoryRefusalRecordRepository } from "./MemoryRefusalRecordRepository.j
 import { MemoryPendingPolicyChangeRepository } from "./MemoryPendingPolicyChangeRepository.js";
 
 import { MemoryPolicyChangeApprovalRecordRepository } from "./MemoryPolicyChangeApprovalRecordRepository.js";
+
+import { MemoryHandbookDownloadLeadRepository } from "./MemoryHandbookDownloadLeadRepository.js";
 
 /**
  * Memory Storage Provider.
@@ -35,6 +38,8 @@ export class MemoryStorageProvider implements StorageProvider {
 
   readonly policyChangeApprovalRecords: PolicyChangeApprovalRecordRepository;
 
+  readonly handbookDownloadLeads: HandbookDownloadLeadRepository;
+
   constructor() {
     this.businessTransactions = new MemoryBusinessTransactionRepository();
 
@@ -46,6 +51,8 @@ export class MemoryStorageProvider implements StorageProvider {
 
     this.policyChangeApprovalRecords =
       new MemoryPolicyChangeApprovalRecordRepository();
+
+    this.handbookDownloadLeads = new MemoryHandbookDownloadLeadRepository();
 
     Object.freeze(this);
   }

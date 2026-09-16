@@ -7,3 +7,11 @@ docs/site/openapi.bundled.yaml
 # pytest cache artifacts (already gitignored; Prettier doesn't read
 # .gitignore on its own, so it needs its own entry here too).
 **/.pytest_cache/
+
+# Prettier's MDX parser merges a heading into the preceding paragraph
+# when it directly follows a self-closing JSX tag, even with a blank
+# line between them in the source. That blank line is required for
+# Mintlify to render the heading and the JSX block as separate
+# elements, so this file is hand-formatted and excluded here rather
+# than left to silently break on the next `prettier --write`.
+docs/site/handbook/download.mdx

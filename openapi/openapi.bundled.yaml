@@ -30,6 +30,9 @@ info:
     name: Proprietary, source-available for evaluation only, see LICENSE
     url: https://github.com/pavancharak/AgentLabsBuildathon/blob/main/LICENSE
 servers:
+  - url: https://parmana-api-real.vercel.app
+    description: Production (real, deployed instance -- the docs site playground
+      uses this by default)
   - url: http://localhost:3000
     description: Local (packages/api, PORT env var, default 3000)
 security:
@@ -1915,6 +1918,61 @@ paths:
                     error: Request body must be a Refusal Record (refusalRecordId,
                       businessTransactionId, decision, refusalRecordHash,
                       signature required).
+  /handbook/download-leads:
+    post:
+      tags:
+        - Handbook
+      summary: Capture an email address before unlocking the handbook PDF download
+      operationId: createHandbookDownloadLead
+      description: >
+        Backs the email-gated PDF download at docs/site/handbook/download.mdx.
+        Deliberately mounted before this app's caller-auth middleware, see
+        packages/api/src/app.ts: a visitor downloading the handbook has no
+        Parmana credential yet. Records the email address; does not send a
+        verification email, see migration
+        20260916150000_add_handbook_download_leads.sql's own comment for why
+        that is a deliberate scope boundary, not an oversight.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "201":
+          description: Email captured. downloadUrl points to the static PDF file.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - downloadUrl
+                properties:
+                  downloadUrl:
+                    type: string
+              examples:
+                captured:
+                  summary: Real captured response
+                  value:
+                    downloadUrl: /parmana-handbook.pdf
+        "400":
+          description: Missing or malformed email address.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error.schema"
+              examples:
+                malformed:
+                  summary: Real captured response
+                  value:
+                    error: A valid email address is required.
   /refusal/{businessTransactionId}:
     get:
       tags:

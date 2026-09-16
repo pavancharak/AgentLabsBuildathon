@@ -178,6 +178,13 @@ separate written agreement with Parmana Systems.
 
 ## More documentation
 
+**New here? Start with [The Parmana Handbook](docs/parmana-handbook/README.md)** — every
+capability this codebase has, no matter how small, explained by reading the actual source:
+what it is, why it was built, how it works, how to validate it yourself, and what integrating
+against it requires. 23 chapters. Also published on the
+[docs site](https://docs.parmanasystems.com/handbook/overview) and as a
+[downloadable PDF](https://docs.parmanasystems.com/handbook/download).
+
 [docs/README.md](docs/README.md) indexes the rest: CLAIMS.md, DEPLOYMENT.md,
 SECURITY.md, and package-level documentation, in reading order.
 

@@ -1,0 +1,114 @@
+# Chapter 22: Testing Philosophy
+
+## What it is
+
+Two disciplines run through this codebase's tests: hermetic-first testing (no real network,
+no real database, no real cloud credentials required to run the suite), and treating the
+runnable tutorial suite under `examples/tutorials/` as a first-class form of documentation,
+not a separate, optional thing bolted on after the real code and real tests exist.
+
+## Why it was built this way
+
+A test that needs a live Supabase connection or real AWS credentials to run cannot run in CI
+without secrets, cannot run offline, and is slow. A prose document describing behavior can
+silently go stale the moment the underlying code changes, since nothing forces it to be
+re-checked. Both problems have the same root cause, a gap between what is claimed and what is
+actually exercised, and this codebase addresses both with the same tool: code that asserts real
+behavior and fails loudly the moment that behavior regresses.
+
+## How it works
+
+### Hermetic-first testing
+
+Rather than mocking at the framework level, unit tests in this codebase commonly construct a
+minimal fake object implementing just the one method actually called. `packages/storage/tests/unit/`
+has several real examples (`business-transaction-repository-duplicate-consistency.test.ts`,
+`postgres-rate-limit-store.test.ts`, `supabase-business-transaction-repository.test.ts`, among
+others) that build a `FakePool`-shaped object standing in for `pg.Pool`, exposing only
+`.query(sql, params)` against an in-memory data structure, no real network socket ever opens.
+This same pattern is used in the example tutorials that exercise real Postgres-backed classes
+hermetically (`examples/tutorials/115-per-limiter-rate-limit-stores`, `116-supabase-policy-repository`,
+`117-maker-checker-one-shot-scripts`, each fakes just enough of `pg.Pool` for the class under
+test to function correctly, verified by reading their `run.ts` files directly).
+
+`vitest.config.ts` (repo root) sets `NODE_ENV=test` implicitly for the whole suite via Vitest's
+own default behavior, and `packages/storage/src/StorageFactory.createFromEnvironment()` reads
+that explicitly, returning `MemoryStorageProvider` unconditionally under `NODE_ENV=test`,
+regardless of what `PARMANA_STORAGE` happens to be set to in the ambient environment. This exists
+specifically so importing application code during test collection never accidentally constructs
+a live Supabase client (see the `G-15` reference in that factory's own doc comment).
+
+### The tutorial suite as documentation
+
+`examples/tutorials/` currently runs to 117 numbered tutorials plus `examples/scenarios/`,
+invoked together via `npm run examples` (`scripts/run-examples.ts`). Each tutorial is a
+standalone, runnable script that exercises real production code (not a simplified
+re-implementation) against a hermetic environment, either an in-process Express server on an
+ephemeral port, or a fake client standing in for one external dependency, and prints its own
+pass/fail assertion at the end. The reasoning, stated directly in this codebase's own review of
+itself: a runnable tutorial is falsifiable in a way prose is not, if the underlying behavior
+changes, the tutorial's own final assertion fails the next time anyone runs it, where a
+paragraph of documentation making the same claim would simply keep reading as true.
+
+Two entries are deliberately excluded from the automated `npm run examples` run:
+`examples/04-verified-execution` (binds a real TCP port not safe to run unattended alongside the
+rest of the list) and `examples/tutorials/09-rest-api` (POSTs to a live server the runner does
+not start), each documented with a comment in `scripts/run-examples.ts` explaining exactly why,
+and pointing at that example's own `README.md` for how to run it individually.
+
+### Citation integrity
+
+`docs/CLAIMS.md` and the tutorial `README.md` files cite real file paths as evidence for their
+claims. This codebase treats a stale citation as a real defect worth finding and fixing, not a
+cosmetic nit, a citation nobody automatically checks will eventually go stale, and a claim whose
+evidence has silently rotted is functionally the same as an unverified claim. `docs/CLAIMS.md`
+is explicit that a citation should be understood in the context it was written (a citation may be
+correct as of the date it was added even if later superseded, in which case the surrounding
+prose says so rather than the citation being silently rewritten to point somewhere else, doing
+so would falsify the historical record rather than fix a real problem).
+
+### CI
+
+`.github/workflows/ci.yml` runs, on every push and pull request: install (`npm ci`), build
+(`npm run build`), lint (`npm run lint`), typecheck (`npm run typecheck`), a guard against
+retired terminology (a grep-based check, not a type or lint rule), the full test suite
+(`npm test`), and, in a separate job, `scripts/verify-policy-changes-approved.ts` against
+whichever `policies/**/policy.json` files changed in that push or PR, this is the fail-closed
+governance gate described in Chapter 7, real and enforced in CI today, not yet wired as a GitHub
+required status check due to a plan/visibility limitation external to this codebase (see
+`docs/CLAIMS.md` §2.26's "Preventive Git-layer enforcement" entry for the exact constraint).
+
+The local pre-commit hook (this repo's own `.git` hooks, not GitHub's CI) additionally runs the
+full example suite (`npm run examples`) before allowing a commit, meaning every commit landed on
+`main` has, at minimum, had all currently-registered tutorials pass on the committing machine
+at commit time.
+
+## Concrete example
+
+Any tutorial run demonstrates the philosophy directly:
+
+```bash
+npx tsx examples/tutorials/117-maker-checker-one-shot-scripts/run.ts
+```
+
+spins up a real Express app on an ephemeral local port, exercises the real maker-checker HTTP
+endpoints and the real operational scripts used to approve production policies, and prints a
+final `✓`/`✗` verdict, entirely hermetically, no network access, no real credentials.
+
+## How to validate this yourself
+
+- `packages/storage/tests/unit/` for the fake-`pg.Pool` unit test pattern.
+- `scripts/run-examples.ts` for the full registered tutorial list and the two documented
+  exclusions.
+- `.github/workflows/ci.yml` for the exact CI gates.
+- `docs/CLAIMS.md`'s own header/preface section for the citation-integrity discipline stated in
+  its own words.
+- Any individual `examples/tutorials/*/README.md`, each states what it proves and why it
+  matters, in the same structure this book uses.
+
+## Requirements
+
+None beyond what's already needed to run the codebase locally (Node.js, `npm install`). No
+tutorial or unit test in the default `npm test` / `npm run examples` runs requires real AWS,
+Supabase, or connector credentials; that is the entire point of the hermetic-first discipline
+described above.

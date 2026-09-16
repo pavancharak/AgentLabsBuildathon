@@ -1,6 +1,7 @@
 import type {
   BusinessTransactionRepository,
   ExecutionTrustRecordRepository,
+  HandbookDownloadLeadRepository,
   PendingPolicyChangeRepository,
   PolicyChangeApprovalRecordRepository,
   RefusalRecordRepository,
@@ -20,6 +21,8 @@ import { SupabasePendingPolicyChangeRepository } from "./SupabasePendingPolicyCh
 
 import { SupabasePolicyChangeApprovalRecordRepository } from "./SupabasePolicyChangeApprovalRecordRepository.js";
 
+import { SupabaseHandbookDownloadLeadRepository } from "./SupabaseHandbookDownloadLeadRepository.js";
+
 /**
  * Supabase Storage Provider.
  *
@@ -37,6 +40,7 @@ export class SupabaseStorageProvider implements StorageProvider {
   readonly refusalRecords: RefusalRecordRepository;
   readonly pendingPolicyChanges: PendingPolicyChangeRepository;
   readonly policyChangeApprovalRecords: PolicyChangeApprovalRecordRepository;
+  readonly handbookDownloadLeads: HandbookDownloadLeadRepository;
 
   constructor() {
     const pool = PostgresPoolFactory.create();
@@ -51,6 +55,10 @@ export class SupabaseStorageProvider implements StorageProvider {
 
     this.policyChangeApprovalRecords =
       new SupabasePolicyChangeApprovalRecordRepository(pool);
+
+    this.handbookDownloadLeads = new SupabaseHandbookDownloadLeadRepository(
+      pool,
+    );
 
     Object.freeze(this);
   }

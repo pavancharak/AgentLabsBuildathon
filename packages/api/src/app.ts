@@ -33,6 +33,7 @@ import { createRefusalGetRouter } from "./routes/refusal-get.js";
 import { createAuditVerifyRouter } from "./routes/audit-verify.js";
 import { createReadyRouter } from "./routes/ready.js";
 import { createKeysRouter } from "./routes/keys.js";
+import { createHandbookRouter } from "./routes/handbook.js";
 
 import versionRoutes from "./routes/version.js";
 
@@ -212,6 +213,14 @@ export function createApp(
    * keys.ts's own comment for why.
    */
   app.use(createKeysRouter());
+
+  /**
+   * Handbook download-lead capture (docs/site/handbook/download.mdx):
+   * a visitor downloading the handbook has no Parmana credential yet,
+   * so this is exempt from caller-auth for the same reason every
+   * other route in this block is.
+   */
+  app.use("/handbook", createHandbookRouter());
 
   if (options.callerAuth !== "disabled") {
     app.use(

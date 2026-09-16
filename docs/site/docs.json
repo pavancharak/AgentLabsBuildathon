@@ -265,6 +265,36 @@
             ]
           },
           {
+            "group": "The Parmana Handbook",
+            "pages": [
+              "handbook/overview",
+              "handbook/01-trust-model-and-domain",
+              "handbook/02-configuration-and-bootstrapping",
+              "handbook/03-cryptography",
+              "handbook/04-policy-engine-and-evaluation",
+              "handbook/05-signal-binding-and-state-verification",
+              "handbook/06-capability-policy-binding",
+              "handbook/07-policy-governance-maker-checker",
+              "handbook/08-runtime-pipeline",
+              "handbook/09-execution-authorization-envelope",
+              "handbook/10-execution-gateway",
+              "handbook/11-credential-isolation",
+              "handbook/12-connectors",
+              "handbook/13-storage-layer",
+              "handbook/14-api-http-boundary",
+              "handbook/15-caller-authentication-and-scoping",
+              "handbook/16-rate-limiting",
+              "handbook/17-audit-and-evidence-trails",
+              "handbook/18-independent-verification",
+              "handbook/19-health-and-readiness",
+              "handbook/20-integrating-parmana",
+              "handbook/21-deployment",
+              "handbook/22-testing-philosophy",
+              "handbook/23-history-and-open-questions",
+              "handbook/download"
+            ]
+          },
+          {
             "group": "Support",
             "pages": [
               "roadmap",

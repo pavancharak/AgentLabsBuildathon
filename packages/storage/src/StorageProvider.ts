@@ -1,6 +1,7 @@
 import type {
   BusinessTransactionRepository,
   ExecutionTrustRecordRepository,
+  HandbookDownloadLeadRepository,
   PendingPolicyChangeRepository,
   PolicyChangeApprovalRecordRepository,
   RefusalRecordRepository,
@@ -39,4 +40,9 @@ export interface StorageProvider {
    * maker-checker).
    */
   readonly policyChangeApprovalRecords: PolicyChangeApprovalRecordRepository;
+
+  /**
+   * Handbook download leads (docs/site/handbook/download.mdx).
+   */
+  readonly handbookDownloadLeads: HandbookDownloadLeadRepository;
 }
