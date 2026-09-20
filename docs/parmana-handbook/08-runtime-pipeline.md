@@ -30,9 +30,7 @@ pattern in this codebase, not an accident of growth.
 `RuntimeEngine`'s constructor takes ten required dependencies (`RuntimePipeline`,
 `PolicyRouter`, `PolicyEngine`, `SignalIntentBinder`, `DecisionBuilder`, `ExecutionGate`,
 `ExecutionBuilder`, `BusinessTrustPipeline`, `RuntimeAuthorizationSigner`,
-`authorizationTtlSeconds`) and seven optional trailing ones (`hooks`,
-`refusalRecordBuilder`, `refusalRecordRepository`, `signalStateVerifier`,
-`capabilityPolicyBinder`, `policyExecutionVerifier`, `policyGovernanceAnchorResolver`).
+`authorizationTtlSeconds`) and eight optional trailing ones (`hooks`, `refusalRecordBuilder`, `refusalRecordRepository`, `signalStateVerifier`, `capabilityPolicyBinder`, `policyExecutionVerifier`, `policyGovernanceAnchorResolver`, `signingReadiness`).
 At construction, it logs which optional protections are actually configured
 (`runtime_engine_constructed`), which is how an operator can confirm, from log output alone,
 exactly which protections are active for a given deployment.
@@ -86,10 +84,27 @@ signals)` runs the real rules. Any rejection from steps 4 through 6 becomes a sy
     are assembled, the context carries a _copy_ of `transaction.policy` augmented with
     `contentHash` and, if resolved, `governanceAnchor`; the original caller-submitted
     transaction (already persisted before this method ever ran) is never mutated.
-14. **Runtime Pipeline, then Business Trust Pipeline.** `pipeline.execute(context)` runs the
+14. **Signing readiness (G-52), then the Runtime Pipeline, then the Business Trust Pipeline.** If `signingReadiness` is configured, `assertReady()` runs first and throws `SigningUnavailableError` (`503 SIGNING_UNAVAILABLE`) when the evidence signing path cannot produce a signature that verifies, so nothing is released. Then `pipeline.execute(context)` runs the
     actual execution stages (Chapter 10 covers `ExecutionGateway`, one implementation of the
     `ExecutionSystem` interface this pipeline calls into); `trustPipeline.execute(...)`
     produces the final, signed `ExecutionTrustRecord`.
+
+### Signing readiness and failure after release (G-52)
+
+`signingReadiness` is `CachedSigningReadiness` in production. Its probe is `VerificationCrypto.probeSigning()`,
+which signs a synthetic artifact padded past 4096 bytes through the same `Signer` and key id used for
+trust records, then verifies it against the public key that `Signer` publishes. A success is trusted for
+60 seconds, a failure is never cached, and concurrent requests share one probe. It is enforced by
+`createSigningReadiness()` everywhere except when `NODE_ENV` is exactly `test` or `development`.
+
+Everything after `pipeline.execute()` returns happens after the action was released to the connector. A
+failure there, in the trust record pipeline, the `afterExecution` and `beforeTrustRecord` hooks, or
+persisting the record in `Runtime.execute()`, is thrown as `ExecutionRecordIncompleteError`
+(`500 EXECUTION_RECORD_INCOMPLETE`), which names the `businessTransactionId` and `authorizationId`, and a
+critical `execution_released_record_failed` or `execution_released_record_persist_failed` event is
+logged. A failure before release, such as a policy rejection, keeps its own error. This mitigates G-52, it
+does not close it: a transient failure between the check and the real signing can still leave an executed
+action with no signed record, and there is no rebuild path (G-53). See ADR-0011.
 
 `RuntimeFactory.create()` (`packages/runtime/src/RuntimeFactory.ts`) is the composition root
 that assembles a fully wired `RuntimeEngine` (via `RuntimeBuilder`) plus the surrounding

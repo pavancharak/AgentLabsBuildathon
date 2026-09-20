@@ -40,6 +40,13 @@ or equal to 4096`, because KMS refuses a raw Ed25519 message over 4096 bytes. A 
 - The Python SDK now declares the `cryptography` package that `parmana.crypto` (the offline Trust Record
   verifier) imports. It is an optional extra, `pip install "parmana[verify]"`, and is included in the `dev`
   extra. It was previously imported but undeclared, which made the `Python SDK` CI check fail on `mypy`.
+- The runtime now proves the evidence signing path works before it releases an action. If signing
+  is unhealthy the request is refused with `503 SIGNING_UNAVAILABLE` and nothing is executed. If the
+  action was released and the signed record then cannot be produced or persisted, the response is
+  `500 EXECUTION_RECORD_INCOMPLETE` with the `businessTransactionId` and `authorizationId`, and you must
+  reconcile instead of retrying as a new transaction. Enforced everywhere except `NODE_ENV` `test` and
+  `development`. The startup log gains `signingReadinessConfigured`. This mitigates the ordering gap G-52
+  and does not close it.
 
 ## 2026-09-14
 

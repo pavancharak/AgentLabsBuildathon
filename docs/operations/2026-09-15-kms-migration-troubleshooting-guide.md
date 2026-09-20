@@ -358,7 +358,7 @@ and governance anchor is larger. It did not show up in earlier KMS testing becau
 `PARMANA-ED25519-LARGE-MESSAGE-V1`, a NUL byte, and the SHA-512 digest), and verifiers accept it.
 Nothing needs re-signing, and signatures issued earlier verify unchanged.
 
-**Important side effect to check.** The connector had already been called when the failure happened
+**Since ADR-0011 this is prevented and made explicit.** Before release the runtime proves signing works and returns `503 SIGNING_UNAVAILABLE` if not, and a failure after release is `500 EXECUTION_RECORD_INCOMPLETE`. On a build without that change, the following applied: the connector had already been called when the failure happened
 (the Paytm connector service logged `POST /connector/paytm-refund` before `/execute` returned `500`).
 The action was released and no signed trust record was produced, see G-52 in
 `docs/VERIFICATION-GAPS.md`. For any `500` on `/execute` after this class of failure, query
@@ -397,3 +397,5 @@ not found: .../gateway.private.pem` — a materialization gap, see #2/#4.
    `KmsSigner.sign` means a message over the KMS raw limit was signed without the commitment scheme,
    see the 2026-09-20 section above. Check that the deployed build includes ADR-0010, and check
    `execution_audit_events` for whether the connector already ran.
+8. If `/execute` returns `503 SIGNING_UNAVAILABLE`, the pre release signing probe failed and nothing was executed. Read the cause in the message, check the KMS key state and the role's `kms:Sign` and `kms:GetPublicKey` permissions, then retry with a new `businessTransactionId`.
+9. If `/execute` returns `500 EXECUTION_RECORD_INCOMPLETE`, the action was released and the record failed. Do not retry as a new transaction. Query `execution_audit_events` by `business_transaction_id` and check the connector's own record first.

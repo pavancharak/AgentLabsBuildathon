@@ -1,3 +1,4 @@
+import type { SigningReadiness } from "./SigningReadiness.js";
 import type {
   PolicyExecutionVerifier,
   PolicyGovernanceAnchorResolver,
@@ -46,6 +47,7 @@ export class RuntimeFactory {
     signalStateVerifier?: SignalStateVerifier,
     policyExecutionVerifier?: PolicyExecutionVerifier,
     policyGovernanceAnchorResolver?: PolicyGovernanceAnchorResolver,
+    signingReadiness?: SigningReadiness,
   ): ExecutionTrustApplication {
     //
     // Application Services
@@ -82,6 +84,10 @@ export class RuntimeFactory {
       builder.withPolicyGovernanceAnchorResolver(
         policyGovernanceAnchorResolver,
       );
+    }
+
+    if (signingReadiness) {
+      builder.withSigningReadiness(signingReadiness);
     }
 
     const runtime: Runtime = builder

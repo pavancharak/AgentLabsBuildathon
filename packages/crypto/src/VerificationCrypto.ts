@@ -139,6 +139,44 @@ export class VerificationCrypto {
   }
 
   /**
+   * Signing readiness probe (docs/VERIFICATION-GAPS.md G-52).
+   *
+   * Proves, before an action is released, that the evidence signing path
+   * can currently produce a signature that verifies. It signs a synthetic
+   * artifact through the SAME Signer and key id sign() uses for Execution
+   * Trust Records, then verifies it against the public key the same
+   * Signer publishes, so it catches a missing, disabled or access denied
+   * key, a KMS or network outage, a signing and verification key
+   * mismatch, and the KMS raw message size limit. The artifact is padded
+   * past 4096 bytes on purpose, so the large message path (ADR-0010) is
+   * exercised, not only the small one. Throws on any failure and returns
+   * nothing on success. It signs nothing that is stored or trusted.
+   */
+  async probeSigning(): Promise<void> {
+    const keyId = currentVerificationKeyId();
+
+    const signer = await this.signerPromise;
+
+    const probe = {
+      purpose: "parmana-signing-readiness-probe",
+      padding: "x".repeat(6000),
+    };
+
+    const value = await this.signer.signWithSigner(probe, keyId, signer);
+
+    const publicKey = await signer.getPublicKey(keyId);
+
+    const verified = await this.verifier.verify(probe, value, publicKey);
+
+    if (!verified) {
+      throw new Error(
+        `Signing readiness probe signature did not verify against the ` +
+          `published public key for key "${keyId}".`,
+      );
+    }
+  }
+
+  /**
    * Signs the Trust Record with both configured algorithms
    * (Hybrid Signature Support milestone, Phase A). Additive:
    * callers combine this with the unchanged sign() above -- the

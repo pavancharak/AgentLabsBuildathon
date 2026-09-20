@@ -454,6 +454,16 @@ Scope: a live `paytm:refund` through production `/execute` returned `500`. The r
 
 ---
 
+## Gaps closed in the 2026-09-20 signing readiness session
+
+Scope: gap G-52 found in the live refund run. It is mitigated here, not closed. What remains is recorded as G-53.
+
+| #   | Gap                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Verified                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 60  | **The runtime released the action before checking that the evidence signing path could work, and a failure after release surfaced as a generic `500`.** A persistent signing problem (a missing, disabled or denied key, a KMS outage, a key mismatch, a size limit) was only discovered after the connector had been called, and the caller saw `Internal Server Error`, which reads as "nothing happened" and invites a blind retry. MITIGATED 2026-09-20 (ADR-0011): before release the engine proves signing works with a real round trip through the same signer and key, cached for 60 seconds, failing closed with `503 SIGNING_UNAVAILABLE` and nothing executed. A failure after release is now `500 EXECUTION_RECORD_INCOMPLETE` with the `businessTransactionId` and `authorizationId`, and a critical log event. Enforced everywhere except `NODE_ENV` `test` or `development`. This does not remove the residual window, see G-52 and G-53. | `packages/runtime/tests/unit/signing-readiness.test.ts` and `execution-record-incomplete.test.ts` (readiness failure leaves the release counter at zero, failure after release carries the identifiers, a policy rejection before release is not reclassified), `packages/crypto/tests/unit/signing-probe.test.ts`, `packages/api/tests/unit/bootstrap/create-signing-readiness.test.ts`. Not yet verified against production KMS, that needs a deployment. |
+
+---
+
 ## Remaining gaps, by severity
 
 **Status note, updated in the adversarial-testing hardening session that added G-24:**
@@ -1266,6 +1276,26 @@ representative message before releasing to the connector, failing closed if not,
 window but cannot close it; (2) persist a signed "execution intent" record before release and
 finalize it after, so an executed action always has a signed record even if finalization fails;
 (3) both. Option 2 is the complete answer and is a design change to the pipeline.
+
+**Update (2026-09-20): partially mitigated, gap 60, ADR-0011.** Before release the engine now proves
+the evidence signing path works, and refuses with `503 SIGNING_UNAVAILABLE` if it does not, so a
+persistent signing problem no longer executes an action first. A failure after release is now
+`500 EXECUTION_RECORD_INCOMPLETE` with the identifiers and a critical log instead of a generic
+`500`. Still open: a transient failure between the check and the real signing, or a database failure
+after release, still leaves an executed action with no signed record. Option 2 above, a signed
+execution intent persisted before release, is not built.
+
+**G-53. There is no way to rebuild a missing Execution Trust Record for an action that was
+released.** Found 2026-09-20 while scoping the G-52 mitigation. When `EXECUTION_RECORD_INCOMPLETE`
+is returned, the context needed to build the record (the decision, the authorization and the
+execution result) exists only in memory of the failed request and in the connector's response. It is
+not persisted before the record is built, so it cannot be finalized later. An operator can reconcile
+against the connector and the `execution_audit_events` rows for the `businessTransactionId`, but the
+signed record itself cannot be recreated automatically. **Not fixed. Options:** (1) persist the
+released context before building the record and expose a finalize operation that rebuilds and signs
+the record from it, which still depends on storage being available; (2) the signed execution intent
+in G-52 option 2, which is the complete answer. Either is a design change with a schema and
+migration story, and needs its own ADR.
 
 ### pre-production
 

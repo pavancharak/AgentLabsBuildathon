@@ -76,10 +76,31 @@ Trust Record is larger. This is fixed by signing a message over that size as a f
 (ADR-0010), so first check that your deployment includes that change. The stack is
 `KmsSigner.sign` called from `VerificationCrypto.sign`.
 
-**Important:** the connector may already have run by the time this error is returned. Do not assume the
-action did not happen. Query `execution_audit_events` for the `business_transaction_id` to see what the
+**Important:** on a build without ADR-0011 the connector may already have run by the time this error is returned. Do not assume the action did not happen. A current build returns `503 SIGNING_UNAVAILABLE` before release when signing is unhealthy, and `500 EXECUTION_RECORD_INCOMPLETE` when the action was released and the record then failed, so check which code you received. Query `execution_audit_events` for the `business_transaction_id` to see what the
 connector did, and generate a fresh `businessTransactionId` for any retry, since the original was
 already recorded.
+
+## `POST /execute` returns 503 `SIGNING_UNAVAILABLE`
+
+**Cause:** before releasing the action, the runtime proves it can sign an Execution Trust Record. The
+probe failed, so nothing was executed. The message includes the cause, for example a KMS
+`AccessDeniedException`, a disabled key, a network outage or a signing key that does not match its
+published public key.
+
+**Fix:** restore the signing path (check the KMS key state, the role's `kms:Sign` and `kms:GetPublicKey`
+permissions and the key id), then retry with a new `businessTransactionId`, because the original was
+already accepted. Nothing was sent to the connector.
+
+## `POST /execute` returns 500 `EXECUTION_RECORD_INCOMPLETE`
+
+**Cause:** the action was released to the connector, but the signed Execution Trust Record could not be
+produced or persisted afterwards. The response names the `businessTransactionId` and `authorizationId`.
+
+**Do not retry as a new transaction.** That could repeat the action. Query `execution_audit_events` for the
+`businessTransactionId` and check the connector's own record to see what ran. The runtime log has a
+critical `execution_released_record_failed` or `execution_released_record_persist_failed` event with the
+cause. The signed record cannot currently be rebuilt automatically (G-53), so record the outcome
+manually and fix the underlying cause.
 
 ## `PARMANA_POLICY_DIR` and running from a fresh clone
 
