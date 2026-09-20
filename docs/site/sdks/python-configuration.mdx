@@ -44,23 +44,23 @@ Retries are **on by default for `GET` requests**, which is different from the Ty
 
 Every non 2xx response, and every failure to get one, is raised as a typed error. All of them extend `ParmanaError`.
 
-| What happened                                 | Error class              | Notes                                                                             |
-| --------------------------------------------- | ------------------------ | --------------------------------------------------------------------------------- |
-| HTTP `400`                                    | `ValidationError`        | The request is malformed.                                                         |
-| HTTP `401`                                    | `AuthenticationError`    | The key is missing or wrong.                                                      |
-| HTTP `403` with code `POLICY_DENIED`          | `ExecutionRejectedError` | A policy refused. This is final.                                                  |
-| HTTP `403` with code `CAPABILITY_NOT_ALLOWED` | `AuthorizationError`     | The server's code is on `server_code`.                                            |
-| HTTP `403` with no code                       | `AuthorizationError`     | The key may not assert that principal.                                            |
-| HTTP `404`                                    | `NotFoundError`          |                                                                                   |
-| HTTP `409`                                    | `ConflictError`          | The `businessTransactionId` was already used.                                     |
-| HTTP `429`                                    | `RateLimitError`         | `retry_after_seconds` carries the `Retry-After` value when present.               |
-| Any `5xx`, including `500` and `503`          | `InternalServerError`    | `ServerError` is another name for the same class. `status_code` holds the status. |
-| Any other non 2xx status                      | `ParmanaHttpError`       | The base class, with `status_code`.                                               |
-| The connection failed                         | `NetworkError`           |                                                                                   |
-| The request timed out                         | `TimeoutError`           | A subclass of `NetworkError`.                                                     |
-| A missing or empty `endpoint`                 | `ConfigurationError`     | Raised by the constructor.                                                        |
+| What happened                                 | Error class              | Notes                                                                                                              |
+| --------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| HTTP `400`                                    | `ValidationError`        | The request is malformed.                                                                                          |
+| HTTP `401`                                    | `AuthenticationError`    | The key is missing or wrong.                                                                                       |
+| HTTP `403` with code `POLICY_DENIED`          | `ExecutionRejectedError` | A policy refused. This is final.                                                                                   |
+| HTTP `403` with code `CAPABILITY_NOT_ALLOWED` | `AuthorizationError`     | The server's code is on `server_code`.                                                                             |
+| HTTP `403` with no code                       | `AuthorizationError`     | The key may not assert that principal.                                                                             |
+| HTTP `404`                                    | `NotFoundError`          |                                                                                                                    |
+| HTTP `409`                                    | `ConflictError`          | The `businessTransactionId` was already used.                                                                      |
+| HTTP `429`                                    | `RateLimitError`         | `retry_after_seconds` carries the `Retry-After` value when present.                                                |
+| Any `5xx`, including `500` and `503`          | `InternalServerError`    | `ServerError` is another name for the same class. `status_code` holds the status, `server_code` the server's code. |
+| Any other non 2xx status                      | `ParmanaHttpError`       | The base class, with `status_code`.                                                                                |
+| The connection failed                         | `NetworkError`           |                                                                                                                    |
+| The request timed out                         | `TimeoutError`           | A subclass of `NetworkError`.                                                                                      |
+| A missing or empty `endpoint`                 | `ConfigurationError`     | Raised by the constructor.                                                                                         |
 
-Every HTTP error has `status_code`, `code` and `request_id`. **The `code` is the SDK's own code** (for example `SERVER_ERROR`), not the server's. The server's code is preserved on `server_code` only for `CAPABILITY_NOT_ALLOWED`.
+Every HTTP error has `status_code`, `code` and `request_id`. **The `code` is the SDK's own code** (for example `SERVER_ERROR`), not the server's. The server's code is preserved on `server_code` for `CAPABILITY_NOT_ALLOWED` and, from 1.1.6, on any `InternalServerError`.
 
 That matters for two server errors that both arrive as `InternalServerError`:
 
@@ -69,7 +69,7 @@ That matters for two server errors that both arrive as `InternalServerError`:
 | `SIGNING_UNAVAILABLE` (503)         | Refused before release. **Nothing was executed.**                        | Retry later with a new `businessTransactionId`. |
 | `EXECUTION_RECORD_INCOMPLETE` (500) | The action **was** released but its signed record could not be produced. | **Do not resubmit.** Reconcile first.           |
 
-In this SDK version you tell them apart with `status_code` (`503` or `500`) and the error message. The `SIGNING_UNAVAILABLE` message ends with "Nothing was executed." The `EXECUTION_RECORD_INCOMPLETE` message says the action was released, and names the `businessTransactionId` and the `authorizationId`. A later release adds `server_code` to `InternalServerError`, as the TypeScript SDK already has.
+From 1.1.6 read `error.server_code`. On 1.1.5 and earlier `server_code` is not set on `InternalServerError`, so use `status_code` (`503` or `500`) and the message: the `SIGNING_UNAVAILABLE` message ends with "Nothing was executed.", and the `EXECUTION_RECORD_INCOMPLETE` message says the action was released and names the `businessTransactionId` and the `authorizationId`.
 
 ## Methods
 
@@ -89,7 +89,7 @@ The client has methods for the common calls, and a sub API for each area.
 | `verify_audit_event(event, signature)`             | `POST /audit/verify`      | `True` or `False`.                            |
 | `health()`                                         | `GET /health`             | A dict with the health status.                |
 
-Two values are properties, not methods, so do not call them: `client.endpoint` is the configured endpoint, and `client.version` is the version of the **SDK package**, for example `1.1.5`. It is not the server's version. To read the server's version call `client.execution.version()`, which sends `GET /version`.
+Two values are properties, not methods, so do not call them: `client.endpoint` is the configured endpoint, and `client.version` is the version of the **SDK package**, for example `1.1.6`. It is not the server's version. To read the server's version call `client.execution.version()`, which sends `GET /version`.
 
 The sub APIs cover the rest, for example `client.replay.replay(...)`, `client.receipt.generate(...)`, `client.receipt.get_latest(...)` and `client.transactions.list(...)`:
 
