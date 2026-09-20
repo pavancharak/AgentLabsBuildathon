@@ -106,6 +106,43 @@ describe("KmsSigner", () => {
     });
   });
 
+  it("sign() sends a message at exactly 4096 bytes raw, unchanged", async () => {
+    const KmsSigner = await freshKmsSigner();
+
+    sendMock.mockResolvedValue({ Signature: new Uint8Array([1]) });
+
+    const signer = await KmsSigner.create();
+    const data = new Uint8Array(4096).fill(7);
+    await signer.sign("test-key", data);
+
+    const call = sendMock.mock.calls[0]![0] as {
+      input: { Message: Uint8Array };
+    };
+    expect(call.input.Message).toEqual(data);
+  });
+
+  it("sign() sends a fixed size commitment for a message over 4096 bytes, never the raw message", async () => {
+    const KmsSigner = await freshKmsSigner();
+    const { commitmentMessage } =
+      await import("../../src/SignatureCommitment.js");
+
+    sendMock.mockResolvedValue({ Signature: new Uint8Array([1]) });
+
+    const signer = await KmsSigner.create();
+    const data = new Uint8Array(60_000).fill(7);
+    await signer.sign("test-key", data);
+
+    const call = sendMock.mock.calls[0]![0] as {
+      input: { Message: Uint8Array; MessageType: string };
+    };
+
+    expect(call.input.MessageType).toBe("RAW");
+    expect(call.input.Message.length).toBeLessThanOrEqual(4096);
+    expect(Buffer.from(call.input.Message)).toEqual(
+      Buffer.from(commitmentMessage(data)),
+    );
+  });
+
   it("getPublicKey() wraps the DER bytes KMS returns into a usable Ed25519 KeyObject", async () => {
     const KmsSigner = await freshKmsSigner();
 

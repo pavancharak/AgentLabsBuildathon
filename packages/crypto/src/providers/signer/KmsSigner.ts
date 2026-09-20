@@ -13,6 +13,10 @@ import { SignatureAlgorithms, type SignatureAlgorithm } from "@parmana/shared";
 import type { KeyMetadata } from "../../KeyProvider.js";
 import type { Signer } from "../../Signer.js";
 import { CryptoError } from "../../errors/CryptoError.js";
+import {
+  commitmentMessage,
+  requiresCommitment,
+} from "../../SignatureCommitment.js";
 
 /**
  * The only KMS key spec / signing algorithm pair this class supports
@@ -105,10 +109,18 @@ export class KmsSigner implements Signer {
   }
 
   async sign(keyId: string, data: Uint8Array): Promise<string> {
+    //
+    // KMS rejects a raw Ed25519 message over 4096 bytes. A larger message
+    // (for example a full Execution Trust Record) is signed as a fixed
+    // size commitment instead, see SignatureCommitment.ts. Messages at or
+    // below the limit are signed raw, unchanged.
+    //
+    const message = requiresCommitment(data) ? commitmentMessage(data) : data;
+
     const response = await this.client.send(
       new SignCommand({
         KeyId: resolveKmsKeyId(keyId),
-        Message: data,
+        Message: message,
         MessageType: "RAW",
         SigningAlgorithm: SIGNING_ALGORITHM,
       }),

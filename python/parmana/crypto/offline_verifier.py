@@ -8,6 +8,13 @@ reproducible in a second language, not just documented as "should be
 portable." Zero network calls, zero disk reads (beyond files the
 caller explicitly passes in), zero environment variables.
 
+Large records (over 4096 bytes of canonical content) may have been
+signed by AWS KMS as a fixed size commitment, because KMS caps a raw
+Ed25519 message at 4096 bytes. This module accepts a raw signature for
+any record, and additionally accepts the commitment form for a record
+over that limit (see docs/adr/ADR-0010). A commitment signature over a
+record at or below the limit is rejected.
+
 ML-DSA-65 (Dilithium3) verification is intentionally out of scope
 here: the `cryptography` package version this SDK currently depends
 on does not yet expose `cryptography.hazmat.primitives.asymmetric.
@@ -19,6 +26,7 @@ silently skipped or faked.
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -30,6 +38,37 @@ from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from .canonical import canonical_serialize
 
 _SUPPORTED_ALGORITHMS = {"ed25519"}
+
+# Large message commitment (v1), mirroring packages/crypto/src/
+# SignatureCommitment.ts. AWS KMS caps a raw Ed25519 message at 4096
+# bytes, so the KMS signer signs a longer message as a fixed size
+# commitment: the prefix below followed by the SHA-512 digest of the
+# message. The scheme depends only on message length, so no marker is
+# stored on the record. A message at or below the limit must verify
+# raw. A longer message verifies either raw (a local key signed it
+# directly) or as a commitment. A commitment signature over a message at
+# or below the limit is not accepted.
+_KMS_RAW_MESSAGE_LIMIT_BYTES = 4096
+_COMMITMENT_PREFIX = b"PARMANA-ED25519-LARGE-MESSAGE-V1\x00"
+
+
+def _commitment_message(message: bytes) -> bytes:
+    return _COMMITMENT_PREFIX + hashlib.sha512(message).digest()
+
+
+def _verify_ed25519_with_commitment(
+    public_key: Ed25519PublicKey, signature: bytes, message: bytes
+) -> None:
+    """Raises InvalidSignature unless the signature is valid for `message`."""
+
+    try:
+        public_key.verify(signature, message)
+        return
+    except InvalidSignature:
+        if len(message) <= _KMS_RAW_MESSAGE_LIMIT_BYTES:
+            raise
+
+    public_key.verify(signature, _commitment_message(message))
 
 
 def _canonical_execution_trust_record(record: dict[str, Any]) -> dict[str, Any]:
@@ -117,7 +156,7 @@ def verify_execution_trust_record_offline(
             signature_bytes = base64.b64decode(signature_value)
             message = canonical_serialize(canonical)
 
-            public_key.verify(signature_bytes, message)
+            _verify_ed25519_with_commitment(public_key, signature_bytes, message)
             legacy_signature_valid = True
         except InvalidSignature:
             errors.append(

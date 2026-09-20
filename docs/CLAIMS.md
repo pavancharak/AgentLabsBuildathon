@@ -1007,6 +1007,30 @@ Evidence
 - `packages/api/tests/unit/bootstrap/create-policy-execution-verifier.test.ts`
 - Full repo `npx tsc -b` clean and `npx vitest run`: 1871 passed, 42 skipped, 0 failed
 
+## 2.37 Large Message Signing Under AWS KMS (Commitment Scheme)
+
+An Execution Trust Record, an execution authorization, or any other artifact whose canonical form is longer than 4096 bytes can be signed with a KMS held Ed25519 key and verified independently. AWS KMS refuses a raw Ed25519 message over 4096 bytes, which broke `POST /execute` for `paytm:refund` in production on 2026-09-20 (`VerificationCrypto.sign` calling `KmsSigner.sign`, `ValidationException: Member must have length less than or equal to 4096`).
+
+The decision is recorded in `docs/adr/ADR-0010-Large-Message-Signing-Under-KMS.md`:
+
+- A message of 4096 bytes or fewer is signed and verified raw, exactly as before, so every signature issued before this change stays valid.
+- A longer message is signed by the KMS signer as a fixed 97 byte commitment, the prefix `PARMANA-ED25519-LARGE-MESSAGE-V1` and a NUL byte followed by the SHA-512 digest of the message. The signature is an ordinary Ed25519 signature.
+- The scheme depends only on message length, so no marker or schema change is stored on any record.
+- A verifier accepts a raw signature for any message, and additionally the commitment form only for a message over 4096 bytes. A commitment signature over a message at or below the limit is rejected, so a small message cannot be downgraded to the commitment form.
+
+Scope, stated plainly:
+
+- The TypeScript packages and the Python SDK implement the rule. A third party verifier must implement it to verify a large KMS signed artifact. It is fully specified in the ADR and the Python module is a compact reference.
+- This makes signing possible. It does not change the ordering in which a request is processed. The connector can still be called before the trust record is signed, so a signing failure after the connector call leaves an executed action without a signed record (G-52 in `docs/VERIFICATION-GAPS.md`).
+- Verification against the real AWS KMS service in production is pending deployment. The claim above is proven in tests against a signer that enforces the exact KMS limit, not yet against the live service.
+
+Evidence
+
+- `packages/crypto/src/SignatureCommitment.ts`, `providers/signer/KmsSigner.ts`, `providers/signature/Ed25519SignatureProvider.ts`
+- `packages/crypto/tests/unit/signature-commitment.test.ts` (boundary at 4096 and 4097 bytes, tamper, wrong key, wrong message, no downgrade, raw backward compatibility, end to end sign and verify of a 30,000 byte artifact through a signer that enforces the KMS limit, and a naive signer that fails on the same artifact)
+- `packages/crypto/tests/unit/kms-signer.test.ts` (exactly 4096 bytes sent raw, longer sent as the 97 byte commitment and never raw)
+- `python/parmana/crypto/offline_verifier.py`, `python/tests/test_offline_verifier.py` (TypeScript signs a large record as a commitment and the independent Python verifier accepts it, rejects a tampered copy, and rejects a commitment signature over a small message), `scripts/generate-offline-verifier-fixture.ts`
+
 ---
 
 # 3. Conditional Claims

@@ -4,6 +4,10 @@ import { SignatureAlgorithms, type SignatureAlgorithm } from "@parmana/shared";
 
 import type { SignatureProvider } from "../SignatureProvider.js";
 import { assertKeyType } from "./assertKeyType.js";
+import {
+  commitmentMessage,
+  requiresCommitment,
+} from "../../SignatureCommitment.js";
 
 const NODE_KEY_TYPE = "ed25519";
 
@@ -36,11 +40,26 @@ export class Ed25519SignatureProvider implements SignatureProvider {
   ): Promise<boolean> {
     assertKeyType(publicKey, NODE_KEY_TYPE, "verify");
 
-    return verify(
-      null,
-      Buffer.from(data),
-      publicKey,
-      Buffer.from(signature, "base64"),
-    );
+    const signatureBytes = Buffer.from(signature, "base64");
+
+    if (verify(null, Buffer.from(data), publicKey, signatureBytes)) {
+      return true;
+    }
+
+    //
+    // A message over the KMS raw limit may have been signed as a fixed
+    // size commitment (see SignatureCommitment.ts). Only for such large
+    // messages: a commitment signature over a small message is rejected.
+    //
+    if (requiresCommitment(data)) {
+      return verify(
+        null,
+        Buffer.from(commitmentMessage(data)),
+        publicKey,
+        signatureBytes,
+      );
+    }
+
+    return false;
   }
 }

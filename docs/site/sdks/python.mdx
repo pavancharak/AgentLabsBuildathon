@@ -27,6 +27,13 @@ description: "Generated models, bearer-key authentication, and a typed error tax
 pip install parmana
 ```
 
+To use the standalone offline Trust Record verifier (`parmana.crypto`), install the optional
+`verify` extra, which adds the `cryptography` package it needs for Ed25519:
+
+```bash
+pip install "parmana[verify]"
+```
+
 Real registry install, confirmed live against PyPI while fixing this page's own stale
 claim otherwise. To build from source inside this monorepo instead:
 

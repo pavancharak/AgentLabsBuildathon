@@ -49,6 +49,18 @@ this module also uses, but does not yet know the Execution-Trust-Record-specific
 mapping or the hybrid envelope shape. Syncing that into the external package is separate work,
 not something this repository's own build performs.
 
+### Large records signed under AWS KMS
+
+A record over 4096 bytes of canonical content is signed by the KMS signer as a fixed 97 byte commitment
+(the prefix `PARMANA-ED25519-LARGE-MESSAGE-V1`, a NUL byte, and the SHA-512 digest of the canonical
+bytes), because KMS refuses a longer raw message (ADR-0010). The signature is still Ed25519. An
+independent verifier must accept the raw signature for any record, and additionally the commitment form
+only for a record over 4096 bytes. A commitment signature over a smaller record must be rejected.
+`verifyExecutionTrustRecordOffline()` and the Python `verify_execution_trust_record_offline()` both
+implement this, and the cross language test in `python/tests/test_offline_verifier.py` proves the Python
+implementation accepts a large record TypeScript signed as a commitment. Records signed before this
+change were signed raw and still verify unchanged.
+
 ### Public-key discovery
 
 `createKeysRouter()` (`packages/api/src/routes/keys.ts`) exposes `GET /keys/:keyId` and

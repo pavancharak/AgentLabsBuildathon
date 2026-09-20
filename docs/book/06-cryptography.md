@@ -124,3 +124,12 @@ two different, both-valid signatures; only verification is deterministic.
 ---
 
 [← Book Index](README.md) · [← Previous: Chapter 5, The Runtime Pipeline](05-runtime-pipeline.md) · [Next: Chapter 7, The Execution Authorization Envelope →](07-execution-authorization-envelope.md)
+
+## Large messages under AWS KMS
+
+AWS KMS refuses a raw Ed25519 message over 4096 bytes, which broke signing of a full Execution Trust
+Record in production on 2026-09-20. A message over that size is now signed by the KMS signer as a fixed
+97 byte commitment (a prefix, a NUL byte, and the SHA-512 digest of the message), and a verifier accepts
+the raw signature for any message and the commitment form only for a message over 4096 bytes. Nothing is
+stored on a record to select the form, so earlier signatures still verify. See
+`docs/adr/ADR-0010-Large-Message-Signing-Under-KMS.md`.

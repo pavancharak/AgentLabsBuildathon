@@ -172,6 +172,13 @@ short index, not a replacement for reading the original entries.
   codebase picks a side; the maker-checker system described in Chapter 7 exists because
   policy authoring was previously outside any governance surface at all, not because
   building it internally was compared against and preferred over the external alternative.
+- **The connector can be called before the Execution Trust Record can be signed (G-52).** Found on
+  2026-09-20, when AWS KMS refused a message over 4096 bytes (fixed by ADR-0010). The Paytm connector
+  had already been called when `/execute` returned `500`. The runtime pipeline releases the action and
+  then builds, signs and persists the record, so any failure after the connector call leaves an
+  executed action with no signed trust record. Gateway and connector audit events still exist, but the
+  durable signed record does not. The fix is a design change (persist a signed execution intent before
+  release and finalize it after) and is not built.
 - **Execution time policy verification is now enforced (2026-09-20).** The flag
   `POLICY_EXECUTION_VERIFICATION_ENFORCED` had stayed `false`, and the live startup log showed
   `policyExecutionVerifierConfigured: false`, so an unapproved policy could still authorize. It
