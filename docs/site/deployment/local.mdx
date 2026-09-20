@@ -85,5 +85,7 @@ skips needing this key.
 
 ## Node version
 
-Root `package.json` requires Node ≥ 22. ML-DSA-65 (post-quantum signing) specifically
-requires Node ≥ 24 for native `node:crypto` support.
+The Parmana server requires Node 24 or later. The root `package.json` sets `engines.node` to `>=24`, the
+Dockerfile builds from `node:24`, and CI runs Node 24. Use Node 24 or later everywhere, including for
+ML-DSA-65 (post quantum signing), which needs Node 24 or later for native `node:crypto` support. The TypeScript SDK
+(`@parmana/sdk`) is separate and only needs Node 20 or later.

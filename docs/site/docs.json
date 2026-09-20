@@ -25,14 +25,24 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Documentation",
+        "tab": "Get started",
         "groups": [
           {
-            "group": "Get Started",
-            "pages": ["index", "quickstart", "how-parmana-thinks"]
-          },
+            "group": "Start here",
+            "pages": [
+              "index",
+              "choose-your-path",
+              "quickstart",
+              "how-parmana-thinks"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Concepts",
+        "groups": [
           {
-            "group": "Core Concepts",
+            "group": "Core concepts",
             "pages": [
               "concepts/policies-and-the-decision",
               "concepts/execution-authorization",
@@ -47,164 +57,248 @@
             ]
           },
           {
-            "group": "Guides",
+            "group": "Architecture",
+            "pages": [
+              "architecture/overview",
+              "architecture/packages",
+              "architecture/execution-pipeline"
+            ]
+          },
+          {
+            "group": "Verification and evidence",
+            "pages": [
+              "verification/overview",
+              "replay/overview",
+              "cryptography/overview",
+              "storage/overview"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Build with Parmana",
             "pages": [
               "guides/full-integration-overview",
               "guides/write-your-first-policy",
               "guides/policy-governance-maker-checker",
               "guides/authorize-and-execute",
-              "guides/add-a-connector",
               "guides/connect-an-agent",
               "guides/session-credentials",
-              "guides/verify-independently",
-              "guides/detect-tampering",
-              "guides/choose-a-signature-provider",
-              "guides/deploy-patterns",
+              "guides/choose-a-signature-provider"
+            ]
+          },
+          {
+            "group": "Verify and audit",
+            "pages": ["guides/verify-independently", "guides/detect-tampering"]
+          },
+          {
+            "group": "Worked examples",
+            "pages": [
               "guides/live-api-and-demos",
               "guides/end-to-end-paytm-flow",
-              "guides/python-sdk-overview",
-              "guides/python-sdk-quickstart",
-              "guides/python-sdk-ai-agents",
-              "guides/python-sdk-production",
+              "tutorials/index"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "TypeScript SDK",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": [
+              "sdks/typescript",
               "guides/typescript-sdk-overview",
-              "guides/typescript-sdk-quickstart",
+              "guides/typescript-sdk-quickstart"
+            ]
+          },
+          {
+            "group": "Build",
+            "pages": [
               "guides/typescript-sdk-ai-agents",
               "guides/typescript-sdk-production"
             ]
           },
           {
-            "group": "SDKs",
+            "group": "API reference",
             "pages": [
-              "sdks/python",
-              "sdks/typescript",
-              "sdks/other-languages",
               {
-                "group": "TypeScript SDK Reference",
+                "group": "Classes",
                 "pages": [
-                  {
-                    "group": "Classes",
-                    "pages": [
-                      "sdks/reference/typescript/classes/AuditApi",
-                      "sdks/reference/typescript/classes/AuthenticationError",
-                      "sdks/reference/typescript/classes/AuthorizationError",
-                      "sdks/reference/typescript/classes/ConfigurationError",
-                      "sdks/reference/typescript/classes/ConflictError",
-                      "sdks/reference/typescript/classes/ExecutionApi",
-                      "sdks/reference/typescript/classes/ExecutionRejectedError",
-                      "sdks/reference/typescript/classes/HealthApi",
-                      "sdks/reference/typescript/classes/HttpTransport",
-                      "sdks/reference/typescript/classes/InternalServerError",
-                      "sdks/reference/typescript/classes/NetworkError",
-                      "sdks/reference/typescript/classes/NotFoundError",
-                      "sdks/reference/typescript/classes/ParmanaClient",
-                      "sdks/reference/typescript/classes/ParmanaError",
-                      "sdks/reference/typescript/classes/PolicyApi",
-                      "sdks/reference/typescript/classes/RateLimitError",
-                      "sdks/reference/typescript/classes/ReceiptApi",
-                      "sdks/reference/typescript/classes/RefusalApi",
-                      "sdks/reference/typescript/classes/ReplayApi",
-                      "sdks/reference/typescript/classes/ReplayError",
-                      "sdks/reference/typescript/classes/TimeoutError",
-                      "sdks/reference/typescript/classes/TransactionApi",
-                      "sdks/reference/typescript/classes/TrustRecordApi",
-                      "sdks/reference/typescript/classes/ValidationError",
-                      "sdks/reference/typescript/classes/VerificationApi",
-                      "sdks/reference/typescript/classes/VerificationError"
-                    ]
-                  },
-                  {
-                    "group": "Interfaces",
-                    "pages": [
-                      "sdks/reference/typescript/interfaces/AuditEvent",
-                      "sdks/reference/typescript/interfaces/Authority",
-                      "sdks/reference/typescript/interfaces/Authorization",
-                      "sdks/reference/typescript/interfaces/BusinessTransaction",
-                      "sdks/reference/typescript/interfaces/BusinessTransactionMetadata",
-                      "sdks/reference/typescript/interfaces/Configuration",
-                      "sdks/reference/typescript/interfaces/CreateBusinessTransactionOptions",
-                      "sdks/reference/typescript/interfaces/Decision",
-                      "sdks/reference/typescript/interfaces/Execution",
-                      "sdks/reference/typescript/interfaces/ExecutionTrustRecord",
-                      "sdks/reference/typescript/interfaces/Intent",
-                      "sdks/reference/typescript/interfaces/Override",
-                      "sdks/reference/typescript/interfaces/ParmanaErrorOptions",
-                      "sdks/reference/typescript/interfaces/PolicyReference",
-                      "sdks/reference/typescript/interfaces/PolicyValidationResult",
-                      "sdks/reference/typescript/interfaces/Receipt",
-                      "sdks/reference/typescript/interfaces/RefusalBindingViolation",
-                      "sdks/reference/typescript/interfaces/RefusalIntentSnapshot",
-                      "sdks/reference/typescript/interfaces/RefusalRecord",
-                      "sdks/reference/typescript/interfaces/ReplayResult",
-                      "sdks/reference/typescript/interfaces/RetryPolicy",
-                      "sdks/reference/typescript/interfaces/Signature",
-                      "sdks/reference/typescript/interfaces/Transport",
-                      "sdks/reference/typescript/interfaces/TransportRequest",
-                      "sdks/reference/typescript/interfaces/TransportResponse",
-                      "sdks/reference/typescript/interfaces/Verification"
-                    ]
-                  },
-                  {
-                    "group": "Enumerations",
-                    "pages": [
-                      "sdks/reference/typescript/enumerations/ErrorCode",
-                      "sdks/reference/typescript/enumerations/RetryStrategy"
-                    ]
-                  },
-                  {
-                    "group": "Type Aliases",
-                    "pages": [
-                      "sdks/reference/typescript/type-aliases/BusinessTransactionStatus",
-                      "sdks/reference/typescript/type-aliases/DecisionOutcome",
-                      "sdks/reference/typescript/type-aliases/ExecutionMode",
-                      "sdks/reference/typescript/type-aliases/ExecutionStatus",
-                      "sdks/reference/typescript/type-aliases/SignatureAlgorithm",
-                      "sdks/reference/typescript/type-aliases/VerificationStatus"
-                    ]
-                  },
-                  {
-                    "group": "Functions",
-                    "pages": [
-                      "sdks/reference/typescript/functions/createBusinessTransaction"
-                    ]
-                  },
-                  {
-                    "group": "Variables",
-                    "pages": ["sdks/reference/typescript/variables/VERSION"]
-                  }
+                  "sdks/reference/typescript/classes/AuditApi",
+                  "sdks/reference/typescript/classes/AuthenticationError",
+                  "sdks/reference/typescript/classes/AuthorizationError",
+                  "sdks/reference/typescript/classes/ConfigurationError",
+                  "sdks/reference/typescript/classes/ConflictError",
+                  "sdks/reference/typescript/classes/ExecutionApi",
+                  "sdks/reference/typescript/classes/ExecutionRejectedError",
+                  "sdks/reference/typescript/classes/HealthApi",
+                  "sdks/reference/typescript/classes/HttpTransport",
+                  "sdks/reference/typescript/classes/InternalServerError",
+                  "sdks/reference/typescript/classes/NetworkError",
+                  "sdks/reference/typescript/classes/NotFoundError",
+                  "sdks/reference/typescript/classes/ParmanaClient",
+                  "sdks/reference/typescript/classes/ParmanaError",
+                  "sdks/reference/typescript/classes/PolicyApi",
+                  "sdks/reference/typescript/classes/RateLimitError",
+                  "sdks/reference/typescript/classes/ReceiptApi",
+                  "sdks/reference/typescript/classes/RefusalApi",
+                  "sdks/reference/typescript/classes/ReplayApi",
+                  "sdks/reference/typescript/classes/ReplayError",
+                  "sdks/reference/typescript/classes/TimeoutError",
+                  "sdks/reference/typescript/classes/TransactionApi",
+                  "sdks/reference/typescript/classes/TrustRecordApi",
+                  "sdks/reference/typescript/classes/ValidationError",
+                  "sdks/reference/typescript/classes/VerificationApi",
+                  "sdks/reference/typescript/classes/VerificationError"
                 ]
               },
               {
-                "group": "Python SDK Reference",
+                "group": "Interfaces",
                 "pages": [
-                  "sdks/reference/python/api/audit_api",
-                  "sdks/reference/python/api/execution_api",
-                  "sdks/reference/python/api/policy_api",
-                  "sdks/reference/python/api/receipt_api",
-                  "sdks/reference/python/api/refusal_api",
-                  "sdks/reference/python/api/replay_api",
-                  "sdks/reference/python/api/transaction_api",
-                  "sdks/reference/python/api/trust_record_api",
-                  "sdks/reference/python/api/verification_api",
-                  "sdks/reference/python/builders",
-                  "sdks/reference/python/client",
-                  "sdks/reference/python/config/client_config",
-                  "sdks/reference/python/config/transport",
-                  "sdks/reference/python/crypto/canonical",
-                  "sdks/reference/python/crypto/offline_verifier",
-                  "sdks/reference/python/errors/api_error",
-                  "sdks/reference/python/errors/configuration_error",
-                  "sdks/reference/python/errors/http_error",
-                  "sdks/reference/python/errors/network_error",
-                  "sdks/reference/python/errors/replay_error",
-                  "sdks/reference/python/errors/verification_error",
-                  "sdks/reference/python/models/replay_result",
-                  "sdks/reference/python/serialization/decoder",
-                  "sdks/reference/python/serialization/encoder",
-                  "sdks/reference/python/transport/http_transport"
+                  "sdks/reference/typescript/interfaces/AuditEvent",
+                  "sdks/reference/typescript/interfaces/Authority",
+                  "sdks/reference/typescript/interfaces/Authorization",
+                  "sdks/reference/typescript/interfaces/BusinessTransaction",
+                  "sdks/reference/typescript/interfaces/BusinessTransactionMetadata",
+                  "sdks/reference/typescript/interfaces/Configuration",
+                  "sdks/reference/typescript/interfaces/CreateBusinessTransactionOptions",
+                  "sdks/reference/typescript/interfaces/Decision",
+                  "sdks/reference/typescript/interfaces/Execution",
+                  "sdks/reference/typescript/interfaces/ExecutionTrustRecord",
+                  "sdks/reference/typescript/interfaces/Intent",
+                  "sdks/reference/typescript/interfaces/Override",
+                  "sdks/reference/typescript/interfaces/ParmanaErrorOptions",
+                  "sdks/reference/typescript/interfaces/PolicyReference",
+                  "sdks/reference/typescript/interfaces/PolicyValidationResult",
+                  "sdks/reference/typescript/interfaces/Receipt",
+                  "sdks/reference/typescript/interfaces/RefusalBindingViolation",
+                  "sdks/reference/typescript/interfaces/RefusalIntentSnapshot",
+                  "sdks/reference/typescript/interfaces/RefusalRecord",
+                  "sdks/reference/typescript/interfaces/ReplayResult",
+                  "sdks/reference/typescript/interfaces/RetryPolicy",
+                  "sdks/reference/typescript/interfaces/Signature",
+                  "sdks/reference/typescript/interfaces/Transport",
+                  "sdks/reference/typescript/interfaces/TransportRequest",
+                  "sdks/reference/typescript/interfaces/TransportResponse",
+                  "sdks/reference/typescript/interfaces/Verification"
                 ]
+              },
+              {
+                "group": "Enumerations",
+                "pages": [
+                  "sdks/reference/typescript/enumerations/ErrorCode",
+                  "sdks/reference/typescript/enumerations/RetryStrategy"
+                ]
+              },
+              {
+                "group": "Type Aliases",
+                "pages": [
+                  "sdks/reference/typescript/type-aliases/BusinessTransactionStatus",
+                  "sdks/reference/typescript/type-aliases/DecisionOutcome",
+                  "sdks/reference/typescript/type-aliases/ExecutionMode",
+                  "sdks/reference/typescript/type-aliases/ExecutionStatus",
+                  "sdks/reference/typescript/type-aliases/SignatureAlgorithm",
+                  "sdks/reference/typescript/type-aliases/VerificationStatus"
+                ]
+              },
+              {
+                "group": "Functions",
+                "pages": [
+                  "sdks/reference/typescript/functions/createBusinessTransaction"
+                ]
+              },
+              {
+                "group": "Variables",
+                "pages": ["sdks/reference/typescript/variables/VERSION"]
               }
             ]
+          }
+        ]
+      },
+      {
+        "tab": "Python SDK",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": [
+              "sdks/python",
+              "guides/python-sdk-overview",
+              "guides/python-sdk-quickstart"
+            ]
           },
+          {
+            "group": "Build",
+            "pages": [
+              "guides/python-sdk-ai-agents",
+              "guides/python-sdk-production"
+            ]
+          },
+          {
+            "group": "API reference",
+            "pages": [
+              "sdks/reference/python/api/audit_api",
+              "sdks/reference/python/api/execution_api",
+              "sdks/reference/python/api/policy_api",
+              "sdks/reference/python/api/receipt_api",
+              "sdks/reference/python/api/refusal_api",
+              "sdks/reference/python/api/replay_api",
+              "sdks/reference/python/api/transaction_api",
+              "sdks/reference/python/api/trust_record_api",
+              "sdks/reference/python/api/verification_api",
+              "sdks/reference/python/builders",
+              "sdks/reference/python/client",
+              "sdks/reference/python/config/client_config",
+              "sdks/reference/python/config/transport",
+              "sdks/reference/python/crypto/canonical",
+              "sdks/reference/python/crypto/offline_verifier",
+              "sdks/reference/python/errors/api_error",
+              "sdks/reference/python/errors/configuration_error",
+              "sdks/reference/python/errors/http_error",
+              "sdks/reference/python/errors/network_error",
+              "sdks/reference/python/errors/replay_error",
+              "sdks/reference/python/errors/verification_error",
+              "sdks/reference/python/models/replay_result",
+              "sdks/reference/python/serialization/decoder",
+              "sdks/reference/python/serialization/encoder",
+              "sdks/reference/python/transport/http_transport"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Connector SDKs",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": ["integrations/overview", "sdks/other-languages"]
+          },
+          {
+            "group": "Build a connector",
+            "pages": [
+              "guides/add-a-connector",
+              "integrations/connector-development-guide"
+            ]
+          },
+          {
+            "group": "Connector SDK references",
+            "pages": [
+              "reference/connector-sdk",
+              "reference/connector-sdk-python"
+            ]
+          },
+          {
+            "group": "Ready made connectors",
+            "pages": ["integrations/hubspot"]
+          }
+        ]
+      },
+      {
+        "tab": "REST API",
+        "groups": [
           {
             "group": "REST API",
             "pages": [
@@ -213,41 +307,37 @@
               "api-reference/error-handling",
               "api-reference/idempotency-and-nonces",
               "api-reference/error-catalog"
-            ],
-            "openapi": "openapi.bundled.yaml"
-          },
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Deploy and operate",
+        "groups": [
           {
-            "group": "Security & Deployment",
+            "group": "Deploy",
             "pages": [
-              "security/overview",
-              "security/limitations",
               "deployment/local",
-              "deployment/production"
+              "deployment/production",
+              "guides/deploy-patterns"
             ]
           },
           {
-            "group": "Integrations",
-            "pages": [
-              "integrations/overview",
-              "integrations/connector-development-guide",
-              "integrations/hubspot"
-            ]
+            "group": "Security",
+            "pages": ["security/overview", "security/limitations"]
           },
           {
-            "group": "Tutorials",
-            "pages": ["tutorials/index"]
-          },
+            "group": "Operate",
+            "pages": ["troubleshooting", "storage/schema-reference"]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
           {
-            "group": "Advanced",
+            "group": "Packages",
             "pages": [
-              "architecture/overview",
-              "architecture/packages",
-              "architecture/execution-pipeline",
-              "verification/overview",
-              "replay/overview",
-              "cryptography/overview",
-              "storage/overview",
-              "storage/schema-reference",
               "reference/shared",
               "reference/crypto",
               "reference/policy",
@@ -255,8 +345,6 @@
               "reference/execution-control",
               "reference/envelope-verifier",
               "reference/execution-gateway",
-              "reference/connector-sdk",
-              "reference/connector-sdk-python",
               "reference/runtime",
               "reference/storage",
               "reference/replay",
@@ -264,6 +352,15 @@
               "reference/api"
             ]
           },
+          {
+            "group": "Project",
+            "pages": ["glossary", "faq", "roadmap", "changelog", "contributing"]
+          }
+        ]
+      },
+      {
+        "tab": "Handbook",
+        "groups": [
           {
             "group": "The Parmana Handbook",
             "pages": [
@@ -293,20 +390,6 @@
               "handbook/23-history-and-open-questions",
               "handbook/download"
             ]
-          },
-          {
-            "group": "Support",
-            "pages": [
-              "roadmap",
-              "troubleshooting",
-              "faq",
-              "glossary",
-              "contributing"
-            ]
-          },
-          {
-            "group": "Changelog",
-            "pages": ["changelog"]
           }
         ]
       }

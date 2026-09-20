@@ -1,0 +1,82 @@
+---
+title: "Choose your path"
+description: "One table that tells you exactly where to start, whether you are a developer, an operator, an auditor or an AI agent."
+---
+
+Find your goal in the table. Each row names one place to start, what you need before you begin, and the first
+command or request. If two rows seem to apply, do the earlier one first.
+
+## What do you want to do?
+
+| Your goal                                                                                        | Start here                                                                                                                   | You need                                                                                       | First step                                                                  |
+| ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Put Parmana in front of an AI agent's actions, from **TypeScript**                               | [TypeScript SDK quickstart](/guides/typescript-sdk-quickstart)                                                               | Node 20 or later, a Parmana API URL, an API key                                                | `npm install @parmana/sdk`                                                  |
+| Put Parmana in front of an AI agent's actions, from **Python**                                   | [Python SDK quickstart](/guides/python-sdk-quickstart)                                                                       | Python 3.10 or later, a Parmana API URL, an API key                                            | `pip install parmana`                                                       |
+| Integrate from **any other language**, or with a plain HTTP client                               | [REST API introduction](/api-reference/introduction) and [Authentication](/api-reference/authentication)                     | Any HTTP client, a Parmana API URL, an API key                                                 | `POST /execute` with a Bearer key                                           |
+| Let Parmana release approved actions to a system you already use (HubSpot, GitHub, Slack, Paytm) | [Connectors overview](/integrations/overview)                                                                                | A running Parmana server with that connector's credentials configured                          | Read the overview, then the connector's page                                |
+| Build a **new connector** for a system Parmana does not support yet                              | [Add a connector](/guides/add-a-connector) then the [Connector development guide](/integrations/connector-development-guide) | Node or Python, and the system's API credentials                                               | `npm install @parmana/connector-sdk` or `pip install parmana-connector-sdk` |
+| **Run Parmana yourself** on your own machine                                                     | [Local deployment](/deployment/local)                                                                                        | Node 24 or later                                                                               | Follow the page top to bottom                                               |
+| **Run Parmana in production**                                                                    | [Production deployment](/deployment/production)                                                                              | A host that runs Node 24 or later or a container, a Postgres database (Supabase), signing keys | Follow the page top to bottom                                               |
+| Decide **what an agent is allowed to do**                                                        | [Write your first policy](/guides/write-your-first-policy)                                                                   | A running Parmana server                                                                       | Copy the example policy and change one rule                                 |
+| **Approve or reject a change** to a policy                                                       | [Policy governance](/guides/policy-governance-maker-checker)                                                                 | A human credential and a step up signing key                                                   | Read the page, then follow the approval steps                               |
+| **Check a record** someone gave you, as an auditor, without trusting Parmana                     | [Verify a trust record independently](/guides/verify-independently)                                                          | The record and Parmana's public key                                                            | Follow the page top to bottom                                               |
+| Understand **why** Parmana works this way before you commit                                      | [How Parmana thinks](/how-parmana-thinks)                                                                                    | Nothing                                                                                        | Read it, it is short                                                        |
+| See one **complete working flow** from agent to a real payment provider                          | [End to end: agent, Parmana, Paytm](/guides/end-to-end-paytm-flow)                                                           | A deployed Parmana and a Paytm staging account                                                 | Follow the page top to bottom                                               |
+
+## The three steps every integration does
+
+Whatever language you use, an integration is these three steps, in this order.
+
+1. **Get a key.** Every request carries `Authorization: Bearer <your key>`. Keys are issued by whoever runs the Parmana
+   server. See [Authentication](/api-reference/authentication).
+2. **Send the action for a decision.** Describe what the agent wants to do as a Business Transaction and send it with
+   `POST /execute`. Give it a fresh `businessTransactionId` (a UUID) every time, because that identifier is the
+   idempotency key. See [Idempotency and nonces](/api-reference/idempotency-and-nonces).
+3. **Act on the answer, and only on the answer.** Proceed only when the response is HTTP `200` and
+   `executions[0].decision.outcome` is `APPROVED`. Treat everything else as "not authorized". The next section lists
+   every answer.
+
+## What each answer means, and what to do
+
+| You receive                                   | Meaning                                                                                                    | What to do                                                                                                                        |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `200` and `decision.outcome` is `APPROVED`    | Policy approved it, and the action was released to the connector. You get a signed Execution Trust Record. | Proceed. Keep the record.                                                                                                         |
+| `403` with code `POLICY_DENIED`               | A policy rule said no. This is a final decision.                                                           | Do not proceed. Do not retry the same request.                                                                                    |
+| `403` with no code                            | Your key is not allowed to assert that principal.                                                          | Fix the key's permissions.                                                                                                        |
+| `403` with code `CAPABILITY_NOT_ALLOWED`      | Your key is not allowed to invoke that action.                                                             | Fix the key's capabilities.                                                                                                       |
+| `401`                                         | The key is missing or wrong.                                                                               | Fix the key.                                                                                                                      |
+| `400`                                         | The request is malformed.                                                                                  | Fix the request. See the [error catalog](/api-reference/error-catalog).                                                           |
+| `409`                                         | That `businessTransactionId` was already used.                                                             | Do not send it again. Look up the existing record instead.                                                                        |
+| `429`                                         | You are rate limited.                                                                                      | Wait for the time in the `Retry-After` header, then retry with a new `businessTransactionId`.                                     |
+| `503` with code `SIGNING_UNAVAILABLE`         | Parmana could not sign evidence, so it refused **before** releasing the action. **Nothing was executed.**  | Retry later with a new `businessTransactionId`.                                                                                   |
+| `500` with code `EXECUTION_RECORD_INCOMPLETE` | The action **was** released, but its signed record could not be produced.                                  | **Do not resubmit under a new id.** Reconcile with the connector and the execution audit events for that `businessTransactionId`. |
+| Any other `5xx`, or no response               | Parmana's answer is unknown.                                                                               | Treat it as not authorized. Never treat "could not reach Parmana" as "allowed".                                                   |
+
+The full list, with the exact messages, is the [error catalog](/api-reference/error-catalog).
+
+## Which SDK?
+
+| You use                                | Package                                     | Current version | Install                                                       |
+| -------------------------------------- | ------------------------------------------- | --------------- | ------------------------------------------------------------- |
+| TypeScript or JavaScript               | [`@parmana/sdk`](/sdks/typescript) on npm   | 1.1.3           | `npm install @parmana/sdk`                                    |
+| Python                                 | [`parmana`](/sdks/python) on PyPI           | 1.1.5           | `pip install parmana`                                         |
+| Python, and you verify records offline | `parmana` with the `verify` extra           | 1.1.5           | `pip install "parmana[verify]"`                               |
+| Another language                       | The [REST API](/api-reference/introduction) | Not applicable  | Any HTTP client, see [Other languages](/sdks/other-languages) |
+
+Both SDKs never retry `POST /execute` for you. They only retry idempotent `GET` requests, so an SDK can never turn a
+single action into two.
+
+## For AI agents reading this page
+
+If you are an agent integrating Parmana on someone's behalf, do these in order and stop at the first failure:
+
+1. Read the [Full integration overview](/guides/full-integration-overview).
+2. Ask the operator for the Parmana API URL and an API key. Do not invent either.
+3. Call `GET /health` on that URL and confirm it answers `200` before anything else.
+4. Send exactly one test `POST /execute` using a value you generate for `businessTransactionId`.
+5. Apply the answer table above without deviation. When in doubt, do not proceed with the action.
+
+## Not sure yet
+
+Read [How Parmana thinks](/how-parmana-thinks), then the [Quickstart](/quickstart). Both are short, and neither needs an
+account.
