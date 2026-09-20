@@ -1,0 +1,5 @@
+---
+title: "Readiness check"
+description: "Readiness probe, distinct from GET /health's pure liveness check: when storage is Supabase-backed, this one actually queries Postgres (SELECT 1, no table rows transferred) so an orchestrator can tell a process that is up but backed by de..."
+openapi: "/openapi.bundled.yaml GET /ready"
+---

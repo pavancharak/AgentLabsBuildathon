@@ -955,6 +955,12 @@ patterns](/guides/deploy-patterns#the-openapi-spec-endpoint).
   languages](/sdks/other-languages).
 </Note>
 
+## Every endpoint has its own page
+
+The **REST API** tab lists every endpoint on its own page, grouped by area: Execution, Transactions, Verification, Receipts, Trust Records, Replay, Policies, Policy Governance, Refusal Records, Audit, System and Handbook. Each page is generated from the bundled OpenAPI file, so it shows the exact parameters, request body, every response with a real example, and an interactive playground. A test fails if an endpoint is added to the spec without a page. Start with [Execute a Business Transaction](/api-reference/endpoints/execute-transaction), the endpoint every integration uses.
+
+If you are an AI agent, follow [Integrate Parmana: specification for AI agents](/agents/integrate) instead of reading the pages one by one.
+
 ## Three views of the same spec
 
 Every route, request/response shape, and status code ultimately comes from one file,

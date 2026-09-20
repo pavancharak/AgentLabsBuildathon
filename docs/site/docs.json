@@ -3,24 +3,10 @@
   "theme": "maple",
   "name": "Parmana",
   "description": "Execution Trust Infrastructure: verifiable trust between business authorization, policy evaluation, runtime execution, and execution evidence.",
-  "colors": {
-    "primary": "#6366F1",
-    "light": "#6366F1",
-    "dark": "#4338CA"
-  },
-  "background": {
-    "color": {
-      "light": "#FFFFFF",
-      "dark": "#1A1A1A"
-    }
-  },
-  "fonts": {
-    "family": "Inter"
-  },
-  "logo": {
-    "light": "/logo/logo-light.svg",
-    "dark": "/logo/logo-dark.svg"
-  },
+  "colors": { "primary": "#6366F1", "light": "#6366F1", "dark": "#4338CA" },
+  "background": { "color": { "light": "#FFFFFF", "dark": "#1A1A1A" } },
+  "fonts": { "family": "Inter" },
+  "logo": { "light": "/logo/logo-light.svg", "dark": "/logo/logo-dark.svg" },
   "favicon": "/logo/seal.svg",
   "navigation": {
     "tabs": [
@@ -36,10 +22,7 @@
               "how-parmana-thinks"
             ]
           },
-          {
-            "group": "For AI agents",
-            "pages": ["agents/integrate"]
-          }
+          { "group": "For AI agents", "pages": ["agents/integrate"] }
         ]
       },
       {
@@ -304,13 +287,97 @@
         "tab": "REST API",
         "groups": [
           {
-            "group": "REST API",
+            "group": "REST API guide",
             "pages": [
               "api-reference/introduction",
               "api-reference/authentication",
               "api-reference/error-handling",
               "api-reference/idempotency-and-nonces",
               "api-reference/error-catalog"
+            ]
+          },
+          {
+            "group": "Execution",
+            "pages": ["api-reference/endpoints/execute-transaction"]
+          },
+          {
+            "group": "Transactions",
+            "pages": [
+              "api-reference/endpoints/list-transactions",
+              "api-reference/endpoints/create-transaction",
+              "api-reference/endpoints/get-transaction"
+            ]
+          },
+          {
+            "group": "Verification",
+            "pages": [
+              "api-reference/endpoints/verify-transaction",
+              "api-reference/endpoints/get-latest-verification"
+            ]
+          },
+          {
+            "group": "Receipts",
+            "pages": [
+              "api-reference/endpoints/generate-receipt",
+              "api-reference/endpoints/get-latest-receipt"
+            ]
+          },
+          {
+            "group": "Trust Records",
+            "pages": [
+              "api-reference/endpoints/list-trust-records",
+              "api-reference/endpoints/get-trust-record"
+            ]
+          },
+          {
+            "group": "Replay",
+            "pages": ["api-reference/endpoints/replay-transaction"]
+          },
+          {
+            "group": "Policies",
+            "pages": ["api-reference/endpoints/validate-policy"]
+          },
+          {
+            "group": "Policy Governance",
+            "pages": [
+              "api-reference/endpoints/propose-policy-change",
+              "api-reference/endpoints/list-pending-policy-changes",
+              "api-reference/endpoints/approve-policy-change",
+              "api-reference/endpoints/reject-policy-change"
+            ]
+          },
+          {
+            "group": "Refusal Records",
+            "pages": [
+              "api-reference/endpoints/verify-refusal-record",
+              "api-reference/endpoints/get-refusal-record"
+            ]
+          },
+          {
+            "group": "Audit",
+            "pages": ["api-reference/endpoints/verify-audit-event"]
+          },
+          {
+            "group": "System",
+            "pages": [
+              "api-reference/endpoints/get-root",
+              "api-reference/endpoints/get-health",
+              "api-reference/endpoints/get-ready",
+              "api-reference/endpoints/get-open-api-spec",
+              "api-reference/endpoints/get-open-api-spec-json",
+              "api-reference/endpoints/get-api-manifest",
+              "api-reference/endpoints/get-version",
+              "api-reference/endpoints/get-key",
+              "api-reference/endpoints/get-jwks",
+              "api-reference/endpoints/get-caller-me"
+            ]
+          },
+          {
+            "group": "Handbook",
+            "pages": [
+              "api-reference/endpoints/get-handbook-pdf",
+              "api-reference/endpoints/get-handbook-download-lead",
+              "api-reference/endpoints/create-handbook-download-lead"
             ]
           }
         ]
