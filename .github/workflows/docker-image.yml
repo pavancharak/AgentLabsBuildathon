@@ -1,0 +1,84 @@
+name: Docker image
+
+# Builds the production image and boots it. The Dockerfile lists workspace
+# packages by hand, so it can fall behind the repository without any test
+# noticing. This job fails the change that lets that happen.
+#
+# The boot test uses NODE_ENV=test with authentication off and throwaway keys,
+# so it needs no database. It proves the image builds, starts, serves
+# /health and /ready, and contains the handbook PDF the API needs at startup.
+# It does not prove a production configuration. The production runbook does.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - docker/**
+      - package.json
+      - package-lock.json
+      - packages/*/package.json
+      - docs/site/parmana-handbook.pdf
+      - .github/workflows/docker-image.yml
+  pull_request:
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - docker/**
+      - package.json
+      - package-lock.json
+      - packages/*/package.json
+      - docs/site/parmana-handbook.pdf
+      - .github/workflows/docker-image.yml
+  workflow_dispatch:
+
+jobs:
+  build-and-boot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the image
+        run: docker build -t parmana-api .
+
+      - name: Check the handbook PDF is in the image
+        run: docker run --rm --entrypoint ls parmana-api -l /app/docs/site/parmana-handbook.pdf
+
+      - name: Make throwaway signing keys
+        run: |
+          mkdir keys
+          for id in default gateway; do
+            openssl genpkey -algorithm ed25519 -out "keys/$id.private.pem"
+            openssl pkey -in "keys/$id.private.pem" -pubout -out "keys/$id.public.pem"
+          done
+          chmod 644 keys/*.pem
+
+      - name: Start the container
+        run: |
+          docker run -d --name parmana -p 3000:3000 \
+            -e NODE_ENV=test \
+            -e PARMANA_AUTH_DISABLED=true \
+            -v "$PWD/keys:/app/keys:ro" \
+            parmana-api
+
+      - name: Wait for /health and check /ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000/health; then
+              echo
+              curl -fsS http://localhost:3000/ready
+              echo
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "The container did not become healthy. Its log follows."
+          docker logs parmana
+          exit 1
+
+      - name: Show the container log if a step failed
+        if: failure()
+        run: docker logs parmana || true
