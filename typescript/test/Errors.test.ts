@@ -200,6 +200,41 @@ describe("mapHttpErrorResponse", () => {
     expect(error).toBeInstanceOf(NotFoundError);
   });
 
+  it("maps a 503 SIGNING_UNAVAILABLE to InternalServerError, preserving the code as serverCode", () => {
+    const error = mapHttpErrorResponse(503, {
+      error:
+        "Evidence signing is unavailable; refusing to release the action because a signed Execution Trust Record could not be produced. Nothing was executed.",
+      code: "SIGNING_UNAVAILABLE",
+    });
+
+    expect(error).toBeInstanceOf(InternalServerError);
+    expect((error as InternalServerError).serverCode).toBe(
+      "SIGNING_UNAVAILABLE",
+    );
+    expect(error.message).toContain("Nothing was executed");
+  });
+
+  it("maps a 500 EXECUTION_RECORD_INCOMPLETE to InternalServerError, preserving the code as serverCode", () => {
+    const error = mapHttpErrorResponse(500, {
+      error:
+        "The action for business transaction 'tx-1' was released to the execution system, but its signed Execution Trust Record could not be produced. Do not retry as a new transaction.",
+      code: "EXECUTION_RECORD_INCOMPLETE",
+    });
+
+    expect(error).toBeInstanceOf(InternalServerError);
+    expect((error as InternalServerError).serverCode).toBe(
+      "EXECUTION_RECORD_INCOMPLETE",
+    );
+    expect(error.message).toContain("Do not retry as a new transaction");
+  });
+
+  it("leaves serverCode undefined on a 500 that carries no code", () => {
+    const error = mapHttpErrorResponse(500, { error: "Internal Server Error" });
+
+    expect(error).toBeInstanceOf(InternalServerError);
+    expect((error as InternalServerError).serverCode).toBeUndefined();
+  });
+
   it("maps 409 to ConflictError", () => {
     const error = mapHttpErrorResponse(409, {
       error:
