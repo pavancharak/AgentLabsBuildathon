@@ -634,7 +634,7 @@ Follow [Integrate Parmana: specification for AI agents](/agents/integrate) with 
 
 **Expect:** the response is a signed Execution Trust Record. Sending the same `businessTransactionId` again returns `409`.
 
-**If not:** a `500` with no code and the server log line `No connector registered for capability` means the connector is not configured. Nothing was executed. Configure it as in step 4 and deploy again. For anything else use the table in that page. Never send the same action again under a new id after a `500` with the code `EXECUTION_RECORD_INCOMPLETE`. That action was released. Tell the operator.
+**If not:** a `503` with code `CONNECTOR_NOT_REGISTERED` means the connector is not configured. Nothing was executed. Configure it as in step 4 and deploy again. For anything else use the table in that page. Never send the same action again under a new id after a `500` with the code `EXECUTION_RECORD_INCOMPLETE`. That action was released. Tell the operator.
 
 ## Step 10: Report
 
@@ -1621,10 +1621,11 @@ Source: https://docs.parmanasystems.com/api-reference/error-catalog
 
 ## Signing and evidence (the action could not be recorded)
 
-| Status | Code                          | Message                                                                                            | Condition                                                                                                                                                                                                                                                                             |
-| ------ | ----------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 503    | `SIGNING_UNAVAILABLE`         | `Evidence signing is unavailable; refusing to release the action ... Nothing was executed.`        | Before release, the signing readiness probe failed (a missing, disabled or denied key, a KMS or network outage, a key mismatch). Nothing was executed. Retry once signing is healthy, with a new `businessTransactionId`, because the original was already accepted.                  |
-| 500    | `EXECUTION_RECORD_INCOMPLETE` | `The action for business transaction '<id>' was released ... reconcile ... authorizationId: <id>.` | The action was released to the connector, then the signed Execution Trust Record could not be produced or persisted. **Do not retry as a new transaction.** Reconcile against the connector and the `execution_audit_events` rows for the `businessTransactionId` first (G-52, G-53). |
+| Status | Code                          | Message                                                                                              | Condition                                                                                                                                                                                                                                                                             |
+| ------ | ----------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 503    | `SIGNING_UNAVAILABLE`         | `Evidence signing is unavailable; refusing to release the action ... Nothing was executed.`          | Before release, the signing readiness probe failed (a missing, disabled or denied key, a KMS or network outage, a key mismatch). Nothing was executed. Retry once signing is healthy, with a new `businessTransactionId`, because the original was already accepted.                  |
+| 503    | `CONNECTOR_NOT_REGISTERED`    | `No connector is registered for capability '<action>' on this deployment. Nothing was executed. ...` | The action was approved, but no connector is registered for it, usually because the connector's credentials are not configured. The operator must configure it, then retry with a new `businessTransactionId`.                                                                        |
+| 500    | `EXECUTION_RECORD_INCOMPLETE` | `The action for business transaction '<id>' was released ... reconcile ... authorizationId: <id>.`   | The action was released to the connector, then the signed Execution Trust Record could not be produced or persisted. **Do not retry as a new transaction.** Reconcile against the connector and the `execution_audit_events` rows for the `businessTransactionId` first (G-52, G-53). |
 
 ## Server-side (500)
 
@@ -2040,10 +2041,11 @@ Every non 2xx response, and every failure to get one, is thrown as a typed error
 
 Two `InternalServerError` cases need different handling, and from 1.1.3 you can tell them apart with `error.serverCode`:
 
-| `serverCode`                        | Meaning                                                                  | Do                                              |
-| ----------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------- |
-| `SIGNING_UNAVAILABLE` (503)         | Refused before release. **Nothing was executed.**                        | Retry later with a new `businessTransactionId`. |
-| `EXECUTION_RECORD_INCOMPLETE` (500) | The action **was** released but its signed record could not be produced. | **Do not resubmit.** Reconcile first.           |
+| `serverCode`                        | Meaning                                                                  | Do                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `SIGNING_UNAVAILABLE` (503)         | Refused before release. **Nothing was executed.**                        | Retry later with a new `businessTransactionId`.                                             |
+| `CONNECTOR_NOT_REGISTERED` (503)    | The action has no connector on this server. **Nothing was executed.**    | Ask the operator to configure the connector, then retry with a new `businessTransactionId`. |
+| `EXECUTION_RECORD_INCOMPLETE` (500) | The action **was** released but its signed record could not be produced. | **Do not resubmit.** Reconcile first.                                                       |
 
 On 1.1.2 and earlier `serverCode` is not on `InternalServerError`, so read the code from the error message.
 
@@ -2661,10 +2663,11 @@ Every HTTP error has `status_code`, `code` and `request_id`. **The `code` is the
 
 That matters for two server errors that both arrive as `InternalServerError`:
 
-| Server code                         | Meaning                                                                  | Do                                              |
-| ----------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------- |
-| `SIGNING_UNAVAILABLE` (503)         | Refused before release. **Nothing was executed.**                        | Retry later with a new `businessTransactionId`. |
-| `EXECUTION_RECORD_INCOMPLETE` (500) | The action **was** released but its signed record could not be produced. | **Do not resubmit.** Reconcile first.           |
+| Server code                         | Meaning                                                                  | Do                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `SIGNING_UNAVAILABLE` (503)         | Refused before release. **Nothing was executed.**                        | Retry later with a new `businessTransactionId`.                                             |
+| `CONNECTOR_NOT_REGISTERED` (503)    | The action has no connector on this server. **Nothing was executed.**    | Ask the operator to configure the connector, then retry with a new `businessTransactionId`. |
+| `EXECUTION_RECORD_INCOMPLETE` (500) | The action **was** released but its signed record could not be produced. | **Do not resubmit.** Reconcile first.                                                       |
 
 From 1.1.6 read `error.server_code`. On 1.1.5 and earlier `server_code` is not set on `InternalServerError`, so use `status_code` (`503` or `500`) and the message: the `SIGNING_UNAVAILABLE` message ends with "Nothing was executed.", and the `EXECUTION_RECORD_INCOMPLETE` message says the action was released and names the `businessTransactionId` and the `authorizationId`.
 
@@ -3234,7 +3237,7 @@ This script is the one place that reads `SUPABASE_URL` and `SUPABASE_ANON_KEY`, 
 
 Send one transaction that your policy approves, using the procedure in [Integrate Parmana: specification for AI agents](/agents/integrate) or one of the SDKs. Use a small, harmless action first.
 
-The action needs a configured connector (step 4). Without one, the request still passes the policy and the approval check, and then stops at release with a `500` and nothing executed. The server log says `No connector registered for capability`. The response carries no code, so the log is where you see it.
+The action needs a configured connector (step 4). Without one, the request still passes the policy and the approval check, and then stops at release with `503 CONNECTOR_NOT_REGISTERED` and nothing executed. Configure the connector, then retry with a new `businessTransactionId`.
 
 **Check:** the response is the signed Execution Trust Record, and a repeat call with the same `businessTransactionId` returns `409`. Then verify the record independently with [Verify independently](/guides/verify-independently).
 
@@ -3785,6 +3788,12 @@ published public key.
 **Fix:** restore the signing path (check the KMS key state, the role's `kms:Sign` and `kms:GetPublicKey`
 permissions and the key id), then retry with a new `businessTransactionId`, because the original was
 already accepted. Nothing was sent to the connector.
+
+## `POST /execute` returns 503 `CONNECTOR_NOT_REGISTERED`
+
+**Cause:** the request passed authentication, the policy and the approval check, but no connector is registered for its action on this deployment. A connector registers only when its own credentials are configured, for example `PAYTM_CONNECTOR_URL` and `PAYTM_CONNECTOR_SHARED_SECRET` for `paytm:refund`. Nothing was executed. Before this code existed the same case was a bare `500` with no code, so on an older server, look for `No connector registered for capability` in the log.
+
+**Fix:** configure the connector on the server (see the [connector section of the environment reference](/deployment/environment-variables#connectors)), deploy again, then retry with a new `businessTransactionId`, because the original was already accepted.
 
 ## `POST /execute` returns 500 `EXECUTION_RECORD_INCOMPLETE`
 

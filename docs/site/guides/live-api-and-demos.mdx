@@ -38,8 +38,8 @@ and the `vendor-payment` policy's own history) that a capability should not be w
 connector until its signals are independently verified, not merely caller-declared.
 
 Concretely: an **approved** decision for `hubspot-deal-update`/`github-pr-approval`/etc.
-reaches Policy Engine and gets signed, then fails with a `500`
-(`No connector registered for capability '<name>'`) at the dispatch stage, since their
+reaches Policy Engine and gets signed, then fails with a `503`
+(code `CONNECTOR_NOT_REGISTERED`) at the dispatch stage, since their
 credentials aren't configured on this deployment. A **denied** decision never reaches that
 stage (policy rejection happens before dispatch), so it always completes cleanly regardless
 of capability. Plan demos around that: "the system correctly declines" is a complete, real

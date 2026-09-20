@@ -1,3 +1,5 @@
+import { ConnectorNotRegisteredError } from "@parmana/shared";
+
 import type { ConnectorRegistry, SecureConnector } from "./types.js";
 
 export class InMemoryConnectorRegistry implements ConnectorRegistry {
@@ -36,7 +38,7 @@ export class InMemoryConnectorRegistry implements ConnectorRegistry {
       }
     }
 
-    throw new Error(`No connector registered for capability '${capability}'.`);
+    throw new ConnectorNotRegisteredError(capability);
   }
 
   unregister(connectorId: string): void {

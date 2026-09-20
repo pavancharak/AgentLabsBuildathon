@@ -12,7 +12,10 @@ import {
   SignalValidationError,
 } from "@parmana/policy";
 
-import { NonceAlreadyConsumedError } from "@parmana/shared";
+import {
+  ConnectorNotRegisteredError,
+  NonceAlreadyConsumedError,
+} from "@parmana/shared";
 
 import type { CallerAuditSink } from "../auth/CallerAuditSink.js";
 
@@ -168,7 +171,10 @@ export function createErrorHandler(auditSink?: CallerAuditSink) {
     // monitoring system can tell "this already ran" apart from "something
     // broke" without string-matching a 500 body.
     //
-    if (error instanceof NonceAlreadyConsumedError) {
+    if (
+      error instanceof NonceAlreadyConsumedError ||
+      error instanceof ConnectorNotRegisteredError
+    ) {
       res.status(error.status).json({
         error: error.message,
         code: error.code,
