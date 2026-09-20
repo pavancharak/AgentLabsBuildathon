@@ -61,7 +61,7 @@ export interface Configuration {
   /**
    * Transport implementation.
    *
-   * If omitted, the SDK uses its default HTTP transport.
+   * If omitted, the client builds an HttpTransport from this same configuration, so timeout, retryPolicy, apiKey and userAgent apply.
    */
   readonly transport?: Transport;
 

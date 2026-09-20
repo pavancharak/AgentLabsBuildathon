@@ -188,6 +188,10 @@ export class HttpTransport implements Transport {
             Authorization: `Bearer ${this.configuration.apiKey}`,
           }),
 
+          ...(this.configuration.userAgent !== undefined && {
+            "User-Agent": this.configuration.userAgent,
+          }),
+
           ...(request.headers ?? {}),
         },
 

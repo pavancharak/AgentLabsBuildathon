@@ -236,6 +236,7 @@ class InternalServerError(ParmanaHttpError):
         *,
         status_code: int = 500,
         request_id: str | None = None,
+        server_code: str | None = None,
     ) -> None:
         super().__init__(
             message,
@@ -243,6 +244,12 @@ class InternalServerError(ParmanaHttpError):
             code="SERVER_ERROR",
             request_id=request_id,
         )
+
+        #: The Runtime's own `code` field, for example
+        #: SIGNING_UNAVAILABLE (nothing was executed) or
+        #: EXECUTION_RECORD_INCOMPLETE (the action was released). None
+        #: when the response carried no code.
+        self.server_code = server_code
 
 
 #: Backward-compatible alias -- this class was previously named
@@ -311,17 +318,18 @@ def build_http_error(
             retry_after_seconds=retry_after_seconds,
         )
 
-    error_type = _STATUS_MAP.get(status_code)
-
-    if error_type is not None:
-        return error_type(message, request_id=request_id)
-
     if 500 <= status_code < 600:
         return ServerError(
             message,
             status_code=status_code,
             request_id=request_id,
+            server_code=code,
         )
+
+    error_type = _STATUS_MAP.get(status_code)
+
+    if error_type is not None:
+        return error_type(message, request_id=request_id)
 
     return ParmanaHttpError(
         message,
