@@ -35,8 +35,7 @@ or equal to 4096`, because KMS refuses a raw Ed25519 message over 4096 bytes. A 
   size is now signed as a fixed 97 byte commitment (a prefix, a NUL byte, and the SHA-512 digest), and
   verifiers accept it. Signatures issued before this change are unaffected. A verifier you wrote
   yourself must implement the same rule to verify large KMS signed records, see the
-  [large message rule](/guides/verify-independently). The Python SDK's offline verifier accepts the
-  commitment form, so release a new Python SDK version with this change.
+  [large message rule](/guides/verify-independently). The Python SDK's offline verifier accepts the commitment form. That fix ships in Python SDK 1.1.5, which is built and checked but not yet published to PyPI.
 - The Python SDK now declares the `cryptography` package that `parmana.crypto` (the offline Trust Record
   verifier) imports. It is an optional extra, `pip install "parmana[verify]"`, and is included in the `dev`
   extra. It was previously imported but undeclared, which made the `Python SDK` CI check fail on `mypy`.
