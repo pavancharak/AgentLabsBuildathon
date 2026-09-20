@@ -1045,7 +1045,7 @@ Scope, stated plainly:
 
 - This does not guarantee that every executed action has a signed trust record. A transient failure between the readiness check and the real signing, or a database failure after release, still leaves an executed action with no signed record. It narrows the window and makes the failure explicit and reconcilable. It is a mitigation of G-52, not a closure.
 - There is no two phase record and no rebuild path for a missing record (G-53 in `docs/VERIFICATION-GAPS.md`).
-- Verified in tests. Verification against the real AWS KMS service in production is pending deployment.
+- Verified in tests, and the success path verified live on 2026-09-20 (production commit 4047536): the startup log shows `signingReadinessConfigured: true` and a live `paytm:refund` returned `200` with `VERIFIED`, which required the readiness probe to pass against the real KMS. The failure responses (`503 SIGNING_UNAVAILABLE`, `500 EXECUTION_RECORD_INCOMPLETE`) are proven in unit tests, not by live fault injection.
 
 Evidence
 

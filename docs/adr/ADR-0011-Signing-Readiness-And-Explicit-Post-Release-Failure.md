@@ -1,6 +1,6 @@
 # ADR-0011: Signing Readiness Before Release and Explicit Failure After Release
 
-**Status:** Accepted and implemented in code (2026-09-20). Verified in tests. Live verification against production is pending deployment, see "Verification status" below.
+**Status:** Accepted, implemented, and the success path verified live against production (2026-09-20). The failure paths are verified in tests only, see "Verification status" below.
 
 **Date:** 2026-09-20
 
@@ -69,4 +69,4 @@ Verified in tests:
 - `packages/crypto/tests/unit/signing-probe.test.ts`: the probe succeeds with a matching key, fails with a missing key, and fails when the published public key does not match the signing key.
 - `packages/api/tests/unit/bootstrap/create-signing-readiness.test.ts`: enforced in production, cannot be disabled by the environment variable, enforced when `NODE_ENV` is unset or unrecognized, off in test and development unless exactly `true`.
 
-Not yet verified: the gate against the real AWS KMS service in production. That needs a deployment, and this ADR is updated with the result.
+Verified live on 2026-09-20 against production commit 4047536 and the real AWS KMS service: the startup log shows `signingReadinessConfigured: true`, and one synthetic `paytm:refund` through `/execute` returned `200` with the decision APPROVED, `verifications[0].status` `VERIFIED`, a signed chain and a signed receipt. That request could only proceed because the readiness probe passed, so a real KMS `Sign` and `GetPublicKey` round trip with a message over 4096 bytes succeeded, and there was no `SIGNING_UNAVAILABLE` or `ValidationException` in the runtime log. The failure paths (a refusal with `503 SIGNING_UNAVAILABLE`, and `500 EXECUTION_RECORD_INCOMPLETE`) are covered by unit tests, not by a live fault injection against production.
