@@ -9,6 +9,7 @@ import {
 } from "@parmana/crypto";
 
 import type {
+  PolicyExecutionVerifier,
   PolicyRepository,
   PolicySignals,
   SignalStateVerifier,
@@ -92,15 +93,38 @@ export interface ExecutionGatewayOptions {
   readonly nonceStore: NonceStore;
 
   /**
-   * Optional policy repository used for the policy-freshness check:
-   * recomputing the current content hash of the policy an
-   * authorization was signed under, and comparing it to the
-   * authorization's own signed `policyContentHash`. When omitted, or
-   * when an authorization carries no `policyContentHash` (signed
-   * before this check existed), the check is skipped rather than
-   * failed -- see ExecutionGateway's class doc comment.
+   * Policy repository used for the policy-freshness check: recomputing
+   * the current content hash of the policy an authorization was signed
+   * under, and comparing it to the authorization's own signed
+   * `policyContentHash`. Required unless allowUnverifiedPolicy is set;
+   * an authorization with no `policyContentHash` is then rejected. Only
+   * in that explicit legacy mode is the check skipped rather than failed.
    */
   readonly policyRepository?: PolicyRepository;
+
+  /**
+   * Verifies that the policy an authorization was signed under is
+   * legitimate under Policy Governance (maker-checker) at the moment of
+   * release: its most recent signed PolicyChangeApprovalRecord exists,
+   * its signature verifies, and its contentHashAfter equals the live
+   * policy hash. Same port RuntimeEngine uses pre-authorization
+   * (@parmana/policy PolicyExecutionVerifier); reused here so the
+   * approved hash, the hash signed into the authorization, and the live
+   * hash must all agree before anything is released.
+   *
+   * Required unless allowUnverifiedPolicy is set.
+   */
+  readonly policyApprovalVerifier?: PolicyExecutionVerifier;
+
+  /**
+   * Explicit, loudly named opt out from fail-closed policy binding.
+   * By default (absent or false) the Gateway REQUIRES a policyRepository
+   * and a policyApprovalVerifier at construction, and rejects any
+   * authorization that carries no policyContentHash, instead of skipping
+   * those checks. Only legacy test fixtures and examples that predate
+   * policy binding should set this; production bootstrap must not.
+   */
+  readonly allowUnverifiedPolicy?: boolean;
 
   /**
    * Optional Signal/State Verifier used for the signal-freshness check
@@ -172,7 +196,8 @@ export interface ExecutionGatewayOptions {
  * free checks first, nonce consumed last and only on success):
  *   version -> signature -> expiry -> TTL policy
  *     -> businessTransactionHash recompute-and-compare
- *     -> policyStillCurrent recompute-and-compare (when wired)
+ *     -> policyStillCurrent recompute-and-compare (required; fails closed)
+ *     -> policyGovernanceVerified approval-record check (required; fails closed)
  *     -> signalsStillCurrent recompute-and-verify (when wired)
  *     -> nonce
  *
@@ -186,6 +211,8 @@ export class ExecutionGateway implements ExecutionSystem {
   private readonly policyContentHasher: TrustRecordHasher;
   private readonly signalsHasher: TrustRecordHasher;
   private readonly policyRepository: PolicyRepository | undefined;
+  private readonly policyApprovalVerifier: PolicyExecutionVerifier | undefined;
+  private readonly requirePolicyBinding: boolean;
   private readonly signalStateVerifier: SignalStateVerifier | undefined;
   private readonly connector: Connector | undefined;
   private readonly executionControl: ExecutionControlOptions | undefined;
@@ -212,7 +239,9 @@ export class ExecutionGateway implements ExecutionSystem {
     this.signalsHasher = new TrustRecordHasher(CryptoBootstrap.create());
 
     this.policyRepository = options.policyRepository;
+    this.policyApprovalVerifier = options.policyApprovalVerifier;
     this.signalStateVerifier = options.signalStateVerifier;
+    this.requirePolicyBinding = options.allowUnverifiedPolicy !== true;
 
     if (
       options.connector === undefined &&
@@ -228,6 +257,18 @@ export class ExecutionGateway implements ExecutionSystem {
     ) {
       throw new Error(
         "ExecutionGateway accepts connector or executionControl, not both.",
+      );
+    }
+
+    if (
+      this.requirePolicyBinding &&
+      (options.policyRepository === undefined ||
+        options.policyApprovalVerifier === undefined)
+    ) {
+      throw new Error(
+        "ExecutionGateway requires a policyRepository and a " +
+          "policyApprovalVerifier: it fails closed on policy binding. " +
+          "Set allowUnverifiedPolicy only for legacy fixtures, never in production.",
       );
     }
 
@@ -279,7 +320,26 @@ export class ExecutionGateway implements ExecutionSystem {
     const { policyName, policyVersion, policyContentHash } =
       request.authorization.payload;
 
+    let policyGovernanceVerified: boolean | undefined;
+    let policyGovernanceViolation: GatewayVerificationResult["policyGovernanceViolation"];
+
     if (
+      passed &&
+      businessTransactionHashMatches &&
+      this.requirePolicyBinding &&
+      policyContentHash === undefined
+    ) {
+      //
+      // Fail closed: an authorization with no signed policyContentHash
+      // cannot prove which policy it was issued under, so it is
+      // rejected rather than skipped.
+      //
+      policyStillCurrent = false;
+      policyContentMismatch = {
+        expected: "(absent: authorization carries no policyContentHash)",
+        actual: "n/a",
+      };
+    } else if (
       passed &&
       businessTransactionHashMatches &&
       this.policyRepository !== undefined &&
@@ -300,6 +360,34 @@ export class ExecutionGateway implements ExecutionSystem {
             expected: policyContentHash,
             actual: currentHash,
           };
+        } else if (this.policyApprovalVerifier !== undefined) {
+          //
+          // Live hash equals the hash signed into the authorization.
+          // It must also equal the hash a checker signed off on: the
+          // most recent approval record must exist, verify, and carry
+          // this exact content hash. Any error is a failure, never a
+          // pass.
+          //
+          try {
+            const violation = await this.policyApprovalVerifier.verify(
+              policyName,
+              policyVersion,
+              currentHash,
+            );
+
+            policyGovernanceVerified = violation === undefined;
+
+            if (violation !== undefined) {
+              policyGovernanceViolation = { reason: violation.reason };
+            }
+          } catch (error) {
+            policyGovernanceVerified = false;
+            policyGovernanceViolation = {
+              reason:
+                "policy approval verification errored: " +
+                (error instanceof Error ? error.message : String(error)),
+            };
+          }
         }
       } catch {
         //
@@ -326,6 +414,7 @@ export class ExecutionGateway implements ExecutionSystem {
       passed &&
       businessTransactionHashMatches &&
       policyStillCurrent !== false &&
+      policyGovernanceVerified !== false &&
       this.signalStateVerifier !== undefined &&
       signalsHash !== undefined &&
       request.signals !== undefined
@@ -356,10 +445,20 @@ export class ExecutionGateway implements ExecutionSystem {
       }
     }
 
+    //
+    // Fail closed on policy binding: unless allowUnverifiedPolicy was
+    // set, "not run" is never a pass. The policy hash and the approval
+    // record must both have been positively verified, not merely not
+    // failed. Legacy mode keeps the older "absent means skipped" rule.
+    //
+    const policyBindingOk = this.requirePolicyBinding
+      ? policyStillCurrent === true && policyGovernanceVerified === true
+      : policyStillCurrent !== false && policyGovernanceVerified !== false;
+
     const priorChecksPassed =
       passed &&
       businessTransactionHashMatches &&
-      policyStillCurrent !== false &&
+      policyBindingOk &&
       signalsStillCurrent !== false;
 
     //
@@ -379,12 +478,16 @@ export class ExecutionGateway implements ExecutionSystem {
         ...checks,
         businessTransactionHashMatches,
         ...(policyStillCurrent === undefined ? {} : { policyStillCurrent }),
+        ...(policyGovernanceVerified === undefined
+          ? {}
+          : { policyGovernanceVerified }),
         ...(signalsStillCurrent === undefined ? {} : { signalsStillCurrent }),
         nonceUnseen,
       },
 
       ...(hashMismatch ? { hashMismatch } : {}),
       ...(policyContentMismatch ? { policyContentMismatch } : {}),
+      ...(policyGovernanceViolation ? { policyGovernanceViolation } : {}),
       ...(signalsHashMismatch ? { signalsHashMismatch } : {}),
       ...(signalDivergence ? { signalDivergence } : {}),
     };
@@ -491,12 +594,20 @@ export class ExecutionGateway implements ExecutionSystem {
       .filter(([, checkPassed]) => checkPassed === false)
       .map(([name]) => name);
 
+    if (failedChecks.length === 0 && !result.valid) {
+      failedChecks.push("policyBindingNotVerified");
+    }
+
     const hashDetail = result.hashMismatch
       ? ` businessTransactionHash mismatch: expected ${result.hashMismatch.expected}, got ${result.hashMismatch.actual}.`
       : "";
 
     const policyDetail = result.policyContentMismatch
       ? ` policyContentHash mismatch: expected ${result.policyContentMismatch.expected}, got ${result.policyContentMismatch.actual}.`
+      : "";
+
+    const governanceDetail = result.policyGovernanceViolation
+      ? ` policy approval check failed: ${result.policyGovernanceViolation.reason}.`
       : "";
 
     const signalsHashDetail = result.signalsHashMismatch
@@ -516,7 +627,7 @@ export class ExecutionGateway implements ExecutionSystem {
 
     return (
       `Execution Gateway rejected request: failed checks ` +
-      `[${failedChecks.join(", ")}].${hashDetail}${policyDetail}${signalsHashDetail}${signalDivergenceDetail}`
+      `[${failedChecks.join(", ")}].${hashDetail}${policyDetail}${governanceDetail}${signalsHashDetail}${signalDivergenceDetail}`
     );
   }
 }

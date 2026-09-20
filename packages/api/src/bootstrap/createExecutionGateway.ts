@@ -21,6 +21,7 @@ import { createGatewayIdentity } from "./createGatewayIdentity.js";
 import { createGatewayKeyPair } from "./createGatewayKeyPair.js";
 import { createGatewayPublicKey } from "./createGatewayPublicKey.js";
 import { createNonceStore } from "./createNonceStore.js";
+import { createPolicyExecutionVerifier } from "./createPolicyExecutionVerifier.js";
 import { createConnectorRoute } from "./createConnectorRoute.js";
 import { executionGatewaySignalStateVerifier } from "./executionGatewaySignalStateVerifier.js";
 
@@ -87,12 +88,25 @@ export async function createExecutionGateway(): Promise<ExecutionSystem> {
     new RandomIdGenerator(),
   );
 
+  //
+  // Fail-closed policy binding: undefined only in NODE_ENV test or
+  // development (see createPolicyExecutionVerifier.ts). Everywhere else
+  // the gateway is constructed without allowUnverifiedPolicy, so it
+  // requires the repository and the approval verifier, rejects an
+  // authorization with no policyContentHash, and requires the approval
+  // record's hash to equal the authorization's and the live hash.
+  //
+  const policyApprovalVerifier = createPolicyExecutionVerifier();
+
   return new ExecutionGateway({
     publicKey,
     keyProvider,
     keyExpiryStore,
     nonceStore,
     policyRepository,
+    ...(policyApprovalVerifier === undefined
+      ? { allowUnverifiedPolicy: true }
+      : { policyApprovalVerifier }),
     signalStateVerifier: executionGatewaySignalStateVerifier,
 
     executionControl: {

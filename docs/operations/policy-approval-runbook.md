@@ -18,10 +18,13 @@
 
 ## Why this exists
 
-`POLICY_EXECUTION_VERIFICATION_ENFORCED` (see `docs/CLAIMS.md` §2.35) is built,
-tested, and wired in, but defaults to `false` because turning it on today would
-refuse every execution in the system — none of the 10 real production policies has
-an approval record yet. This runbook is the path to closing that, once a real
+Execution time policy verification (see `docs/CLAIMS.md` §2.35 and §2.36) is built,
+tested, and, since 2026-09-20, enforced by default everywhere except `NODE_ENV`
+`test` and `development`. It refuses every execution under a policy that has no
+signed approval record, so a policy must be approved through this runbook before
+the deployment that runs it is promoted. (This section was written when the flag
+defaulted to `false` and none of the 10 real production policies had an approval
+record yet.) This runbook is the path to closing that, once a real
 reviewer is available.
 
 ## Part 1: The 10 policies (verified live, 2026-09-07)
@@ -148,13 +151,16 @@ curl -X GET "<api-base-url>/policies/pending-changes?status=PENDING_APPROVAL" \
 Should return an empty `changes` array once all 10 are resolved (approved or
 rejected).
 
-## Part 5: Enabling enforcement (only after Part 4 is genuinely complete for all 10)
+## Part 5: Enforcement (on by default since 2026-09-20)
 
-```bash
-POLICY_EXECUTION_VERIFICATION_ENFORCED=true
-```
+Enforcement is now the default in production, so there is nothing to enable here. Set
+`POLICY_EXECUTION_VERIFICATION_ENFORCED=true` only to turn it on in a `NODE_ENV=test` or
+`development` environment. In production the variable is ignored and cannot switch enforcement
+off. The consequence is an ordering rule: complete Part 4 for every policy the deployment
+executes against BEFORE promoting that deployment, or executions under an unapproved policy
+are refused.
 
-Restart the API process. From that point, `RuntimeEngine` refuses execution
+Restart the API process after a change. From that point, `RuntimeEngine` refuses execution
 against any policy with no approval record, an invalid approval-record
 signature, or content that no longer matches its approval record — see
 `docs/CLAIMS.md` §2.35.
@@ -271,6 +277,6 @@ disk, not only ones changed in a diff)
 Come back and ask for `docs/CLAIMS.md` §2.35 and `docs/VERIFICATION-GAPS.md`
 gap 40 to be updated — with the real reviewer name, real timestamps, and real
 `policyChangeApprovalRecordId` values queried from the database, the same way
-Part 1's table above was built from a real query rather than assumed. Setting
-`POLICY_EXECUTION_VERIFICATION_ENFORCED=true` is also a separate, deliberate
-step at that point, not something to do preemptively.
+Part 1's table above was built from a real query rather than assumed. Enforcement
+no longer needs to be switched on separately, it is the production default since
+2026-09-20, so confirm every executed policy has its record first.

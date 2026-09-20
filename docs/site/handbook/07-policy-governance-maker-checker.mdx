@@ -343,13 +343,6 @@ resulting `policyChangeApprovalRecordId`, is recorded in `docs/CLAIMS.md` §2.26
 
 ## What remains genuinely open
 
-`POLICY_EXECUTION_VERIFICATION_ENFORCED` (see Chapter 5's sibling material on execution-time
-verification, and `docs/CLAIMS.md` §2.35) remains `false` by design. This flag, when
-enabled, makes `RuntimeEngine` refuse execution against any policy with no approval
-record, an invalid approval-record signature, or content that no longer matches its
-approval record. Now that all fourteen real production policies have a genuine approval
-record, the original reason the flag defaulted off (an unconditional gate would have
-refused every execution in the system) no longer holds. Turning it on is nonetheless a
-**separate, deliberate decision**, explicitly reserved for a dedicated step in
-`docs/operations/policy-approval-runbook.md` Part 5, not something that happens as a side
-effect of closing the backfill. As of this writing, it has not been turned on.
+Execution time policy governance verification is enforced. `RuntimeEngine` refuses execution against any policy with no approval record, an invalid approval-record signature, or content that no longer matches its approval record, and `ExecutionGateway` runs the same check again at release, requiring the approved hash, the hash signed into the authorization, and the live hash to agree (`docs/CLAIMS.md` §2.35 and §2.36). Since 2026-09-20 this is on everywhere except when `NODE_ENV` is exactly `test` or `development`. `POLICY_EXECUTION_VERIFICATION_ENFORCED` is now only an opt in for those two environments and cannot switch enforcement off in production. The consequence for operators is that every policy a deployment executes against must have a genuine signed approval record before that deployment is promoted, or executions under it are refused.
+
+What remains genuinely open is the scope of the checker's authority: any provisioned human checker with a step up key can approve any policy, and there is no per policy approver list or quorum (`docs/VERIFICATION-GAPS.md` G-50).

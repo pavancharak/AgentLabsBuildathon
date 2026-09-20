@@ -3,41 +3,72 @@ import { afterEach, describe, expect, it } from "vitest";
 import { PolicyGovernanceExecutionVerifier } from "../../../src/governance/PolicyGovernanceExecutionVerifier.js";
 import { createPolicyExecutionVerifier } from "../../../src/bootstrap/createPolicyExecutionVerifier.js";
 
-const ENV_KEY = "POLICY_EXECUTION_VERIFICATION_ENFORCED";
+const ENFORCE_KEY = "POLICY_EXECUTION_VERIFICATION_ENFORCED";
 
 describe("createPolicyExecutionVerifier", () => {
-  const original = process.env[ENV_KEY];
+  const originalEnforce = process.env[ENFORCE_KEY];
+  const originalNodeEnv = process.env.NODE_ENV;
 
   afterEach(() => {
-    if (original === undefined) {
-      delete process.env[ENV_KEY];
+    if (originalEnforce === undefined) {
+      delete process.env[ENFORCE_KEY];
     } else {
-      process.env[ENV_KEY] = original;
+      process.env[ENFORCE_KEY] = originalEnforce;
+    }
+
+    if (originalNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = originalNodeEnv;
     }
   });
 
-  it("returns undefined (unconfigured) when the env var is unset -- the safe default", () => {
-    delete process.env[ENV_KEY];
-
-    expect(createPolicyExecutionVerifier()).toBeUndefined();
-  });
-
-  it("returns undefined for any value other than the exact string 'true'", () => {
-    process.env[ENV_KEY] = "1";
-    expect(createPolicyExecutionVerifier()).toBeUndefined();
-
-    process.env[ENV_KEY] = "TRUE";
-    expect(createPolicyExecutionVerifier()).toBeUndefined();
-
-    process.env[ENV_KEY] = "false";
-    expect(createPolicyExecutionVerifier()).toBeUndefined();
-  });
-
-  it("returns a real PolicyGovernanceExecutionVerifier when explicitly enabled", () => {
-    process.env[ENV_KEY] = "true";
+  it("is enforced by default in production", () => {
+    process.env.NODE_ENV = "production";
+    delete process.env[ENFORCE_KEY];
 
     expect(createPolicyExecutionVerifier()).toBeInstanceOf(
       PolicyGovernanceExecutionVerifier,
     );
+  });
+
+  it("cannot be switched off in production by the env var", () => {
+    process.env.NODE_ENV = "production";
+
+    for (const value of ["false", "0", "", "no", "TRUE"]) {
+      process.env[ENFORCE_KEY] = value;
+
+      expect(createPolicyExecutionVerifier()).toBeInstanceOf(
+        PolicyGovernanceExecutionVerifier,
+      );
+    }
+  });
+
+  it("is enforced when NODE_ENV is unset or unrecognized (fail closed)", () => {
+    delete process.env.NODE_ENV;
+    expect(createPolicyExecutionVerifier()).toBeInstanceOf(
+      PolicyGovernanceExecutionVerifier,
+    );
+
+    process.env.NODE_ENV = "staging";
+    expect(createPolicyExecutionVerifier()).toBeInstanceOf(
+      PolicyGovernanceExecutionVerifier,
+    );
+  });
+
+  it("stays off in test and development unless explicitly 'true'", () => {
+    for (const env of ["test", "development"]) {
+      process.env.NODE_ENV = env;
+      delete process.env[ENFORCE_KEY];
+      expect(createPolicyExecutionVerifier()).toBeUndefined();
+
+      process.env[ENFORCE_KEY] = "1";
+      expect(createPolicyExecutionVerifier()).toBeUndefined();
+
+      process.env[ENFORCE_KEY] = "true";
+      expect(createPolicyExecutionVerifier()).toBeInstanceOf(
+        PolicyGovernanceExecutionVerifier,
+      );
+    }
   });
 });

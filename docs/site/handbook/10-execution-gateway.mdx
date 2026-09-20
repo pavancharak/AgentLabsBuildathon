@@ -45,16 +45,24 @@ and only on success":
 
 1. `version -> signature -> expiry -> TTL policy` (all inside `EnvelopeVerifier.verifyChecks()`).
 2. `businessTransactionHash` recompute-and-compare, only attempted if step 1 passed.
-3. `policyStillCurrent` recompute-and-compare (when a `PolicyRepository` is wired and the
-   authorization carries a `policyContentHash`), recomputes the _current_ content hash of the
-   named policy and compares it to what the authorization was signed under. If the policy no
+3. `policyStillCurrent` recompute-and-compare, required and fail closed. The gateway recomputes
+   the _current_ content hash of the named policy and compares it to what the authorization was
+   signed under. An authorization with no `policyContentHash` is rejected, and if the policy no
    longer exists at all (e.g. replaced in place by a governed change), this is treated
-   identically to a content mismatch, not a separate error case.
-4. `signalsStillCurrent` recompute-and-verify (when a `SignalStateVerifier` is wired and both
+   identically to a content mismatch, not a separate error case. A gateway built without a
+   `PolicyRepository` and a `policyApprovalVerifier` refuses to construct, unless the explicit
+   `allowUnverifiedPolicy: true` option is set, which production bootstrap never sets.
+4. `policyGovernanceVerified`, required and fail closed. The live hash that just matched the
+   signed hash is handed to the policy approval verifier, which checks that the policy's most
+   recent signed `PolicyChangeApprovalRecord` exists, that its signature verifies, and that its
+   `contentHashAfter` equals that same hash. The approved hash, the signed hash and the live
+   hash must all agree. A missing record, a bad signature, a differing hash, or an error from the
+   verifier all reject the request.
+5. `signalsStillCurrent` recompute-and-verify (when a `SignalStateVerifier` is wired and both
    the request and authorization carry signals/`signalsHash`), first a hash comparison
    (catching a request whose signals were altered after authorization), then an independent
    re-verification of those signals against real-world state via the verifier.
-5. **Nonce consumption, last, only if every prior check passed.** This is the only
+6. **Nonce consumption, last, only if every prior check passed.** This is the only
    side-effecting check in the sequence, "a mismatched or forged request must not burn a
    nonce."
 
@@ -63,7 +71,9 @@ and only on success":
 passed), or a generic `Error` naming every failing check and both hash values on a content
 mismatch otherwise. `isSoleFailureNonceReplay()` is the precise logic for that distinction:
 strip out `nonceUnseen`, and check every remaining value is `true` or `undefined` (an
-undefined check means "skipped," which still counts as passing for this purpose). On success,
+undefined check means "skipped," which still counts as passing for this purpose, and only occurs
+under the legacy `allowUnverifiedPolicy` opt out, because in the default mode `valid` requires
+`policyStillCurrent` and `policyGovernanceVerified` to be positively `true`). On success,
 the verified `executableContent` is deep-frozen and handed to either the legacy `Connector`
 interface (`this.connector.execute(...)`) or the newer `executionControl` path (a
 `service.execute(...)` call with a freshly minted or static `gatewayAuthentication` value, or

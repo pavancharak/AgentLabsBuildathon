@@ -106,9 +106,9 @@ content actually used for this decision (`CONTENT_MISMATCH` if not). A clean pas
 `VERIFIED`. Critically, this class is wired unconditionally into `RuntimeEngine`, with no feature
 flag, because it only ever records what it found, it never blocks execution. This is the
 deliberate opposite of `PolicyGovernanceExecutionVerifier` (the execution-time enforcement gate
-covered in Chapter 8/10's territory, not here), which has the same three checks but is gated
-behind `POLICY_EXECUTION_VERIFICATION_ENFORCED` precisely because a false positive there refuses
-a real execution. The class's own comment names this distinction explicitly and traces it to
+covered in Chapter 8/10's territory, not here), which has the same three checks but is
+enforced (on everywhere except `NODE_ENV` `test` and `development`) precisely because a
+violation there must refuse a real execution. The class's own comment names this distinction explicitly and traces it to
 RFC-0022's precedent (`SignalStateVerifier`/`PolicyExecutionVerifier`): keep enforcement and
 evidentiary concerns in separate types even when their logic overlaps, rather than
 deduplicating into one shared helper with two different blast radii.

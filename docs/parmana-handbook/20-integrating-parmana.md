@@ -82,8 +82,8 @@ needs:
    `/openapi.yaml`, `/openapi.json`, `/api-manifest.json`, `/documentation`, `/reference`,
    `/refusal/verify`, `/audit/verify`, and the key-discovery routes.
 2. A policy that already exists on the target instance, at the exact `(name, version)` you
-   reference, and (if `POLICY_EXECUTION_VERIFICATION_ENFORCED=true` on that instance) has a real
-   `PolicyChangeApprovalRecord` (see Chapter 7).
+   reference, and has a real signed
+   `PolicyChangeApprovalRecord` (see Chapter 7), because production instances enforce this.
 3. A well formed `BusinessTransaction` body, with every fact your chosen policy's rules
    reference present in `signals`, matching either a `boundSignals` entry (derived automatically
    from `target`/`parameters` server side, but still worth sending consistently) or an
@@ -147,9 +147,9 @@ code samples were checked against the actual SDK source above, not copied blind.
 - Forgetting that `businessTransactionId` is an idempotency key: resubmitting the same id with
   different content is rejected as a duplicate before execution, not silently overwritten (see
   `docs/site/guides/end-to-end-paytm-flow.mdx`).
-- Referencing a policy `(name, version)` that exists on disk but has never been approved, on an
-  instance where `POLICY_EXECUTION_VERIFICATION_ENFORCED=true` (Chapter 7). On most current
-  deployments this flag is off, so this specific failure mode is currently latent, not active,
-  but worth knowing about before it's turned on.
+- Referencing a policy `(name, version)` that exists on disk but has never been approved, on a
+  production instance (Chapter 7). Enforcement is on by default there, so the request is
+  rejected as an ordinary policy REJECT before any rule runs, and an authorization that somehow
+  carries no `policyContentHash` is rejected at the gateway.
 - Omitting a `signals` entry for a fact the target policy's rules actually reference; the request
   is rejected, not silently evaluated with a missing/undefined fact.

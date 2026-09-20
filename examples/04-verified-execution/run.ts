@@ -244,6 +244,8 @@ async function main(): Promise<void> {
   const connector = new RecordingHttpConnector(RECEIVING_SIDE_URL);
 
   const gateway = new ExecutionGateway({
+    // Legacy fixture: predates fail-closed policy binding.
+    allowUnverifiedPolicy: true,
     publicKey: gatewayPublicKey,
     nonceStore,
     connector,

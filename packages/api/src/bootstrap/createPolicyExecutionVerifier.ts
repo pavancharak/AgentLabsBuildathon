@@ -5,28 +5,32 @@ import { policyChangeApprovalRecordRepository } from "../repositories.js";
 import { PolicyGovernanceExecutionVerifier } from "../governance/PolicyGovernanceExecutionVerifier.js";
 
 /**
- * Policy Governance execution-time verification is OFF by default:
- * as of 2026-09-07 every real production policy in this system is
- * still PENDING_APPROVAL (see docs/CLAIMS.md §2.26's "Legacy-policy
- * backfill" entry -- ten policies, proposed 2026-08-19, awaiting a
- * genuine human checker) -- turning this on unconditionally would
- * refuse every execution in the system today, not just a genuine
- * bypass. Set POLICY_EXECUTION_VERIFICATION_ENFORCED=true only once
- * every policy this deployment actually executes against has a real,
- * signed PolicyChangeApprovalRecord -- via real maker-checker
- * approval, or (for a policy that never needed content review, only a
- * governance record) scripts/backfill-legacy-policy-approvals.ts
- * --apply. Enabling it before that point is not a stricter security
- * posture, it is an outage.
+ * Policy Governance execution-time verification is ON by default and
+ * fails closed: no policy authorizes or releases an execution without a
+ * PolicyChangeApprovalRecord whose signature verifies and whose
+ * contentHashAfter equals the live policy content hash.
  *
- * Returns undefined (verification unconfigured, current behavior) as
- * the safe default; RuntimeEngine's own doc comment on
- * policyExecutionVerifier describes exactly what changes once this
- * returns a real verifier instead.
+ * It is relaxed only when NODE_ENV is exactly "test" or "development",
+ * where it stays off unless POLICY_EXECUTION_VERIFICATION_ENFORCED is
+ * the exact string "true". In every other environment, including an
+ * unset or unrecognized NODE_ENV, it is enforced and no environment
+ * variable can turn it off: a deployment must not be able to silently
+ * regress to "unapproved policy still executes".
+ *
+ * Every policy a deployment executes against must therefore have a
+ * real, signed approval record (maker-checker approval, or
+ * scripts/backfill-legacy-policy-approvals.ts --apply) before that
+ * deployment goes live, or executions under it are refused.
  */
 export function createPolicyExecutionVerifier():
   PolicyExecutionVerifier | undefined {
-  if (process.env.POLICY_EXECUTION_VERIFICATION_ENFORCED !== "true") {
+  const env = process.env.NODE_ENV;
+  const relaxed = env === "test" || env === "development";
+
+  if (
+    relaxed &&
+    process.env.POLICY_EXECUTION_VERIFICATION_ENFORCED !== "true"
+  ) {
     return undefined;
   }
 

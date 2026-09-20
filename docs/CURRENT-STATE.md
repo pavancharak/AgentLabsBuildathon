@@ -51,14 +51,15 @@ bearer token, and real signed, hash-chained approval records
 An execution-time enforcement gate (`PolicyGovernanceExecutionVerifier`,
 wired into `RuntimeEngine`) exists in code and can refuse execution against
 a policy with no approval record, an invalid approval-record signature, or
-tampered content. It is feature-flagged
-(`POLICY_EXECUTION_VERIFICATION_ENFORCED`), **default `false`**.
+tampered content. Since 2026-09-20 it is
+enforced by default in production (relaxed only when `NODE_ENV` is `test` or `development`), and
+`ExecutionGateway` fails closed on policy binding as well (`docs/CLAIMS.md` §2.36).
 
 **Current real database state** (queried directly this session, not
 assumed): all 10 policies that have ever been proposed through this
 system's own API are `PENDING_APPROVAL`, proposed by the same account. None
-have been approved by a distinct human reviewer. The enforcement flag
-cannot be safely enabled until that changes.
+have been approved by a distinct human reviewer. Because enforcement is now on in production, executions under a policy with no
+approval record are refused until that changes.
 
 ## On disk, but not reachable
 

@@ -279,6 +279,8 @@ async function main(): Promise<void> {
   console.log("--------------------------------------------------");
 
   const previewGateway = new ExecutionGateway({
+    // Legacy fixture: predates fail-closed policy binding.
+    allowUnverifiedPolicy: true,
     publicKey: runtimePublicKey,
     nonceStore: new MemoryNonceStore(),
     connector: {
@@ -345,6 +347,8 @@ async function main(): Promise<void> {
   // reached through the production Gateway's execute().
   //
   const productionGateway = new ExecutionGateway({
+    // Legacy fixture: predates fail-closed policy binding.
+    allowUnverifiedPolicy: true,
     publicKey: runtimePublicKey,
     nonceStore: new MemoryNonceStore(),
     executionControl: {

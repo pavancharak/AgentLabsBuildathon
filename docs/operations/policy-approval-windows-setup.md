@@ -110,4 +110,5 @@ Should return an empty `changes` array once all 10 are resolved.
 Tell the operator. They'll confirm the real state against the database (see
 `docs/operations/policy-approval-runbook.md` Part 6.5) before updating
 `docs/CLAIMS.md` §2.35 / `docs/VERIFICATION-GAPS.md` gap 40, and before
-considering `POLICY_EXECUTION_VERIFICATION_ENFORCED=true`.
+promoting a deployment, since enforcement is now the production default and an unapproved
+policy is refused.

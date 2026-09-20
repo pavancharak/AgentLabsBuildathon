@@ -71,7 +71,7 @@ key and the envelope itself. Every property below exists so that check is meanin
 - **Content bound.** `businessTransactionHash` binds a canonical hash of the executable
   content into the signed payload, not just an ID. This is what closes the
   check-vs-use (TOCTOU) gap: see [The gateway](/concepts/the-gateway) for the mechanism.
-- **Policy- and signal-fresh, when opted in.** `policyContentHash`/`signalsHash` let a
+- **Policy bound and fail closed, signal fresh when opted in.** `policyContentHash` is required at the gateway and checked against the signed approval record, while `signalsHash` is optional. Together they let a
   receiving gateway recompute and re-verify, at execution time, whether the policy content
   and the real-world conditions the decision rested on are still what they were at
   authorization time, the same TOCTOU gap `businessTransactionHash` closes for the payload

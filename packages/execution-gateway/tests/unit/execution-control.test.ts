@@ -99,6 +99,8 @@ async function fixture() {
     gatewayIdentity: gatewayPresentation,
   });
   const gateway = new ExecutionGateway({
+    // Legacy fixture: predates fail-closed policy binding.
+    allowUnverifiedPolicy: true,
     publicKey,
     nonceStore: new MemoryNonceStore(),
     executionControl: {

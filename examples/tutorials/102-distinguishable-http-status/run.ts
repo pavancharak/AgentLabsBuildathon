@@ -181,6 +181,8 @@ const publicKey = await new FileKeyProvider().getPublicKey(
 );
 
 const gateway = new ExecutionGateway({
+  // Legacy fixture: predates fail-closed policy binding.
+  allowUnverifiedPolicy: true,
   publicKey,
   nonceStore: new MemoryNonceStore(),
   connector: new RecordingConnector(),
@@ -226,6 +228,8 @@ const tampered = {
 let tamperedIsCoded = true;
 try {
   await new ExecutionGateway({
+    // Legacy fixture: predates fail-closed policy binding.
+    allowUnverifiedPolicy: true,
     publicKey,
     nonceStore: new MemoryNonceStore(),
     connector: new RecordingConnector(),
