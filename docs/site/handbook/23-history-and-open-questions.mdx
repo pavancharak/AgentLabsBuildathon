@@ -177,8 +177,7 @@ short index, not a replacement for reading the original entries.
   had already been called when `/execute` returned `500`. The runtime pipeline releases the action and
   then builds, signs and persists the record, so any failure after the connector call leaves an
   executed action with no signed trust record. Gateway and connector audit events still exist, but the
-  durable signed record does not. The fix is a design change (persist a signed execution intent before
-  release and finalize it after) and is not built.
+  durable signed record does not. Mitigated the same day (ADR-0011): before release the engine now proves the signing path works and refuses with `503 SIGNING_UNAVAILABLE`, and a failure after release is reported as `500 EXECUTION_RECORD_INCOMPLETE` with the identifiers. Still open: a transient failure after the check, or a database failure, can still leave an executed action with no signed record, and a missing record cannot be rebuilt (G-53). The complete answer is a design change (persist a signed execution intent before release and finalize it after) and is not built.
 - **Execution time policy verification is now enforced (2026-09-20).** The flag
   `POLICY_EXECUTION_VERIFICATION_ENFORCED` had stayed `false`, and the live startup log showed
   `policyExecutionVerifierConfigured: false`, so an unapproved policy could still authorize. It

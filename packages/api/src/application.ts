@@ -30,6 +30,7 @@ import { createHubSpotSignalStateVerifier } from "./bootstrap/createHubSpotSigna
 import { executionGatewaySignalStateVerifier } from "./bootstrap/executionGatewaySignalStateVerifier.js";
 import { createPolicyExecutionVerifier } from "./bootstrap/createPolicyExecutionVerifier.js";
 import { createPolicyGovernanceAnchorResolver } from "./bootstrap/createPolicyGovernanceAnchorResolver.js";
+import { createSigningReadiness } from "./bootstrap/createSigningReadiness.js";
 
 const config = loadConfig();
 
@@ -100,5 +101,6 @@ export function createApplication(executionSystem: ExecutionSystem) {
     signalStateVerifier,
     createPolicyExecutionVerifier(),
     createPolicyGovernanceAnchorResolver(),
+    createSigningReadiness(),
   );
 }

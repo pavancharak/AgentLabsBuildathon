@@ -232,6 +232,14 @@ executions under that policy are refused. Authorizations that carry no `policyCo
 are also refused. After a deploy, confirm the startup log line `runtime_engine_constructed`
 shows `policyExecutionVerifierConfigured: true`.
 
+**Signing readiness is on by default (2026-09-20, ADR-0011).** Before each action is released to a
+connector the runtime signs and verifies a probe artifact through the evidence signing key, at most once
+a minute per instance, and returns `503 SIGNING_UNAVAILABLE` with nothing executed if that fails. Under
+KMS the role needs `kms:Sign` and `kms:GetPublicKey` on the signing key, which a working deployment
+already has. After a deploy, confirm the startup log line `runtime_engine_constructed` shows
+`signingReadinessConfigured: true`. A failure after the action was released is `500
+EXECUTION_RECORD_INCOMPLETE`, which must be reconciled, not retried as a new transaction.
+
 **The legacy-policy caveat, and what to actually do about it.** Every
 policy version that existed before Policy Governance was built has no
 approval record at all, because none of them were ever proposed or

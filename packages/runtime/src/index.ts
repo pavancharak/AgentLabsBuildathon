@@ -19,6 +19,7 @@ export * from "./ExecutionTrustApplication.js";
 // -----------------------------------------------------------------------------
 
 export * from "./RuntimeEngine.js";
+export * from "./SigningReadiness.js";
 export * from "./BusinessTrustPipeline.js";
 export * from "./RefusalRecordBuilder.js";
 export * from "./RuntimePipeline.js";

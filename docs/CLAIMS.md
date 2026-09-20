@@ -1032,6 +1032,29 @@ Evidence
 - Live evidence, 2026-09-20, production commit 333786a: canonical record 4965 bytes, raw signature check false, commitment signature check true, offline verifier `valid: true` against `GET /keys/default`, `verifications[0].status` `VERIFIED`, no `ValidationException` in the runtime log
 - `python/parmana/crypto/offline_verifier.py`, `python/tests/test_offline_verifier.py` (TypeScript signs a large record as a commitment and the independent Python verifier accepts it, rejects a tampered copy, and rejects a commitment signature over a small message), `scripts/generate-offline-verifier-fixture.ts`
 
+## 2.38 Signing Readiness Before Release, Explicit Failure After Release
+
+Before an action is released to a connector, the runtime proves that the evidence signing path can currently produce a signature that verifies. If it cannot, the request is refused with `503 SIGNING_UNAVAILABLE` and nothing is executed. If the action was released and the signed Execution Trust Record then cannot be produced or persisted, the failure is reported as `500 EXECUTION_RECORD_INCOMPLETE`, naming the `businessTransactionId` and `authorizationId`, with a critical log event, instead of a generic `500` that reads as "nothing happened". The decision is recorded in `docs/adr/ADR-0011-Signing-Readiness-And-Explicit-Post-Release-Failure.md`.
+
+- The probe (`VerificationCrypto.probeSigning()`) signs a synthetic artifact over 4096 bytes through the same signer and key id used for trust records and verifies it against the public key the same signer publishes. It catches a missing, disabled or denied key, a KMS or network outage, a signing and verification key mismatch, and the KMS size limit.
+- A success is cached for 60 seconds, a failure is never cached, and concurrent requests share one probe.
+- It is enforced everywhere except when `NODE_ENV` is exactly `test` or `development`, and no environment variable can switch it off in production.
+- A failure before release, such as a policy rejection, is not reclassified as a released action.
+
+Scope, stated plainly:
+
+- This does not guarantee that every executed action has a signed trust record. A transient failure between the readiness check and the real signing, or a database failure after release, still leaves an executed action with no signed record. It narrows the window and makes the failure explicit and reconcilable. It is a mitigation of G-52, not a closure.
+- There is no two phase record and no rebuild path for a missing record (G-53 in `docs/VERIFICATION-GAPS.md`).
+- Verified in tests. Verification against the real AWS KMS service in production is pending deployment.
+
+Evidence
+
+- `packages/runtime/src/SigningReadiness.ts`, `RuntimeEngine.ts`, `Runtime.ts`, `errors/SigningUnavailableError.ts`, `errors/ExecutionRecordIncompleteError.ts`
+- `packages/crypto/src/VerificationCrypto.ts` (`probeSigning`), `packages/api/src/bootstrap/createSigningReadiness.ts`, `packages/api/src/application.ts`
+- `packages/runtime/tests/unit/signing-readiness.test.ts` and `execution-record-incomplete.test.ts` (readiness failure leaves the release counter at zero, failure after release is `EXECUTION_RECORD_INCOMPLETE` with the identifiers and a critical log, a persistence failure is reported the same way, a policy rejection before release is not reclassified)
+- `packages/crypto/tests/unit/signing-probe.test.ts` (matching key passes, missing key fails, mismatched public key fails)
+- `packages/api/tests/unit/bootstrap/create-signing-readiness.test.ts`
+
 ---
 
 # 3. Conditional Claims

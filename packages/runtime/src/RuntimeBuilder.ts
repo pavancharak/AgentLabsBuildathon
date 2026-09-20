@@ -1,3 +1,4 @@
+import type { SigningReadiness } from "./SigningReadiness.js";
 import {
   ExecutionTrustRecordRepository,
   RefusalRecordRepository,
@@ -51,6 +52,8 @@ export class RuntimeBuilder {
 
   private policyGovernanceAnchorResolver?: PolicyGovernanceAnchorResolver;
 
+  private signingReadiness?: SigningReadiness;
+
   /**
    * Configure policy directory.
    */
@@ -94,6 +97,18 @@ export class RuntimeBuilder {
     resolver: PolicyGovernanceAnchorResolver,
   ): this {
     this.policyGovernanceAnchorResolver = resolver;
+
+    return this;
+  }
+
+  /**
+   * Configure signing readiness (G-52). Optional -- omitting this leaves
+   * current behavior unchanged. When set, RuntimeEngine proves the
+   * evidence signing path works BEFORE releasing an action to a connector
+   * and fails closed with 503 if it does not.
+   */
+  public withSigningReadiness(readiness: SigningReadiness): this {
+    this.signingReadiness = readiness;
 
     return this;
   }
@@ -215,6 +230,7 @@ export class RuntimeBuilder {
       capabilityPolicyBinder,
       this.policyExecutionVerifier,
       this.policyGovernanceAnchorResolver,
+      this.signingReadiness,
     );
 
     //

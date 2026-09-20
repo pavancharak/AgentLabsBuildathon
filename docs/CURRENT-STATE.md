@@ -57,7 +57,10 @@ enforced by default in production (relaxed only when `NODE_ENV` is `test` or `de
 
 Signing under AWS KMS handles messages over the 4096 byte KMS raw limit by signing a fixed size
 commitment (ADR-0010, `docs/CLAIMS.md` 2.37), verified live against the real KMS service on
-2026-09-20. Open: the connector can be called before the trust record is signed (G-52).
+2026-09-20. The ordering gap G-52 is mitigated: before release the runtime proves signing works and
+refuses with 503 if not, and a failure after release is reported as EXECUTION_RECORD_INCOMPLETE
+(ADR-0011, `docs/CLAIMS.md` 2.38). Still open: a transient failure after the check can leave an executed
+action with no signed record, and a missing record cannot be rebuilt (G-53).
 
 **Current real database state** (queried directly this session, not
 assumed): all 10 policies that have ever been proposed through this

@@ -37,6 +37,8 @@ import type { RuntimeContext } from "./context/RuntimeContext.js";
 
 import { RuntimePipeline } from "./RuntimePipeline.js";
 import { BusinessTrustPipeline } from "./BusinessTrustPipeline.js";
+import { ExecutionRecordIncompleteError } from "./errors/ExecutionRecordIncompleteError.js";
+import type { SigningReadiness } from "./SigningReadiness.js";
 
 import { RuntimeHookRunner } from "./hooks/RuntimeHookRunner.js";
 
@@ -167,6 +169,17 @@ export class RuntimeEngine {
      * not enforcement.
      */
     private readonly policyGovernanceAnchorResolver?: PolicyGovernanceAnchorResolver,
+    /**
+     * G-52. Optional and trailing for the same backward-compatibility
+     * reason as every dependency above. When omitted, no signing readiness
+     * is checked before release (current behavior, unchanged). When
+     * supplied, assertReady() runs before anything is released to a
+     * connector and throws SigningUnavailableError (503) if the evidence
+     * signing path cannot currently produce a signed Execution Trust
+     * Record, so a persistent signing problem is found before the action
+     * runs instead of after. Fail closed.
+     */
+    private readonly signingReadiness?: SigningReadiness,
   ) {
     if (!pipeline) {
       throw new Error("RuntimePipeline is required.");
@@ -208,6 +221,7 @@ export class RuntimeEngine {
         this.policyExecutionVerifier !== undefined,
       policyGovernanceAnchorResolverConfigured:
         this.policyGovernanceAnchorResolver !== undefined,
+      signingReadinessConfigured: this.signingReadiness !== undefined,
       refusalRecordingConfigured:
         this.refusalRecordBuilder !== undefined &&
         this.refusalRecordRepository !== undefined,
@@ -564,33 +578,81 @@ export class RuntimeEngine {
 
     try {
       //
-      // Runtime Pipeline
+      // Signing readiness (G-52). Before anything is released to a
+      // connector, prove the evidence signing path can currently produce
+      // a signed Execution Trust Record. Fails closed with 503, and
+      // nothing has been executed.
       //
+      await this.signingReadiness?.assertReady();
 
+      //
+      // Runtime Pipeline. The action is released to the connector inside
+      // this call.
+      //
       const processedContext = await this.pipeline.execute(context);
 
-      await this.hookRunner.afterExecution(processedContext);
-
-      await this.hookRunner.beforeTrustRecord(processedContext);
-
       //
-      // Business Trust Pipeline
+      // From here the action has been released. Any failure to produce
+      // the record is reported as ExecutionRecordIncompleteError (an
+      // executed action with no signed record), never as a generic error
+      // that would invite a blind retry.
       //
+      try {
+        await this.hookRunner.afterExecution(processedContext);
 
-      const trustRecord = await this.trustPipeline.execute(processedContext);
+        await this.hookRunner.beforeTrustRecord(processedContext);
 
-      await this.hookRunner.afterTrustRecord(processedContext, trustRecord);
+        //
+        // Business Trust Pipeline
+        //
 
-      return {
-        transaction: processedContext.transaction,
-        context: processedContext,
-        trustRecord,
-      };
+        const trustRecord = await this.trustPipeline.execute(processedContext);
+
+        await this.hookRunner.afterTrustRecord(processedContext, trustRecord);
+
+        return {
+          transaction: processedContext.transaction,
+          context: processedContext,
+          trustRecord,
+        };
+      } catch (error) {
+        throw this.recordIncomplete(processedContext, error);
+      }
     } catch (error) {
       await this.hookRunner.onRuntimeError(context, error as Error);
 
       throw error;
     }
+  }
+
+  /**
+   * Builds the error for a failure that happened AFTER the action was
+   * released, and logs it at critical severity with every identifier an
+   * operator needs to reconcile (G-52). Never swallows the cause: it is
+   * carried in the error and in the log.
+   */
+  private recordIncomplete(
+    context: RuntimeContext,
+    cause: unknown,
+  ): ExecutionRecordIncompleteError {
+    const businessTransactionId = context.transaction.businessTransactionId;
+
+    const authorizationId = context.authorization?.payload.authorizationId;
+
+    console.error({
+      event: "execution_released_record_failed",
+      severity: "critical",
+      businessTransactionId,
+      authorizationId,
+      executionStatus: context.execution?.status,
+      error: cause instanceof Error ? cause.message : String(cause),
+    });
+
+    return new ExecutionRecordIncompleteError(
+      businessTransactionId,
+      authorizationId,
+      cause,
+    );
   }
 
   /**
