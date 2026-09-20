@@ -56,8 +56,8 @@ enforced by default in production (relaxed only when `NODE_ENV` is `test` or `de
 `ExecutionGateway` fails closed on policy binding as well (`docs/CLAIMS.md` §2.36).
 
 Signing under AWS KMS handles messages over the 4096 byte KMS raw limit by signing a fixed size
-commitment (ADR-0010, `docs/CLAIMS.md` 2.37). Live verification against the real KMS service is
-pending deployment. Open: the connector can be called before the trust record is signed (G-52).
+commitment (ADR-0010, `docs/CLAIMS.md` 2.37), verified live against the real KMS service on
+2026-09-20. Open: the connector can be called before the trust record is signed (G-52).
 
 **Current real database state** (queried directly this session, not
 assumed): all 10 policies that have ever been proposed through this
