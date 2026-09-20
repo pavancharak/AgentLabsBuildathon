@@ -17,7 +17,13 @@
       "examples": [
         "RUNTIME_ERROR",
         "VERIFICATION_FAILED",
-        "RECEIPT_GENERATION_FAILED"
+        "RECEIPT_GENERATION_FAILED",
+        "POLICY_DENIED",
+        "CAPABILITY_NOT_ALLOWED",
+        "RATE_LIMITED",
+        "AUDIT_UNAVAILABLE",
+        "SIGNING_UNAVAILABLE",
+        "EXECUTION_RECORD_INCOMPLETE"
       ]
     }
   },

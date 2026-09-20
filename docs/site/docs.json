@@ -35,6 +35,10 @@
               "quickstart",
               "how-parmana-thinks"
             ]
+          },
+          {
+            "group": "For AI agents",
+            "pages": ["agents/integrate"]
           }
         ]
       },

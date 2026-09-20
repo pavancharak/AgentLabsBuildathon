@@ -66,15 +66,9 @@ The full list, with the exact messages, is the [error catalog](/api-reference/er
 Both SDKs never retry `POST /execute` for you. They only retry idempotent `GET` requests, so an SDK can never turn a
 single action into two.
 
-## For AI agents reading this page
+## For AI agents
 
-If you are an agent integrating Parmana on someone's behalf, do these in order and stop at the first failure:
-
-1. Read the [Full integration overview](/guides/full-integration-overview).
-2. Ask the operator for the Parmana API URL and an API key. Do not invent either.
-3. Call `GET /health` on that URL and confirm it answers `200` before anything else.
-4. Send exactly one test `POST /execute` using a value you generate for `businessTransactionId`.
-5. Apply the answer table above without deviation. When in doubt, do not proceed with the action.
+If you are an AI agent, do not use this page to decide what to do. Follow [Integrate Parmana: specification for AI agents](/agents/integrate) exactly. It is written to be followed literally, one step at a time, with what to expect and what to do when the result is different. It also has the same answer table as above, in the order to apply it.
 
 ## Not sure yet
 

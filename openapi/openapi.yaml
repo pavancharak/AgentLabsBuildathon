@@ -508,11 +508,17 @@ paths:
         identical UUID check and mapper. See that endpoint below.
 
 
-        If Policy evaluation REJECTs the transaction, this endpoint currently
-        responds 500 with a RUNTIME_ERROR-coded error envelope naming the
-        rejection reason. See the 500 response below and the executeRejected
-        example. This is real, observed behavior, not a designed contract; it is
-        documented here because the spec must describe the API as implemented.
+        If Policy evaluation rejects the transaction, this endpoint responds
+        403 with code POLICY_DENIED and the message "Execution rejected:
+        <reason>". Nothing is released to any connector. See the 403 response
+        below. Before releasing an action the runtime also proves it can sign
+        evidence, and refuses with 503 and code SIGNING_UNAVAILABLE if it
+        cannot, in which case nothing was executed. If the action WAS released
+        but its signed Execution Trust Record could not be produced, the
+        response is 500 with code EXECUTION_RECORD_INCOMPLETE and the caller
+        must not resubmit under a new businessTransactionId. See the 503 and
+        500 responses below and the Error catalog at
+        /api-reference/error-catalog.
 
 
         `hubspot:deal-update` and `hubspot:deal-fetch` are the real,
@@ -939,6 +945,12 @@ paths:
 
         "403":
           description: >-
+            Three distinct denials share this status. (1) Code POLICY_DENIED:
+            a policy rejected the transaction, this is a final decision, do
+            not retry the same request. (2) Code CAPABILITY_NOT_ALLOWED: the
+            authenticated key is not permitted to invoke this
+            transaction.intent.action (isCapabilityAllowed, an unset or empty
+            allowedCapabilities denies everything). (3) No code:
             transaction.authority.principalId is missing/empty, or the
             authenticated caller is not permitted to assert it:
             isPrincipalAllowed (packages/api/src/auth/isPrincipalAllowed.ts)
@@ -959,6 +971,18 @@ paths:
                   summary: Real captured response, principalId not permitted for this caller
                   value:
                     error: Caller is not permitted to assert this authority.principalId.
+                capabilityNotAllowed:
+                  summary: The key may not invoke this action
+                  value:
+                    error: Caller is not permitted to invoke this capability.
+                    code: CAPABILITY_NOT_ALLOWED
+                policyDenied:
+                  summary: A policy rejected the transaction, a final decision
+                  value:
+                    error: >-
+                      Execution rejected: Vendor payment rejected because the
+                      assessed payment risk exceeds the maximum permitted threshold.
+                    code: POLICY_DENIED
 
         "404":
           description: >-
@@ -988,14 +1012,22 @@ paths:
                   value:
                     error: Business Transaction 'eed2a972-1bf5-4166-8472-761f76fbf1b2' already exists.
 
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/SigningUnavailable"
         "500":
           description: >-
-            Uncategorized failure. Covers three distinct, verified conditions:
-            a policy REJECTED decision (RuntimeError, no explicit status,
-            defaulting to 500, carries code RUNTIME_ERROR), no Connector
-            registered for the request's action, and a structurally incomplete
-            request body (a valid-UUID businessTransactionId but missing
-            required nested fields, e.g. metadata).
+            Server failure. Covers these conditions. Code
+            EXECUTION_RECORD_INCOMPLETE: the action was released to the
+            execution system but its signed Execution Trust Record could not
+            be produced or persisted, so do not resubmit under a new
+            businessTransactionId and reconcile against the connector and the
+            execution audit events instead. No Connector registered for the
+            request's action. A structurally incomplete request body (a
+            valid-UUID businessTransactionId but missing required nested
+            fields, e.g. metadata). A policy rejection is NOT a 500, it is a
+            403 with code POLICY_DENIED.
 
 
             **Regression, re-verified this pass:** the "no Connector
@@ -1020,13 +1052,18 @@ paths:
               schema:
                 $ref: "../schemas/common/error.schema.json"
               examples:
-                policyRejected:
-                  summary: Real captured response, policy REJECTED the transaction
+                executionRecordIncomplete:
+                  summary: The action was released but its signed record could not be produced
                   value:
                     error: >-
-                      Execution rejected: Vendor payment rejected because the
-                      assessed payment risk exceeds the maximum permitted threshold.
-                    code: RUNTIME_ERROR
+                      The action for business transaction
+                      'e54187e6-431f-4e1c-9c0e-ff2cb5d6d40a' was released to
+                      the execution system, but its signed Execution Trust
+                      Record could not be produced. Do not retry as a new
+                      transaction: reconcile against the connector and the
+                      execution audit events for this businessTransactionId.
+                      authorizationId: 381ef27a-0955-4085-9e5d-e4223fef2986.
+                    code: EXECUTION_RECORD_INCOMPLETE
                 noConnectorRegistered:
                   summary: >-
                     Real captured response, action has no registered Connector.
@@ -1474,6 +1511,10 @@ paths:
 
         "403":
           description: >-
+            Identical to POST /execute. Three distinct denials share this
+            status: code POLICY_DENIED (a policy rejected the transaction, a
+            final decision), code CAPABILITY_NOT_ALLOWED (the key may not
+            invoke this action), and no code, which is the principal check:
             transaction.authority.principalId is missing/empty, or the
             authenticated caller is not permitted to assert it
             (isPrincipalAllowed). See POST /execute, identical check,
@@ -1488,6 +1529,18 @@ paths:
                   summary: Real captured response, principalId not permitted for this caller
                   value:
                     error: Caller is not permitted to assert this authority.principalId.
+                capabilityNotAllowed:
+                  summary: The key may not invoke this action
+                  value:
+                    error: Caller is not permitted to invoke this capability.
+                    code: CAPABILITY_NOT_ALLOWED
+                policyDenied:
+                  summary: A policy rejected the transaction, a final decision
+                  value:
+                    error: >-
+                      Execution rejected: Vendor payment rejected because the
+                      assessed payment risk exceeds the maximum permitted threshold.
+                    code: POLICY_DENIED
 
         "404":
           description: >-
@@ -1516,26 +1569,36 @@ paths:
                   value:
                     error: Business Transaction '1a341e62-18de-408e-9b34-89aec901dae5' already exists.
 
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "503":
+          $ref: "#/components/responses/SigningUnavailable"
         "500":
           description: >-
-            Uncategorized failure, INCLUDING a policy REJECTED decision, no
-            Connector registered for the request's action, and a
-            structurally incomplete body throwing an uncaught TypeError. See
-            the fuller description and all three examples on POST /execute,
-            same pipeline, not independently re-verified on this route in
-            this pass.
+            Server failure. Code EXECUTION_RECORD_INCOMPLETE (the action was
+            released but its signed record could not be produced, do not
+            resubmit under a new businessTransactionId), no Connector
+            registered for the request's action, and a structurally
+            incomplete body throwing an uncaught TypeError. A policy
+            rejection is NOT a 500, it is a 403 with code POLICY_DENIED. See
+            the fuller description on POST /execute, same pipeline.
           content:
             application/json:
               schema:
                 $ref: "../schemas/common/error.schema.json"
               examples:
-                policyRejected:
-                  summary: Real captured response, policy REJECTED the transaction
+                executionRecordIncomplete:
+                  summary: The action was released but its signed record could not be produced
                   value:
                     error: >-
-                      Execution rejected: Vendor payment rejected because the
-                      assessed payment risk exceeds the maximum permitted threshold.
-                    code: RUNTIME_ERROR
+                      The action for business transaction
+                      'e54187e6-431f-4e1c-9c0e-ff2cb5d6d40a' was released to
+                      the execution system, but its signed Execution Trust
+                      Record could not be produced. Do not retry as a new
+                      transaction: reconcile against the connector and the
+                      execution audit events for this businessTransactionId.
+                      authorizationId: 381ef27a-0955-4085-9e5d-e4223fef2986.
+                    code: EXECUTION_RECORD_INCOMPLETE
 
     get:
       tags:
@@ -3041,3 +3104,53 @@ components:
               summary: Real captured response, missing or invalid Authorization header
               value:
                 error: authentication required
+    RateLimited:
+      description: >-
+        The caller exceeded the per minute limit on this route
+        (RATE_LIMIT_EXECUTE_PER_MINUTE, default 30 per authenticated caller).
+        The request never reached the handler, so nothing was recorded or
+        executed. Wait the number of seconds in the Retry-After header, then
+        retry.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/common/error.schema.json"
+          examples:
+            rateLimited:
+              summary: Rate limit exceeded
+              value:
+                error: Rate limit exceeded. Try again later.
+                code: RATE_LIMITED
+    SigningUnavailable:
+      description: >-
+        The action was refused BEFORE it was released, so nothing was
+        executed. Code SIGNING_UNAVAILABLE: the runtime could not prove it can
+        sign an Execution Trust Record. Code AUDIT_UNAVAILABLE: the caller
+        authentication audit trail could not be written. In both cases retry
+        later with a new businessTransactionId, because the original was
+        already accepted.
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/common/error.schema.json"
+          examples:
+            signingUnavailable:
+              summary: Evidence signing is unhealthy, nothing was executed
+              value:
+                error: >-
+                  Evidence signing is unavailable; refusing to release the
+                  action because a signed Execution Trust Record could not be
+                  produced. Nothing was executed.
+                code: SIGNING_UNAVAILABLE
+            auditUnavailable:
+              summary: The caller audit trail could not be written
+              value:
+                error: >-
+                  Caller authentication audit trail is unavailable; refusing to
+                  proceed without an audit record.
+                code: AUDIT_UNAVAILABLE
