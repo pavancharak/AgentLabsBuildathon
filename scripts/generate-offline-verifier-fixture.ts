@@ -46,6 +46,10 @@ const { privateKey, publicKey } = generateKeyPairSync("ed25519");
 // never in the repo's real PARMANA_KEY_DIR.
 process.env.PARMANA_KEY_DIR = outDir;
 process.env.PARMANA_VERIFICATION_KEY_ID = keyId;
+// loadConfig() refuses to start without a policy directory even though this
+// fixture never loads a policy. Point it at outDir so the script is
+// self-contained and does not depend on a repo .env (CI has none).
+process.env.PARMANA_POLICY_DIR = outDir;
 
 writeFileSync(
   `${outDir}/${keyId}.private.pem`,
