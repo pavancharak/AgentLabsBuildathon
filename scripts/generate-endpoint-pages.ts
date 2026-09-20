@@ -90,7 +90,7 @@ restTab.groups = [guide, ...buildEndpointNavGroups(pages)];
 
 writeFileSync(
   docsJsonPath,
-  await format(JSON.stringify(docs), { parser: "json" }),
+  await format(JSON.stringify(docs, null, 2), { parser: "json" }),
 );
 
 console.log(
