@@ -183,7 +183,7 @@ Follow [Integrate Parmana: specification for AI agents](/agents/integrate) with 
 
 **Expect:** the response is a signed Execution Trust Record. Sending the same `businessTransactionId` again returns `409`.
 
-**If not:** a `500` with no code and the server log line `No connector registered for capability` means the connector is not configured. Nothing was executed. Configure it as in step 4 and deploy again. For anything else use the table in that page. Never send the same action again under a new id after a `500` with the code `EXECUTION_RECORD_INCOMPLETE`. That action was released. Tell the operator.
+**If not:** a `503` with code `CONNECTOR_NOT_REGISTERED` means the connector is not configured. Nothing was executed. Configure it as in step 4 and deploy again. For anything else use the table in that page. Never send the same action again under a new id after a `500` with the code `EXECUTION_RECORD_INCOMPLETE`. That action was released. Tell the operator.
 
 ## Step 10: Report
 

@@ -229,7 +229,7 @@ environment-variable toggle for this today, it's a code change.
 - **Connectors register only when their own credentials are configured.** HubSpot, GitHub,
   Paytm, and Slack each check for their own credential environment variable at startup and
   register only if it's present; with none configured, every capability fails closed with
-  "No connector registered for capability." See [Add a connector with the Connector
+  `503 CONNECTOR_NOT_REGISTERED`. See [Add a connector with the Connector
   SDK](/guides/add-a-connector) for what adding another requires today.
 
 ## Troubleshoot

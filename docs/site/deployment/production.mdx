@@ -177,7 +177,7 @@ This script is the one place that reads `SUPABASE_URL` and `SUPABASE_ANON_KEY`, 
 
 Send one transaction that your policy approves, using the procedure in [Integrate Parmana: specification for AI agents](/agents/integrate) or one of the SDKs. Use a small, harmless action first.
 
-The action needs a configured connector (step 4). Without one, the request still passes the policy and the approval check, and then stops at release with a `500` and nothing executed. The server log says `No connector registered for capability`. The response carries no code, so the log is where you see it.
+The action needs a configured connector (step 4). Without one, the request still passes the policy and the approval check, and then stops at release with `503 CONNECTOR_NOT_REGISTERED` and nothing executed. Configure the connector, then retry with a new `businessTransactionId`.
 
 **Check:** the response is the signed Execution Trust Record, and a repeat call with the same `businessTransactionId` returns `409`. Then verify the record independently with [Verify independently](/guides/verify-independently).
 

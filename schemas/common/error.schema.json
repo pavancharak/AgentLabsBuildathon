@@ -23,6 +23,7 @@
         "RATE_LIMITED",
         "AUDIT_UNAVAILABLE",
         "SIGNING_UNAVAILABLE",
+        "CONNECTOR_NOT_REGISTERED",
         "EXECUTION_RECORD_INCOMPLETE"
       ]
     }

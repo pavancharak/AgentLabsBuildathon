@@ -70,7 +70,7 @@ until its signals are independently verified, not merely caller-declared. `HUBSP
 and GitHub App credentials are still not configured on this deployment, and `NODE_ENV` isn't
 `test` (so the test-fixture connector isn't registered either). An **APPROVED** decision for
 `hubspot-deal-update`/`github-pr-approval`/etc. still reaches Policy Engine, gets signed, and
-then fails with `500`/`No connector registered for capability '<name>'` at the dispatch
+then fails with `503`/`CONNECTOR_NOT_REGISTERED` at the dispatch
 stage. A **DENIED** decision never reaches that stage (policy rejection happens before
 dispatch), so it always completes cleanly regardless of capability. Plan demos accordingly:
 "show the system correctly declining" is a complete, real demo for any capability; "show
@@ -566,7 +566,7 @@ downgrade-attack demonstration: `examples/tutorials/107-offline-verification/`,
   which case check your `signals` against the policy's `signalsSchema`/rules in `policies/`).
 - **`403` with no `POLICY_DENIED` code**, principal or capability scoping denied the
   request before policy evaluation ran (see Authentication above).
-- **`500 Internal Server Error` / logs show `No connector registered for capability`**,
+- **`503` with code `CONNECTOR_NOT_REGISTERED`**,
   expected for every `APPROVED` decision on this deployment (see "What this deployment
   is/isn't"). Not a bug to report.
 - **`400 {"error":"businessTransactionId must be a valid UUID."}`**, use a real UUID, not

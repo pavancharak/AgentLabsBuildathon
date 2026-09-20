@@ -15,6 +15,8 @@ import {
   type SecureConnector,
 } from "@parmana/execution-control";
 
+import { ConnectorNotRegisteredError } from "@parmana/shared";
+
 import type { Connector } from "@parmana/connector-sdk";
 import { CredentialVaultAdapter } from "./CredentialVaultAdapter.js";
 import type { CredentialProvider } from "@parmana/connector-sdk";
@@ -165,7 +167,7 @@ export class GatewayConnectorRegistry implements ConnectorRegistry {
       }
     }
 
-    throw new Error(`No connector registered for capability '${capability}'.`);
+    throw new ConnectorNotRegisteredError(capability);
   }
 
   entry(name: string): ConnectorRegistryEntry {

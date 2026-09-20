@@ -522,8 +522,10 @@ paths:
         4. `429`: rate limited. Nothing was recorded. Wait for the `Retry-After`
         header.
 
-        5. `503` with code `SIGNING_UNAVAILABLE` or `AUDIT_UNAVAILABLE`: refused
-        before release. Nothing was executed.
+        5. `503` with code `SIGNING_UNAVAILABLE`, `AUDIT_UNAVAILABLE` or
+        `CONNECTOR_NOT_REGISTERED`: refused before release. Nothing was
+        executed. For `CONNECTOR_NOT_REGISTERED` the operator must configure the
+        connector for that action before any retry.
 
         6. `500` with code `EXECUTION_RECORD_INCOMPLETE`: the action was
         released but its signed record could not be produced. Do not resubmit
@@ -1003,37 +1005,15 @@ paths:
         "429":
           $ref: "#/components/responses/RateLimited"
         "500":
-          description: >-
-            Server failure. Covers these conditions. Code
+          description: "Server failure. Covers these conditions. Code
             EXECUTION_RECORD_INCOMPLETE: the action was released to the
             execution system but its signed Execution Trust Record could not be
             produced or persisted, so do not resubmit under a new
             businessTransactionId and reconcile against the connector and the
-            execution audit events instead. No Connector registered for the
-            request's action. A structurally incomplete request body (a
-            valid-UUID businessTransactionId but missing required nested fields,
-            e.g. metadata). A policy rejection is NOT a 500, it is a 403 with
-            code POLICY_DENIED.
-
-
-            **Regression, re-verified this pass:** the "no Connector registered"
-            case previously reached the client as a coded RuntimeError
-            (`{"error":"No connector registered for action:
-            <action>.","code":"RUNTIME_ERROR"}`). Live-triggered against the
-            current server it no longer does.
-            `ConnectorSdkRegistry.resolveCapability`
-            (packages/connector-sdk/src/ConnectorRegistry.ts) now throws a raw,
-            uncaught `Error: No connector registered for capability '<action>'.`
-            that the shared error handler's `instanceof RuntimeError` check does
-            not match, so it falls through to the generic 500 branch: the caller
-            sees only `{"error":"Internal Server Error"}`, no code, and the real
-            message and capability name are visible only in the server's own
-            log. This is the same failure shape as the
-            structurally-incomplete-body case below, not the previously
-            documented one. See the noConnectorRegistered example, and the
-            accompanying report: this is listed as a product regression to fix
-            in packages/connector-sdk/execution-control, not something this docs
-            pass changes in code.
+            execution audit events instead. A structurally incomplete request
+            body (a valid-UUID businessTransactionId but missing required nested
+            fields, e.g. metadata). A policy rejection is NOT a 500, it is a 403
+            with code POLICY_DENIED."
           content:
             application/json:
               schema:
@@ -1050,13 +1030,6 @@ paths:
                       events for this businessTransactionId. authorizationId:
                       381ef27a-0955-4085-9e5d-e4223fef2986."
                     code: EXECUTION_RECORD_INCOMPLETE
-                noConnectorRegistered:
-                  summary: "Real captured response, action has no registered Connector.
-                    Regression: previously a coded RuntimeError, now an uncaught
-                    error collapsed into the generic 500 handler, see the
-                    description above."
-                  value:
-                    error: Internal Server Error
                 malformedBody:
                   summary: Real captured response, valid UUID but missing required nested fields
                     (e.g. metadata); no code field, this is the generic 500
@@ -3103,6 +3076,7 @@ components:
             - RATE_LIMITED
             - AUDIT_UNAVAILABLE
             - SIGNING_UNAVAILABLE
+            - CONNECTOR_NOT_REGISTERED
             - EXECUTION_RECORD_INCOMPLETE
       examples:
         - error: businessTransactionId must be a valid UUID.
@@ -4995,7 +4969,10 @@ components:
         sign an Execution Trust Record. Code AUDIT_UNAVAILABLE: the caller
         authentication audit trail could not be written. In both cases retry
         later with a new businessTransactionId, because the original was already
-        accepted."
+        accepted. Code CONNECTOR_NOT_REGISTERED: no connector is registered for
+        the action on this deployment, usually because its credentials were
+        never configured. The operator must configure the connector first, then
+        retry with a new businessTransactionId."
       content:
         application/json:
           schema:
@@ -5014,3 +4991,10 @@ components:
                 error: Caller authentication audit trail is unavailable; refusing to proceed
                   without an audit record.
                 code: AUDIT_UNAVAILABLE
+            connectorNotRegistered:
+              summary: No connector is registered for the action, nothing was executed
+              value:
+                error: No connector is registered for capability 'paytm:refund' on this
+                  deployment. Nothing was executed. The operator must configure
+                  the connector.
+                code: CONNECTOR_NOT_REGISTERED

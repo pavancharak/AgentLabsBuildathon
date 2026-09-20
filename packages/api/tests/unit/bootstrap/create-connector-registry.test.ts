@@ -57,7 +57,7 @@ describe("createConnectorRegistry — hubspot capability availability", () => {
     const registry = buildRegistry();
 
     expect(() => registry.resolveCapability("hubspot:deal-update")).toThrow(
-      /No connector registered for capability 'hubspot:deal-update'/,
+      /No connector is registered for capability 'hubspot:deal-update'/,
     );
   });
 
@@ -68,7 +68,7 @@ describe("createConnectorRegistry — hubspot capability availability", () => {
       const registry = buildRegistry();
 
       expect(() => registry.resolveCapability("payments:execute")).toThrow(
-        /No connector registered for capability 'payments:execute'/,
+        /No connector is registered for capability 'payments:execute'/,
       );
     }
   });
