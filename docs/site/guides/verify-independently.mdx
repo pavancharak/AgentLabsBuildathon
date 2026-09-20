@@ -151,7 +151,9 @@ actually cover](/concepts/execution-trust-records).
   check as the TypeScript example above, independently reimplemented, not a wrapper around
   the TypeScript code. Cross-language determinism is proven by
   `python/tests/test_offline_verifier.py`, which signs a record with the real TypeScript
-  signer and verifies it with only the Python module. **Ed25519 only for now** — the
+  signer and verifies it with only the Python module. Install it with
+  `pip install "parmana[verify]"`, since the module needs the `cryptography` package,
+  which the `verify` extra provides. **Ed25519 only for now** — the
   `cryptography` package version this SDK depends on has no `ml_dsa` module yet, so a
   hybrid-signed record's ML-DSA-65 signature cannot be checked from Python until that
   lands upstream; use the TypeScript version for a complete hybrid check today.

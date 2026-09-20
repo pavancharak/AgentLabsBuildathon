@@ -59,7 +59,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# parmana.crypto (the standalone offline Trust Record verifier) needs the
+# `cryptography` package for Ed25519. It is optional so that a plain
+# `pip install parmana` client stays small: install `parmana[verify]` to use
+# parmana.crypto. Without this declaration the module imported an undeclared
+# package and mypy failed in CI.
+verify = [
+    "cryptography>=42.0.0",
+]
 dev = [
+    "cryptography>=42.0.0",
     "pytest>=8.0.0",
     "responses>=0.25.0",
     "ruff>=0.6.0",
