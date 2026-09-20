@@ -1,6 +1,6 @@
 # ADR-0010: Large Message Signing Under AWS KMS
 
-**Status:** Accepted and implemented in code (2026-09-20). Verification against the real AWS KMS service in production is pending deployment, see "Verification status" below.
+**Status:** Accepted, implemented, and verified live against the real AWS KMS service (2026-09-20), see "Verification status" below.
 
 **Date:** 2026-09-20
 
@@ -87,7 +87,7 @@ Verified in tests:
 - `packages/crypto/tests/unit/kms-signer.test.ts`: a message of exactly 4096 bytes is sent raw, a longer message is sent as the 97 byte commitment and never as the raw message.
 - `python/tests/test_offline_verifier.py`: TypeScript signs a large record as a commitment and the independent Python verifier accepts it, rejects a tampered copy, and rejects a commitment signature over a small message.
 
-Not yet verified: a real large record signed by the real AWS KMS service. That needs a deployment and one live `paytm:refund`, and this ADR is updated with the result.
+Verified live: production commit 333786a, one synthetic `paytm:refund` through `/execute` returned `200` with a full Execution Trust Record. Its canonical form was 4965 bytes, over the 4096 byte KMS limit. The signature does not verify as a raw Ed25519 signature and does verify as the commitment signature, made by the real KMS key (keyId `default`). `verifyExecutionTrustRecordOffline` accepted the record against the public key served by the live `GET /keys/default`, with `hashValid` and `legacySignatureValid` both true. The response carried `verifications[0].status` of `VERIFIED`, a signed chain and a signed receipt, and the runtime log had no `ValidationException`. The same request path returned `500` on the build before this fix.
 
 ## Consequences
 

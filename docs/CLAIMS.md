@@ -1022,13 +1022,14 @@ Scope, stated plainly:
 
 - The TypeScript packages and the Python SDK implement the rule. A third party verifier must implement it to verify a large KMS signed artifact. It is fully specified in the ADR and the Python module is a compact reference.
 - This makes signing possible. It does not change the ordering in which a request is processed. The connector can still be called before the trust record is signed, so a signing failure after the connector call leaves an executed action without a signed record (G-52 in `docs/VERIFICATION-GAPS.md`).
-- Verification against the real AWS KMS service in production is pending deployment. The claim above is proven in tests against a signer that enforces the exact KMS limit, not yet against the live service.
+- Verified against the real AWS KMS service in production on 2026-09-20 (commit 333786a): a live `paytm:refund` returned `200` with a 4965 byte trust record that verifies only as the commitment signature, and `verifyExecutionTrustRecordOffline` accepted it against the live public key.
 
 Evidence
 
 - `packages/crypto/src/SignatureCommitment.ts`, `providers/signer/KmsSigner.ts`, `providers/signature/Ed25519SignatureProvider.ts`
 - `packages/crypto/tests/unit/signature-commitment.test.ts` (boundary at 4096 and 4097 bytes, tamper, wrong key, wrong message, no downgrade, raw backward compatibility, end to end sign and verify of a 30,000 byte artifact through a signer that enforces the KMS limit, and a naive signer that fails on the same artifact)
 - `packages/crypto/tests/unit/kms-signer.test.ts` (exactly 4096 bytes sent raw, longer sent as the 97 byte commitment and never raw)
+- Live evidence, 2026-09-20, production commit 333786a: canonical record 4965 bytes, raw signature check false, commitment signature check true, offline verifier `valid: true` against `GET /keys/default`, `verifications[0].status` `VERIFIED`, no `ValidationException` in the runtime log
 - `python/parmana/crypto/offline_verifier.py`, `python/tests/test_offline_verifier.py` (TypeScript signs a large record as a commitment and the independent Python verifier accepts it, rejects a tampered copy, and rejects a commitment signature over a small message), `scripts/generate-offline-verifier-fixture.ts`
 
 ---
