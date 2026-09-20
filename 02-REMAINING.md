@@ -2,6 +2,8 @@
 
 _The full forward roadmap. Snapshot: July 5, 2026._
 
+> **Out of date.** For current status read [docs/REMAINING-WORK.md](docs/REMAINING-WORK.md) (2026-09-20). This file is kept as the July 5 snapshot.
+
 Progress against the original vision: **~40% of the code, ~80% of the credibility** —
 the provability layer is done; what remains is the unavoidability layer.
 
