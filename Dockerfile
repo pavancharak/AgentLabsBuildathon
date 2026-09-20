@@ -1,9 +1,8 @@
 # syntax=docker/dockerfile:1
 #
 # Multi-stage build for @parmana/api. Platform-agnostic (Dockerfile-first):
-# builds a single container image that runs both the HTTP API and the
-# Razorpay settlement poll loop (see docker/entrypoint.sh for why they
-# share a container at this stage, and the trade-off that comes with it).
+# builds a single container image that runs the HTTP API (docker/entrypoint.sh
+# starts it and forwards termination signals to it).
 # Works unmodified on any Docker-based PaaS (Railway, Render, Fly, a bare
 # `docker run`, ...).
 #
@@ -116,16 +115,6 @@ ENV NODE_ENV=production
 # so most deployments don't need to set these at all.
 ENV PARMANA_POLICY_DIR=./policies
 ENV PARMANA_KEY_DIR=./keys
-
-# Runs the settlement poll loop (scripts/process-razorpay-settlements.ts)
-# directly from TypeScript source. That script lives outside the tsc -b
-# project-reference graph (root tsconfig.json's "references" only lists
-# packages/*), so stage 2 never compiles it to dist/. Documented,
-# deliberate trade-off (see DEPLOYMENT.md): adding it to the build graph
-# so it ships as compiled JS like everything else is reasonable follow-up
-# work, not done in this packaging session. tsx is small (no full
-# TypeScript devDependency tree needed at runtime for this one script).
-RUN npm install -g tsx@4
 
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/packages ./packages

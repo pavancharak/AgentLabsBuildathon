@@ -3231,7 +3231,7 @@ export SUPABASE_ANON_KEY="<your Supabase anon key>"
 npx tsx scripts/verify-policy-changes-approved.ts --full-scan
 ```
 
-This script is the one place that reads `SUPABASE_URL` and `SUPABASE_ANON_KEY`, and it reads them from your shell, not from the server. It is fail closed. It exits with a non zero code if it cannot complete the check or finds a live policy with no matching approval record, and it reports each one.
+This script is the one place that reads `SUPABASE_URL` and `SUPABASE_ANON_KEY`, and it reads them from your shell, not from the server. That is deliberate: it uses the low privilege `anon` role, which can only read approval records, so a CI credential cannot write. It needs a Supabase project, because it uses the REST layer. On a plain Postgres, read `policy_change_approval_records` with SQL instead. It is fail closed. It exits with a non zero code if it cannot complete the check or finds a live policy with no matching approval record, and it reports each one.
 
 ## Step 8: Run one real request
 

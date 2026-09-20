@@ -4,10 +4,13 @@ name: Docker image
 # packages by hand, so it can fall behind the repository without any test
 # noticing. This job fails the change that lets that happen.
 #
-# The boot test uses NODE_ENV=test with authentication off and throwaway keys,
-# so it needs no database. It proves the image builds, starts, serves
+# The first boot test uses NODE_ENV=test with authentication off and throwaway
+# keys, so it needs no database. It proves the image builds, starts, serves
 # /health and /ready, and contains the handbook PDF the API needs at startup.
-# It does not prove a production configuration. The production runbook does.
+# A second boot then uses NODE_ENV=production against a real Postgres with every
+# migration applied, requires authentication to be on, and requires a request
+# with a valid key to reach request validation. It does not deploy anywhere. The
+# production runbook covers a real deployment.
 
 on:
   push:
@@ -21,6 +24,8 @@ on:
       - package-lock.json
       - packages/*/package.json
       - docs/site/parmana-handbook.pdf
+      - supabase/migrations/**
+      - scripts/apply-all-migrations.sql
       - .github/workflows/docker-image.yml
   pull_request:
     paths:
@@ -31,6 +36,8 @@ on:
       - package-lock.json
       - packages/*/package.json
       - docs/site/parmana-handbook.pdf
+      - supabase/migrations/**
+      - scripts/apply-all-migrations.sql
       - .github/workflows/docker-image.yml
   workflow_dispatch:
 
@@ -79,6 +86,45 @@ jobs:
           docker logs parmana
           exit 1
 
-      - name: Show the container log if a step failed
+      - name: Stop the test mode container
+        run: docker rm -f parmana
+
+      - name: Start Postgres and apply every migration
+        run: |
+          docker run -d --name pg --network host -e POSTGRES_PASSWORD=postgres postgres:16
+          for i in $(seq 1 30); do
+            docker exec pg pg_isready -U postgres && break
+            sleep 2
+          done
+          # Supabase provides these roles. Plain Postgres does not.
+          docker exec pg psql -U postgres -v ON_ERROR_STOP=1 -c "create role anon; create role authenticated; create role service_role;"
+          docker exec -i pg psql -U postgres -v ON_ERROR_STOP=1 < scripts/apply-all-migrations.sql
+          docker exec pg psql -U postgres -tA -c "select to_regclass('consumed_nonces'), to_regclass('execution_audit_events'), to_regclass('policies')"
+
+      - name: Start the container in production mode
+        run: |
+          KEYHASH=$(printf '%s' "ci-key" | sha256sum | cut -d' ' -f1)
+          docker run -d --name parmana-prod --network host             -e NODE_ENV=production             -e PARMANA_STORAGE=supabase             -e DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/postgres             -e PARMANA_API_KEYS="[{\"callerId\":\"ci\",\"keyHash\":\"$KEYHASH\",\"allowedCapabilities\":[\"paytm:refund\"]}]"             -v "$PWD/keys:/app/keys:ro"             parmana-api
+
+      - name: Check production mode answers correctly
+        run: |
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:3000/health >/dev/null && break
+            sleep 2
+          done
+          READY=$(curl -fsS http://localhost:3000/ready)
+          echo "ready: $READY"
+          echo "$READY" | grep -q '"status":"READY"'
+          echo "$READY" | grep -q '"authDisabled":false'
+          NOKEY=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:3000/execute -H 'Content-Type: application/json' -d '{}')
+          echo "no key: $NOKEY"
+          test "$NOKEY" = "401"
+          WITHKEY=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:3000/execute -H 'Content-Type: application/json' -H 'Authorization: Bearer ci-key' -d '{}')
+          echo "with key, empty body: $WITHKEY"
+          test "$WITHKEY" = "400"
+
+      - name: Show the container logs if a step failed
         if: failure()
-        run: docker logs parmana || true
+        run: |
+          docker logs parmana || true
+          docker logs parmana-prod || true
