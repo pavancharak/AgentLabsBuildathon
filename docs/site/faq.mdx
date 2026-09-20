@@ -18,10 +18,13 @@ description: "Direct answers, including the ones that aren't flattering."
     guarantee. See [Limitations](/security/limitations) for the full picture.
   </Accordion>
   <Accordion title="Is Parmana's signing key stored securely?">
-    Today it's a PEM file on disk, read by `FileKeyProvider`, the only
-    implemented key provider. There's a live incident on record: an earlier
-    committed key was publicly exposed and is permanently compromised (rotated
-    2026-07-05). KMS/HSM custody is designed but not built, see
+    It depends on `KEY_PROVIDER`. With `local` it's a PEM file on disk, read by
+    `FileKeyProvider`. With `aws-kms` the signing key lives in AWS KMS and is
+    never released, see [AWS KMS signing](/deployment/aws-kms-signing). The
+    gateway attestation key is still a file in both modes. There's a live
+    incident on record: an earlier committed key was publicly exposed and is
+    permanently compromised (rotated 2026-07-05). Azure Key Vault, Google Cloud
+    KMS and HSM custody are not built, see
     [Cryptography](/cryptography/overview) and [Roadmap](/roadmap).
   </Accordion>
   <Accordion title="Which SDK should I use?">

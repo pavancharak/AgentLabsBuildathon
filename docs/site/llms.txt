@@ -46,7 +46,7 @@ This file is generated from the documentation navigation. Do not edit it by hand
 
 * [Verification](https://docs.parmanasystems.com/verification/overview): Exactly 3 checks, always run, always reported independently.
 * [Replay](https://docs.parmanasystems.com/replay/overview): Two separate things share this name today, what each actually does.
-* [Cryptography](https://docs.parmanasystems.com/cryptography/overview): Ed25519 default, ML-DSA-65 (post-quantum) configurable. Local PEM keys today; KMS/HSM is roadmap.
+* [Cryptography](https://docs.parmanasystems.com/cryptography/overview): Ed25519 default, ML-DSA-65 (post-quantum) configurable. Local PEM keys or AWS KMS for the signing key; other key custody is roadmap.
 * [Storage](https://docs.parmanasystems.com/storage/overview): Append-only persistence for Business Transactions, Trust Records, and policies.
 ## Guides: Build with Parmana
 
@@ -168,6 +168,7 @@ This file is generated from the documentation navigation. Do not edit it by hand
 
 * [Local / Self-Hosted Deployment](https://docs.parmanasystems.com/deployment/local): The real, current deployment model: a single Node.js process, local PEM keys, your choice of memory or Supabase storage.
 * [Production deployment runbook](https://docs.parmanasystems.com/deployment/production): A numbered procedure to deploy the Parmana server to production, with the check that proves each step worked and the fix when it did not.
+* [AWS KMS signing](https://docs.parmanasystems.com/deployment/aws-kms-signing): Keep the signing key inside AWS KMS so the private key is never released. Set it up, verify it works, and understand the 4096 byte KMS limit.
 * [Environment variable reference](https://docs.parmanasystems.com/deployment/environment-variables): Every environment variable the Parmana server reads: whether it is required, its default, its allowed values, and what it does.
 * [Deploy Patterns](https://docs.parmanasystems.com/guides/deploy-patterns): In-memory vs Supabase storage, the full environment variable checklist, and how key management actually works: two separate keypairs, one directory, one optional rotation variable.
 ## Deploy and operate: Security

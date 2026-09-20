@@ -68,6 +68,7 @@ const FULL_TEXT_PAGES = [
   "guides/python-sdk-quickstart",
   "deployment/local",
   "deployment/production",
+  "deployment/aws-kms-signing",
   "deployment/environment-variables",
   "security/overview",
   "troubleshooting",
