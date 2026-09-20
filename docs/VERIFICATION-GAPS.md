@@ -248,8 +248,8 @@ section exactly):**
   this layer is infrastructure work of the same shape `02-REMAINING.md` already tracks as a
   dedicated "big rock" (nonce-store persistence), and this layer is downstream of the
   already-durable, load-bearing nonce check.
-- **(§12.7) `OverrideService`/`OverrideVerifier`** (G-5, below) remain unreachable dead
-  code. **Deliberately, explicitly not wired up** — `02-REMAINING.md`'s own Tier 0 entry
+- **(§12.7) `OverrideService`/`OverrideVerifier`** (G-5, below) remained unreachable dead
+  code **until they were deleted on 2026-09-08 (see G-5's 2026-09-20 update)**. **Deliberately, explicitly not wired up** — `02-REMAINING.md`'s own Tier 0 entry
   for this component is a standing security guard reading "do NOT wire overrides" until its
   documented deficiencies are fixed with a design partner's input. Wiring it to "close" G-5
   would directly contradict that guard.
@@ -1295,7 +1295,7 @@ signed record itself cannot be recreated automatically. **Not fixed. Options:** 
 released context before building the record and expose a finalize operation that rebuilds and signs
 the record from it, which still depends on storage being available; (2) the signed execution intent
 in G-52 option 2, which is the complete answer. Either is a design change with a schema and
-migration story, and needs its own ADR.
+migration story, and needs its own ADR. **Proposed, not decided: `docs/adr/ADR-0012-Signed-Execution-Intent-Before-Release.md`** recommends persisting a signed execution intent before release, with a finalize operation for an intent that was never finalized. It lists the decisions still needed.
 
 ### pre-production
 
@@ -1362,6 +1362,8 @@ only proof that an override can land on a trust record and still verify
 repository and manually pre-computing the hash/signature to match: a storage-layer proof,
 not a proof that the actual application-layer service (with its business rules) works, or
 is even reachable by anything. **Decision required, see below.**
+
+**Update (2026-09-20): resolved by removal, on 2026-09-08.** `OverrideService` and `OverrideVerifier` (`packages/runtime/src/services/override-service.ts`, `packages/runtime/src/policy/OverrideVerifier.ts`) were deleted in commit `e6c73f0`, the dead code cleanup that also removed `packages/receipt`. Re-checked on this date: no file named in this entry exists, nothing imports an override service, and `packages/api/src/app.ts` mounts no `/overrides` route. This is D-3 option B, removal. This entry was not updated when the code was removed. What remains is the storage layer: the record model still has an `overrides` list, and the repositories still have `appendOverride`, which only the storage layer integration test named above uses. Nothing in a request path calls it. If an override capability is wanted later, it needs a new design (canonical serialization, a signed approver, a nonce and a TTL), and the standing warning in `02-REMAINING.md` not to wire the old one applies to any design that skips those.
 
 **G-6. `packages/receipt` has zero test files. STALE CLASS NAMES CORRECTED (Phase 3D
 follow-up, in response to an external audit report of `docs/CLAIMS.md` 2.5/2.6 that this
@@ -2925,6 +2927,8 @@ that.
 
 ### D-3. `OverrideService` unreachable and untested (G-5)
 
+**Resolved 2026-09-08 by option B, removal; recorded 2026-09-20.** See the update on G-5. The options are kept below as the historical record.
+
 **Option A: wire it in.** Add a `POST /overrides` (or similar) route calling
 `OverrideService`, and a test suite proving its actual business rules (duplicate-override
 rejection, missing-transaction/missing-trust-record errors), replacing the storage-layer
@@ -3049,7 +3053,7 @@ decision (billing or visibility, neither a call this document or a code change c
    wanted, is the remaining project; not urgent, since nothing currently misleads a
    deployer into thinking they're covered by hybrid mode when they aren't (G-4's own
    "still exactly as originally found" paragraph names them explicitly)._
-5. **G-5, OverrideService unreachable** (Option A or B, either closes the ambiguity): right
+5. **G-5, OverrideService unreachable: RESOLVED by removal (2026-09-08, recorded 2026-09-20).** Originally: (Option A or B, either closes the ambiguity): right
    now it's neither a documented `[FUTURE]` capability nor a tested, reachable one, which is
    the actual gap, not the specific choice between exposing or removing it. _A day for either
    option._
