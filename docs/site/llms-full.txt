@@ -450,6 +450,213 @@ overview](/guides/full-integration-overview) and the [Error catalog](/api-refere
 
 ---
 
+## Deploy Parmana: specification for AI agents
+
+Source: https://docs.parmanasystems.com/agents/deploy
+
+This page is written to be followed literally by an AI agent or a person. It contains no options to weigh. If your situation is not covered, **stop and ask the operator**. Do not guess.
+
+The human readable version, with more explanation, is the [Production deployment runbook](/deployment/production). Every variable is defined in the [Environment variable reference](/deployment/environment-variables). If the two disagree with this page, the environment reference wins, and you must tell the operator.
+
+## Rules that apply to every step
+
+1. Do the steps in order. Do not skip one.
+2. After each step compare what you saw with **Expect**. If it differs, follow **If not** and stop.
+3. Never print, log, commit or paste a secret. Secrets are: raw API keys, bearer keys, private key files, `DATABASE_URL`, `PARMANA_KEY_MATERIAL_JSON`, connector secrets and tokens.
+4. Never set `PARMANA_AUTH_DISABLED`, and never set `NODE_ENV` to `test` or `development` on a production server.
+5. Never deploy to production, write production environment variables or publish anything unless the operator has told you to in this session. Preparing the values and the commands is always allowed.
+6. The maker and the checker in step 8 must be two different identities. You may act as the maker. You must never approve your own proposal. The checker is a human.
+
+## Inputs you need before you start
+
+| Input                | Where it comes from                                                        | How to check it                                                               |
+| -------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `REPO`               | A clone of the Parmana repository.                                         | The file `package.json` exists at its root.                                   |
+| `DATABASE_URL`       | The operator. A Postgres connection string.                                | It starts with `postgresql://`. On a serverless host it is the pooler string. |
+| `HOST_KIND`          | The operator: `fly`, `vercel` or `docker`.                                 | It is exactly one of those three words.                                       |
+| `URL`                | The operator, or the host after deploy. The base URL, no trailing slash.   | It starts with `https://`.                                                    |
+| `FIRST_CALLER_ID`    | The operator. The name of the first caller, for example `my-agent`.        | It is non empty and has no spaces.                                            |
+| `FIRST_CAPABILITIES` | The operator. The actions that caller may use, for example `paytm:refund`. | It is non empty. Never use `*` unless the operator says so in words.          |
+| `CHECKER_ID`         | The operator. The name of the human checker.                               | It differs from `FIRST_CALLER_ID`.                                            |
+
+If any input is missing, stop and ask for it.
+
+## Step 1: Generate the signing keys
+
+Run from `REPO`:
+
+```bash
+npx tsx scripts/generate-keypair.ts --algorithm ed25519 --key-id default
+npm run generate:gateway-keys
+```
+
+**Expect:** the directory `keys` holds `default.private.pem`, `default.public.pem`, `gateway.private.pem` and `gateway.public.pem`.
+
+**If not:** a command reports that a file already exists. Do not add `--force`. Stop and ask the operator whether those keys are the ones in use.
+
+## Step 2: Create the database schema
+
+Ask the operator to apply the schema, or apply it if you have Supabase CLI access. There is exactly one accepted method for an agent: run `supabase db push` in a directory linked to the project. Otherwise give the operator the file `scripts/apply-all-migrations.sql` and ask them to run it in the Supabase SQL Editor.
+
+**Expect:** the query `select count(*) from consumed_nonces;` returns a number.
+
+**If not:** the query says the table does not exist. The schema is not applied. Stop and report it. If a later request says `PGRST205`, run `NOTIFY pgrst, 'reload schema';` and try once more.
+
+## Step 3: Generate the caller keys
+
+```bash
+npm run generate:api-key -- --caller-id FIRST_CALLER_ID --allowed-capabilities FIRST_CAPABILITIES
+npm run generate:api-key -- --caller-id CHECKER_ID --credential-holder-type USER --generate-step-up-key
+```
+
+Replace the three capitalised words with the input values. Each command prints a raw key, and a JSON entry. The second also prints a step up private key.
+
+**Expect:** two JSON entries, each with `callerId` and a `keyHash` of 64 lowercase hexadecimal characters. The second has `credentialHolderType` set to `USER` and a `stepUpPublicKey`.
+
+**If not:** stop and report the output, with any key values removed.
+
+Do the following with the printed values, and nothing else:
+
+1. Hand the first raw key to the caller through the channel the operator names.
+2. Hand the checker bearer key and the step up private key to the checker, and to nobody else.
+3. Keep the two JSON entries. Join them into one array. That array is `PARMANA_API_KEYS`.
+
+## Step 4: Set the environment on the host
+
+Set exactly these variables on the host, in the Production environment:
+
+| Variable             | Value                    |
+| -------------------- | ------------------------ |
+| `NODE_ENV`           | `production`             |
+| `PARMANA_POLICY_DIR` | `./policies`             |
+| `PARMANA_API_KEYS`   | The array from step 3    |
+| `PARMANA_STORAGE`    | `supabase`               |
+| `DATABASE_URL`       | The input `DATABASE_URL` |
+| `PARMANA_KEY_DIR`    | `./keys`                 |
+
+If the host cannot mount the four key files, also set `PARMANA_KEY_MATERIAL_JSON` to `{"default":{"privateKeyPem":"<contents>","publicKeyPem":"<contents>"},"gateway":{"privateKeyPem":"<contents>","publicKeyPem":"<contents>"}}`, with the file contents from step 1.
+
+If the operator wants a connector, also set its variables from the [connector section](/deployment/environment-variables#connectors). For the refund connector set both `PAYTM_CONNECTOR_URL` (it must start with `https://`) and `PAYTM_CONNECTOR_SHARED_SECRET`, or neither.
+
+**Expect:** the host lists all six variables, and does not list `PARMANA_AUTH_DISABLED`.
+
+**If not:** stop and report which variable is wrong. Never repeat a secret value in your report.
+
+Rule 5 applies. If the operator has not told you to write to the host, print the variable names and stop, and let the operator set the values.
+
+## Step 5: Deploy
+
+| `HOST_KIND` | Command                                                                                        |
+| ----------- | ---------------------------------------------------------------------------------------------- |
+| `fly`       | `fly deploy`                                                                                   |
+| `vercel`    | `vercel deploy --prod`                                                                         |
+| `docker`    | `docker build -t parmana-api .` then run the image with the variables from step 4, port `3000` |
+
+Environment variables are read once at startup, so a change to any of them needs a new deploy.
+
+**Expect:** the deploy finishes and the host shows the new version live.
+
+**If not:** read the host's log. A startup failure names the variable it dislikes. Look the message up in the [startup errors table](/deployment/environment-variables#startup-errors-and-what-to-do), fix that one thing and deploy again. Do not change anything else.
+
+## Step 6: Check the server
+
+Replace `URL` with the input value.
+
+```bash
+curl -s "URL/health"
+curl -s "URL/ready"
+curl -s -o /dev/null -w "%{http_code}" -X POST "URL/execute" -H "Content-Type: application/json" -d "{}"
+```
+
+**Expect:**
+
+| Request                 | Answer                                               |
+| ----------------------- | ---------------------------------------------------- |
+| `GET /health`           | `200` and `"status":"UP"`                            |
+| `GET /ready`            | `200`, `"status":"READY"` and `"authDisabled":false` |
+| `POST /execute`, no key | The three digit code `401`                           |
+
+**If not:**
+
+| You saw                                    | Meaning                               | Do                                                                               |
+| ------------------------------------------ | ------------------------------------- | -------------------------------------------------------------------------------- |
+| `/ready` returns `503` `NOT_READY`         | The database is unreachable.          | Check `DATABASE_URL` and the network path. Stop and report.                      |
+| `"authDisabled":true`                      | Authentication is off.                | Remove `PARMANA_AUTH_DISABLED` and deploy again at once, then tell the operator. |
+| `POST /execute` returns anything but `401` | Caller authentication is not working. | Stop. Do not send any real request. Report it.                                   |
+
+## Step 7: Copy the policies into the database
+
+Run from `REPO`, with `DATABASE_URL` and `PARMANA_POLICY_DIR=./policies` set in your shell:
+
+```bash
+npx tsx scripts/apply-policies-table-and-backfill.ts
+```
+
+**Expect:** one line per policy, then `Backfilled N policies into the 'policies' table.`
+
+**If not:** stop and report the error message.
+
+## Step 8: Approve each policy
+
+For every policy the operator lists, in the form `POLICY_NAME` and `POLICY_VERSION`:
+
+1. You never hold the checker's keys. You act as the maker only if the operator gave you a maker's bearer key and said so. Otherwise ask the operator to propose.
+2. Propose the change as the maker, following the [Policy governance guide](/guides/policy-governance-maker-checker), step 1. The response has status `201` and a `pendingPolicyChangeId`.
+3. Tell the checker the `pendingPolicyChangeId` and ask them to review it and approve it with their own key, as in steps 2 to 4 of that guide, or with `scripts/local-review-action.ts`.
+4. Wait until the checker confirms.
+
+**Expect:** `GET URL/policies/pending-changes?status=PENDING_APPROVAL` no longer lists your `pendingPolicyChangeId`.
+
+**If not:**
+
+| You saw                                  | Meaning                                                                   | Do                                                     |
+| ---------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------ |
+| The approve call returns `403`           | The checker key is not `USER`, or the maker and the checker are the same. | Stop and tell the operator. Never approve it yourself. |
+| The approve call fails after 120 seconds | The step up signature expired.                                            | Ask the checker to sign and submit again, in one step. |
+
+Do not run `scripts/backfill-legacy-policy-approvals.ts`. It records a system approval that is not a human decision. Only the operator may choose that, in words.
+
+Then run the check. Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` in your shell first. They are for this script only:
+
+```bash
+npx tsx scripts/verify-policy-changes-approved.ts --full-scan
+```
+
+**Expect:** the script exits with code `0`.
+
+**If not:** it lists each live policy without a matching approval. Approve those, and run the check again.
+
+## Step 9: Send one real request
+
+Follow [Integrate Parmana: specification for AI agents](/agents/integrate) with a small, harmless action that the policy allows.
+
+**Expect:** the response is a signed Execution Trust Record. Sending the same `businessTransactionId` again returns `409`.
+
+**If not:** use the table in that page. Never send the same action again under a new id after a `500` with the code `EXECUTION_RECORD_INCOMPLETE`. That action was released. Tell the operator.
+
+## Step 10: Report
+
+Give the operator one message with:
+
+1. The base URL and the answers from step 6.
+2. The number of policies approved and the result of the check in step 8.
+3. The result of step 9.
+4. Anything you skipped, and why.
+
+Do not include any secret in the message.
+
+## When to stop and ask
+
+Stop and ask the operator when:
+
+1. An input is missing, or two inputs conflict.
+2. A command tells you a file already exists, and you were not told to overwrite it.
+3. You are asked to deploy, write production variables or publish, and you were not told to.
+4. Anything in **Expect** differs and its **If not** row says to stop.
+5. You would have to guess a value, a name or a person.
+
+---
+
 ## Quickstart
 
 Source: https://docs.parmanasystems.com/quickstart
@@ -2847,184 +3054,252 @@ ML-DSA-65 (post quantum signing), which needs Node 24 or later for native `node:
 
 ---
 
-## Production Deployment
+## Production deployment runbook
 
 Source: https://docs.parmanasystems.com/deployment/production
 
-<Info>
-  **[AVAILABLE]**, validated against a real, permanent Fly.io deployment
-  (`parmana-api`). Platform-agnostic by design, built against a bare `docker
-  build` / `docker run`, not a specific PaaS's proprietary build system. Source:
-  `DEPLOYMENT.md` (repo root).
-</Info>
+This runbook takes you from an empty environment to a server that is running, authenticated, governed and verified. Do the steps in order. Every step ends with a **Check**. Do not go to the next step until the check passes.
 
-## Quick start
+The exact meaning of every variable is in the [Environment variable reference](/deployment/environment-variables). If a startup error appears, look it up in the table at the bottom of that page.
+
+## What you deploy
+
+One container image, one process. `docker/entrypoint.sh` starts `node packages/api/dist/server.js` and forwards `SIGTERM` and `SIGINT` to it. There is no second process.
+
+The same code also runs as a Vercel function, through `api/index.ts` and `vercel.json`. The steps below are the same on both. Section [Host specific steps](#host-specific-steps) lists the differences.
+
+## Before you start
+
+You need:
+
+| You need                  | Why                                                                                                  |
+| ------------------------- | ---------------------------------------------------------------------------------------------------- |
+| A clone of the repository | The scripts below run from the repository root.                                                      |
+| Node and npm              | The image uses Node 24. Run `npm install` once in the clone, then scripts run with `npx tsx`.        |
+| A Postgres database       | Production storage. A Supabase project works. Note its **transaction pooler** connection string.     |
+| A host for the container  | Fly.io, any Docker platform, or Vercel.                                                              |
+| Two people                | One proposes policy changes (the maker) and a different one approves them (the checker). See step 7. |
+
+Production requires a real database, real signing keys and caller authentication. The server refuses to start without them, and it never falls back to something weaker.
+
+## Step 1: Generate the signing keys
+
+Run from the repository root:
+
+```bash
+npx tsx scripts/generate-keypair.ts --algorithm ed25519 --key-id default
+npm run generate:gateway-keys
+```
+
+Both write into `./keys` unless `PARMANA_KEY_DIR` is set. They refuse to overwrite existing files unless you add `--force`.
+
+**Check:** `keys/` contains `default.private.pem`, `default.public.pem`, `gateway.private.pem` and `gateway.public.pem`.
+
+Never commit the private files and never bake them into the image. The image starts with an empty `keys/` directory on purpose. To keep the signing key inside AWS KMS instead, set `KEY_PROVIDER=aws-kms` and read the signing keys section of the environment reference. The gateway key is still a file.
+
+## Step 2: Create the database schema
+
+The server needs the tables in `supabase/migrations/`, and creating them is a manual step. Use one of these:
+
+1. With the Supabase CLI linked to your project, run `supabase db push`.
+2. Otherwise open the Supabase SQL Editor and run the whole file `scripts/apply-all-migrations.sql` once. It is safe to run again, because every statement is idempotent.
+
+**Check:** in the SQL Editor, `select count(*) from consumed_nonces;` returns a number and not an error.
+
+If a request later fails with `PGRST205` ("Could not find the table"), the schema cache is stale. Run `NOTIFY pgrst, 'reload schema';` in the SQL Editor, or use Dashboard, Database, API, Reload schema cache.
+
+## Step 3: Create the caller keys
+
+Each caller gets its own key. Generate one for your first caller:
+
+```bash
+npm run generate:api-key -- --caller-id my-agent --allowed-capabilities paytm:refund
+```
+
+The command prints the raw key **once**, and a JSON entry. Give the raw key to the caller and store it nowhere else. Keep the JSON entry for step 5.
+
+Make a second, human key for the checker now, because step 7 needs it:
+
+```bash
+npm run generate:api-key -- --caller-id my-checker --credential-holder-type USER --generate-step-up-key
+```
+
+That prints a bearer key, a step up private key, and a JSON entry. The checker keeps the bearer key and the private key. Only the JSON entry goes to the server.
+
+**Check:** you hold two JSON entries. Combine them into one array for `PARMANA_API_KEYS`, for example `[{...},{...}]`. Each entry has a 64 character lowercase `keyHash`.
+
+## Step 4: Decide the connector settings
+
+A connector registers only when its settings are present. If you do not set a connector, the server still starts and every request for that connector's actions fails. For the refund connector set both of these, or neither:
+
+| Variable                        | Value                                                    |
+| ------------------------------- | -------------------------------------------------------- |
+| `PAYTM_CONNECTOR_URL`           | The `https://` URL of your `parmana-paytm-agent` service |
+| `PAYTM_CONNECTOR_SHARED_SECRET` | The shared secret that service expects                   |
+
+The other connectors (HubSpot, Slack, GitHub) are in the [connector section of the environment reference](/deployment/environment-variables#connectors). To keep connector credentials in AWS Secrets Manager set `PARMANA_SECRETS_PROVIDER=aws-secrets-manager`.
+
+## Step 5: Set the environment on your host
+
+Set these in your platform, not in a file in the image. The minimum for production is:
+
+| Variable             | Value                                                                                   |
+| -------------------- | --------------------------------------------------------------------------------------- |
+| `NODE_ENV`           | `production`                                                                            |
+| `PARMANA_POLICY_DIR` | `./policies` (already set in the image)                                                 |
+| `PARMANA_API_KEYS`   | The JSON array from step 3                                                              |
+| `PARMANA_STORAGE`    | `supabase`                                                                              |
+| `DATABASE_URL`       | Your Postgres connection string. Use the transaction pooler string on serverless hosts. |
+| `PARMANA_KEY_DIR`    | `./keys`, with the four PEM files from step 1 mounted there                             |
+
+If your host cannot mount files, set `PARMANA_KEY_MATERIAL_JSON` instead. It is a JSON object of the form `{"default":{"privateKeyPem":"...","publicKeyPem":"..."},"gateway":{...}}`. It writes any key file that does not already exist into `PARMANA_KEY_DIR` at startup.
+
+Do not set `PARMANA_AUTH_DISABLED`. Do not set `NODE_ENV` to `test` or `development`. Do not set `SUPABASE_URL` or the other `SUPABASE_*` variables on the server, because it does not read them and only `DATABASE_URL` is used.
+
+**Check:** the list of variables on your host includes all six from the table, and none of the two forbidden ones.
+
+## Step 6: Deploy and confirm it started
+
+Build and run the image:
 
 ```bash
 docker build -t parmana-api .
-
-docker run -p 3000:3000 \
-  -e SUPABASE_URL=... \
-  -e SUPABASE_SERVICE_ROLE_KEY=... \
-  -e PARMANA_API_KEYS='[{"callerId":"...","keyHash":"..."}]' \
-  -v /path/to/keys:/app/keys:ro \
-  parmana-api
 ```
 
-The process fails closed on missing configuration, see below for exactly what's required
-and why. `GET /health` (liveness) and `GET /ready` (readiness, see [Health
-checks](#health-checks)) are both served once the process is up.
+Then start it on your host with the variables from step 5. The server validates every required setting before it opens the port. A wrong value makes it exit at once with a message that names the variable.
 
-## What's in the image
-
-One image, one process, started by `docker/entrypoint.sh`: **the API server**
-(`node packages/api/dist/server.js`). `entrypoint.sh` forwards `SIGTERM`/`SIGINT` to it and
-exits with its exit code, a minimal process supervisor, not a multi-process init system.
-
-## Required configuration
-
-Everything below is validated eagerly, before the port is bound. A misconfigured process
-never boots "successfully" and fails later on the first real request, it exits immediately
-with a clear error naming exactly what's missing.
-
-### Signing key material, always required
-
-Every execution authorization, receipt, verification, and settlement confirmation is signed.
-Two key pairs are required in `PARMANA_KEY_DIR` (default `./keys`, already set in the image):
-
-- `default.private.pem` / `default.public.pem`, the authorization-signing key.
-- `gateway.private.pem` / `gateway.public.pem`, the Gateway's attestation-signing key,
-  deliberately separate (`PARMANA_GATEWAY_KEY_ID` overrides the `gateway` id if you need a
-  different one).
-
-`KEY_PROVIDER` (optional, defaults to `local`) fails startup loudly if set to
-`aws-kms`/`azure-key-vault`/`gcp-kms`/`hsm`. None of those custody models are implemented
-yet, and this is a real config value with no working provider behind it today.
-
-`PARMANA_GATEWAY_ID` (optional, defaults to `parmana-gateway`) is this process's logical
-Gateway identity, distinct from `PARMANA_GATEWAY_KEY_ID` above, which is a key file prefix.
-Set a distinct value per environment or tenant if running more than one logically distinct
-gateway against the same audit trail.
-
-Neither key file is generated automatically. Two ways to provide them:
-
-1. **Mount a volume or platform secret file** at `/app/keys` containing all four `.pem`
-   files, the image's `keys/` starts empty on purpose, key material must never be baked into
-   the image.
-2. **`PARMANA_KEY_MATERIAL_JSON`**, for platforms with no persistent-volume or secret-file
-   primitive. A JSON object, `{ "<keyId>": { "privateKeyPem": string, "publicKeyPem": string } }`,
-   written to `PARMANA_KEY_DIR` at boot for any file that doesn't already exist there, a
-   pre-mounted file always wins, never overwritten. Needs entries for both `default` and
-   `gateway` key ids.
-
-Generate a throwaway pair locally with:
+**Check** (replace `$URL` with your server's base URL):
 
 ```bash
-openssl genrsa -out default.private.pem 2048
-openssl rsa -in default.private.pem -pubout -out default.public.pem
+curl -s "$URL/health"
+curl -s "$URL/ready"
+curl -s -o /dev/null -w "%{http_code}\n" -X POST "$URL/execute" -H "Content-Type: application/json" -d "{}"
 ```
 
-(repeat for `gateway.{private,public}.pem`.)
+The expected answers are:
 
-### Storage (`PARMANA_STORAGE`)
+| Request                     | Expect                                                                                             |
+| --------------------------- | -------------------------------------------------------------------------------------------------- |
+| `GET /health`               | `200` with `"status":"UP"`. This checks that the process is alive.                                 |
+| `GET /ready`                | `200` with `"status":"READY"` and `"authDisabled":false`. It runs `SELECT 1` against the database. |
+| `POST /execute` with no key | `401` with a `WWW-Authenticate` header. This proves caller authentication is on.                   |
 
-- `memory` (default), no external dependency, fine for a single-instance deployment with no
-  durability guarantee across restarts.
-- `supabase`, requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (or
-  `SUPABASE_ANON_KEY`). Validated eagerly at boot, not lazily on first request.
+If `/ready` returns `503` with `NOT_READY`, the database is unreachable. Check `DATABASE_URL` and the network path. If `authDisabled` is `true`, remove `PARMANA_AUTH_DISABLED` and redeploy at once.
 
-Independent of `PARMANA_STORAGE`: the Execution Gateway's replay-nonce store and the caller
-authentication audit trail are **always** Supabase-backed in production, never falls back to
-in-memory, because a durable store is required for these to behave correctly across process
-restarts and replicas — `SUPABASE_URL` / key are required for both regardless of
-`PARMANA_STORAGE`.
+## Step 7: Load and approve your policies
 
-### Applying the schema (Supabase)
+In production with Supabase storage, policies live in the `policies` table, not on disk. Do these two things.
 
-Any Supabase-backed component needs the schema in `supabase/migrations/` actually applied to
-the target Supabase project, a manual step. An unapplied table surfaces as PostgREST
-returning `PGRST205` ("Could not find the table ... in the schema cache") on every request
-touching it, even though the connection and credentials are otherwise fine.
+**7a. Copy the policies into the database, once.** From the repository root, with `DATABASE_URL` and `PARMANA_POLICY_DIR` set in your shell:
 
-Two ways to apply it:
+```bash
+npx tsx scripts/apply-policies-table-and-backfill.ts
+```
 
-1. Supabase CLI, if linked to the project: `supabase db push`.
-2. No CLI link, or a Dashboard-only workflow: run `scripts/apply-all-migrations.sql` (a
-   concatenation of every file in `supabase/migrations/`, in chronological order,
-   unmodified) once, in full, via the Supabase Dashboard's SQL Editor. Safe to re-run, every
-   statement is already idempotent (`CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`).
+It creates the `policies` table if needed and copies every policy found under `PARMANA_POLICY_DIR`. It prints one line per policy.
 
-After applying, PostgREST's schema cache can lag behind the newly created tables until it
-reloads. If `GET /ready` (or any Supabase-backed route) still returns `PGRST205` immediately
-after applying migrations, force a reload rather than waiting: Dashboard → Database → API →
-"Reload schema cache", or `NOTIFY pgrst, 'reload schema';` via the SQL Editor.
+**7b. Give every policy a signed approval.** In production the gateway refuses to release an action for a policy that has no signed approval record whose hash matches the live policy. This gate is always on and cannot be switched off by a variable. Approve each policy you will use with the maker checker flow. The maker proposes and a different person, the checker, approves with a step up signature. The one shot script does both halves:
 
-### Caller authentication (`PARMANA_API_KEYS`)
+```bash
+export PROPOSER_KEY="<the maker's bearer key>"
+export REVIEWER_KEY="<the checker's bearer key>"
+npx tsx scripts/refresh-approved-policy-content.ts \n  --api-base "$URL" \n  --policy-name <name> --policy-version <version> \n  --key-id my-checker --private-key-file ./my-checker.step-up.private.pem
+```
 
-A JSON array of `{ "callerId": string, "keyHash": string }` entries. Refuses to start with no
-caller authentication configured. For local development only, `PARMANA_AUTH_DISABLED=true`
-bypasses this (logs a loud warning on every boot), never set this in a real deployment. See
-[Authentication](/api-reference/authentication).
+Pass `--api-base` every time. Its default is a fixed address that is not your server. `--key-id` is the checker's caller id from step 3, and the private key file is the one that step printed.
 
-### Policy directory (`PARMANA_POLICY_DIR`)
+The full procedure, and how to do it step by step by hand, is in [Policy governance: maker checker approval](/guides/policy-governance-maker-checker). Two rules matter here. The maker and the checker must be different callers, and the checker key must have `credentialHolderType` set to `USER` and a step up public key.
 
-Already set to `./policies` in the image, the committed `policies/` directory is baked in.
-Override only if a platform needs to mount a different policy set.
+<Warning>
+  `scripts/backfill-legacy-policy-approvals.ts` can create approvals for every
+  policy in one run under a fixed system identity. Those approvals are labeled
+  as system approvals and do not record a human decision. Use it only if you
+  accept that, and run it first without `--apply` to see what it would do.
+</Warning>
 
-### Everything else
+**Check:**
 
-Every other variable has a working default. The complete list, with the default, the allowed values and the effect of each one, is the [Environment variable reference](/deployment/environment-variables). Read it before you go live, in particular the sections on signing keys, connectors and the two safety gates (`POLICY_EXECUTION_VERIFICATION_ENFORCED` and `SIGNING_READINESS_CHECK`), which are always on in production and cannot be switched off by a variable.
+```bash
+export SUPABASE_URL="<your Supabase project URL>"
+export SUPABASE_ANON_KEY="<your Supabase anon key>"
+npx tsx scripts/verify-policy-changes-approved.ts --full-scan
+```
 
-`RATE_LIMIT_EXECUTE_PER_MINUTE`/`RATE_LIMIT_HEALTH_PER_MINUTE` (defaults `30`/`300`): when
-`DATABASE_URL` is configured, both limiters share counts fleet-wide via a durable
-Postgres-backed store; without it, each machine counts independently, so a horizontally
-scaled deployment's effective ceiling is `limitPerMinute × machineCount`. See
-[Authentication](/api-reference/authentication#rate-limiting).
+This script is the one place that reads `SUPABASE_URL` and `SUPABASE_ANON_KEY`, and it reads them from your shell, not from the server. It is fail closed. It exits with a non zero code if it cannot complete the check or finds a live policy with no matching approval record, and it reports each one.
 
-## Health checks
+## Step 8: Run one real request
 
-- **`GET /health`**, pure liveness, no external dependency touched.
-- **`GET /ready`**, readiness: when storage is Supabase-backed, makes one cheap read against
-  `consumed_nonces` to confirm the connection and credentials actually work, returning `503`
-  if not, so an orchestrator can tell "up but backed by dead storage" apart from "genuinely
-  ready" and route around it. When storage is `memory`, there's no external dependency to
-  probe, it reports ready unconditionally. Also carries `authDisabled` (plus a `warning`
-  string when true). Set up a synthetic check on this field, since `PARMANA_AUTH_DISABLED`
-  should never be set in a real deployment.
+Send one transaction that your policy approves, using the procedure in [Integrate Parmana: specification for AI agents](/agents/integrate) or one of the SDKs. Use a small, harmless action first.
 
-## Graceful shutdown
+**Check:** the response is the signed Execution Trust Record, and a repeat call with the same `businessTransactionId` returns `409`. Then verify the record independently with [Verify independently](/guides/verify-independently).
 
-On `SIGTERM` / `SIGINT`: the API server stops accepting new connections, lets in-flight
-requests finish, then exits, the "drain, don't drop" shape a PaaS orchestrator expects before
-it force-kills the container. `SHUTDOWN_TIMEOUT_MS` (default `10000`) bounds how long a hung
-in-flight request can delay shutdown before the process force-exits on its own terms.
+A `403 POLICY_DENIED` means the policy refused, which is a correct answer. A `503 SIGNING_UNAVAILABLE` means nothing was executed and you can retry later with a new `businessTransactionId`. A `500 EXECUTION_RECORD_INCOMPLETE` means the action was released, so do not resubmit it. Reconcile first. See [Troubleshooting](/troubleshooting).
 
-## Fly.io specifics
+## Step 9: Turn on monitoring
 
-Validated against a real `parmana-api` Fly app.
+Set up these before you send real traffic:
 
-- **Secrets**: `scripts/generate-fly-secrets.mjs` generates `PARMANA_KEY_MATERIAL_JSON` and
-  `PARMANA_API_KEYS` (single `smoke-test` caller) locally (never printed), leaving
-  `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` as placeholders to fill in, then
-  `fly secrets import < .flysecrets/secrets.env` to apply. Rotating any secret restarts every
-  machine to pick it up, `fly status` should show a recent "last updated" and passing health
-  checks before treating the new value as live.
-- **Region**: `fly.toml` declares a primary region, but machine placement is Fly's choice at
-  create time, confirm actual placement with `fly status` rather than assuming the configured
-  primary region.
-- **Smoke test**: `GET /health` and `GET /ready` should both return `200` post-deploy, an
-  unauthenticated `POST /execute` should return `401` with a `WWW-Authenticate` header,
-  confirming caller auth is actually wired rather than accidentally disabled.
+| Monitor                                                 | Alert when                                                                               |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `GET /ready` every 30 seconds                           | The status is not `200`, or `authDisabled` is `true`.                                    |
+| Log event `rate_limit_store_not_durable`                | It appears. It means rate limits are counted per instance, so `DATABASE_URL` is missing. |
+| Response codes `503` with `SIGNING_UNAVAILABLE`         | Any occurrence. The signing path is unhealthy and nothing is being released.             |
+| Response codes `500` with `EXECUTION_RECORD_INCOMPLETE` | Any occurrence. Reconcile that transaction by hand.                                      |
+| Log level                                               | Set `LOG_LEVEL=info`. Use `debug` only while investigating.                              |
+
+## Host specific steps
+
+### Fly.io
+
+`fly.toml` sets the app name, the primary region and a health check on `GET /ready` every 30 seconds.
+
+1. Generate the secrets file without printing it: `node scripts/generate-fly-secrets.mjs`. It writes `.flysecrets/secrets.env` with `PARMANA_KEY_MATERIAL_JSON` and `PARMANA_API_KEYS`, and leaves the database values for you to fill in. Add `DATABASE_URL`, `NODE_ENV` and `PARMANA_STORAGE` to it.
+2. Apply them: `fly secrets import < .flysecrets/secrets.env`.
+3. Deploy: `fly deploy`.
+4. Confirm with `fly status`. Every machine should show a recent update and a passing check. Machine placement is Fly's choice, so confirm the region there and do not assume the configured one.
+
+Changing any secret restarts every machine. Treat the new value as live only after `fly status` shows passing checks.
+
+### Vercel
+
+The function entry is `api/index.ts`, configured by `vercel.json`. The policy files ship inside the function through `includeFiles`. The filesystem is read only, which is why production policies live in the `policies` table.
+
+1. Set the variables from step 5 in the Vercel project for the Production environment. Use the Supabase transaction pooler string for `DATABASE_URL`.
+2. Deploy to production, then run the checks in step 6 against your production URL.
+3. Changing an environment variable needs a new deployment before it takes effect.
+
+### Any Docker platform
+
+Run the image with the variables from step 5, publish port `3000` (or set `PORT`), and mount the key files at `/app/keys` read only. Point the platform's health check at `GET /ready`.
+
+## Shutdown and restarts
+
+On `SIGTERM` or `SIGINT` the server stops accepting connections and lets in flight requests finish, then exits. `SHUTDOWN_TIMEOUT_MS` (default `10000`) is the longest a stuck request can delay that. Rolling restarts are safe, because the replay nonce store and the audit trails are always in the database and not in process memory.
+
+## Rotating secrets
+
+| To rotate            | Do this                                                                                                                                                                                                                                                   |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A caller key         | Generate a new entry as in step 3, replace that caller's entry in `PARMANA_API_KEYS`, and redeploy. Give the caller the new raw key. The old key stops working when the new deployment is live.                                                           |
+| The verification key | Run `npx tsx scripts/rotate-verification-key.ts --algorithm ed25519`. It creates a new key under a fresh id and prints the variable to set. Never delete the old key files, because records already signed with them are verified by their stored key id. |
+| A connector secret   | Change the variable on your host, or the secret in Secrets Manager, then redeploy. Values are read once at startup.                                                                                                                                       |
 
 ## Next
 
 <CardGroup cols={2}>
   <Card
-    title="Local / self-hosted deployment"
-    icon="laptop"
-    href="/deployment/local"
+    title="Environment variable reference"
+    icon="list"
+    href="/deployment/environment-variables"
   >
-    The simpler, single-process model for local development.
+    Every variable, its default and its effect.
+  </Card>
+  <Card
+    title="Deploy Parmana: specification for AI agents"
+    icon="robot"
+    href="/agents/deploy"
+  >
+    The same procedure as exact, checkable steps for an AI agent.
   </Card>
 </CardGroup>
 
