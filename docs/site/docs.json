@@ -319,6 +319,7 @@
             "pages": [
               "deployment/local",
               "deployment/production",
+              "deployment/environment-variables",
               "guides/deploy-patterns"
             ]
           },

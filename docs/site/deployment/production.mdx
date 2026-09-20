@@ -125,12 +125,7 @@ Override only if a platform needs to mount a different policy set.
 
 ### Everything else
 
-`PORT` (default `3000`, read dynamically for platforms that inject it at deploy time),
-`LOG_LEVEL`, `CRYPTO_MODE`, `HASH_PROVIDER`, `PRIMARY_SIGNATURE_PROVIDER`, `TRUST_PROFILE`,
-`RECEIPT_VERSION`, `EXECUTION_AUTHORIZATION_TTL_SECONDS`, `SHUTDOWN_TIMEOUT_MS` (default
-`10000`, see below) all have working defaults and rarely need to be set. See
-`packages/shared/src/config/Config.ts` for the authoritative list, it's the only place
-`process.env` is read for application config.
+Every other variable has a working default. The complete list, with the default, the allowed values and the effect of each one, is the [Environment variable reference](/deployment/environment-variables). Read it before you go live, in particular the sections on signing keys, connectors and the two safety gates (`POLICY_EXECUTION_VERIFICATION_ENFORCED` and `SIGNING_READINESS_CHECK`), which are always on in production and cannot be switched off by a variable.
 
 `RATE_LIMIT_EXECUTE_PER_MINUTE`/`RATE_LIMIT_HEALTH_PER_MINUTE` (defaults `30`/`300`): when
 `DATABASE_URL` is configured, both limiters share counts fleet-wide via a durable

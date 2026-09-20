@@ -1,0 +1,227 @@
+---
+title: "Environment variable reference"
+description: "Every environment variable the Parmana server reads: whether it is required, its default, its allowed values, and what it does."
+---
+
+This page lists **every** environment variable the Parmana server reads. A test in the repository fails if the code starts
+reading a variable that is not documented here, so this list cannot silently fall behind.
+
+## How configuration is loaded
+
+1. The server reads the process environment. It also loads a `.env` file, found by walking up from the package directory,
+   but a variable already set in the process environment always wins over the file.
+2. In production, set variables in your platform (Vercel, Fly.io, your container runtime) and do not ship a `.env` file.
+3. Values are read once at startup. Change a variable, then restart or redeploy.
+4. A wrong value fails **at startup** with a message that names the variable. It does not fail later under traffic.
+
+In the **Required** column below, "Always" means the server will not start without it. "Not test" means it is required
+whenever `NODE_ENV` is anything other than `test`, which includes production. "If" means it is required only under the
+stated condition. "No" means optional.
+
+## The minimum for a production start
+
+These are the variables you must set for a production server that uses local signing keys and Supabase storage. Everything
+else has a safe default.
+
+| Variable             | Example value                                                                                                                                          |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `NODE_ENV`           | `production`                                                                                                                                           |
+| `PARMANA_POLICY_DIR` | `./policies`                                                                                                                                           |
+| `PARMANA_API_KEYS`   | `[{"callerId":"my-agent","keyHash":"<64 hex characters>","allowedCapabilities":["paytm:refund"]}]`                                                     |
+| `PARMANA_STORAGE`    | `supabase`                                                                                                                                             |
+| `DATABASE_URL`       | `postgresql://postgres.<project>:<password>@<host>:6543/postgres`                                                                                      |
+| `PARMANA_KEY_DIR`    | `./keys` (with `default.private.pem`, `default.public.pem`, `gateway.private.pem` and `gateway.public.pem` inside), or use `PARMANA_KEY_MATERIAL_JSON` |
+
+Follow [Production deployment](/deployment/production) for the full procedure.
+
+## Core
+
+| Variable              | Required          | Default       | Values or format                                   | What it does                                                                                                                                                                                                                                                                                                            |
+| --------------------- | ----------------- | ------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`            | Set it explicitly | `development` | `production`, `development`, `test`, or any string | Selects behavior. `test` turns off durable stores, key checks and connector requirements, and must never be used in production. `development` and `test` relax two safety gates, see `POLICY_EXECUTION_VERIFICATION_ENFORCED` and `SIGNING_READINESS_CHECK`. Any other value, or leaving it unset, keeps both gates on. |
+| `PORT`                | No                | `3000`        | Integer                                            | TCP port the API listens on.                                                                                                                                                                                                                                                                                            |
+| `HOST`                | No                | `0.0.0.0`     | Host name or IP address                            | Interface the API binds to.                                                                                                                                                                                                                                                                                             |
+| `SHUTDOWN_TIMEOUT_MS` | No                | `10000`       | Milliseconds                                       | On `SIGTERM` or `SIGINT` the server stops accepting connections and drains in flight requests. If they have not finished within this time it exits anyway.                                                                                                                                                              |
+| `LOG_LEVEL`           | No                | `info`        | `debug`, `info`, `warn`, `error`                   | Minimum level written to the structured logs. An unrecognized value falls back to `info`.                                                                                                                                                                                                                               |
+
+## Caller authentication
+
+| Variable                | Required                                         | Default | Values or format                         | What it does                                                                                                                                                                           |
+| ----------------------- | ------------------------------------------------ | ------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PARMANA_API_KEYS`      | Always, unless `PARMANA_AUTH_DISABLED` is `true` | Empty   | JSON array, see below                    | The callers allowed to use the API. The server refuses to start if it is empty or unset.                                                                                               |
+| `PARMANA_AUTH_DISABLED` | No                                               | Off     | Only the exact string `true` turns it on | Accepts every request with no caller authentication. For local development only. Never set it in a real deployment. `GET /ready` reports `authDisabled` so monitoring can alert on it. |
+
+### The format of `PARMANA_API_KEYS`
+
+A JSON array. Each entry is an object:
+
+| Field                  | Required | Meaning                                                                                                                                                                              |
+| ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `callerId`             | Yes      | A non empty string that names the caller.                                                                                                                                            |
+| `keyHash`              | Yes      | The SHA 256 hash of the raw key, as 64 lowercase hexadecimal characters. Only the hash is ever stored.                                                                               |
+| `allowedCapabilities`  | No       | The actions (`intent.action`) this key may invoke, for example `["paytm:refund"]`. If unset or empty the key may invoke **nothing**. The single value `"*"` allows every capability. |
+| `allowedPrincipalIds`  | No       | The `authority.principalId` values this key may assert. If unset the key may only assert its own `callerId`.                                                                         |
+| `credentialHolderType` | No       | `USER`, `ROLE`, `SERVICE` or `ORGANIZATION`. Only `USER` keys may use the policy governance endpoints. If unset the key is treated as not human.                                     |
+| `stepUpPublicKey`      | No       | A PEM encoded Ed25519 public key (SPKI). Required for a `USER` key that approves or rejects policy changes.                                                                          |
+
+Generate an entry and its raw key with:
+
+```bash
+npm run generate:api-key -- --caller-id my-agent --allowed-capabilities paytm:refund
+```
+
+The command prints the raw key **once**, and the JSON entry to put in `PARMANA_API_KEYS`. Give the raw key to the caller
+and never store it anywhere else. To make a human key add `--credential-holder-type USER`, and add
+`--generate-step-up-key` to also generate the step up signing key.
+
+If the value is not valid JSON, is not an array, or an entry is malformed, the server stops at startup with a message
+that names `PARMANA_API_KEYS`.
+
+## Policies
+
+| Variable                                        | Required | Default              | Values or format                                                | What it does                                                                                                                                                                                                                                                                  |
+| ----------------------------------------------- | -------- | -------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PARMANA_POLICY_DIR`                            | Always   | None                 | A directory path                                                | The directory that holds `<name>/<version>/policy.json` files. A relative path resolves from the process working directory, so start the server from the directory that contains it.                                                                                          |
+| `POLICY_EXECUTION_VERIFICATION_ENFORCED`        | No       | Enforced             | `true` only has an effect, and only in `test` and `development` | Requires every policy to have a signed approval record whose hash matches the live policy before it can authorize or release anything. In production, or with `NODE_ENV` unset or any value other than `test` or `development`, it is always on and this variable is ignored. |
+| `POLICY_GOVERNANCE_INTEGRITY_CHECK_INTERVAL_MS` | No       | `300000` (5 minutes) | Milliseconds                                                    | How often the server re checks that live policy files still match their approval records. A value of zero or less turns the periodic check off and leaves only the startup check. A value that is not a number uses the default.                                              |
+
+## Storage
+
+| Variable            | Required     | Default  | Values or format             | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------- | ------------ | -------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PARMANA_STORAGE`   | No           | `memory` | `memory`, `supabase`         | Where business transactions and trust records are kept. `memory` loses everything on restart and must not be used in production. `supabase` uses Postgres through `DATABASE_URL`. The value `postgres` passes validation but the server fails with "Postgres storage provider not implemented", so do not use it.                                                                                                                                                  |
+| `DATABASE_URL`      | Not test     | None     | A Postgres connection string | A direct Postgres connection string. It is required whenever `NODE_ENV` is not `test`, **regardless of `PARMANA_STORAGE`**, because the nonce store, the caller audit trail, the execution audit trail, the approval nonce store and the step up nonce store are always durable outside tests. It also backs shared rate limit counters. Use the Supabase **transaction pooler** string for serverless hosts, see [Production deployment](/deployment/production). |
+| `DATABASE_PROVIDER` | Never set it | None     | None                         | Removed. If it is set at all, the server stops with "DATABASE_PROVIDER is no longer read; set PARMANA_STORAGE instead."                                                                                                                                                                                                                                                                                                                                            |
+
+## Signing keys and gateway identity
+
+| Variable                                | Required                                                                              | Default             | Values or format                                                | What it does                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------------------------------- | ------------------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PARMANA_KEY_DIR`                       | Not test                                                                              | None                | A directory path                                                | The directory holding key files named `<keyId>.private.pem` and `<keyId>.public.pem`. The server needs `default` (signs trust records, receipts and authorizations) and the gateway key (`gateway` unless you changed `PARMANA_GATEWAY_KEY_ID`). With `KEY_PROVIDER=aws-kms` the `default` key comes from KMS instead, but the gateway key is still read from this directory. |
+| `PARMANA_KEY_MATERIAL_JSON`             | No                                                                                    | None                | `{"<keyId>":{"privateKeyPem":"...","publicKeyPem":"..."}}`      | Writes key files into `PARMANA_KEY_DIR` at startup for any key file that does not already exist. Use it on platforms where you cannot mount files. An invalid value stops the server.                                                                                                                                                                                         |
+| `KEY_PROVIDER`                          | No                                                                                    | `local`             | `local`, `aws-kms`                                              | Where the signing key lives. `local` reads PEM files. `aws-kms` signs inside AWS KMS so the key is never released. The values `azure-key-vault`, `gcp-kms` and `hsm` pass validation but have no implementation, and the server refuses to start with them.                                                                                                                   |
+| `AWS_REGION`                            | If `KEY_PROVIDER` is `aws-kms` or `PARMANA_SECRETS_PROVIDER` is `aws-secrets-manager` | None                | An AWS region such as `ap-south-1`                              | The AWS region for KMS and Secrets Manager calls.                                                                                                                                                                                                                                                                                                                             |
+| `AWS_ROLE_ARN`                          | If `KEY_PROVIDER` is `aws-kms` or `PARMANA_SECRETS_PROVIDER` is `aws-secrets-manager` | None                | An IAM role ARN                                                 | The role the server assumes to call AWS, using the Vercel OIDC token. It never uses a static access key.                                                                                                                                                                                                                                                                      |
+| `PARMANA_VERIFICATION_KEY_ID`           | No                                                                                    | `default`           | Key id                                                          | The key id that signs and verifies Execution Trust Records.                                                                                                                                                                                                                                                                                                                   |
+| `PARMANA_VERIFICATION_SECONDARY_KEY_ID` | No                                                                                    | `default-secondary` | Key id                                                          | The key id for the second signature when `CRYPTO_MODE` is `hybrid`.                                                                                                                                                                                                                                                                                                           |
+| `PARMANA_GATEWAY_ID`                    | No                                                                                    | `parmana-gateway`   | Letters, digits, `.`, `_` and `-`                               | The identity the gateway presents to connectors. An invalid value stops the server.                                                                                                                                                                                                                                                                                           |
+| `PARMANA_GATEWAY_KEY_ID`                | No                                                                                    | `gateway`           | Letters, digits, `.`, `_` and `-`                               | The key id of the gateway attestation key file in `PARMANA_KEY_DIR`. An invalid value stops the server.                                                                                                                                                                                                                                                                       |
+| `SIGNING_READINESS_CHECK`               | No                                                                                    | Enforced            | `true` only has an effect, and only in `test` and `development` | Before each action is released, proves that the evidence signing path works, and refuses with `503 SIGNING_UNAVAILABLE` if it does not. In production it is always on and this variable is ignored. Under KMS the probe uses `kms:Sign` and `kms:GetPublicKey` at most once a minute per instance.                                                                            |
+
+Generate the key files with:
+
+```bash
+npx tsx scripts/generate-keypair.ts --algorithm ed25519 --key-id default
+npm run generate:gateway-keys
+```
+
+Both write into `PARMANA_KEY_DIR`, or `./keys` if it is unset, and refuse to overwrite existing files unless you add
+`--force`. Keep the private files secret, and never commit them.
+
+## Cryptography
+
+| Variable                       | Required                     | Default   | Values or format                            | What it does                                                                                                                                                                                                                          |
+| ------------------------------ | ---------------------------- | --------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PRIMARY_SIGNATURE_PROVIDER`   | No                           | `ed25519` | `ed25519`, `dilithium3` (alias `ml-dsa-65`) | The signature algorithm. Only these two are implemented. The values `ecdsa-p256`, `dilithium5` and `sphincs-plus` pass validation but have no implementation. `dilithium3` needs Node 24 or later and produces randomized signatures. |
+| `SECONDARY_SIGNATURE_PROVIDER` | If `CRYPTO_MODE` is `hybrid` | None      | Same values as above                        | The second algorithm for hybrid signing.                                                                                                                                                                                              |
+| `CRYPTO_MODE`                  | No                           | `single`  | `single`, `hybrid`, `pq`                    | `hybrid` adds a second signature from `SECONDARY_SIGNATURE_PROVIDER`. `single` and `pq` behave the same today, because only `hybrid` changes behavior.                                                                                |
+| `HASH_PROVIDER`                | No                           | `sha256`  | `sha256`                                    | The hash algorithm. The values `sha3-512` and `blake3` pass validation, but no implementation is registered, so the server fails with "Unknown hash provider" the first time it hashes.                                               |
+| `HYBRID_SIGNATURE_REQUIRED`    | No                           | Off       | Only the exact string `true` turns it on    | When on, a record without a valid hybrid signature is rejected instead of passing on its classical signature alone.                                                                                                                   |
+
+## Authorization and receipts
+
+| Variable                              | Required | Default | Values or format           | What it does                                                                                                                                                        |
+| ------------------------------------- | -------- | ------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EXECUTION_AUTHORIZATION_TTL_SECONDS` | No       | `120`   | Positive number of seconds | How long a signed execution authorization stays valid. The gateway rejects any authorization whose lifetime is more than 300 seconds, so do not set this above 300. |
+| `TRUST_PROFILE`                       | No       | `v1`    | `v1`                       | The trust profile. `v1` is the only value.                                                                                                                          |
+| `RECEIPT_VERSION`                     | No       | `1`     | A string                   | The version stamped on receipts.                                                                                                                                    |
+
+## Rate limits
+
+| Variable                        | Required | Default | Values or format | What it does                                                                                                                       |
+| ------------------------------- | -------- | ------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `RATE_LIMIT_EXECUTE_PER_MINUTE` | No       | `30`    | Integer          | Requests per minute per authenticated caller on `POST /execute`. Over the limit the API returns `429` with a `Retry-After` header. |
+| `RATE_LIMIT_HEALTH_PER_MINUTE`  | No       | `300`   | Integer          | Requests per minute per IP address on `GET /health` and `GET /ready`.                                                              |
+
+With `DATABASE_URL` set, the counters are shared across instances. Without it they are per process, so the effective limit
+is the value multiplied by the number of instances, and the server logs `rate_limit_store_not_durable`.
+
+## Secrets
+
+| Variable                   | Required | Default | Values or format             | What it does                                                                                                                                                                                                                                                                                                                               |
+| -------------------------- | -------- | ------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PARMANA_SECRETS_PROVIDER` | No       | `env`   | `env`, `aws-secrets-manager` | How connector credential variables are read. With `env`, the value of a variable such as `HUBSPOT_PRIVATE_APP_TOKEN` **is** the secret. With `aws-secrets-manager`, the value is the **name or ARN of a secret** whose `SecretString` holds the credential, fetched at first use and cached in memory for one hour, never written to disk. |
+
+## Connectors
+
+A connector registers only when its credentials are present. A missing connector does not stop the server. It logs an
+event such as `slack_connector_unavailable` and requests for that connector's actions fail.
+
+### Paytm refund connector
+
+| Variable                        | Required                             | Default | Values or format                  | What it does                                                                                                                                                          |
+| ------------------------------- | ------------------------------------ | ------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PAYTM_CONNECTOR_URL`           | Both this and the secret, or neither | None    | A URL that starts with `https://` | The URL of the separate `parmana-paytm-agent` service that performs the refund. Outside tests, a URL that does not start with `https://` stops the server at startup. |
+| `PAYTM_CONNECTOR_SHARED_SECRET` | Both this and the URL, or neither    | None    | A string                          | The shared secret Parmana sends to that service. Setting only one of the two stops the server at startup.                                                             |
+| `PAYTM_CONNECTOR_TIMEOUT_MS`    | No                                   | `10000` | Positive number of milliseconds   | How long Parmana waits for that service before failing the call. A value that is not a positive number stops the server.                                              |
+
+### HubSpot connector
+
+| Variable                               | Required                      | Default         | Values or format                                   | What it does                                                                                                                                          |
+| -------------------------------------- | ----------------------------- | --------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HUBSPOT_PRIVATE_APP_TOKEN`            | For the connector to register | None            | A HubSpot private app token, or a secret reference | The credential. See `PARMANA_SECRETS_PROVIDER`.                                                                                                       |
+| `HUBSPOT_BASE_URL`                     | No                            | The HubSpot API | A URL                                              | Overrides the API base URL, for testing.                                                                                                              |
+| `HUBSPOT_PRIVATE_APP_TOKEN_ROTATED_AT` | No                            | None            | An ISO 8601 date                                   | When the token was last rotated. The server logs a warning when the token is older than 90 days, or when this is set to something that is not a date. |
+
+### Slack connector
+
+| Variable          | Required                      | Default       | Values or format                         | What it does                                    |
+| ----------------- | ----------------------------- | ------------- | ---------------------------------------- | ----------------------------------------------- |
+| `SLACK_BOT_TOKEN` | For the connector to register | None          | A Slack bot token, or a secret reference | The credential. See `PARMANA_SECRETS_PROVIDER`. |
+| `SLACK_BASE_URL`  | No                            | The Slack API | A URL                                    | Overrides the API base URL, for testing.        |
+
+### GitHub connector
+
+| Variable                                     | Required                                         | Default        | Values or format                         | What it does                                                                                                                         |
+| -------------------------------------------- | ------------------------------------------------ | -------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `GITHUB_APP_ID`                              | For the connector to register, with the next two | None           | A GitHub App id                          | The GitHub App used to act on pull requests.                                                                                         |
+| `GITHUB_INSTALLATION_ID`                     | With the other two                               | None           | An installation id                       | The installation of that App.                                                                                                        |
+| `GITHUB_APP_PRIVATE_KEY`                     | With the other two                               | None           | A PEM private key, or a secret reference | The App's private key.                                                                                                               |
+| `GITHUB_BASE_URL`                            | No                                               | The GitHub API | A URL                                    | Overrides the API base URL, for GitHub Enterprise or testing.                                                                        |
+| `PARMANA_GITHUB_VERCEL_CONNECT_CONNECTOR_ID` | No                                               | None           | A Vercel Connect connector id            | An alternative credential source using Vercel Connect. If it is set, it takes precedence and the three variables above are not used. |
+
+## Variables that look relevant but the server does not read
+
+| Variable                                                                                                                                                                           | Where you may see it          | Meaning                                                                                                                                                                    |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`                                                                                                                   | `.env.example`, CI, tutorials | The server does **not** read these. It talks to Postgres only through `DATABASE_URL`. They are used by some tests and tutorials. Setting them on the server has no effect. |
+| `TEST_GITHUB_APP_ID`, `TEST_GITHUB_INSTALLATION_ID`, `TEST_GITHUB_APP_PRIVATE_KEY`, `TEST_HUBSPOT_PRIVATE_APP_TOKEN`, `TEST_SLACK_BOT_TOKEN`, `TEST_PAYTM_CONNECTOR_SHARED_SECRET` | Tests                         | Read only when `NODE_ENV` is `test`. Never set them in production.                                                                                                         |
+| `TEST_GITHUB_PULL_NUMBER`, `TEST_GITHUB_REPOSITORY`, `TEST_HUBSPOT_DEAL_ID`                                                                                                        | Tests                         | Test fixtures for live integration tests.                                                                                                                                  |
+| `ALLOW_LIVE_GITHUB`, `ALLOW_LIVE_HUBSPOT`, `ALLOW_LIVE_SUPABASE`                                                                                                                   | Tests                         | Opt in switches for tests that call real services. Never set them in production.                                                                                           |
+
+## Startup errors and what to do
+
+The server stops at startup, before it accepts any request, when a required setting is missing or wrong. This is
+deliberate: a misconfigured server never runs half configured.
+
+| The error says                                                                                                                                            | Cause                                                                 | Fix                                                                                                      |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `PARMANA_POLICY_DIR is not set`                                                                                                                           | No policy directory                                                   | Set `PARMANA_POLICY_DIR` to the directory that holds your policies.                                      |
+| `No caller authentication keys are configured`                                                                                                            | `PARMANA_API_KEYS` is empty or unset                                  | Generate at least one entry and set it. For local development only, set `PARMANA_AUTH_DISABLED=true`.    |
+| `PARMANA_API_KEYS is not valid JSON` or `must be a JSON array`                                                                                            | Malformed value                                                       | Fix the JSON. It must be an array of objects with `callerId` and a 64 character lowercase hex `keyHash`. |
+| `PARMANA_KEY_DIR is not set`                                                                                                                              | No key directory                                                      | Set `PARMANA_KEY_DIR`.                                                                                   |
+| `Signing key material for keyId "default" is missing`                                                                                                     | No `default.private.pem` or `default.public.pem` in `PARMANA_KEY_DIR` | Generate the key pair, mount the files, or set `PARMANA_KEY_MATERIAL_JSON`.                              |
+| `Durable NonceStore requires DATABASE_URL` (or `CallerAuditSink`, `ExecutionAuditSink`, `ApprovalNonceStore`, `PolicyChangeStepUpNonceStore`)             | `DATABASE_URL` is not set and `NODE_ENV` is not `test`                | Set `DATABASE_URL` to a direct Postgres connection string.                                               |
+| `PARMANA_STORAGE=supabase requires DATABASE_URL`                                                                                                          | Supabase storage without a connection string                          | Set `DATABASE_URL`.                                                                                      |
+| `Invalid PARMANA_STORAGE: <value>` (or `CRYPTO_MODE`, `HASH_PROVIDER`, `KEY_PROVIDER`, `PARMANA_SECRETS_PROVIDER`, `TRUST_PROFILE`, `SIGNATURE_PROVIDER`) | A value outside the allowed list                                      | Use one of the values in the tables above.                                                               |
+| `DATABASE_PROVIDER is no longer read`                                                                                                                     | The removed variable is set                                           | Delete it and set `PARMANA_STORAGE`.                                                                     |
+| `KEY_PROVIDER=<value> is not implemented`                                                                                                                 | `azure-key-vault`, `gcp-kms` or `hsm`                                 | Use `local` or `aws-kms`.                                                                                |
+| `KEY_PROVIDER=aws-kms is configured, but no KMS key named "default" is reachable`                                                                         | KMS key missing, wrong region or role, or no permission               | Check `AWS_REGION`, `AWS_ROLE_ARN`, the key alias `default`, and that the role can use the key.          |
+| `PAYTM_CONNECTOR_URL and PAYTM_CONNECTOR_SHARED_SECRET must both be set, or both left unset`                                                              | Only one of the pair is set                                           | Set both, or remove both.                                                                                |
+| `Invalid PARMANA_GATEWAY_ID`                                                                                                                              | The id has characters other than letters, digits, `.`, `_` and `-`    | Use only those characters.                                                                               |
+| `PARMANA_KEY_MATERIAL_JSON is not valid JSON`                                                                                                             | Malformed value                                                       | Fix the JSON. It must be an object keyed by key id, each with `privateKeyPem` and `publicKeyPem`.        |
+| `Unknown hash provider: <value>`                                                                                                                          | `HASH_PROVIDER` is `sha3-512` or `blake3`                             | Use `sha256`.                                                                                            |
+
+## See also
+
+Continue with [Production deployment](/deployment/production) or [Local deployment](/deployment/local). For hosting choices read [Deploy patterns](/guides/deploy-patterns), and when a startup fails read [Troubleshooting](/troubleshooting).
