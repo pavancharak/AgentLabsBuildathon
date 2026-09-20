@@ -35,7 +35,7 @@ or equal to 4096`, because KMS refuses a raw Ed25519 message over 4096 bytes. A 
   size is now signed as a fixed 97 byte commitment (a prefix, a NUL byte, and the SHA-512 digest), and
   verifiers accept it. Signatures issued before this change are unaffected. A verifier you wrote
   yourself must implement the same rule to verify large KMS signed records, see the
-  [large message rule](/guides/verify-independently). The Python SDK's offline verifier accepts the commitment form. That fix ships in Python SDK 1.1.5, which is built and checked but not yet published to PyPI.
+  [large message rule](/guides/verify-independently). The Python SDK's offline verifier accepts the commitment form. That fix ships in Python SDK 1.1.5, published to PyPI on 2026-09-20.
 - The Python SDK now declares the `cryptography` package that `parmana.crypto` (the offline Trust Record
   verifier) imports. It is an optional extra, `pip install "parmana[verify]"`, and is included in the `dev`
   extra. It was previously imported but undeclared, which made the `Python SDK` CI check fail on `mypy`.
@@ -46,7 +46,7 @@ or equal to 4096`, because KMS refuses a raw Ed25519 message over 4096 bytes. A 
   reconcile instead of retrying as a new transaction. Enforced everywhere except `NODE_ENV` `test` and
   `development`. The startup log gains `signingReadinessConfigured`. This mitigates the ordering gap G-52
   and does not close it.
-- TypeScript SDK 1.1.3 (built and checked, not yet published to npm): `InternalServerError` now carries the
+- TypeScript SDK 1.1.3 (published to npm on 2026-09-20): `InternalServerError` now carries the
   Runtime's own `code` on `serverCode`. Use it to tell `SIGNING_UNAVAILABLE` (503, nothing was executed, retry
   later with a new `businessTransactionId`) from `EXECUTION_RECORD_INCOMPLETE` (500, the action was released,
   do not retry as a new transaction). The SDK never auto retries `POST /execute`, so nothing is retried for you.

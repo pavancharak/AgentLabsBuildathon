@@ -12,18 +12,17 @@ description: "Real client code, bearer-key authentication, and a typed error tax
   Bearer-key authentication, a real thrown error taxonomy, and full test
   coverage are all in place, along with corrected model types (see below),
   `client.verify()`/`client.version()`, and `client.createTransaction()`.
-  v1.1.2, adding `createBusinessTransaction()` (see below), published
-  2026-09-14, confirmed via `npm view @parmana/sdk version`. See the fix history
+  v1.1.3, published 2026-09-20 and confirmed via `npm view @parmana/sdk
+  version`, adds `serverCode` on `InternalServerError` (see below). v1.1.2,
+  published 2026-09-14, added `createBusinessTransaction()`. See the fix history
   at the bottom of this page.
 </Info>
 
 <Note>
   v1.1.2's published package metadata (`homepage`/`repository`/`bugs` in `npm
-  view @parmana/sdk`) still points at this repository's old name, `parmana-exp`.
-  The repo was renamed to `parmana` after that version's build artifacts were
-  created, and registry metadata is immutable per version. Does not affect
-  installing or using the package; fixed in source (`typescript/package.json`)
-  for whenever a future version next publishes.
+  view @parmana/sdk@1.1.2`) still points at this repository's old name,
+  `parmana-exp`, because registry metadata is immutable per version. v1.1.3 and
+  later point at `parmana`. Neither affects installing or using the package.
 </Note>
 
 <Note>
@@ -137,8 +136,7 @@ try {
 }
 ```
 
-Version 1.1.3 is built and checked but not yet published to npm. Until it is, `serverCode` is not on
-`InternalServerError` in the published package, and you can read the code from the error message instead.
+`serverCode` is available in v1.1.3 and later, published 2026-09-20. On v1.1.2 and earlier it is not on `InternalServerError`, and you can read the code from the error message instead.
 
 All extend `ParmanaError`, which carries a stable `code` (`ErrorCode` enum) and optional
 `cause`/`requestId`. `403` (`AuthorizationError`) is a real status this API returns: an
