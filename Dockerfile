@@ -21,19 +21,25 @@ FROM node:24 AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-COPY packages/shared/package.json packages/shared/package.json
+COPY packages/api/package.json packages/api/package.json
+COPY packages/approval/package.json packages/approval/package.json
+COPY packages/capability-registry/package.json packages/capability-registry/package.json
+COPY packages/connector-github/package.json packages/connector-github/package.json
+COPY packages/connector-hubspot/package.json packages/connector-hubspot/package.json
+COPY packages/connector-paytm/package.json packages/connector-paytm/package.json
+COPY packages/connector-sdk/package.json packages/connector-sdk/package.json
+COPY packages/connector-slack/package.json packages/connector-slack/package.json
 COPY packages/crypto/package.json packages/crypto/package.json
 COPY packages/envelope-verifier/package.json packages/envelope-verifier/package.json
-COPY packages/storage/package.json packages/storage/package.json
-COPY packages/replay/package.json packages/replay/package.json
-COPY packages/policy/package.json packages/policy/package.json
-COPY packages/receipt/package.json packages/receipt/package.json
-COPY packages/execution-system/package.json packages/execution-system/package.json
 COPY packages/execution-control/package.json packages/execution-control/package.json
 COPY packages/execution-gateway/package.json packages/execution-gateway/package.json
-COPY packages/connector-sdk/package.json packages/connector-sdk/package.json
+COPY packages/execution-system/package.json packages/execution-system/package.json
+COPY packages/governance-ui/package.json packages/governance-ui/package.json
+COPY packages/policy/package.json packages/policy/package.json
+COPY packages/replay/package.json packages/replay/package.json
 COPY packages/runtime/package.json packages/runtime/package.json
-COPY packages/api/package.json packages/api/package.json
+COPY packages/shared/package.json packages/shared/package.json
+COPY packages/storage/package.json packages/storage/package.json
 COPY typescript/package.json typescript/package.json
 
 RUN npm ci
@@ -53,7 +59,7 @@ COPY packages ./packages
 COPY typescript ./typescript
 
 # Compile only parmana-api and its dependencies
-RUN npx tsc --build packages/shared packages/crypto packages/storage packages/replay packages/policy packages/receipt packages/envelope-verifier packages/execution-system packages/execution-control packages/execution-gateway packages/connector-sdk packages/connector-github packages/connector-hubspot packages/approval packages/capability-registry packages/api
+RUN npx tsc --build packages/api
 
 ################################################################################
 # Stage 3: prod-deps -- a second, independent `npm ci --omit=dev`. Kept as
@@ -66,19 +72,25 @@ FROM node:24 AS prod-deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-COPY packages/shared/package.json packages/shared/package.json
+COPY packages/api/package.json packages/api/package.json
+COPY packages/approval/package.json packages/approval/package.json
+COPY packages/capability-registry/package.json packages/capability-registry/package.json
+COPY packages/connector-github/package.json packages/connector-github/package.json
+COPY packages/connector-hubspot/package.json packages/connector-hubspot/package.json
+COPY packages/connector-paytm/package.json packages/connector-paytm/package.json
+COPY packages/connector-sdk/package.json packages/connector-sdk/package.json
+COPY packages/connector-slack/package.json packages/connector-slack/package.json
 COPY packages/crypto/package.json packages/crypto/package.json
 COPY packages/envelope-verifier/package.json packages/envelope-verifier/package.json
-COPY packages/storage/package.json packages/storage/package.json
-COPY packages/replay/package.json packages/replay/package.json
-COPY packages/policy/package.json packages/policy/package.json
-COPY packages/receipt/package.json packages/receipt/package.json
-COPY packages/execution-system/package.json packages/execution-system/package.json
 COPY packages/execution-control/package.json packages/execution-control/package.json
 COPY packages/execution-gateway/package.json packages/execution-gateway/package.json
-COPY packages/connector-sdk/package.json packages/connector-sdk/package.json
+COPY packages/execution-system/package.json packages/execution-system/package.json
+COPY packages/governance-ui/package.json packages/governance-ui/package.json
+COPY packages/policy/package.json packages/policy/package.json
+COPY packages/replay/package.json packages/replay/package.json
 COPY packages/runtime/package.json packages/runtime/package.json
-COPY packages/api/package.json packages/api/package.json
+COPY packages/shared/package.json packages/shared/package.json
+COPY packages/storage/package.json packages/storage/package.json
 COPY typescript/package.json typescript/package.json
 
 RUN npm ci --omit=dev
@@ -119,6 +131,7 @@ COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/packages ./packages
 COPY package.json package-lock.json ./
 COPY openapi ./openapi
+COPY docs/site/parmana-handbook.pdf ./docs/site/parmana-handbook.pdf
 COPY policies ./policies
 COPY scripts ./scripts
 COPY docker/entrypoint.sh ./docker/entrypoint.sh

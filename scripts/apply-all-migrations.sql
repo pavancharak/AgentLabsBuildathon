@@ -24,6 +24,7 @@
 
 -- =============================================================================
 -- Source: supabase/migrations/20260629013035_initial_schema.sql
+-- =============================================================================
 -- Parmana Initial Schema
 -- =============================================================================
 
@@ -206,6 +207,7 @@ ON receipts (
 
 -- =============================================================================
 -- Source: supabase/migrations/20260702183000_add_signature_to_execution_trust_records.sql
+-- =============================================================================
 -- RFC-0020
 -- Persist Trust Record Signature
 -- =============================================================================
@@ -220,6 +222,7 @@ USING GIN (signature_json);
 
 -- =============================================================================
 -- Source: supabase/migrations/20260707105527_enable_rls.sql
+-- =============================================================================
 -- Enable Row Level Security (deny-by-default)
 -- =============================================================================
 --
@@ -248,6 +251,7 @@ ALTER TABLE receipts ENABLE ROW LEVEL SECURITY;
 
 -- =============================================================================
 -- Source: supabase/migrations/20260711120000_add_trust_record_sequence_columns.sql
+-- =============================================================================
 -- Add insertion-sequence tiebreak columns
 -- =============================================================================
 --
@@ -284,6 +288,7 @@ ADD COLUMN IF NOT EXISTS seq BIGSERIAL;
 
 -- =============================================================================
 -- Source: supabase/migrations/20260718090000_add_nonce_and_caller_audit_tables.sql
+-- =============================================================================
 -- Durable replay protection and caller-audit trail (G-13)
 -- =============================================================================
 --
@@ -373,6 +378,7 @@ ALTER TABLE caller_audit_events ENABLE ROW LEVEL SECURITY;
 
 -- =============================================================================
 -- Source: supabase/migrations/20260718182238_add_razorpay_webhook_tables.sql
+-- =============================================================================
 -- Razorpay webhook event dedupe and audit trail (M4a)
 -- =============================================================================
 --
@@ -485,6 +491,7 @@ ALTER TABLE razorpay_webhook_audit_events ENABLE ROW LEVEL SECURITY;
 
 -- =============================================================================
 -- Source: supabase/migrations/20260718190412_add_settlement_confirmations_and_audit_severity.sql
+-- =============================================================================
 -- Settlement confirmations and audit severity (M4b)
 -- =============================================================================
 --
@@ -574,6 +581,7 @@ WHERE severity IS NOT NULL;
 
 -- =============================================================================
 -- Source: supabase/migrations/20260802120000_add_refusal_records.sql
+-- =============================================================================
 -- RFC-0021
 -- Refusal Records: durable, signed, third-party-verifiable evidence
 -- of a policy REJECT.
@@ -635,6 +643,7 @@ ALTER TABLE refusal_records ENABLE ROW LEVEL SECURITY;
 
 -- =============================================================================
 -- Source: supabase/migrations/20260802130000_sign_audit_events.sql
+-- =============================================================================
 -- Audit-sink signing milestone (follows RFC-0021's Refusal Records)
 -- =============================================================================
 --
@@ -664,6 +673,7 @@ ADD COLUMN IF NOT EXISTS signature_json JSONB;
 
 -- =============================================================================
 -- Source: supabase/migrations/20260803150000_add_challenge_records.sql
+-- =============================================================================
 -- RFC-0022
 -- Challenge Records: a durable, structured trace from "an assumption
 -- was questioned" to "what changed because of it."
@@ -746,6 +756,7 @@ ALTER TABLE challenge_records ENABLE ROW LEVEL SECURITY;
 
 -- =============================================================================
 -- Source: supabase/migrations/20260805170000_add_razorpay_daily_refund_reservations.sql
+-- =============================================================================
 -- Razorpay daily cumulative refund reservation ledger (TD-23 closure, Phase 3B)
 -- =============================================================================
 --
@@ -794,6 +805,7 @@ ALTER TABLE razorpay_daily_refund_reservations ENABLE ROW LEVEL SECURITY;
 
 -- =============================================================================
 -- Source: supabase/migrations/20260805180000_add_consumed_approval_nonces.sql
+-- =============================================================================
 -- Approval Artifact replay protection (TD-23 closure, Phase 3C)
 -- =============================================================================
 --
@@ -843,6 +855,7 @@ ALTER TABLE consumed_approval_nonces ENABLE ROW LEVEL SECURITY;
 
 -- =============================================================================
 -- Source: supabase/migrations/20260812120000_add_capability_to_caller_audit_events.sql
+-- =============================================================================
 -- Caller-capability-scoping audit trail (caller-to-capability scoping)
 -- =============================================================================
 --
@@ -881,10 +894,29 @@ ON caller_audit_events (
 )
 WHERE capability IS NOT NULL;
 
+
 -- =============================================================================
 -- Source: supabase/migrations/20260816120000_add_principal_to_caller_audit_events.sql
+-- =============================================================================
 -- Caller-principal-binding audit trail (caller-to-principal scoping)
 -- =============================================================================
+--
+-- Backs CallerAuditEvent's new "caller.principal_denied" type and
+-- `principal_id` field (packages/api/src/auth/CallerAuditSink.ts,
+-- packages/api/src/routes/execute.ts / transactions.ts): an
+-- authenticated caller attempting to assert an authority.principalId
+-- outside its ApiKeyEntry.allowedPrincipalIds is denied, and that
+-- denial is now audited the same way caller.capability_denied already
+-- is (20260812120000_add_capability_to_caller_audit_events.sql).
+--
+-- Widens the type CHECK constraint from 20260812120000 to add the
+-- new event type, mirroring that migration's own DROP/ADD CONSTRAINT
+-- pattern, which itself mirrored 20260718190412's for
+-- razorpay_webhook_audit_events. Adds `principal_id`, nullable and
+-- additive like every prior column addition to this table
+-- (signature_json, 20260802130000; capability, 20260812120000) --
+-- existing rows are unaffected, every row written from here forward
+-- that concerns a specific principal-binding denial carries it.
 
 ALTER TABLE caller_audit_events
 DROP CONSTRAINT IF EXISTS caller_audit_events_type_check;
@@ -907,9 +939,28 @@ ON caller_audit_events (
 )
 WHERE principal_id IS NOT NULL;
 
+
 -- =============================================================================
 -- Source: supabase/migrations/20260818120000_add_policy_governance_tables.sql
+-- =============================================================================
 -- Policy Governance (maker-checker)
+--
+-- Prior to this migration, Parmana explicitly excluded policy
+-- authoring/change-approval from its scope (GOVERNANCE.md,
+-- SECURITY.md, TRUST_MODEL.md all named "policy authoring" /
+-- "business policy authoring" as outside the Trust Model). These two
+-- tables are the durable state behind the new scope: a policy
+-- content change must be proposed by one human and approved or
+-- rejected by a distinct human before it takes effect.
+--
+-- pending_policy_changes holds the maker's proposal and its
+-- eventual resolution. policy_change_approval_records holds the
+-- signed, permanent, append-only evidence created exactly once, at
+-- approval time -- G-24's content-hash remediation: contentHashBefore
+-- /contentHashAfter prove exactly what content an approval covered,
+-- not merely which version string, so an in-place edit to an
+-- existing version's file (VERIFICATION-GAPS.md G-24's own precedent
+-- for that pattern) remains detectable even though it's allowed.
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS pending_policy_changes (
@@ -940,6 +991,13 @@ CREATE TABLE IF NOT EXISTS pending_policy_changes (
 
 );
 
+-- Database-level enforcement of "exactly one PENDING_APPROVAL change
+-- per (policyName, policyVersion) at a time" -- a partial unique
+-- index, not a plain UNIQUE constraint, since APPROVED/REJECTED
+-- history for the same (name, version) pair must be allowed to
+-- accumulate. Mirrors business_transactions' PRIMARY KEY making G-1's
+-- duplicate-insert race atomic at the database rather than only in
+-- application code.
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pending_policy_changes_open
 ON pending_policy_changes (
     policy_name,
@@ -982,6 +1040,10 @@ CREATE TABLE IF NOT EXISTS policy_change_approval_records (
 
 );
 
+-- Startup/deploy integrity check (see PolicyIntegrityChecker) reads
+-- "the most recent approval record for a given (policy_name,
+-- policy_version)" -- this index makes that lookup a single index
+-- scan rather than a full table scan as approval history grows.
 CREATE INDEX IF NOT EXISTS idx_policy_change_approval_records_policy
 ON policy_change_approval_records (
     policy_name,
@@ -994,8 +1056,28 @@ ALTER TABLE policy_change_approval_records ENABLE ROW LEVEL SECURITY;
 
 -- =============================================================================
 -- Source: supabase/migrations/20260818130000_add_non_human_denied_to_caller_audit_events.sql
+-- =============================================================================
 -- Non-human-caller-denied audit trail (Policy Governance, maker-checker)
 -- =============================================================================
+--
+-- Backs CallerAuditEvent's new "caller.non_human_denied" type and
+-- `severity` field (packages/api/src/auth/CallerAuditSink.ts,
+-- packages/api/src/routes/pending-policy-changes.ts): a caller whose
+-- credential is not provisioned as a verified human
+-- (ApiKeyEntry.credentialHolderType !== "USER", see isHumanCaller.ts)
+-- attempting one of the four Policy Governance endpoints is denied,
+-- and that denial is now audited the same way caller.capability_denied
+-- and caller.principal_denied already are.
+--
+-- Widens the type CHECK constraint from 20260816120000 to add the new
+-- event type, mirroring that migration's own DROP/ADD CONSTRAINT
+-- pattern. Adds `severity`, nullable and additive like every prior
+-- column addition to this table (signature_json, 20260802130000;
+-- capability, 20260812120000; principal_id, 20260816120000) --
+-- existing rows are unaffected. Mirrors the elevated-severity marker
+-- already established for razorpay_webhook_audit_events
+-- (20260718190412_add_settlement_confirmations_and_audit_severity.sql)
+-- rather than inventing a second convention for the same concept.
 
 ALTER TABLE caller_audit_events
 DROP CONSTRAINT IF EXISTS caller_audit_events_type_check;
@@ -1022,14 +1104,45 @@ WHERE severity IS NOT NULL;
 
 -- =============================================================================
 -- Source: supabase/migrations/20260818140000_add_consumed_policy_change_step_up_nonces.sql
+-- =============================================================================
 -- Policy Change Step-Up Authorization replay protection (Policy
 -- Governance, maker-checker, Layer 4)
 -- =============================================================================
+--
+-- Backs SupabasePolicyChangeStepUpNonceStore's atomic checkAndRecord()
+-- (packages/storage/src/supabase/SupabasePolicyChangeStepUpNonceStore.ts),
+-- the durable NonceStore PolicyChangeStepUpVerifier uses to enforce
+-- that a signed step-up envelope on POST /policies/pending-changes/:id/
+-- approve or .../reject is consumed at most once.
+--
+-- Deliberately a separate table from both consumed_nonces
+-- (20260718090000, ExecutionGateway's own Authorization-envelope
+-- replay protection) and consumed_approval_nonces (20260805180000,
+-- Approval Artifact replay protection): a step-up envelope's nonce is
+-- issued by yet another distinct trust domain -- an individual human
+-- checker's own key, provisioned once via generate-api-key.ts's
+-- --generate-step-up-key flag -- and sharing a table with either of
+-- the other two would let a coincidental nonce collision between
+-- unrelated namespaces falsely report "already consumed," and would
+-- couple three independent replay-protection concerns' retention/
+-- cleanup lifecycles together for no benefit.
+--
+-- Same shape, same atomicity mechanism, same reasoning as
+-- consumed_nonces/consumed_approval_nonces: append-only, the PRIMARY
+-- KEY on nonce IS the atomic-consumption mechanism (two concurrent
+-- inserts of the same nonce race at the database; exactly one
+-- succeeds, the other fails with a 23505 unique_violation, mapped to
+-- "already consumed"). No PII: a nonce is an opaque, single-use token
+-- chosen by the envelope's signer, not an identifier.
 
 CREATE TABLE IF NOT EXISTS consumed_policy_change_step_up_nonces (
 
     nonce TEXT PRIMARY KEY,
 
+    -- From the envelope's own expiresAt (NonceStore.checkAndRecord's
+    -- second argument). Not currently read back by application code;
+    -- kept for a future retention/cleanup job, mirroring
+    -- consumed_nonces.expires_at's own residual note.
     expires_at TIMESTAMPTZ NOT NULL,
 
     consumed_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -1046,12 +1159,47 @@ ALTER TABLE consumed_policy_change_step_up_nonces ENABLE ROW LEVEL SECURITY;
 
 -- =============================================================================
 -- Source: supabase/migrations/20260818150000_add_ci_read_only_policy_for_approval_records.sql
+-- =============================================================================
 -- CI read-only access to Policy Change Approval Records (Policy
 -- Governance, maker-checker, preventive CI/deploy-time gate)
 -- =============================================================================
+--
+-- Backs scripts/verify-policy-changes-approved.ts: a CI check that
+-- confirms every changed policies/{name}/{version}/policy.json in a
+-- PR has a matching, real PolicyChangeApprovalRecord before it can
+-- merge -- closing the gap the independent audit found, that a direct
+-- file edit to policies/*.json bypasses the maker-checker API
+-- entirely and is only ever *detected*, after the fact, by
+-- verifyPolicyGovernanceIntegrityAtStartup.ts's own fail-open startup
+-- check, never prevented.
+--
+-- policy_change_approval_records already has ENABLE ROW LEVEL
+-- SECURITY (20260818120000) with zero policies -- meaning, before
+-- this migration, it is unreadable by every role except one with
+-- BYPASSRLS (the app's own DATABASE_URL connection). CI has never had
+-- any Supabase credential at all (see .github/workflows/ci.yml). Deliberately
+-- NOT reusing the app's own DATABASE_URL or SUPABASE_SERVICE_ROLE_KEY for
+-- this -- both bypass RLS entirely and grant read+write on every table in
+-- the schema, not read-only access to this one. This migration adds the
+-- single minimal policy needed instead: read-only, this table only, via
+-- the low-privilege `anon` role and SUPABASE_ANON_KEY -- a new credential
+-- CI is given for the first time here, scoped to exactly this and nothing
+-- else, so a leak of it (CI logs, a compromised workflow) cannot write
+-- anything or read any other table.
+--
+-- The explicit GRANT below is defensive, not strictly required under
+-- Supabase's own default project bootstrapping (which already grants
+-- anon/authenticated base SELECT on public-schema tables; RLS is what
+-- was actually blocking reads here) -- included so this migration is
+-- correct and self-contained even against a non-default grant setup,
+-- consistent with this file's own "safe to re-run, nothing assumed"
+-- convention.
 
 GRANT SELECT ON policy_change_approval_records TO anon;
 
+-- Postgres has no CREATE POLICY IF NOT EXISTS -- drop-then-create,
+-- the same self-guarding re-run pattern this file's own header
+-- comment documents for constraints.
 DROP POLICY IF EXISTS "ci_read_only_select" ON policy_change_approval_records;
 
 CREATE POLICY "ci_read_only_select" ON policy_change_approval_records
@@ -1062,8 +1210,30 @@ CREATE POLICY "ci_read_only_select" ON policy_change_approval_records
 
 -- =============================================================================
 -- Source: supabase/migrations/20260824090000_add_structural_rejected_to_caller_audit_events.sql
+-- =============================================================================
 -- Structural-validation rejection audit trail (G-29)
 -- =============================================================================
+--
+-- Backs CallerAuditEvent's new "caller.structural_rejected" type and
+-- `business_transaction_id` field (packages/api/src/auth/CallerAuditSink.ts,
+-- packages/api/src/middleware/error-handler.ts,
+-- packages/api/src/routes/execute.ts / transactions.ts): before this
+-- migration, a malformed request body, a malformed businessTransactionId,
+-- a structurally invalid Business Transaction, or a duplicate
+-- businessTransactionId was rejected with the correct HTTP status but left
+-- no durable trace anywhere in this system — unlike a policy REJECT
+-- (RefusalRecord, RFC-0021) or a caller-identity denial
+-- (caller.capability_denied / caller.principal_denied), both already
+-- audited.
+--
+-- Widens the type CHECK constraint from 20260818130000 to add the new
+-- event type, mirroring every prior widening of this same constraint
+-- (20260812120000, 20260816120000, 20260818130000, each mirroring
+-- 20260718190412's for razorpay_webhook_audit_events in turn). Adds
+-- `business_transaction_id`, nullable and additive like every prior
+-- column addition to this table (signature_json, 20260802130000;
+-- capability, 20260812120000; principal_id, 20260816120000) -- existing
+-- rows are unaffected.
 
 ALTER TABLE caller_audit_events
 DROP CONSTRAINT IF EXISTS caller_audit_events_type_check;
@@ -1091,8 +1261,36 @@ WHERE business_transaction_id IS NOT NULL;
 
 -- =============================================================================
 -- Source: supabase/migrations/20260906120000_add_per_caller_chain_to_caller_audit_events.sql
--- Per-caller audit chain
 -- =============================================================================
+-- Per-caller audit chain (regulatory-evidence gap: a deleted caller_audit_events
+-- row was previously undetectable, unlike execution_trust_records' own
+-- previousChainHash/chainHash chaining -- see docs/site/trust-and-claims/
+-- objections-and-evidence.mdx, Domain 3's last row).
+-- =============================================================================
+--
+-- Nullable and additive, matching every prior column addition to this table
+-- (signature_json, 20260802130000; capability, 20260812120000; principal_id,
+-- 20260816120000; business_transaction_id, 20260824090000). Existing rows are
+-- unaffected and remain unchained -- honestly, the same way pre-signing rows
+-- remain unsigned rather than being retroactively backfilled.
+--
+-- Chained per caller_id, not globally: caller_id is set on every event type
+-- except the earliest possible rejection (malformed JSON/oversized body,
+-- rejected before caller-auth middleware or any route handler runs) and
+-- caller.rejected (no caller identified). Those rows get NULL chain fields --
+-- there is no per-caller chain to link them into. A global chain was
+-- considered and rejected: caller.authenticated fires on every authenticated
+-- request to every route, the highest-write-volume table in this system: a
+-- single global chain would require a lock serializing every request through
+-- one write. Per-caller chaining (SupabaseCallerAuditSink.record(), a
+-- Postgres advisory lock scoped to hashtext(caller_id)) only serializes a
+-- caller against their own concurrent requests, not the whole API.
+--
+-- chain_hash/previous_chain_hash are not a separate signed artifact the way
+-- execution_trust_records' chainHash/chainSignature are (ExecutionChainCrypto):
+-- previous_chain_hash and chain_position are folded into the same object
+-- AuditEventCrypto already signs into signature_json, so the existing
+-- signature already covers the chain link -- no second signature column.
 
 ALTER TABLE caller_audit_events
 ADD COLUMN IF NOT EXISTS chain_hash TEXT;
@@ -1113,6 +1311,7 @@ WHERE caller_id IS NOT NULL;
 
 -- =============================================================================
 -- Source: supabase/migrations/20260907120000_add_authorization_and_hybrid_signatures_to_execution_trust_records.sql
+-- =============================================================================
 -- Persist Signed Execution Authorization + Hybrid Signatures on
 -- execution_trust_records
 --
@@ -1149,6 +1348,7 @@ USING GIN (authorization_json);
 
 -- =============================================================================
 -- Source: supabase/migrations/20260907130000_add_previous_record_hash_to_policy_change_approval_records.sql
+-- =============================================================================
 -- Policy Change Approval Record chaining
 --
 -- Adds previous_record_hash: the sha256 (via the same
@@ -1174,28 +1374,370 @@ ADD COLUMN IF NOT EXISTS previous_record_hash TEXT;
 
 -- =============================================================================
 -- Source: supabase/migrations/20260910120000_add_rate_limit_counters.sql
+-- =============================================================================
 -- Fleet-wide POST /execute and /health,/ready rate limiting.
+-- =============================================================================
 --
 -- Backs PostgresRateLimitStore (packages/storage/src/postgres/
 -- PostgresRateLimitStore.ts), the durable counterpart to
--- express-rate-limit's default in-process MemoryStore.
+-- express-rate-limit's default in-process MemoryStore. Closes the
+-- fleet-wide half of the rate-limiter gap identified in the 2026-09-10
+-- production-readiness pass: a MemoryStore-backed limiter is correct
+-- for a single process, but each machine in a horizontally-scaled
+-- deployment counts independently, so a caller's effective ceiling
+-- becomes `limitPerMinute * machineCount` rather than the configured
+-- fleet-wide limit.
 --
 -- One row per rate-limit key (an authenticated caller id for
--- /execute, a client IP for /health and /ready). count and reset_time
--- are read and written together, atomically, by
--- PostgresRateLimitStore's single upsert statement.
+-- /execute, a client IP for /health and /ready -- see
+-- packages/api/src/middleware/rate-limit.ts). `count` and
+-- `reset_time` are read and written together, atomically, by
+-- PostgresRateLimitStore's single upsert statement -- no separate
+-- locking is required here.
 --
 -- Not RLS-covered: unlike the other tables in this schema, rows here
 -- carry no business or trust-record data, only ephemeral counters
 -- that this codebase's own application logic is the sole reader/
--- writer of.
--- =============================================================================
-
+-- writer of (no end-user or dashboard access path exists), so a
+-- restrictive policy set would add operational surface without a
+-- corresponding threat this table is exposed to.
 create table if not exists rate_limit_counters (
   key text primary key,
   count integer not null,
   reset_time timestamptz not null
 );
 
+-- Lets a periodic housekeeping job (none exists yet; this index is
+-- what such a job would use) cheaply find and delete rows whose window
+-- has long since elapsed, without a full table scan. The table
+-- self-corrects even without one: increment()'s own upsert resets an
+-- expired row's count back to 1 the next time that key is hit, so this
+-- index is a cleanup convenience, not a correctness requirement.
 create index if not exists rate_limit_counters_reset_time_idx
   on rate_limit_counters (reset_time);
+
+
+-- =============================================================================
+-- Source: supabase/migrations/20260911090000_add_capability_granted_to_caller_audit_events.sql
+-- =============================================================================
+-- Fix: caller.capability_granted was never a valid caller_audit_events.type
+-- =============================================================================
+--
+-- packages/api/src/routes/execute.ts and transactions.ts (see
+-- docs/VERIFICATION-GAPS.md gap 33 / docs/CLAIMS.md NF-004) both write a
+-- "caller.capability_granted" CallerAuditEvent on every successful,
+-- authenticated capability check -- but no prior migration ever added
+-- that value to this table's type CHECK constraint. The constraint most
+-- recently widened by 20260824090000_add_structural_rejected_to_caller_audit_events.sql
+-- only allowed 'caller.authenticated', 'caller.rejected',
+-- 'caller.capability_denied', 'caller.principal_denied',
+-- 'caller.non_human_denied', 'caller.structural_rejected'.
+--
+-- Effect in a real deployment (PARMANA_STORAGE backed by a live Postgres
+-- audit sink, caller-auth enabled): every successful, authenticated
+-- POST /execute or POST /transactions call fails closed with 503
+-- AUDIT_UNAVAILABLE before ever reaching Policy Engine evaluation, since
+-- the audit write itself is rejected by Postgres. Invisible in the
+-- existing test suite because Supabase-backed integration tests are
+-- opt-in (ALLOW_LIVE_SUPABASE=1); an in-memory audit sink has no such
+-- constraint to violate.
+--
+-- Widens the constraint the same way each of its four prior widenings
+-- did (20260812120000, 20260816120000, 20260818130000, 20260824090000).
+
+ALTER TABLE caller_audit_events
+DROP CONSTRAINT IF EXISTS caller_audit_events_type_check;
+
+ALTER TABLE caller_audit_events
+ADD CONSTRAINT caller_audit_events_type_check
+CHECK (type IN (
+    'caller.authenticated',
+    'caller.rejected',
+    'caller.capability_denied',
+    'caller.principal_denied',
+    'caller.non_human_denied',
+    'caller.structural_rejected',
+    'caller.capability_granted'
+));
+
+
+-- =============================================================================
+-- Source: supabase/migrations/20260914120000_add_execution_audit_events.sql
+-- =============================================================================
+-- Durable execution-audit trail (GAP-1, GAPS.md 2026-09-14)
+-- =============================================================================
+--
+-- Closes GAP-1: execution.rejected/execution.completed/session.created events
+-- (packages/execution-control/src/ExecutionControlService.ts) were previously
+-- recorded to MemoryExecutionAuditSink only -- lost on process restart, not
+-- queryable outside the running process. This table backs its durable,
+-- Supabase-backed replacement (packages/storage/src/supabase/
+-- SupabaseExecutionAuditSink.ts). MemoryExecutionAuditSink remains correct for
+-- tests -- see packages/api/src/bootstrap/createExecutionAuditSink.ts.
+--
+-- Mirrors caller_audit_events (supabase/migrations/20260718090000_add_nonce_
+-- and_caller_audit_tables.sql) in shape and discipline: append-only, signed at
+-- write time, chained so a deleted or altered row is detectable. Chained per
+-- authorizationId rather than per caller -- one authorization's full
+-- execution lifecycle (session.created -> execution.completed or
+-- execution.rejected) is exactly the unit a regulator asks about ("show me
+-- everything that happened for this refund's authorization"), and unlike
+-- caller_audit_events this table has no per-caller identity to chain against
+-- at all (an authorizationId is not a caller).
+
+CREATE TABLE IF NOT EXISTS execution_audit_events (
+
+    id BIGSERIAL PRIMARY KEY,
+
+    type TEXT NOT NULL
+        CHECK (type IN ('session.created', 'execution.completed', 'execution.rejected')),
+
+    occurred_at TIMESTAMPTZ NOT NULL,
+
+    connector_id TEXT NOT NULL,
+
+    authorization_id TEXT NOT NULL,
+
+    session_id TEXT NOT NULL,
+
+    -- The ExecutableContent.action this event concerns (the capability
+    -- released or rejected, e.g. "paytm:refund"). Present on every event
+    -- ExecutionControlService.execute() records; nullable here only to
+    -- match ExecutionAuditEvent.action's own optional typing.
+    action TEXT,
+
+    -- Present only on type = 'execution.rejected'. Never the credential
+    -- itself -- the connector's own thrown Error message.
+    reason TEXT,
+
+    -- Metadata only, per ExecutionAuditEvent's own doc comment -- never a
+    -- credential's secret value.
+    credential_id TEXT,
+    gateway_id TEXT,
+
+    signature_json JSONB NOT NULL,
+
+    -- Chain per authorizationId: previous_chain_hash is that
+    -- authorization's own immediately-preceding event's chain_hash (NULL
+    -- for its first event), chain_position a 1-based per-authorization
+    -- sequence number. Every event carries an authorizationId (unlike
+    -- caller_audit_events, where some events have no callerId at all), so
+    -- these two columns are NOT NULL here.
+    chain_hash TEXT NOT NULL,
+    previous_chain_hash TEXT,
+    chain_position INTEGER NOT NULL,
+
+    inserted_at TIMESTAMPTZ NOT NULL DEFAULT now()
+
+);
+
+CREATE INDEX IF NOT EXISTS idx_execution_audit_events_occurred_at
+ON execution_audit_events (
+    occurred_at
+);
+
+CREATE INDEX IF NOT EXISTS idx_execution_audit_events_authorization_id
+ON execution_audit_events (
+    authorization_id
+);
+
+CREATE INDEX IF NOT EXISTS idx_execution_audit_events_connector_id
+ON execution_audit_events (
+    connector_id
+);
+
+ALTER TABLE execution_audit_events ENABLE ROW LEVEL SECURITY;
+
+
+-- =============================================================================
+-- Source: supabase/migrations/20260914130000_add_business_transaction_correlation_to_execution_audit_events.sql
+-- =============================================================================
+-- Cross-service correlation and external writers for execution_audit_events
+-- (GAP-3, GAPS.md 2026-09-14)
+-- =============================================================================
+--
+-- execution_audit_events (20260914120000_add_execution_audit_events.sql) chains
+-- events by authorization_id -- Parmana's own internal authorization identity.
+-- That identity is never forwarded across the trust boundary to a remote
+-- connector service (see GatewayPaytmAdapter's own wire contract,
+-- packages/execution-gateway/src/connector-execution/GatewayPaytmAdapter.ts):
+-- parmana-paytm-agent only ever sees businessTransactionId, orderId, txnId,
+-- and its own re-signed authorization envelope. Without a shared correlation
+-- key, a regulator asking "show me everything that happened for this refund"
+-- could see only Parmana's own half of the story.
+--
+-- Two changes:
+--
+-- 1. business_transaction_id (nullable): populated by
+--    ExecutionControlService (release.executableContent.businessTransactionId)
+--    on every event it writes, and by parmana-paytm-agent's own audit writer
+--    (its only available correlation id) on every event *it* writes. Querying
+--    by this column, not authorization_id, retrieves one refund's complete
+--    cross-service story.
+--
+-- 2. signature_json/chain_hash/chain_position relaxed to nullable: these were
+--    NOT NULL because SupabaseExecutionAuditSink (this repo) always signs and
+--    chains. parmana-paytm-agent has no Parmana private key -- it only ever
+--    holds Parmana's *public* key, to verify, never to sign -- and no
+--    Ed25519 keypair of its own, so it cannot produce either field. Its rows
+--    are therefore durable but unsigned/unchained: this is an acceptable,
+--    deliberate trust-boundary asymmetry (a compromised parmana-paytm-agent
+--    could already forge Paytm calls it holds real credentials for; a real
+--    Parmana-signed authorization is still required upstream of it, and that
+--    signature is verified and durably recorded by SupabaseExecutionAuditSink
+--    on Parmana's own side regardless of what this service logs about
+--    itself).
+
+ALTER TABLE execution_audit_events
+ADD COLUMN IF NOT EXISTS business_transaction_id TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_execution_audit_events_business_transaction_id
+ON execution_audit_events (
+    business_transaction_id
+);
+
+ALTER TABLE execution_audit_events
+ALTER COLUMN signature_json DROP NOT NULL;
+
+ALTER TABLE execution_audit_events
+ALTER COLUMN chain_hash DROP NOT NULL;
+
+ALTER TABLE execution_audit_events
+ALTER COLUMN chain_position DROP NOT NULL;
+
+
+-- =============================================================================
+-- Source: supabase/migrations/20260914140000_add_authorization_verified_to_execution_audit_events.sql
+-- =============================================================================
+-- Add 'authorization.verified' to execution_audit_events.type (GAP-3)
+-- =============================================================================
+--
+-- parmana-paytm-agent's own audit writer (src/parmana/audit.ts in that
+-- repository) records two events per POST /connector/paytm-refund request,
+-- not one: 'authorization.verified' right after
+-- verifyPaytmAuthorizationSignature succeeds, and 'execution.completed' or
+-- 'execution.rejected' after the Paytm call resolves. Two rows, not one,
+-- because a crash between those two points (verified, then never actually
+-- executed) is exactly the failure mode an audit trail exists to catch --
+-- collapsing them into a single row would silently lose that evidence.
+--
+-- Widened the same way caller_audit_events' own type CHECK constraint has
+-- been widened repeatedly (20260812120000, 20260816120000, 20260818130000,
+-- 20260824090000, 20260911090000): drop and recreate, adding the one new
+-- value.
+
+ALTER TABLE execution_audit_events
+DROP CONSTRAINT IF EXISTS execution_audit_events_type_check;
+
+ALTER TABLE execution_audit_events
+ADD CONSTRAINT execution_audit_events_type_check
+CHECK (type IN (
+    'session.created',
+    'execution.completed',
+    'execution.rejected',
+    'authorization.verified'
+));
+
+
+-- =============================================================================
+-- Source: supabase/migrations/20260916060000_add_policies_table.sql
+-- =============================================================================
+-- Policy content storage (Supabase-backed PolicyRepository)
+--
+-- Policies were previously stored only as policy.json files under
+-- PARMANA_POLICY_DIR (FilePolicyRepository). That works for local
+-- development, but Vercel's serverless Functions run on a read-only
+-- filesystem: PolicyChangeApprovalService.approve()'s live-policy
+-- write (see that file's own doc comment) fails with EROFS the moment
+-- a checker approves a pending change in production. This table gives
+-- SupabasePolicyRepository somewhere writable to persist the same
+-- (name, version) -> content mapping FilePolicyRepository already
+-- modeled, so approve() succeeds against the deployed API the same
+-- way it already does in local dev and tests.
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS policies (
+
+    policy_name TEXT NOT NULL,
+
+    policy_version TEXT NOT NULL,
+
+    content_json JSONB NOT NULL,
+
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+    PRIMARY KEY (policy_name, policy_version)
+
+);
+
+ALTER TABLE policies ENABLE ROW LEVEL SECURITY;
+
+
+-- =============================================================================
+-- Source: supabase/migrations/20260916120000_drop_razorpay_tables.sql
+-- =============================================================================
+-- Drop orphaned Razorpay tables (Razorpay connector removed 2026-08-12)
+-- =============================================================================
+--
+-- The Razorpay connector and its `payments:execute`/vendor-payment capability
+-- were removed from this codebase entirely on 2026-08-12 (docs/CLAIMS.md,
+-- docs/VERIFICATION-GAPS.md G-27) -- it was never a real, production-reachable
+-- capability. The vendor-payment *policy file* and shared test fixtures using
+-- it as generic example data were deliberately retained (no execution risk,
+-- no connector able to back them) -- these three tables were not, and are
+-- confirmed orphaned:
+--
+--   - razorpay_webhook_events (20260718182238_add_razorpay_webhook_tables.sql)
+--   - razorpay_webhook_audit_events (same migration)
+--   - razorpay_daily_refund_reservations (20260805170000_add_razorpay_daily_refund_reservations.sql)
+--
+-- Confirmed before dropping (2026-09-16):
+--   - Only one file in packages/ references any of these table names at all
+--     (packages/api/tests/integration/refusal-record.integration.test.ts),
+--     incidentally, not as functional table access.
+--   - razorpay_webhook_events and razorpay_daily_refund_reservations had zero
+--     rows. razorpay_webhook_audit_events had 7 historical rows, backed up
+--     before this migration ran (not committed to this repo -- historical
+--     data, not schema).
+--   - No foreign key from any other table references any of the three.
+--
+-- Order matters only for readability here -- no FK dependencies exist between
+-- these three tables or from any other table onto them.
+
+DROP TABLE IF EXISTS razorpay_daily_refund_reservations;
+
+DROP TABLE IF EXISTS razorpay_webhook_audit_events;
+
+DROP TABLE IF EXISTS razorpay_webhook_events;
+
+
+-- =============================================================================
+-- Source: supabase/migrations/20260916150000_add_handbook_download_leads.sql
+-- =============================================================================
+-- Handbook download leads
+--
+-- Backs the email-gated PDF download at docs/site/handbook/download.mdx
+-- (POST /handbook/download-leads). Deliberately simple: an email
+-- address is required before the PDF link unlocks, but no
+-- verification email is sent -- this table exists to record who
+-- asked for the download, not to gate access behind a confirmed
+-- inbox. If double opt-in verification is ever added, it belongs in
+-- a separate migration, not folded into this one.
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS handbook_download_leads (
+
+    handbook_download_lead_id TEXT PRIMARY KEY,
+
+    email TEXT NOT NULL,
+
+    captured_at TIMESTAMPTZ NOT NULL DEFAULT now()
+
+);
+
+CREATE INDEX IF NOT EXISTS idx_handbook_download_leads_captured_at
+ON handbook_download_leads (
+    captured_at DESC
+);
+
+ALTER TABLE handbook_download_leads ENABLE ROW LEVEL SECURITY;
