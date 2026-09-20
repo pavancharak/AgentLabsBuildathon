@@ -135,7 +135,7 @@ test double) using `responses`-mocked HTTP built from real, verified response sh
 </Warning>
 
 The client also reuses a `requests.Session()` (connection pooling) and retries idempotent
-GETs with backoff on 502/503/504, POSTs are never retried.
+GETs with backoff on 429/502/503/504, POSTs are never retried.
 
 ## Every endpoint the API exposes has a method
 

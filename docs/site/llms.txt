@@ -68,6 +68,7 @@ This file is generated from the documentation navigation. Do not edit it by hand
 ## TypeScript SDK: Get started
 
 * [TypeScript SDK](https://docs.parmanasystems.com/sdks/typescript): Real client code, bearer-key authentication, and a typed error taxonomy that is actually thrown.
+* [TypeScript SDK configuration and behavior](https://docs.parmanasystems.com/sdks/typescript-configuration): Every option, default, retry rule, error mapping and method of the TypeScript SDK, each checked against the code.
 * [TypeScript SDK Overview](https://docs.parmanasystems.com/guides/typescript-sdk-overview): What the TypeScript SDK does, when to reach for it, and the four objects every integration is built from.
 * [TypeScript SDK Quickstart](https://docs.parmanasystems.com/guides/typescript-sdk-quickstart): Install to your first authorized execution with the TypeScript SDK, in under 10 minutes, using the in-memory server.
 ## TypeScript SDK: Build
@@ -77,6 +78,7 @@ This file is generated from the documentation navigation. Do not edit it by hand
 ## Python SDK: Get started
 
 * [Python SDK](https://docs.parmanasystems.com/sdks/python): Generated models, bearer-key authentication, and a typed error taxonomy verified against real HTTP responses.
+* [Python SDK configuration and behavior](https://docs.parmanasystems.com/sdks/python-configuration): Every option, default, retry rule, error mapping and method of the Python SDK, each checked against the code.
 * [Python SDK Overview](https://docs.parmanasystems.com/guides/python-sdk-overview): What the Python SDK does, when to reach for it, and the three objects every integration is built from.
 * [Python SDK Quickstart](https://docs.parmanasystems.com/guides/python-sdk-quickstart): Get Parmana running end-to-end with the Python SDK: build a transaction, execute it, and read back a signed proof.
 ## Python SDK: Build

@@ -60,10 +60,14 @@ function createParmanaClient(): ParmanaClient {
       maxDelayMs: 10_000,
       strategy: RetryStrategy.EXPONENTIAL,
     },
-    transport: new HttpTransport({ endpoint, apiKey }),
   };
 
-  return new ParmanaClient(configuration);
+  // Build the transport from the SAME configuration. HttpTransport reads timeout and
+  // retryPolicy from the configuration it is constructed with, not from the client's.
+  return new ParmanaClient({
+    ...configuration,
+    transport: new HttpTransport(configuration),
+  });
 }
 
 function requireEnv(name: string): string {
@@ -77,10 +81,10 @@ function requireEnv(name: string): string {
 export const parmana = createParmanaClient();
 ```
 
-`retryPolicy` is a real, typed field on `Configuration` (`typescript/src/config/RetryPolicy.ts`)
-— retries apply to the SDK's own transient-failure handling (connection failures, retryable
-statuses on idempotent requests), not to policy rejections, which are a real, final answer
-and should never be retried.
+**Build the transport from the same configuration object.** `HttpTransport` reads `timeout` and `retryPolicy` from the configuration it is constructed with. If you write `transport: new HttpTransport({ endpoint, apiKey })` next to a `retryPolicy` on the client, the transport never sees the retry policy and **nothing is retried**, with no error. Tested against a server that returns `503` twice: with the transport built from a partial configuration there is 1 request and an `InternalServerError`, and with the transport built from the full configuration there are 3 requests and success.
+
+Retries are off unless `retryPolicy.enabled` is `true` and `maxAttempts` is above zero. `maxAttempts` counts retries after the first attempt, so `maxAttempts: 3` makes up to 4 requests. Only `GET` requests are ever retried, on a network failure, a timeout, a `429` or a `5xx`. A `POST`, including `execute()`, is never retried, and a policy rejection is a final answer that must never be retried.
+See [TypeScript SDK configuration and behavior](/sdks/typescript-configuration) for every option and default.
 
 ## Error handling: fail closed
 
