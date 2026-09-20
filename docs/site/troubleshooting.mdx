@@ -69,6 +69,18 @@ not run.
 new transaction so a fresh authorization is signed. Nothing was executed and the nonce was not
 consumed.
 
+## `POST /execute` returns 500 and the log shows "Member must have length less than or equal to 4096"
+
+**Cause:** AWS KMS refuses to sign a raw Ed25519 message longer than 4096 bytes, and a full Execution
+Trust Record is larger. This is fixed by signing a message over that size as a fixed 97 byte commitment
+(ADR-0010), so first check that your deployment includes that change. The stack is
+`KmsSigner.sign` called from `VerificationCrypto.sign`.
+
+**Important:** the connector may already have run by the time this error is returned. Do not assume the
+action did not happen. Query `execution_audit_events` for the `business_transaction_id` to see what the
+connector did, and generate a fresh `businessTransactionId` for any retry, since the original was
+already recorded.
+
 ## `PARMANA_POLICY_DIR` and running from a fresh clone
 
 `02-REMAINING.md` (Tier 1) tracks this as an open item: `PARMANA_POLICY_DIR` has no

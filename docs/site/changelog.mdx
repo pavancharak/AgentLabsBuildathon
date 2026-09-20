@@ -28,6 +28,16 @@ every commit, run `git log` in the repository for the complete record.
   which production must not use. `GatewayVerificationResult` gains
   `checks.policyGovernanceVerified` and `policyGovernanceViolation`.
 
+**Fixed**
+
+- Signing a full Execution Trust Record under AWS KMS failed with `Member must have length less than
+or equal to 4096`, because KMS refuses a raw Ed25519 message over 4096 bytes. A message over that
+  size is now signed as a fixed 97 byte commitment (a prefix, a NUL byte, and the SHA-512 digest), and
+  verifiers accept it. Signatures issued before this change are unaffected. A verifier you wrote
+  yourself must implement the same rule to verify large KMS signed records, see the
+  [large message rule](/guides/verify-independently). The Python SDK's offline verifier accepts the
+  commitment form, so release a new Python SDK version with this change.
+
 ## 2026-09-14
 
 **Added**

@@ -37,12 +37,17 @@ not claim them:
   automatically for a new one you add. The mechanism is generic and tested, but wiring a new
   connector into it is a deliberate step, not something the architecture does for you; see
   [Credential isolation](/concepts/credential-isolation).
-- **No key management beyond local files.** Signing keys are PEM files read by
-  `FileKeyProvider`. `aws-kms`, `azure-key-vault`, `gcp-kms`, and `hsm` are declared
-  configuration values with no implementing class; setting one fails startup loudly rather
-  than silently doing nothing. Key rotation exists (`scripts/rotate-verification-key.ts`)
-  but is a manual operator procedure, not automated, and keys stay plain files on disk, not
-  KMS/HSM-custodied.
+- **Key custody is local files or AWS KMS, nothing else.** `KEY_PROVIDER=local` reads PEM
+  files through `FileKeyProvider`. `KEY_PROVIDER=aws-kms` signs through AWS KMS
+  (`KmsSigner`), so the signing key is never released. `azure-key-vault`, `gcp-kms`, and `hsm`
+  are declared configuration values with no implementing class; setting one fails startup
+  loudly rather than silently doing nothing. Key rotation exists
+  (`scripts/rotate-verification-key.ts`) but is a manual operator procedure, not automated.
+- **Verifiers must implement the large message rule.** AWS KMS refuses a raw Ed25519 message over
+  4096 bytes, so a record or authorization larger than that is signed by KMS as a fixed commitment
+  (ADR-0010). The Parmana TypeScript packages and the Python SDK verify it. A verifier you write
+  yourself must accept the commitment form for messages over 4096 bytes, or it will reject large
+  KMS signed records.
 - **Route access itself is not scoped.** Any authenticated caller can call any route, there
   is no per-key allowlist of endpoints. What is scoped: which `authority.principalId` a
   caller may assert (default: only itself), and which transactions/records a caller may

@@ -96,6 +96,15 @@ const result = await verifyExecutionTrustRecordOffline(trustRecord, {
 // { valid: true, hashValid: true, legacySignatureValid: true, algorithmsChecked: ["ed25519"], errors: [] }
 ```
 
+<Note>
+  A record over 4096 bytes of canonical content may have been signed by AWS KMS
+  as a fixed 97 byte commitment, because KMS refuses a longer raw Ed25519
+  message. `verifyExecutionTrustRecordOffline` accepts a raw signature for any
+  record and additionally accepts the commitment form for a record over that
+  size. A commitment signature over a smaller record is rejected. The rule is
+  specified in ADR-0010, `docs/adr/ADR-0010-Large-Message-Signing-Under-KMS.md`.
+</Note>
+
 Full runnable version: [Verify a trust record independently](/guides/verify-independently).
 
 ## Next

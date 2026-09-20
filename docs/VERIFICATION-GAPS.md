@@ -444,6 +444,16 @@ Scope: a line by line read of the execution enforcement path (`ExecutionGateway`
 
 ---
 
+## Gaps closed in the 2026-09-20 KMS large message signing session
+
+Scope: a live `paytm:refund` through production `/execute` returned `500`. The runtime log showed AWS KMS rejecting the message being signed as longer than 4096 bytes. One real gap is closed here. A related ordering gap found in the same run is recorded as G-52 and not fixed.
+
+| #   | Gap                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Verified                                                                                                                                                                                                                                                                                                                |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 59  | **Trust records could not be signed under AWS KMS.** `KmsSigner.sign()` sent the full canonical bytes to KMS with `MessageType: RAW`, and KMS caps a raw Ed25519 message at 4096 bytes. A full Execution Trust Record, with its bound authorization, connector evidence and governance anchor, is larger, so every real execution that reached record signing failed with `500`. The same limit applied to any artifact signed through a `Signer`, such as an authorization with large parameters. It was not seen earlier because KMS tests only used the small `test:fixture-execute` record. RESOLVED in code 2026-09-20 (ADR-0010): a message over 4096 bytes is signed as a fixed 97 byte commitment (prefix, NUL, SHA-512 digest) and verified accordingly. The scheme is a pure function of length, so no schema change is stored and every earlier signature stays valid. A commitment signature over a small message is rejected. The TypeScript verifiers and the Python offline verifier implement the rule, and a third party verifier must too. | `packages/crypto/tests/unit/signature-commitment.test.ts` and `kms-signer.test.ts`, and `python/tests/test_offline_verifier.py` (TypeScript signs a large record as a commitment and Python independently verifies it). Not yet verified against the real AWS KMS service, that needs a deployment and one live refund. |
+
+---
+
 ## Remaining gaps, by severity
 
 **Status note, updated in the adversarial-testing hardening session that added G-24:**
@@ -1240,6 +1250,22 @@ against real state, so a caller can declare them true. The same applies to GitHu
 **Not fixed. Option:** add capability scoped `SignalStateVerifier` implementations, starting with a signed
 approval artifact for `managerApproved` (the `SignedApprovalGuard` and `ApprovalIssuerRegistry` machinery
 already exists in `packages/approval`).
+
+**G-52. The connector can be called before the Execution Trust Record can be signed, so a signing
+failure leaves an executed action with no signed trust record.** Found 2026-09-20 in the same live
+run as gap 59. The Paytm connector service logged `POST /connector/paytm-refund` at 13:06:48, and
+`/execute` then failed with `500` when the record signature could not be produced. The order in the
+runtime pipeline is authorize, release through the gateway to the connector, then build, sign and
+persist the record, because the record contains the result of the execution. Any failure after the
+connector call (a signing outage, a database error, a size or key problem) can therefore leave an
+executed action without a signed record. Gateway and connector service audit events
+(`execution_audit_events`) are written separately and would still exist, but the durable, signed,
+verifiable trust record would not. Gap 59 removes the most likely cause, it does not remove the
+ordering. **Not fixed. Options:** (1) verify that the signing key is reachable and can sign a
+representative message before releasing to the connector, failing closed if not, which shrinks the
+window but cannot close it; (2) persist a signed "execution intent" record before release and
+finalize it after, so an executed action always has a signed record even if finalization fails;
+(3) both. Option 2 is the complete answer and is a design change to the pipeline.
 
 ### pre-production
 

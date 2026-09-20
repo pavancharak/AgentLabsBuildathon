@@ -130,6 +130,13 @@ actually cover](/concepts/execution-trust-records).
 
 ## Troubleshoot
 
+- **A large record fails to verify in your own implementation.** A record over 4096 bytes of
+  canonical content may have been signed by AWS KMS as a fixed 97 byte commitment, because KMS refuses
+  a longer raw Ed25519 message. Build the commitment as the bytes of `PARMANA-ED25519-LARGE-MESSAGE-V1`,
+  one NUL byte, then the SHA-512 digest of the canonical bytes, and verify the same signature over
+  that. Try the raw signature first, and try the commitment form only when the record is over 4096
+  bytes, never for a smaller one. `verifyExecutionTrustRecordOffline` (TypeScript) and
+  `verify_execution_trust_record_offline` (Python) both do this.
 - **`Public key not found: default`.** `VerificationCrypto` resolves keys via
   `PARMANA_KEY_DIR` (or `./keys` if unset), confirm `keys/default.public.pem` exists at that
   path relative to where you run the script.

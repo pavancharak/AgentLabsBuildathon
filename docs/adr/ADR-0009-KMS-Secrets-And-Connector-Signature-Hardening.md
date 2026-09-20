@@ -4,6 +4,8 @@
 
 **Date:** 2026-09-13
 
+**Update (2026-09-20):** AWS KMS refuses a raw Ed25519 message over 4096 bytes, which broke signing of a full Execution Trust Record in production. A message over that size is now signed as a fixed size commitment, see `ADR-0010-Large-Message-Signing-Under-KMS.md`.
+
 **Update (2026-09-15):** Architecture §1 (gateway signing key → AWS KMS) and §4 (Paytm connector signature verification) are now built — see `ROADMAP.md`'s "Secrets, Signing-Key Custody & Connector Signature Hardening" section and `docs/CLAIMS.md`'s 2026-09-15 update on the G-40 entry for exact status and verification evidence. Architecture §2 (opaque connector secrets → AWS Secrets Manager) and §3 (GitHub App credential elimination) remain not built. **Update (2026-09-16):** Full setup guide and troubleshooting record for everything in this
 ADR: `docs/operations/aws-kms-vercel-oidc-setup-guide.md` and
 `docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md`. Five additional real

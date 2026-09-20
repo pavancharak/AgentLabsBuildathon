@@ -338,6 +338,37 @@ recorded failure reason.
   `PAYTM_MERCHANT_ID`/`PAYTM_MERCHANT_KEY`/`PAYTM_ENVIRONMENT` values from
   an actual Paytm merchant account before real refunds can execute.
 
+## Issue found 2026-09-20: KMS rejects a message over 4096 bytes
+
+**Symptom.** `POST /execute` returns `500 {"error":"Internal Server Error"}`. The runtime log shows:
+
+```
+ValidationException: 1 validation error detected: Value at 'message' failed to satisfy
+constraint: Member must have length less than or equal to 4096
+  at async KmsSigner.sign (.../providers/signer/KmsSigner.js)
+  at async VerificationCrypto.sign (.../VerificationCrypto.js)
+```
+
+**Cause.** AWS KMS refuses a raw Ed25519 message over 4096 bytes, and `KmsSigner.sign()` sent the full
+canonical bytes of the Execution Trust Record, which with its bound authorization, connector evidence
+and governance anchor is larger. It did not show up in earlier KMS testing because the
+`test:fixture-execute` record is small. A refund through the real Paytm connector is not.
+
+**Fix.** ADR-0010. A message over 4096 bytes is signed as a fixed 97 byte commitment (the prefix
+`PARMANA-ED25519-LARGE-MESSAGE-V1`, a NUL byte, and the SHA-512 digest), and verifiers accept it.
+Nothing needs re-signing, and signatures issued earlier verify unchanged.
+
+**Important side effect to check.** The connector had already been called when the failure happened
+(the Paytm connector service logged `POST /connector/paytm-refund` before `/execute` returned `500`).
+The action was released and no signed trust record was produced, see G-52 in
+`docs/VERIFICATION-GAPS.md`. For any `500` on `/execute` after this class of failure, query
+`execution_audit_events` by `business_transaction_id` to see whether the connector executed, and do not
+assume nothing happened.
+
+**Confirm the fix is live.** After deploying, run one small `paytm:refund` through `/execute` and check
+that the response is a full `ExecutionTrustRecord` with `verifications[0].status` of `VERIFIED` and a
+signed receipt, and that the log contains no `ValidationException`.
+
 ## Quick diagnostic checklist for "something's wrong with KMS signing"
 
 1. `curl https://YOUR-PROJECT.vercel.app/keys/default` — 200 with a real
@@ -362,3 +393,7 @@ not found: .../gateway.private.pem` — a materialization gap, see #2/#4.
    with HTTP 500"), query the shared `execution_audit_events` table by
    `business_transaction_id` — both repos write detailed `reason` fields
    there even when the HTTP-level error is opaque.
+7. If the log shows `ValidationException ... length less than or equal to 4096` from
+   `KmsSigner.sign` means a message over the KMS raw limit was signed without the commitment scheme,
+   see the 2026-09-20 section above. Check that the deployed build includes ADR-0010, and check
+   `execution_audit_events` for whether the connector already ran.

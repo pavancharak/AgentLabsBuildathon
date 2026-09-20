@@ -132,6 +132,32 @@ signing attempt. Because of this function, `alias/default` has to actually exist
 is not a naming convenience, it is the literal resolution target for the logical id every call
 site already uses.
 
+### Large messages: the 4096 byte KMS limit and the commitment scheme
+
+AWS KMS refuses a raw Ed25519 message longer than 4096 bytes. `KmsSigner.sign()` originally passed the
+full canonical bytes of whatever it was signing, so signing a full `ExecutionTrustRecord` (with its
+bound authorization, connector evidence and governance anchor) failed with `ValidationException:
+Member must have length less than or equal to 4096`. It was found in production on 2026-09-20,
+because earlier KMS tests only used the small `test:fixture-execute` record (ADR-0010,
+`docs/VERIFICATION-GAPS.md` gap 59).
+
+The fix is `packages/crypto/src/SignatureCommitment.ts`. A message of 4096 bytes or fewer is signed
+raw, exactly as before. A longer message is signed as a fixed 97 byte commitment: the prefix
+`PARMANA-ED25519-LARGE-MESSAGE-V1`, a NUL byte, and the SHA-512 digest of the message. The signature is
+still ordinary Ed25519. The scheme depends only on message length, so nothing is stored on a record to
+say which form was used, and every signature issued before the change verifies unchanged.
+
+Verification lives in `Ed25519SignatureProvider.verify()`, which every TypeScript verification path goes
+through. It tries the raw signature first, and only for a message over 4096 bytes also tries the
+commitment form. A commitment signature over a small message is rejected, so a small message cannot be
+downgraded to the commitment form. The prefix contains a NUL byte, which a canonical JSON message never
+starts with, so the two forms cannot be confused.
+
+Two consequences worth knowing. A verifier written elsewhere has to implement the same rule to verify a
+large record signed under KMS, and the Python SDK's offline verifier already does. This also does not
+change the order of operations in a request: the connector can still be called before the record is
+signed (gap G-52).
+
 ### `SignerKeyProviderAdapter`: closing a real signing/verification divergence
 
 `providers/SignerKeyProviderAdapter.ts` is the fix for the most serious of the real incidents

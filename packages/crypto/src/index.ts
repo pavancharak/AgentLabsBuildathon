@@ -27,6 +27,7 @@ export * from "./ExecutionChainHasher.js";
 
 export * from "./ArtifactSigner.js";
 export * from "./SignatureVerifier.js";
+export * from "./SignatureCommitment.js";
 export * from "./AuthorizationSigner.js";
 export * from "./AuthorizationVerifier.js";
 export * from "./PolicyChangeStepUpAuthorizationCrypto.js";

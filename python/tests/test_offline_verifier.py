@@ -88,3 +88,84 @@ def test_python_verifier_rejects_a_tampered_typescript_signed_record() -> None:
 
         assert verification.valid is False
         assert verification.hash_valid is False
+
+
+@pytest.mark.skipif(not _npx_available(), reason="npx not available on PATH")
+def test_python_verifier_accepts_a_large_record_signed_as_a_kms_commitment() -> None:
+    # The TypeScript fixture signs this record the way the KMS signer signs a
+    # message over 4096 bytes (a fixed size commitment, not the raw bytes).
+    with tempfile.TemporaryDirectory() as tmp:
+        result = _run_fixture_generator(tmp)
+
+        assert result.returncode == 0, result.stderr
+
+        record = json.loads(
+            (Path(tmp) / "record-large.json").read_text(encoding="utf-8")
+        )
+        public_key_pem = (Path(tmp) / "public-key.pem").read_text(encoding="utf-8")
+
+        verification = verify_execution_trust_record_offline(
+            record,
+            {"cross-language-fixture": public_key_pem},
+        )
+
+        assert verification.valid is True
+        assert verification.hash_valid is True
+        assert verification.legacy_signature_valid is True
+        assert verification.errors == []
+
+
+@pytest.mark.skipif(not _npx_available(), reason="npx not available on PATH")
+def test_python_verifier_rejects_a_tampered_large_commitment_signed_record() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        result = _run_fixture_generator(tmp)
+
+        assert result.returncode == 0, result.stderr
+
+        record = json.loads(
+            (Path(tmp) / "record-large.json").read_text(encoding="utf-8")
+        )
+        public_key_pem = (Path(tmp) / "public-key.pem").read_text(encoding="utf-8")
+
+        record["transaction"]["signals"]["amount"] = 999999
+
+        verification = verify_execution_trust_record_offline(
+            record,
+            {"cross-language-fixture": public_key_pem},
+        )
+
+        assert verification.valid is False
+
+
+def test_commitment_signature_over_a_small_message_is_rejected() -> None:
+    # No downgrade: a commitment signature is only accepted for a message
+    # over the KMS raw limit.
+    from cryptography.exceptions import InvalidSignature
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+    from parmana.crypto.offline_verifier import (
+        _commitment_message,
+        _verify_ed25519_with_commitment,
+    )
+
+    private_key = Ed25519PrivateKey.generate()
+    public_key = private_key.public_key()
+
+    small = b"x" * 4096
+    large = b"x" * 4097
+
+    _verify_ed25519_with_commitment(public_key, private_key.sign(small), small)
+    _verify_ed25519_with_commitment(public_key, private_key.sign(large), large)
+    _verify_ed25519_with_commitment(
+        public_key, private_key.sign(_commitment_message(large)), large
+    )
+
+    with pytest.raises(InvalidSignature):
+        _verify_ed25519_with_commitment(
+            public_key, private_key.sign(_commitment_message(small)), small
+        )
+
+    with pytest.raises(InvalidSignature):
+        _verify_ed25519_with_commitment(
+            public_key, private_key.sign(_commitment_message(large)), large + b"y"
+        )
