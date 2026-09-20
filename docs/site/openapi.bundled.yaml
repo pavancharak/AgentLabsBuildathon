@@ -488,53 +488,53 @@ paths:
       summary: Execute a Business Transaction
       operationId: executeTransaction
       description: >
-        Runs the complete Execution Trust pipeline synchronously: accepts the
-        Business Transaction, executes it through the Runtime, verifies the
-        resulting Execution Trust Record, generates a Receipt, then returns the
-        complete, updated Execution Trust Record. businessTransactionId must be
-        a valid UUID (v1-v5) or the request fails before any persistence with a
-        400. See BusinessTransactionMapper.fromRequest and
-        isValidBusinessTransactionId in packages/api/src/routes/execute.ts. The
-        mapper reconstructs the transaction field by field, so status and
-        createdAt supplied by the client are always ignored (Parmana assigns
-        RECEIVED and the current time), and any top-level field not in the
-        request schema is silently dropped. POST /transactions applies the
-        identical UUID check and mapper. See that endpoint below.
+        Runs the complete pipeline synchronously and returns the finished
+        Execution Trust Record. In order, the server accepts and stores the
+        Business Transaction, evaluates the policy, signs an authorization for
+        an approved action and releases it to the connector, then builds, signs
+        and verifies the record and generates a receipt.
 
 
-        If Policy evaluation rejects the transaction, this endpoint responds 403
-        with code POLICY_DENIED and the message "Execution rejected: <reason>".
-        Nothing is released to any connector. See the 403 response below. Before
-        releasing an action the runtime also proves it can sign evidence, and
-        refuses with 503 and code SIGNING_UNAVAILABLE if it cannot, in which
-        case nothing was executed. If the action WAS released but its signed
-        Execution Trust Record could not be produced, the response is 500 with
-        code EXECUTION_RECORD_INCOMPLETE and the caller must not resubmit under
-        a new businessTransactionId. See the 503 and 500 responses below and the
-        Error catalog at /api-reference/error-catalog.
+        `businessTransactionId` must be a valid UUID (v1 to v5). It is the
+        idempotency key: sending the same one again returns `409`. The server
+        assigns `status` and `createdAt`, sets `metadata.submittedBy` from the
+        authenticated key, and drops any top level field that is not in the
+        request schema.
 
 
-        `hubspot:deal-update` and `hubspot:deal-fetch` are the real,
-        currently-registered capabilities reachable through this same endpoint
-        by this capability-based routing mechanism today. Registration is
-        conditional on `HUBSPOT_PRIVATE_APP_TOKEN` being configured; if it is
-        not, the connector is never registered and this action falls into the
-        "no Connector registered" case documented under 500 below. See
-        packages/api/tests/integration/hubspot-deal-update.integration.test.ts
-        for the executable, real-request proof of the hubspot flow.
+        Which `intent.action` values work depends on the connectors registered
+        on the server. An action with no registered connector fails with a
+        `500`.
 
 
-        **`payments:execute` (`vendor-payment`), shown in the
-        vendor-payment-flow example below, was removed from the repository
-        entirely.** That example is a real request/response pair captured before
-        the removal; resubmitting it against a current server no longer produces
-        the shown APPROVED result; it falls into the "no Connector registered"
-        case instead, since no connector (production or test) registers
-        `payments:execute` any longer. It is retained here as a real, historical
-        illustration of the response shape, not as a currently-runnable example.
-        The `vendor-payment/2.0.0` policy file itself is unaffected and still
-        loads (see PolicyValidate below); only the connector that would have
-        executed against it is gone.
+        How each outcome is reported:
+
+
+        1. `200`: approved and released. The body is the signed Execution Trust
+        Record.
+
+        2. `403` with code `POLICY_DENIED`: a policy refused. This is final and
+        nothing was released.
+
+        3. `403` with code `CAPABILITY_NOT_ALLOWED`, or with no code: the key
+        may not invoke the action, or may not assert that principal.
+
+        4. `429`: rate limited. Nothing was recorded. Wait for the `Retry-After`
+        header.
+
+        5. `503` with code `SIGNING_UNAVAILABLE` or `AUDIT_UNAVAILABLE`: refused
+        before release. Nothing was executed.
+
+        6. `500` with code `EXECUTION_RECORD_INCOMPLETE`: the action was
+        released but its signed record could not be produced. Do not resubmit
+        under a new id.
+
+
+        The examples named `vendor-payment-flow` are historical captures that
+        show the response shape. The `payments:execute` action they use no
+        longer exists on a current server. See the [Error
+        catalog](/api-reference/error-catalog) and [Integrate Parmana:
+        specification for AI agents](/agents/integrate).
       requestBody:
         required: true
         content:
@@ -543,13 +543,9 @@ paths:
               $ref: "#/components/schemas/transaction-create-request.schema"
             examples:
               test-fixture-flow:
-                summary: Real captured request, currently runnable (test:fixture-execute, the
-                  generic NODE_ENV=test-only capability, APPROVED). Click Try It
-                  with this example against a server started with NODE_ENV=test
-                  -- this exact request/response pair was captured live against
-                  this endpoint on 2026-09-14. Prefer this example over
-                  vendor-payment-flow below, which is historical and no longer
-                  executes against a current server, see its own summary.
+                summary: A request that runs on a server started with NODE_ENV=test, using the
+                  test only capability test:fixture-execute. It was captured
+                  live on 2026-09-14 and is approved.
                 value:
                   businessTransactionId: e54187e6-431f-4e1c-9c0e-ff2cb5d6d40a
                   metadata:
@@ -591,7 +587,9 @@ paths:
                     riskScore: 5
                     vendorId: vendor://payments
               vendor-payment-flow:
-                summary: Real captured request (vendor-payment 2.0.0, APPROVED)
+                summary: Historical capture (vendor-payment 2.0.0, approved). The
+                  payments:execute action no longer exists on a current server.
+                  Shown for the response shape only.
                 value:
                   businessTransactionId: 44b34a79-e0f2-49d7-a48e-e52fff88182e
                   metadata:
@@ -1074,18 +1072,12 @@ paths:
       summary: Create (execute) a Business Transaction
       operationId: createTransaction
       description: >
-        A second, independent entry point into the identical
-        application.execute() pipeline as POST /execute. See
-        packages/api/src/routes/transactions.ts. Constructs the Business
-        Transaction identically to POST /execute: businessTransactionId must be
-        a valid UUID (v1-v5) or the request fails before any persistence with a
-        400, and BusinessTransactionMapper.fromRequest rebuilds the transaction
-        field by field, so status and createdAt supplied by the client are
-        always ignored (Parmana assigns RECEIVED and the current time) and any
-        top-level field not in the request schema is silently dropped. The only
-        behavioral difference from POST /execute is the success status code:
-        201, not 200. The response body shape is otherwise identical to POST
-        /execute.
+        Identical to `POST /execute` in every way except the success status:
+        this endpoint returns `201` where `POST /execute` returns `200`. The
+        request, the pipeline, the errors and the response body are the same, so
+        read [Execute a Business
+        Transaction](/api-reference/endpoints/execute-transaction) for the full
+        behavior.
       requestBody:
         required: true
         content:

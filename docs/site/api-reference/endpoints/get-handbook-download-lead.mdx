@@ -1,0 +1,5 @@
+---
+title: "Capture an email address, then redirect straight to the handbook PDF"
+description: "Backs the plain-HTML-form download at docs/site/handbook/download.mdx -- a GET so a `<form method='get'>` with no client-side JavaScript can submit it directly, since the docs site host may sandbox or strip inline `<script>` tags."
+openapi: "/openapi.bundled.yaml GET /handbook/download-leads"
+---

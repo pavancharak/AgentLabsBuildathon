@@ -98,13 +98,69 @@ This file is generated from the documentation navigation. Do not edit it by hand
 ## Connector SDKs: Ready made connectors
 
 * [HubSpot](https://docs.parmanasystems.com/integrations/hubspot): Policy-gated updates to a HubSpot Deal's dealstage and amount. Hermetic by default, proven live against a real HubSpot developer/test account.
-## REST API: REST API
+## REST API: REST API guide
 
 * [REST API Introduction](https://docs.parmanasystems.com/api-reference/introduction): 26 paths, generated from openapi/openapi.yaml into the sidebar under REST API. This page covers what that spec can't express.
 * [Authentication](https://docs.parmanasystems.com/api-reference/authentication): How to authenticate API requests: the bearer key model, what gets checked, and how it differs from Policy evaluation and gateway attestation.
 * [Error Handling](https://docs.parmanasystems.com/api-reference/error-handling): The shared error envelope, when the code field is present versus absent, and the two verified gaps where implementation doesn't match the envelope's own design.
 * [Idempotency and Nonces](https://docs.parmanasystems.com/api-reference/idempotency-and-nonces): There is no Idempotency-Key header. businessTransactionId is the API-layer idempotency mechanism, and it behaves differently from Stripe's: a duplicate is a 409, not a replayed response. Nonces are a separate, internal concept.
 * [Error Catalog](https://docs.parmanasystems.com/api-reference/error-catalog): Every error this API can return: HTTP status, code (when present), the exact condition that produces it, and what a caller should do. Assembled from live-triggered captures, not inferred from code.
+## REST API: Execution
+
+* [Execute a Business Transaction](https://docs.parmanasystems.com/api-reference/endpoints/execute-transaction): Runs the complete pipeline synchronously and returns the finished Execution Trust Record.
+## REST API: Transactions
+
+* [List Business Transactions](https://docs.parmanasystems.com/api-reference/endpoints/list-transactions): Returns every accepted Business Transaction.
+* [Create (execute) a Business Transaction](https://docs.parmanasystems.com/api-reference/endpoints/create-transaction): Identical to `POST /execute` in every way except the success status: this endpoint returns `201` where `POST /execute` returns `200`.
+* [Get Business Transaction](https://docs.parmanasystems.com/api-reference/endpoints/get-transaction): Returns a bare Business Transaction by ID.
+## REST API: Verification
+
+* [Verify an Execution Trust Record](https://docs.parmanasystems.com/api-reference/endpoints/verify-transaction): Deterministically re-validates the complete Execution Trust Record for businessTransactionId: recomputed hash vs.
+* [Get latest Verification](https://docs.parmanasystems.com/api-reference/endpoints/get-latest-verification): Returns the most recent Verification for the Execution Trust Record identified by businessTransactionId.
+## REST API: Receipts
+
+* [Generate a Receipt](https://docs.parmanasystems.com/api-reference/endpoints/generate-receipt): Generates a cryptographically signed Receipt for businessTransactionId.
+* [Get latest Receipt](https://docs.parmanasystems.com/api-reference/endpoints/get-latest-receipt): Returns the most recent Receipt for the Execution Trust Record identified by businessTransactionId.
+## REST API: Trust Records
+
+* [Bulk-export Execution Trust Records (compliance/audit)](https://docs.parmanasystems.com/api-reference/endpoints/list-trust-records): Returns the full, signed Execution Trust Record (transaction, executions, verifications, receipts, authorization) for every transaction on the requested page -- the periodic full-export capability for external audit/compliance review, di...
+* [Get Execution Trust Record](https://docs.parmanasystems.com/api-reference/endpoints/get-trust-record): Returns the complete Execution Trust Record for businessTransactionId (looked up by Business Transaction ID, despite the path segment name; there is no separate trustRecordId lookup).
+## REST API: Replay
+
+* [Replay an Execution Trust Record](https://docs.parmanasystems.com/api-reference/endpoints/replay-transaction): Re-verifies the stored signature on the Execution Trust Record for businessTransactionId and returns its hash alongside the verification result.
+## REST API: Policies
+
+* [Validate that a Policy exists and is readable](https://docs.parmanasystems.com/api-reference/endpoints/validate-policy): Checks that policies/{policyId}/{policyVersion}/policy.json exists and parses.
+## REST API: Policy Governance
+
+* [Propose a policy change (maker)](https://docs.parmanasystems.com/api-reference/endpoints/propose-policy-change): Proposes a change to a policy's content (Policy Governance, maker-checker).
+* [List pending policy changes (maker-checker)](https://docs.parmanasystems.com/api-reference/endpoints/list-pending-policy-changes): Lists Pending Policy Changes, each alongside a diff view: current (the live content at (policyName, policyVersion) today, or null if that version has never been published) and proposed (the change's own proposedContent).
+* [Approve a pending policy change (checker)](https://docs.parmanasystems.com/api-reference/endpoints/approve-policy-change): Approves a Pending Policy Change (checker).
+* [Reject a pending policy change (checker)](https://docs.parmanasystems.com/api-reference/endpoints/reject-policy-change): Rejects a Pending Policy Change (checker).
+## REST API: Refusal Records
+
+* [Verify a Refusal Record's signature](https://docs.parmanasystems.com/api-reference/endpoints/verify-refusal-record): Verifies a Refusal Record's signature (RFC-0021).
+* [Get a Refusal Record by transaction ID](https://docs.parmanasystems.com/api-reference/endpoints/get-refusal-record): Looks up a Refusal Record by businessTransactionId from Parmana's own storage.
+## REST API: Audit
+
+* [Verify a signed caller-authentication audit event](https://docs.parmanasystems.com/api-reference/endpoints/verify-audit-event): Verifies a signed caller-authentication audit event's signature, the same unauthenticated, third-party-verifiable capability as POST /refusal/verify, over the durable caller_audit_events audit trail instead of Refusal Records.
+## REST API: System
+
+* [Root](https://docs.parmanasystems.com/api-reference/endpoints/get-root): Minimal liveness response.
+* [Health check](https://docs.parmanasystems.com/api-reference/endpoints/get-health): Returns the operational health of the Parmana service.
+* [Readiness check](https://docs.parmanasystems.com/api-reference/endpoints/get-ready): Readiness probe, distinct from GET /health's pure liveness check: when storage is Supabase-backed, this one actually queries Postgres (SELECT 1, no table rows transferred) so an orchestrator can tell a process that is up but backed by de...
+* [Get the OpenAPI spec](https://docs.parmanasystems.com/api-reference/endpoints/get-open-api-spec): Serves the bundled, self-contained OpenAPI document (openapi/openapi.bundled.yaml, produced by `npm run bundle:openapi` from openapi/openapi.yaml + schemas/*.json) as a static file, see packages/api/src/routes/openapi.ts.
+* [Get the OpenAPI spec, as JSON](https://docs.parmanasystems.com/api-reference/endpoints/get-open-api-spec-json): The same bundled spec as GET /openapi.yaml, JSON-serialized instead of YAML, see packages/api/src/routes/openapi-json.ts.
+* [Machine-readable SDK and discovery manifest](https://docs.parmanasystems.com/api-reference/endpoints/get-api-manifest): A single machine-readable index for coding agents and tooling: the OpenAPI spec locations, the rendered documentation views, the authentication scheme, and both official SDKs (TypeScript and Python) with their real, current package name,...
+* [Service version](https://docs.parmanasystems.com/api-reference/endpoints/get-version): Returns hardcoded deployment identifiers.
+* [Fetch a public signing key for independent, offline verification](https://docs.parmanasystems.com/api-reference/endpoints/get-key): Deliberately unauthenticated, like GET /audit/verify and GET /refusal/verify.
+* [List every public signing key this deployment can currently produce](https://docs.parmanasystems.com/api-reference/endpoints/get-jwks): Same unauthenticated, third-party-verification purpose as GET /keys/{keyId}, this is the enumeration form.
+* [Get the authenticated caller's identity and resolved scope](https://docs.parmanasystems.com/api-reference/endpoints/get-caller-me): The proof artifact a security review asks for: 'show me this agent's identity and exactly what it's authorized to do.' Read-only, self-lookup only, an authenticated caller sees its own record, never another caller's, and this never retur...
+## REST API: Handbook
+
+* [Download the Parmana Handbook (PDF)](https://docs.parmanasystems.com/api-reference/endpoints/get-handbook-pdf): Serves the handbook PDF (docs/site/parmana-handbook.pdf, generated by scripts/generate-handbook-pdf.ts from docs/parmana-handbook/*.md) as a static file directly from this API, see packages/api/src/routes/handbook-pdf.ts.
+* [Capture an email address, then redirect straight to the handbook PDF](https://docs.parmanasystems.com/api-reference/endpoints/get-handbook-download-lead): Backs the plain-HTML-form download at docs/site/handbook/download.mdx -- a GET so a `<form method='get'>` with no client-side JavaScript can submit it directly, since the docs site host may sandbox or strip inline `<script>` tags.
+* [Capture an email address before unlocking the handbook PDF download](https://docs.parmanasystems.com/api-reference/endpoints/create-handbook-download-lead): Backs a programmatic caller that wants a `downloadUrl` back in a JSON response body instead of a redirect -- see GET /handbook/download-leads above for the browser-form variant, which is what the actual docs site page uses.
 ## Deploy and operate: Deploy
 
 * [Local / Self-Hosted Deployment](https://docs.parmanasystems.com/deployment/local): The real, current deployment model: a single Node.js process, local PEM keys, your choice of memory or Supabase storage.
