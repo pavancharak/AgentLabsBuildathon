@@ -4,8 +4,9 @@ description: "The real, current deployment model: a single Node.js process, loca
 ---
 
 <Info>
-  **[AVAILABLE]**, this is what actually runs. Cloud/KMS/multi-instance/HA
-  deployment is [ROADMAP], see [Roadmap](/roadmap).
+  **[AVAILABLE]**, this is what actually runs. Multi-instance/HA deployment is
+  [ROADMAP], see [Roadmap](/roadmap). For AWS KMS signing see [AWS KMS
+  signing](/deployment/aws-kms-signing).
 </Info>
 
 ## What runs today
@@ -69,9 +70,11 @@ skips needing this key.
 - **No self-service key management.** Caller authentication is real and fails closed (see
   [Authentication](/api-reference/authentication)), but issuing and rotating keys is an
   operator action (`scripts/generate-api-key.ts`), not an API call.
-- **No KMS/HSM.** Your private keys, both `default.private.pem` and `gateway.private.pem`,
-  are files on disk, exactly the exposure that produced the incident noted on
-  [Security](/security/overview).
+- **No KMS in this mode.** With `KEY_PROVIDER=local` your private keys, both
+  `default.private.pem` and `gateway.private.pem`, are files on disk, exactly the exposure
+  that produced the incident noted on [Security](/security/overview). Set
+  `KEY_PROVIDER=aws-kms` to keep the `default` key in AWS KMS, see
+  [AWS KMS signing](/deployment/aws-kms-signing).
 - **Single process, single instance.** No HA, no load balancer assumed. Whether replicas
   share replay-nonce state depends on `NODE_ENV`: `MemoryNonceStore` (`NODE_ENV=test`, as
   above) is process-local, each process would accept the same authorization once, not once

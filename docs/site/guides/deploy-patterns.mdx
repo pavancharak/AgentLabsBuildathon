@@ -5,7 +5,8 @@ description: "In-memory vs Supabase storage, the full environment variable check
 
 <Info>
   **[AVAILABLE]** for everything below, this is what actually runs today.
-  Cloud/KMS/multi-instance/HA deployment is [ROADMAP], see [Roadmap](/roadmap).
+  Multi-instance/HA deployment is [ROADMAP], see [Roadmap](/roadmap). AWS KMS
+  signing is available, see [AWS KMS signing](/deployment/aws-kms-signing).
 </Info>
 
 ## Goal
@@ -219,10 +220,11 @@ environment-variable toggle for this today, it's a code change.
 
 ## What this deployment does not give you
 
-- **No KMS/HSM.** Both private keys are files on disk, exactly the exposure that produced
-  the incident noted on [Security](/security/overview). `KeyProviders` declares `aws-kms`,
-  `azure-key-vault`, `gcp-kms`, and `hsm` as config values with zero implementing classes.
-  Setting `KEY_PROVIDER` to one of these fails startup loudly rather than silently running
+- **No KMS in this pattern.** With `KEY_PROVIDER=local` both private keys are files on disk,
+  exactly the exposure that produced the incident noted on [Security](/security/overview).
+  `aws-kms` is implemented, see [AWS KMS signing](/deployment/aws-kms-signing).
+  `azure-key-vault`, `gcp-kms` and `hsm` are declared config values with no implementation.
+  Setting `KEY_PROVIDER` to one of those fails startup loudly rather than silently running
   as if it were `local`.
 - **Single process, single instance.** No shared `NonceStore` across replicas, a fleet of
   these processes would each accept the same authorization once, not once fleet-wide.
@@ -260,7 +262,7 @@ environment-variable toggle for this today, it's a code change.
     What `PRIMARY_SIGNATURE_PROVIDER` actually changes, and its real cost.
   </Card>
   <Card title="Roadmap" icon="map" href="/roadmap">
-    What's designed but not built yet for production deployment: KMS, HA,
-    network enforcement.
+    What's designed but not built yet for production deployment: HA, network
+    enforcement, other key custody.
   </Card>
 </CardGroup>

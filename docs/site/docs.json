@@ -409,6 +409,7 @@
             "pages": [
               "deployment/local",
               "deployment/production",
+              "deployment/aws-kms-signing",
               "deployment/environment-variables",
               "guides/deploy-patterns"
             ]
