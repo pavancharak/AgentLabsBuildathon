@@ -19,7 +19,7 @@ make it reliable, and every failure mode this flow actually produces.
 - Read [Policies and the decision](/concepts/policies-and-the-decision) and
   [Write your first policy](/guides/write-your-first-policy) first — this guide assumes you can
   already write a valid `policy.json`.
-- A **maker** credential (any `callerId` in `PARMANA_API_KEYS`) to propose with.
+- A **maker** credential to propose with. It must be a human key, with `credentialHolderType` `USER`. A service key is refused with `403 NON_HUMAN_CALLER_DENIED`.
 - A **checker** credential, genuinely distinct from the maker — see Step 0 below if you don't
   have one yet.
 

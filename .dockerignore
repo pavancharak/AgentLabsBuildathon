@@ -23,7 +23,12 @@ Thumbs.db
 # Not needed to build or run the API image.
 python/
 examples/
-docs/
+# The API serves the handbook PDF and refuses to start without it, so that one
+# file is kept. Everything else under docs/ is left out.
+docs/*
+!docs/site
+docs/site/*
+!docs/site/parmana-handbook.pdf
 coverage/
 *.md
 !DEPLOYMENT.md

@@ -14,7 +14,7 @@ The human readable version, with more explanation, is the [Production deployment
 3. Never print, log, commit or paste a secret. Secrets are: raw API keys, bearer keys, private key files, `DATABASE_URL`, `PARMANA_KEY_MATERIAL_JSON`, connector secrets and tokens.
 4. Never set `PARMANA_AUTH_DISABLED`, and never set `NODE_ENV` to `test` or `development` on a production server.
 5. Never deploy to production, write production environment variables or publish anything unless the operator has told you to in this session. Preparing the values and the commands is always allowed.
-6. The maker and the checker in step 8 must be two different identities. You may act as the maker. You must never approve your own proposal. The checker is a human.
+6. The maker and the checker in step 8 must be two different human identities, and both keys must have `credentialHolderType` `USER`. You act as the maker only if the operator gave you the maker's key and said so. You must never approve your own proposal. The checker is a human.
 
 ## Inputs you need before you start
 
@@ -26,7 +26,8 @@ The human readable version, with more explanation, is the [Production deployment
 | `URL`                | The operator, or the host after deploy. The base URL, no trailing slash.   | It starts with `https://`.                                                    |
 | `FIRST_CALLER_ID`    | The operator. The name of the first caller, for example `my-agent`.        | It is non empty and has no spaces.                                            |
 | `FIRST_CAPABILITIES` | The operator. The actions that caller may use, for example `paytm:refund`. | It is non empty. Never use `*` unless the operator says so in words.          |
-| `CHECKER_ID`         | The operator. The name of the human checker.                               | It differs from `FIRST_CALLER_ID`.                                            |
+| `MAKER_ID`           | The operator. The name of the human maker.                                 | It differs from `FIRST_CALLER_ID` and from `CHECKER_ID`.                      |
+| `CHECKER_ID`         | The operator. The name of the human checker.                               | It differs from `FIRST_CALLER_ID` and from `MAKER_ID`.                        |
 
 If any input is missing, stop and ask for it.
 
@@ -55,20 +56,21 @@ Ask the operator to apply the schema, or apply it if you have Supabase CLI acces
 
 ```bash
 npm run generate:api-key -- --caller-id FIRST_CALLER_ID --allowed-capabilities FIRST_CAPABILITIES
+npm run generate:api-key -- --caller-id MAKER_ID --credential-holder-type USER
 npm run generate:api-key -- --caller-id CHECKER_ID --credential-holder-type USER --generate-step-up-key
 ```
 
-Replace the three capitalised words with the input values. Each command prints a raw key, and a JSON entry. The second also prints a step up private key.
+Replace the capitalised words with the input values. Each command prints a raw key, and a JSON entry. The third also prints a step up private key.
 
-**Expect:** two JSON entries, each with `callerId` and a `keyHash` of 64 lowercase hexadecimal characters. The second has `credentialHolderType` set to `USER` and a `stepUpPublicKey`.
+**Expect:** three JSON entries, each with `callerId` and a `keyHash` of 64 lowercase hexadecimal characters. The second and third have `credentialHolderType` set to `USER`, and the third has a `stepUpPublicKey`.
 
 **If not:** stop and report the output, with any key values removed.
 
 Do the following with the printed values, and nothing else:
 
 1. Hand the first raw key to the caller through the channel the operator names.
-2. Hand the checker bearer key and the step up private key to the checker, and to nobody else.
-3. Keep the two JSON entries. Join them into one array. That array is `PARMANA_API_KEYS`.
+2. Hand the maker bearer key to the maker, and the checker bearer key and the step up private key to the checker, and to nobody else.
+3. Keep the three JSON entries. Join them into one array. That array is `PARMANA_API_KEYS`.
 
 ## Step 4: Set the environment on the host
 
@@ -177,11 +179,11 @@ npx tsx scripts/verify-policy-changes-approved.ts --full-scan
 
 ## Step 9: Send one real request
 
-Follow [Integrate Parmana: specification for AI agents](/agents/integrate) with a small, harmless action that the policy allows.
+Follow [Integrate Parmana: specification for AI agents](/agents/integrate) with a small, harmless action that the policy allows. The action needs a configured connector from step 4.
 
 **Expect:** the response is a signed Execution Trust Record. Sending the same `businessTransactionId` again returns `409`.
 
-**If not:** use the table in that page. Never send the same action again under a new id after a `500` with the code `EXECUTION_RECORD_INCOMPLETE`. That action was released. Tell the operator.
+**If not:** a `500` with no code and the server log line `No connector registered for capability` means the connector is not configured. Nothing was executed. Configure it as in step 4 and deploy again. For anything else use the table in that page. Never send the same action again under a new id after a `500` with the code `EXECUTION_RECORD_INCOMPLETE`. That action was released. Tell the operator.
 
 ## Step 10: Report
 

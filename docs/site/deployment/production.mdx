@@ -17,13 +17,13 @@ The same code also runs as a Vercel function, through `api/index.ts` and `vercel
 
 You need:
 
-| You need                  | Why                                                                                                  |
-| ------------------------- | ---------------------------------------------------------------------------------------------------- |
-| A clone of the repository | The scripts below run from the repository root.                                                      |
-| Node and npm              | The image uses Node 24. Run `npm install` once in the clone, then scripts run with `npx tsx`.        |
-| A Postgres database       | Production storage. A Supabase project works. Note its **transaction pooler** connection string.     |
-| A host for the container  | Fly.io, any Docker platform, or Vercel.                                                              |
-| Two people                | One proposes policy changes (the maker) and a different one approves them (the checker). See step 7. |
+| You need                          | Why                                                                                                  |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| A clone of the repository         | The scripts below run from the repository root.                                                      |
+| Node and npm                      | The image uses Node 24. Run `npm install` once in the clone, then scripts run with `npx tsx`.        |
+| A Postgres database               | Production storage. A Supabase project works. Note its **transaction pooler** connection string.     |
+| A host for the container          | Fly.io, any Docker platform, or Vercel.                                                              |
+| Two people, each with a human key | One proposes policy changes (the maker) and a different one approves them (the checker). See step 7. |
 
 Production requires a real database, real signing keys and caller authentication. The server refuses to start without them, and it never falls back to something weaker.
 
@@ -49,7 +49,7 @@ The server needs the tables in `supabase/migrations/`, and creating them is a ma
 1. With the Supabase CLI linked to your project, run `supabase db push`.
 2. Otherwise open the Supabase SQL Editor and run the whole file `scripts/apply-all-migrations.sql` once. It is safe to run again, because every statement is idempotent.
 
-**Check:** in the SQL Editor, `select count(*) from consumed_nonces;` returns a number and not an error.
+**Check:** in the SQL Editor, `select to_regclass('consumed_nonces'), to_regclass('execution_audit_events'), to_regclass('policies');` returns three names and no empty value. A missing name means a migration did not apply.
 
 If a request later fails with `PGRST205` ("Could not find the table"), the schema cache is stale. Run `NOTIFY pgrst, 'reload schema';` in the SQL Editor, or use Dashboard, Database, API, Reload schema cache.
 
@@ -63,15 +63,16 @@ npm run generate:api-key -- --caller-id my-agent --allowed-capabilities paytm:re
 
 The command prints the raw key **once**, and a JSON entry. Give the raw key to the caller and store it nowhere else. Keep the JSON entry for step 5.
 
-Make a second, human key for the checker now, because step 7 needs it:
+Make two human keys now, one for the maker and one for the checker, because step 7 needs both. **Every policy governance endpoint, including proposing a change, refuses a key that is not `credentialHolderType` `USER`.** A service caller such as `my-agent` cannot be the maker.
 
 ```bash
+npm run generate:api-key -- --caller-id my-maker --credential-holder-type USER
 npm run generate:api-key -- --caller-id my-checker --credential-holder-type USER --generate-step-up-key
 ```
 
-That prints a bearer key, a step up private key, and a JSON entry. The checker keeps the bearer key and the private key. Only the JSON entry goes to the server.
+The second command prints a bearer key, a step up private key, and a JSON entry. The checker keeps the bearer key and the private key. Only the JSON entries go to the server.
 
-**Check:** you hold two JSON entries. Combine them into one array for `PARMANA_API_KEYS`, for example `[{...},{...}]`. Each entry has a 64 character lowercase `keyHash`.
+**Check:** you hold three JSON entries (the caller, the maker and the checker). Combine them into one array for `PARMANA_API_KEYS`, for example `[{...},{...},{...}]`. Each entry has a 64 character lowercase `keyHash`.
 
 ## Step 4: Decide the connector settings
 
@@ -146,14 +147,14 @@ It creates the `policies` table if needed and copies every policy found under `P
 **7b. Give every policy a signed approval.** In production the gateway refuses to release an action for a policy that has no signed approval record whose hash matches the live policy. This gate is always on and cannot be switched off by a variable. Approve each policy you will use with the maker checker flow. The maker proposes and a different person, the checker, approves with a step up signature. The one shot script does both halves:
 
 ```bash
-export PROPOSER_KEY="<the maker's bearer key>"
+export PROPOSER_KEY="<the maker's bearer key, a USER key>"
 export REVIEWER_KEY="<the checker's bearer key>"
 npx tsx scripts/refresh-approved-policy-content.ts \n  --api-base "$URL" \n  --policy-name <name> --policy-version <version> \n  --key-id my-checker --private-key-file ./my-checker.step-up.private.pem
 ```
 
 Pass `--api-base` every time. Its default is a fixed address that is not your server. `--key-id` is the checker's caller id from step 3, and the private key file is the one that step printed.
 
-The full procedure, and how to do it step by step by hand, is in [Policy governance: maker checker approval](/guides/policy-governance-maker-checker). Two rules matter here. The maker and the checker must be different callers, and the checker key must have `credentialHolderType` set to `USER` and a step up public key.
+The full procedure, and how to do it step by step by hand, is in [Policy governance: maker checker approval](/guides/policy-governance-maker-checker). Three rules matter here. The maker and the checker must be different callers. Both must have `credentialHolderType` set to `USER`. The checker also needs a step up public key.
 
 <Warning>
   `scripts/backfill-legacy-policy-approvals.ts` can create approvals for every
@@ -175,6 +176,8 @@ This script is the one place that reads `SUPABASE_URL` and `SUPABASE_ANON_KEY`, 
 ## Step 8: Run one real request
 
 Send one transaction that your policy approves, using the procedure in [Integrate Parmana: specification for AI agents](/agents/integrate) or one of the SDKs. Use a small, harmless action first.
+
+The action needs a configured connector (step 4). Without one, the request still passes the policy and the approval check, and then stops at release with a `500` and nothing executed. The server log says `No connector registered for capability`. The response carries no code, so the log is where you see it.
 
 **Check:** the response is the signed Execution Trust Record, and a repeat call with the same `businessTransactionId` returns `409`. Then verify the record independently with [Verify independently](/guides/verify-independently).
 
