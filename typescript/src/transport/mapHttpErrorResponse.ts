@@ -159,5 +159,11 @@ export function mapHttpErrorResponse(
     });
   }
 
-  return new InternalServerError(message);
+  // Preserve the Runtime's own code, if any. Notably SIGNING_UNAVAILABLE
+  // (503, nothing executed) and EXECUTION_RECORD_INCOMPLETE (500, the action
+  // WAS released, do not retry as a new transaction), see InternalServerError.
+  return new InternalServerError(
+    message,
+    code !== undefined ? { serverCode: code } : undefined,
+  );
 }

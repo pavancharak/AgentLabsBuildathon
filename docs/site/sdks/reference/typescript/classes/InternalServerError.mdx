@@ -6,6 +6,8 @@ Defined in: [typescript/src/errors/InternalServerError.ts:6](https://github.com/
 
 Raised when the Runtime encounters an internal error.
 
+`serverCode` carries the Runtime's own `code` field when the response had one, so callers can tell apart failures that share this class. `SIGNING_UNAVAILABLE` (503) means the Runtime refused before releasing the action because it could not sign an Execution Trust Record, so nothing was executed. `EXECUTION_RECORD_INCOMPLETE` (500) means the action was released but its signed record could not be produced, so do not retry as a new transaction. Undefined when the response carried no `code`.
+
 ## Extends
 
 - [`ParmanaError`](/sdks/reference/typescript/classes/ParmanaError)
@@ -34,6 +36,10 @@ Defined in: [typescript/src/errors/InternalServerError.ts:7](https://github.com/
 
 `unknown`
 
+###### serverCode?
+
+`string`
+
 #### Returns
 
 `InternalServerError`
@@ -43,6 +49,14 @@ Defined in: [typescript/src/errors/InternalServerError.ts:7](https://github.com/
 [`ParmanaError`](/sdks/reference/typescript/classes/ParmanaError).[`constructor`](/sdks/reference/typescript/classes/ParmanaError#constructor)
 
 ## Properties
+
+### serverCode?
+
+> `readonly` `optional` **serverCode?**: `string`
+
+The Runtime's own `code` field, when the response carried one.
+
+---
 
 ### code
 

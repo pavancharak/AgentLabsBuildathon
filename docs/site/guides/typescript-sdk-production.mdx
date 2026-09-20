@@ -131,17 +131,22 @@ async function executeOrFailClosed(transaction: BusinessTransaction) {
 }
 ```
 
-| Status               | Exception                | Retry?                                  |
-| -------------------- | ------------------------ | --------------------------------------- |
-| 400                  | `ValidationError`        | No — fix the request                    |
-| 401                  | `AuthenticationError`    | No — fix the key                        |
-| 403, `POLICY_DENIED` | `ExecutionRejectedError` | No — final decision                     |
-| 403, no code         | `AuthorizationError`     | No — fix caller permissions             |
-| 404                  | `NotFoundError`          | No                                      |
-| 409                  | `ConflictError`          | No — duplicate `businessTransactionId`  |
-| any other non-2xx    | `InternalServerError`    | Idempotent GETs only, via `retryPolicy` |
-| connection failure   | `NetworkError`           | Idempotent GETs only, via `retryPolicy` |
-| timeout              | `TimeoutError`           | Idempotent GETs only, via `retryPolicy` |
+| Status               | Exception                                         | Retry?                                  |
+| -------------------- | ------------------------------------------------- | --------------------------------------- |
+| 400                  | `ValidationError`                                 | No — fix the request                    |
+| 401                  | `AuthenticationError`                             | No — fix the key                        |
+| 403, `POLICY_DENIED` | `ExecutionRejectedError`                          | No — final decision                     |
+| 403, no code         | `AuthorizationError`                              | No — fix caller permissions             |
+| 404                  | `NotFoundError`                                   | No                                      |
+| 409                  | `ConflictError`                                   | No — duplicate `businessTransactionId`  |
+| any other non-2xx    | `InternalServerError` (1.1.3: check `serverCode`) | Idempotent GETs only, via `retryPolicy` |
+| connection failure   | `NetworkError`                                    | Idempotent GETs only, via `retryPolicy` |
+| timeout              | `TimeoutError`                                    | Idempotent GETs only, via `retryPolicy` |
+
+**Two `InternalServerError` cases need different handling (1.1.3).** Check `error.serverCode`. On
+`SIGNING_UNAVAILABLE` (503) nothing was executed, so retry later with a new `businessTransactionId`. On
+`EXECUTION_RECORD_INCOMPLETE` (500) the action **was** released and only its signed record failed, so never resubmit
+it under a new id: reconcile against the connector and the execution audit events first.
 
 `POST /execute` is not itself retried by the SDK's retry policy — see
 [TypeScript SDK](/sdks/typescript#errors-they-actually-throw-now) for exactly which
