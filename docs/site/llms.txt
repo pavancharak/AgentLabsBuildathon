@@ -24,6 +24,7 @@ This file is generated from the documentation navigation. Do not edit it by hand
 ## Get started: For AI agents
 
 * [Integrate Parmana: specification for AI agents](https://docs.parmanasystems.com/agents/integrate): An exact, ordered procedure to send an action to Parmana and act on the answer. Every step says what to do, what you should see, and what to do if you do not.
+* [Deploy Parmana: specification for AI agents](https://docs.parmanasystems.com/agents/deploy): An exact, ordered procedure to deploy the Parmana server to production. Every step says what to run, what you should see, and what to do if you do not.
 ## Concepts: Core concepts
 
 * [Policies and the Decision](https://docs.parmanasystems.com/concepts/policies-and-the-decision): Deterministic, first-match rule evaluation over runtime signals: what a Policy is, why it's structured this way, and how a Decision comes out of it.
@@ -166,7 +167,7 @@ This file is generated from the documentation navigation. Do not edit it by hand
 ## Deploy and operate: Deploy
 
 * [Local / Self-Hosted Deployment](https://docs.parmanasystems.com/deployment/local): The real, current deployment model: a single Node.js process, local PEM keys, your choice of memory or Supabase storage.
-* [Production Deployment](https://docs.parmanasystems.com/deployment/production): Running @parmana/api as a container on Fly.io or any Docker-based platform, validated against a real, permanent deployment.
+* [Production deployment runbook](https://docs.parmanasystems.com/deployment/production): A numbered procedure to deploy the Parmana server to production, with the check that proves each step worked and the fix when it did not.
 * [Environment variable reference](https://docs.parmanasystems.com/deployment/environment-variables): Every environment variable the Parmana server reads: whether it is required, its default, its allowed values, and what it does.
 * [Deploy Patterns](https://docs.parmanasystems.com/guides/deploy-patterns): In-memory vs Supabase storage, the full environment variable checklist, and how key management actually works: two separate keypairs, one directory, one optional rotation variable.
 ## Deploy and operate: Security

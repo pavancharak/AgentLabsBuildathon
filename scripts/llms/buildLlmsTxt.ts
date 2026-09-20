@@ -51,6 +51,7 @@ const FULL_TEXT_PAGES = [
   "index",
   "choose-your-path",
   "agents/integrate",
+  "agents/deploy",
   "quickstart",
   "guides/full-integration-overview",
   "guides/authorize-and-execute",

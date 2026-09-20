@@ -38,7 +38,7 @@
           },
           {
             "group": "For AI agents",
-            "pages": ["agents/integrate"]
+            "pages": ["agents/integrate", "agents/deploy"]
           }
         ]
       },
