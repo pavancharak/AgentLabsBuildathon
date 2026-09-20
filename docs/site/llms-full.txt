@@ -1751,6 +1751,128 @@ for them would describe behavior the real API doesn't have.
 
 ---
 
+## TypeScript SDK configuration and behavior
+
+Source: https://docs.parmanasystems.com/sdks/typescript-configuration
+
+This page states exactly how `@parmana/sdk` behaves. If a guide and this page disagree, this page is right, and please report the guide. Every value here was read from the SDK source, and the retry behavior was tested against a server that fails on purpose.
+
+## Create a client
+
+```typescript
+import { ParmanaClient, HttpTransport, type Configuration } from "@parmana/sdk";
+
+const configuration: Configuration = {
+  endpoint: "https://your-parmana.example.com",
+  apiKey: "your API key",
+};
+
+const client = new ParmanaClient({
+  ...configuration,
+  transport: new HttpTransport(configuration),
+});
+```
+
+Two rules make this work:
+
+1. **Always pass `transport`.** In 1.1.3, the current release, the constructor throws `ConfigurationError: Transport is required.` when it is missing, even though the `Configuration` type marks it optional and its comment says a default is used. Tested against the published 1.1.3.
+2. **Build the transport from the same configuration object.** `HttpTransport` reads `timeout` and `retryPolicy` from the configuration it is constructed with, not from the client. If you write `new HttpTransport({ endpoint, apiKey })` next to a `retryPolicy` on the client, the transport never sees the retry policy and **nothing is retried**, with no error.
+
+## Configuration options
+
+| Option        | Type                 | Default                            | What it does                                                                                                                                                                     |
+| ------------- | -------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `endpoint`    | string               | None, required                     | The base URL of the Parmana server, without a trailing slash. Every path is appended to it as written. An empty value throws `ConfigurationError: Runtime endpoint is required.` |
+| `apiKey`      | string               | None                               | When set, every request carries `Authorization: Bearer <apiKey>`. When it is not set, no `Authorization` header is sent and a server with authentication on answers `401`.       |
+| `timeout`     | number, milliseconds | `30000`                            | A request that has not finished in this time is aborted and throws `TimeoutError`. Read by the transport, see rule 2 above.                                                      |
+| `retryPolicy` | `RetryPolicy`        | Retries off                        | See the next section. Read by the transport, see rule 2 above.                                                                                                                   |
+| `transport`   | `Transport`          | None, required at runtime in 1.1.3 | The object that sends requests. Use `new HttpTransport(configuration)`.                                                                                                          |
+| `userAgent`   | string               | None                               | Declared on the type, but the SDK does not send it in 1.1.3, so it has no effect.                                                                                                |
+
+Every request also carries `Content-Type: application/json`.
+
+## Retries
+
+Retries are **off by default**. They run only when both `retryPolicy.enabled` is `true` and `maxAttempts` is above zero.
+
+| `RetryPolicy` field | Default                     | Meaning                                                                                                   |
+| ------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `enabled`           | `false`                     | Must be `true` for any retry to happen.                                                                   |
+| `maxAttempts`       | `0`                         | The number of retries after the first attempt. `3` makes up to 4 requests in total.                       |
+| `initialDelayMs`    | `1000`                      | The delay before the first retry.                                                                         |
+| `maxDelayMs`        | `30000`                     | The ceiling for any delay.                                                                                |
+| `strategy`          | `RetryStrategy.EXPONENTIAL` | `EXPONENTIAL` doubles the delay on each retry, up to `maxDelayMs`. `FIXED` always waits `initialDelayMs`. |
+
+What is retried:
+
+| Request                                                                                                                                                      | Retried?                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| `GET` requests (`health()`, `version()`, `transaction()`, `transactions()`, `trustRecord()`, `getLatestVerification()`, `refusalRecord()`)                   | Yes, on a network failure, a timeout, a `429` or a `5xx`. Nothing else.                 |
+| `POST` requests (`execute()`, `createTransaction()`, `verify()`, `replay()`, `receipt()`, `validatePolicy()`, `verifyRefusalRecord()`, `verifyAuditEvent()`) | **Never.** This is deliberate, because retrying `execute()` could repeat a real action. |
+
+Tested: a server that returns `503` twice and then `200`, and a client with `enabled: true` and `maxAttempts: 3`, made 3 requests and returned success. The same client with a transport built from a partial configuration made 1 request and threw `InternalServerError`.
+
+## Errors
+
+Every non 2xx response, and every failure to get one, is thrown as a typed error. There is no path where a failure looks like success.
+
+| What happened                                 | Error class              | Notes                                                             |
+| --------------------------------------------- | ------------------------ | ----------------------------------------------------------------- |
+| HTTP `400`                                    | `ValidationError`        | The request is malformed.                                         |
+| HTTP `401`                                    | `AuthenticationError`    | The key is missing or wrong.                                      |
+| HTTP `403` with code `POLICY_DENIED`          | `ExecutionRejectedError` | A policy refused. This is final.                                  |
+| HTTP `403` with code `CAPABILITY_NOT_ALLOWED` | `AuthorizationError`     | The server's code is on `serverCode`.                             |
+| HTTP `403` with no code                       | `AuthorizationError`     | The key may not assert that principal.                            |
+| HTTP `404`                                    | `NotFoundError`          |                                                                   |
+| HTTP `409`                                    | `ConflictError`          | The `businessTransactionId` was already used.                     |
+| HTTP `429`                                    | `RateLimitError`         | `retryAfterSeconds` carries the `Retry-After` value when present. |
+| Any other non 2xx, including `500` and `503`  | `InternalServerError`    | From 1.1.3, `serverCode` carries the server's code, see below.    |
+| The connection failed                         | `NetworkError`           |                                                                   |
+| The request timed out                         | `TimeoutError`           |                                                                   |
+| A missing `endpoint` or `transport`           | `ConfigurationError`     | Thrown by the constructor.                                        |
+
+Two `InternalServerError` cases need different handling, and from 1.1.3 you can tell them apart with `error.serverCode`:
+
+| `serverCode`                        | Meaning                                                                  | Do                                              |
+| ----------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------- |
+| `SIGNING_UNAVAILABLE` (503)         | Refused before release. **Nothing was executed.**                        | Retry later with a new `businessTransactionId`. |
+| `EXECUTION_RECORD_INCOMPLETE` (500) | The action **was** released but its signed record could not be produced. | **Do not resubmit.** Reconcile first.           |
+
+On 1.1.2 and earlier `serverCode` is not on `InternalServerError`, so read the code from the error message.
+
+## Methods
+
+| Method                                    | Request                   | Returns                                                               |
+| ----------------------------------------- | ------------------------- | --------------------------------------------------------------------- |
+| `execute(transaction)`                    | `POST /execute`           | The signed Execution Trust Record.                                    |
+| `createTransaction(transaction)`          | `POST /transactions`      | The same record, from the second entry point.                         |
+| `verify(id)`                              | `POST /verify`            | A `Verification`.                                                     |
+| `getLatestVerification(id)`               | `GET /verification/{id}`  | The latest `Verification`.                                            |
+| `replay(id)`                              | `POST /replay`            | A `ReplayResult`.                                                     |
+| `receipt(id)`                             | `POST /receipt`           | A `Receipt`.                                                          |
+| `transaction(id)`                         | `GET /transactions/{id}`  | One `BusinessTransaction`.                                            |
+| `transactions(page, pageSize)`            | `GET /transactions`       | A page of transactions. The defaults are page `1` and page size `25`. |
+| `trustRecord(id)`                         | `GET /trust-records/{id}` | The Execution Trust Record.                                           |
+| `validatePolicy(policyId, policyVersion)` | `POST /policies/validate` | A `PolicyValidationResult`.                                           |
+| `refusalRecord(id)`                       | `GET /refusal/{id}`       | A `RefusalRecord`.                                                    |
+| `verifyRefusalRecord(record)`             | `POST /refusal/verify`    | `true` or `false`.                                                    |
+| `verifyAuditEvent(event, signature)`      | `POST /audit/verify`      | `true` or `false`.                                                    |
+| `health()`                                | `GET /health`             | The health status.                                                    |
+| `version()`                               | `GET /version`            | The version information.                                              |
+| `endpoint()`                              | None                      | The configured endpoint, as a string.                                 |
+
+The full signature of every method is in the [API reference](/sdks/reference/typescript/classes/ParmanaClient).
+
+## Idempotency
+
+`businessTransactionId` is the idempotency key. Sending the same one twice returns `409` (`ConflictError`). The helper `createBusinessTransaction()` generates the identifiers and keeps the linked ones consistent, so use it instead of writing them by hand. The SDK never generates a `businessTransactionId` for you when you build the object yourself, and it never retries a `POST`, so a single call is a single attempt.
+
+## Where to go next
+
+For a client wrapper with logging and a deployment checklist read [TypeScript SDK in production](/guides/typescript-sdk-production). For an agent that must fail closed read [TypeScript SDK for AI agents](/guides/typescript-sdk-ai-agents). For the exact rules an agent follows read [Integrate Parmana: specification for AI agents](/agents/integrate).
+
+---
+
 ## TypeScript SDK Quickstart
 
 Source: https://docs.parmanasystems.com/guides/typescript-sdk-quickstart
@@ -2134,7 +2256,7 @@ test double) using `responses`-mocked HTTP built from real, verified response sh
 </Warning>
 
 The client also reuses a `requests.Session()` (connection pooling) and retries idempotent
-GETs with backoff on 502/503/504, POSTs are never retried.
+GETs with backoff on 429/502/503/504, POSTs are never retried.
 
 ## Every endpoint the API exposes has a method
 
@@ -2262,6 +2384,128 @@ round-trips correctly.
     under SDKs.
   </Card>
 </CardGroup>
+
+---
+
+## Python SDK configuration and behavior
+
+Source: https://docs.parmanasystems.com/sdks/python-configuration
+
+This page states exactly how the `parmana` package behaves. If a guide and this page disagree, this page is right, and please report the guide. Every value here was read from the SDK source.
+
+## Create a client
+
+```python
+from parmana import ParmanaClient
+
+client = ParmanaClient(
+    endpoint="https://your-parmana.example.com",
+    api_key="your API key",
+)
+```
+
+The client is synchronous only. There is no async variant. All arguments are keyword only.
+
+## Configuration options
+
+| Argument         | Type           | Default        | What it does                                                                                                                                                               |
+| ---------------- | -------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `endpoint`       | str            | None, required | The base URL of the Parmana server. A missing or empty value raises `ConfigurationError`.                                                                                  |
+| `api_key`        | str or None    | `None`         | When set, every request carries `Authorization: Bearer <api_key>`. When it is `None`, no `Authorization` header is sent and a server with authentication on answers `401`. |
+| `timeout`        | int, seconds   | `30`           | The timeout applied to each request. A request that exceeds it raises `TimeoutError`.                                                                                      |
+| `max_retries`    | int            | `3`            | The number of retries for a `GET` request. See the next section.                                                                                                           |
+| `backoff_factor` | float, seconds | `0.5`          | The exponential backoff factor between retries.                                                                                                                            |
+| `debug`          | bool           | `False`        | Writes request and response debug logging to the `parmana` logger.                                                                                                         |
+
+Every request also carries `Content-Type: application/json` and `Accept: application/json`. The client reuses one `requests.Session`, so connections are pooled.
+
+## Retries
+
+Retries are **on by default for `GET` requests**, which is different from the TypeScript SDK, where they are off until you enable them. Set `max_retries=0` to turn them off.
+
+| Request                                                                                                                                            | Retried?                                                                                                                                                                                                                                                                                                         |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET` requests                                                                                                                                     | Yes, up to `max_retries` times, on a connection error or a `429`, `502`, `503` or `504` response. With the default of `3` that is up to 4 requests. When the server sends a `Retry-After` header on a `429`, the client honors it. After the last retry the response is turned into an error as described below. |
+| `POST` requests (`execute`, `create_transaction`, `verify`, `replay`, `receipt`, `validate_policy`, `verify_refusal_record`, `verify_audit_event`) | **Never.** This is deliberate, because retrying `execute` could repeat a real action.                                                                                                                                                                                                                            |
+
+## Errors
+
+Every non 2xx response, and every failure to get one, is raised as a typed error. All of them extend `ParmanaError`.
+
+| What happened                                 | Error class              | Notes                                                                             |
+| --------------------------------------------- | ------------------------ | --------------------------------------------------------------------------------- |
+| HTTP `400`                                    | `ValidationError`        | The request is malformed.                                                         |
+| HTTP `401`                                    | `AuthenticationError`    | The key is missing or wrong.                                                      |
+| HTTP `403` with code `POLICY_DENIED`          | `ExecutionRejectedError` | A policy refused. This is final.                                                  |
+| HTTP `403` with code `CAPABILITY_NOT_ALLOWED` | `AuthorizationError`     | The server's code is on `server_code`.                                            |
+| HTTP `403` with no code                       | `AuthorizationError`     | The key may not assert that principal.                                            |
+| HTTP `404`                                    | `NotFoundError`          |                                                                                   |
+| HTTP `409`                                    | `ConflictError`          | The `businessTransactionId` was already used.                                     |
+| HTTP `429`                                    | `RateLimitError`         | `retry_after_seconds` carries the `Retry-After` value when present.               |
+| Any `5xx`, including `500` and `503`          | `InternalServerError`    | `ServerError` is another name for the same class. `status_code` holds the status. |
+| Any other non 2xx status                      | `ParmanaHttpError`       | The base class, with `status_code`.                                               |
+| The connection failed                         | `NetworkError`           |                                                                                   |
+| The request timed out                         | `TimeoutError`           | A subclass of `NetworkError`.                                                     |
+| A missing or empty `endpoint`                 | `ConfigurationError`     | Raised by the constructor.                                                        |
+
+Every HTTP error has `status_code`, `code` and `request_id`. **The `code` is the SDK's own code** (for example `SERVER_ERROR`), not the server's. The server's code is preserved on `server_code` only for `CAPABILITY_NOT_ALLOWED`.
+
+That matters for two server errors that both arrive as `InternalServerError`:
+
+| Server code                         | Meaning                                                                  | Do                                              |
+| ----------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------- |
+| `SIGNING_UNAVAILABLE` (503)         | Refused before release. **Nothing was executed.**                        | Retry later with a new `businessTransactionId`. |
+| `EXECUTION_RECORD_INCOMPLETE` (500) | The action **was** released but its signed record could not be produced. | **Do not resubmit.** Reconcile first.           |
+
+In this SDK version you tell them apart with `status_code` (`503` or `500`) and the error message. The `SIGNING_UNAVAILABLE` message ends with "Nothing was executed." The `EXECUTION_RECORD_INCOMPLETE` message says the action was released, and names the `businessTransactionId` and the `authorizationId`. A later release adds `server_code` to `InternalServerError`, as the TypeScript SDK already has.
+
+## Methods
+
+The client has methods for the common calls, and a sub API for each area.
+
+| Client method                                      | Request                   | Returns                                       |
+| -------------------------------------------------- | ------------------------- | --------------------------------------------- |
+| `execute(transaction)`                             | `POST /execute`           | The signed Execution Trust Record.            |
+| `create_transaction(transaction)`                  | `POST /transactions`      | The same record, from the second entry point. |
+| `verify(business_transaction_id)`                  | `POST /verify`            | A `Verification`.                             |
+| `get_latest_verification(business_transaction_id)` | `GET /verification/{id}`  | The latest `Verification`.                    |
+| `transaction(business_transaction_id)`             | `GET /transactions/{id}`  | One `BusinessTransaction`.                    |
+| `trust_record(business_transaction_id)`            | `GET /trust-records/{id}` | The Execution Trust Record.                   |
+| `validate_policy(policy_id, policy_version)`       | `POST /policies/validate` | A dict with `valid` and `errors`.             |
+| `refusal_record(business_transaction_id)`          | `GET /refusal/{id}`       | A `RefusalRecord`.                            |
+| `verify_refusal_record(record)`                    | `POST /refusal/verify`    | `True` or `False`.                            |
+| `verify_audit_event(event, signature)`             | `POST /audit/verify`      | `True` or `False`.                            |
+| `health()`                                         | `GET /health`             | A dict with the health status.                |
+
+Two values are properties, not methods, so do not call them: `client.endpoint` is the configured endpoint, and `client.version` is the version of the **SDK package**, for example `1.1.5`. It is not the server's version. To read the server's version call `client.execution.version()`, which sends `GET /version`.
+
+The sub APIs cover the rest, for example `client.replay.replay(...)`, `client.receipt.generate(...)`, `client.receipt.get_latest(...)` and `client.transactions.list(...)`:
+
+| Sub API                | Methods                        |
+| ---------------------- | ------------------------------ |
+| `client.execution`     | `health`, `version`, `execute` |
+| `client.verification`  | `verify`, `get_latest`         |
+| `client.replay`        | `replay`                       |
+| `client.receipt`       | `generate`, `get_latest`       |
+| `client.transactions`  | `create`, `get`, `list`        |
+| `client.trust_records` | `get`                          |
+| `client.policy`        | `validate`                     |
+| `client.refusal`       | `verify`, `get`                |
+| `client.audit`         | `verify`                       |
+
+The full signature of every method is in the [API reference](/sdks/reference/python/client).
+
+## Idempotency
+
+`businessTransactionId` is the idempotency key. Sending the same one twice returns `409` (`ConflictError`). The helper `create_business_transaction()` generates the identifiers and keeps the linked ones consistent, so use it instead of writing them by hand. The SDK never retries a `POST`, so a single call is a single attempt.
+
+## Optional extra for offline verification
+
+`parmana.crypto` (the offline Trust Record verifier) needs the `cryptography` package. Install it with `pip install "parmana[verify]"`. A plain `pip install parmana` does not include it, and `import parmana` does not need it.
+
+## Where to go next
+
+For a client wrapper with logging and a deployment checklist read [Python SDK production guide](/guides/python-sdk-production). For an agent that must fail closed read [Python SDK for AI agents](/guides/python-sdk-ai-agents). For the exact rules an agent follows read [Integrate Parmana: specification for AI agents](/agents/integrate).
 
 ---
 

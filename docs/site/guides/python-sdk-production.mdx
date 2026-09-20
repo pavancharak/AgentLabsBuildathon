@@ -134,7 +134,7 @@ table. The ones worth handling explicitly in production:
 
 ### Retries
 
-`ParmanaClient` already retries idempotent GETs with backoff on `502`/`503`/`504`; POSTs (which
+`ParmanaClient` already retries idempotent GETs with backoff on `429`/`502`/`503`/`504`; POSTs (which
 `execute()` is) are never retried automatically, since retrying an execution isn't safe by
 default. If you want your own retry around a `ServerError`, keep it narrowly scoped to that one
 exception and make sure you're supplying your own `business_transaction_id` so a retried request

@@ -1,0 +1,120 @@
+---
+title: "Python SDK configuration and behavior"
+description: "Every option, default, retry rule, error mapping and method of the Python SDK, each checked against the code."
+---
+
+This page states exactly how the `parmana` package behaves. If a guide and this page disagree, this page is right, and please report the guide. Every value here was read from the SDK source.
+
+## Create a client
+
+```python
+from parmana import ParmanaClient
+
+client = ParmanaClient(
+    endpoint="https://your-parmana.example.com",
+    api_key="your API key",
+)
+```
+
+The client is synchronous only. There is no async variant. All arguments are keyword only.
+
+## Configuration options
+
+| Argument         | Type           | Default        | What it does                                                                                                                                                               |
+| ---------------- | -------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `endpoint`       | str            | None, required | The base URL of the Parmana server. A missing or empty value raises `ConfigurationError`.                                                                                  |
+| `api_key`        | str or None    | `None`         | When set, every request carries `Authorization: Bearer <api_key>`. When it is `None`, no `Authorization` header is sent and a server with authentication on answers `401`. |
+| `timeout`        | int, seconds   | `30`           | The timeout applied to each request. A request that exceeds it raises `TimeoutError`.                                                                                      |
+| `max_retries`    | int            | `3`            | The number of retries for a `GET` request. See the next section.                                                                                                           |
+| `backoff_factor` | float, seconds | `0.5`          | The exponential backoff factor between retries.                                                                                                                            |
+| `debug`          | bool           | `False`        | Writes request and response debug logging to the `parmana` logger.                                                                                                         |
+
+Every request also carries `Content-Type: application/json` and `Accept: application/json`. The client reuses one `requests.Session`, so connections are pooled.
+
+## Retries
+
+Retries are **on by default for `GET` requests**, which is different from the TypeScript SDK, where they are off until you enable them. Set `max_retries=0` to turn them off.
+
+| Request                                                                                                                                            | Retried?                                                                                                                                                                                                                                                                                                         |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET` requests                                                                                                                                     | Yes, up to `max_retries` times, on a connection error or a `429`, `502`, `503` or `504` response. With the default of `3` that is up to 4 requests. When the server sends a `Retry-After` header on a `429`, the client honors it. After the last retry the response is turned into an error as described below. |
+| `POST` requests (`execute`, `create_transaction`, `verify`, `replay`, `receipt`, `validate_policy`, `verify_refusal_record`, `verify_audit_event`) | **Never.** This is deliberate, because retrying `execute` could repeat a real action.                                                                                                                                                                                                                            |
+
+## Errors
+
+Every non 2xx response, and every failure to get one, is raised as a typed error. All of them extend `ParmanaError`.
+
+| What happened                                 | Error class              | Notes                                                                             |
+| --------------------------------------------- | ------------------------ | --------------------------------------------------------------------------------- |
+| HTTP `400`                                    | `ValidationError`        | The request is malformed.                                                         |
+| HTTP `401`                                    | `AuthenticationError`    | The key is missing or wrong.                                                      |
+| HTTP `403` with code `POLICY_DENIED`          | `ExecutionRejectedError` | A policy refused. This is final.                                                  |
+| HTTP `403` with code `CAPABILITY_NOT_ALLOWED` | `AuthorizationError`     | The server's code is on `server_code`.                                            |
+| HTTP `403` with no code                       | `AuthorizationError`     | The key may not assert that principal.                                            |
+| HTTP `404`                                    | `NotFoundError`          |                                                                                   |
+| HTTP `409`                                    | `ConflictError`          | The `businessTransactionId` was already used.                                     |
+| HTTP `429`                                    | `RateLimitError`         | `retry_after_seconds` carries the `Retry-After` value when present.               |
+| Any `5xx`, including `500` and `503`          | `InternalServerError`    | `ServerError` is another name for the same class. `status_code` holds the status. |
+| Any other non 2xx status                      | `ParmanaHttpError`       | The base class, with `status_code`.                                               |
+| The connection failed                         | `NetworkError`           |                                                                                   |
+| The request timed out                         | `TimeoutError`           | A subclass of `NetworkError`.                                                     |
+| A missing or empty `endpoint`                 | `ConfigurationError`     | Raised by the constructor.                                                        |
+
+Every HTTP error has `status_code`, `code` and `request_id`. **The `code` is the SDK's own code** (for example `SERVER_ERROR`), not the server's. The server's code is preserved on `server_code` only for `CAPABILITY_NOT_ALLOWED`.
+
+That matters for two server errors that both arrive as `InternalServerError`:
+
+| Server code                         | Meaning                                                                  | Do                                              |
+| ----------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------- |
+| `SIGNING_UNAVAILABLE` (503)         | Refused before release. **Nothing was executed.**                        | Retry later with a new `businessTransactionId`. |
+| `EXECUTION_RECORD_INCOMPLETE` (500) | The action **was** released but its signed record could not be produced. | **Do not resubmit.** Reconcile first.           |
+
+In this SDK version you tell them apart with `status_code` (`503` or `500`) and the error message. The `SIGNING_UNAVAILABLE` message ends with "Nothing was executed." The `EXECUTION_RECORD_INCOMPLETE` message says the action was released, and names the `businessTransactionId` and the `authorizationId`. A later release adds `server_code` to `InternalServerError`, as the TypeScript SDK already has.
+
+## Methods
+
+The client has methods for the common calls, and a sub API for each area.
+
+| Client method                                      | Request                   | Returns                                       |
+| -------------------------------------------------- | ------------------------- | --------------------------------------------- |
+| `execute(transaction)`                             | `POST /execute`           | The signed Execution Trust Record.            |
+| `create_transaction(transaction)`                  | `POST /transactions`      | The same record, from the second entry point. |
+| `verify(business_transaction_id)`                  | `POST /verify`            | A `Verification`.                             |
+| `get_latest_verification(business_transaction_id)` | `GET /verification/{id}`  | The latest `Verification`.                    |
+| `transaction(business_transaction_id)`             | `GET /transactions/{id}`  | One `BusinessTransaction`.                    |
+| `trust_record(business_transaction_id)`            | `GET /trust-records/{id}` | The Execution Trust Record.                   |
+| `validate_policy(policy_id, policy_version)`       | `POST /policies/validate` | A dict with `valid` and `errors`.             |
+| `refusal_record(business_transaction_id)`          | `GET /refusal/{id}`       | A `RefusalRecord`.                            |
+| `verify_refusal_record(record)`                    | `POST /refusal/verify`    | `True` or `False`.                            |
+| `verify_audit_event(event, signature)`             | `POST /audit/verify`      | `True` or `False`.                            |
+| `health()`                                         | `GET /health`             | A dict with the health status.                |
+
+Two values are properties, not methods, so do not call them: `client.endpoint` is the configured endpoint, and `client.version` is the version of the **SDK package**, for example `1.1.5`. It is not the server's version. To read the server's version call `client.execution.version()`, which sends `GET /version`.
+
+The sub APIs cover the rest, for example `client.replay.replay(...)`, `client.receipt.generate(...)`, `client.receipt.get_latest(...)` and `client.transactions.list(...)`:
+
+| Sub API                | Methods                        |
+| ---------------------- | ------------------------------ |
+| `client.execution`     | `health`, `version`, `execute` |
+| `client.verification`  | `verify`, `get_latest`         |
+| `client.replay`        | `replay`                       |
+| `client.receipt`       | `generate`, `get_latest`       |
+| `client.transactions`  | `create`, `get`, `list`        |
+| `client.trust_records` | `get`                          |
+| `client.policy`        | `validate`                     |
+| `client.refusal`       | `verify`, `get`                |
+| `client.audit`         | `verify`                       |
+
+The full signature of every method is in the [API reference](/sdks/reference/python/client).
+
+## Idempotency
+
+`businessTransactionId` is the idempotency key. Sending the same one twice returns `409` (`ConflictError`). The helper `create_business_transaction()` generates the identifiers and keeps the linked ones consistent, so use it instead of writing them by hand. The SDK never retries a `POST`, so a single call is a single attempt.
+
+## Optional extra for offline verification
+
+`parmana.crypto` (the offline Trust Record verifier) needs the `cryptography` package. Install it with `pip install "parmana[verify]"`. A plain `pip install parmana` does not include it, and `import parmana` does not need it.
+
+## Where to go next
+
+For a client wrapper with logging and a deployment checklist read [Python SDK production guide](/guides/python-sdk-production). For an agent that must fail closed read [Python SDK for AI agents](/guides/python-sdk-ai-agents). For the exact rules an agent follows read [Integrate Parmana: specification for AI agents](/agents/integrate).
