@@ -38,6 +38,11 @@ systems verify, and execute exactly what was authorized — byte-for-byte.**
    at the gateway.
 10. No prompt injection can alter what the AI may do — deterministic policy, no model in
     the enforcement path.
+11. Within gateway mediated execution, no execution is released unless the policy hash a
+    human checker signed off on, the hash signed into the authorization, and the live policy
+    hash all agree. A missing approval record, a missing policy hash, an edited policy, or a
+    verifier error fails closed with zero connector calls (added 2026-09-20,
+    `docs/CLAIMS.md` 2.36).
 
 ---
 
@@ -62,6 +67,10 @@ systems verify, and execute exactly what was authorized — byte-for-byte.**
 - "Non-bypassable" / "single execution authority" (unscoped) — verification is opt-in
   per endpoint; no network-level enforcement.
 - "Enterprise-grade key custody" — keys are local PEM; KMS/HSM pending.
+- "Only business authority can approve policy": any provisioned human checker with a step up
+  key can approve any policy today, there is no per policy approver list (G-50).
+- "Every policy signal is independently verified": only the HubSpot capability has a signal
+  state verifier, others are caller declared (G-51).
 - Authority / Evidence verification checks — not implemented (Intent IS done via the
   gateway).
 - "Deterministic signatures" under ML-DSA-65 — those signatures are randomized;

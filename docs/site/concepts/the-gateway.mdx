@@ -31,13 +31,16 @@ every earlier stage said yes: the last point before a real system state changes.
 it plugs into `RuntimeFactory.create()` exactly like any other execution system, no change
 to `RuntimeEngine` or `RuntimePipeline` is required to use it. It composes
 `@parmana/envelope-verifier`'s checks (version, signature, expiry, TTL, nonce) and adds
-three more, each optional and additive: recomputing the executable content hash and
-comparing it to `businessTransactionHash` (always attempted); recomputing the _current_
-policy content hash and comparing it to `policyContentHash`, when a `PolicyRepository` is
-supplied (`policyStillCurrent`); and independently re-verifying the authorization's declared
-runtime signals against real-world state, when a `SignalStateVerifier` is supplied
+more checks. Recomputing the executable content hash and comparing it to `businessTransactionHash`
+is always attempted. Policy binding fails closed: the gateway recomputes the _current_ policy
+content hash and compares it to `policyContentHash` (`policyStillCurrent`), then confirms the
+policy's most recent signed approval record carries that same hash (`policyGovernanceVerified`).
+An authorization with no `policyContentHash`, a missing approval record, or any mismatch is
+rejected before the connector runs, and a gateway built without a policy repository and approval
+verifier refuses to start. Independently re-verifying the authorization's declared runtime
+signals against real-world state is optional, when a `SignalStateVerifier` is supplied
 (`signalsStillCurrent`). See [Content Binding & TOCTOU](/concepts/content-binding-toctou) for
-the full mechanism of the latter two.
+the full mechanism.
 
 ```typescript
 // packages/execution-gateway/src/ExecutionGateway.ts:150-165
@@ -57,7 +60,8 @@ Check order, side-effect-free checks first (`ExecutionGateway.ts`):
 
 ```
 version → signature → expiry → TTL policy → businessTransactionHash recompute-and-compare
-  → policyStillCurrent recompute-and-compare (when wired)
+    → policyStillCurrent recompute-and-compare (required, fails closed)
+  → policyGovernanceVerified approval record check (required, fails closed)
   → signalsStillCurrent recompute-and-verify (when wired)
   → nonce
 ```

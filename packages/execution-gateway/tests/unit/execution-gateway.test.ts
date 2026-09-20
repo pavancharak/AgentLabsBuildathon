@@ -95,6 +95,8 @@ describe("ExecutionGateway", () => {
     expect(
       () =>
         new ExecutionGateway({
+          // Legacy fixture: predates fail-closed policy binding.
+          allowUnverifiedPolicy: true,
           publicKey,
           nonceStore: new MemoryNonceStore(),
         }),
@@ -107,6 +109,8 @@ describe("ExecutionGateway", () => {
     expect(
       () =>
         new ExecutionGateway({
+          // Legacy fixture: predates fail-closed policy binding.
+          allowUnverifiedPolicy: true,
           publicKey,
           nonceStore: new MemoryNonceStore(),
           connector: new RecordingConnector(),
@@ -124,6 +128,8 @@ describe("ExecutionGateway", () => {
 
     const connector = new RecordingConnector();
     const gateway = new ExecutionGateway({
+      // Legacy fixture: predates fail-closed policy binding.
+      allowUnverifiedPolicy: true,
       publicKey,
       nonceStore: new MemoryNonceStore(),
       connector,
@@ -163,6 +169,8 @@ describe("ExecutionGateway", () => {
 
     const connector = new RecordingConnector();
     const gateway = new ExecutionGateway({
+      // Legacy fixture: predates fail-closed policy binding.
+      allowUnverifiedPolicy: true,
       publicKey,
       nonceStore: new MemoryNonceStore(),
       connector,
@@ -194,6 +202,8 @@ describe("ExecutionGateway", () => {
 
     const connector = new RecordingConnector();
     const gateway = new ExecutionGateway({
+      // Legacy fixture: predates fail-closed policy binding.
+      allowUnverifiedPolicy: true,
       publicKey,
       nonceStore: new MemoryNonceStore(),
       connector,
@@ -220,6 +230,8 @@ describe("ExecutionGateway", () => {
 
     const connector = new RecordingConnector();
     const gateway = new ExecutionGateway({
+      // Legacy fixture: predates fail-closed policy binding.
+      allowUnverifiedPolicy: true,
       publicKey,
       nonceStore: new MemoryNonceStore(),
       connector,
@@ -240,6 +252,8 @@ describe("ExecutionGateway", () => {
     const connector = new RecordingConnector();
     const nonceStore = new MemoryNonceStore();
     const gateway = new ExecutionGateway({
+      // Legacy fixture: predates fail-closed policy binding.
+      allowUnverifiedPolicy: true,
       publicKey,
       nonceStore,
       connector,
@@ -278,6 +292,8 @@ describe("ExecutionGateway", () => {
 
     const connector = new RecordingConnector();
     const gateway = new ExecutionGateway({
+      // Legacy fixture: predates fail-closed policy binding.
+      allowUnverifiedPolicy: true,
       publicKey,
       nonceStore: new MemoryNonceStore(),
       connector,
@@ -310,6 +326,8 @@ describe("ExecutionGateway", () => {
 
     const connector = new RecordingConnector();
     const gateway = new ExecutionGateway({
+      // Legacy fixture: predates fail-closed policy binding.
+      allowUnverifiedPolicy: true,
       publicKey,
       nonceStore: new MemoryNonceStore(),
       connector,
@@ -335,6 +353,8 @@ describe("ExecutionGateway", () => {
 
     const connector = new RecordingConnector();
     const gateway = new ExecutionGateway({
+      // Legacy fixture: predates fail-closed policy binding.
+      allowUnverifiedPolicy: true,
       publicKey,
       nonceStore: new MemoryNonceStore(),
       connector,
@@ -362,6 +382,8 @@ describe("ExecutionGateway", () => {
     const nonceStore = new MemoryNonceStore();
     const connector = new RecordingConnector();
     const gateway = new ExecutionGateway({
+      // Legacy fixture: predates fail-closed policy binding.
+      allowUnverifiedPolicy: true,
       publicKey,
       nonceStore,
       connector,

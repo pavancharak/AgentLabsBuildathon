@@ -223,6 +223,15 @@ It exits non-zero — and fails closed the same way on a Supabase outage as
 on a genuine finding, never silently passing — if any live policy file
 doesn't match its most recent approval record.
 
+**Enforcement is on by default (2026-09-20).** Execution time policy verification and the
+Execution Gateway's fail closed policy binding are active everywhere except when `NODE_ENV` is
+exactly `test` or `development`. In production, `POLICY_EXECUTION_VERIFICATION_ENFORCED` is
+ignored and cannot turn enforcement off. Before promoting a deployment, every policy it
+executes against must have a signed approval record in `policy_change_approval_records`, or
+executions under that policy are refused. Authorizations that carry no `policyContentHash`
+are also refused. After a deploy, confirm the startup log line `runtime_engine_constructed`
+shows `policyExecutionVerifierConfigured: true`.
+
 **The legacy-policy caveat, and what to actually do about it.** Every
 policy version that existed before Policy Governance was built has no
 approval record at all, because none of them were ever proposed or

@@ -148,6 +148,8 @@ async function main(): Promise<void> {
   const connectorA = new RecordingConnector();
 
   const gatewayA = new ExecutionGateway({
+    // Legacy fixture: predates fail-closed policy binding.
+    allowUnverifiedPolicy: true,
     publicKey,
     nonceStore: new MemoryNonceStore(),
     signalStateVerifier: new NothingChangedVerifier(),
@@ -173,6 +175,8 @@ async function main(): Promise<void> {
   const connectorB = new RecordingConnector();
 
   const gatewayB = new ExecutionGateway({
+    // Legacy fixture: predates fail-closed policy binding.
+    allowUnverifiedPolicy: true,
     publicKey,
     nonceStore: new MemoryNonceStore(),
     signalStateVerifier: new VendorBlockedSinceAuthorizationVerifier(),

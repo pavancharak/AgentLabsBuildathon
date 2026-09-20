@@ -132,6 +132,8 @@ describe("ExecutionGateway signal-freshness check (G-31)", () => {
     const signed = await signAuthorization(privateKey, originalHash);
 
     const gateway = new ExecutionGateway({
+      // Legacy fixture: predates fail-closed policy binding.
+      allowUnverifiedPolicy: true,
       publicKey,
       nonceStore: new MemoryNonceStore(),
       signalStateVerifier: new FixedSignalStateVerifier([]),
@@ -153,6 +155,8 @@ describe("ExecutionGateway signal-freshness check (G-31)", () => {
     const signed = await signAuthorization(privateKey, originalHash);
 
     const gateway = new ExecutionGateway({
+      // Legacy fixture: predates fail-closed policy binding.
+      allowUnverifiedPolicy: true,
       publicKey,
       nonceStore: new MemoryNonceStore(),
       signalStateVerifier: new FixedSignalStateVerifier([DRIFT_VIOLATION]),
@@ -175,6 +179,8 @@ describe("ExecutionGateway signal-freshness check (G-31)", () => {
     const signed = await signAuthorization(privateKey, originalHash);
 
     const gateway = new ExecutionGateway({
+      // Legacy fixture: predates fail-closed policy binding.
+      allowUnverifiedPolicy: true,
       publicKey,
       nonceStore: new MemoryNonceStore(),
       signalStateVerifier: new FixedSignalStateVerifier([DRIFT_VIOLATION]),
@@ -192,6 +198,8 @@ describe("ExecutionGateway signal-freshness check (G-31)", () => {
     const signed = await signAuthorization(privateKey, originalHash);
 
     const gateway = new ExecutionGateway({
+      // Legacy fixture: predates fail-closed policy binding.
+      allowUnverifiedPolicy: true,
       publicKey,
       nonceStore: new MemoryNonceStore(),
       // Never consulted: the hash check fails first.
@@ -215,6 +223,8 @@ describe("ExecutionGateway signal-freshness check (G-31)", () => {
     const signed = await signAuthorization(privateKey, originalHash);
 
     const gateway = new ExecutionGateway({
+      // Legacy fixture: predates fail-closed policy binding.
+      allowUnverifiedPolicy: true,
       publicKey,
       nonceStore: new MemoryNonceStore(),
       connector: new RecordingConnector(),
@@ -233,6 +243,8 @@ describe("ExecutionGateway signal-freshness check (G-31)", () => {
     const signed = await signAuthorization(privateKey, undefined);
 
     const gateway = new ExecutionGateway({
+      // Legacy fixture: predates fail-closed policy binding.
+      allowUnverifiedPolicy: true,
       publicKey,
       nonceStore: new MemoryNonceStore(),
       signalStateVerifier: new FixedSignalStateVerifier([DRIFT_VIOLATION]),
@@ -253,6 +265,8 @@ describe("ExecutionGateway signal-freshness check (G-31)", () => {
     const signed = await signAuthorization(privateKey, originalHash);
 
     const gateway = new ExecutionGateway({
+      // Legacy fixture: predates fail-closed policy binding.
+      allowUnverifiedPolicy: true,
       publicKey,
       nonceStore: new MemoryNonceStore(),
       signalStateVerifier: new FixedSignalStateVerifier([DRIFT_VIOLATION]),
@@ -270,6 +284,8 @@ describe("ExecutionGateway signal-freshness check (G-31)", () => {
     const signed = await signAuthorization(privateKey, undefined);
 
     const gateway = new ExecutionGateway({
+      // Legacy fixture: predates fail-closed policy binding.
+      allowUnverifiedPolicy: true,
       publicKey,
       nonceStore: new MemoryNonceStore(),
       connector: new RecordingConnector(),

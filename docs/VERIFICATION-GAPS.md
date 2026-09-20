@@ -433,6 +433,17 @@ Full verification: `npx tsc -b` clean (both repositories); `npx eslint`/`npm run
 
 ---
 
+## Gaps closed in the 2026-09-20 fail-closed policy binding session
+
+Scope: a line by line read of the execution enforcement path (`ExecutionGateway`, `RuntimeEngine`, `PolicyGovernanceExecutionVerifier`, `createPolicyExecutionVerifier`) against the claim that no execution exceeds its approved authority. Two real fail open behaviors were found and are closed here. Two narrower limits were found and are recorded as open gaps G-50 and G-51 below, not fixed.
+
+| #   | Gap                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Verified                                                                                                                                                                                                                                                                              |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 57  | **The Execution Gateway skipped its policy check instead of failing it.** `ExecutionGateway.verify()` ran the policy freshness check only when a `PolicyRepository` was wired and the authorization carried a `policyContentHash`. Either being absent left `policyStillCurrent` undefined, and `isSoleFailureNonceReplay` and `valid` both treated undefined as a pass. An older authorization with no `policyContentHash` therefore released without any policy check. RESOLVED 2026-09-20: by default the gateway requires a `policyRepository` and a `policyApprovalVerifier` at construction, rejects an authorization with no `policyContentHash` (`policyStillCurrent: false`), and requires `policyStillCurrent === true` and `policyGovernanceVerified === true` for `valid`. The only opt out is the explicit `allowUnverifiedPolicy: true`, set on legacy test fixtures and examples and never in production bootstrap. Old authorizations without a hash are now rejected by design.                                                                                                                                                    | `packages/execution-gateway/tests/unit/policy-binding-fail-closed.test.ts` (10 cases, each failure asserts zero connector calls and the nonce is not burned). Full repo `npx vitest run`: 1871 passed, 42 skipped, 0 failed.                                                          |
+| 58  | **Execution time policy governance verification was opt in, and was off in production.** `createPolicyExecutionVerifier()` returned `undefined` unless `POLICY_EXECUTION_VERIFICATION_ENFORCED` was exactly `"true"`. The live production startup log on 2026-09-20 showed `policyExecutionVerifierConfigured: false`, so a policy with no approval record, a bad approval signature, or content edited outside the approval API could still authorize executions. The approval record was also never re-checked at the gateway, only before authorization. RESOLVED 2026-09-20: the verifier is enforced everywhere except when `NODE_ENV` is exactly `test` or `development`, so an unset or unrecognized `NODE_ENV` is enforced and the environment variable cannot turn it off in production. The gateway now runs the same approval record check against the live hash at release, so the approved hash, the signed hash and the live hash must all agree. Operational precondition: every policy a deployment executes against needs a genuine signed approval record before that deployment is promoted, or executions under it are refused. | `packages/api/tests/unit/bootstrap/create-policy-execution-verifier.test.ts` (enforced in production, env var cannot disable it in production, enforced when `NODE_ENV` is unset or unrecognized, off in test and development unless exactly `"true"`), plus the gateway cases above. |
+
+---
+
 ## Remaining gaps, by severity
 
 **Status note, updated in the adversarial-testing hardening session that added G-24:**
@@ -1084,6 +1095,11 @@ No fix attempted this session — this is a decision for whoever turns
 `POLICY_EXECUTION_VERIFICATION_ENFORCED` on for the first time, not a code change to make
 unilaterally. See `02-REMAINING.md` Tier 0.
 
+**Update (2026-09-20): the severity choice is now made, and it is option 1.** Enforcement is on in
+production and blocks uniformly for a missing approval record, an invalid approval signature, and content
+that differs from the approved content (gap 58, `docs/CLAIMS.md` 2.36). The gateway applies the same
+check at release. A graduated or configurable response (options 2 and 3) is not built.
+
 **G-48. `createExecutionGateway.ts` passed an unconditional `new FileKeyProvider()` as
 `ExecutionGateway`'s `keyProvider`, regardless of `KEY_PROVIDER` — silently verifying every
 authorization against a stale local key once `KEY_PROVIDER=aws-kms` was turned on, while
@@ -1200,6 +1216,30 @@ when omitted). `packages/api/tests/unit/bootstrap/create-rate-limit-store.test.t
 case asserting two different prefixes produce two distinct `Store` instances. Full repo
 suite passing. Verified live against production: 5 consecutive `/health` requests plus
 `/keys/default` and `/execute`, no `ERR_ERL_STORE_REUSE` recurrence in Vercel runtime logs.
+
+**G-50. Policy approver authority is not scoped. Any provisioned human checker can approve any
+policy.** Found 2026-09-20. `POST /policies/pending-changes/:id/approve`
+(`packages/api/src/routes/pending-policy-changes.ts`) enforces a human credential
+(`credentialHolderType === USER`, `isHumanCaller.ts`), that the checker is not the proposer, and a valid
+single use step up signature. It does not ask whether this checker may approve this particular policy.
+`PolicyChangeApprovalService` records `approvedBy` as the API `callerId`, not an `Authority`. Two human
+keys with step up keys can therefore approve a change to the refund limit or a payment policy. There is
+also no quorum, no separation by policy sensitivity, and no role check. `credentialHolderType` is
+operator provisioned configuration, not proof that a business authority approved. This is the reason the
+execution claim is stated as "matches what a human checker approved" and not "within business authority
+bounds". **Not fixed. Option:** add a per policy `approverPrincipalIds` (or role) check on the approve
+route, fail closed when unset, and record the resolved principal in `PolicyChangeApprovalRecord`.
+
+**G-51. Only the HubSpot capability has an independent signal state verifier, so most policy signals are
+caller declared.** Found 2026-09-20. `application.ts` wires a `CompositeSignalStateVerifier` containing
+only `createHubSpotSignalStateVerifier`. `RuntimeEngine` reads `transaction.signals` straight from the
+request. For `customer-refund` (Paytm), `refundAmount` is bound to `parameters.amount` by
+`boundSignals` and the gateway content hash, so the amount limit holds. `refundEligible`,
+`managerApproved` and `fraudCheckPassed` are listed under `unboundSignalReasons` and nothing checks them
+against real state, so a caller can declare them true. The same applies to GitHub and Slack signals.
+**Not fixed. Option:** add capability scoped `SignalStateVerifier` implementations, starting with a signed
+approval artifact for `managerApproved` (the `SignedApprovalGuard` and `ApprovalIssuerRegistry` machinery
+already exists in `packages/approval`).
 
 ### pre-production
 
@@ -2692,8 +2732,10 @@ live against a locally-running instance: a real executed `test:fixture-execute` 
 `{policyContentHash, governanceAnchorStatus: "NO_APPROVAL_RECORD", connectorEvidenceHash,
 anchorHash}`, all four populated from real values, not placeholders.
 
-**Still true, unaffected by this fix:** `POLICY_EXECUTION_VERIFICATION_ENFORCED` (the
-enforcement gate, distinct from the anchor resolver) remains off by default and cannot safely
+**Superseded 2026-09-20 (gap 58):** `POLICY_EXECUTION_VERIFICATION_ENFORCED` no longer decides
+production behavior, enforcement is on unless `NODE_ENV` is `test` or `development`. The text that
+follows describes the state when this fix was written: (the
+enforcement gate, distinct from the anchor resolver) remained off by default and could not safely
 be turned on until G-1's legacy-policy backfill completes — see `docs/CLAIMS.md` §2.26's
 "Legacy-policy backfill" entry. G-47's enforcement-severity design question is also
 unaffected: this fix makes the _evidence_ more complete, it does not change what enforcement

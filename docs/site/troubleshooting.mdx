@@ -54,6 +54,21 @@ real `intent` field the policy binds it to, exactly.
 version folder, for example `policies/vendor-payment/` currently only has a `2.0.0/`
 folder, not `1.0.0/`.
 
+## Execution is rejected with "Execution Gateway rejected request: failed checks [policyStillCurrent]" or "policy approval check failed"
+
+**Cause:** the gateway fails closed on policy binding. The rejection names the reason. "has no
+PolicyChangeApprovalRecord" means the policy was never approved through the maker checker flow.
+"does not match approval record contentHashAfter" means the policy file was edited outside the
+approval API, or the record is stale. "policyContentHash mismatch" means the policy changed after
+the authorization was signed. "absent: authorization carries no policyContentHash" means the
+authorization predates that field. `policyBindingNotVerified` means a required policy check did
+not run.
+
+**Fix:** approve the policy version through `POST /policies/:name/:version/pending-changes` and
+`.../approve` (see [Policy governance](/guides/policy-governance-maker-checker)), then submit a
+new transaction so a fresh authorization is signed. Nothing was executed and the nonce was not
+consumed.
+
 ## `PARMANA_POLICY_DIR` and running from a fresh clone
 
 `02-REMAINING.md` (Tier 1) tracks this as an open item: `PARMANA_POLICY_DIR` has no

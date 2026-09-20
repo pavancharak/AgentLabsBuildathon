@@ -736,7 +736,7 @@ A signed Execution Authorization is bound to the exact policy content it was dec
 
 `ExecutionGateway` optionally accepts a `PolicyRepository` (`ExecutionGatewayOptions.policyRepository`). When supplied, and when the authorization being verified carries a `policyContentHash` (older authorizations signed before this check existed do not), the gateway reloads the policy at the authorization's own `(policyName, policyVersion)` and recomputes its current content hash, comparing it against the signed value. A mismatch — whether from the policy's content changing in place or the policy no longer existing at that name/version at all — sets `policyStillCurrent: false`, is reported in `GatewayVerificationResult.policyContentMismatch`, and fails `verify()` before the connector is ever invoked, exactly like the existing `businessTransactionHash` check it sits alongside in the same ordered check sequence (`packages/execution-gateway/src/ExecutionGateway.ts`).
 
-This check is opt-in and additive, not a behavior change for existing deployments: omitting `policyRepository`, or verifying an authorization signed before `policyContentHash` existed, leaves `policyStillCurrent` absent (not failed) — the same "absent means skipped" convention `hashMismatch` already used — and the pre-existing replay-detection logic (`isSoleFailureNonceReplay`) treats an absent/undefined check as passing, so it does not spuriously reclassify a stale-policy rejection as a nonce replay.
+**Update (2026-09-20): this check is no longer opt in.** It fails closed by default (see 2.36). `ExecutionGateway` now requires a `PolicyRepository` and a policy approval verifier at construction, and an authorization that carries no `policyContentHash` is rejected with `policyStillCurrent: false` instead of being skipped. The only way to get the earlier "absent means skipped" behavior is the explicit, loudly named `allowUnverifiedPolicy: true` option, which production bootstrap does not set. The replay detection logic (`isSoleFailureNonceReplay`) still treats an undefined check as passing, which is safe because in the default mode every policy check is present and must be true for `valid` to be true.
 
 Evidence
 
@@ -947,7 +947,7 @@ Evidence
 
 ---
 
-## 2.35 Execution-Time Policy Governance Verification (Prevention, Feature-Flagged)
+## 2.35 Execution-Time Policy Governance Verification (Prevention, Always On Outside Test and Development)
 
 **What this adds.** 2.34 (and 2.26 before it) detect a Policy Governance bypass after the fact — at process startup, or every 5 minutes thereafter. This section adds real prevention on top: a policy with no `PolicyChangeApprovalRecord`, an approval record whose signature does not verify, or live content that no longer matches its approval record's `contentHashAfter` can now be refused _before_ `PolicyEngine` ever evaluates a rule in it, not merely flagged up to 5 minutes later.
 
@@ -959,19 +959,53 @@ Evidence
 
 **Update (2026-09-16): the precondition above no longer holds, the flag itself is unchanged.** 2.26's "Legacy-policy backfill" entry now shows all 14 real production policies with a genuine, distinct-checker `PolicyChangeApprovalRecord`. The reason the flag was off (zero approval records, an unconditional gate would refuse everything) is gone. `POLICY_EXECUTION_VERIFICATION_ENFORCED` has not been changed and remains `false` in `.env` — turning it on is still a separate, deliberate decision the runbook explicitly reserves for a later, dedicated step (`docs/operations/policy-approval-runbook.md` Part 5: "Do this only once every policy this deployment actually executes against has been resolved"), not something this pass did as a side effect of closing the backfill.
 
+**Update (2026-09-20): the flag no longer decides production behavior.** `createPolicyExecutionVerifier()` now returns a real verifier everywhere except when `NODE_ENV` is exactly `test` or `development`. In production, or with `NODE_ENV` unset or set to any other value, `POLICY_EXECUTION_VERIFICATION_ENFORCED` is ignored and enforcement is on. The earlier gap, where a production deployment could run with the verifier unconfigured (`policyExecutionVerifierConfigured: false` was observed in the live startup log on 2026-09-20), is closed by removing the opt in. The tradeoff recorded above still applies in one direction: any deployment must have a genuine, signed approval record for every policy it executes against before it goes live, or executions under that policy are refused.
+
 **What this does not change.** The CI merge-gate requirement described in 2.26 ("Preventive Git-layer enforcement") is unchanged — still fail-closed in CI, still not a _required_ GitHub status check, still blocked by GitHub plan/repository-visibility limits external to this codebase, not attempted again here.
 
 Evidence
 
 - `packages/policy/src/types/PolicyExecutionVerifier.ts` (`PolicyExecutionVerifier`/`PolicyExecutionViolation`, undefined-means-clean)
 - `packages/api/src/governance/PolicyGovernanceExecutionVerifier.ts` (concrete implementation: no-record / bad-signature / content-mismatch checks, in that order)
-- `packages/api/src/bootstrap/createPolicyExecutionVerifier.ts` (env-var gate, documents why default is off)
+- `packages/api/src/bootstrap/createPolicyExecutionVerifier.ts` (enforced by default; relaxed only when `NODE_ENV` is exactly `test` or `development`, see 2.36)
 - `packages/runtime/src/RuntimeEngine.ts` (constructor param, observability log field, `execute()` wiring before capability/signal-intent binding), `RuntimeBuilder.ts` (`withPolicyExecutionVerifier`), `RuntimeFactory.ts`, `packages/api/src/application.ts`
 - `packages/api/tests/unit/PolicyGovernanceExecutionVerifier.test.ts` (4 cases: no record, bad signature, content mismatch, clean)
-- `packages/api/tests/unit/bootstrap/create-policy-execution-verifier.test.ts` (3 cases: unset, non-`"true"` values, enabled)
+- `packages/api/tests/unit/bootstrap/create-policy-execution-verifier.test.ts` (cases: enforced in production, cannot be switched off in production by the env var, enforced when `NODE_ENV` is unset or unrecognized, off in test and development unless exactly `"true"`)
 - `packages/runtime/tests/e2e/runtime.e2e.test.ts` (2 new cases: a configured violation rejects before `PolicyEngine` runs; no violation leaves execution unaffected), `packages/runtime/tests/unit/optional-protections-logging.test.ts` (1 new case)
 - `examples/tutorials/104-policy-governance-execution-verification/run.ts` (runnable narrative, no HTTP server: an approved policy executes normally, a policy with no approval record is refused, a policy edited outside the governed API is refused and independently caught by `verifyPolicyGovernanceIntegrityAtStartup()` too, and a tampered approval record is refused on signature failure — added in the same pass as this evidence update, registered in `scripts/run-examples.ts`)
 - Full repo `npx tsc -b` and `npx vitest run` clean: 1544 passed, 38 pre-existing skips, 0 failed. Commit `7a1aa37`
+
+## 2.36 Fail-Closed Policy Binding at the Execution Boundary
+
+Every execution released by `ExecutionGateway` proves one policy hash across the whole chain, and any mismatch or any missing piece stops the execution before the connector is called. Four hashes must agree:
+
+1. The policy the caller declared is the policy actually evaluated (capability to policy binding, 2.22, for registered capabilities).
+2. The policy content hash equals the `contentHashAfter` of the policy's most recent signed `PolicyChangeApprovalRecord`, and that record's signature verifies. A checker's signed approval is the authority act that makes a policy usable.
+3. That same hash is signed into the execution authorization as `policyContentHash` (2.27).
+4. At release, the gateway recomputes the live policy hash and it must still equal the signed one, and the approval record check runs again against that live hash.
+
+What changed on 2026-09-20 (`packages/execution-gateway/src/ExecutionGateway.ts`):
+
+- **Missing is a failure, not a skip.** An authorization with no `policyContentHash` (an older authorization signed before 2.27) is rejected with `policyStillCurrent: false`. A missing policy at that name and version is a rejection. An error from the approval verifier is a rejection.
+- **The approval record is checked at release, not only before authorization.** `ExecutionGatewayOptions.policyApprovalVerifier` reuses the `PolicyExecutionVerifier` port from 2.35. The result is `checks.policyGovernanceVerified` and, on failure, `policyGovernanceViolation.reason`.
+- **A pass must be positive.** By default `valid` requires `policyStillCurrent === true` and `policyGovernanceVerified === true`. "Not run" is never a pass.
+- **A misconfigured gateway cannot start.** The constructor throws unless it has both a `policyRepository` and a `policyApprovalVerifier`, unless the explicit opt out `allowUnverifiedPolicy: true` is set. Production bootstrap (`createExecutionGateway.ts`) sets it only when `createPolicyExecutionVerifier()` returns `undefined`, which happens only under `NODE_ENV` `test` or `development`.
+- **The nonce is not burned by a policy binding failure.** The nonce remains the last check and is consumed only when every earlier check passed.
+
+Scope, stated plainly:
+
+- This binds execution to the policy a human checker approved. It does not prove the policy is correct or wise, and it does not model per policy or per role approver authority. Any provisioned human checker with a step up key can approve any policy (see G-50 in `docs/VERIFICATION-GAPS.md`).
+- Signals such as `managerApproved` and `fraudCheckPassed` are caller declared unless a `SignalStateVerifier` covers that capability. Only the HubSpot verifier is wired today, so an amount bound (`boundSignals`) holds but an attested approval signal is only as true as the caller says (G-51).
+- The claim holds for execution routed through the gateway. A request that never reaches the gateway is not covered (see 3.1).
+- Direct edits to the policy store outside the API are prevented from executing (hash mismatch against the approval record) but are still only detected, not blocked, at the storage layer.
+
+Evidence
+
+- `packages/execution-gateway/src/ExecutionGateway.ts`, `GatewayVerificationResult.ts` (`policyGovernanceVerified`, `policyGovernanceViolation`, `allowUnverifiedPolicy`)
+- `packages/execution-gateway/tests/unit/policy-binding-fail-closed.test.ts` (10 cases: all hashes agree, construction refused without repository or verifier, no `policyContentHash`, policy edited after authorization, no approval record, stale approval hash, verifier error, policy missing, nonce not burned, explicit legacy opt out; each failure asserts zero connector calls)
+- `packages/api/src/bootstrap/createPolicyExecutionVerifier.ts`, `createExecutionGateway.ts`
+- `packages/api/tests/unit/bootstrap/create-policy-execution-verifier.test.ts`
+- Full repo `npx tsc -b` clean and `npx vitest run`: 1871 passed, 42 skipped, 0 failed
 
 ---
 

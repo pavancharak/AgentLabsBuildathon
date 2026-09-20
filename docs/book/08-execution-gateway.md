@@ -26,25 +26,36 @@ point before a real system state changes."
 ```
 version → signature → expiry → TTL policy
   → businessTransactionHash recompute-and-compare
-  → policyStillCurrent recompute-and-compare (when wired)
+    → policyStillCurrent recompute-and-compare (required, fails closed)
+  → policyGovernanceVerified approval record check (required, fails closed)
   → signalsStillCurrent recompute-and-verify (when wired)
   → nonce
 ```
 
 The first four are `EnvelopeVerifier.verifyChecks()` (Chapter 7), composed rather than
-reimplemented. Everything after that is additive, each one optional, each one gated on every
-prior check having already passed.
+reimplemented. Everything after that is additive, each one gated on every prior check having
+already passed. Since 2026-09-20 the two policy checks are required and fail closed, while the
+signal check stays optional.
 
 **`businessTransactionHash`**: always attempted when the prior checks passed. Recomputes
 the hash of the exact content about to be forwarded and compares it to the signed value.
 
-**`policyStillCurrent`** (Gap 1B): only when a `PolicyRepository` is supplied _and_ the
-authorization carries a `policyContentHash`. Reloads the policy at the authorization's own
+**`policyStillCurrent`** (Gap 1B): required. A gateway with no `PolicyRepository` and
+`policyApprovalVerifier` refuses to construct unless the explicit `allowUnverifiedPolicy` option
+is set (never in production), and an authorization with no `policyContentHash` is rejected
+instead of skipped. Reloads the policy at the authorization's own
 `(policyName, policyVersion)` and recomputes its current content hash. A mismatch, whether
 from the policy's content changing in place, or the policy no longer existing at that
 name/version at all, sets this check `false` and reports both hashes in
 `policyContentMismatch`, closing the gap "an authorization signed under a policy that's since
 changed can still execute."
+
+**`policyGovernanceVerified`** (2026-09-20): required. When the live hash equals the signed
+hash, the gateway hands it to the policy approval verifier, which checks that the policy's most
+recent signed `PolicyChangeApprovalRecord` exists, verifies, and has a `contentHashAfter`
+equal to that hash. The approved hash, the signed hash and the live hash must all agree. A
+missing record, invalid signature, differing hash or verifier error rejects the request with
+the reason in `policyGovernanceViolation`.
 
 **`signalsStillCurrent`** (G-31, the newest check, added the same session as this book): only
 when a `SignalStateVerifier` is supplied _and_ the authorization carries a `signalsHash`

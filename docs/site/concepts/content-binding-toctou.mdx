@@ -46,7 +46,7 @@ export interface ExecutionAuthorizationPayload {
    */
   readonly businessTransactionHash: string;
 
-  /** Optional. Same idea, for the exact policy content the decision rested on. */
+  /** Same idea, for the exact policy content the decision rested on. The gateway rejects an authorization that lacks it. */
   readonly policyContentHash?: string;
 
   /** Optional. Same idea, for the runtime signals the decision was evaluated against. */
@@ -76,7 +76,8 @@ Verification order, side-effect-free checks first (`ExecutionGateway.ts`):
 
 ```
 version → signature → expiry → TTL policy → businessTransactionHash recompute-and-compare
-  → policyStillCurrent recompute-and-compare (when wired)
+    → policyStillCurrent recompute-and-compare (required, fails closed)
+  → policyGovernanceVerified approval record check (required, fails closed)
   → signalsStillCurrent recompute-and-verify (when wired)
   → nonce
 ```

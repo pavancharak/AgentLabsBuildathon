@@ -41,8 +41,10 @@ the provability layer is done; what remains is the unavoidability layer.
       moved from "not started" to "in-memory scaffold built (`execution-control`, 11
       tests)" — still [PARTIAL], not the finished claim. (Found while building the docs
       site, Session 9.)
-- [ ] **Decide the enforcement severity policy before `POLICY_EXECUTION_VERIFICATION_ENFORCED`
-      is ever turned on (G-47, `docs/VERIFICATION-GAPS.md`)**: `PolicyGovernanceExecutionVerifier`
+- [x] **Enforcement severity decided 2026-09-20: uniform blocking, always on in production
+      (G-47, gaps 57 and 58, `docs/VERIFICATION-GAPS.md`).** Original note follows. Open items now:
+      G-50 (approver authority not scoped per policy) and G-51 (signals verified only for HubSpot).
+      Older text: **Decide the enforcement severity policy before enforcement is ever turned on**: `PolicyGovernanceExecutionVerifier`
       currently blocks execution identically for a forged approval-record signature
       (`SIGNATURE_INVALID`, active tampering) and an honest process gap
       (`NO_APPROVAL_RECORD`/`CONTENT_MISMATCH`, e.g. a legitimate hotfix mid-rollout) — no

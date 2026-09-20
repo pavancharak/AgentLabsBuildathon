@@ -572,10 +572,10 @@ describes its own commit).
   `PolicyGovernanceExecutionVerifier` (new, `packages/api/src/governance/`), wired
   into `RuntimeEngine.execute()` as a new optional trailing constructor param (same
   idiom as `signalStateVerifier`/`capabilityPolicyBinder`), before
-  `capabilityPolicyBinder`/`signalIntentBinder`. Feature-flagged
-  (`POLICY_EXECUTION_VERIFICATION_ENFORCED`, default `false` — every real production
-  policy in this system is currently `PENDING_APPROVAL`, so an unconditional gate
-  would refuse all of them). See `docs/CLAIMS.md` §2.35, `docs/VERIFICATION-GAPS.md`
+  `capabilityPolicyBinder`/`signalIntentBinder`. Originally
+  feature-flagged (`POLICY_EXECUTION_VERIFICATION_ENFORCED`, default `false`). As of
+  2026-09-20 it is enforced everywhere except `NODE_ENV` `test` and `development`, and the
+  gateway fails closed on policy binding (`docs/CLAIMS.md` §2.36). See `docs/CLAIMS.md` §2.35, `docs/VERIFICATION-GAPS.md`
   gap 40.
 - `ba456e0`, `b86b50d`, `f1de1ad`, `98dfcc1`, `f034fff`, `b6b05fa` — docs only: CLAIMS.md/
   VERIFICATION-GAPS.md/changelog updates for the above, a real (not fabricated) policy

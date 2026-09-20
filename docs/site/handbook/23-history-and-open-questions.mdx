@@ -172,12 +172,13 @@ short index, not a replacement for reading the original entries.
   codebase picks a side; the maker-checker system described in Chapter 7 exists because
   policy authoring was previously outside any governance surface at all, not because
   building it internally was compared against and preferred over the external alternative.
-- **`POLICY_EXECUTION_VERIFICATION_ENFORCED` remains `false`.** As of this session, every
-  real production policy has a genuine, verified approval record, closing the precondition
-  that originally justified leaving this flag off. The flag itself was deliberately left
-  unchanged as part of closing that precondition; turning it on is reserved as its own,
-  separate, later decision (`docs/operations/policy-approval-runbook.md` Part 5), not
-  something to do as a side effect of finishing the backfill.
+- **Execution time policy verification is now enforced (2026-09-20).** The flag
+  `POLICY_EXECUTION_VERIFICATION_ENFORCED` had stayed `false`, and the live startup log showed
+  `policyExecutionVerifierConfigured: false`, so an unapproved policy could still authorize. It
+  is now on everywhere except `NODE_ENV` `test` and `development`, and the Execution Gateway
+  fails closed on policy binding as well (`docs/CLAIMS.md` §2.36, `docs/VERIFICATION-GAPS.md`
+  gaps 57 and 58). Still open: approver authority is not scoped per policy (G-50), and only the
+  HubSpot capability has an independent signal state verifier (G-51).
 
 ## How to keep this chapter honest going forward
 
