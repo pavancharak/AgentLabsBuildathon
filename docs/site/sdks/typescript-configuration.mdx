@@ -8,34 +8,31 @@ This page states exactly how `@parmana/sdk` behaves. If a guide and this page di
 ## Create a client
 
 ```typescript
-import { ParmanaClient, HttpTransport, type Configuration } from "@parmana/sdk";
+import { ParmanaClient, type Configuration } from "@parmana/sdk";
 
 const configuration: Configuration = {
   endpoint: "https://your-parmana.example.com",
   apiKey: "your API key",
 };
 
-const client = new ParmanaClient({
-  ...configuration,
-  transport: new HttpTransport(configuration),
-});
+const client = new ParmanaClient(configuration);
 ```
 
-Two rules make this work:
+From 1.1.6 the client builds a default `HttpTransport` from the configuration you pass, so `timeout`, `retryPolicy`, `apiKey` and `userAgent` all apply. Two notes:
 
-1. **Always pass `transport`.** In 1.1.3, the current release, the constructor throws `ConfigurationError: Transport is required.` when it is missing, even though the `Configuration` type marks it optional and its comment says a default is used. Tested against the published 1.1.3.
-2. **Build the transport from the same configuration object.** `HttpTransport` reads `timeout` and `retryPolicy` from the configuration it is constructed with, not from the client. If you write `new HttpTransport({ endpoint, apiKey })` next to a `retryPolicy` on the client, the transport never sees the retry policy and **nothing is retried**, with no error.
+1. **On 1.1.5 and earlier, always pass `transport`.** Those versions throw `ConfigurationError: Transport is required.` when it is missing, even though the `Configuration` type marks it optional. Use 1.1.6 or later to omit it.
+2. **If you supply your own transport, build it from the same configuration object.** `HttpTransport` reads `timeout` and `retryPolicy` from the configuration it is constructed with, not from the client. If you write `new HttpTransport({ endpoint, apiKey })` next to a `retryPolicy` on the client, the transport never sees the retry policy and **nothing is retried**, with no error. Omit `transport` and this cannot happen.
 
 ## Configuration options
 
-| Option        | Type                 | Default                            | What it does                                                                                                                                                                     |
-| ------------- | -------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `endpoint`    | string               | None, required                     | The base URL of the Parmana server, without a trailing slash. Every path is appended to it as written. An empty value throws `ConfigurationError: Runtime endpoint is required.` |
-| `apiKey`      | string               | None                               | When set, every request carries `Authorization: Bearer <apiKey>`. When it is not set, no `Authorization` header is sent and a server with authentication on answers `401`.       |
-| `timeout`     | number, milliseconds | `30000`                            | A request that has not finished in this time is aborted and throws `TimeoutError`. Read by the transport, see rule 2 above.                                                      |
-| `retryPolicy` | `RetryPolicy`        | Retries off                        | See the next section. Read by the transport, see rule 2 above.                                                                                                                   |
-| `transport`   | `Transport`          | None, required at runtime in 1.1.3 | The object that sends requests. Use `new HttpTransport(configuration)`.                                                                                                          |
-| `userAgent`   | string               | None                               | Declared on the type, but the SDK does not send it in 1.1.3, so it has no effect.                                                                                                |
+| Option        | Type                 | Default                   | What it does                                                                                                                                                                     |
+| ------------- | -------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `endpoint`    | string               | None, required            | The base URL of the Parmana server, without a trailing slash. Every path is appended to it as written. An empty value throws `ConfigurationError: Runtime endpoint is required.` |
+| `apiKey`      | string               | None                      | When set, every request carries `Authorization: Bearer <apiKey>`. When it is not set, no `Authorization` header is sent and a server with authentication on answers `401`.       |
+| `timeout`     | number, milliseconds | `30000`                   | A request that has not finished in this time is aborted and throws `TimeoutError`. Read by the transport, see rule 2 above.                                                      |
+| `retryPolicy` | `RetryPolicy`        | Retries off               | See the next section. Read by the transport, see rule 2 above.                                                                                                                   |
+| `transport`   | `Transport`          | A default `HttpTransport` | The object that sends requests. Omit it in 1.1.6 and later. Required in 1.1.5 and earlier.                                                                                       |
+| `userAgent`   | string               | None                      | Sent as the `User-Agent` header from 1.1.6. Before 1.1.6 it was declared but never sent.                                                                                         |
 
 Every request also carries `Content-Type: application/json`.
 
@@ -58,7 +55,7 @@ What is retried:
 | `GET` requests (`health()`, `version()`, `transaction()`, `transactions()`, `trustRecord()`, `getLatestVerification()`, `refusalRecord()`)                   | Yes, on a network failure, a timeout, a `429` or a `5xx`. Nothing else.                 |
 | `POST` requests (`execute()`, `createTransaction()`, `verify()`, `replay()`, `receipt()`, `validatePolicy()`, `verifyRefusalRecord()`, `verifyAuditEvent()`) | **Never.** This is deliberate, because retrying `execute()` could repeat a real action. |
 
-Tested: a server that returns `503` twice and then `200`, and a client with `enabled: true` and `maxAttempts: 3`, made 3 requests and returned success. The same client with a transport built from a partial configuration made 1 request and threw `InternalServerError`.
+Tested: a server that returns `503` twice and then `200`, and a client with `enabled: true` and `maxAttempts: 3`, made 3 requests and returned success. With a supplied transport built from a partial configuration the same client made 1 request and threw `InternalServerError`.
 
 ## Errors
 
@@ -77,7 +74,7 @@ Every non 2xx response, and every failure to get one, is thrown as a typed error
 | Any other non 2xx, including `500` and `503`  | `InternalServerError`    | From 1.1.3, `serverCode` carries the server's code, see below.    |
 | The connection failed                         | `NetworkError`           |                                                                   |
 | The request timed out                         | `TimeoutError`           |                                                                   |
-| A missing `endpoint` or `transport`           | `ConfigurationError`     | Thrown by the constructor.                                        |
+| A missing `endpoint`                          | `ConfigurationError`     | Thrown by the constructor.                                        |
 
 Two `InternalServerError` cases need different handling, and from 1.1.3 you can tell them apart with `error.serverCode`:
 
