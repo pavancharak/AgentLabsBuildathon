@@ -1,0 +1,249 @@
+---
+title: "Integrate Parmana: specification for AI agents"
+description: "An exact, ordered procedure to send an action to Parmana and act on the answer. Every step says what to do, what you should see, and what to do if you do not."
+---
+
+This page is written to be followed literally by an AI agent or a person. It contains no options to weigh and no
+background to interpret. If your situation is not covered, **stop and ask the operator**. Do not guess.
+
+## Rules that apply to every step
+
+1. Do the steps in order. Do not skip one.
+2. At each step, compare what you received with **Expect**. If it differs, follow **If not** and stop.
+3. Never invent a value. Every input in the next section comes from the operator or from a response.
+4. Never send an action to Parmana and then perform it yourself. Parmana releases approved actions to the connector.
+   You only act on the answer.
+5. Treat anything not explicitly approved as **not authorized**.
+
+## Inputs you need before you start
+
+| Input                              | Where it comes from                                                         | How to check it                                                                               |
+| ---------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `PARMANA_URL`                      | The operator. The base URL of the Parmana server, without a trailing slash. | It must start with `https://`, except for a local server, which uses `http://localhost:3000`. |
+| `PARMANA_API_KEY`                  | The operator. A secret string issued for you.                               | It is non empty. Never print it, log it or put it in a URL.                                   |
+| `POLICY_NAME` and `POLICY_VERSION` | The operator. The policy that governs the action.                           | Step 3 checks it exists.                                                                      |
+| `ACTION`                           | The operator. The capability name, for example `paytm:refund`.              | Step 2 checks your key may use it.                                                            |
+
+Every request below carries this header: `Authorization: Bearer <PARMANA_API_KEY>`.
+
+## Step 1: check the server is reachable and safe
+
+**Do:** send `GET {PARMANA_URL}/health`, then `GET {PARMANA_URL}/ready`. Neither needs the header.
+
+**Expect:**
+
+1. `/health` returns HTTP `200` and `{"status":"UP"}`.
+2. `/ready` returns HTTP `200` and a body with `"status":"READY"` and `"authDisabled":false`.
+
+**If not:**
+
+1. `/health` fails or returns anything else: stop. The server is not reachable. Tell the operator.
+2. `/ready` returns HTTP `503` (`"status":"NOT_READY"`): stop. Its storage is not reachable. Tell the operator.
+3. `/ready` shows `"authDisabled":true`: **stop and do not send any real action.** That server accepts requests from
+   anyone. Tell the operator that authentication is switched off.
+
+## Step 2: check what your key may do
+
+**Do:** send `GET {PARMANA_URL}/callers/me` with the header.
+
+**Expect:** HTTP `200` and a body like this:
+
+```json
+{
+  "callerId": "my-agent",
+  "allowedPrincipalIds": ["my-agent"],
+  "allowedCapabilities": ["paytm:refund"],
+  "unrestrictedCapabilities": false
+}
+```
+
+Keep `callerId`. Your `authority.principalId` in step 4 must be one of `allowedPrincipalIds`, and the safe choice is
+`callerId`. Your `ACTION` must be in `allowedCapabilities`, or `unrestrictedCapabilities` must be `true`.
+
+**If not:**
+
+1. HTTP `401`: the key is missing or wrong. Stop. Ask the operator for a valid key.
+2. `allowedCapabilities` is empty and `unrestrictedCapabilities` is `false`: your key may invoke **nothing**. Stop. Ask the
+   operator to grant the capability.
+3. `ACTION` is not in `allowedCapabilities`: stop. Ask the operator to grant it. Do not use a different action.
+
+## Step 3: check the policy exists
+
+**Do:** send `POST {PARMANA_URL}/policies/validate` with the header, `Content-Type: application/json`, and this body:
+
+```json
+{ "policyId": "<POLICY_NAME>", "policyVersion": "<POLICY_VERSION>" }
+```
+
+**Expect:** HTTP `200` and `{"valid":true,"errors":[]}`.
+
+**If not:** HTTP `404` with `"valid":false` means the policy does not exist at that name and version. Stop. Ask the
+operator for the correct name and version. Do not try other versions.
+
+## Step 4: build the Business Transaction
+
+A Business Transaction is one JSON object. Every field below is required unless it says otherwise.
+
+| Field                                             | Type and rule                                                                             | Who sets it |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------- | ----------- |
+| `businessTransactionId`                           | A new UUID, generated by you, **different for every request**. It is the idempotency key. | You         |
+| `metadata.businessTransactionId`                  | The same UUID as above.                                                                   | You         |
+| `metadata.correlationId`, `metadata.sourceSystem` | Optional strings for your own tracing.                                                    | You         |
+| `metadata.submittedBy`                            | Ignored if you send it. The server sets it from your key.                                 | The server  |
+| `authority.authorityId`                           | A new UUID.                                                                               | You         |
+| `authority.authorityType`                         | Exactly one of `USER`, `ROLE`, `SERVICE`, `ORGANIZATION`. Use `SERVICE` for an agent.     | You         |
+| `authority.principalId`                           | Must be your `callerId`, or another value in `allowedPrincipalIds`.                       | You         |
+| `authority.issuedAt`                              | The current time as an ISO 8601 date time, for example `2026-09-20T10:00:00.000Z`.        | You         |
+| `authorization.authorizationId`                   | A new UUID.                                                                               | You         |
+| `authorization.authorityId`                       | **Equal to** `authority.authorityId`.                                                     | You         |
+| `authorization.purpose`                           | A short sentence stating why the action is being requested.                               | You         |
+| `authorization.issuedAt`                          | The current time, ISO 8601.                                                               | You         |
+| `intent.intentId`                                 | A new UUID.                                                                               | You         |
+| `intent.authorizationId`                          | **Equal to** `authorization.authorizationId`.                                             | You         |
+| `intent.action`                                   | Your `ACTION`, exactly as in step 2.                                                      | You         |
+| `intent.target`                                   | The thing the action applies to, for example an order id.                                 | You         |
+| `intent.parameters`                               | An object with the action's parameters, for example `{"amount": 5}`.                      | You         |
+| `intent.createdAt`                                | The current time, ISO 8601.                                                               | You         |
+| `policy.name`, `policy.version`                   | Your `POLICY_NAME` and `POLICY_VERSION`.                                                  | You         |
+| `policy.schemaVersion`                            | The policy's schema version, normally `1.0.0`.                                            | You         |
+| `signals`                                         | An object with one entry for every fact the policy's rules read.                          | You         |
+| `status`, `createdAt`                             | Ignored if you send them.                                                                 | The server  |
+
+### The consistency rules
+
+The server rejects a request that breaks rules 1 to 5 with HTTP `400` and a message that names the rule. A request that breaks rule 6 is treated as a policy rejection instead: HTTP `403` with code `POLICY_DENIED` and a message that contains `declared signal(s) do not match the executed intent`.
+
+1. `metadata.businessTransactionId` equals `businessTransactionId`.
+2. `authorization.authorityId` equals `authority.authorityId`.
+3. `intent.authorizationId` equals `authorization.authorizationId`.
+4. `policy.name`, `policy.version` and `intent.action` are not empty.
+5. Every `businessTransactionId` is a valid UUID.
+6. Where the policy binds a signal to an intent value (a `boundSignals` entry), the signal must equal that value
+   exactly. For example the refund policy binds `signals.refundAmount` to `intent.parameters.amount`, so both must be
+   the same number.
+
+### A complete example
+
+This is a real request shape for the `customer-refund` policy. Replace every UUID with a new one, and the timestamps
+with the current time.
+
+```json
+{
+  "businessTransactionId": "5b1c0d2e-3f4a-4b5c-8d6e-7f8091a2b3c4",
+  "metadata": {
+    "businessTransactionId": "5b1c0d2e-3f4a-4b5c-8d6e-7f8091a2b3c4"
+  },
+  "authority": {
+    "authorityId": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+    "authorityType": "SERVICE",
+    "principalId": "my-agent",
+    "issuedAt": "2026-09-20T10:00:00.000Z"
+  },
+  "authorization": {
+    "authorizationId": "9c8d7e6f-5a4b-4c3d-8e2f-1a0b9c8d7e6f",
+    "authorityId": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+    "purpose": "Refund a customer for a cancelled order",
+    "issuedAt": "2026-09-20T10:00:00.000Z"
+  },
+  "intent": {
+    "intentId": "3d2c1b0a-9f8e-4d7c-8b6a-5f4e3d2c1b0a",
+    "authorizationId": "9c8d7e6f-5a4b-4c3d-8e2f-1a0b9c8d7e6f",
+    "action": "paytm:refund",
+    "target": "ORDER-1001",
+    "parameters": {
+      "orderId": "ORDER-1001",
+      "transactionId": "TXN-1001",
+      "amount": 5
+    },
+    "createdAt": "2026-09-20T10:00:00.000Z"
+  },
+  "policy": {
+    "name": "customer-refund",
+    "version": "1.0.0",
+    "schemaVersion": "1.0.0"
+  },
+  "signals": {
+    "refundEligible": true,
+    "managerApproved": true,
+    "fraudCheckPassed": true,
+    "refundAmount": 5
+  }
+}
+```
+
+**Never set a signal to `true` unless you have checked it is true.** A policy trusts the signals you send for some
+facts, so a false `true` produces an authorization that should not exist.
+
+## Step 5: send it
+
+**Do:** send `POST {PARMANA_URL}/execute` with the header, `Content-Type: application/json`, and the object from step 4.
+
+**Set a client timeout of at least 30 seconds.** The request runs the whole pipeline before it answers, including the
+call to the connector. The Paytm connector, for example, is allowed up to 10 seconds by default.
+
+**Never retry this request automatically.** A retry could repeat a real action. The rules for a timeout are in step 7.
+
+## Step 6: read the answer
+
+Apply the **first** row that matches. Every error body is `{"error": "<message>"}`, with a `code` when there is one.
+
+| You receive                                                    | Meaning                                                            | Do                                                                                                    |
+| -------------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| HTTP `200`, and `executions[0].decision.outcome` is `APPROVED` | Approved and released. You have a signed Execution Trust Record.   | Go to step 7, then proceed.                                                                           |
+| HTTP `403`, code `POLICY_DENIED`                               | A policy rule refused. Final.                                      | Do not proceed. Do not retry. Report the message to the operator.                                     |
+| HTTP `403`, code `CAPABILITY_NOT_ALLOWED`                      | Your key may not invoke this action.                               | Stop. Ask the operator to grant it.                                                                   |
+| HTTP `403`, no code                                            | Your key may not assert that `principalId`.                        | Use your `callerId`, or stop and ask.                                                                 |
+| HTTP `401`                                                     | Key missing or wrong.                                              | Stop. Ask for a valid key.                                                                            |
+| HTTP `400`                                                     | The request is malformed. The message names the problem.           | Fix the request. Use a **new** `businessTransactionId`.                                               |
+| HTTP `404`                                                     | The policy was not found.                                          | Stop. Go back to step 3.                                                                              |
+| HTTP `409`                                                     | That `businessTransactionId` was already used.                     | Do not resend. Go to step 7 to look up what happened.                                                 |
+| HTTP `429`                                                     | Rate limited. Nothing was recorded.                                | Wait the seconds in the `Retry-After` header, then send again with a **new** `businessTransactionId`. |
+| HTTP `503`, code `SIGNING_UNAVAILABLE` or `AUDIT_UNAVAILABLE`  | Refused before release. **Nothing was executed.**                  | Wait, then retry with a **new** `businessTransactionId`. If it keeps happening, tell the operator.    |
+| HTTP `500`, code `EXECUTION_RECORD_INCOMPLETE`                 | The action **was** released, but its record could not be produced. | **Do not resend under any id.** Go to step 7. Tell the operator now.                                  |
+| Any other `5xx`, a timeout, or no response                     | Unknown.                                                           | Do not proceed. Go to step 7.                                                                         |
+
+## Step 7: confirm and keep the record
+
+**After an approval (HTTP `200`),** confirm all of these in the response, then store the whole response:
+
+1. `executions[0].decision.outcome` is `APPROVED`.
+2. `verifications[0].status` is `VERIFIED`.
+3. `receipts[0]` exists.
+
+If any is missing, treat the action as **not confirmed** and tell the operator. Store the response and the
+`businessTransactionId` together. They are your proof.
+
+**After a `409`, a timeout, no response, or `EXECUTION_RECORD_INCOMPLETE`,** find out what the server recorded. Send
+`GET {PARMANA_URL}/trust-records/{businessTransactionId}` with the header.
+
+| The lookup returns                                                                                   | Meaning                                                                          | Do                                                                                                        |
+| ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| HTTP `200` and a record                                                                              | The request was processed.                                                       | Apply step 6 to the record: check `decision.outcome`, `verifications[0].status` and `receipts[0]`.        |
+| HTTP `404` on the record, and `GET {PARMANA_URL}/transactions/{businessTransactionId}` returns `200` | The server accepted it but has no record. It may still be running, or it failed. | Wait 30 seconds and look up once more. If still no record, **stop and tell the operator.** Do not resend. |
+| HTTP `404` on both                                                                                   | The server never recorded it.                                                    | It is safe to send again with a **new** `businessTransactionId`.                                          |
+
+## Rules that are never broken
+
+1. Never reuse a `businessTransactionId`.
+2. Never resend after `EXECUTION_RECORD_INCOMPLETE`, or after a timeout you have not resolved with step 7.
+3. Never treat "I could not reach Parmana" as "allowed".
+4. Never work around a `POLICY_DENIED` by changing the request until it passes. A denial is a decision. Tell the operator.
+5. Never send a signal you have not verified.
+6. Never log the API key.
+
+## Where the machine readable sources are
+
+| Source                  | URL                                             | Use it for                                                               |
+| ----------------------- | ----------------------------------------------- | ------------------------------------------------------------------------ |
+| OpenAPI, JSON           | `{PARMANA_URL}/openapi.json`                    | Exact request and response schemas for every endpoint.                   |
+| OpenAPI, YAML           | `{PARMANA_URL}/openapi.yaml`                    | The same, as YAML.                                                       |
+| API manifest            | `{PARMANA_URL}/api-manifest.json`               | The API version, the authentication scheme and the current SDK versions. |
+| Docs index for agents   | `https://docs.parmanasystems.com/llms.txt`      | A list of every documentation page with a one line description.          |
+| Docs in full for agents | `https://docs.parmanasystems.com/llms-full.txt` | The integration pages concatenated into one file.                        |
+
+If you use an SDK instead of raw requests, the steps and the rules are the same. The
+[TypeScript SDK](/sdks/typescript) and the [Python SDK](/sdks/python) both offer a helper that builds the Business
+Transaction and keeps the identifiers consistent. Neither retries `POST /execute` for you.
+
+For a human reading this page, the same material with explanations is in [Full integration
+overview](/guides/full-integration-overview) and the [Error catalog](/api-reference/error-catalog).
