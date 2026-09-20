@@ -95,7 +95,7 @@ class ParmanaClient:
 
         max_retries:
             Retry attempts for idempotent (GET) requests that fail with
-            a connection error or a 502/503/504 response. POST requests
+            a connection error or a 429/502/503/504 response. POST requests
             (execute, verify, receipt, replay) are never retried.
 
         backoff_factor:

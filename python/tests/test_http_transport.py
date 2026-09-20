@@ -284,6 +284,59 @@ def test_500_raises_server_error():
 
 
 @responses.activate
+def test_503_signing_unavailable_keeps_server_code():
+    responses.add(
+        responses.POST,
+        f"{ENDPOINT}/execute",
+        json={
+            "error": "Signing is unavailable. Nothing was executed.",
+            "code": "SIGNING_UNAVAILABLE",
+        },
+        status=503,
+    )
+
+    with pytest.raises(ServerError) as excinfo:
+        _transport().send(method="POST", path="/execute", body={})
+
+    assert excinfo.value.status_code == 503
+    assert excinfo.value.code == "SERVER_ERROR"
+    assert excinfo.value.server_code == "SIGNING_UNAVAILABLE"
+
+
+@responses.activate
+def test_500_execution_record_incomplete_keeps_server_code():
+    responses.add(
+        responses.POST,
+        f"{ENDPOINT}/execute",
+        json={
+            "error": "The action was released but its record is incomplete.",
+            "code": "EXECUTION_RECORD_INCOMPLETE",
+        },
+        status=500,
+    )
+
+    with pytest.raises(ServerError) as excinfo:
+        _transport().send(method="POST", path="/execute", body={})
+
+    assert excinfo.value.server_code == "EXECUTION_RECORD_INCOMPLETE"
+
+
+@responses.activate
+def test_500_without_a_code_has_no_server_code():
+    responses.add(
+        responses.GET,
+        f"{ENDPOINT}/health",
+        json={"error": "Internal Server Error"},
+        status=500,
+    )
+
+    with pytest.raises(ServerError) as excinfo:
+        _transport().send(method="GET", path="/health")
+
+    assert excinfo.value.server_code is None
+
+
+@responses.activate
 def test_non_throwing_statuses_returns_payload_instead_of_raising():
     """
     POST /policies/validate's own shape: a status listed in

@@ -38,6 +38,8 @@ import type { Transport } from "../config/Transport.js";
 
 import { ConfigurationError } from "../errors/ConfigurationError.js";
 
+import { HttpTransport } from "../transport/HttpTransport.js";
+
 import { HealthApi, type HealthStatus } from "./HealthApi.js";
 
 import { ExecutionApi } from "./ExecutionApi.js";
@@ -130,12 +132,9 @@ export class ParmanaClient {
       throw new ConfigurationError("Runtime endpoint is required.");
     }
 
-    if (!configuration.transport) {
-      throw new ConfigurationError("Transport is required.");
-    }
-
     this.configuration = configuration;
-    this.transport = configuration.transport;
+    this.transport =
+      configuration.transport ?? new HttpTransport(configuration);
 
     //
     // Compose SDK APIs.
