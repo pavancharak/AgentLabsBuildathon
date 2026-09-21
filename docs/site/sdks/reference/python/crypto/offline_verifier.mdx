@@ -38,3 +38,23 @@ def verify_execution_trust_record_offline(
 `trust_record` is a plain dict, exactly as `json.load()` would
 produce from a Trust Record JSON file or API response body.
 `public_keys` maps keyId -> PEM-encoded public key text.
+
+#### verify_execution_intent_offline
+
+```python
+def verify_execution_intent_offline(
+        intent: dict[str, Any],
+        public_keys: dict[str, str]) -> OfflineVerificationResult
+```
+
+Python counterpart to verifyExecutionIntentOffline() in
+packages/crypto/src/OfflineVerifier.ts (ADR-0012). No network call, no
+database, no environment variable: only the intent and the public key(s).
+
+`intent` is a plain dict, exactly as `json.load()` would produce from the
+`intent` field of GET /execution-intents/:id. `public_keys` maps keyId to
+PEM-encoded public key text.
+
+A valid result proves the intent was signed by the holder of that key and
+has not been altered. It does NOT prove the action was released, or what its
+result was: an intent is written BEFORE release.

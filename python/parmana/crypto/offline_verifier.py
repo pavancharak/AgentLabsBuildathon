@@ -183,3 +183,113 @@ def verify_execution_trust_record_offline(
         algorithms_checked=algorithms_checked,
         errors=errors,
     )
+
+
+def _canonical_execution_intent(intent: dict[str, Any]) -> dict[str, Any]:
+    """
+    Mirrors packages/crypto/src/ExecutionIntentCanonicalView.ts's
+    canonicalExecutionIntent() field for field (ADR-0012). The signature covers
+    exactly these fields, never `intentHash` or `signature`. A field absent
+    from `intent` (an optional one that was never set) is omitted, the same as
+    CanonicalSerializer.ts dropping an undefined key.
+    """
+
+    fields_in_order = (
+        "intentId",
+        "businessTransactionId",
+        "decisionId",
+        "authorizationId",
+        "policyName",
+        "policyVersion",
+        "policyContentHash",
+        "signalsHash",
+        "businessTransactionHash",
+        "action",
+        "target",
+        "submittedBy",
+        "grantedCapability",
+        "createdAt",
+    )
+
+    return {key: intent[key] for key in fields_in_order if key in intent}
+
+
+def verify_execution_intent_offline(
+    intent: dict[str, Any],
+    public_keys: dict[str, str],
+) -> OfflineVerificationResult:
+    """
+    Python counterpart to verifyExecutionIntentOffline() in
+    packages/crypto/src/OfflineVerifier.ts (ADR-0012). No network call, no
+    database, no environment variable: only the intent and the public key(s).
+
+    `intent` is a plain dict, exactly as `json.load()` would produce from the
+    `intent` field of GET /execution-intents/:id. `public_keys` maps keyId to
+    PEM-encoded public key text.
+
+    A valid result proves the intent was signed by the holder of that key and
+    has not been altered. It does NOT prove the action was released, or what its
+    result was: an intent is written BEFORE release.
+    """
+
+    errors: list[str] = []
+    algorithms_checked: list[str] = []
+
+    canonical = _canonical_execution_intent(intent)
+    digest = Hash(SHA256())
+    digest.update(canonical_serialize(canonical))
+    expected_hash = digest.finalize().hex()
+
+    hash_valid = expected_hash == intent.get("intentHash")
+
+    if not hash_valid:
+        errors.append(
+            f"intentHash mismatch: expected {expected_hash}, "
+            f"got {intent.get('intentHash')}."
+        )
+
+    signature_field = intent.get("signature") or {}
+    algorithm = signature_field.get("algorithm")
+    key_id = signature_field.get("keyId")
+    signature_value = signature_field.get("value")
+
+    signature_valid = False
+
+    if algorithm not in _SUPPORTED_ALGORITHMS:
+        errors.append(f"unsupported algorithm: {algorithm}.")
+    elif key_id not in public_keys:
+        errors.append(f'no public key supplied for keyId "{key_id}".')
+    else:
+        algorithms_checked.append(algorithm)
+
+        try:
+            public_key = load_pem_public_key(public_keys[key_id].encode("utf-8"))
+
+            if not isinstance(public_key, Ed25519PublicKey):
+                raise ValueError("supplied public key is not an Ed25519 key")
+
+            if not isinstance(signature_value, str):
+                raise ValueError("signature.value is missing or not a string")
+
+            import base64
+
+            _verify_ed25519_with_commitment(
+                public_key,
+                base64.b64decode(signature_value),
+                canonical_serialize(canonical),
+            )
+            signature_valid = True
+        except InvalidSignature:
+            errors.append(
+                f'signature verification failed for keyId "{key_id}" ({algorithm}).'
+            )
+        except Exception as error:  # noqa: BLE001 -- reported, not swallowed
+            errors.append(f'error verifying keyId "{key_id}" ({algorithm}): {error}')
+
+    return OfflineVerificationResult(
+        valid=hash_valid and signature_valid,
+        hash_valid=hash_valid,
+        legacy_signature_valid=signature_valid,
+        algorithms_checked=algorithms_checked,
+        errors=errors,
+    )

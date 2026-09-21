@@ -64,7 +64,7 @@ stored before release, release is refused with 503 EXECUTION_INTENT_UNAVAILABLE 
 Trust Record (G-53) can be rebuilt with `POST /execution-intents/{id}/finalize` without calling the
 connector. Verified live with a real KMS key and a real Postgres. The migration
 `20260921120000_add_execution_intents.sql` must be applied before deploying. Still open: finalize cannot
-rebuild a record when the execution context was not saved (409), and the SDKs do not verify intents (G-55). An
+rebuild a record when the execution context was not saved (409), and the SDK methods for intents are in the source but not in the published 1.1.6 (G-55). An
 intent reconciled by hand is closed with `POST /execution-intents/{id}/resolve` (G-54, an unsigned operator
 statement).
 

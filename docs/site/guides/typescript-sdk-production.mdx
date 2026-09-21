@@ -151,8 +151,7 @@ async function executeOrFailClosed(transaction: BusinessTransaction) {
 `SIGNING_UNAVAILABLE` or `EXECUTION_INTENT_UNAVAILABLE` (503) nothing was executed, so retry later with a new
 `businessTransactionId`. On `EXECUTION_RECORD_INCOMPLETE` (500) the action **was** released and only its signed record
 failed, so never resubmit it under a new id: tell the operator, who can rebuild the record without repeating the action
-(see [Execution Intents](/concepts/execution-intents)). The SDK has no methods for the Execution Intent routes, so the
-operator uses the HTTP API.
+(see [Execution Intents](/concepts/execution-intents)). The Execution Intent methods (`executionIntent`, `unfinalizedExecutionIntents`, `finalizeExecutionIntent`, `resolveExecutionIntent`) are in the SDK source and are not in the published 1.1.6, so until the next release the operator uses the HTTP API.
 
 `POST /execute` is not itself retried by the SDK's retry policy — see
 [TypeScript SDK](/sdks/typescript#errors-they-actually-throw-now) for exactly which

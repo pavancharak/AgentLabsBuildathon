@@ -123,8 +123,9 @@ you should do next:
   new `businessTransactionId`.
 - `EXECUTION_RECORD_INCOMPLETE` (500): the action **was** released to the execution system, but its signed record
   could not be produced. **Do not retry as a new transaction.** Tell the operator: a signed Execution Intent exists,
-  and the operator can rebuild the record without repeating the action. This SDK has no method for that, so the
-  operator uses `POST /execution-intents/<businessTransactionId>/finalize` over HTTP.
+  and the operator can rebuild the record without repeating the action. The method is `finalizeExecutionIntent`. It is in the SDK
+  source and not in the published 1.1.6, so until the next release the operator uses
+  `POST /execution-intents/<businessTransactionId>/finalize` over HTTP.
 
 ```typescript
 try {

@@ -163,40 +163,42 @@ function transform(
 }
 
 /**
- * Replaces the "TypeScript SDK Reference" sub-group under the SDKs
- * top-level group with a freshly computed one -- idempotent, so
- * re-running this script after the source changes never leaves stale
- * page entries behind. Every other group in docs.json is left
- * untouched: this only ever removes/replaces the one sub-group it owns.
+ * Replaces the pages of the "API reference" group in the "TypeScript SDK" tab
+ * with a freshly computed set of sub groups (Classes, Interfaces and so on).
+ * Idempotent, so re-running this script after the source changes never leaves
+ * stale page entries behind. Every other group and tab in docs.json is left
+ * untouched: this only ever rewrites the one group it owns.
+ *
+ * The navigation used to have one "SDKs" group with a "TypeScript SDK
+ * Reference" sub group inside it. It was reorganized into one tab per SDK, and
+ * this function follows that structure.
  */
 function updateNav(navByCategory: Record<string, string[]>): void {
   const config = JSON.parse(readFileSync(DOCS_JSON_PATH, "utf8"));
-  const sdkGroup = config.navigation.tabs[0].groups.find(
-    (g: { group: string }) => g.group === "SDKs",
+
+  const tab = (
+    config.navigation.tabs as {
+      tab: string;
+      groups?: { group: string; pages: unknown[] }[];
+    }[]
+  ).find((candidate) => candidate.tab === "TypeScript SDK");
+
+  const referenceGroup = tab?.groups?.find(
+    (group) => group.group === "API reference",
   );
 
-  if (!sdkGroup) {
+  if (!referenceGroup) {
     throw new Error(
-      "generate-typescript-sdk-reference: 'SDKs' group not found in docs.json",
+      "generate-typescript-sdk-reference: the 'API reference' group in the 'TypeScript SDK' tab was not found in docs.json",
     );
   }
 
-  const referenceGroup = {
-    group: "TypeScript SDK Reference",
-    pages: Object.entries(CATEGORY_LABELS)
-      .filter(([category]) => (navByCategory[category] ?? []).length > 0)
-      .map(([category, label]) => ({
-        group: label,
-        pages: navByCategory[category],
-      })),
-  };
-
-  sdkGroup.pages = sdkGroup.pages.filter(
-    (p: unknown) =>
-      typeof p === "string" ||
-      (p as { group?: string }).group !== "TypeScript SDK Reference",
-  );
-  sdkGroup.pages.push(referenceGroup);
+  referenceGroup.pages = Object.entries(CATEGORY_LABELS)
+    .filter(([category]) => (navByCategory[category] ?? []).length > 0)
+    .map(([category, label]) => ({
+      group: label,
+      pages: navByCategory[category],
+    }));
 
   writeFileSync(DOCS_JSON_PATH, JSON.stringify(config, null, 2) + "\n", "utf8");
 }

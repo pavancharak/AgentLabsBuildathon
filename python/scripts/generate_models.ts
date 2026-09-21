@@ -323,6 +323,7 @@ const DOMAIN_FILES = [
   "execution-trust-record.ts",
   "execution-authorization.ts",
   "refusal-record.ts",
+  "execution-intent.ts",
 ];
 
 for (const file of DOMAIN_FILES) {
@@ -439,6 +440,17 @@ const MODULES: ModuleSpec[] = [
       "RefusalRecord",
     ],
     docSource: "domain/refusal-record.ts",
+  },
+  {
+    file: "execution_intent",
+    types: [
+      "ExecutionIntentState",
+      "ExecutionIntentResolution",
+      "ExecutionIntentFinalizationMode",
+      "ExecutionIntent",
+      "ExecutionIntentStatus",
+    ],
+    docSource: "domain/execution-intent.ts",
   },
 ];
 

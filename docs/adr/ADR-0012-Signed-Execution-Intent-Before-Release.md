@@ -1,6 +1,6 @@
 # ADR-0012: Signed Execution Intent Before Release
 
-**Status:** Accepted and implemented on 2026-09-21. Verified live the same day. One limit is recorded as the open gap G-55. A second, G-54, was found while building it and closed the same day.
+**Status:** Accepted and implemented on 2026-09-21. Verified live the same day. Two limits found while building it, G-54 and G-55, were both closed in the source the same day. The SDK methods are not published.
 
 **Date:** Proposed 2026-09-20. Decided and built 2026-09-21.
 
@@ -55,7 +55,7 @@ The order of a request is now: decide, authorize, signing readiness, **sign and 
 4. **Open, recorded rather than hidden:**
    - **G-53 residual.** The execution context is saved best effort. When that save fails too, the intent stays `PREPARED`, finalize refuses with `409 EXECUTION_INTENT_RESULT_NOT_RECORDED`, and the outcome must be established from the connector by hand. Covered by unit tests, not by live fault injection.
    - **G-54, closed the same day.** An intent reconciled by hand could not be closed, so `PREPARED` and `ERRORED` intents stayed in the unfinalized list forever. `POST /execution-intents/{id}/resolve` now closes them (state `RESOLVED`, with the resolution, a required note, who and when). The resolution is an attributed statement in unsigned status, not a signed record.
-   - **G-55.** The SDKs have no methods for the intent routes and no offline intent verifier. The new `503` already reaches SDK callers, because both SDKs preserve the server's code.
+   - **G-55, closed in the source the same day.** The SDKs had no methods for the intent routes. Both now have `executionIntent`, `verifyExecutionIntent`, `unfinalizedExecutionIntents`, `finalizeExecutionIntent` and `resolveExecutionIntent`, and Python has an offline verifier. **They are not in the published 1.1.6.** The TypeScript SDK has no offline intent verifier, as it has none for Trust Records either.
 
 ## Verification
 

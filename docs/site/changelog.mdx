@@ -47,7 +47,12 @@ every commit, run `git log` in the repository for the complete record.
 - A resolution is not tamper evident and does not create a Trust Record. For an action that ran and has no Trust
   Record, the signed intent, the operator's note and the connector's own record are the evidence.
 
-- The TypeScript and Python SDKs have no methods for the Execution Intent routes and do not verify intents.
+- The SDK methods for the Execution Intent routes are in the SDK source and are **not in the published 1.1.6**. They ship in the next SDK release, after you publish it. The TypeScript SDK has no offline intent verifier.
+
+**Added to the SDKs (unreleased, in the source only)**
+
+- TypeScript `ParmanaClient`: `executionIntent`, `verifyExecutionIntent`, `unfinalizedExecutionIntents`, `finalizeExecutionIntent`, `resolveExecutionIntent`, with the `ExecutionIntentApi` class and its types.
+- Python `ParmanaClient`: `execution_intent`, `verify_execution_intent`, `unfinalized_execution_intents`, `finalize_execution_intent`, `resolve_execution_intent`, with `ExecutionIntentApi`, the intent models, and `parmana.crypto.verify_execution_intent_offline`, an offline verifier that needs only the public key.
 
 **Fixed**
 

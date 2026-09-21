@@ -290,9 +290,103 @@ A repaired record has its own `createdAt`, the time of the repair. The times of 
 </Tabs>
 
 <Note>
-  The TypeScript and Python SDKs do not verify intents yet. Use the API route or
-  the script above.
+  The Python SDK has an offline verifier, `verify_execution_intent_offline`. The
+  TypeScript SDK has no offline verifier, so use the API route or the script
+  above. See [Use the SDKs](#use-the-sdks).
 </Note>
+
+## Use the SDKs
+
+<Warning>
+  These methods are in the SDK source, and are **not in the published 1.1.6**.
+  They ship in the next SDK release. Until then, use the HTTP API.
+</Warning>
+
+| Task                            | TypeScript (`ParmanaClient`)                       | Python (`ParmanaClient`)                                              | Credential                   |
+| ------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------- |
+| Read an intent and its status   | `executionIntent(id)`                              | `execution_intent(id)`                                                | Any caller, ownership scoped |
+| Verify an intent                | `verifyExecutionIntent(intent)`                    | `verify_execution_intent(intent)`                                     | None                         |
+| List intents needing attention  | `unfinalizedExecutionIntents(limit?)`              | `unfinalized_execution_intents(limit=None)`                           | Verified human               |
+| Rebuild a missing Trust Record  | `finalizeExecutionIntent(id)`                      | `finalize_execution_intent(id)`                                       | Verified human               |
+| Close an intent you reconciled  | `resolveExecutionIntent(id, { resolution, note })` | `resolve_execution_intent(id, resolution=..., note=...)`              | Verified human               |
+| Verify offline, public key only | none                                               | `parmana.crypto.verify_execution_intent_offline(intent, public_keys)` | None                         |
+
+A non human credential gets an `AuthorizationError`. Resolving an intent that cannot be closed gets a `ConflictError`. A missing intent gets a `NotFoundError`. `503 EXECUTION_INTENT_UNAVAILABLE` arrives on `execute` as an `InternalServerError` whose server code is `EXECUTION_INTENT_UNAVAILABLE`, and nothing was executed.
+
+<CodeGroup>
+
+```typescript typescript
+import { ParmanaClient } from "@parmana/sdk";
+
+const operator = new ParmanaClient({
+  endpoint: "https://parmana-api-real.vercel.app",
+  apiKey: process.env.PARMANA_OPERATOR_KEY,
+});
+
+const { intents } = await operator.unfinalizedExecutionIntents();
+
+for (const { intent, status } of intents) {
+  if (status.state === "RELEASED") {
+    // The connector answered. Rebuild the signed record. This never calls the connector.
+    await operator.finalizeExecutionIntent(intent.businessTransactionId);
+  }
+}
+```
+
+```python python
+import os
+
+from parmana import ParmanaClient
+
+operator = ParmanaClient(
+    endpoint="https://parmana-api-real.vercel.app",
+    api_key=os.environ["PARMANA_OPERATOR_KEY"],
+)
+
+for item in operator.unfinalized_execution_intents().intents:
+    if item.status.state.value == "RELEASED":
+        # The connector answered. Rebuild the signed record. This never calls the connector.
+        operator.finalize_execution_intent(item.intent.business_transaction_id)
+```
+
+</CodeGroup>
+
+To close an intent after you checked the connector, pass what you found and a note. The note is required.
+
+<CodeGroup>
+
+```typescript typescript
+await operator.resolveExecutionIntent(businessTransactionId, {
+  resolution: "NOT_EXECUTED",
+  note: "Checked the Paytm dashboard for order 1001. No refund exists.",
+});
+```
+
+```python python
+operator.resolve_execution_intent(
+    business_transaction_id,
+    resolution="NOT_EXECUTED",
+    note="Checked the Paytm dashboard for order 1001. No refund exists.",
+)
+```
+
+</CodeGroup>
+
+The Python offline verifier takes the `intent` field of `GET /execution-intents/<id>` as a plain dictionary and the public key as text, and needs no network and no database.
+
+```python
+import json
+
+from parmana.crypto import verify_execution_intent_offline
+
+intent = json.load(open("intent.json"))
+public_key = open("default.public.pem").read()
+
+result = verify_execution_intent_offline(intent, {"default": public_key})
+print(result.valid, result.hash_valid, result.legacy_signature_valid)
+```
+
+It agrees with the server: a real server signed intent, and intents signed by the TypeScript signer including non ASCII text, all verify in Python.
 
 ## Turn it on: the deployment order matters
 
@@ -341,7 +435,7 @@ One more signing operation and one more database write happen before every relea
 - Transactions created before this feature have no intent. Their behavior is unchanged.
 - Closing an intent (resolve) records an operator's statement in unsigned status. It is not tamper evident and it does not create a Trust Record.
 - The list route returns intents across all callers, so it needs a verified human credential.
-- The SDKs do not verify intents yet.
+- The SDK methods for the intent routes are in the SDK source and are **not in the published 1.1.6**. They ship in the next SDK release. The TypeScript SDK has no offline intent verifier.
 
 ## What was verified
 

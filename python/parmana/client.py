@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 from parmana.api.audit_api import AuditApi
 from parmana.api.execution_api import ExecutionApi
+from parmana.api.execution_intent_api import ExecutionIntentApi
 from parmana.api.policy_api import PolicyApi
 from parmana.api.receipt_api import ReceiptApi
 from parmana.api.refusal_api import RefusalApi
@@ -23,6 +24,16 @@ from parmana.version import __version__
 
 if TYPE_CHECKING:
     from parmana.models.business_transaction import BusinessTransaction
+    from parmana.models.execution_intent import (
+        ExecutionIntent,
+        ExecutionIntentResolution,
+    )
+    from parmana.models.execution_intent_results import (
+        ExecutionIntentView,
+        FinalizeExecutionIntentResult,
+        ResolveExecutionIntentResult,
+        UnfinalizedExecutionIntents,
+    )
     from parmana.models.refusal_record import RefusalRecord
     from parmana.models.signature import Signature
     from parmana.models.trust_record import ExecutionTrustRecord
@@ -153,6 +164,10 @@ class ParmanaClient:
             self._transport,
         )
 
+        self.execution_intents = ExecutionIntentApi(
+            self._transport,
+        )
+
         self.audit = AuditApi(
             self._transport,
         )
@@ -250,6 +265,58 @@ class ParmanaClient:
         Verifies a Refusal Record's signature.
         """
         return self.refusal.verify(record)
+
+    def execution_intent(self, business_transaction_id: str) -> ExecutionIntentView:
+        """
+        Retrieves an Execution Intent and its status (ADR-0012). The intent is
+        the signed statement, stored before an action is released, of what was
+        about to be released.
+        """
+        return self.execution_intents.get(business_transaction_id)
+
+    def verify_execution_intent(self, intent: ExecutionIntent) -> bool:
+        """
+        Verifies an Execution Intent's hash and signature. Needs no
+        credential. True proves the intent is genuine and unaltered. It does
+        not prove the action was released, or what its result was.
+        """
+        return self.execution_intents.verify(intent)
+
+    def unfinalized_execution_intents(
+        self, limit: int | None = None
+    ) -> UnfinalizedExecutionIntents:
+        """
+        Lists Execution Intents that never reached a signed Trust Record and
+        were not closed by hand, oldest first. Needs a credential provisioned
+        as a verified human.
+        """
+        return self.execution_intents.list_unfinalized(limit)
+
+    def finalize_execution_intent(
+        self, business_transaction_id: str
+    ) -> FinalizeExecutionIntentResult:
+        """
+        Rebuilds the signed Trust Record for a released action whose record
+        was never produced. Never calls a connector. Safe to run twice. Needs
+        a credential provisioned as a verified human.
+        """
+        return self.execution_intents.finalize(business_transaction_id)
+
+    def resolve_execution_intent(
+        self,
+        business_transaction_id: str,
+        *,
+        resolution: ExecutionIntentResolution | str,
+        note: str,
+    ) -> ResolveExecutionIntentResult:
+        """
+        Closes a PREPARED or ERRORED intent that a verified human reconciled at
+        the connector. The note is required. The resolution is an attributed
+        operator statement in unsigned status, not a Trust Record.
+        """
+        return self.execution_intents.resolve(
+            business_transaction_id, resolution=resolution, note=note
+        )
 
     def verify_audit_event(self, event: dict[str, Any], signature: Signature) -> bool:
         """
