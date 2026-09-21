@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/common/business-transaction.schema.json",
+  "$id": "https://schemas.parmanasystems.com/common/business-transaction.schema.json",
   "title": "Business Transaction",
   "description": "Canonical immutable business context accepted by Parmana for execution: Authority -> Authorization -> Intent -> Business Transaction -> Policy. Every Business Transaction produces exactly one Decision, one Execution, and one Execution Trust Record.",
   "type": "object",

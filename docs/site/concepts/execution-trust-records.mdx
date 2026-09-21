@@ -8,6 +8,15 @@ description: "The canonical, immutable, cryptographically signed record of every
   `BusinessTrustRecordBuilder` (`@parmana/runtime`). CLAIMS.md 2.5.
 </Info>
 
+<Note>
+  The record contains the execution result, so it can only be built **after**
+  the action is released. Since 2026-09-21 a separate signed record, the
+  [Execution Intent](/concepts/execution-intents), is stored **before** release,
+  so a released action always has signed evidence behind it even if this record
+  cannot be produced. A missing record can then be rebuilt without calling the
+  connector.
+</Note>
+
 ## What it is
 
 Every Business Transaction produces exactly one Execution Trust Record: the aggregate of

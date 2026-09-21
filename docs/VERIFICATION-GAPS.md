@@ -454,6 +454,16 @@ Scope: a live `paytm:refund` through production `/execute` returned `500`. The r
 
 ---
 
+## Gaps closed in the 2026-09-21 Execution Intents session
+
+Scope: gaps G-52 and G-53, recorded on 2026-09-20 and deferred, then built on 2026-09-21 after the decision was reversed. The design is `docs/adr/ADR-0012-Signed-Execution-Intent-Before-Release.md`. Two limits found while building it are recorded as G-54 and G-55.
+
+| #   | Gap                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 61  | **A released action could have no signed evidence, and a missing Execution Trust Record could not be rebuilt (G-52, G-53).** CLOSED 2026-09-21 for the risk they named, with limits. Before an action is released, the runtime now signs and stores an Execution Intent, and refuses with `503 EXECUTION_INTENT_UNAVAILABLE`, releasing nothing, if it cannot. After release it saves the execution context on the intent. A missing Trust Record is rebuilt with `POST /execution-intents/{businessTransactionId}/finalize`, which never calls the connector, is idempotent and race safe, and also verifies the record and generates the receipt. Enforced everywhere except `NODE_ENV` `test` or `development`. Limits: an intent proves what was about to be released and not that it was released or what happened; finalize cannot rebuild a record when the context was not saved and refuses with `409`; see G-54 and G-55. | `packages/runtime/tests/unit/execution-intent.test.ts`, `packages/crypto/tests/unit/execution-intent-crypto.test.ts`, `packages/storage/tests/unit/execution-intent-repository.test.ts`, `packages/api/tests/integration/execution-intents.integration.test.ts`, `packages/api/tests/unit/bootstrap/create-execution-intents.test.ts`, `packages/api/tests/unit/routes/ready.test.ts`. The Postgres queries were run against a real Postgres (16 checks). Verified live on 2026-09-21 with the production image, a real Postgres, the real KMS key `alias/default` and the real `parmana-paytm-agent` using fake Paytm staging credentials: 23 of 23 checks (a normal request, a released action with no stored record repaired with the connector called once in total, and an intent that could not be stored releasing nothing). Not verified: the Vercel OIDC role signing an intent, latency from Vercel, a real Paytm refund. `docs/CLAIMS.md` section 2.39. |
+
+---
+
 ## Gaps closed in the 2026-09-20 signing readiness session
 
 Scope: gap G-52 found in the live refund run. It is mitigated here, not closed. What remains is recorded as G-53.
@@ -1285,6 +1295,13 @@ persistent signing problem no longer executes an action first. A failure after r
 after release, still leaves an executed action with no signed record. Option 2 above, a signed
 execution intent persisted before release, is not built.
 
+**Update (2026-09-21): CLOSED for the risk it named, gap 61, ADR-0012.** Option 2 is built. A signed
+Execution Intent is stored before release, and release is refused with `503 EXECUTION_INTENT_UNAVAILABLE`
+if it cannot be, so an executed action always has signed evidence behind it. The ordering itself is
+unchanged on purpose: the connector is still called before the Trust Record is signed, because the
+record contains the result. What changed is that signed evidence now exists before that point. Limits
+are in G-53, G-54 and G-55.
+
 **G-53. There is no way to rebuild a missing Execution Trust Record for an action that was
 released.** Found 2026-09-20 while scoping the G-52 mitigation. When `EXECUTION_RECORD_INCOMPLETE`
 is returned, the context needed to build the record (the decision, the authorization and the
@@ -1296,6 +1313,34 @@ released context before building the record and expose a finalize operation that
 the record from it, which still depends on storage being available; (2) the signed execution intent
 in G-52 option 2, which is the complete answer. Either is a design change with a schema and
 migration story, and needs its own ADR. **Proposed, not decided: `docs/adr/ADR-0012-Signed-Execution-Intent-Before-Release.md`** recommends persisting a signed execution intent before release, with a finalize operation for an intent that was never finalized. It lists the decisions still needed.
+
+**Update (2026-09-21): MITIGATED, with a stated limit, gap 61, ADR-0012.** A missing Trust Record is now
+rebuilt with `POST /execution-intents/{businessTransactionId}/finalize`, from the execution context saved
+on the intent right after release. It never calls the connector, it is idempotent, and it also verifies
+the record and generates the receipt. **The limit:** the context is saved best effort. When that save also
+fails, the intent stays `PREPARED`, finalize refuses with `409 EXECUTION_INTENT_RESULT_NOT_RECORDED`, and
+the outcome has to be established from the connector and recorded by hand. This is the residual of G-53.
+Verified live on 2026-09-21 with a real KMS key and a real Postgres, for the case where the context was
+saved. The case where it was not saved is covered by unit tests only, not by live fault injection.
+
+**G-54. There is no operation to close an Execution Intent that was reconciled by hand.** Found
+2026-09-21 while documenting the operator procedure for ADR-0012. An intent in state `PREPARED` or
+`ERRORED` means the action may or may not have run. An operator reconciles it at the connector. Nothing
+then marks it resolved, and finalize refuses (`409`) because no result was saved, so
+`GET /execution-intents/unfinalized` keeps listing it. For an action that never ran (a connector
+timeout, a crash before release) a signed Trust Record never will exist, so the list can never become
+empty. **Effect:** the list is a worklist that only ever grows for those states, and operators must keep
+their own record of reconciled ids. Only `RELEASED` entries are repairable. **Not fixed.** A resolve
+operation (a human credential, a required note, an unsigned or signed resolution record) needs its own
+small design, and a new state or column. **Documented** in the docs site page `concepts/execution-intents`
+and in the troubleshooting page.
+
+**G-55. The SDKs cannot verify or manage Execution Intents.** Found 2026-09-21. The TypeScript and Python
+SDKs have no methods for the four `/execution-intents` routes and no offline intent verifier. Verification
+is available through `POST /execution-intents/verify` and `scripts/verify-execution-intent.ts`, and repair
+through the HTTP API. The new `503 EXECUTION_INTENT_UNAVAILABLE` already reaches SDK callers, because both
+SDKs preserve the server's code on `InternalServerError`. **Not fixed.** The generated SDK reference pages
+and the SDK guard tests make a change to either SDK a release of its own.
 
 ### pre-production
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/requests/reject-policy-change-request.schema.json",
+  "$id": "https://schemas.parmanasystems.com/requests/reject-policy-change-request.schema.json",
   "title": "Reject Policy Change Request",
   "description": "Request body for POST /policies/pending-changes/{id}/reject.",
   "type": "object",

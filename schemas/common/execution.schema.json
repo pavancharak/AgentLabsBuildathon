@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/common/execution.schema.json",
+  "$id": "https://schemas.parmanasystems.com/common/execution.schema.json",
   "title": "Execution",
   "description": "Immutable trust artifact recording what actually happened while processing a Business Transaction. Every Execution records exactly one Decision produced by deterministic Policy evaluation.",
   "type": "object",

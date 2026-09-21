@@ -84,10 +84,10 @@ signals)` runs the real rules. Any rejection from steps 4 through 6 becomes a sy
     are assembled, the context carries a _copy_ of `transaction.policy` augmented with
     `contentHash` and, if resolved, `governanceAnchor`; the original caller-submitted
     transaction (already persisted before this method ever ran) is never mutated.
-14. **Signing readiness (G-52), then the Runtime Pipeline, then the Business Trust Pipeline.** If `signingReadiness` is configured, `assertReady()` runs first and throws `SigningUnavailableError` (`503 SIGNING_UNAVAILABLE`) when the evidence signing path cannot produce a signature that verifies, so nothing is released. Then `pipeline.execute(context)` runs the
+14. **Signing readiness (G-52), then the Execution Intent (ADR-0012), then the Runtime Pipeline, then the Business Trust Pipeline.** If `signingReadiness` is configured, `assertReady()` runs first and throws `SigningUnavailableError` (`503 SIGNING_UNAVAILABLE`) when the evidence signing path cannot produce a signature that verifies, so nothing is released. Then, if `executionIntents` is configured, `executionIntents.prepare(context)` signs the Execution Intent and stores it, and throws `ExecutionIntentUnavailableError` (`503 EXECUTION_INTENT_UNAVAILABLE`) when it cannot, so nothing is released. Then `pipeline.execute(context)` runs the
     actual execution stages (Chapter 10 covers `ExecutionGateway`, one implementation of the
-    `ExecutionSystem` interface this pipeline calls into); `trustPipeline.execute(...)`
-    produces the final, signed `ExecutionTrustRecord`.
+    `ExecutionSystem` interface this pipeline calls into). If that raises an error, the intent is marked `ERRORED`. When it returns, `markReleased(...)` saves the execution context on the intent. Then `trustPipeline.execute(...)`
+    produces the final, signed `ExecutionTrustRecord`, and after `Runtime.execute()` stores it the intent is marked `FINALIZED`.
 
 ### Signing readiness and failure after release (G-52)
 
@@ -102,9 +102,35 @@ failure there, in the trust record pipeline, the `afterExecution` and `beforeTru
 persisting the record in `Runtime.execute()`, is thrown as `ExecutionRecordIncompleteError`
 (`500 EXECUTION_RECORD_INCOMPLETE`), which names the `businessTransactionId` and `authorizationId`, and a
 critical `execution_released_record_failed` or `execution_released_record_persist_failed` event is
-logged. A failure before release, such as a policy rejection, keeps its own error. This mitigates G-52, it
-does not close it: a transient failure between the check and the real signing can still leave an executed
-action with no signed record, and there is no rebuild path (G-53). See ADR-0011.
+logged. A failure before release, such as a policy rejection, keeps its own error. See ADR-0011.
+
+### Execution Intents: signed evidence before release, and a repair path (G-52, G-53)
+
+The Execution Trust Record contains the execution result, so it can only be built after release. ADR-0012
+adds a separate record that does not: the Execution Intent. `ExecutionIntentService.prepare()`
+(`packages/runtime/src/ExecutionIntentService.ts`) builds it with `ExecutionIntentBuilder`, signs it with
+`ExecutionIntentCrypto` (the same signing key as the Trust Record, so KMS in production), and stores it,
+immediately before `pipeline.execute()`. It is fail closed: if the intent cannot be signed and stored,
+nothing is released and the caller gets `503 EXECUTION_INTENT_UNAVAILABLE`.
+
+The signed fields are the ids, the policy reference, `policyContentHash`, `signalsHash` and
+`businessTransactionHash` copied from the signed authorization, `action`, `target` and `createdAt`. The
+result and the raw intent parameters are never in it. An intent proves what was about to be released. It
+does not prove the action was released or what its result was.
+
+The intent has an unsigned operational state: `PREPARED` (signed and stored), `RELEASED` (the release stage
+returned and the execution context was saved), `FINALIZED` (a signed Trust Record exists) and `ERRORED` (the
+release stage raised an error, so the outcome is unknown). `markReleased`, `markErrored` and `markFinalized`
+are best effort and never throw, because they run after release. They log at critical severity when they fail.
+Marking an intent `FINALIZED` deletes the saved execution context, since the Trust Record then holds it.
+
+`ExecutionIntentFinalizer` (`packages/runtime/src/ExecutionIntentFinalizer.ts`) rebuilds a missing Trust
+Record from the saved context. It never calls a connector, it is idempotent, and it refuses with
+`409 EXECUTION_INTENT_RESULT_NOT_RECORDED` when no context was saved. It is exposed as
+`POST /execution-intents/{businessTransactionId}/finalize` for a verified human credential, and it also
+verifies the record and generates the receipt. Enforcement is the rule `createExecutionIntents()` applies:
+on everywhere except `NODE_ENV` `test` or `development`, where `EXECUTION_INTENTS_CHECK=true` turns it on.
+The full operator procedure is in the docs site page Execution Intents.
 
 `RuntimeFactory.create()` (`packages/runtime/src/RuntimeFactory.ts`) is the composition root
 that assembles a fully wired `RuntimeEngine` (via `RuntimeBuilder`) plus the surrounding

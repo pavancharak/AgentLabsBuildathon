@@ -30,6 +30,10 @@ import { createTrustRecordsRouter } from "./routes/trust-records.js";
 import { createVerifyGetRouter } from "./routes/verify-get.js";
 import { createVerifyRouter } from "./routes/verify.js";
 import { createRefusalVerifyRouter } from "./routes/refusal-verify.js";
+import {
+  createExecutionIntentsRouter,
+  createExecutionIntentVerifyRouter,
+} from "./routes/execution-intents.js";
 import { createRefusalGetRouter } from "./routes/refusal-get.js";
 import { createAuditVerifyRouter } from "./routes/audit-verify.js";
 import { createReadyRouter } from "./routes/ready.js";
@@ -195,6 +199,16 @@ export function createApp(
   app.use("/refusal/verify", createRefusalVerifyRouter(application));
 
   /**
+   * ADR-0012: the same unauthenticated, third-party signature verification
+   * capability for Execution Intents. Takes the intent itself and reads no
+   * storage. The data routes are mounted below the caller-auth middleware.
+   */
+  app.use(
+    "/execution-intents/verify",
+    createExecutionIntentVerifyRouter(application),
+  );
+
+  /**
    * Audit-sink signing milestone: the same unauthenticated,
    * third-party-verifiable capability as POST /refusal/verify above,
    * over the durable caller_audit_events audit trail instead of Refusal
@@ -288,6 +302,11 @@ export function createApp(
    * route (POST /refusal/verify) is mounted above, before caller-auth.
    */
   app.use("/refusal", createRefusalGetRouter(application));
+
+  /**
+   * Execution Intents (ADR-0012)
+   */
+  app.use("/execution-intents", createExecutionIntentsRouter(application));
   /**
    * Receipts
    */

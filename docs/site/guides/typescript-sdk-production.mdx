@@ -147,10 +147,12 @@ async function executeOrFailClosed(transaction: BusinessTransaction) {
 | connection failure   | `NetworkError`                                    | Idempotent GETs only, via `retryPolicy` |
 | timeout              | `TimeoutError`                                    | Idempotent GETs only, via `retryPolicy` |
 
-**Two `InternalServerError` cases need different handling (1.1.3).** Check `error.serverCode`. On
-`SIGNING_UNAVAILABLE` (503) nothing was executed, so retry later with a new `businessTransactionId`. On
-`EXECUTION_RECORD_INCOMPLETE` (500) the action **was** released and only its signed record failed, so never resubmit
-it under a new id: reconcile against the connector and the execution audit events first.
+**Two kinds of `InternalServerError` need different handling (1.1.3).** Check `error.serverCode`. On
+`SIGNING_UNAVAILABLE` or `EXECUTION_INTENT_UNAVAILABLE` (503) nothing was executed, so retry later with a new
+`businessTransactionId`. On `EXECUTION_RECORD_INCOMPLETE` (500) the action **was** released and only its signed record
+failed, so never resubmit it under a new id: tell the operator, who can rebuild the record without repeating the action
+(see [Execution Intents](/concepts/execution-intents)). The SDK has no methods for the Execution Intent routes, so the
+operator uses the HTTP API.
 
 `POST /execute` is not itself retried by the SDK's retry policy — see
 [TypeScript SDK](/sdks/typescript#errors-they-actually-throw-now) for exactly which

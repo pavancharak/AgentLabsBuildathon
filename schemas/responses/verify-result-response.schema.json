@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/responses/verify-result-response.schema.json",
+  "$id": "https://schemas.parmanasystems.com/responses/verify-result-response.schema.json",
   "title": "Verify Result Response",
   "description": "Response shared by POST /refusal/verify and POST /audit/verify: a bare signature-validity result, no wrapper, no partial-failure detail. Both routes verify a signature over bytes with no database lookup, so there is nothing more specific to report than valid or not.",
   "type": "object",

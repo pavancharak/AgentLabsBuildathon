@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/common/verification.schema.json",
+  "$id": "https://schemas.parmanasystems.com/common/verification.schema.json",
   "title": "Verification",
   "description": "Immutable result of verifying an entire Execution Trust Record: recomputed hash matches the stored hash, signature verifies, and every APPROVED Execution carries a non-empty authorizationId. All checks always run and are reported together in message; a failure in one does not skip the others.",
   "type": "object",

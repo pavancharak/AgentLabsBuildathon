@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/common/authority.schema.json",
+  "$id": "https://schemas.parmanasystems.com/common/authority.schema.json",
   "title": "Authority",
   "description": "Entity empowered to authorize execution within a trust domain. Immutable once issued.",
   "type": "object",

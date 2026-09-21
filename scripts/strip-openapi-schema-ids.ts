@@ -17,7 +17,7 @@ const root = path.resolve(__dirname, "..");
  * schema, so a strict resolver — Swagger UI's, in this case, though not
  * redocly's own lint — rebases every #/components/schemas/... pointer
  * inside (or targeting) an $id-bearing schema against that schema's
- * https://schemas.parmana.ai/... $id instead of the bundle's own root,
+ * https://schemas.parmanasystems.com/... $id instead of the bundle's own root,
  * and fails to resolve it ("Invalid object key 'components' at position
  * 0"). The source schema files under schemas/ keep their $id/$schema —
  * they're valid, independently-resolvable JSON Schema documents on

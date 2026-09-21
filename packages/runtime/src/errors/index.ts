@@ -5,3 +5,6 @@ export * from "./VerificationFailedError.js";
 export * from "./ReceiptGenerationError.js";
 export * from "./SigningUnavailableError.js";
 export * from "./ExecutionRecordIncompleteError.js";
+export * from "./ExecutionIntentUnavailableError.js";
+export * from "./ExecutionIntentNotFinalizableError.js";
+export * from "./ExecutionIntentNotFoundError.js";

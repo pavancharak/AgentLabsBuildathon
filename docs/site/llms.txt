@@ -34,6 +34,7 @@ This file is generated from the documentation navigation. Do not edit it by hand
 * [Gateway Attestation](https://docs.parmanasystems.com/concepts/gateway-attestation): A request-bound signature proving the gateway itself released one specific request, separate from the authorization envelope's own signature. What it proves, and what it does not.
 * [Execution Trust Records](https://docs.parmanasystems.com/concepts/execution-trust-records): The canonical, immutable, cryptographically signed record of everything Parmana knows about a Business Transaction.
 * [Refusal Records](https://docs.parmanasystems.com/concepts/refusal-records): The evidence a rejected transaction leaves behind: a signed, independently verifiable Refusal Record, and the two scope caveats that bound the claim.
+* [Execution Intents](https://docs.parmanasystems.com/concepts/execution-intents): A signed statement, stored before an action is released, of exactly what is about to be released. Why it exists, what it proves and does not prove, every failure and what to do about it, and how to find and repair a released action that has no signed record.
 * [Caller Audit Trail](https://docs.parmanasystems.com/concepts/caller-audit-trail): Every caller-authentication event (success, denial, or structural rejection) is signed, durable, and, per caller, chained so a deleted row is detectable.
 * [Determinism and Clocks](https://docs.parmanasystems.com/concepts/determinism-and-clocks): 'Two different things share the word "deterministic" on this site. This page is about the narrower one: injected Clock and IdGenerator, and exactly where that pattern is and isn''t used.'
 * [Content Binding & TOCTOU](https://docs.parmanasystems.com/concepts/content-binding-toctou): The real mechanism that closes the check-vs-use gap between authorization and execution, what it covers, and what it doesn't.
@@ -144,6 +145,12 @@ This file is generated from the documentation navigation. Do not edit it by hand
 
 * [Verify a Refusal Record's signature](https://docs.parmanasystems.com/api-reference/endpoints/verify-refusal-record): Verifies a Refusal Record's signature (RFC-0021).
 * [Get a Refusal Record by transaction ID](https://docs.parmanasystems.com/api-reference/endpoints/get-refusal-record): Looks up a Refusal Record by businessTransactionId from Parmana's own storage.
+## REST API: Execution Intents
+
+* [Verify an Execution Intent's signature](https://docs.parmanasystems.com/api-reference/endpoints/verify-execution-intent): Verifies an Execution Intent's hash and signature (ADR-0012).
+* [List Execution Intents that never reached a signed Trust Record](https://docs.parmanasystems.com/api-reference/endpoints/list-unfinalized-execution-intents): Lists Execution Intents whose state is not FINALIZED, oldest first (ADR-0012).
+* [Get an Execution Intent and its status](https://docs.parmanasystems.com/api-reference/endpoints/get-execution-intent): Returns the signed Execution Intent for a businessTransactionId and its operational status (ADR-0012).
+* [Rebuild the signed Trust Record for a released action](https://docs.parmanasystems.com/api-reference/endpoints/finalize-execution-intent): Rebuilds the signed Execution Trust Record for an action that was released but whose record was never produced (ADR-0012).
 ## REST API: Audit
 
 * [Verify a signed caller-authentication audit event](https://docs.parmanasystems.com/api-reference/endpoints/verify-audit-event): Verifies a signed caller-authentication audit event's signature, the same unauthenticated, third-party-verifiable capability as POST /refusal/verify, over the durable caller_audit_events audit trail instead of Refusal Records.

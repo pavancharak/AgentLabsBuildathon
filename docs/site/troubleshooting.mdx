@@ -91,6 +91,32 @@ published public key.
 permissions and the key id), then retry with a new `businessTransactionId`, because the original was
 already accepted. Nothing was sent to the connector.
 
+## `POST /execute` returns 503 `EXECUTION_INTENT_UNAVAILABLE`
+
+**Cause:** before releasing the action, the runtime signs and stores an [Execution Intent](/concepts/execution-intents). That failed, so **nothing was released**. The message includes the cause. The two usual causes are a database failure, and a database that is missing the `execution_intents` table because the migration was not applied before this version was deployed. A signing failure at that step is the third.
+
+**Fix:**
+
+1. Check `GET /ready`. If the table is missing it returns `503` with `status: NOT_READY` and a `reason` that names the migration file.
+2. If the table is missing, apply the migration, then check `GET /ready` again:
+
+   ```bash
+   psql "$DATABASE_URL" -f supabase/migrations/20260921120000_add_execution_intents.sql
+   psql "$DATABASE_URL" -tA -c "select to_regclass('public.execution_intents')"
+   ```
+
+   The second command must print `execution_intents`.
+
+3. Otherwise restore the database or the signing path, then retry with a new `businessTransactionId`, because the original was already accepted.
+
+Nothing was sent to the connector, so a retry with a new `businessTransactionId` cannot repeat the action.
+
+## `GET /ready` returns 503 and the reason mentions `execution_intents`
+
+**Cause:** Execution Intents are enforced on this deployment, and the `execution_intents` table does not exist. Every execution would be refused with `EXECUTION_INTENT_UNAVAILABLE`.
+
+**Fix:** apply `supabase/migrations/20260921120000_add_execution_intents.sql`, as in the section above. The migration only adds a table and is safe to run twice.
+
 ## `POST /execute` returns 503 `CONNECTOR_NOT_REGISTERED`
 
 **Cause:** the request passed authentication, the policy and the approval check, but no connector is registered for its action on this deployment. A connector registers only when its own credentials are configured, for example `PAYTM_CONNECTOR_URL` and `PAYTM_CONNECTOR_SHARED_SECRET` for `paytm:refund`. Nothing was executed. Before this code existed the same case was a bare `500` with no code, so on an older server, look for `No connector registered for capability` in the log.
@@ -102,11 +128,38 @@ already accepted. Nothing was sent to the connector.
 **Cause:** the action was released to the connector, but the signed Execution Trust Record could not be
 produced or persisted afterwards. The response names the `businessTransactionId` and `authorizationId`.
 
-**Do not retry as a new transaction.** That could repeat the action. Query `execution_audit_events` for the
-`businessTransactionId` and check the connector's own record to see what ran. The runtime log has a
-critical `execution_released_record_failed` or `execution_released_record_persist_failed` event with the
-cause. The signed record cannot currently be rebuilt automatically (G-53), so record the outcome
-manually and fix the underlying cause.
+**Do not retry as a new transaction.** That could repeat the action.
+
+A signed [Execution Intent](/concepts/execution-intents) exists for it, because it was stored before the action was released. Read it:
+
+```bash
+curl -s "$PARMANA_API_URL/execution-intents/<businessTransactionId>" \
+  -H "Authorization: Bearer $PARMANA_OPERATOR_KEY"
+```
+
+- `status.state` is `RELEASED`: the execution context was saved. Fix the underlying cause (the runtime log has a critical `execution_released_record_failed` or `execution_released_record_persist_failed` event with the cause), then rebuild the record. This never calls the connector:
+
+  ```bash
+  curl -s -X POST "$PARMANA_API_URL/execution-intents/<businessTransactionId>/finalize" \
+    -H "Authorization: Bearer $PARMANA_OPERATOR_KEY"
+  ```
+
+  Both calls need a credential provisioned as a verified human (`credentialHolderType: USER`).
+
+- `status.state` is `PREPARED`: the context was not saved, so finalize refuses with `409 EXECUTION_INTENT_RESULT_NOT_RECORDED`. Query `execution_audit_events` for the `businessTransactionId` and check the connector's own record to see what ran, then record the outcome by hand.
+- `404 EXECUTION_INTENT_NOT_FOUND`: the transaction predates Execution Intents, or Execution Intents are off on this deployment. Use the manual reconciliation above.
+
+## `POST /execution-intents/<id>/finalize` returns 409 `EXECUTION_INTENT_RESULT_NOT_RECORDED`
+
+**Cause:** the intent exists, but the execution result was never saved, so the signed Trust Record cannot be rebuilt from nothing. The action may or may not have been released. Nothing was called and nothing was changed.
+
+**Fix:** establish the outcome at the connector, using the `businessTransactionId`, `action` and `target` from `GET /execution-intents/<id>`, and record it by hand. There is currently no operation to close the intent afterwards, so it stays in `GET /execution-intents/unfinalized`. See [Execution Intents](/concepts/execution-intents#find-and-repair-a-released-action-with-no-signed-record).
+
+## `GET /execution-intents/unfinalized` lists an intent in state `ERRORED`
+
+**Cause:** the release stage raised an error, most often a connector timeout, and the intent recorded `status.failureReason`. **The action may still have been executed**, for example when the connector received the request and answered too slowly.
+
+**Fix:** check the connector for the `businessTransactionId` and `target` before doing anything else. Finalize cannot help, because no result was saved.
 
 ## `PARMANA_POLICY_DIR` and running from a fresh clone
 

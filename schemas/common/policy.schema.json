@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/common/policy.schema.json",
+  "$id": "https://schemas.parmanasystems.com/common/policy.schema.json",
   "title": "Policy Reference",
   "description": "Exact Policy to evaluate. The client explicitly supplies name, version, and schemaVersion; Parmana does not automatically discover or select a policy. If no matching policy file exists at policies/{name}/{version}/policy.json, the request fails with a 404 (policyId/policyVersion on POST /policies/validate) or a RUNTIME_ERROR (name/version elsewhere, from PolicyNotFoundError not otherwise mapped by the shared error handler in every route, see the error envelope note).",
   "type": "object",

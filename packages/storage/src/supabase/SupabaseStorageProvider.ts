@@ -1,5 +1,6 @@
 import type {
   BusinessTransactionRepository,
+  ExecutionIntentRepository,
   ExecutionTrustRecordRepository,
   HandbookDownloadLeadRepository,
   PendingPolicyChangeRepository,
@@ -15,6 +16,7 @@ import { SupabaseBusinessTransactionRepository } from "./SupabaseBusinessTransac
 
 import { SupabaseExecutionTrustRecordRepository } from "./SupabaseExecutionTrustRecordRepository.js";
 
+import { SupabaseExecutionIntentRepository } from "./SupabaseExecutionIntentRepository.js";
 import { SupabaseRefusalRecordRepository } from "./SupabaseRefusalRecordRepository.js";
 
 import { SupabasePendingPolicyChangeRepository } from "./SupabasePendingPolicyChangeRepository.js";
@@ -38,6 +40,7 @@ export class SupabaseStorageProvider implements StorageProvider {
   readonly businessTransactions: BusinessTransactionRepository;
   readonly trustRecords: ExecutionTrustRecordRepository;
   readonly refusalRecords: RefusalRecordRepository;
+  readonly executionIntents: ExecutionIntentRepository;
   readonly pendingPolicyChanges: PendingPolicyChangeRepository;
   readonly policyChangeApprovalRecords: PolicyChangeApprovalRecordRepository;
   readonly handbookDownloadLeads: HandbookDownloadLeadRepository;
@@ -50,6 +53,8 @@ export class SupabaseStorageProvider implements StorageProvider {
     this.trustRecords = new SupabaseExecutionTrustRecordRepository(pool);
 
     this.refusalRecords = new SupabaseRefusalRecordRepository(pool);
+
+    this.executionIntents = new SupabaseExecutionIntentRepository(pool);
 
     this.pendingPolicyChanges = new SupabasePendingPolicyChangeRepository(pool);
 

@@ -1,4 +1,5 @@
 import type { SigningReadiness } from "./SigningReadiness.js";
+import type { ExecutionIntentService } from "./ExecutionIntentService.js";
 import {
   ExecutionTrustRecordRepository,
   RefusalRecordRepository,
@@ -53,6 +54,8 @@ export class RuntimeBuilder {
   private policyGovernanceAnchorResolver?: PolicyGovernanceAnchorResolver;
 
   private signingReadiness?: SigningReadiness;
+
+  private executionIntents?: ExecutionIntentService;
 
   /**
    * Configure policy directory.
@@ -109,6 +112,17 @@ export class RuntimeBuilder {
    */
   public withSigningReadiness(readiness: SigningReadiness): this {
     this.signingReadiness = readiness;
+
+    return this;
+  }
+
+  /**
+   * Configure Execution Intents (ADR-0012). Optional -- omitting this leaves
+   * current behavior unchanged. When set, RuntimeEngine signs and stores an
+   * intent BEFORE releasing an action, and fails closed with 503 if it cannot.
+   */
+  public withExecutionIntents(executionIntents: ExecutionIntentService): this {
+    this.executionIntents = executionIntents;
 
     return this;
   }
@@ -231,11 +245,12 @@ export class RuntimeBuilder {
       this.policyExecutionVerifier,
       this.policyGovernanceAnchorResolver,
       this.signingReadiness,
+      this.executionIntents,
     );
 
     //
     // Runtime façade
     //
-    return new Runtime(runtimeEngine, trustRecords);
+    return new Runtime(runtimeEngine, trustRecords, this.executionIntents);
   }
 }

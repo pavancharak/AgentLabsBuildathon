@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/common/execution-trust-record.schema.json",
+  "$id": "https://schemas.parmanasystems.com/common/execution-trust-record.schema.json",
   "title": "Execution Trust Record",
   "description": "Canonical immutable record representing everything Parmana knows about a Business Transaction: the authoritative source for replay, verification, audit, and receipt generation. One Execution Trust Record exists per Business Transaction. overrides, executions, verifications, and receipts are append-only: existing entries are never modified or removed.",
   "type": "object",

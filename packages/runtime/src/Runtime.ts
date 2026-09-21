@@ -5,6 +5,7 @@ import {
 } from "@parmana/shared";
 
 import { RuntimeEngine } from "./RuntimeEngine.js";
+import type { ExecutionIntentService } from "./ExecutionIntentService.js";
 import { ExecutionRecordIncompleteError } from "./errors/ExecutionRecordIncompleteError.js";
 
 import type { RuntimeResult } from "./RuntimeResult.js";
@@ -22,6 +23,12 @@ export class Runtime {
   constructor(
     private readonly engine: RuntimeEngine,
     private readonly trustRecords: ExecutionTrustRecordRepository,
+    /**
+     * ADR-0012. Optional so every existing construction site keeps working.
+     * When supplied, the Execution Intent is marked FINALIZED once the signed
+     * Trust Record is stored.
+     */
+    private readonly executionIntents?: ExecutionIntentService,
   ) {
     Object.freeze(this);
   }
@@ -69,6 +76,12 @@ export class Runtime {
         error,
       );
     }
+
+    await this.executionIntents?.markFinalized(
+      trustRecord.businessTransactionId,
+      trustRecord.trustRecordId,
+      "INLINE",
+    );
 
     return {
       transaction: result.transaction,

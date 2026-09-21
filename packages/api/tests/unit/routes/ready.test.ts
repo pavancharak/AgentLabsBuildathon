@@ -1,11 +1,18 @@
 import request from "supertest";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { PostgresPoolFactory } from "@parmana/storage";
 
 import { createApplication } from "../../../src/application.js";
 import { createApp } from "../../../src/app.js";
 import { createExecutionSystem } from "../../../src/bootstrap/createExecutionSystem.js";
 
-const ENV_KEYS = ["NODE_ENV", "PARMANA_STORAGE", "DATABASE_URL"] as const;
+const ENV_KEYS = [
+  "NODE_ENV",
+  "PARMANA_STORAGE",
+  "DATABASE_URL",
+  "EXECUTION_INTENTS_CHECK",
+] as const;
 
 async function buildApp(
   callerAuth: Parameters<typeof createApp>[1]["callerAuth"] = "disabled",
@@ -21,6 +28,8 @@ describe("GET /ready", () => {
   );
 
   afterEach(() => {
+    vi.restoreAllMocks();
+
     for (const key of ENV_KEYS) {
       if (original[key] === undefined) {
         delete process.env[key];
@@ -93,5 +102,85 @@ describe("GET /ready", () => {
     expect(response.status).toBe(503);
     expect(response.body.status).toBe("NOT_READY");
     expect(typeof response.body.reason).toBe("string");
+  });
+
+  describe("Execution Intents table (ADR-0012)", () => {
+    function fakePool(intentsTable: string | null) {
+      const queries: string[] = [];
+
+      const pool = {
+        query: async (sql: string) => {
+          queries.push(sql);
+
+          return sql.includes("to_regclass")
+            ? { rows: [{ execution_intents: intentsTable }] }
+            : { rows: [{ "?column?": 1 }] };
+        },
+      };
+
+      vi.spyOn(PostgresPoolFactory, "create").mockReturnValue(
+        pool as unknown as ReturnType<typeof PostgresPoolFactory.create>,
+      );
+
+      return queries;
+    }
+
+    async function requestReady() {
+      const app = await buildApp();
+
+      process.env.NODE_ENV = "production";
+      process.env.PARMANA_STORAGE = "supabase";
+
+      return request(app).get("/ready");
+    }
+
+    it("reports NOT_READY with the exact remedy when intents are enforced and the table is missing", async () => {
+      fakePool(null);
+
+      const response = await requestReady();
+
+      expect(response.status).toBe(503);
+      expect(response.body.status).toBe("NOT_READY");
+      expect(response.body.reason).toContain("execution_intents");
+      expect(response.body.reason).toContain(
+        "20260921120000_add_execution_intents.sql",
+      );
+    });
+
+    it("reports READY when intents are enforced and the table exists", async () => {
+      fakePool("execution_intents");
+
+      const response = await requestReady();
+
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe("READY");
+    });
+
+    it("does not look for the table when intents are relaxed (development without the switch)", async () => {
+      const queries = fakePool(null);
+      const app = await buildApp();
+
+      process.env.NODE_ENV = "development";
+      process.env.PARMANA_STORAGE = "supabase";
+      delete process.env.EXECUTION_INTENTS_CHECK;
+
+      const response = await request(app).get("/ready");
+
+      expect(response.status).toBe(200);
+      expect(queries.some((sql) => sql.includes("to_regclass"))).toBe(false);
+    });
+
+    it("looks for the table in development when EXECUTION_INTENTS_CHECK is true", async () => {
+      fakePool(null);
+      const app = await buildApp();
+
+      process.env.NODE_ENV = "development";
+      process.env.PARMANA_STORAGE = "supabase";
+      process.env.EXECUTION_INTENTS_CHECK = "true";
+
+      const response = await request(app).get("/ready");
+
+      expect(response.status).toBe(503);
+    });
   });
 });

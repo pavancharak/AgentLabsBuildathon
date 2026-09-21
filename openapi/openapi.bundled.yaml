@@ -12,13 +12,14 @@ info:
     **Every route requires a caller bearer key**, except the liveness/readiness
     probes and documentation/verification routes that must be reachable with no
     credential: GET /health, GET /ready, GET /openapi.yaml, GET /documentation,
-    GET /reference, POST /refusal/verify, POST /audit/verify, GET /keys/{keyId},
-    and GET /.well-known/jwks.json. Send `Authorization: Bearer <key>` on every
-    other request. Keys are issued by `scripts/generate-api-key.ts` and
-    configured server-side via `PARMANA_API_KEYS`; only a hash of each key is
-    ever held by the server, verified in constant time. A missing or invalid
-    credential returns 401 before a Business Transaction is even constructed,
-    independent of Policy evaluation and gateway attestation, see
+    GET /reference, POST /refusal/verify, POST /execution-intents/verify, POST
+    /audit/verify, GET /keys/{keyId}, and GET /.well-known/jwks.json. Send
+    `Authorization: Bearer <key>` on every other request. Keys are issued by
+    `scripts/generate-api-key.ts` and configured server-side via
+    `PARMANA_API_KEYS`; only a hash of each key is ever held by the server,
+    verified in constant time. A missing or invalid credential returns 401
+    before a Business Transaction is even constructed, independent of Policy
+    evaluation and gateway attestation, see
     `packages/api/src/middleware/caller-auth.ts` and
     [Authentication](/api-reference/authentication). Local development may set
     `PARMANA_AUTH_DISABLED=true` to skip this middleware entirely; that flag
@@ -58,6 +59,10 @@ tags:
   - name: Refusal Records
     description: Durable, signed evidence that a policy decision rejected a
       transaction (RFC-0021)
+  - name: Execution Intents
+    description: A signed statement, stored before an action is released, of exactly
+      what is about to be released, plus the operator tools to find and repair a
+      released action that has no signed Trust Record (ADR-0012)
   - name: Audit
     description: Signed caller-authentication audit events, independently
       third-party-verifiable
@@ -522,14 +527,21 @@ paths:
         4. `429`: rate limited. Nothing was recorded. Wait for the `Retry-After`
         header.
 
-        5. `503` with code `SIGNING_UNAVAILABLE`, `AUDIT_UNAVAILABLE` or
+        5. `503` with code `SIGNING_UNAVAILABLE`,
+        `EXECUTION_INTENT_UNAVAILABLE`, `AUDIT_UNAVAILABLE` or
         `CONNECTOR_NOT_REGISTERED`: refused before release. Nothing was
         executed. For `CONNECTOR_NOT_REGISTERED` the operator must configure the
-        connector for that action before any retry.
+        connector for that action before any retry. For
+        `EXECUTION_INTENT_UNAVAILABLE` the signed Execution Intent could not be
+        signed and stored, so nothing was released. Retry later with a new
+        businessTransactionId.
 
         6. `500` with code `EXECUTION_RECORD_INCOMPLETE`: the action was
         released but its signed record could not be produced. Do not resubmit
-        under a new id.
+        under a new id. Read `GET /execution-intents/{businessTransactionId}`:
+        the signed intent exists, and an operator can rebuild the record with
+        `POST /execution-intents/{businessTransactionId}/finalize` without
+        calling the connector again.
 
 
         The examples named `vendor-payment-flow` are historical captures that
@@ -2104,6 +2116,267 @@ paths:
                   summary: Real captured response
                   value:
                     error: Refusal Record not found.
+  /execution-intents/verify:
+    post:
+      tags:
+        - Execution Intents
+      summary: Verify an Execution Intent's signature
+      operationId: verifyExecutionIntent
+      description: >
+        Verifies an Execution Intent's hash and signature (ADR-0012).
+        Deliberately mounted before this app's caller-auth middleware, see
+        packages/api/src/app.ts: no caller authentication or API key is
+        required, by design, the same as POST /refusal/verify. It takes the
+        intent itself, reads no storage, and needs nothing but the artifact and
+        Parmana's public key. A `valid: true` result proves the intent was
+        signed by the holder of the key and has not been altered. It does NOT
+        prove the action was released, or what its result was, because an intent
+        is written BEFORE release. To check the outcome, look for the signed
+        Execution Trust Record for the same businessTransactionId. For a check
+        that needs no call to this API at all, use
+        scripts/verify-execution-intent.ts with the public key from GET
+        /keys/{keyId}.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/execution-intent.schema"
+      responses:
+        "200":
+          description: Verification completed. A 200 does not by itself mean the signature
+            verified, see the valid field.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/verify-result-response.schema"
+              examples:
+                valid:
+                  summary: Real captured response
+                  value:
+                    valid: true
+                altered:
+                  summary: The same intent with its target changed after signing (real captured
+                    response)
+                  value:
+                    valid: false
+        "400":
+          description: Request body is not a structurally plausible Execution Intent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error.schema"
+              examples:
+                malformed:
+                  summary: Message text from the source
+                  value:
+                    error: Request body must be an Execution Intent (intentId,
+                      businessTransactionId, authorizationId, intentHash,
+                      signature required).
+  /execution-intents/unfinalized:
+    get:
+      tags:
+        - Execution Intents
+      summary: List Execution Intents that never reached a signed Trust Record
+      operationId: listUnfinalizedExecutionIntents
+      description: >
+        Lists Execution Intents whose state is not FINALIZED, oldest first
+        (ADR-0012). Each one is an action that may have been released with no
+        signed Execution Trust Record, and needs an operator. Only entries in
+        state RELEASED can be repaired with POST
+        /execution-intents/{businessTransactionId}/finalize. There is currently
+        no operation to close a PREPARED or ERRORED intent that was reconciled
+        by hand, so it stays listed. Requires a credential provisioned as a
+        verified human (`credentialHolderType: USER`), because the list spans
+        every caller's transactions. Any other credential gets `403` with code
+        `NON_HUMAN_CALLER_DENIED`. The saved release context used to rebuild a
+        record is internal and is never returned.
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of intents to return. Default 50, maximum 200. A
+            value that is not a positive integer uses the default.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+      responses:
+        "200":
+          description: The unfinalized intents, oldest first. May be empty.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/execution-intents-unfinalized-response.schema"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: The credential is not provisioned as a verified human.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error.schema"
+              examples:
+                nonHumanCaller:
+                  summary: Real captured response
+                  value:
+                    error: "This action requires a caller credential provisioned as a verified human
+                      (credentialHolderType: USER)."
+                    code: NON_HUMAN_CALLER_DENIED
+  /execution-intents/{businessTransactionId}:
+    get:
+      tags:
+        - Execution Intents
+      summary: Get an Execution Intent and its status
+      operationId: getExecutionIntent
+      description: >
+        Returns the signed Execution Intent for a businessTransactionId and its
+        operational status (ADR-0012). The state tells you where the request got
+        to. PREPARED: the intent is signed and stored, and the action may or may
+        not have been released. RELEASED: the release stage returned and the
+        execution context was saved. FINALIZED: a signed Execution Trust Record
+        exists. ERRORED: the release stage raised an error, the action may still
+        have been executed. Stays behind caller authentication and ownership
+        scoping, identically to GET /trust-records/{businessTransactionId} and
+        GET /refusal/{businessTransactionId}. Transactions created before
+        ADR-0012 have no intent and return `404`.
+      parameters:
+        - name: businessTransactionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Execution Intent found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/execution-intent-response.schema"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No Execution Intent exists for this businessTransactionId, or it
+            belongs to a different caller (ownership scoped, the same 404 not
+            403 convention as every other scoped lookup in this API).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error.schema"
+              examples:
+                notFound:
+                  summary: Message text from the source
+                  value:
+                    error: Execution Intent not found.
+  /execution-intents/{businessTransactionId}/finalize:
+    post:
+      tags:
+        - Execution Intents
+      summary: Rebuild the signed Trust Record for a released action
+      operationId: finalizeExecutionIntent
+      description: >
+        Rebuilds the signed Execution Trust Record for an action that was
+        released but whose record was never produced (ADR-0012). It NEVER calls
+        a connector: it reads the execution context that was saved right after
+        release and runs the same record building step the runtime uses, then
+        verifies the record and generates its receipt, so a repaired record ends
+        in the same state as an ordinary one. It is idempotent: if a Trust
+        Record already exists it returns that record with outcome
+        `ALREADY_FINALIZED` and builds nothing, so running it twice, or twice at
+        once, produces one record. It refuses with `409` when no execution
+        result was saved, because a record cannot be rebuilt from nothing.
+        Requires a credential provisioned as a verified human
+        (`credentialHolderType: USER`), otherwise `403` with code
+        `NON_HUMAN_CALLER_DENIED`. This is the only supported way to create a
+        Trust Record after the fact.
+      parameters:
+        - name: businessTransactionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The Trust Record exists. `outcome` says whether this call rebuilt
+            it (`FINALIZED`) or it already existed (`ALREADY_FINALIZED`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/execution-intent-finalize-response.schema"
+              examples:
+                alreadyFinalized:
+                  summary: A second call changes nothing (real captured response, trust record
+                    omitted here)
+                  value:
+                    outcome: ALREADY_FINALIZED
+                    businessTransactionId: b1237ce3-305a-4004-8179-749352fc1ade
+                    trustRecordId: 3f8d340d-14c5-4d2e-b692-492fa74b2651
+                    trustRecord: The full Execution Trust Record. See the Execution Trust Record
+                      schema.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: The credential is not provisioned as a verified human.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error.schema"
+              examples:
+                nonHumanCaller:
+                  summary: Real captured response
+                  value:
+                    error: "This action requires a caller credential provisioned as a verified human
+                      (credentialHolderType: USER)."
+                    code: NON_HUMAN_CALLER_DENIED
+        "404":
+          description: No Execution Intent exists for this businessTransactionId.
+            Transactions created before ADR-0012 have none.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error.schema"
+              examples:
+                notFound:
+                  summary: Message text from the source
+                  value:
+                    error: No Execution Intent exists for business transaction
+                      'unknown-transaction'. Transactions created before
+                      Execution Intents were introduced have none.
+                    code: EXECUTION_INTENT_NOT_FOUND
+        "409":
+          description: The intent exists but no execution result was saved, so the Trust
+            Record cannot be rebuilt. The action may or may not have been
+            released. Establish the outcome from the connector and reconcile it
+            by hand. Nothing was called and nothing was changed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error.schema"
+              examples:
+                resultNotRecorded:
+                  summary: Message text from the source
+                  value:
+                    error: The Execution Intent for business transaction
+                      'b1237ce3-305a-4004-8179-749352fc1ade' is in state
+                      PREPARED and has no saved execution result, so its signed
+                      Execution Trust Record cannot be rebuilt. The action may
+                      or may not have been released. Establish the outcome from
+                      the connector and reconcile it by hand. Nothing was
+                      called.
+                    code: EXECUTION_INTENT_RESULT_NOT_RECORDED
+        "501":
+          description: Execution Intents are not enabled on this deployment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error.schema"
+              examples:
+                notEnabled:
+                  summary: Message text from the source
+                  value:
+                    error: Execution Intents are not enabled on this deployment.
+                    code: EXECUTION_INTENTS_NOT_ENABLED
   /audit/verify:
     post:
       tags:
@@ -3078,6 +3351,11 @@ components:
             - SIGNING_UNAVAILABLE
             - CONNECTOR_NOT_REGISTERED
             - EXECUTION_RECORD_INCOMPLETE
+            - EXECUTION_INTENT_UNAVAILABLE
+            - EXECUTION_INTENT_RESULT_NOT_RECORDED
+            - EXECUTION_INTENT_NOT_FOUND
+            - EXECUTION_INTENTS_NOT_ENABLED
+            - NON_HUMAN_CALLER_DENIED
       examples:
         - error: businessTransactionId must be a valid UUID.
         - error: Business Transaction 'eed2a972-1bf5-4166-8472-761f76fbf1b2' already
@@ -4421,6 +4699,294 @@ components:
       examples:
         - valid: true
         - valid: false
+    execution-intent.schema:
+      title: Execution Intent
+      description: "A signed statement, made and stored BEFORE an action is released
+        to a connector, of exactly what is about to be released (ADR-0012). It
+        exists so that an action that was released always has signed evidence
+        behind it, even when the Execution Trust Record cannot be produced
+        afterwards. It contains only facts that exist before release: never the
+        execution result, and never the raw intent parameters (the
+        businessTransactionHash binds the intent to them). It is a separate
+        record from the Execution Trust Record, which keeps its own format. An
+        intent proves what was about to be released. It does NOT prove the
+        action was released or what its result was. At most one Execution Intent
+        exists per businessTransactionId."
+      type: object
+      additionalProperties: true
+      required:
+        - intentId
+        - businessTransactionId
+        - decisionId
+        - authorizationId
+        - policyName
+        - policyVersion
+        - businessTransactionHash
+        - action
+        - target
+        - createdAt
+        - intentHash
+        - signature
+      properties:
+        intentId:
+          type: string
+          description: Unique Execution Intent identifier.
+        businessTransactionId:
+          type: string
+          description: The Business Transaction this intent belongs to.
+        decisionId:
+          type: string
+          description: The Decision that approved the action.
+        authorizationId:
+          type: string
+          description: The signed execution authorization this intent refers to. Matches
+            authorization.payload.authorizationId in the Execution Trust Record.
+        policyName:
+          type: string
+        policyVersion:
+          type: string
+        policyContentHash:
+          type: string
+          description: Hash of the exact policy content in force, copied from the signed
+            authorization. Absent when the authorization carries none.
+        signalsHash:
+          type: string
+          description: Hash of the signals that were evaluated, copied from the signed
+            authorization. Absent when the authorization carries none.
+        businessTransactionHash:
+          type: string
+          description: Hash of the executable content (action, target and parameters),
+            copied from the signed authorization. It binds the intent to the
+            exact parameters that were authorized without repeating them here.
+        action:
+          type: string
+          description: The capability about to be released, for example paytm:refund.
+        target:
+          type: string
+          description: The target of the action, for example the order being refunded.
+            Together with action and businessTransactionId it is what an
+            operator searches for at the connector.
+        submittedBy:
+          type: string
+          description: Authenticated caller who submitted the request. Absent when caller
+            authentication is disabled.
+        grantedCapability:
+          type: string
+          description: The capability the caller was granted, when one was recorded.
+        createdAt:
+          type: string
+          format: date-time
+          description: UTC timestamp when the intent was created, before the action was
+            released.
+        intentHash:
+          type: string
+          description: Canonical hash of the intent, same convention as
+            ExecutionTrustRecord.trustRecordHash.
+        signature:
+          type: object
+          description: Signature over the canonical Execution Intent, made with the
+            deployment's signing key (local or AWS KMS), the same root of trust
+            as the Execution Trust Record.
+          additionalProperties: true
+          required:
+            - algorithm
+            - keyId
+            - value
+            - signedAt
+          properties:
+            algorithm:
+              type: string
+              examples:
+                - ed25519
+            keyId:
+              type: string
+              description: Identifier of the signing key. Fetch its public half from GET
+                /keys/{keyId}.
+            value:
+              type: string
+              description: Base64 encoded signature value.
+            signedAt:
+              type: string
+              format: date-time
+      examples:
+        - intentId: b41fe9b9-5730-4d34-aab0-4ab63ae69d3b
+          businessTransactionId: 4c2eb3b2-3382-4bc2-bf22-2a072e6cf428
+          decisionId: 20b4e030-09cd-4447-86fc-b73279d23121
+          authorizationId: 5977535b-d887-423d-b422-01ece1fc7bf1
+          policyName: customer-refund
+          policyVersion: 1.0.0
+          policyContentHash: 6a2e92fbde0f4c5dc56b4e202bf45ce24c99e565cf3ddaacaa21a11c71b7e1ea
+          signalsHash: e22a7b9fd6e0a39e28521f9ffb726d6a57499236055fa6ff2caabd2268f4a395
+          businessTransactionHash: 9df286daf38c6eba272f47153e0fb3efef5ee61d778f6baecd5a53861763763a
+          action: paytm:refund
+          target: DRY-ORDER-1789969223742
+          submittedBy: sandbox-agent
+          grantedCapability: paytm:refund
+          createdAt: 2026-09-21T05:40:28.434Z
+          intentHash: 13922de380518d582c6bb3e88b1d88908e71565f191119f4cadc7de4e30cf5ed
+          signature:
+            keyId: default
+            value: UhXnkSnm5A3QU4CVrKGbP3FcTWkShnitn86psJprJpqgEBnsXWzDcZ+ktSO0FJek1X+n9DvO3SjR+WvSofS1CA==
+            signedAt: 2026-09-21T05:40:28.555Z
+            algorithm: ed25519
+    execution-intent-status.schema:
+      title: Execution Intent Status
+      description: "Operational status kept next to a signed Execution Intent. It is
+        NOT part of what is signed, so it changes as the request progresses.
+        PREPARED: the intent is signed and stored, and the action may or may not
+        have been released. An intent that stays PREPARED needs reconciliation
+        with the connector. RELEASED: the release stage returned and the
+        execution context was saved, so the Trust Record can be rebuilt.
+        FINALIZED: a signed Execution Trust Record exists for this transaction.
+        ERRORED: the release stage raised an error. The action may still have
+        been executed, so the outcome is unknown and must be reconciled."
+      type: object
+      additionalProperties: true
+      required:
+        - state
+      properties:
+        state:
+          type: string
+          enum:
+            - PREPARED
+            - RELEASED
+            - FINALIZED
+            - ERRORED
+        releasedAt:
+          type: string
+          format: date-time
+          description: When the release stage returned and the execution context was
+            saved. Absent from PREPARED and from an ERRORED intent.
+        finalizedAt:
+          type: string
+          format: date-time
+          description: When the intent was marked FINALIZED. Present only when state is
+            FINALIZED.
+        finalizationMode:
+          type: string
+          enum:
+            - INLINE
+            - REPAIRED
+          description: "INLINE: the Trust Record was produced in the original request.
+            REPAIRED: it was rebuilt afterwards by POST
+            /execution-intents/{businessTransactionId}/finalize. Present only
+            when state is FINALIZED."
+        trustRecordId:
+          type: string
+          description: The Execution Trust Record for this transaction. Present only when
+            state is FINALIZED.
+        failureReason:
+          type: string
+          description: The error message the release stage raised. Present only when state
+            is ERRORED.
+      examples:
+        - state: FINALIZED
+          releasedAt: 2026-09-21T05:40:32.743Z
+          finalizedAt: 2026-09-21T05:40:32.855Z
+          finalizationMode: INLINE
+          trustRecordId: a3c8d068-af6a-46c7-9976-e43612d5ab9c
+    execution-intents-unfinalized-response.schema:
+      title: Unfinalized Execution Intents Response
+      description: "Response returned by GET /execution-intents/unfinalized: intents
+        that never reached a signed Execution Trust Record, oldest first. Each
+        is an action that may have been released with no signed record. Every
+        entry needs an operator to establish what happened. Only entries in
+        state RELEASED can be repaired with POST
+        /execution-intents/{businessTransactionId}/finalize. There is currently
+        no operation to close a PREPARED or ERRORED intent that was reconciled
+        by hand, so it stays listed."
+      type: object
+      additionalProperties: false
+      required:
+        - intents
+      properties:
+        intents:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - intent
+              - status
+            properties:
+              intent:
+                $ref: "#/components/schemas/execution-intent.schema"
+              status:
+                $ref: "#/components/schemas/execution-intent-status.schema"
+      examples:
+        - intents: []
+    execution-intent-response.schema:
+      title: Execution Intent Response
+      description: "Response returned by GET
+        /execution-intents/{businessTransactionId}: the signed Execution Intent
+        and its operational status. The saved release context used to rebuild a
+        Trust Record is internal and is never returned."
+      type: object
+      additionalProperties: false
+      required:
+        - intent
+        - status
+      properties:
+        intent:
+          $ref: "#/components/schemas/execution-intent.schema"
+        status:
+          $ref: "#/components/schemas/execution-intent-status.schema"
+      examples:
+        - intent:
+            intentId: b41fe9b9-5730-4d34-aab0-4ab63ae69d3b
+            businessTransactionId: 4c2eb3b2-3382-4bc2-bf22-2a072e6cf428
+            decisionId: 20b4e030-09cd-4447-86fc-b73279d23121
+            authorizationId: 5977535b-d887-423d-b422-01ece1fc7bf1
+            policyName: customer-refund
+            policyVersion: 1.0.0
+            policyContentHash: 6a2e92fbde0f4c5dc56b4e202bf45ce24c99e565cf3ddaacaa21a11c71b7e1ea
+            signalsHash: e22a7b9fd6e0a39e28521f9ffb726d6a57499236055fa6ff2caabd2268f4a395
+            businessTransactionHash: 9df286daf38c6eba272f47153e0fb3efef5ee61d778f6baecd5a53861763763a
+            action: paytm:refund
+            target: DRY-ORDER-1789969223742
+            submittedBy: sandbox-agent
+            grantedCapability: paytm:refund
+            createdAt: 2026-09-21T05:40:28.434Z
+            intentHash: 13922de380518d582c6bb3e88b1d88908e71565f191119f4cadc7de4e30cf5ed
+            signature:
+              keyId: default
+              value: UhXnkSnm5A3QU4CVrKGbP3FcTWkShnitn86psJprJpqgEBnsXWzDcZ+ktSO0FJek1X+n9DvO3SjR+WvSofS1CA==
+              signedAt: 2026-09-21T05:40:28.555Z
+              algorithm: ed25519
+          status:
+            state: FINALIZED
+            releasedAt: 2026-09-21T05:40:32.743Z
+            finalizedAt: 2026-09-21T05:40:32.855Z
+            finalizationMode: INLINE
+            trustRecordId: a3c8d068-af6a-46c7-9976-e43612d5ab9c
+    execution-intent-finalize-response.schema:
+      title: Finalize Execution Intent Response
+      description: "Response returned by POST
+        /execution-intents/{businessTransactionId}/finalize. The finalize
+        operation never calls a connector. It is safe to run more than once:
+        FINALIZED means a Trust Record was rebuilt by this call,
+        ALREADY_FINALIZED means one already existed and nothing was built."
+      type: object
+      additionalProperties: false
+      required:
+        - outcome
+        - businessTransactionId
+        - trustRecordId
+        - trustRecord
+      properties:
+        outcome:
+          type: string
+          enum:
+            - FINALIZED
+            - ALREADY_FINALIZED
+        businessTransactionId:
+          type: string
+        trustRecordId:
+          type: string
+          description: Identifier of the Execution Trust Record. Equal to
+            trustRecord.trustRecordId.
+        trustRecord:
+          $ref: "#/components/schemas/execution-trust-record.schema"
     audit-verify-request.schema:
       title: Audit Verify Request
       description: "Request body for POST /audit/verify: the signed
@@ -4972,12 +5538,25 @@ components:
         accepted. Code CONNECTOR_NOT_REGISTERED: no connector is registered for
         the action on this deployment, usually because its credentials were
         never configured. The operator must configure the connector first, then
-        retry with a new businessTransactionId."
+        retry with a new businessTransactionId. Code
+        EXECUTION_INTENT_UNAVAILABLE: the signed Execution Intent for this
+        transaction could not be signed and stored, so nothing was released
+        (ADR-0012). Retry later with a new businessTransactionId."
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/error.schema"
           examples:
+            executionIntentUnavailable:
+              summary: The signed Execution Intent could not be stored, nothing was executed
+                (real captured response)
+              value:
+                error: "The signed Execution Intent for business transaction
+                  '2c3cae0f-fd3c-4962-8147-83f3710a2fc9' could not be created
+                  and stored; refusing to release the action. Nothing was
+                  executed. Cause: new row for relation \"execution_intents\"
+                  violates check constraint \"sbx_block_intents\""
+                code: EXECUTION_INTENT_UNAVAILABLE
             signingUnavailable:
               summary: Evidence signing is unhealthy, nothing was executed
               value:

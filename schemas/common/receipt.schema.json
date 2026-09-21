@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/common/receipt.schema.json",
+  "$id": "https://schemas.parmanasystems.com/common/receipt.schema.json",
   "title": "Receipt",
   "description": "Cryptographically signed, immutable Execution Trust Receipt proving the outcome of an Execution Trust Record at the time it was issued.",
   "type": "object",

@@ -1,62 +1,75 @@
-# ADR-0012: Signed Execution Intent Before Release (proposed)
+# ADR-0012: Signed Execution Intent Before Release
 
-**Status:** Proposed. Not implemented. It needs a decision before any code is written.
+**Status:** Accepted and implemented on 2026-09-21. Verified live the same day. Two limits are recorded as open gaps G-54 and G-55.
 
-**Date:** 2026-09-20
+**Date:** Proposed 2026-09-20. Decided and built 2026-09-21.
 
-**Relates to:** `docs/VERIFICATION-GAPS.md` G-52 (the ordering gap this would close) and G-53 (no way to rebuild a missing record), ADR-0011 (the mitigation already in place), `docs/CLAIMS.md` section 2.38.
+**Relates to:** `docs/VERIFICATION-GAPS.md` G-52 (the ordering gap this closes), G-53 (no way to rebuild a missing record, now repairable with a limit), G-54 and G-55 (limits found while building it), gap 61 (the closure), ADR-0011 (the mitigation this builds on), `docs/CLAIMS.md` section 2.39. Operator procedure: the docs site page `concepts/execution-intents`.
+
+## History of the decision
+
+On 2026-09-20 this ADR was proposed and left undecided. On 2026-09-21 the decision was first recorded as "not now", and later that day it was reversed and the work was built. Both facts are recorded here so the gap register stays honest about what was decided when.
 
 ## Context
 
-The runtime processes a request in this order: decide, authorize, release the action to the connector through the Execution Gateway, then build, sign and persist the Execution Trust Record. The record contains the result of the execution, which is why it is built last.
+The runtime processed a request in this order: decide, authorize, release the action to the connector through the Execution Gateway, then build, sign and persist the Execution Trust Record. The record contains the result of the execution, which is why it is built last.
 
 ADR-0011 added two things. Before release, the engine proves the evidence signing path works and refuses with `503 SIGNING_UNAVAILABLE` if it does not. After release, a failure to produce or persist the record is `500 EXECUTION_RECORD_INCOMPLETE`, with the identifiers and a critical log.
 
-That leaves two facts, recorded as G-52 (still open) and G-53:
+That left two facts, recorded as G-52 and G-53:
 
-1. A transient failure between the readiness check and the real signing, or a database failure after release, can still leave an executed action with no signed record.
-2. When that happens, the context needed to build the record (the decision, the authorization and the execution result) exists only in the memory of the failed request and in the connector's response. It is not persisted before the record is built, so the record cannot be finalized later. An operator can reconcile against the connector and the `execution_audit_events` rows for the `businessTransactionId`, but the signed record cannot be recreated.
+1. A transient failure between the readiness check and the real signing, or a database failure after release, could leave an executed action with no signed record.
+2. When that happened, the context needed to build the record (the decision, the authorization and the execution result) existed only in the memory of the failed request and in the connector's response. The signed record could not be recreated.
 
-## Options
+## Decision
 
-**A. Persist the released context, add a finalize operation.** Before building the record, store the decision, the authorization and the execution result. Expose an operation that rebuilds and signs the record from that stored context. It repairs the gap after the fact, and it depends on storage being available at the moment it is needed.
+Option B from the proposal, with the finalize operation from option A: persist a signed execution intent before release, save the execution context right after release, and provide an operation that rebuilds a missing Trust Record from that saved context.
 
-**B. Persist a signed execution intent before release, finalize after.** Before the connector is called, sign and persist a record of what is about to be released. After the connector answers, finalize the record with the result. An executed action then always has a signed record, even if finalization fails. This is the option `docs/VERIFICATION-GAPS.md` G-52 calls the complete answer.
+The order of a request is now: decide, authorize, signing readiness, **sign and store the Execution Intent**, release, **save the execution context**, build and store the Trust Record, **mark the intent finalized**. If the intent cannot be signed and stored, nothing is released and the caller gets `503 EXECUTION_INTENT_UNAVAILABLE`, the same fail closed shape as `SIGNING_UNAVAILABLE`.
 
-**C. Both.** B for the guarantee, and A's finalize operation to complete an intent whose finalization failed.
+## The six decisions the proposal left open
 
-## Recommendation
+**1. What the intent contains and what is signed.** The ids (`intentId`, `businessTransactionId`, `decisionId`, `authorizationId`), `policyName`, `policyVersion`, `policyContentHash`, `signalsHash` and `businessTransactionHash` (the last three copied from the signed authorization rather than recomputed, so the intent cannot disagree with it), `action`, `target`, `submittedBy`, `grantedCapability` and `createdAt`. The execution result is not in it because it does not exist yet. The raw intent parameters are not in it either: `businessTransactionHash` binds the intent to them without repeating potentially sensitive values. The signature covers a canonical projection defined once in `ExecutionIntentCanonicalView.ts`, used by both the signer and every verifier.
 
-Choose B, and include a finalize operation for an intent that was never finalized, which is the useful part of A. Build it in that order, so the guarantee comes first and the repair tool second.
+**2. How finalization relates to the existing record.** A **separate linked record**, not an intent section inside the Trust Record. The Trust Record is hashed and signed over everything it contains, so completing it after signing would change its hash. The Trust Record therefore keeps its format, both SDK verifiers keep verifying it unchanged, and the intent links to it by `businessTransactionId` (one intent per transaction, enforced by a unique constraint) and by `trustRecordId` once finalized. The intent's own status (`PREPARED`, `RELEASED`, `FINALIZED`, `ERRORED`) is **unsigned operational state** stored beside the signed part, so it can change after signing without invalidating anything.
 
-Reasons:
+**3. The schema and migration.** A new table `execution_intents` (`supabase/migrations/20260921120000_add_execution_intents.sql`). It changes no existing table. Transactions that predate it simply have no intent, and their behavior is unchanged. A foreign key to `business_transactions`, a unique constraint on `business_transaction_id`, a check constraint on the state values, and a partial index on the unfinalized rows. **Deployment order matters:** the migration must be applied before the code is deployed, because the gate is enforced by default and there is no switch to turn it off in production. `GET /ready` returns `NOT_READY`, naming the migration file, when the table is missing.
 
-1. B is the only option that gives the guarantee "every released action has a signed record". A repairs after the fact and still fails if storage is down at repair time.
-2. The failure ordering is easy to state and to test: if the intent cannot be signed and persisted, nothing is released and the caller gets `503`, the same fail closed shape as `SIGNING_UNAVAILABLE`.
+**4. Idempotency.** `ExecutionIntentFinalizer.finalize()` is idempotent and never calls a connector. If a Trust Record already exists it returns it (`ALREADY_FINALIZED`) and builds nothing, and it corrects the intent status if that update had been lost. If the record appears between its check and its write, it treats that as already finalized. State transitions are enforced in SQL (`markReleased` and `markErrored` only move a `PREPARED` row, `markFinalized` never moves a `FINALIZED` row), so they hold under concurrency.
 
-## What must be decided before implementation
+**5. What a verifier reports for an intent that was never finalized.** The intent verifies as valid, because it was signed. Whether it was finalized is a separate fact, reported in `status.state`, so an auditor sees the difference between a complete record and an action that was released with its result unrecorded. An intent proves what was about to be released, not that it was released. `PREPARED` and `ERRORED` are stated as "the action may or may not have run".
 
-This ADR does not answer these. Each needs a decision.
+**6. The cost.** One more signing operation and one more database write before every release, and two more writes after it. Under AWS KMS that is one more `kms:Sign`. Measured once, on 2026-09-21: about 35 ms median (34 to 40 ms, 10 samples) from a Windows machine to `ap-south-1`. Not measured from Vercel.
 
-1. **What the intent contains and what is signed.** The decision, the authorization identifiers and the policy hash are candidates. The execution result cannot be in it, because it does not exist yet.
-2. **How finalization relates to the existing record.** One record with an intent section that is later completed, or an intent record linked to a separate final record. The record is hashed and signed today, so completing it after signing needs a defined rule, and the record must continue to verify offline.
-3. **The schema and migration.** A new table or new columns, a migration for a database that already has records, and how old records without an intent verify.
-4. **Idempotency.** A finalize operation must be safe to run twice, and must never call the connector again.
-5. **What a verifier reports for an intent that was never finalized.** It must be distinguishable from a complete record, so an auditor sees that an action was released and its result is unrecorded.
-6. **The cost.** One more signing operation and one more write before every release, which is added latency on the request path and one more `kms:Sign` under KMS.
+## Where the build differs from the proposal
 
-## Consequences if accepted
+1. **The saved execution context is deleted when the intent becomes `FINALIZED`.** The proposal did not say. The context holds the full execution context, including the intent parameters, and once the Trust Record exists it has no further use, so keeping a second copy indefinitely would only duplicate sensitive data.
+2. **Two states exist that the proposal did not name: `ERRORED` and the distinction between `PREPARED` and `RELEASED`.** `ERRORED` records that the release stage raised an error. It deliberately does not say "not released", because a connector timeout can happen after the connector acted. Using `PREPARED` for both would have hidden that.
 
-1. Positive: closes G-52 and makes G-53 a repair procedure and no longer a data loss.
-2. Negative: a new record type, a migration, a change to the offline verifiers in both SDKs, and a change to the documented Execution Trust Record. Every one of those needs its own review.
-3. `docs/CLAIMS.md` section 2.38 must be rewritten from "mitigated" to the new guarantee, only after the tests and a live check below pass.
+## Consequences
 
-## Verification plan
+1. Positive: G-52 is closed for the risk it named, because an executed action always has signed evidence behind it. G-53 becomes a repair procedure and stops being data loss, when the context was saved.
+2. Positive: nothing existing had to change format. The Trust Record, the offline verifiers and the SDK verifiers are untouched.
+3. Negative: a new record type, a migration that must run before deployment, one more `kms:Sign` and three more writes per released action, and a new set of operator routes (`GET /execution-intents/{id}`, `GET /execution-intents/unfinalized`, `POST /execution-intents/{id}/finalize`, and the unauthenticated `POST /execution-intents/verify`).
+4. **Open, recorded rather than hidden:**
+   - **G-53 residual.** The execution context is saved best effort. When that save fails too, the intent stays `PREPARED`, finalize refuses with `409 EXECUTION_INTENT_RESULT_NOT_RECORDED`, and the outcome must be established from the connector by hand. Covered by unit tests, not by live fault injection.
+   - **G-54.** There is no operation to close an intent that was reconciled by hand, so `PREPARED` and `ERRORED` intents stay in the unfinalized list.
+   - **G-55.** The SDKs have no methods for the intent routes and no offline intent verifier. The new `503` already reaches SDK callers, because both SDKs preserve the server's code.
 
-Nothing here is verified. Before accepting, the implementation would need:
+## Verification
 
-1. A test that forces a failure between release and finalization and shows the intent exists, is signed, and is reported as unfinalized.
-2. A test that forces intent persistence to fail and shows nothing is released.
-3. A test that finalizes twice and shows the connector is called once.
-4. Offline verification of an intent record and of a finalized record with both SDKs.
-5. A live run against a real database and a real KMS key, as in `docs/site/deployment/aws-kms-signing.mdx`.
+Tests: a signed intent is stored before the connector is called and verifies; a failed intent store, and a failed intent signature, each release nothing and return `503`; a release error leaves the intent `ERRORED`; a failed record store leaves a `RELEASED` intent; finalize rebuilds a verifiable record without a second release, is idempotent, handles the race, and refuses with `409` and `404`; the offline verifier agrees with the runtime signer and detects tampering; the storage state guards; the routes and the authorization rules; the full repair over HTTP; the environment gate; and the readiness check for the missing table.
+
+The Postgres queries were also run against a real Postgres with every migration applied (16 checks).
+
+Live, on 2026-09-21: the production Docker image built from this code, a real Postgres, the real AWS KMS key `alias/default` (`ap-south-1`, `ECC_NIST_EDWARDS25519`) with the limited IAM user `parmana-kms-operator`, and the real `parmana-paytm-agent` with fake Paytm staging credentials, because what was under test was the intent lifecycle and not Paytm. 23 of 23 checks passed:
+
+1. A normal request released once, ended `FINALIZED` (`INLINE`), and the intent and the Trust Record each verified offline with only the KMS public key.
+2. With the Trust Record made unstorable after release: `500 EXECUTION_RECORD_INCOMPLETE`, a signed intent survived in `RELEASED`, finalize rebuilt the record (marked `REPAIRED`) with the connector called exactly once in total, verified it and issued the receipt, the rebuilt record verified offline, and a second finalize returned `ALREADY_FINALIZED`.
+3. With the intent made unstorable: `503 EXECUTION_INTENT_UNAVAILABLE`, the connector was not called, and no intent row was written.
+
+A repeat run produced an unplanned real connector timeout, recorded as an intent in state `ERRORED` with the reason `PaytmConnector "paytm" request to capability "paytm:refund" timed out after 10000ms`. That is the designed behavior.
+
+**Not verified:** the Vercel OIDC role signing an intent (it uses the same signer and permissions as the Trust Record), latency from Vercel, and a real Paytm refund.
+
+One observation from the live run, outside this repository: `parmana-paytm-agent` reports any `503` from Parmana as an "ambiguous outcome". For `EXECUTION_INTENT_UNAVAILABLE` and `SIGNING_UNAVAILABLE` the answer is not ambiguous, because those codes mean nothing was executed. The agent could read the code and say so.

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/requests/receipt-request.schema.json",
+  "$id": "https://schemas.parmanasystems.com/requests/receipt-request.schema.json",
   "title": "Receipt Request",
   "description": "Request payload for POST /receipt. businessTransactionId is required and must be a valid UUID; both are rejected with a 400, with distinct messages depending on which check fails.",
   "type": "object",

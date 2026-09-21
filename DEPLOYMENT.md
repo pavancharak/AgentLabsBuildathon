@@ -131,6 +131,20 @@ still returns `PGRST205` immediately after applying migrations, force a
 reload rather than waiting: Dashboard → Database → API → "Reload schema
 cache", or `NOTIFY pgrst, 'reload schema';` via the SQL Editor.
 
+**Upgrading an existing deployment: apply the new migration BEFORE you deploy.**
+Execution Intents (ADR-0012) are enforced by default and cannot be switched off
+in production. A new version running without the `execution_intents` table
+refuses every execution with `503 EXECUTION_INTENT_UNAVAILABLE`. Apply only the
+new file first:
+
+```
+psql "$DATABASE_URL" -f supabase/migrations/20260921120000_add_execution_intents.sql
+psql "$DATABASE_URL" -tA -c "select to_regclass('public.execution_intents')"
+```
+
+The second command must print `execution_intents`. The migration only adds a
+table, is safe to run twice, and changes no existing table.
+
 ### Caller authentication (`PARMANA_API_KEYS`)
 
 A JSON array of `{ "callerId": string, "keyHash": string }` entries.
@@ -186,6 +200,10 @@ application config.
   orchestrator can tell "up but backed by dead storage" apart from
   "genuinely ready" and route around it. When storage is `memory`, there's
   no external dependency to probe, so it reports ready unconditionally.
+  When Execution Intents are enforced (the default in production), it also
+  checks that the `execution_intents` table exists and returns `503` with
+  `NOT_READY` and the migration file name when it does not, so a skipped
+  migration is caught here and not on the first real request.
   Also carries `authDisabled` (plus a `warning` string when true) in every
   response. Set up a synthetic check on this field if `PARMANA_AUTH_DISABLED`
   is ever set in a real deployment; it should never be.
@@ -239,6 +257,15 @@ KMS the role needs `kms:Sign` and `kms:GetPublicKey` on the signing key, which a
 already has. After a deploy, confirm the startup log line `runtime_engine_constructed` shows
 `signingReadinessConfigured: true`. A failure after the action was released is `500
 EXECUTION_RECORD_INCOMPLETE`, which must be reconciled, not retried as a new transaction.
+
+**Execution Intents are on by default (2026-09-21, ADR-0012).** Before each action is released, the
+runtime signs and stores an Execution Intent, and returns `503 EXECUTION_INTENT_UNAVAILABLE` with nothing
+executed if it cannot. Under KMS this is one more `kms:Sign` per released action, with the same
+permissions. After a deploy, confirm the startup log line `runtime_engine_constructed` shows
+`executionIntentsConfigured: true`. A `500 EXECUTION_RECORD_INCOMPLETE` can now be repaired: a verified
+human credential calls `POST /execution-intents/<businessTransactionId>/finalize`, which rebuilds the
+signed record without calling the connector. Check `GET /execution-intents/unfinalized` regularly. The full
+procedure is the docs site page `concepts/execution-intents`.
 
 **The legacy-policy caveat, and what to actually do about it.** Every
 policy version that existed before Policy Governance was built has no

@@ -1,7 +1,12 @@
 import { createPublicKey } from "node:crypto";
 
-import type { ExecutionTrustRecord, SignatureEntry } from "@parmana/shared";
+import type {
+  ExecutionIntent,
+  ExecutionTrustRecord,
+  SignatureEntry,
+} from "@parmana/shared";
 
+import { canonicalExecutionIntent } from "./ExecutionIntentCanonicalView.js";
 import {
   canonicalExecutionTrustRecord,
   hybridCanonicalExecutionTrustRecord,
@@ -215,6 +220,62 @@ export async function verifyExecutionTrustRecordOffline(
     hashValid,
     legacySignatureValid,
     ...(hybridSignaturesValid !== undefined ? { hybridSignaturesValid } : {}),
+    algorithmsChecked,
+    errors,
+  };
+}
+
+/**
+ * Verifies an Execution Intent (ADR-0012) with no network call, no database and
+ * no key directory: only the intent and the public key(s) are needed. Checks
+ * that the recorded hash matches the canonical intent and that the signature
+ * verifies against the public key for the intent's keyId.
+ *
+ * A valid result proves the intent was signed by the holder of that key and has
+ * not been altered. It does not prove the action was released, or what the
+ * result was: an intent is written BEFORE release. Whether a signed Execution
+ * Trust Record exists for the same businessTransactionId is a separate check.
+ */
+export async function verifyExecutionIntentOffline(
+  intent: ExecutionIntent,
+  publicKeys: Readonly<Record<string, string>>,
+): Promise<OfflineVerificationResult> {
+  const errors: string[] = [];
+  const algorithmsChecked: string[] = [];
+
+  const hasher = new TrustRecordHasher({
+    hash: new SHA256HashProvider(),
+    signature: new Ed25519SignatureProvider(),
+  });
+
+  const canonical = canonicalExecutionIntent(intent);
+
+  const expectedHash = await hasher.hash(canonical);
+
+  const hashValid = expectedHash === intent.intentHash;
+
+  if (!hashValid) {
+    errors.push(
+      `intentHash mismatch: expected ${expectedHash}, got ${intent.intentHash}.`,
+    );
+  }
+
+  const legacySignatureValid = await verifyOneEntry(
+    {
+      algorithm: intent.signature.algorithm,
+      keyId: intent.signature.keyId,
+      signature: intent.signature.value,
+    },
+    canonical,
+    publicKeys,
+    algorithmsChecked,
+    errors,
+  );
+
+  return {
+    valid: hashValid && legacySignatureValid,
+    hashValid,
+    legacySignatureValid,
     algorithmsChecked,
     errors,
   };

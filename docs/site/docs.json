@@ -55,6 +55,7 @@
               "concepts/gateway-attestation",
               "concepts/execution-trust-records",
               "concepts/refusal-records",
+              "concepts/execution-intents",
               "concepts/caller-audit-trail",
               "concepts/determinism-and-clocks",
               "concepts/content-binding-toctou"
@@ -370,6 +371,15 @@
             "pages": [
               "api-reference/endpoints/verify-refusal-record",
               "api-reference/endpoints/get-refusal-record"
+            ]
+          },
+          {
+            "group": "Execution Intents",
+            "pages": [
+              "api-reference/endpoints/verify-execution-intent",
+              "api-reference/endpoints/list-unfinalized-execution-intents",
+              "api-reference/endpoints/get-execution-intent",
+              "api-reference/endpoints/finalize-execution-intent"
             ]
           },
           {

@@ -1043,8 +1043,8 @@ Before an action is released to a connector, the runtime proves that the evidenc
 
 Scope, stated plainly:
 
-- This does not guarantee that every executed action has a signed trust record. A transient failure between the readiness check and the real signing, or a database failure after release, still leaves an executed action with no signed record. It narrows the window and makes the failure explicit and reconcilable. It is a mitigation of G-52, not a closure.
-- There is no two phase record and no rebuild path for a missing record (G-53 in `docs/VERIFICATION-GAPS.md`).
+- This does not guarantee that every executed action has a signed trust record. A transient failure between the readiness check and the real signing, or a database failure after release, still leaves an executed action with no signed record. It narrows the window and makes the failure explicit and reconcilable. **Superseded on 2026-09-21 by section 2.39:** a signed Execution Intent is now stored before release, and a missing record can be rebuilt.
+- There was no two phase record and no rebuild path for a missing record (G-53 in `docs/VERIFICATION-GAPS.md`) when this section was written. Section 2.39 adds both, with the limits stated there.
 - Verified in tests, and the success path verified live on 2026-09-20 (production commit 4047536): the startup log shows `signingReadinessConfigured: true` and a live `paytm:refund` returned `200` with `VERIFIED`, which required the readiness probe to pass against the real KMS. The failure responses (`503 SIGNING_UNAVAILABLE`, `500 EXECUTION_RECORD_INCOMPLETE`) are proven in unit tests, not by live fault injection.
 
 Evidence
@@ -1054,6 +1054,50 @@ Evidence
 - `packages/runtime/tests/unit/signing-readiness.test.ts` and `execution-record-incomplete.test.ts` (readiness failure leaves the release counter at zero, failure after release is `EXECUTION_RECORD_INCOMPLETE` with the identifiers and a critical log, a persistence failure is reported the same way, a policy rejection before release is not reclassified)
 - `packages/crypto/tests/unit/signing-probe.test.ts` (matching key passes, missing key fails, mismatched public key fails)
 - `packages/api/tests/unit/bootstrap/create-signing-readiness.test.ts`
+
+---
+
+## 2.39 Execution Intents: Signed Evidence Before Release, and a Repair Path
+
+Before an action is released to a connector, the runtime signs an Execution Intent and stores it. If it cannot, nothing is released and the caller gets `503 EXECUTION_INTENT_UNAVAILABLE`. So an action that was released always has a signed intent that was stored before it. If the signed Execution Trust Record then cannot be produced or stored, it can be rebuilt from the execution context that was saved right after release, with `POST /execution-intents/{businessTransactionId}/finalize`, which never calls the connector. The decision is recorded in `docs/adr/ADR-0012-Signed-Execution-Intent-Before-Release.md`, and the operator procedure is the docs site page `concepts/execution-intents`.
+
+- The intent is a separate record with its own table (`execution_intents`). The Execution Trust Record keeps its format, and both SDK verifiers keep verifying it unchanged.
+- What is signed: the ids, the policy reference, `policyContentHash`, `signalsHash` and `businessTransactionHash` copied from the signed authorization, `action`, `target`, `submittedBy`, `grantedCapability` and `createdAt`. Never the execution result and never the raw intent parameters.
+- The signature is made with the same key as the Trust Record, so AWS KMS in production. It verifies with the public key alone, through `POST /execution-intents/verify` (no credential) or offline with `scripts/verify-execution-intent.ts`.
+- The operational state (`PREPARED`, `RELEASED`, `FINALIZED`, `ERRORED`) is stored next to the intent and is not signed. Status updates after release are best effort and never throw. They log at critical severity.
+- Finalize is idempotent and race safe: an existing record is returned and nothing is built, and a record that appears while it works is treated as already finalized. It also verifies the record and generates the receipt.
+- Marking an intent `FINALIZED` deletes the saved execution context, because the Trust Record then holds it.
+- It is enforced everywhere except when `NODE_ENV` is exactly `test` or `development`, where `EXECUTION_INTENTS_CHECK=true` turns it on. No environment variable switches it off in production. `GET /ready` reports `NOT_READY` when the table is missing.
+- `finalize` and `GET /execution-intents/unfinalized` need a credential provisioned as a verified human, and refuse any other with `403 NON_HUMAN_CALLER_DENIED`.
+
+Scope, stated plainly:
+
+- An intent proves what was about to be released. It does **not** prove that the action was released, or what its result was, because it is written before release. An intent in `PREPARED` or `ERRORED` means the action may or may not have run, and only the connector can say.
+- This does not guarantee that every released action has a signed Trust Record. `EXECUTION_RECORD_INCOMPLETE` is still possible. It is repairable when the execution context was saved (state `RELEASED`). When that save also failed (state `PREPARED`), finalize refuses with `409 EXECUTION_INTENT_RESULT_NOT_RECORDED` and the outcome has to be established from the connector by hand.
+- There is no operation to close an `ERRORED` or `PREPARED` intent after it is reconciled by hand, so it stays in the unfinalized list (G-54 in `docs/VERIFICATION-GAPS.md`).
+- The TypeScript and Python SDKs have no methods for the intent routes and do not verify intents (G-55).
+- Transactions created before this change have no intent, and their behavior is unchanged.
+- Deploying this version without the migration `20260921120000_add_execution_intents.sql` makes every execution fail closed with `503 EXECUTION_INTENT_UNAVAILABLE`. That is by design, and `GET /ready` reports it first.
+
+Verification
+
+- Unit and integration tests, listed under Evidence, all pass. The full suite passed on 2026-09-21.
+- The Postgres queries were also run against a real Postgres with every migration applied: 16 checks covering the state guards, the unique and foreign key constraints and the JSON round trip.
+- Live on 2026-09-21, against the production Docker image built from this code, a real Postgres, the real AWS KMS key `alias/default` in `ap-south-1` and the real `parmana-paytm-agent` (with fake Paytm staging credentials, because the subject was the intent lifecycle and not Paytm): 23 of 23 checks passed. They cover a normal request (the intent and the Trust Record each verified offline with only the KMS public key), a released action whose Trust Record could not be stored (a signed intent survived, finalize rebuilt the record with the connector called exactly once in total, a second finalize was a no-op, and the rebuilt record verified offline), and an intent that could not be stored (`503 EXECUTION_INTENT_UNAVAILABLE`, the connector was not called, no intent row was written).
+- A repeat live run recorded an unplanned real connector timeout as an intent in state `ERRORED` with the reason `PaytmConnector "paytm" request to capability "paytm:refund" timed out after 10000ms`. That is the designed behavior.
+- Cost, measured once: about 35 ms median for the extra KMS signature (34 to 40 ms, 10 samples), from a Windows machine to `ap-south-1`. Not measured from Vercel.
+- Not verified: the Vercel OIDC role signing an intent, latency from Vercel, or a real Paytm refund.
+
+Evidence
+
+- `packages/shared/src/domain/execution-intent.ts`, `packages/shared/src/repositories/execution-intent-repository.ts`
+- `packages/crypto/src/ExecutionIntentCrypto.ts`, `ExecutionIntentCanonicalView.ts`, `OfflineVerifier.ts` (`verifyExecutionIntentOffline`), `scripts/verify-execution-intent.ts`
+- `packages/runtime/src/ExecutionIntentBuilder.ts`, `ExecutionIntentService.ts`, `ExecutionIntentFinalizer.ts`, `RuntimeEngine.ts`, `Runtime.ts`, `ExecutionTrustApplication.ts`, `errors/ExecutionIntent*Error.ts`
+- `packages/storage/src/supabase/SupabaseExecutionIntentRepository.ts`, `memory/MemoryExecutionIntentRepository.ts`, `supabase/migrations/20260921120000_add_execution_intents.sql`
+- `packages/api/src/routes/execution-intents.ts`, `bootstrap/createExecutionIntents.ts`, `routes/ready.ts`
+- `packages/runtime/tests/unit/execution-intent.test.ts` (the intent is signed and stored before the connector is called, a failed intent store or signature releases nothing, a release error is `ERRORED`, a failed record store leaves a `RELEASED` intent, finalize rebuilds a verifiable record without a second release, is idempotent and race safe, and refuses with `409` and `404`)
+- `packages/crypto/tests/unit/execution-intent-crypto.test.ts` (offline verification, tamper detection, and agreement with the runtime signer), `packages/storage/tests/unit/execution-intent-repository.test.ts`
+- `packages/api/tests/integration/execution-intents.integration.test.ts` (the routes, the authorization rules and the full repair over HTTP), `packages/api/tests/unit/bootstrap/create-execution-intents.test.ts`, `packages/api/tests/unit/routes/ready.test.ts`
 
 ---
 
