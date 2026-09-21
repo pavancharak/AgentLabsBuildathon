@@ -1346,7 +1346,7 @@ routes. **Closed** in the source: both SDKs have `executionIntent`, `verifyExecu
 `execution_intent`, `verify_execution_intent`, `unfinalized_execution_intents`,
 `finalize_execution_intent` and `resolve_execution_intent`), and Python has
 `parmana.crypto.verify_execution_intent_offline`, which needs only the public key. **Limits, stated
-plainly:** they are **not in the published 1.1.6**, so no SDK user has them until both SDKs are released
+plainly:** they are **not in the published 1.1.6**, so no SDK user has them until both SDKs are published at 1.2.0
 (a version bump and a publish, which the operator does). The TypeScript SDK has no offline intent verifier,
 as it has none for Trust Records either.
 
