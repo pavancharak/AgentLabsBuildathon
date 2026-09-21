@@ -35,8 +35,13 @@ FIXTURES = Path(__file__).parent / "fixtures"
 SERVER_INTENT = json.loads(
     (FIXTURES / "execution-intent-server-signed.json").read_text(encoding="utf-8")
 )
-SERVER_KEY = (FIXTURES / "execution-intent-server-signed.public.pem").read_text(
-    encoding="utf-8"
+# The public key of that server. It is a public key, so it is safe to keep in the
+# test itself. It is NOT a fixture file on purpose: the repository ignores *.pem,
+# so a fixture with that name is silently left out of commits and only fails in CI.
+SERVER_KEY = (
+    "-----BEGIN PUBLIC KEY-----\n"
+    "MCowBQYDK2VwAyEACk6S6j13E+EIdvTezLLwosO4fohNZkhF/j+6FTk6LVI=\n"
+    "-----END PUBLIC KEY-----\n"
 )
 
 
