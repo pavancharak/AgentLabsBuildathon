@@ -18,7 +18,12 @@ import {
 } from "@parmana/shared";
 
 import type { ExecutionIntentFinalizer } from "./ExecutionIntentFinalizer.js";
-import type { ExecutionIntentService } from "./ExecutionIntentService.js";
+import type {
+  ExecutionIntentService,
+  ResolveExecutionIntentInput,
+  ResolveExecutionIntentResult,
+} from "./ExecutionIntentService.js";
+import { ExecutionIntentNotResolvableError } from "./errors/ExecutionIntentNotResolvableError.js";
 import { Runtime } from "./Runtime.js";
 import { RuntimeError } from "./errors/RuntimeError.js";
 
@@ -312,6 +317,43 @@ export class ExecutionTrustApplication {
     }
 
     return { outcome: result.outcome, trustRecord };
+  }
+
+  /**
+   * Close a PREPARED or ERRORED Execution Intent that a verified human
+   * reconciled at the connector (docs/VERIFICATION-GAPS.md G-54). The
+   * resolution and note are an attributed operator statement in unsigned
+   * status, not a signed record. Refused when a signed Trust Record already
+   * exists for the transaction, because that intent should be finalized.
+   */
+  async resolveExecutionIntent(
+    businessTransactionId: string,
+    input: ResolveExecutionIntentInput,
+  ): Promise<ResolveExecutionIntentResult> {
+    if (!this.executionIntents) {
+      throw new RuntimeError(
+        "Execution Intents are not enabled on this deployment.",
+        501,
+        "EXECUTION_INTENTS_NOT_ENABLED",
+      );
+    }
+
+    const existing = await this.executionIntents.get(businessTransactionId);
+
+    if (
+      existing &&
+      existing.status.state !== "RESOLVED" &&
+      existing.status.state !== "FINALIZED" &&
+      (await this.trustRecords.findByTransactionId(businessTransactionId))
+    ) {
+      throw new ExecutionIntentNotResolvableError(
+        businessTransactionId,
+        existing.status.state,
+        "A signed Execution Trust Record already exists for it, so run finalize to mark it complete.",
+      );
+    }
+
+    return this.executionIntents.resolve(businessTransactionId, input);
   }
 
   private async reloadTrustRecord(

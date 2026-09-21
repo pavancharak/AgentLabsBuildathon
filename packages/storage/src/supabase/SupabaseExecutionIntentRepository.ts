@@ -4,6 +4,8 @@ import type {
   ExecutionIntent,
   ExecutionIntentFinalizationMode,
   ExecutionIntentRepository,
+  ExecutionIntentResolution,
+  ExecutionIntentResolutionInput,
   ExecutionIntentState,
   StoredExecutionIntent,
 } from "@parmana/shared";
@@ -12,7 +14,8 @@ import type {
  * Postgres implementation of ExecutionIntentRepository (ADR-0012), following
  * SupabaseRefusalRecordRepository. The state transitions are enforced in SQL
  * so they hold under concurrency: markReleased and markErrored only move a
- * PREPARED row, and markFinalized never moves a FINALIZED row. markFinalized
+ * PREPARED row, markResolved only moves a PREPARED or ERRORED row, and
+ * markFinalized never moves a FINALIZED row. markFinalized
  * also deletes the saved release context: once the Trust Record exists that
  * copy has no further use, and it holds the full execution context.
  */
@@ -87,6 +90,21 @@ export class SupabaseExecutionIntentRepository implements ExecutionIntentReposit
     await this.pool.query(MARK_ERRORED_SQL, [businessTransactionId, reason]);
   }
 
+  async markResolved(
+    businessTransactionId: string,
+    input: ExecutionIntentResolutionInput,
+  ): Promise<boolean> {
+    const result = await this.pool.query(MARK_RESOLVED_SQL, [
+      businessTransactionId,
+      input.resolution,
+      input.note,
+      input.resolvedBy ?? null,
+      input.resolvedAt.toISOString(),
+    ]);
+
+    return result.rowCount === 1;
+  }
+
   async listUnfinalized(
     limit: number,
   ): Promise<readonly StoredExecutionIntent[]> {
@@ -139,6 +157,14 @@ function toStored(row: ExecutionIntentRow): StoredExecutionIntent {
       ...(row.failure_reason !== null
         ? { failureReason: row.failure_reason }
         : {}),
+      ...(row.resolution !== null ? { resolution: row.resolution } : {}),
+      ...(row.resolution_note !== null
+        ? { resolutionNote: row.resolution_note }
+        : {}),
+      ...(row.resolved_by !== null ? { resolvedBy: row.resolved_by } : {}),
+      ...(row.resolved_at !== null
+        ? { resolvedAt: new Date(row.resolved_at) }
+        : {}),
     },
     ...(row.released_context_json !== null
       ? { releasedContext: row.released_context_json }
@@ -188,9 +214,20 @@ const MARK_ERRORED_SQL = `
      AND state = 'PREPARED'
 `;
 
+const MARK_RESOLVED_SQL = `
+  UPDATE execution_intents
+     SET state = 'RESOLVED',
+         resolution = $2,
+         resolution_note = $3,
+         resolved_by = $4,
+         resolved_at = $5
+   WHERE business_transaction_id = $1
+     AND state IN ('PREPARED', 'ERRORED')
+`;
+
 const LIST_UNFINALIZED_SQL = `
   SELECT * FROM execution_intents
-   WHERE state <> 'FINALIZED'
+   WHERE state NOT IN ('FINALIZED', 'RESOLVED')
    ORDER BY created_at ASC
    LIMIT $1
 `;
@@ -219,4 +256,8 @@ interface ExecutionIntentRow {
   readonly finalization_mode: ExecutionIntentFinalizationMode | null;
   readonly trust_record_id: string | null;
   readonly failure_reason: string | null;
+  readonly resolution: ExecutionIntentResolution | null;
+  readonly resolution_note: string | null;
+  readonly resolved_by: string | null;
+  readonly resolved_at: string | Date | null;
 }

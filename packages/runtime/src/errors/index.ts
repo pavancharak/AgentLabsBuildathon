@@ -8,3 +8,5 @@ export * from "./ExecutionRecordIncompleteError.js";
 export * from "./ExecutionIntentUnavailableError.js";
 export * from "./ExecutionIntentNotFinalizableError.js";
 export * from "./ExecutionIntentNotFoundError.js";
+export * from "./ExecutionIntentNotResolvableError.js";
+export * from "./ExecutionIntentResolutionInvalidError.js";

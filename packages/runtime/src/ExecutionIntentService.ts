@@ -2,12 +2,38 @@ import type {
   ExecutionIntent,
   ExecutionIntentFinalizationMode,
   ExecutionIntentRepository,
+  ExecutionIntentResolution,
   StoredExecutionIntent,
 } from "@parmana/shared";
 
 import type { RuntimeContext } from "./context/RuntimeContext.js";
 import { ExecutionIntentBuilder } from "./ExecutionIntentBuilder.js";
+import { ExecutionIntentNotFoundError } from "./errors/ExecutionIntentNotFoundError.js";
+import { ExecutionIntentNotResolvableError } from "./errors/ExecutionIntentNotResolvableError.js";
+import { ExecutionIntentResolutionInvalidError } from "./errors/ExecutionIntentResolutionInvalidError.js";
 import { ExecutionIntentUnavailableError } from "./errors/ExecutionIntentUnavailableError.js";
+
+const RESOLUTIONS: readonly ExecutionIntentResolution[] = [
+  "NOT_EXECUTED",
+  "EXECUTED",
+];
+
+/** The longest note accepted when closing an intent by hand. */
+export const MAX_RESOLUTION_NOTE_LENGTH = 2000;
+
+export interface ResolveExecutionIntentInput {
+  readonly resolution: unknown;
+
+  readonly note: unknown;
+
+  readonly resolvedBy?: string;
+}
+
+export interface ResolveExecutionIntentResult {
+  readonly outcome: "RESOLVED" | "ALREADY_RESOLVED";
+
+  readonly stored: StoredExecutionIntent;
+}
 
 /**
  * Coordinates the Execution Intent lifecycle for the runtime (ADR-0012).
@@ -117,6 +143,114 @@ export class ExecutionIntentService {
         error,
       );
     }
+  }
+
+  /**
+   * Closes a PREPARED or ERRORED intent that a verified human reconciled at the
+   * connector (docs/VERIFICATION-GAPS.md G-54). Records what they found and a
+   * required note, attributed and timestamped, in the intent's unsigned status.
+   *
+   * Never touches a connector. Idempotent: resolving an intent that is already
+   * RESOLVED changes nothing and returns ALREADY_RESOLVED with the original
+   * resolution. A RELEASED intent is refused, because its execution result is
+   * saved and finalize is the right operation. A FINALIZED intent is refused.
+   * A lost race is resolved by reading the winner back.
+   */
+  async resolve(
+    businessTransactionId: string,
+    input: ResolveExecutionIntentInput,
+  ): Promise<ResolveExecutionIntentResult> {
+    const resolution = RESOLUTIONS.find((value) => value === input.resolution);
+
+    if (resolution === undefined) {
+      throw new ExecutionIntentResolutionInvalidError(
+        `resolution must be one of ${RESOLUTIONS.join(", ")}.`,
+      );
+    }
+
+    const note = typeof input.note === "string" ? input.note.trim() : "";
+
+    if (note.length === 0) {
+      throw new ExecutionIntentResolutionInvalidError(
+        "note is required. Record what you found at the connector.",
+      );
+    }
+
+    if (note.length > MAX_RESOLUTION_NOTE_LENGTH) {
+      throw new ExecutionIntentResolutionInvalidError(
+        `note must be at most ${MAX_RESOLUTION_NOTE_LENGTH} characters.`,
+      );
+    }
+
+    const stored = await this.repository.findByTransactionId(
+      businessTransactionId,
+    );
+
+    if (!stored) {
+      throw new ExecutionIntentNotFoundError(businessTransactionId);
+    }
+
+    if (stored.status.state === "RESOLVED") {
+      return { outcome: "ALREADY_RESOLVED", stored };
+    }
+
+    this.assertResolvable(businessTransactionId, stored);
+
+    const moved = await this.repository.markResolved(businessTransactionId, {
+      resolution,
+      note,
+      ...(input.resolvedBy !== undefined && { resolvedBy: input.resolvedBy }),
+      resolvedAt: new Date(),
+    });
+
+    const after = await this.repository.findByTransactionId(
+      businessTransactionId,
+    );
+
+    if (!after) {
+      throw new ExecutionIntentNotFoundError(businessTransactionId);
+    }
+
+    if (!moved) {
+      if (after.status.state === "RESOLVED") {
+        return { outcome: "ALREADY_RESOLVED", stored: after };
+      }
+
+      this.assertResolvable(businessTransactionId, after);
+
+      // Still resolvable, yet the update did not apply. Never report success.
+      throw new Error(
+        `The Execution Intent for '${businessTransactionId}' could not be resolved. Try again.`,
+      );
+    }
+
+    console.log({
+      event: "execution_intent_resolved",
+      businessTransactionId,
+      resolution,
+      resolvedBy: input.resolvedBy,
+    });
+
+    return { outcome: "RESOLVED", stored: after };
+  }
+
+  private assertResolvable(
+    businessTransactionId: string,
+    stored: StoredExecutionIntent,
+  ): void {
+    const state = stored.status.state;
+
+    if (state === "PREPARED" || state === "ERRORED") {
+      return;
+    }
+
+    throw new ExecutionIntentNotResolvableError(
+      businessTransactionId,
+      state,
+      state === "RELEASED"
+        ? "Its execution result was saved, so rebuild the signed Trust Record with finalize instead."
+        : "It is already complete.",
+    );
   }
 
   async get(

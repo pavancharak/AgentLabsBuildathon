@@ -2,6 +2,7 @@ import type {
   ExecutionIntent,
   ExecutionIntentFinalizationMode,
   ExecutionIntentRepository,
+  ExecutionIntentResolutionInput,
   StoredExecutionIntent,
 } from "@parmana/shared";
 
@@ -95,11 +96,43 @@ export class MemoryExecutionIntentRepository implements ExecutionIntentRepositor
     });
   }
 
+  async markResolved(
+    businessTransactionId: string,
+    input: ExecutionIntentResolutionInput,
+  ): Promise<boolean> {
+    const stored = this.intents.get(businessTransactionId);
+
+    if (
+      !stored ||
+      (stored.status.state !== "PREPARED" && stored.status.state !== "ERRORED")
+    ) {
+      return false;
+    }
+
+    this.intents.set(businessTransactionId, {
+      intent: stored.intent,
+      status: {
+        ...stored.status,
+        state: "RESOLVED",
+        resolution: input.resolution,
+        resolutionNote: input.note,
+        ...(input.resolvedBy !== undefined && { resolvedBy: input.resolvedBy }),
+        resolvedAt: input.resolvedAt,
+      },
+    });
+
+    return true;
+  }
+
   async listUnfinalized(
     limit: number,
   ): Promise<readonly StoredExecutionIntent[]> {
     return [...this.intents.values()]
-      .filter((stored) => stored.status.state !== "FINALIZED")
+      .filter(
+        (stored) =>
+          stored.status.state !== "FINALIZED" &&
+          stored.status.state !== "RESOLVED",
+      )
       .sort(
         (a, b) => a.intent.createdAt.getTime() - b.intent.createdAt.getTime(),
       )

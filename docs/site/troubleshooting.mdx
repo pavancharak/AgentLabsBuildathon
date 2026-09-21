@@ -146,20 +146,20 @@ curl -s "$PARMANA_API_URL/execution-intents/<businessTransactionId>" \
 
   Both calls need a credential provisioned as a verified human (`credentialHolderType: USER`).
 
-- `status.state` is `PREPARED`: the context was not saved, so finalize refuses with `409 EXECUTION_INTENT_RESULT_NOT_RECORDED`. Query `execution_audit_events` for the `businessTransactionId` and check the connector's own record to see what ran, then record the outcome by hand.
+- `status.state` is `PREPARED`: the context was not saved, so finalize refuses with `409 EXECUTION_INTENT_RESULT_NOT_RECORDED`. Query `execution_audit_events` for the `businessTransactionId` and check the connector's own record to see what ran, then close the intent with `POST /execution-intents/<businessTransactionId>/resolve`, giving what you found (`NOT_EXECUTED` or `EXECUTED`) and a note. Record the outcome in your own systems as well.
 - `404 EXECUTION_INTENT_NOT_FOUND`: the transaction predates Execution Intents, or Execution Intents are off on this deployment. Use the manual reconciliation above.
 
 ## `POST /execution-intents/<id>/finalize` returns 409 `EXECUTION_INTENT_RESULT_NOT_RECORDED`
 
 **Cause:** the intent exists, but the execution result was never saved, so the signed Trust Record cannot be rebuilt from nothing. The action may or may not have been released. Nothing was called and nothing was changed.
 
-**Fix:** establish the outcome at the connector, using the `businessTransactionId`, `action` and `target` from `GET /execution-intents/<id>`, and record it by hand. There is currently no operation to close the intent afterwards, so it stays in `GET /execution-intents/unfinalized`. See [Execution Intents](/concepts/execution-intents#find-and-repair-a-released-action-with-no-signed-record).
+**Fix:** establish the outcome at the connector, using the `businessTransactionId`, `action` and `target` from `GET /execution-intents/<id>`, then close the intent with `POST /execution-intents/<id>/resolve`, giving what you found (`NOT_EXECUTED` or `EXECUTED`) and a required note. Closing it takes it out of `GET /execution-intents/unfinalized`. See [Execution Intents](/concepts/execution-intents#step-4-close-an-intent-you-reconciled-at-the-connector-prepared-or-errored).
 
 ## `GET /execution-intents/unfinalized` lists an intent in state `ERRORED`
 
 **Cause:** the release stage raised an error, most often a connector timeout, and the intent recorded `status.failureReason`. **The action may still have been executed**, for example when the connector received the request and answered too slowly.
 
-**Fix:** check the connector for the `businessTransactionId` and `target` before doing anything else. Finalize cannot help, because no result was saved.
+**Fix:** check the connector for the `businessTransactionId` and `target` before doing anything else. Finalize cannot help, because no result was saved. Once you know what happened, close the intent with `POST /execution-intents/<id>/resolve`, which records what you found and a required note, and takes it out of the list.
 
 ## `PARMANA_POLICY_DIR` and running from a fresh clone
 

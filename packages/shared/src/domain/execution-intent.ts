@@ -69,9 +69,19 @@ export interface ExecutionIntent {
  * - FINALIZED: a signed Execution Trust Record exists for this transaction.
  * - ERRORED: the release stage raised an error. The action may still have been
  *   executed, so the outcome is unknown and must be reconciled.
+ * - RESOLVED: a verified human reconciled a PREPARED or ERRORED intent at the
+ *   connector and closed it, recording what they found (`resolution`) and a
+ *   note. The resolution is an attributed operator statement stored in this
+ *   unsigned status. It is NOT tamper evident, and it is not a Trust Record.
  */
 export type ExecutionIntentState =
-  "PREPARED" | "RELEASED" | "FINALIZED" | "ERRORED";
+  "PREPARED" | "RELEASED" | "FINALIZED" | "ERRORED" | "RESOLVED";
+
+/**
+ * What an operator established at the connector when closing an intent that
+ * has no Trust Record: the action did not run, or it did run.
+ */
+export type ExecutionIntentResolution = "NOT_EXECUTED" | "EXECUTED";
 
 export type ExecutionIntentFinalizationMode = "INLINE" | "REPAIRED";
 
@@ -87,6 +97,14 @@ export interface ExecutionIntentStatus {
   readonly trustRecordId?: string;
 
   readonly failureReason?: string;
+
+  readonly resolvedAt?: Date;
+
+  readonly resolvedBy?: string;
+
+  readonly resolution?: ExecutionIntentResolution;
+
+  readonly resolutionNote?: string;
 }
 
 /**

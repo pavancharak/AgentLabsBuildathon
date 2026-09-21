@@ -136,6 +136,88 @@ describe("MemoryExecutionIntentRepository", () => {
     expect(stored?.releasedContext).toBeUndefined();
   });
 
+  describe("markResolved", () => {
+    const resolvedAt = new Date("2026-09-21T06:00:00.000Z");
+
+    it.each(["PREPARED", "ERRORED"] as const)(
+      "closes a %s intent with the resolution, the note and who did it",
+      async (from) => {
+        const repository = new MemoryExecutionIntentRepository();
+
+        await repository.create(intent("tx-1"));
+
+        if (from === "ERRORED") {
+          await repository.markErrored("tx-1", "connector timed out");
+        }
+
+        const moved = await repository.markResolved("tx-1", {
+          resolution: "NOT_EXECUTED",
+          note: "Checked the connector, no refund for this order.",
+          resolvedBy: "operator-1",
+          resolvedAt,
+        });
+
+        const stored = await repository.findByTransactionId("tx-1");
+
+        expect(moved).toBe(true);
+        expect(stored?.status).toMatchObject({
+          state: "RESOLVED",
+          resolution: "NOT_EXECUTED",
+          resolutionNote: "Checked the connector, no refund for this order.",
+          resolvedBy: "operator-1",
+          resolvedAt,
+        });
+      },
+    );
+
+    it("never moves a RELEASED, FINALIZED or already RESOLVED intent", async () => {
+      const repository = new MemoryExecutionIntentRepository();
+      const input = {
+        resolution: "EXECUTED" as const,
+        note: "n",
+        resolvedAt,
+      };
+
+      await repository.create(intent("released"));
+      await repository.markReleased("released", { saved: true }, new Date());
+      await repository.create(intent("finalized"));
+      await repository.markFinalized("finalized", "r", "INLINE", new Date());
+      await repository.create(intent("resolved"));
+      await repository.markResolved("resolved", { ...input, note: "first" });
+
+      expect(await repository.markResolved("released", input)).toBe(false);
+      expect(await repository.markResolved("finalized", input)).toBe(false);
+      expect(await repository.markResolved("resolved", input)).toBe(false);
+      expect(await repository.markResolved("unknown", input)).toBe(false);
+
+      expect(
+        (await repository.findByTransactionId("resolved"))?.status
+          .resolutionNote,
+      ).toBe("first");
+      expect(
+        (await repository.findByTransactionId("released"))?.status.state,
+      ).toBe("RELEASED");
+    });
+
+    it("removes a resolved intent from the unfinalized list", async () => {
+      const repository = new MemoryExecutionIntentRepository();
+
+      await repository.create(intent("tx-1"));
+      await repository.create(intent("tx-2"));
+      await repository.markResolved("tx-1", {
+        resolution: "NOT_EXECUTED",
+        note: "n",
+        resolvedAt,
+      });
+
+      expect(
+        (await repository.listUnfinalized(10)).map(
+          (stored) => stored.intent.businessTransactionId,
+        ),
+      ).toEqual(["tx-2"]);
+    });
+  });
+
   it("lists only unfinalized intents, oldest first, up to the limit", async () => {
     const repository = new MemoryExecutionIntentRepository();
 
@@ -160,14 +242,14 @@ describe("MemoryExecutionIntentRepository", () => {
 });
 
 describe("SupabaseExecutionIntentRepository", () => {
-  function recordingPool(rows: Record<string, unknown>[] = []) {
+  function recordingPool(rows: Record<string, unknown>[] = [], rowCount = 1) {
     const calls: { sql: string; values: readonly unknown[] }[] = [];
 
     const pool = {
       query(sql: string, values: readonly unknown[] = []) {
         calls.push({ sql, values });
 
-        return Promise.resolve({ rows });
+        return Promise.resolve({ rows, rowCount });
       },
     } as unknown as Pool;
 
@@ -248,6 +330,10 @@ describe("SupabaseExecutionIntentRepository", () => {
         finalization_mode: "REPAIRED",
         trust_record_id: "record-1",
         failure_reason: null,
+        resolution: null,
+        resolution_note: null,
+        resolved_by: null,
+        resolved_at: null,
       },
     ]);
 
@@ -311,8 +397,113 @@ describe("SupabaseExecutionIntentRepository", () => {
 
     await new SupabaseExecutionIntentRepository(pool).listUnfinalized(25);
 
-    expect(calls[0]?.sql).toContain("state <> 'FINALIZED'");
+    expect(calls[0]?.sql).toContain("state NOT IN ('FINALIZED', 'RESOLVED')");
     expect(calls[0]?.sql).toContain("ORDER BY created_at ASC");
     expect(calls[0]?.values).toEqual([25]);
+  });
+
+  describe("markResolved (G-54)", () => {
+    const input = {
+      resolution: "EXECUTED" as const,
+      note: "Refund found at the connector.",
+      resolvedBy: "operator-1",
+      resolvedAt: new Date("2026-09-21T06:00:00.000Z"),
+    };
+
+    it("only moves a PREPARED or ERRORED row, in SQL", async () => {
+      const { pool, calls } = recordingPool();
+
+      await new SupabaseExecutionIntentRepository(pool).markResolved(
+        "tx-1",
+        input,
+      );
+
+      expect(calls[0]?.sql).toContain("state IN ('PREPARED', 'ERRORED')");
+      expect(calls[0]?.values).toEqual([
+        "tx-1",
+        "EXECUTED",
+        "Refund found at the connector.",
+        "operator-1",
+        "2026-09-21T06:00:00.000Z",
+      ]);
+    });
+
+    it("stores an absent resolvedBy as null", async () => {
+      const { pool, calls } = recordingPool();
+      const { resolvedBy: _by, ...withoutBy } = input;
+
+      await new SupabaseExecutionIntentRepository(pool).markResolved(
+        "tx-1",
+        withoutBy,
+      );
+
+      expect(calls[0]?.values?.[3]).toBeNull();
+    });
+
+    it("reports whether this call moved the row", async () => {
+      const moved = recordingPool([], 1);
+      const notMoved = recordingPool([], 0);
+
+      expect(
+        await new SupabaseExecutionIntentRepository(moved.pool).markResolved(
+          "tx-1",
+          input,
+        ),
+      ).toBe(true);
+      expect(
+        await new SupabaseExecutionIntentRepository(notMoved.pool).markResolved(
+          "tx-1",
+          input,
+        ),
+      ).toBe(false);
+    });
+
+    it("maps the resolution columns back to the status", async () => {
+      const source = intent("tx-1");
+      const { pool } = recordingPool([
+        {
+          intent_id: source.intentId,
+          business_transaction_id: "tx-1",
+          decision_id: source.decisionId,
+          authorization_id: source.authorizationId,
+          policy_name: source.policyName,
+          policy_version: source.policyVersion,
+          policy_content_hash: null,
+          signals_hash: null,
+          business_transaction_hash: "content-hash",
+          action: source.action,
+          target: source.target,
+          submitted_by: null,
+          granted_capability: null,
+          intent_hash: "intent-hash",
+          signature_json: source.signature,
+          created_at: "2026-09-21T00:00:00.000Z",
+          state: "RESOLVED",
+          released_context_json: null,
+          released_at: null,
+          finalized_at: null,
+          finalization_mode: null,
+          trust_record_id: null,
+          failure_reason: "connector timed out",
+          resolution: "NOT_EXECUTED",
+          resolution_note: "Checked, nothing there.",
+          resolved_by: "operator-1",
+          resolved_at: "2026-09-21T06:00:00.000Z",
+        },
+      ]);
+
+      const stored = await new SupabaseExecutionIntentRepository(
+        pool,
+      ).findByTransactionId("tx-1");
+
+      expect(stored?.status).toEqual({
+        state: "RESOLVED",
+        failureReason: "connector timed out",
+        resolution: "NOT_EXECUTED",
+        resolutionNote: "Checked, nothing there.",
+        resolvedBy: "operator-1",
+        resolvedAt: new Date("2026-09-21T06:00:00.000Z"),
+      });
+    });
   });
 });

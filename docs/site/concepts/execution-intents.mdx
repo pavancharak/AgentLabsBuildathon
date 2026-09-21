@@ -83,18 +83,21 @@ A real captured intent is in [Get an Execution Intent](/api-reference/endpoints/
 
 The honest reading of an intent with no Trust Record is: **the action may or may not have run, and someone has to check the connector.**
 
-## The four states
+## The five states
 
 The state is operational status kept next to the signed intent. It is **not signed**, so it changes as the request progresses.
 
-| State       | Meaning                                                                                                       | Typical cause                                                                                               | What an operator does                                                                                                                     |
-| ----------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `PREPARED`  | The intent is signed and stored. The action may or may not have been released. No execution result was saved. | A crash between storing the intent and releasing it, or the release happened but saving the context failed. | Check the connector for the `businessTransactionId` and `target`. See [Repair](#find-and-repair-a-released-action-with-no-signed-record). |
-| `RELEASED`  | The connector answered and the execution context was saved. No Trust Record exists yet.                       | The Trust Record could not be built or stored (database or signing failure after release).                  | Run finalize. It rebuilds the record without calling the connector.                                                                       |
-| `FINALIZED` | A signed Execution Trust Record exists.                                                                       | The normal outcome.                                                                                         | Nothing.                                                                                                                                  |
-| `ERRORED`   | The release stage raised an error. The action may still have been executed.                                   | The connector timed out or raised an error.                                                                 | Check the connector for the `businessTransactionId` and `target`. Do not assume nothing happened.                                         |
+| State       | Meaning                                                                                                       | Typical cause                                                                                               | What an operator does                                                                                                                                                 |
+| ----------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PREPARED`  | The intent is signed and stored. The action may or may not have been released. No execution result was saved. | A crash between storing the intent and releasing it, or the release happened but saving the context failed. | Check the connector for the `businessTransactionId` and `target`, then close it with resolve. See [Repair](#find-and-repair-a-released-action-with-no-signed-record). |
+| `RELEASED`  | The connector answered and the execution context was saved. No Trust Record exists yet.                       | The Trust Record could not be built or stored (database or signing failure after release).                  | Run finalize. It rebuilds the record without calling the connector.                                                                                                   |
+| `FINALIZED` | A signed Execution Trust Record exists.                                                                       | The normal outcome.                                                                                         | Nothing.                                                                                                                                                              |
+| `ERRORED`   | The release stage raised an error. The action may still have been executed.                                   | The connector timed out or raised an error.                                                                 | Check the connector for the `businessTransactionId` and `target`. Do not assume nothing happened. Then close it with resolve.                                         |
+| `RESOLVED`  | A verified human reconciled a `PREPARED` or `ERRORED` intent at the connector and closed it.                  | An operator checked the connector after a timeout, a crash, or a failed save.                               | Nothing. It no longer appears in the unfinalized list.                                                                                                                |
 
 `FINALIZED` also records `finalizationMode`: `INLINE` when the Trust Record was produced in the original request, `REPAIRED` when it was rebuilt afterwards by finalize.
+
+`RESOLVED` also records `resolution` (`NOT_EXECUTED` or `EXECUTED`, what the operator found at the connector), `resolutionNote`, `resolvedBy` and `resolvedAt`. **That is an attributed, timestamped statement by a person, stored in the unsigned status. It is not tamper evident, and it is not a signed Trust Record.** For an action that ran, the signed evidence is still the intent, and the operator's note is the trail.
 
 ## Every failure, and what the caller sees
 
@@ -103,9 +106,9 @@ The state is operational status kept next to the signed intent. It is **not sign
 | Policy refuses                                                        | `403 POLICY_DENIED`                | A Refusal Record. No intent.                                          | Nothing was released.                                                                                                |
 | Signing readiness check                                               | `503 SIGNING_UNAVAILABLE`          | No intent.                                                            | Nothing was released. Retry later with a **new** `businessTransactionId`.                                            |
 | Sign or store the intent                                              | `503 EXECUTION_INTENT_UNAVAILABLE` | No intent.                                                            | Nothing was released. Retry later with a **new** `businessTransactionId`, because the original was already accepted. |
-| The release stage raises an error                                     | The error from the connector       | Intent in `ERRORED`, with `failureReason`.                            | The action may have run. Check the connector.                                                                        |
+| The release stage raises an error                                     | The error from the connector       | Intent in `ERRORED`, with `failureReason`.                            | The action may have run. Check the connector, then close the intent with resolve.                                    |
 | Release succeeds, saving the context succeeds, the Trust Record fails | `500 EXECUTION_RECORD_INCOMPLETE`  | Intent in `RELEASED` with the saved context.                          | Run finalize.                                                                                                        |
-| Release succeeds, saving the context fails, the Trust Record fails    | `500 EXECUTION_RECORD_INCOMPLETE`  | Intent in `PREPARED`.                                                 | Finalize will refuse with `409`. Establish the outcome at the connector and reconcile by hand.                       |
+| Release succeeds, saving the context fails, the Trust Record fails    | `500 EXECUTION_RECORD_INCOMPLETE`  | Intent in `PREPARED`.                                                 | Finalize will refuse with `409`. Establish the outcome at the connector, then close the intent with resolve.         |
 | The Trust Record is stored, marking the intent fails                  | `200` as normal                    | A Trust Record, and an intent still showing `RELEASED` or `PREPARED`. | Run finalize. It returns `ALREADY_FINALIZED` and corrects the status.                                                |
 
 <Warning>
@@ -147,15 +150,7 @@ Invoke-RestMethod "$env:PARMANA_API_URL/execution-intents/unfinalized" `
 
 </CodeGroup>
 
-The response is `{ "intents": [ { "intent": {...}, "status": {...} } ] }`, oldest first, at most 50 by default (`?limit=` up to 200). Every entry is an action that may have been released with no signed record.
-
-<Warning>
-  **Known limitation.** There is no operation to close an intent that you have
-  already reconciled by hand. An `ERRORED` or `PREPARED` intent stays in this
-  list until a signed Trust Record exists for it, and for an action that never
-  ran, one never will. Keep your own record of the ids you have reconciled.
-  Treat only `RELEASED` entries as repairable.
-</Warning>
+The response is `{ "intents": [ { "intent": {...}, "status": {...} } ] }`, oldest first, at most 50 by default (`?limit=` up to 200). Every entry is an action that may have been released with no signed record, or whose outcome nobody has reconciled yet. A `RESOLVED` intent no longer appears.
 
 ### Step 2. Decide by state
 
@@ -164,11 +159,8 @@ The response is `{ "intents": [ { "intent": {...}, "status": {...} } ] }`, oldes
     Go to step 3. This is the case finalize exists for.
   </Tab>
   <Tab title="PREPARED or ERRORED">
-    Finalize cannot help, because no execution result was saved. Establish what
-    happened at the connector, using `businessTransactionId`, `action` and
-    `target` from the intent. If the action ran, record the outcome in your own
-    systems. If it did not run, there is nothing to repair. Either way, note the
-    id as reconciled.
+    Finalize cannot help, because no execution result was saved. Check the
+    connector, then go to step 4.
   </Tab>
   <Tab title="FINALIZED">Nothing to do.</Tab>
 </Tabs>
@@ -205,7 +197,57 @@ What finalize does, and does not do:
 | `403 NON_HUMAN_CALLER_DENIED`              | The credential is not provisioned as a verified human.                                                                                 |
 | `501 EXECUTION_INTENTS_NOT_ENABLED`        | Execution Intents are not enabled on this deployment.                                                                                  |
 
-### Step 4. Confirm
+### Step 4. Close an intent you reconciled at the connector (PREPARED or ERRORED)
+
+Do this only **after** you have checked the connector, using `businessTransactionId`, `action` and `target` from the intent. Then record what you found, and a note saying what you checked.
+
+| `resolution`   | Use it when                                                                                             |
+| -------------- | ------------------------------------------------------------------------------------------------------- |
+| `NOT_EXECUTED` | You checked and the action did not run, for example the request never reached the connector.            |
+| `EXECUTED`     | You checked and the action did run. Record the outcome in your own systems as well, see the note below. |
+
+<CodeGroup>
+
+```bash bash
+curl -s -X POST "$PARMANA_API_URL/execution-intents/<businessTransactionId>/resolve" \
+  -H "Authorization: Bearer $PARMANA_OPERATOR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"resolution":"NOT_EXECUTED","note":"Checked the Paytm dashboard for order 1001. No refund exists."}'
+```
+
+```powershell PowerShell
+$body = @{ resolution = "NOT_EXECUTED"; note = "Checked the Paytm dashboard for order 1001. No refund exists." } | ConvertTo-Json
+Invoke-RestMethod -Method Post "$env:PARMANA_API_URL/execution-intents/<businessTransactionId>/resolve" `
+  -Headers @{ Authorization = "Bearer $env:PARMANA_OPERATOR_KEY" } `
+  -ContentType "application/json" -Body $body
+```
+
+</CodeGroup>
+
+The `note` is required, at most 2000 characters, and is the only record of what you found. `resolvedBy` is taken from your credential, and `resolvedAt` is set by the server.
+
+| Response                                  | Meaning                                                                                                                                                                         |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `200`, `outcome: RESOLVED`                | This call closed the intent. It no longer appears in the unfinalized list.                                                                                                      |
+| `200`, `outcome: ALREADY_RESOLVED`        | It was already closed. **Nothing was changed.** The original resolution, note and author are returned, not the ones in this request.                                            |
+| `400 EXECUTION_INTENT_RESOLUTION_INVALID` | `resolution` is not `NOT_EXECUTED` or `EXECUTED`, or `note` is missing, blank or over 2000 characters.                                                                          |
+| `404 EXECUTION_INTENT_NOT_FOUND`          | No intent exists for that transaction.                                                                                                                                          |
+| `409 EXECUTION_INTENT_NOT_RESOLVABLE`     | The intent is `RELEASED` (use finalize), it is `FINALIZED` (already complete), or a signed Trust Record already exists for the transaction (run finalize). Nothing was changed. |
+| `403 NON_HUMAN_CALLER_DENIED`             | The credential is not provisioned as a verified human.                                                                                                                          |
+
+<Warning>
+  A resolution is an **attributed statement by an operator**, stored in the
+  intent's unsigned status. It is not tamper evident, and it does not create a
+  Trust Record. If you resolve an intent as `EXECUTED`, no signed Trust Record
+  exists for an action that ran, so record the outcome in your own systems. The
+  signed intent, your note and the connector's own record are the evidence. The
+  server writes a log line `execution_intent_resolved` with the transaction and
+  the caller each time.
+</Warning>
+
+Resolving never calls a connector.
+
+### Step 5. Confirm a repair
 
 ```bash
 curl -s "$PARMANA_API_URL/execution-intents/<businessTransactionId>" \
@@ -297,7 +339,7 @@ One more signing operation and one more database write happen before every relea
 - An intent proves what was about to be released. It does not prove release or the result.
 - Finalize can only rebuild a record when the execution context was saved. When that save fails, finalize refuses with `409` and the outcome must be established from the connector.
 - Transactions created before this feature have no intent. Their behavior is unchanged.
-- There is no operation to close an `ERRORED` or `PREPARED` intent after you reconcile it, see step 1 above.
+- Closing an intent (resolve) records an operator's statement in unsigned status. It is not tamper evident and it does not create a Trust Record.
 - The list route returns intents across all callers, so it needs a verified human credential.
 - The SDKs do not verify intents yet.
 
@@ -312,5 +354,7 @@ On 2026-09-21, against the real stack: the production Docker image built from th
 | The intent cannot be stored                     | `503 EXECUTION_INTENT_UNAVAILABLE` with the text "Nothing was executed". The connector was not called and no intent row was written.                                                                                                                                                                                                       |
 
 A separate repeat run produced an intent in state `ERRORED` with the reason `PaytmConnector "paytm" request to capability "paytm:refund" timed out after 10000ms`. That was a real connector timeout on a slow Paytm staging call, and it is the designed behavior: the release stage raised an error, so the intent recorded that the outcome is unknown and did not claim nothing happened.
+
+**Closing an intent by hand (resolve) was verified later the same day, with local signing keys and not under KMS.** With the same production image and a real Postgres, the connector was made unreachable, so the release raised a real error (`fetch failed`) and left the intent in `ERRORED`. Finalize refused it with `409`. A resolve with no note was refused with `400`, and a non human credential with `403`. A verified human then closed it: `RESOLVED`, `NOT_EXECUTED`, the note and the author recorded, and the intent left the unfinalized list. A second resolve changed nothing (`ALREADY_RESOLVED`), and resolving a `FINALIZED` intent was refused with `409`. 35 of 35 checks passed in that run. The resolve SQL was also run against a real Postgres (12 checks, including both database constraints).
 
 Not verified: behavior from Vercel with the OIDC role, latency from Vercel, or a real Paytm refund. The automated tests cover the lifecycle at unit, storage and HTTP level, and the storage queries were also run against a real Postgres.

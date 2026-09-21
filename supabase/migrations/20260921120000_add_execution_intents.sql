@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS execution_intents (
     -- Operational status below this line. Not part of the signature.
 
     state TEXT NOT NULL DEFAULT 'PREPARED'
-        CHECK (state IN ('PREPARED', 'RELEASED', 'FINALIZED', 'ERRORED')),
+        CHECK (state IN ('PREPARED', 'RELEASED', 'FINALIZED', 'ERRORED', 'RESOLVED')),
 
     released_context_json JSONB,
 
@@ -77,6 +77,28 @@ CREATE TABLE IF NOT EXISTS execution_intents (
 
     failure_reason TEXT,
 
+    -- Set only when a verified human closed a PREPARED or ERRORED intent after
+    -- reconciling it at the connector (state RESOLVED). This is an attributed
+    -- operator statement in unsigned status. It is not tamper evident.
+    resolution TEXT
+        CHECK (resolution IN ('NOT_EXECUTED', 'EXECUTED')),
+
+    resolution_note TEXT,
+
+    resolved_by TEXT,
+
+    resolved_at TIMESTAMPTZ,
+
+    CONSTRAINT execution_intent_resolved_is_complete
+        CHECK (
+            state <> 'RESOLVED'
+            OR (
+                resolution IS NOT NULL
+                AND resolution_note IS NOT NULL
+                AND resolved_at IS NOT NULL
+            )
+        ),
+
     CONSTRAINT fk_execution_intent_transaction
         FOREIGN KEY (
             business_transaction_id
@@ -88,12 +110,13 @@ CREATE TABLE IF NOT EXISTS execution_intents (
 
 );
 
--- Operators look for intents that never reached a signed Trust Record. A
--- partial index keeps that lookup cheap without indexing every finalized row.
+-- Operators look for intents that never reached a signed Trust Record and were
+-- not closed by hand. A partial index keeps that lookup cheap without indexing
+-- every finalized or resolved row.
 CREATE INDEX IF NOT EXISTS idx_execution_intents_unfinalized
 ON execution_intents (
     created_at
 )
-WHERE state <> 'FINALIZED';
+WHERE state NOT IN ('FINALIZED', 'RESOLVED');
 
 ALTER TABLE execution_intents ENABLE ROW LEVEL SECURITY;

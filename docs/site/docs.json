@@ -379,7 +379,8 @@
               "api-reference/endpoints/verify-execution-intent",
               "api-reference/endpoints/list-unfinalized-execution-intents",
               "api-reference/endpoints/get-execution-intent",
-              "api-reference/endpoints/finalize-execution-intent"
+              "api-reference/endpoints/finalize-execution-intent",
+              "api-reference/endpoints/resolve-execution-intent"
             ]
           },
           {

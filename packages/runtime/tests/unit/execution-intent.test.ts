@@ -41,6 +41,8 @@ import { RuntimePipeline } from "../../src/RuntimePipeline.js";
 import type { RuntimeComponent } from "../../src/RuntimeComponent.js";
 import { ExecutionIntentNotFinalizableError } from "../../src/errors/ExecutionIntentNotFinalizableError.js";
 import { ExecutionIntentNotFoundError } from "../../src/errors/ExecutionIntentNotFoundError.js";
+import { ExecutionIntentNotResolvableError } from "../../src/errors/ExecutionIntentNotResolvableError.js";
+import { ExecutionIntentResolutionInvalidError } from "../../src/errors/ExecutionIntentResolutionInvalidError.js";
 import { ExecutionIntentUnavailableError } from "../../src/errors/ExecutionIntentUnavailableError.js";
 import { ExecutionRecordIncompleteError } from "../../src/errors/ExecutionRecordIncompleteError.js";
 
@@ -591,5 +593,208 @@ describe("ADR-0012: intent verification", () => {
     ) as ExecutionIntent;
 
     expect(await new ExecutionIntentCrypto().verify(tampered)).toBe(false);
+  });
+});
+
+describe("G-54: closing an intent that was reconciled by hand", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const found = {
+    resolution: "NOT_EXECUTED",
+    note: "Checked the connector. No refund exists for this order.",
+    resolvedBy: "operator-1",
+  };
+
+  async function erroredIntent() {
+    const harness = setup({
+      releaseFailsWith: new Error("connector timed out"),
+    });
+
+    await harness.runtime.execute(transaction()).catch(() => undefined);
+
+    return harness;
+  }
+
+  async function preparedIntent() {
+    const harness = setup();
+
+    vi.spyOn(harness.repository, "markReleased").mockRejectedValue(
+      new Error("status write failed"),
+    );
+    harness.trustRecords.failCreate = true;
+
+    await harness.runtime.execute(transaction()).catch(() => undefined);
+
+    harness.trustRecords.failCreate = false;
+
+    return harness;
+  }
+
+  it("closes an ERRORED intent, records who and why, and never calls the connector", async () => {
+    const { service, repository, release } = await erroredIntent();
+
+    expect((await repository.findByTransactionId(TX))?.status.state).toBe(
+      "ERRORED",
+    );
+
+    const result = await service.resolve(TX, found);
+
+    expect(result.outcome).toBe("RESOLVED");
+    expect(result.stored.status).toMatchObject({
+      state: "RESOLVED",
+      resolution: "NOT_EXECUTED",
+      resolutionNote: found.note,
+      resolvedBy: "operator-1",
+      failureReason: "connector timed out",
+    });
+    expect(result.stored.status.resolvedAt).toBeInstanceOf(Date);
+    expect(release.calls).toBe(1);
+  });
+
+  it("closes a PREPARED intent whose execution result was never saved", async () => {
+    const { service } = await preparedIntent();
+
+    const result = await service.resolve(TX, {
+      ...found,
+      resolution: "EXECUTED",
+    });
+
+    expect(result.outcome).toBe("RESOLVED");
+    expect(result.stored.status.resolution).toBe("EXECUTED");
+  });
+
+  it("removes the resolved intent from the unfinalized list", async () => {
+    const { service } = await erroredIntent();
+
+    expect(await service.listUnfinalized(10)).toHaveLength(1);
+
+    await service.resolve(TX, found);
+
+    expect(await service.listUnfinalized(10)).toHaveLength(0);
+  });
+
+  it("is idempotent: a second resolve changes nothing and keeps the first statement", async () => {
+    const { service } = await erroredIntent();
+
+    await service.resolve(TX, found);
+
+    const again = await service.resolve(TX, {
+      resolution: "EXECUTED",
+      note: "A different note.",
+      resolvedBy: "operator-2",
+    });
+
+    expect(again.outcome).toBe("ALREADY_RESOLVED");
+    expect(again.stored.status).toMatchObject({
+      resolution: "NOT_EXECUTED",
+      resolutionNote: found.note,
+      resolvedBy: "operator-1",
+    });
+  });
+
+  it("treats a lost race as already resolved, and reports the winner", async () => {
+    const { service, repository } = await erroredIntent();
+    const realMarkResolved = repository.markResolved.bind(repository);
+
+    vi.spyOn(repository, "markResolved").mockImplementation(async (id) => {
+      await realMarkResolved(id, {
+        resolution: "EXECUTED",
+        note: "The other operator won.",
+        resolvedBy: "operator-2",
+        resolvedAt: new Date(),
+      });
+
+      return false;
+    });
+
+    const result = await service.resolve(TX, found);
+
+    expect(result.outcome).toBe("ALREADY_RESOLVED");
+    expect(result.stored.status.resolvedBy).toBe("operator-2");
+  });
+
+  it("refuses a RELEASED intent and points to finalize", async () => {
+    const harness = setup();
+
+    harness.trustRecords.failCreate = true;
+    await harness.runtime.execute(transaction()).catch(() => undefined);
+
+    const error = await harness.service
+      .resolve(TX, found)
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ExecutionIntentNotResolvableError);
+    expect((error as ExecutionIntentNotResolvableError).status).toBe(409);
+    expect((error as ExecutionIntentNotResolvableError).code).toBe(
+      "EXECUTION_INTENT_NOT_RESOLVABLE",
+    );
+    expect((error as Error).message).toContain("finalize");
+    expect(
+      (await harness.repository.findByTransactionId(TX))?.status.state,
+    ).toBe("RELEASED");
+  });
+
+  it("refuses a FINALIZED intent", async () => {
+    const { runtime, service } = setup();
+
+    await runtime.execute(transaction());
+
+    const error = await service.resolve(TX, found).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ExecutionIntentNotResolvableError);
+    expect((error as Error).message).toContain("already complete");
+  });
+
+  it("refuses an unknown transaction with 404", async () => {
+    const { service } = setup();
+
+    const error = await service
+      .resolve("unknown", found)
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ExecutionIntentNotFoundError);
+  });
+
+  it.each([
+    ["a missing resolution", { note: "n" }],
+    ["an unknown resolution", { resolution: "MAYBE", note: "n" }],
+    ["a missing note", { resolution: "NOT_EXECUTED" }],
+    ["a blank note", { resolution: "NOT_EXECUTED", note: "   " }],
+    ["a note that is not text", { resolution: "NOT_EXECUTED", note: 5 }],
+    [
+      "a note over the limit",
+      { resolution: "NOT_EXECUTED", note: "x".repeat(2001) },
+    ],
+  ])("rejects %s with 400 and changes nothing", async (_label, input) => {
+    const { service, repository } = await erroredIntent();
+
+    const error = await service.resolve(TX, input).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ExecutionIntentResolutionInvalidError);
+    expect((error as ExecutionIntentResolutionInvalidError).status).toBe(400);
+    expect((error as ExecutionIntentResolutionInvalidError).code).toBe(
+      "EXECUTION_INTENT_RESOLUTION_INVALID",
+    );
+    expect((await repository.findByTransactionId(TX))?.status.state).toBe(
+      "ERRORED",
+    );
+  });
+
+  it("accepts a note of exactly the limit and trims surrounding space", async () => {
+    const { service } = await erroredIntent();
+
+    const result = await service.resolve(TX, {
+      resolution: "NOT_EXECUTED",
+      note: `  ${"x".repeat(2000)}  `,
+    });
+
+    expect(result.stored.status.resolutionNote).toHaveLength(2000);
   });
 });

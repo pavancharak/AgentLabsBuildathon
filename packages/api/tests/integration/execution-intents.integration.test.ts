@@ -383,3 +383,263 @@ describe("Execution Intents (ADR-0012, HTTP boundary): repair after a released a
     ).not.toContain(transaction.businessTransactionId);
   });
 });
+
+describe("Execution Intents (G-54, HTTP boundary): closing an intent reconciled by hand", () => {
+  class RecordingTrustRecords extends MemoryExecutionTrustRecordRepository {
+    failCreate = false;
+
+    override async create(
+      record: ExecutionTrustRecord,
+    ): Promise<ExecutionTrustRecord> {
+      if (this.failCreate) {
+        throw new Error("database unavailable");
+      }
+
+      return super.create(record);
+    }
+  }
+
+  function buildResolveApp(connectorFails: boolean) {
+    let connectorCalls = 0;
+
+    const { executionSystem } = createInspectableExecutionSystem({
+      executor: {
+        async execute(executableContent): Promise<ExecutionResult> {
+          connectorCalls += 1;
+
+          if (connectorFails) {
+            throw new Error("connector timed out");
+          }
+
+          return {
+            ...executableContent,
+            success: true,
+            executedAt: new Date(),
+            metadata: {},
+          };
+        },
+      },
+    });
+
+    const trustRecords = new RecordingTrustRecords();
+    const intents = new MemoryExecutionIntentRepository();
+
+    const application = RuntimeFactory.create(
+      new MemoryBusinessTransactionRepository(),
+      trustRecords,
+      new FilePolicyRepository(
+        path.resolve(import.meta.dirname, "../../../../policies"),
+      ),
+      executionSystem,
+      new MemoryRefusalRecordRepository(),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      intents,
+    );
+
+    const app = createApp(application, {
+      callerAuth: {
+        authenticator: authenticator(),
+        auditSink: new InMemoryCallerAuditSink(),
+      },
+    });
+
+    return { app, trustRecords, intents, calls: () => connectorCalls };
+  }
+
+  const human = (key = HUMAN_KEY) => ({ Authorization: `Bearer ${key}` });
+
+  it("closes an ERRORED intent, attributes it to the caller, and drops it from the unfinalized list", async () => {
+    const { app, calls } = buildResolveApp(true);
+    const transaction = createBusinessTransaction();
+    const id = transaction.businessTransactionId;
+
+    const executed = await request(app)
+      .post("/execute")
+      .set(human())
+      .send(transaction);
+
+    expect(executed.status).toBeGreaterThanOrEqual(400);
+    expect(calls()).toBe(1);
+
+    const before = await request(app)
+      .get(`/execution-intents/${id}`)
+      .set(human());
+
+    expect(before.body.status.state).toBe("ERRORED");
+
+    const resolved = await request(app)
+      .post(`/execution-intents/${id}/resolve`)
+      .set(human())
+      .send({
+        resolution: "NOT_EXECUTED",
+        note: "Checked the connector. Nothing was created for this order.",
+      });
+
+    expect(resolved.status, JSON.stringify(resolved.body)).toBe(200);
+    expect(resolved.body.outcome).toBe("RESOLVED");
+    expect(resolved.body.businessTransactionId).toBe(id);
+    expect(resolved.body.status).toMatchObject({
+      state: "RESOLVED",
+      resolution: "NOT_EXECUTED",
+      resolvedBy: "human-operator",
+      failureReason: "connector timed out",
+    });
+    expect(Object.keys(resolved.body).sort()).toEqual([
+      "businessTransactionId",
+      "intent",
+      "outcome",
+      "status",
+    ]);
+    expect(calls()).toBe(1);
+
+    const list = await request(app)
+      .get("/execution-intents/unfinalized")
+      .set(human());
+
+    expect(
+      list.body.intents.map(
+        (stored: { intent: { businessTransactionId: string } }) =>
+          stored.intent.businessTransactionId,
+      ),
+    ).not.toContain(id);
+
+    const again = await request(app)
+      .post(`/execution-intents/${id}/resolve`)
+      .set(human())
+      .send({ resolution: "EXECUTED", note: "A different note." });
+
+    expect(again.status).toBe(200);
+    expect(again.body.outcome).toBe("ALREADY_RESOLVED");
+    expect(again.body.status.resolution).toBe("NOT_EXECUTED");
+  });
+
+  it("needs a verified human, and validates the body", async () => {
+    const { app } = buildResolveApp(true);
+    const transaction = createBusinessTransaction();
+    const id = transaction.businessTransactionId;
+
+    await request(app).post("/execute").set(human()).send(transaction);
+
+    const service = await request(app)
+      .post(`/execution-intents/${id}/resolve`)
+      .set(human(SERVICE_KEY))
+      .send({ resolution: "NOT_EXECUTED", note: "n" });
+
+    expect(service.status).toBe(403);
+    expect(service.body.code).toBe("NON_HUMAN_CALLER_DENIED");
+
+    expect(
+      (
+        await request(app)
+          .post(`/execution-intents/${id}/resolve`)
+          .send({ resolution: "NOT_EXECUTED", note: "n" })
+      ).status,
+    ).toBe(401);
+
+    const noNote = await request(app)
+      .post(`/execution-intents/${id}/resolve`)
+      .set(human())
+      .send({ resolution: "NOT_EXECUTED" });
+
+    expect(noNote.status).toBe(400);
+    expect(noNote.body.code).toBe("EXECUTION_INTENT_RESOLUTION_INVALID");
+
+    const noBody = await request(app)
+      .post(`/execution-intents/${id}/resolve`)
+      .set(human());
+
+    expect(noBody.status).toBe(400);
+
+    const unknown = await request(app)
+      .post("/execution-intents/unknown-transaction/resolve")
+      .set(human())
+      .send({ resolution: "NOT_EXECUTED", note: "n" });
+
+    expect(unknown.status).toBe(404);
+    expect(unknown.body.code).toBe("EXECUTION_INTENT_NOT_FOUND");
+
+    const still = await request(app)
+      .get(`/execution-intents/${id}`)
+      .set(human());
+
+    expect(still.body.status.state).toBe("ERRORED");
+  });
+
+  it("refuses a RELEASED intent with 409 and points to finalize", async () => {
+    const { app, trustRecords } = buildResolveApp(false);
+    const transaction = createBusinessTransaction();
+    const id = transaction.businessTransactionId;
+
+    trustRecords.failCreate = true;
+    await request(app).post("/execute").set(human()).send(transaction);
+    trustRecords.failCreate = false;
+
+    const response = await request(app)
+      .post(`/execution-intents/${id}/resolve`)
+      .set(human())
+      .send({ resolution: "EXECUTED", note: "It ran." });
+
+    expect(response.status).toBe(409);
+    expect(response.body.code).toBe("EXECUTION_INTENT_NOT_RESOLVABLE");
+    expect(response.body.error).toContain("finalize");
+  });
+
+  it("refuses a FINALIZED intent and says it is already complete, not to run finalize", async () => {
+    const { app } = buildResolveApp(false);
+    const transaction = createBusinessTransaction();
+    const id = transaction.businessTransactionId;
+
+    const executed = await request(app)
+      .post("/execute")
+      .set(human())
+      .send(transaction);
+
+    expect(executed.status).toBe(200);
+
+    const response = await request(app)
+      .post(`/execution-intents/${id}/resolve`)
+      .set(human())
+      .send({ resolution: "NOT_EXECUTED", note: "n" });
+
+    expect(response.status).toBe(409);
+    expect(response.body.code).toBe("EXECUTION_INTENT_NOT_RESOLVABLE");
+    expect(response.body.error).toContain("already complete");
+    expect(response.body.error).not.toContain("run finalize");
+  });
+
+  it("refuses to close an intent when a signed Trust Record already exists", async () => {
+    const { app, intents } = buildResolveApp(false);
+    const transaction = createBusinessTransaction();
+    const id = transaction.businessTransactionId;
+
+    // The record is stored, but neither status update reaches the intent, so it
+    // is left PREPARED next to a real Trust Record.
+    vi.spyOn(intents, "markReleased").mockRejectedValue(new Error("lost"));
+    vi.spyOn(intents, "markFinalized").mockRejectedValue(new Error("lost"));
+
+    const executed = await request(app)
+      .post("/execute")
+      .set(human())
+      .send(transaction);
+
+    expect(executed.status).toBe(200);
+    expect((await intents.findByTransactionId(id))?.status.state).toBe(
+      "PREPARED",
+    );
+
+    const response = await request(app)
+      .post(`/execution-intents/${id}/resolve`)
+      .set(human())
+      .send({ resolution: "NOT_EXECUTED", note: "Nothing found." });
+
+    expect(response.status).toBe(409);
+    expect(response.body.code).toBe("EXECUTION_INTENT_NOT_RESOLVABLE");
+    expect(response.body.error).toContain("Trust Record already exists");
+    expect((await intents.findByTransactionId(id))?.status.state).toBe(
+      "PREPARED",
+    );
+  });
+});

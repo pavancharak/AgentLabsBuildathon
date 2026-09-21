@@ -113,8 +113,9 @@ export function createExecutionIntentsRouter(
   /**
    * GET /execution-intents/unfinalized
    *
-   * Intents that never reached a signed Trust Record, oldest first. Each is an
-   * action that may have been released with no signed record. Verified human
+   * Intents that never reached a signed Trust Record and were not closed by
+   * hand, oldest first. Each is an action that may have been released with no
+   * signed record. Verified human
    * credentials only, because it spans every caller's transactions.
    */
   router.get(
@@ -213,6 +214,54 @@ export function createExecutionIntentsRouter(
           businessTransactionId,
           trustRecordId: result.trustRecord.trustRecordId,
           trustRecord: result.trustRecord,
+        });
+        return;
+      } catch (error) {
+        next(error);
+        return;
+      }
+    },
+  );
+
+  /**
+   * POST /execution-intents/:businessTransactionId/resolve
+   *
+   * Closes a PREPARED or ERRORED intent that a verified human reconciled at the
+   * connector (G-54). Body: { resolution: "NOT_EXECUTED" | "EXECUTED", note }.
+   * The note is required. Never calls a connector. Idempotent. The resolution
+   * is an attributed operator statement in unsigned status, not a signed
+   * record. Verified human credentials only.
+   */
+  router.post(
+    "/:businessTransactionId/resolve",
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      try {
+        if (!isHumanCaller(req.callerCredentialHolderType)) {
+          denyNonHumanCaller(res);
+          return;
+        }
+
+        const businessTransactionId = String(req.params.businessTransactionId);
+
+        const body: unknown = req.body;
+        const fields =
+          typeof body === "object" && body !== null && !Array.isArray(body)
+            ? (body as Record<string, unknown>)
+            : {};
+
+        const result = await application.resolveExecutionIntent(
+          businessTransactionId,
+          {
+            resolution: fields.resolution,
+            note: fields.note,
+            ...(req.callerId !== undefined && { resolvedBy: req.callerId }),
+          },
+        );
+
+        res.json({
+          outcome: result.outcome,
+          businessTransactionId,
+          ...publicView(result.stored),
         });
         return;
       } catch (error) {

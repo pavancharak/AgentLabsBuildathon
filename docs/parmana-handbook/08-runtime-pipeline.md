@@ -122,7 +122,7 @@ The intent has an unsigned operational state: `PREPARED` (signed and stored), `R
 returned and the execution context was saved), `FINALIZED` (a signed Trust Record exists) and `ERRORED` (the
 release stage raised an error, so the outcome is unknown). `markReleased`, `markErrored` and `markFinalized`
 are best effort and never throw, because they run after release. They log at critical severity when they fail.
-Marking an intent `FINALIZED` deletes the saved execution context, since the Trust Record then holds it.
+Marking an intent `FINALIZED` deletes the saved execution context, since the Trust Record then holds it. A fifth state, `RESOLVED`, is set only by `ExecutionIntentService.resolve()`: a verified human closes a `PREPARED` or `ERRORED` intent after reconciling it at the connector, recording `resolution` (`NOT_EXECUTED` or `EXECUTED`), a required note, who and when. It is idempotent, never calls a connector, refuses `RELEASED` and `FINALIZED` intents and any transaction that has a Trust Record, and is an unsigned operator statement, not a Trust Record.
 
 `ExecutionIntentFinalizer` (`packages/runtime/src/ExecutionIntentFinalizer.ts`) rebuilds a missing Trust
 Record from the saved context. It never calls a connector, it is idempotent, and it refuses with

@@ -2153,13 +2153,15 @@ paths:
       summary: List Execution Intents that never reached a signed Trust Record
       operationId: listUnfinalizedExecutionIntents
       description: >
-        Lists Execution Intents whose state is not FINALIZED, oldest first
-        (ADR-0012). Each one is an action that may have been released with no
-        signed Execution Trust Record, and needs an operator. Only entries in state
-        RELEASED can be repaired with POST
-        /execution-intents/{businessTransactionId}/finalize. There is currently
-        no operation to close a PREPARED or ERRORED intent that was reconciled
-        by hand, so it stays listed. Requires a credential provisioned as a verified
+        Lists Execution Intents that never reached a signed Execution Trust
+        Record and were not closed by hand, oldest first (ADR-0012). Each one
+        is an action that may have been released with no signed record, or
+        whose outcome nobody has reconciled yet, and needs an operator. Entries
+        in state RELEASED are repaired with POST
+        /execution-intents/{businessTransactionId}/finalize. Entries in state
+        PREPARED or ERRORED are reconciled at the connector and then closed with
+        POST /execution-intents/{businessTransactionId}/resolve, after which
+        they no longer appear here. Requires a credential provisioned as a verified
         human (`credentialHolderType: USER`), because the list spans every
         caller's transactions. Any other credential gets `403` with code
         `NON_HUMAN_CALLER_DENIED`. The saved release context used to rebuild a
@@ -2208,7 +2210,10 @@ paths:
         or may not have been released. RELEASED: the release stage returned and
         the execution context was saved. FINALIZED: a signed Execution Trust
         Record exists. ERRORED: the release stage raised an error, the action
-        may still have been executed. Stays behind caller authentication and
+        may still have been executed. RESOLVED: a verified human reconciled a
+        PREPARED or ERRORED intent at the connector and closed it (the status
+        carries `resolution`, `resolutionNote`, `resolvedBy` and `resolvedAt`,
+        an unsigned operator statement). Stays behind caller authentication and
         ownership scoping, identically to GET /trust-records/{businessTransactionId}
         and GET /refusal/{businessTransactionId}. Transactions created before
         ADR-0012 have no intent and return `404`.
@@ -2319,6 +2324,112 @@ paths:
                   value:
                     error: "The Execution Intent for business transaction 'b1237ce3-305a-4004-8179-749352fc1ade' is in state PREPARED and has no saved execution result, so its signed Execution Trust Record cannot be rebuilt. The action may or may not have been released. Establish the outcome from the connector and reconcile it by hand. Nothing was called."
                     code: EXECUTION_INTENT_RESULT_NOT_RECORDED
+        "501":
+          description: Execution Intents are not enabled on this deployment.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                notEnabled:
+                  summary: Message text from the source
+                  value:
+                    error: Execution Intents are not enabled on this deployment.
+                    code: EXECUTION_INTENTS_NOT_ENABLED
+
+  /execution-intents/{businessTransactionId}/resolve:
+    post:
+      tags:
+        - Execution Intents
+      summary: Close an intent you reconciled by hand
+      operationId: resolveExecutionIntent
+      description: >
+        Closes an Execution Intent in state `PREPARED` or `ERRORED` after a
+        verified human reconciled it at the connector (G-54). Those are the
+        intents whose outcome only an operator can establish, because no
+        execution result was saved. The body records what you found
+        (`NOT_EXECUTED` or `EXECUTED`) and a required note. The intent moves to
+        `RESOLVED` and leaves `GET /execution-intents/unfinalized`. It never
+        calls a connector. It is idempotent: resolving an intent that is
+        already `RESOLVED` changes nothing and returns `ALREADY_RESOLVED` with
+        the original resolution, note and author. It refuses a `RELEASED`
+        intent, because its execution result is saved and `finalize` is the
+        right operation, and it refuses a `FINALIZED` intent, or any intent
+        whose transaction already has a signed Trust Record. **The resolution is
+        an attributed, timestamped statement by an operator, stored in the
+        intent's unsigned status. It is not tamper evident and it is not a
+        Trust Record.** Requires a credential provisioned as a verified human
+        (`credentialHolderType: USER`), otherwise `403` with code
+        `NON_HUMAN_CALLER_DENIED`.
+      parameters:
+        - name: businessTransactionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/requests/execution-intent-resolve-request.schema.json"
+      responses:
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "200":
+          description: The intent is closed. `outcome` says whether this call closed it (`RESOLVED`) or it was already closed (`ALREADY_RESOLVED`).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/execution-intent-resolve-response.schema.json"
+        "400":
+          description: The body is invalid. `resolution` must be `NOT_EXECUTED` or `EXECUTED`, and `note` is required, at most 2000 characters. Nothing was changed.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                noteRequired:
+                  summary: Message text from the source
+                  value:
+                    error: "The resolution is invalid: note is required. Record what you found at the connector."
+                    code: EXECUTION_INTENT_RESOLUTION_INVALID
+        "403":
+          description: The credential is not provisioned as a verified human.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                nonHumanCaller:
+                  summary: Real captured response
+                  value:
+                    error: "This action requires a caller credential provisioned as a verified human (credentialHolderType: USER)."
+                    code: NON_HUMAN_CALLER_DENIED
+        "404":
+          description: No Execution Intent exists for this businessTransactionId.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                notFound:
+                  summary: Message text from the source
+                  value:
+                    error: "No Execution Intent exists for business transaction 'unknown-transaction'. Transactions created before Execution Intents were introduced have none."
+                    code: EXECUTION_INTENT_NOT_FOUND
+        "409":
+          description: The intent cannot be resolved by hand. It is `RELEASED` (use finalize), `FINALIZED`, or a signed Trust Record already exists for the transaction. Nothing was changed.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                released:
+                  summary: Message text from the source
+                  value:
+                    error: "The Execution Intent for business transaction 'b1237ce3-305a-4004-8179-749352fc1ade' is in state RELEASED and cannot be resolved by hand. Its execution result was saved, so rebuild the signed Trust Record with finalize instead. Nothing was changed."
+                    code: EXECUTION_INTENT_NOT_RESOLVABLE
         "501":
           description: Execution Intents are not enabled on this deployment.
           content:

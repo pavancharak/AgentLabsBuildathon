@@ -1,8 +1,19 @@
 import type {
   ExecutionIntent,
   ExecutionIntentFinalizationMode,
+  ExecutionIntentResolution,
   StoredExecutionIntent,
 } from "../domain/index.js";
+
+export interface ExecutionIntentResolutionInput {
+  readonly resolution: ExecutionIntentResolution;
+
+  readonly note: string;
+
+  readonly resolvedBy?: string;
+
+  readonly resolvedAt: Date;
+}
 
 /**
  * Persistence for Execution Intents (ADR-0012).
@@ -38,8 +49,19 @@ export interface ExecutionIntentRepository {
   markErrored(businessTransactionId: string, reason: string): Promise<void>;
 
   /**
-   * Intents that are not FINALIZED, oldest first. Used by operators to find
-   * released actions that have no signed Trust Record.
+   * PREPARED or ERRORED to RESOLVED. Returns true when this call moved the
+   * intent, and false when it was in any other state, so a caller can tell a
+   * lost race from a success. It never moves a RELEASED or FINALIZED intent.
+   */
+  markResolved(
+    businessTransactionId: string,
+    input: ExecutionIntentResolutionInput,
+  ): Promise<boolean>;
+
+  /**
+   * Intents that are neither FINALIZED nor RESOLVED, oldest first. Used by
+   * operators to find released actions that have no signed Trust Record, and
+   * actions whose outcome nobody has reconciled yet.
    */
   listUnfinalized(limit: number): Promise<readonly StoredExecutionIntent[]>;
 }

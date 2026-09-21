@@ -22,9 +22,10 @@ every commit, run `git log` in the repository for the complete record.
   `GET /execution-intents/unfinalized` and `POST /execution-intents/{businessTransactionId}/finalize`. The last two need a
   credential provisioned as a verified human. Finalize rebuilds a missing Execution Trust Record for a released action
   without calling the connector, and is safe to run twice.
+- A fifth route, `POST /execution-intents/{businessTransactionId}/resolve`, lets a verified human close an intent in state `PREPARED` or `ERRORED` after reconciling it at the connector. It records what they found (`NOT_EXECUTED` or `EXECUTED`), a required note, who did it and when, and takes the intent out of the unfinalized list. It is idempotent and never calls a connector. The resolution is an attributed operator statement in unsigned status. It is not tamper evident and it is not a Trust Record.
 - `scripts/verify-execution-intent.ts` verifies an intent offline with only the public key.
 - New error codes: `EXECUTION_INTENT_UNAVAILABLE` (503), `EXECUTION_INTENT_NOT_FOUND` (404),
-  `EXECUTION_INTENT_RESULT_NOT_RECORDED` (409) and `EXECUTION_INTENTS_NOT_ENABLED` (501). See the
+  `EXECUTION_INTENT_RESULT_NOT_RECORDED` (409) `EXECUTION_INTENTS_NOT_ENABLED` (501), `EXECUTION_INTENT_NOT_RESOLVABLE` (409) and `EXECUTION_INTENT_RESOLUTION_INVALID` (400). See the
   [error catalog](/api-reference/error-catalog).
 - The environment variable `EXECUTION_INTENTS_CHECK`, which only has an effect in `test` and `development`.
 
@@ -43,8 +44,9 @@ every commit, run `git log` in the repository for the complete record.
 
 **Known limits**
 
-- There is no operation to close an intent in state `ERRORED` or `PREPARED` after you reconcile it by hand, so it
-  stays in `GET /execution-intents/unfinalized`.
+- A resolution is not tamper evident and does not create a Trust Record. For an action that ran and has no Trust
+  Record, the signed intent, the operator's note and the connector's own record are the evidence.
+
 - The TypeScript and Python SDKs have no methods for the Execution Intent routes and do not verify intents.
 
 **Fixed**
