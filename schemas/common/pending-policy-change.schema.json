@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/common/pending-policy-change.schema.json",
+  "$id": "https://schemas.parmanasystems.com/common/pending-policy-change.schema.json",
   "title": "Pending Policy Change",
   "description": "A proposed change to a policy's content, held in a durable pending state until a second, distinct human explicitly approves or rejects it (Policy Governance, maker-checker). Only ever moves from PENDING_APPROVAL to APPROVED or REJECTED, exactly once.",
   "type": "object",

@@ -57,10 +57,16 @@ enforced by default in production (relaxed only when `NODE_ENV` is `test` or `de
 
 Signing under AWS KMS handles messages over the 4096 byte KMS raw limit by signing a fixed size
 commitment (ADR-0010, `docs/CLAIMS.md` 2.37), verified live against the real KMS service on
-2026-09-20. The ordering gap G-52 is mitigated: before release the runtime proves signing works and
-refuses with 503 if not, and a failure after release is reported as EXECUTION_RECORD_INCOMPLETE
-(ADR-0011, `docs/CLAIMS.md` 2.38). Still open: a transient failure after the check can leave an executed
-action with no signed record, and a missing record cannot be rebuilt (G-53).
+2026-09-20. Before release the runtime proves signing works and refuses with 503 if not, and a failure
+after release is reported as EXECUTION_RECORD_INCOMPLETE (ADR-0011, `docs/CLAIMS.md` 2.38). On 2026-09-21
+the ordering gap G-52 was closed by Execution Intents (ADR-0012, `docs/CLAIMS.md` 2.39): a signed intent is
+stored before release, release is refused with 503 EXECUTION_INTENT_UNAVAILABLE if that fails, and a missing
+Trust Record (G-53) can be rebuilt with `POST /execution-intents/{id}/finalize` without calling the
+connector. Verified live with a real KMS key and a real Postgres. The migration
+`20260921120000_add_execution_intents.sql` must be applied before deploying. Still open: finalize cannot
+rebuild a record when the execution context was not saved (409), and the SDK methods for intents are in the source but not in the published 1.1.6 (G-55). An
+intent reconciled by hand is closed with `POST /execution-intents/{id}/resolve` (G-54, an unsigned operator
+statement).
 
 **Current real database state** (queried directly this session, not
 assumed): all 10 policies that have ever been proposed through this

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/common/authorization.schema.json",
+  "$id": "https://schemas.parmanasystems.com/common/authorization.schema.json",
   "title": "Authorization",
   "description": "Immutable trust artifact proving that an Authority granted approval for an intended execution.",
   "type": "object",

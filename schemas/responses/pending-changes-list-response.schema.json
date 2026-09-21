@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/responses/pending-changes-list-response.schema.json",
+  "$id": "https://schemas.parmanasystems.com/responses/pending-changes-list-response.schema.json",
   "title": "Pending Changes List Response",
   "description": "Response returned by GET /policies/pending-changes. Each entry is a Pending Policy Change plus a diff view: current (the live content at (policyName, policyVersion) today, or null if that version has never been published) and proposed (the change's own proposedContent).",
   "type": "object",

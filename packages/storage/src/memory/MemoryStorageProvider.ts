@@ -1,5 +1,6 @@
 import type {
   BusinessTransactionRepository,
+  ExecutionIntentRepository,
   ExecutionTrustRecordRepository,
   HandbookDownloadLeadRepository,
   PendingPolicyChangeRepository,
@@ -13,6 +14,7 @@ import { MemoryBusinessTransactionRepository } from "./MemoryBusinessTransaction
 
 import { MemoryExecutionTrustRecordRepository } from "./MemoryExecutionTrustRecordRepository.js";
 
+import { MemoryExecutionIntentRepository } from "./MemoryExecutionIntentRepository.js";
 import { MemoryRefusalRecordRepository } from "./MemoryRefusalRecordRepository.js";
 
 import { MemoryPendingPolicyChangeRepository } from "./MemoryPendingPolicyChangeRepository.js";
@@ -34,6 +36,8 @@ export class MemoryStorageProvider implements StorageProvider {
 
   readonly refusalRecords: RefusalRecordRepository;
 
+  readonly executionIntents: ExecutionIntentRepository;
+
   readonly pendingPolicyChanges: PendingPolicyChangeRepository;
 
   readonly policyChangeApprovalRecords: PolicyChangeApprovalRecordRepository;
@@ -46,6 +50,8 @@ export class MemoryStorageProvider implements StorageProvider {
     this.trustRecords = new MemoryExecutionTrustRecordRepository();
 
     this.refusalRecords = new MemoryRefusalRecordRepository();
+
+    this.executionIntents = new MemoryExecutionIntentRepository();
 
     this.pendingPolicyChanges = new MemoryPendingPolicyChangeRepository();
 

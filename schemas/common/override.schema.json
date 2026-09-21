@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/common/override.schema.json",
+  "$id": "https://schemas.parmanasystems.com/common/override.schema.json",
   "title": "Override",
   "description": "Immutable trust artifact recording an authorized human override for a Business Transaction. No API route in this repository currently creates an Override; this schema exists only because ExecutionTrustRecord.overrides is part of the append-only Trust Record shape; every captured example has an empty overrides array.",
   "type": "object",

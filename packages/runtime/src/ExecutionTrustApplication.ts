@@ -1,16 +1,31 @@
-import { RefusalCrypto, VerificationCrypto } from "@parmana/crypto";
+import {
+  ExecutionIntentCrypto,
+  RefusalCrypto,
+  VerificationCrypto,
+} from "@parmana/crypto";
 
 import {
   BusinessTransaction,
+  ExecutionIntent,
   ExecutionTrustRecord,
   ExecutionTrustRecordRepository,
   Receipt,
   RefusalRecord,
   RefusalRecordRepository,
+  StoredExecutionIntent,
   Verification,
+  VerificationStatus,
 } from "@parmana/shared";
 
+import type { ExecutionIntentFinalizer } from "./ExecutionIntentFinalizer.js";
+import type {
+  ExecutionIntentService,
+  ResolveExecutionIntentInput,
+  ResolveExecutionIntentResult,
+} from "./ExecutionIntentService.js";
+import { ExecutionIntentNotResolvableError } from "./errors/ExecutionIntentNotResolvableError.js";
 import { Runtime } from "./Runtime.js";
+import { RuntimeError } from "./errors/RuntimeError.js";
 
 import { VerificationFailedError } from "./errors/VerificationFailedError.js";
 import { BusinessTransactionService } from "./services/business-transaction-service.js";
@@ -37,6 +52,8 @@ export class ExecutionTrustApplication {
 
   private readonly refusalCrypto = new RefusalCrypto();
 
+  private readonly executionIntentCrypto = new ExecutionIntentCrypto();
+
   constructor(
     private readonly transactions: BusinessTransactionService,
     private readonly runtime: Runtime,
@@ -51,6 +68,13 @@ export class ExecutionTrustApplication {
      * see each method.
      */
     private readonly refusalRecords?: RefusalRecordRepository,
+    /**
+     * ADR-0012. Optional so existing callers that construct
+     * ExecutionTrustApplication directly keep compiling. The intent methods
+     * below return null or throw a clear "not enabled" error when omitted.
+     */
+    private readonly executionIntents?: ExecutionIntentService,
+    private readonly executionIntentFinalizer?: ExecutionIntentFinalizer,
   ) {
     Object.freeze(this);
   }
@@ -211,6 +235,139 @@ export class ExecutionTrustApplication {
    */
   async verifyRefusalRecord(refusalRecord: RefusalRecord): Promise<boolean> {
     return this.refusalCrypto.verify(refusalRecord);
+  }
+
+  /**
+   * Get an Execution Intent and its operational status (ADR-0012). Returns
+   * null when none exists, or when Execution Intents are not configured.
+   */
+  async getExecutionIntent(
+    businessTransactionId: string,
+  ): Promise<StoredExecutionIntent | null> {
+    if (!this.executionIntents) {
+      return null;
+    }
+
+    return this.executionIntents.get(businessTransactionId);
+  }
+
+  /**
+   * Execution Intents that never reached a signed Trust Record, oldest first
+   * (ADR-0012). Each is an action that may have been released with no signed
+   * record, and needs an operator.
+   */
+  async listUnfinalizedExecutionIntents(
+    limit = 50,
+  ): Promise<readonly StoredExecutionIntent[]> {
+    if (!this.executionIntents) {
+      return [];
+    }
+
+    return this.executionIntents.listUnfinalized(limit);
+  }
+
+  /**
+   * Verify an Execution Intent's hash and signature (ADR-0012). Takes the
+   * intent itself, so it needs no database and no caller authentication, the
+   * same as verifyRefusalRecord: anyone holding an intent can check it against
+   * Parmana's public key alone.
+   */
+  async verifyExecutionIntent(intent: ExecutionIntent): Promise<boolean> {
+    return this.executionIntentCrypto.verify(intent);
+  }
+
+  /**
+   * Rebuild the signed Execution Trust Record for an action that was released
+   * but whose record was never produced (ADR-0012, G-53). Never calls a
+   * connector. Idempotent. Also completes verification and the receipt, which
+   * the normal flow does after the record is stored, so a repaired record ends
+   * in the same state as an ordinary one.
+   */
+  async finalizeExecutionIntent(businessTransactionId: string): Promise<{
+    outcome: "FINALIZED" | "ALREADY_FINALIZED";
+    trustRecord: ExecutionTrustRecord;
+  }> {
+    if (!this.executionIntentFinalizer) {
+      throw new RuntimeError(
+        "Execution Intents are not enabled on this deployment.",
+        501,
+        "EXECUTION_INTENTS_NOT_ENABLED",
+      );
+    }
+
+    const result = await this.executionIntentFinalizer.finalize(
+      businessTransactionId,
+    );
+
+    let trustRecord = result.trustRecord;
+
+    if (trustRecord.verifications.length === 0) {
+      await this.verification.verify(businessTransactionId);
+
+      trustRecord = await this.reloadTrustRecord(businessTransactionId);
+    }
+
+    if (
+      trustRecord.receipts.length === 0 &&
+      trustRecord.verifications.at(-1)?.status === VerificationStatus.VERIFIED
+    ) {
+      await this.receipts.generate(businessTransactionId);
+
+      trustRecord = await this.reloadTrustRecord(businessTransactionId);
+    }
+
+    return { outcome: result.outcome, trustRecord };
+  }
+
+  /**
+   * Close a PREPARED or ERRORED Execution Intent that a verified human
+   * reconciled at the connector (docs/VERIFICATION-GAPS.md G-54). The
+   * resolution and note are an attributed operator statement in unsigned
+   * status, not a signed record. Refused when a signed Trust Record already
+   * exists for the transaction, because that intent should be finalized.
+   */
+  async resolveExecutionIntent(
+    businessTransactionId: string,
+    input: ResolveExecutionIntentInput,
+  ): Promise<ResolveExecutionIntentResult> {
+    if (!this.executionIntents) {
+      throw new RuntimeError(
+        "Execution Intents are not enabled on this deployment.",
+        501,
+        "EXECUTION_INTENTS_NOT_ENABLED",
+      );
+    }
+
+    const existing = await this.executionIntents.get(businessTransactionId);
+
+    if (
+      existing &&
+      existing.status.state !== "RESOLVED" &&
+      existing.status.state !== "FINALIZED" &&
+      (await this.trustRecords.findByTransactionId(businessTransactionId))
+    ) {
+      throw new ExecutionIntentNotResolvableError(
+        businessTransactionId,
+        existing.status.state,
+        "A signed Execution Trust Record already exists for it, so run finalize to mark it complete.",
+      );
+    }
+
+    return this.executionIntents.resolve(businessTransactionId, input);
+  }
+
+  private async reloadTrustRecord(
+    businessTransactionId: string,
+  ): Promise<ExecutionTrustRecord> {
+    const record = await this.trustRecords.findByTransactionId(
+      businessTransactionId,
+    );
+
+    if (!record) {
+      throw new Error("Execution Trust Record not found.");
+    }
+
+    return record;
   }
 
   /**

@@ -88,4 +88,5 @@ export { ReceiptApi } from "./client/ReceiptApi.js";
 export { TransactionApi } from "./client/TransactionApi.js";
 export { TrustRecordApi } from "./client/TrustRecordApi.js";
 export { RefusalApi } from "./client/RefusalApi.js";
+export { ExecutionIntentApi } from "./client/ExecutionIntentApi.js";
 export { AuditApi } from "./client/AuditApi.js";

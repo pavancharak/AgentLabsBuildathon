@@ -12,6 +12,12 @@ from .errors import *  # noqa: F401,F403
 from .errors import __all__ as _error_exports
 from .models import *  # noqa: F401,F403
 from .models import __all__ as _model_exports
+from .models.execution_intent_results import (
+    ExecutionIntentView,
+    FinalizeExecutionIntentResult,
+    ResolveExecutionIntentResult,
+    UnfinalizedExecutionIntents,
+)
 from .version import __version__
 
 __all__ = [
@@ -19,5 +25,9 @@ __all__ = [
     "ParmanaClient",
     "create_business_transaction",
     *_model_exports,
+    "ExecutionIntentView",
+    "FinalizeExecutionIntentResult",
+    "ResolveExecutionIntentResult",
+    "UnfinalizedExecutionIntents",
     *_error_exports,
 ]

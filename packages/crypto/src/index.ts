@@ -40,6 +40,8 @@ export * from "./ReceiptCrypto.js";
 export * from "./VerificationCrypto.js";
 export * from "./ExecutionTrustRecordCanonicalView.js";
 export * from "./OfflineVerifier.js";
+export * from "./ExecutionIntentCanonicalView.js";
+export * from "./ExecutionIntentCrypto.js";
 export * from "./RefusalCrypto.js";
 export * from "./AuditEventCrypto.js";
 export * from "./CallerAuditChainVerifier.js";

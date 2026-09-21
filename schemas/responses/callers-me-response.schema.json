@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/responses/callers-me-response.schema.json",
+  "$id": "https://schemas.parmanasystems.com/responses/callers-me-response.schema.json",
   "title": "Callers Me Response",
   "description": "Response returned by GET /callers/me (packages/api/src/routes/callers-me.ts). Resolved, not raw: allowedPrincipalIds/allowedCapabilities reflect the effective scope after defaults are applied (isPrincipalAllowed.ts / isCapabilityAllowed.ts), not the raw ApiKeyEntry configuration. Never returns key material.",
   "type": "object",

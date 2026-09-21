@@ -160,19 +160,20 @@ Whatever language you use, an integration is these three steps, in this order.
 
 ## What each answer means, and what to do
 
-| You receive                                   | Meaning                                                                                                    | What to do                                                                                                                        |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `200` and `decision.outcome` is `APPROVED`    | Policy approved it, and the action was released to the connector. You get a signed Execution Trust Record. | Proceed. Keep the record.                                                                                                         |
-| `403` with code `POLICY_DENIED`               | A policy rule said no. This is a final decision.                                                           | Do not proceed. Do not retry the same request.                                                                                    |
-| `403` with no code                            | Your key is not allowed to assert that principal.                                                          | Fix the key's permissions.                                                                                                        |
-| `403` with code `CAPABILITY_NOT_ALLOWED`      | Your key is not allowed to invoke that action.                                                             | Fix the key's capabilities.                                                                                                       |
-| `401`                                         | The key is missing or wrong.                                                                               | Fix the key.                                                                                                                      |
-| `400`                                         | The request is malformed.                                                                                  | Fix the request. See the [error catalog](/api-reference/error-catalog).                                                           |
-| `409`                                         | That `businessTransactionId` was already used.                                                             | Do not send it again. Look up the existing record instead.                                                                        |
-| `429`                                         | You are rate limited.                                                                                      | Wait for the time in the `Retry-After` header, then retry with a new `businessTransactionId`.                                     |
-| `503` with code `SIGNING_UNAVAILABLE`         | Parmana could not sign evidence, so it refused **before** releasing the action. **Nothing was executed.**  | Retry later with a new `businessTransactionId`.                                                                                   |
-| `500` with code `EXECUTION_RECORD_INCOMPLETE` | The action **was** released, but its signed record could not be produced.                                  | **Do not resubmit under a new id.** Reconcile with the connector and the execution audit events for that `businessTransactionId`. |
-| Any other `5xx`, or no response               | Parmana's answer is unknown.                                                                               | Treat it as not authorized. Never treat "could not reach Parmana" as "allowed".                                                   |
+| You receive                                    | Meaning                                                                                                                                                        | What to do                                                                                                                                                                                    |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `200` and `decision.outcome` is `APPROVED`     | Policy approved it, and the action was released to the connector. You get a signed Execution Trust Record.                                                     | Proceed. Keep the record.                                                                                                                                                                     |
+| `403` with code `POLICY_DENIED`                | A policy rule said no. This is a final decision.                                                                                                               | Do not proceed. Do not retry the same request.                                                                                                                                                |
+| `403` with no code                             | Your key is not allowed to assert that principal.                                                                                                              | Fix the key's permissions.                                                                                                                                                                    |
+| `403` with code `CAPABILITY_NOT_ALLOWED`       | Your key is not allowed to invoke that action.                                                                                                                 | Fix the key's capabilities.                                                                                                                                                                   |
+| `401`                                          | The key is missing or wrong.                                                                                                                                   | Fix the key.                                                                                                                                                                                  |
+| `400`                                          | The request is malformed.                                                                                                                                      | Fix the request. See the [error catalog](/api-reference/error-catalog).                                                                                                                       |
+| `409`                                          | That `businessTransactionId` was already used.                                                                                                                 | Do not send it again. Look up the existing record instead.                                                                                                                                    |
+| `429`                                          | You are rate limited.                                                                                                                                          | Wait for the time in the `Retry-After` header, then retry with a new `businessTransactionId`.                                                                                                 |
+| `503` with code `SIGNING_UNAVAILABLE`          | Parmana could not sign evidence, so it refused **before** releasing the action. **Nothing was executed.**                                                      | Retry later with a new `businessTransactionId`.                                                                                                                                               |
+| `503` with code `EXECUTION_INTENT_UNAVAILABLE` | Parmana could not sign and store the [Execution Intent](/concepts/execution-intents), so it refused **before** releasing the action. **Nothing was executed.** | Retry later with a new `businessTransactionId`.                                                                                                                                               |
+| `500` with code `EXECUTION_RECORD_INCOMPLETE`  | The action **was** released, but its signed record could not be produced.                                                                                      | **Do not resubmit under a new id.** Tell the operator. A signed [Execution Intent](/concepts/execution-intents) exists, and the operator can rebuild the record without repeating the action. |
+| Any other `5xx`, or no response                | Parmana's answer is unknown.                                                                                                                                   | Treat it as not authorized. Never treat "could not reach Parmana" as "allowed".                                                                                                               |
 
 The full list, with the exact messages, is the [error catalog](/api-reference/error-catalog).
 
@@ -387,20 +388,20 @@ call to the connector. The Paytm connector, for example, is allowed up to 10 sec
 
 Apply the **first** row that matches. Every error body is `{"error": "<message>"}`, with a `code` when there is one.
 
-| You receive                                                    | Meaning                                                            | Do                                                                                                    |
-| -------------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| HTTP `200`, and `executions[0].decision.outcome` is `APPROVED` | Approved and released. You have a signed Execution Trust Record.   | Go to step 7, then proceed.                                                                           |
-| HTTP `403`, code `POLICY_DENIED`                               | A policy rule refused. Final.                                      | Do not proceed. Do not retry. Report the message to the operator.                                     |
-| HTTP `403`, code `CAPABILITY_NOT_ALLOWED`                      | Your key may not invoke this action.                               | Stop. Ask the operator to grant it.                                                                   |
-| HTTP `403`, no code                                            | Your key may not assert that `principalId`.                        | Use your `callerId`, or stop and ask.                                                                 |
-| HTTP `401`                                                     | Key missing or wrong.                                              | Stop. Ask for a valid key.                                                                            |
-| HTTP `400`                                                     | The request is malformed. The message names the problem.           | Fix the request. Use a **new** `businessTransactionId`.                                               |
-| HTTP `404`                                                     | The policy was not found.                                          | Stop. Go back to step 3.                                                                              |
-| HTTP `409`                                                     | That `businessTransactionId` was already used.                     | Do not resend. Go to step 7 to look up what happened.                                                 |
-| HTTP `429`                                                     | Rate limited. Nothing was recorded.                                | Wait the seconds in the `Retry-After` header, then send again with a **new** `businessTransactionId`. |
-| HTTP `503`, code `SIGNING_UNAVAILABLE` or `AUDIT_UNAVAILABLE`  | Refused before release. **Nothing was executed.**                  | Wait, then retry with a **new** `businessTransactionId`. If it keeps happening, tell the operator.    |
-| HTTP `500`, code `EXECUTION_RECORD_INCOMPLETE`                 | The action **was** released, but its record could not be produced. | **Do not resend under any id.** Go to step 7. Tell the operator now.                                  |
-| Any other `5xx`, a timeout, or no response                     | Unknown.                                                           | Do not proceed. Go to step 7.                                                                         |
+| You receive                                                                                   | Meaning                                                            | Do                                                                                                                                                                                                  |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HTTP `200`, and `executions[0].decision.outcome` is `APPROVED`                                | Approved and released. You have a signed Execution Trust Record.   | Go to step 7, then proceed.                                                                                                                                                                         |
+| HTTP `403`, code `POLICY_DENIED`                                                              | A policy rule refused. Final.                                      | Do not proceed. Do not retry. Report the message to the operator.                                                                                                                                   |
+| HTTP `403`, code `CAPABILITY_NOT_ALLOWED`                                                     | Your key may not invoke this action.                               | Stop. Ask the operator to grant it.                                                                                                                                                                 |
+| HTTP `403`, no code                                                                           | Your key may not assert that `principalId`.                        | Use your `callerId`, or stop and ask.                                                                                                                                                               |
+| HTTP `401`                                                                                    | Key missing or wrong.                                              | Stop. Ask for a valid key.                                                                                                                                                                          |
+| HTTP `400`                                                                                    | The request is malformed. The message names the problem.           | Fix the request. Use a **new** `businessTransactionId`.                                                                                                                                             |
+| HTTP `404`                                                                                    | The policy was not found.                                          | Stop. Go back to step 3.                                                                                                                                                                            |
+| HTTP `409`                                                                                    | That `businessTransactionId` was already used.                     | Do not resend. Go to step 7 to look up what happened.                                                                                                                                               |
+| HTTP `429`                                                                                    | Rate limited. Nothing was recorded.                                | Wait the seconds in the `Retry-After` header, then send again with a **new** `businessTransactionId`.                                                                                               |
+| HTTP `503`, code `SIGNING_UNAVAILABLE`, `EXECUTION_INTENT_UNAVAILABLE` or `AUDIT_UNAVAILABLE` | Refused before release. **Nothing was executed.**                  | Wait, then retry with a **new** `businessTransactionId`. If it keeps happening, tell the operator.                                                                                                  |
+| HTTP `500`, code `EXECUTION_RECORD_INCOMPLETE`                                                | The action **was** released, but its record could not be produced. | **Do not resend under any id.** Go to step 7. Tell the operator now. The operator can rebuild the signed record without repeating the action, see [Execution Intents](/concepts/execution-intents). |
+| Any other `5xx`, a timeout, or no response                                                    | Unknown.                                                           | Do not proceed. Go to step 7.                                                                                                                                                                       |
 
 ## Step 7: confirm and keep the record
 
@@ -1610,10 +1611,10 @@ Source: https://docs.parmanasystems.com/api-reference/error-catalog
   `NONCE_ALREADY_CONSUMED`) is a real, tested error `error-handler.ts` maps —
   thrown by `ExecutionGateway.execute()` when every other verification check
   passed and only nonce consumption failed (an isolated replay of an
-  already-executed authorization). It is not reachable through any of the 15
-  routes this catalog covers: a resubmitted `businessTransactionId` is always
-  caught first by the `DuplicateBusinessTransactionError` 409 above, before a
-  second authorization — and thus a second nonce — is ever generated. It's a
+  already-executed authorization). It is not reachable through any of the routes
+  this catalog covers: a resubmitted `businessTransactionId` is always caught
+  first by the `DuplicateBusinessTransactionError` 409 above, before a second
+  authorization — and thus a second nonce — is ever generated. It's a
   library-level guarantee for a receiving system calling
   `@parmana/execution-gateway` directly, not an HTTP-reachable outcome of
   Parmana's own server.
@@ -1621,11 +1622,27 @@ Source: https://docs.parmanasystems.com/api-reference/error-catalog
 
 ## Signing and evidence (the action could not be recorded)
 
-| Status | Code                          | Message                                                                                              | Condition                                                                                                                                                                                                                                                                             |
-| ------ | ----------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 503    | `SIGNING_UNAVAILABLE`         | `Evidence signing is unavailable; refusing to release the action ... Nothing was executed.`          | Before release, the signing readiness probe failed (a missing, disabled or denied key, a KMS or network outage, a key mismatch). Nothing was executed. Retry once signing is healthy, with a new `businessTransactionId`, because the original was already accepted.                  |
-| 503    | `CONNECTOR_NOT_REGISTERED`    | `No connector is registered for capability '<action>' on this deployment. Nothing was executed. ...` | The action was approved, but no connector is registered for it, usually because the connector's credentials are not configured. The operator must configure it, then retry with a new `businessTransactionId`.                                                                        |
-| 500    | `EXECUTION_RECORD_INCOMPLETE` | `The action for business transaction '<id>' was released ... reconcile ... authorizationId: <id>.`   | The action was released to the connector, then the signed Execution Trust Record could not be produced or persisted. **Do not retry as a new transaction.** Reconcile against the connector and the `execution_audit_events` rows for the `businessTransactionId` first (G-52, G-53). |
+| Status | Code                           | Message                                                                                                                                                  | Condition                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------ | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 503    | `SIGNING_UNAVAILABLE`          | `Evidence signing is unavailable; refusing to release the action ... Nothing was executed.`                                                              | Before release, the signing readiness probe failed (a missing, disabled or denied key, a KMS or network outage, a key mismatch). Nothing was executed. Retry once signing is healthy, with a new `businessTransactionId`, because the original was already accepted.                                                                                                                                                                                                                                                                                                     |
+| 503    | `EXECUTION_INTENT_UNAVAILABLE` | `The signed Execution Intent for business transaction '<id>' could not be created and stored; refusing to release the action. Nothing was executed. ...` | Before release, the signed [Execution Intent](/concepts/execution-intents) could not be signed and stored (a database or signing failure, or the `execution_intents` table is missing). **Nothing was released.** Retry once healthy, with a new `businessTransactionId`, because the original was already accepted.                                                                                                                                                                                                                                                     |
+| 503    | `CONNECTOR_NOT_REGISTERED`     | `No connector is registered for capability '<action>' on this deployment. Nothing was executed. ...`                                                     | The action was approved, but no connector is registered for it, usually because the connector's credentials are not configured. The operator must configure it, then retry with a new `businessTransactionId`.                                                                                                                                                                                                                                                                                                                                                           |
+| 500    | `EXECUTION_RECORD_INCOMPLETE`  | `The action for business transaction '<id>' was released ... reconcile ... authorizationId: <id>.`                                                       | The action was released to the connector, then the signed Execution Trust Record could not be produced or persisted. **Do not retry as a new transaction.** A signed [Execution Intent](/concepts/execution-intents) exists for it. Read `GET /execution-intents/<businessTransactionId>`: in state `RELEASED`, an operator can rebuild the record with `POST /execution-intents/<businessTransactionId>/finalize`, which never calls the connector. In state `PREPARED`, finalize refuses with `409`, and the outcome must be reconciled against the connector by hand. |
+
+## Execution Intents (operator routes)
+
+These come from the routes under `/execution-intents`, see [Execution Intents](/concepts/execution-intents).
+
+| Status | Code                                   | Message                                                                                                                        | Condition                                                                                                                                                                                                                                           | Routes                                                                        |
+| ------ | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| 400    | none                                   | `Request body must be an Execution Intent (intentId, businessTransactionId, authorizationId, intentHash, signature required).` | The body of the verify route is not a structurally plausible intent.                                                                                                                                                                                | `POST /execution-intents/verify`                                              |
+| 403    | `NON_HUMAN_CALLER_DENIED`              | `This action requires a caller credential provisioned as a verified human (credentialHolderType: USER).`                       | The list and finalize routes need a credential provisioned as a verified human. Any other credential is refused.                                                                                                                                    | `GET /execution-intents/unfinalized`, `POST /execution-intents/<id>/finalize` |
+| 404    | none                                   | `Execution Intent not found.`                                                                                                  | No intent exists for the id, or it belongs to a different caller (ownership scoped).                                                                                                                                                                | `GET /execution-intents/<id>`                                                 |
+| 404    | `EXECUTION_INTENT_NOT_FOUND`           | `No Execution Intent exists for business transaction '<id>'. ...`                                                              | Finalize was called for a transaction with no intent. Transactions created before Execution Intents have none.                                                                                                                                      | `POST /execution-intents/<id>/finalize`                                       |
+| 409    | `EXECUTION_INTENT_RESULT_NOT_RECORDED` | `The Execution Intent for business transaction '<id>' is in state <state> and has no saved execution result ...`               | The intent exists but no execution result was saved, so the Trust Record cannot be rebuilt. The action may or may not have been released. Establish the outcome at the connector and reconcile by hand. Nothing was called or changed.              | `POST /execution-intents/<id>/finalize`                                       |
+| 501    | `EXECUTION_INTENTS_NOT_ENABLED`        | `Execution Intents are not enabled on this deployment.`                                                                        | Finalize was called on a deployment where Execution Intents are off. Only possible in `test` or `development` without `EXECUTION_INTENTS_CHECK=true`.                                                                                               | `POST /execution-intents/<id>/finalize`                                       |
+| 400    | `EXECUTION_INTENT_RESOLUTION_INVALID`  | `The resolution is invalid: <reason>`                                                                                          | The body of the resolve route is invalid: `resolution` is not `NOT_EXECUTED` or `EXECUTED`, or `note` is missing, blank or over 2000 characters. Nothing was changed.                                                                               | `POST /execution-intents/<id>/resolve`                                        |
+| 409    | `EXECUTION_INTENT_NOT_RESOLVABLE`      | `The Execution Intent for business transaction '<id>' is in state <state> and cannot be resolved by hand. ...`                 | The intent is `RELEASED` (rebuild the record with finalize instead), `FINALIZED` (already complete), or a signed Trust Record already exists for the transaction. Only `PREPARED` and `ERRORED` intents can be closed by hand. Nothing was changed. | `POST /execution-intents/<id>/resolve`                                        |
 
 ## Server-side (500)
 
@@ -1636,7 +1653,7 @@ Source: https://docs.parmanasystems.com/api-reference/error-catalog
 
 ## What's deliberately not here
 
-This catalog lists errors from the 15 routes in `packages/api/src/app.ts`. It does not cover
+This catalog lists errors from the routes mounted in `packages/api/src/app.ts`. It does not cover
 exceptions raised only in code paths unreachable from the HTTP API (for example, internal
 validator classes that never escape a route handler uncaught), or client-side SDK exceptions,
 see [Python SDK](/sdks/python) and [TypeScript SDK](/sdks/typescript) for how each wraps these
@@ -1755,7 +1772,7 @@ try {
 | connection failure                                               | `NetworkError`                                                                     |
 | request timeout                                                  | `TimeoutError`                                                                     |
 
-### Telling the two 5xx signing errors apart (1.1.3)
+### Telling the 5xx signing and record errors apart (1.1.3)
 
 `InternalServerError.serverCode` carries the Runtime's own `code` when the response had one. Two values change what
 you should do next:
@@ -1763,9 +1780,14 @@ you should do next:
 - `SIGNING_UNAVAILABLE` (503): the Runtime refused before releasing the action, because it could not sign an
   Execution Trust Record. **Nothing was executed.** Retry once signing is healthy, with a new `businessTransactionId`,
   because the original was already accepted.
+- `EXECUTION_INTENT_UNAVAILABLE` (503): the Runtime refused before releasing the action, because it could not sign
+  and store the [Execution Intent](/concepts/execution-intents). **Nothing was executed.** Retry once healthy, with a
+  new `businessTransactionId`.
 - `EXECUTION_RECORD_INCOMPLETE` (500): the action **was** released to the execution system, but its signed record
-  could not be produced. **Do not retry as a new transaction.** Reconcile against the connector and the execution
-  audit events for the `businessTransactionId`.
+  could not be produced. **Do not retry as a new transaction.** Tell the operator: a signed Execution Intent exists,
+  and the operator can rebuild the record without repeating the action. The method is `finalizeExecutionIntent`. It is in the SDK
+  source and not in the published 1.1.6, so until the next release the operator uses
+  `POST /execution-intents/<businessTransactionId>/finalize` over HTTP.
 
 ```typescript
 try {
@@ -1774,7 +1796,10 @@ try {
   if (error instanceof InternalServerError) {
     if (error.serverCode === "EXECUTION_RECORD_INCOMPLETE") {
       // The action ran. Reconcile, never resubmit under a new id.
-    } else if (error.serverCode === "SIGNING_UNAVAILABLE") {
+    } else if (
+      error.serverCode === "SIGNING_UNAVAILABLE" ||
+      error.serverCode === "EXECUTION_INTENT_UNAVAILABLE"
+    ) {
       // Nothing ran. Safe to retry later with a NEW businessTransactionId.
     }
   }
@@ -2013,10 +2038,10 @@ Retries are **off by default**. They run only when both `retryPolicy.enabled` is
 
 What is retried:
 
-| Request                                                                                                                                                      | Retried?                                                                                |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| `GET` requests (`health()`, `version()`, `transaction()`, `transactions()`, `trustRecord()`, `getLatestVerification()`, `refusalRecord()`)                   | Yes, on a network failure, a timeout, a `429` or a `5xx`. Nothing else.                 |
-| `POST` requests (`execute()`, `createTransaction()`, `verify()`, `replay()`, `receipt()`, `validatePolicy()`, `verifyRefusalRecord()`, `verifyAuditEvent()`) | **Never.** This is deliberate, because retrying `execute()` could repeat a real action. |
+| Request                                                                                                                                                                                                                                          | Retried?                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| `GET` requests (`health()`, `version()`, `transaction()`, `transactions()`, `trustRecord()`, `getLatestVerification()`, `refusalRecord()`, `executionIntent()`, `unfinalizedExecutionIntents()`)                                                 | Yes, on a network failure, a timeout, a `429` or a `5xx`. Nothing else.                 |
+| `POST` requests (`execute()`, `createTransaction()`, `verify()`, `replay()`, `receipt()`, `validatePolicy()`, `verifyRefusalRecord()`, `verifyExecutionIntent()`, `finalizeExecutionIntent()`, `resolveExecutionIntent()`, `verifyAuditEvent()`) | **Never.** This is deliberate, because retrying `execute()` could repeat a real action. |
 
 Tested: a server that returns `503` twice and then `200`, and a client with `enabled: true` and `maxAttempts: 3`, made 3 requests and returned success. With a supplied transport built from a partial configuration the same client made 1 request and threw `InternalServerError`.
 
@@ -2039,36 +2064,42 @@ Every non 2xx response, and every failure to get one, is thrown as a typed error
 | The request timed out                         | `TimeoutError`           |                                                                   |
 | A missing `endpoint`                          | `ConfigurationError`     | Thrown by the constructor.                                        |
 
-Two `InternalServerError` cases need different handling, and from 1.1.3 you can tell them apart with `error.serverCode`:
+Several `InternalServerError` cases need different handling, and from 1.1.3 you can tell them apart with `error.serverCode`:
 
-| `serverCode`                        | Meaning                                                                  | Do                                                                                          |
-| ----------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| `SIGNING_UNAVAILABLE` (503)         | Refused before release. **Nothing was executed.**                        | Retry later with a new `businessTransactionId`.                                             |
-| `CONNECTOR_NOT_REGISTERED` (503)    | The action has no connector on this server. **Nothing was executed.**    | Ask the operator to configure the connector, then retry with a new `businessTransactionId`. |
-| `EXECUTION_RECORD_INCOMPLETE` (500) | The action **was** released but its signed record could not be produced. | **Do not resubmit.** Reconcile first.                                                       |
+| `serverCode`                         | Meaning                                                                                                                                   | Do                                                                                                                                                                                                          |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SIGNING_UNAVAILABLE` (503)          | Refused before release. **Nothing was executed.**                                                                                         | Retry later with a new `businessTransactionId`.                                                                                                                                                             |
+| `EXECUTION_INTENT_UNAVAILABLE` (503) | Refused before release, because the signed [Execution Intent](/concepts/execution-intents) could not be stored. **Nothing was executed.** | Retry later with a new `businessTransactionId`.                                                                                                                                                             |
+| `CONNECTOR_NOT_REGISTERED` (503)     | The action has no connector on this server. **Nothing was executed.**                                                                     | Ask the operator to configure the connector, then retry with a new `businessTransactionId`.                                                                                                                 |
+| `EXECUTION_RECORD_INCOMPLETE` (500)  | The action **was** released but its signed record could not be produced.                                                                  | **Do not resubmit.** Tell the operator, who can rebuild the record with `POST /execution-intents/<id>/finalize`. The method is `finalizeExecutionIntent`, in the SDK source and not in the published 1.1.6. |
 
 On 1.1.2 and earlier `serverCode` is not on `InternalServerError`, so read the code from the error message.
 
 ## Methods
 
-| Method                                    | Request                   | Returns                                                               |
-| ----------------------------------------- | ------------------------- | --------------------------------------------------------------------- |
-| `execute(transaction)`                    | `POST /execute`           | The signed Execution Trust Record.                                    |
-| `createTransaction(transaction)`          | `POST /transactions`      | The same record, from the second entry point.                         |
-| `verify(id)`                              | `POST /verify`            | A `Verification`.                                                     |
-| `getLatestVerification(id)`               | `GET /verification/{id}`  | The latest `Verification`.                                            |
-| `replay(id)`                              | `POST /replay`            | A `ReplayResult`.                                                     |
-| `receipt(id)`                             | `POST /receipt`           | A `Receipt`.                                                          |
-| `transaction(id)`                         | `GET /transactions/{id}`  | One `BusinessTransaction`.                                            |
-| `transactions(page, pageSize)`            | `GET /transactions`       | A page of transactions. The defaults are page `1` and page size `25`. |
-| `trustRecord(id)`                         | `GET /trust-records/{id}` | The Execution Trust Record.                                           |
-| `validatePolicy(policyId, policyVersion)` | `POST /policies/validate` | A `PolicyValidationResult`.                                           |
-| `refusalRecord(id)`                       | `GET /refusal/{id}`       | A `RefusalRecord`.                                                    |
-| `verifyRefusalRecord(record)`             | `POST /refusal/verify`    | `true` or `false`.                                                    |
-| `verifyAuditEvent(event, signature)`      | `POST /audit/verify`      | `true` or `false`.                                                    |
-| `health()`                                | `GET /health`             | The health status.                                                    |
-| `version()`                               | `GET /version`            | The version information.                                              |
-| `endpoint()`                              | None                      | The configured endpoint, as a string.                                 |
+| Method                                             | Request                                 | Returns                                                                                        |
+| -------------------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `execute(transaction)`                             | `POST /execute`                         | The signed Execution Trust Record.                                                             |
+| `createTransaction(transaction)`                   | `POST /transactions`                    | The same record, from the second entry point.                                                  |
+| `verify(id)`                                       | `POST /verify`                          | A `Verification`.                                                                              |
+| `getLatestVerification(id)`                        | `GET /verification/{id}`                | The latest `Verification`.                                                                     |
+| `replay(id)`                                       | `POST /replay`                          | A `ReplayResult`.                                                                              |
+| `receipt(id)`                                      | `POST /receipt`                         | A `Receipt`.                                                                                   |
+| `transaction(id)`                                  | `GET /transactions/{id}`                | One `BusinessTransaction`.                                                                     |
+| `transactions(page, pageSize)`                     | `GET /transactions`                     | A page of transactions. The defaults are page `1` and page size `25`.                          |
+| `trustRecord(id)`                                  | `GET /trust-records/{id}`               | The Execution Trust Record.                                                                    |
+| `validatePolicy(policyId, policyVersion)`          | `POST /policies/validate`               | A `PolicyValidationResult`.                                                                    |
+| `refusalRecord(id)`                                | `GET /refusal/{id}`                     | A `RefusalRecord`.                                                                             |
+| `verifyRefusalRecord(record)`                      | `POST /refusal/verify`                  | `true` or `false`.                                                                             |
+| `executionIntent(id)`                              | `GET /execution-intents/{id}`           | An `ExecutionIntentView`: the signed intent and its status.                                    |
+| `verifyExecutionIntent(intent)`                    | `POST /execution-intents/verify`        | `true` or `false`. No credential needed.                                                       |
+| `unfinalizedExecutionIntents(limit?)`              | `GET /execution-intents/unfinalized`    | `UnfinalizedExecutionIntents`. Needs a verified human credential.                              |
+| `finalizeExecutionIntent(id)`                      | `POST /execution-intents/{id}/finalize` | `FinalizeExecutionIntentResult`. Never calls the connector. Needs a verified human credential. |
+| `resolveExecutionIntent(id, { resolution, note })` | `POST /execution-intents/{id}/resolve`  | `ResolveExecutionIntentResult`. The note is required. Needs a verified human credential.       |
+| `verifyAuditEvent(event, signature)`               | `POST /audit/verify`                    | `true` or `false`.                                                                             |
+| `health()`                                         | `GET /health`                           | The health status.                                                                             |
+| `version()`                                        | `GET /version`                          | The version information.                                                                       |
+| `endpoint()`                                       | None                                    | The configured endpoint, as a string.                                                          |
 
 The full signature of every method is in the [API reference](/sdks/reference/typescript/classes/ParmanaClient).
 
@@ -2634,10 +2665,10 @@ Every request also carries `Content-Type: application/json` and `Accept: applica
 
 Retries are **on by default for `GET` requests**, which is different from the TypeScript SDK, where they are off until you enable them. Set `max_retries=0` to turn them off.
 
-| Request                                                                                                                                            | Retried?                                                                                                                                                                                                                                                                                                         |
-| -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET` requests                                                                                                                                     | Yes, up to `max_retries` times, on a connection error or a `429`, `502`, `503` or `504` response. With the default of `3` that is up to 4 requests. When the server sends a `Retry-After` header on a `429`, the client honors it. After the last retry the response is turned into an error as described below. |
-| `POST` requests (`execute`, `create_transaction`, `verify`, `replay`, `receipt`, `validate_policy`, `verify_refusal_record`, `verify_audit_event`) | **Never.** This is deliberate, because retrying `execute` could repeat a real action.                                                                                                                                                                                                                            |
+| Request                                                                                                                                                                                                                                | Retried?                                                                                                                                                                                                                                                                                                         |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET` requests                                                                                                                                                                                                                         | Yes, up to `max_retries` times, on a connection error or a `429`, `502`, `503` or `504` response. With the default of `3` that is up to 4 requests. When the server sends a `Retry-After` header on a `429`, the client honors it. After the last retry the response is turned into an error as described below. |
+| `POST` requests (`execute`, `create_transaction`, `verify`, `replay`, `receipt`, `validate_policy`, `verify_refusal_record`, `verify_execution_intent`, `finalize_execution_intent`, `resolve_execution_intent`, `verify_audit_event`) | **Never.** This is deliberate, because retrying `execute` could repeat a real action.                                                                                                                                                                                                                            |
 
 ## Errors
 
@@ -2661,13 +2692,14 @@ Every non 2xx response, and every failure to get one, is raised as a typed error
 
 Every HTTP error has `status_code`, `code` and `request_id`. **The `code` is the SDK's own code** (for example `SERVER_ERROR`), not the server's. The server's code is preserved on `server_code` for `CAPABILITY_NOT_ALLOWED` and, from 1.1.6, on any `InternalServerError`.
 
-That matters for two server errors that both arrive as `InternalServerError`:
+That matters for the server errors that all arrive as `InternalServerError`:
 
-| Server code                         | Meaning                                                                  | Do                                                                                          |
-| ----------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| `SIGNING_UNAVAILABLE` (503)         | Refused before release. **Nothing was executed.**                        | Retry later with a new `businessTransactionId`.                                             |
-| `CONNECTOR_NOT_REGISTERED` (503)    | The action has no connector on this server. **Nothing was executed.**    | Ask the operator to configure the connector, then retry with a new `businessTransactionId`. |
-| `EXECUTION_RECORD_INCOMPLETE` (500) | The action **was** released but its signed record could not be produced. | **Do not resubmit.** Reconcile first.                                                       |
+| Server code                          | Meaning                                                                                                                                   | Do                                                                                                                                                                                                            |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SIGNING_UNAVAILABLE` (503)          | Refused before release. **Nothing was executed.**                                                                                         | Retry later with a new `businessTransactionId`.                                                                                                                                                               |
+| `EXECUTION_INTENT_UNAVAILABLE` (503) | Refused before release, because the signed [Execution Intent](/concepts/execution-intents) could not be stored. **Nothing was executed.** | Retry later with a new `businessTransactionId`.                                                                                                                                                               |
+| `CONNECTOR_NOT_REGISTERED` (503)     | The action has no connector on this server. **Nothing was executed.**                                                                     | Ask the operator to configure the connector, then retry with a new `businessTransactionId`.                                                                                                                   |
+| `EXECUTION_RECORD_INCOMPLETE` (500)  | The action **was** released but its signed record could not be produced.                                                                  | **Do not resubmit.** Tell the operator, who can rebuild the record with `POST /execution-intents/<id>/finalize`. The method is `finalize_execution_intent`, in the SDK source and not in the published 1.1.6. |
 
 From 1.1.6 read `error.server_code`. On 1.1.5 and earlier `server_code` is not set on `InternalServerError`, so use `status_code` (`503` or `500`) and the message: the `SIGNING_UNAVAILABLE` message ends with "Nothing was executed.", and the `EXECUTION_RECORD_INCOMPLETE` message says the action was released and names the `businessTransactionId` and the `authorizationId`.
 
@@ -2675,35 +2707,41 @@ From 1.1.6 read `error.server_code`. On 1.1.5 and earlier `server_code` is not s
 
 The client has methods for the common calls, and a sub API for each area.
 
-| Client method                                      | Request                   | Returns                                       |
-| -------------------------------------------------- | ------------------------- | --------------------------------------------- |
-| `execute(transaction)`                             | `POST /execute`           | The signed Execution Trust Record.            |
-| `create_transaction(transaction)`                  | `POST /transactions`      | The same record, from the second entry point. |
-| `verify(business_transaction_id)`                  | `POST /verify`            | A `Verification`.                             |
-| `get_latest_verification(business_transaction_id)` | `GET /verification/{id}`  | The latest `Verification`.                    |
-| `transaction(business_transaction_id)`             | `GET /transactions/{id}`  | One `BusinessTransaction`.                    |
-| `trust_record(business_transaction_id)`            | `GET /trust-records/{id}` | The Execution Trust Record.                   |
-| `validate_policy(policy_id, policy_version)`       | `POST /policies/validate` | A dict with `valid` and `errors`.             |
-| `refusal_record(business_transaction_id)`          | `GET /refusal/{id}`       | A `RefusalRecord`.                            |
-| `verify_refusal_record(record)`                    | `POST /refusal/verify`    | `True` or `False`.                            |
-| `verify_audit_event(event, signature)`             | `POST /audit/verify`      | `True` or `False`.                            |
-| `health()`                                         | `GET /health`             | A dict with the health status.                |
+| Client method                                                                 | Request                                 | Returns                                                                                        |
+| ----------------------------------------------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `execute(transaction)`                                                        | `POST /execute`                         | The signed Execution Trust Record.                                                             |
+| `create_transaction(transaction)`                                             | `POST /transactions`                    | The same record, from the second entry point.                                                  |
+| `verify(business_transaction_id)`                                             | `POST /verify`                          | A `Verification`.                                                                              |
+| `get_latest_verification(business_transaction_id)`                            | `GET /verification/{id}`                | The latest `Verification`.                                                                     |
+| `transaction(business_transaction_id)`                                        | `GET /transactions/{id}`                | One `BusinessTransaction`.                                                                     |
+| `trust_record(business_transaction_id)`                                       | `GET /trust-records/{id}`               | The Execution Trust Record.                                                                    |
+| `validate_policy(policy_id, policy_version)`                                  | `POST /policies/validate`               | A dict with `valid` and `errors`.                                                              |
+| `refusal_record(business_transaction_id)`                                     | `GET /refusal/{id}`                     | A `RefusalRecord`.                                                                             |
+| `verify_refusal_record(record)`                                               | `POST /refusal/verify`                  | `True` or `False`.                                                                             |
+| `execution_intent(business_transaction_id)`                                   | `GET /execution-intents/{id}`           | An `ExecutionIntentView`: the signed intent and its status.                                    |
+| `verify_execution_intent(intent)`                                             | `POST /execution-intents/verify`        | `True` or `False`. No credential needed.                                                       |
+| `unfinalized_execution_intents(limit=None)`                                   | `GET /execution-intents/unfinalized`    | `UnfinalizedExecutionIntents`. Needs a verified human credential.                              |
+| `finalize_execution_intent(business_transaction_id)`                          | `POST /execution-intents/{id}/finalize` | `FinalizeExecutionIntentResult`. Never calls the connector. Needs a verified human credential. |
+| `resolve_execution_intent(business_transaction_id, resolution=..., note=...)` | `POST /execution-intents/{id}/resolve`  | `ResolveExecutionIntentResult`. The note is required. Needs a verified human credential.       |
+| `verify_audit_event(event, signature)`                                        | `POST /audit/verify`                    | `True` or `False`.                                                                             |
+| `health()`                                                                    | `GET /health`                           | A dict with the health status.                                                                 |
 
 Two values are properties, not methods, so do not call them: `client.endpoint` is the configured endpoint, and `client.version` is the version of the **SDK package**, for example `1.1.6`. It is not the server's version. To read the server's version call `client.execution.version()`, which sends `GET /version`.
 
 The sub APIs cover the rest, for example `client.replay.replay(...)`, `client.receipt.generate(...)`, `client.receipt.get_latest(...)` and `client.transactions.list(...)`:
 
-| Sub API                | Methods                        |
-| ---------------------- | ------------------------------ |
-| `client.execution`     | `health`, `version`, `execute` |
-| `client.verification`  | `verify`, `get_latest`         |
-| `client.replay`        | `replay`                       |
-| `client.receipt`       | `generate`, `get_latest`       |
-| `client.transactions`  | `create`, `get`, `list`        |
-| `client.trust_records` | `get`                          |
-| `client.policy`        | `validate`                     |
-| `client.refusal`       | `verify`, `get`                |
-| `client.audit`         | `verify`                       |
+| Sub API                    | Methods                                                    |
+| -------------------------- | ---------------------------------------------------------- |
+| `client.execution`         | `health`, `version`, `execute`                             |
+| `client.verification`      | `verify`, `get_latest`                                     |
+| `client.replay`            | `replay`                                                   |
+| `client.receipt`           | `generate`, `get_latest`                                   |
+| `client.transactions`      | `create`, `get`, `list`                                    |
+| `client.trust_records`     | `get`                                                      |
+| `client.policy`            | `validate`                                                 |
+| `client.refusal`           | `verify`, `get`                                            |
+| `client.execution_intents` | `verify`, `get`, `list_unfinalized`, `finalize`, `resolve` |
+| `client.audit`             | `verify`                                                   |
 
 The full signature of every method is in the [API reference](/sdks/reference/python/client).
 
@@ -3112,7 +3150,19 @@ The server needs the tables in `supabase/migrations/`, and creating them is a ma
 1. With the Supabase CLI linked to your project, run `supabase db push`.
 2. Otherwise open the Supabase SQL Editor and run the whole file `scripts/apply-all-migrations.sql` once. It is safe to run again, because every statement is idempotent.
 
-**Check:** in the SQL Editor, `select to_regclass('consumed_nonces'), to_regclass('execution_audit_events'), to_regclass('policies');` returns three names and no empty value. A missing name means a migration did not apply.
+**Check:** in the SQL Editor, `select to_regclass('consumed_nonces'), to_regclass('execution_audit_events'), to_regclass('policies'), to_regclass('execution_intents');` returns four names and no empty value. A missing name means a migration did not apply.
+
+<Warning>
+  **Upgrading a deployment that already exists.** Apply the new migration **before** you deploy the version that needs it. Execution Intents are enforced by default and cannot be switched off in production, so a new version running without the `execution_intents` table refuses every execution with `503 EXECUTION_INTENT_UNAVAILABLE`.
+
+```bash
+psql "$DATABASE_URL" -f supabase/migrations/20260921120000_add_execution_intents.sql
+psql "$DATABASE_URL" -tA -c "select to_regclass('public.execution_intents')"
+```
+
+The migration only adds a table, is safe to run twice, and changes no existing table. The second command must print `execution_intents`. See [Execution Intents](/concepts/execution-intents#turn-it-on-the-deployment-order-matters).
+
+</Warning>
 
 If a request later fails with `PGRST205` ("Could not find the table"), the schema cache is stale. Run `NOTIFY pgrst, 'reload schema';` in the SQL Editor, or use Dashboard, Database, API, Reload schema cache.
 
@@ -3187,13 +3237,13 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST "$URL/execute" -H "Content-Type
 
 The expected answers are:
 
-| Request                     | Expect                                                                                             |
-| --------------------------- | -------------------------------------------------------------------------------------------------- |
-| `GET /health`               | `200` with `"status":"UP"`. This checks that the process is alive.                                 |
-| `GET /ready`                | `200` with `"status":"READY"` and `"authDisabled":false`. It runs `SELECT 1` against the database. |
-| `POST /execute` with no key | `401` with a `WWW-Authenticate` header. This proves caller authentication is on.                   |
+| Request                     | Expect                                                                                                                                                   |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /health`               | `200` with `"status":"UP"`. This checks that the process is alive.                                                                                       |
+| `GET /ready`                | `200` with `"status":"READY"` and `"authDisabled":false`. It runs `SELECT 1` against the database, and checks that the `execution_intents` table exists. |
+| `POST /execute` with no key | `401` with a `WWW-Authenticate` header. This proves caller authentication is on.                                                                         |
 
-If `/ready` returns `503` with `NOT_READY`, the database is unreachable. Check `DATABASE_URL` and the network path. If `authDisabled` is `true`, remove `PARMANA_AUTH_DISABLED` and redeploy at once.
+If `/ready` returns `503` with `NOT_READY`, read the `reason`. Either the database is unreachable (check `DATABASE_URL` and the network path), or the `execution_intents` table does not exist (apply `supabase/migrations/20260921120000_add_execution_intents.sql` from step 2). If `authDisabled` is `true`, remove `PARMANA_AUTH_DISABLED` and redeploy at once.
 
 ## Step 7: Load and approve your policies
 
@@ -3244,19 +3294,22 @@ The action needs a configured connector (step 4). Without one, the request still
 
 **Check:** the response is the signed Execution Trust Record, and a repeat call with the same `businessTransactionId` returns `409`. Then verify the record independently with [Verify independently](/guides/verify-independently).
 
-A `403 POLICY_DENIED` means the policy refused, which is a correct answer. A `503 SIGNING_UNAVAILABLE` means nothing was executed and you can retry later with a new `businessTransactionId`. A `500 EXECUTION_RECORD_INCOMPLETE` means the action was released, so do not resubmit it. Reconcile first. See [Troubleshooting](/troubleshooting).
+A `403 POLICY_DENIED` means the policy refused, which is a correct answer. A `503 SIGNING_UNAVAILABLE` or `503 EXECUTION_INTENT_UNAVAILABLE` means nothing was executed and you can retry later with a new `businessTransactionId`. A `500 EXECUTION_RECORD_INCOMPLETE` means the action was released, so do not resubmit it. A signed intent exists for it: read it with `GET /execution-intents/<businessTransactionId>`, and if its state is `RELEASED`, rebuild the record with `POST /execution-intents/<businessTransactionId>/finalize`. See [Execution Intents](/concepts/execution-intents) and [Troubleshooting](/troubleshooting).
 
 ## Step 9: Turn on monitoring
 
 Set up these before you send real traffic:
 
-| Monitor                                                 | Alert when                                                                               |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `GET /ready` every 30 seconds                           | The status is not `200`, or `authDisabled` is `true`.                                    |
-| Log event `rate_limit_store_not_durable`                | It appears. It means rate limits are counted per instance, so `DATABASE_URL` is missing. |
-| Response codes `503` with `SIGNING_UNAVAILABLE`         | Any occurrence. The signing path is unhealthy and nothing is being released.             |
-| Response codes `500` with `EXECUTION_RECORD_INCOMPLETE` | Any occurrence. Reconcile that transaction by hand.                                      |
-| Log level                                               | Set `LOG_LEVEL=info`. Use `debug` only while investigating.                              |
+| Monitor                                                                                                                         | Alert when                                                                                                                                                                                                                                                                              |
+| ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /ready` every 30 seconds                                                                                                   | The status is not `200`, or `authDisabled` is `true`.                                                                                                                                                                                                                                   |
+| Log event `rate_limit_store_not_durable`                                                                                        | It appears. It means rate limits are counted per instance, so `DATABASE_URL` is missing.                                                                                                                                                                                                |
+| Response codes `503` with `SIGNING_UNAVAILABLE`                                                                                 | Any occurrence. The signing path is unhealthy and nothing is being released.                                                                                                                                                                                                            |
+| Response codes `503` with `EXECUTION_INTENT_UNAVAILABLE`                                                                        | Any occurrence. The intent store or signing path is unhealthy and nothing is being released.                                                                                                                                                                                            |
+| Response codes `500` with `EXECUTION_RECORD_INCOMPLETE`                                                                         | Any occurrence. An action was released with no signed record. Repair it with `POST /execution-intents/<id>/finalize`.                                                                                                                                                                   |
+| `GET /execution-intents/unfinalized` (human credential), for example every 15 minutes                                           | Any entry in state `RELEASED`, which is a repairable released action with no signed record. Entries in `PREPARED` or `ERRORED` mean an action whose outcome must be checked at the connector, then closed with `POST /execution-intents/<id>/resolve`. A closed intent leaves the list. |
+| Log events `execution_intent_prepare_failed`, `execution_intent_mark_released_failed`, `execution_intent_mark_finalized_failed` | Any occurrence. All are logged at critical severity.                                                                                                                                                                                                                                    |
+| Log level                                                                                                                       | Set `LOG_LEVEL=info`. Use `debug` only while investigating.                                                                                                                                                                                                                             |
 
 ## Host specific steps
 
@@ -3574,17 +3627,18 @@ The gateway key is still read from `PARMANA_KEY_DIR`. A connector that verifies 
 
 ## Troubleshooting
 
-| You see                                                                           | Cause                                                                          | Fix                                                                                                                                                 |
-| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `KEY_PROVIDER=aws-kms is configured, but no KMS key named "default" is reachable` | Wrong region, missing alias, or the role cannot describe the key               | Check `AWS_REGION`, that `alias/default` exists in that region, and that the role has `kms:DescribeKey` on the key.                                 |
-| `KmsSigner only supports ECC_NIST_EDWARDS25519 keys`                              | The key has a different key spec                                               | Create the key as in step 1. A key's spec cannot be changed.                                                                                        |
-| `503` with code `SIGNING_UNAVAILABLE` and `AccessDeniedException` in the message  | The role lacks `kms:Sign` or `kms:GetPublicKey`, or the key is disabled        | Fix the permission or enable the key, then retry with a new `businessTransactionId`. Nothing was executed. See [Troubleshooting](/troubleshooting). |
-| `VercelOidcTokenError: The 'x-vercel-oidc-token' header is missing`               | Something called AWS while the module loaded, before any request               | Use the current `api/index.ts`, which builds the app on the first request.                                                                          |
-| `ValidationException ... length less than or equal to 4096`                       | A build without the large message rule signed a message over the limit         | Deploy a build that includes ADR-0010, then run `npm run verify:kms`.                                                                               |
-| `500` with code `EXECUTION_RECORD_INCOMPLETE`                                     | The action was released and the signed record could not be produced afterwards | Do not retry as a new transaction. Reconcile first. See [Troubleshooting](/troubleshooting).                                                        |
-| `npm run verify:kms` says the session expired                                     | The local AWS login has expired                                                | Run `aws login --profile <your profile>` again.                                                                                                     |
-| A record fails offline verification against your local key                        | It was signed by KMS, and your local `default.public.pem` is a different key   | Verify against the public key from `GET /keys/default`.                                                                                             |
-| `AccessDenied` for `iam:` actions when you use the limited user                   | This is correct. The limited user has no such permission                       | Nothing to fix.                                                                                                                                     |
+| You see                                                                           | Cause                                                                                                                                                                                                              | Fix                                                                                                                                                                                                                                     |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `KEY_PROVIDER=aws-kms is configured, but no KMS key named "default" is reachable` | Wrong region, missing alias, or the role cannot describe the key                                                                                                                                                   | Check `AWS_REGION`, that `alias/default` exists in that region, and that the role has `kms:DescribeKey` on the key.                                                                                                                     |
+| `KmsSigner only supports ECC_NIST_EDWARDS25519 keys`                              | The key has a different key spec                                                                                                                                                                                   | Create the key as in step 1. A key's spec cannot be changed.                                                                                                                                                                            |
+| `503` with code `SIGNING_UNAVAILABLE` and `AccessDeniedException` in the message  | The role lacks `kms:Sign` or `kms:GetPublicKey`, or the key is disabled                                                                                                                                            | Fix the permission or enable the key, then retry with a new `businessTransactionId`. Nothing was executed. See [Troubleshooting](/troubleshooting).                                                                                     |
+| `VercelOidcTokenError: The 'x-vercel-oidc-token' header is missing`               | Something called AWS while the module loaded, before any request                                                                                                                                                   | Use the current `api/index.ts`, which builds the app on the first request.                                                                                                                                                              |
+| `ValidationException ... length less than or equal to 4096`                       | A build without the large message rule signed a message over the limit                                                                                                                                             | Deploy a build that includes ADR-0010, then run `npm run verify:kms`.                                                                                                                                                                   |
+| `503` with code `EXECUTION_INTENT_UNAVAILABLE`                                    | The signed [Execution Intent](/concepts/execution-intents) could not be signed and stored before release. Under KMS the usual causes are the same as `SIGNING_UNAVAILABLE`, or a missing `execution_intents` table | Fix the permission or apply `supabase/migrations/20260921120000_add_execution_intents.sql`, then retry with a new `businessTransactionId`. Nothing was executed.                                                                        |
+| `500` with code `EXECUTION_RECORD_INCOMPLETE`                                     | The action was released and the signed record could not be produced afterwards                                                                                                                                     | Do not retry as a new transaction. A signed Execution Intent exists, and an operator can rebuild the record without repeating the action. See [Execution Intents](/concepts/execution-intents) and [Troubleshooting](/troubleshooting). |
+| `npm run verify:kms` says the session expired                                     | The local AWS login has expired                                                                                                                                                                                    | Run `aws login --profile <your profile>` again.                                                                                                                                                                                         |
+| A record fails offline verification against your local key                        | It was signed by KMS, and your local `default.public.pem` is a different key                                                                                                                                       | Verify against the public key from `GET /keys/default`.                                                                                                                                                                                 |
+| `AccessDenied` for `iam:` actions when you use the limited user                   | This is correct. The limited user has no such permission                                                                                                                                                           | Nothing to fix.                                                                                                                                                                                                                         |
 
 ## What has been verified
 
@@ -3597,10 +3651,20 @@ Verified on 2026-09-20, against a real KMS key (`alias/default`, `ap-south-1`, `
 | The same record verified against a different key                                                                                                                                                               | Failed, as it should |
 | Signing errors in the server log during the full run                                                                                                                                                           | None                 |
 
+Verified again on 2026-09-21 for [Execution Intents](/concepts/execution-intents), with the same key and the same limited IAM user, through the production Docker image, a real Postgres and the real `parmana-paytm-agent` using fake Paytm staging credentials:
+
+| Check                                                                                                                                                       | Result                                                                                                              |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| The full server with `KEY_PROVIDER=aws-kms` signed an Execution Intent before release, and signed the Execution Trust Record and the policy approval record | Pass                                                                                                                |
+| The intent, and the Trust Record, each verified offline against the KMS public key only                                                                     | Pass, 23 of 23 checks in the first run and 37 of 37 in the final run, which added closing an intent by hand         |
+| The extra `kms:Sign` for the intent                                                                                                                         | About 35 ms median (34 to 40 ms, 10 samples), from a Windows machine to `ap-south-1`. **Not measured from Vercel.** |
+
+Each released action now costs **two** `kms:Sign` calls in the request, one for the intent and one for the Trust Record, plus the readiness probe at most once a minute per instance.
+
 Not covered by those runs:
 
-1. **The Vercel OIDC role.** The runs used the local AWS credential chain. ADR-0010 records the live production verification.
-2. **The real `parmana-paytm-agent`.** The full run used the repository's mock refund service.
+1. **The Vercel OIDC role.** The runs used the local AWS credential chain. ADR-0010 records the live production verification of the OIDC role for the Trust Record, and no run has exercised the OIDC role for the intent signature, although it uses the same signer and the same permissions.
+2. **A real Paytm refund.** The agent chain ran with fake Paytm staging credentials, on purpose, so Paytm rejected the call. No refund was sent.
 3. **Key rotation and other regions.** Neither was tested.
 
 ## Next
@@ -3662,13 +3726,13 @@ Follow [Production deployment](/deployment/production) for the full procedure.
 
 ## Core
 
-| Variable              | Required          | Default       | Values or format                                   | What it does                                                                                                                                                                                                                                                                                                            |
-| --------------------- | ----------------- | ------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NODE_ENV`            | Set it explicitly | `development` | `production`, `development`, `test`, or any string | Selects behavior. `test` turns off durable stores, key checks and connector requirements, and must never be used in production. `development` and `test` relax two safety gates, see `POLICY_EXECUTION_VERIFICATION_ENFORCED` and `SIGNING_READINESS_CHECK`. Any other value, or leaving it unset, keeps both gates on. |
-| `PORT`                | No                | `3000`        | Integer                                            | TCP port the API listens on.                                                                                                                                                                                                                                                                                            |
-| `HOST`                | No                | `0.0.0.0`     | Host name or IP address                            | Interface the API binds to.                                                                                                                                                                                                                                                                                             |
-| `SHUTDOWN_TIMEOUT_MS` | No                | `10000`       | Milliseconds                                       | On `SIGTERM` or `SIGINT` the server stops accepting connections and drains in flight requests. If they have not finished within this time it exits anyway.                                                                                                                                                              |
-| `LOG_LEVEL`           | No                | `info`        | `debug`, `info`, `warn`, `error`                   | Minimum level written to the structured logs. An unrecognized value falls back to `info`.                                                                                                                                                                                                                               |
+| Variable              | Required          | Default       | Values or format                                   | What it does                                                                                                                                                                                                                                                                                                                                              |
+| --------------------- | ----------------- | ------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`            | Set it explicitly | `development` | `production`, `development`, `test`, or any string | Selects behavior. `test` turns off durable stores, key checks and connector requirements, and must never be used in production. `development` and `test` relax three safety gates, see `POLICY_EXECUTION_VERIFICATION_ENFORCED`, `SIGNING_READINESS_CHECK` and `EXECUTION_INTENTS_CHECK`. Any other value, or leaving it unset, keeps all three gates on. |
+| `PORT`                | No                | `3000`        | Integer                                            | TCP port the API listens on.                                                                                                                                                                                                                                                                                                                              |
+| `HOST`                | No                | `0.0.0.0`     | Host name or IP address                            | Interface the API binds to.                                                                                                                                                                                                                                                                                                                               |
+| `SHUTDOWN_TIMEOUT_MS` | No                | `10000`       | Milliseconds                                       | On `SIGTERM` or `SIGINT` the server stops accepting connections and drains in flight requests. If they have not finished within this time it exits anyway.                                                                                                                                                                                                |
+| `LOG_LEVEL`           | No                | `info`        | `debug`, `info`, `warn`, `error`                   | Minimum level written to the structured logs. An unrecognized value falls back to `info`.                                                                                                                                                                                                                                                                 |
 
 ## Caller authentication
 
@@ -3721,18 +3785,19 @@ that names `PARMANA_API_KEYS`.
 
 ## Signing keys and gateway identity
 
-| Variable                                | Required                                                                              | Default             | Values or format                                                | What it does                                                                                                                                                                                                                                                                                                                                                                  |
-| --------------------------------------- | ------------------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PARMANA_KEY_DIR`                       | Not test                                                                              | None                | A directory path                                                | The directory holding key files named `<keyId>.private.pem` and `<keyId>.public.pem`. The server needs `default` (signs trust records, receipts and authorizations) and the gateway key (`gateway` unless you changed `PARMANA_GATEWAY_KEY_ID`). With `KEY_PROVIDER=aws-kms` the `default` key comes from KMS instead, but the gateway key is still read from this directory. |
-| `PARMANA_KEY_MATERIAL_JSON`             | No                                                                                    | None                | `{"<keyId>":{"privateKeyPem":"...","publicKeyPem":"..."}}`      | Writes key files into `PARMANA_KEY_DIR` at startup for any key file that does not already exist. Use it on platforms where you cannot mount files. An invalid value stops the server.                                                                                                                                                                                         |
-| `KEY_PROVIDER`                          | No                                                                                    | `local`             | `local`, `aws-kms`                                              | Where the signing key lives. `local` reads PEM files. `aws-kms` signs inside AWS KMS so the key is never released. The values `azure-key-vault`, `gcp-kms` and `hsm` pass validation but have no implementation, and the server refuses to start with them.                                                                                                                   |
-| `AWS_REGION`                            | If `KEY_PROVIDER` is `aws-kms` or `PARMANA_SECRETS_PROVIDER` is `aws-secrets-manager` | None                | An AWS region such as `ap-south-1`                              | The AWS region for KMS and Secrets Manager calls.                                                                                                                                                                                                                                                                                                                             |
-| `AWS_ROLE_ARN`                          | If `KEY_PROVIDER` is `aws-kms` or `PARMANA_SECRETS_PROVIDER` is `aws-secrets-manager` | None                | An IAM role ARN                                                 | The role the server assumes to call AWS, using the Vercel OIDC token. It never uses a static access key.                                                                                                                                                                                                                                                                      |
-| `PARMANA_VERIFICATION_KEY_ID`           | No                                                                                    | `default`           | Key id                                                          | The key id that signs and verifies Execution Trust Records.                                                                                                                                                                                                                                                                                                                   |
-| `PARMANA_VERIFICATION_SECONDARY_KEY_ID` | No                                                                                    | `default-secondary` | Key id                                                          | The key id for the second signature when `CRYPTO_MODE` is `hybrid`.                                                                                                                                                                                                                                                                                                           |
-| `PARMANA_GATEWAY_ID`                    | No                                                                                    | `parmana-gateway`   | Letters, digits, `.`, `_` and `-`                               | The identity the gateway presents to connectors. An invalid value stops the server.                                                                                                                                                                                                                                                                                           |
-| `PARMANA_GATEWAY_KEY_ID`                | No                                                                                    | `gateway`           | Letters, digits, `.`, `_` and `-`                               | The key id of the gateway attestation key file in `PARMANA_KEY_DIR`. An invalid value stops the server.                                                                                                                                                                                                                                                                       |
-| `SIGNING_READINESS_CHECK`               | No                                                                                    | Enforced            | `true` only has an effect, and only in `test` and `development` | Before each action is released, proves that the evidence signing path works, and refuses with `503 SIGNING_UNAVAILABLE` if it does not. In production it is always on and this variable is ignored. Under KMS the probe uses `kms:Sign` and `kms:GetPublicKey` at most once a minute per instance.                                                                            |
+| Variable                                | Required                                                                              | Default             | Values or format                                                | What it does                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------------------------- | ------------------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PARMANA_KEY_DIR`                       | Not test                                                                              | None                | A directory path                                                | The directory holding key files named `<keyId>.private.pem` and `<keyId>.public.pem`. The server needs `default` (signs trust records, receipts and authorizations) and the gateway key (`gateway` unless you changed `PARMANA_GATEWAY_KEY_ID`). With `KEY_PROVIDER=aws-kms` the `default` key comes from KMS instead, but the gateway key is still read from this directory.                                                           |
+| `PARMANA_KEY_MATERIAL_JSON`             | No                                                                                    | None                | `{"<keyId>":{"privateKeyPem":"...","publicKeyPem":"..."}}`      | Writes key files into `PARMANA_KEY_DIR` at startup for any key file that does not already exist. Use it on platforms where you cannot mount files. An invalid value stops the server.                                                                                                                                                                                                                                                   |
+| `KEY_PROVIDER`                          | No                                                                                    | `local`             | `local`, `aws-kms`                                              | Where the signing key lives. `local` reads PEM files. `aws-kms` signs inside AWS KMS so the key is never released. The values `azure-key-vault`, `gcp-kms` and `hsm` pass validation but have no implementation, and the server refuses to start with them.                                                                                                                                                                             |
+| `AWS_REGION`                            | If `KEY_PROVIDER` is `aws-kms` or `PARMANA_SECRETS_PROVIDER` is `aws-secrets-manager` | None                | An AWS region such as `ap-south-1`                              | The AWS region for KMS and Secrets Manager calls.                                                                                                                                                                                                                                                                                                                                                                                       |
+| `AWS_ROLE_ARN`                          | If `KEY_PROVIDER` is `aws-kms` or `PARMANA_SECRETS_PROVIDER` is `aws-secrets-manager` | None                | An IAM role ARN                                                 | The role the server assumes to call AWS, using the Vercel OIDC token. It never uses a static access key.                                                                                                                                                                                                                                                                                                                                |
+| `PARMANA_VERIFICATION_KEY_ID`           | No                                                                                    | `default`           | Key id                                                          | The key id that signs and verifies Execution Trust Records.                                                                                                                                                                                                                                                                                                                                                                             |
+| `PARMANA_VERIFICATION_SECONDARY_KEY_ID` | No                                                                                    | `default-secondary` | Key id                                                          | The key id for the second signature when `CRYPTO_MODE` is `hybrid`.                                                                                                                                                                                                                                                                                                                                                                     |
+| `PARMANA_GATEWAY_ID`                    | No                                                                                    | `parmana-gateway`   | Letters, digits, `.`, `_` and `-`                               | The identity the gateway presents to connectors. An invalid value stops the server.                                                                                                                                                                                                                                                                                                                                                     |
+| `PARMANA_GATEWAY_KEY_ID`                | No                                                                                    | `gateway`           | Letters, digits, `.`, `_` and `-`                               | The key id of the gateway attestation key file in `PARMANA_KEY_DIR`. An invalid value stops the server.                                                                                                                                                                                                                                                                                                                                 |
+| `SIGNING_READINESS_CHECK`               | No                                                                                    | Enforced            | `true` only has an effect, and only in `test` and `development` | Before each action is released, proves that the evidence signing path works, and refuses with `503 SIGNING_UNAVAILABLE` if it does not. In production it is always on and this variable is ignored. Under KMS the probe uses `kms:Sign` and `kms:GetPublicKey` at most once a minute per instance.                                                                                                                                      |
+| `EXECUTION_INTENTS_CHECK`               | No                                                                                    | Enforced            | `true` only has an effect, and only in `test` and `development` | Before each action is released, signs and stores an Execution Intent, and refuses with `503 EXECUTION_INTENT_UNAVAILABLE`, releasing nothing, if it cannot. In production it is always on and this variable is ignored. It needs the `execution_intents` table, so apply migration `20260921120000` before deploying. Under KMS it costs one more `kms:Sign` per released action. See [Execution Intents](/concepts/execution-intents). |
 
 Generate the key files with:
 
@@ -4101,6 +4166,32 @@ published public key.
 permissions and the key id), then retry with a new `businessTransactionId`, because the original was
 already accepted. Nothing was sent to the connector.
 
+## `POST /execute` returns 503 `EXECUTION_INTENT_UNAVAILABLE`
+
+**Cause:** before releasing the action, the runtime signs and stores an [Execution Intent](/concepts/execution-intents). That failed, so **nothing was released**. The message includes the cause. The two usual causes are a database failure, and a database that is missing the `execution_intents` table because the migration was not applied before this version was deployed. A signing failure at that step is the third.
+
+**Fix:**
+
+1. Check `GET /ready`. If the table is missing it returns `503` with `status: NOT_READY` and a `reason` that names the migration file.
+2. If the table is missing, apply the migration, then check `GET /ready` again:
+
+   ```bash
+   psql "$DATABASE_URL" -f supabase/migrations/20260921120000_add_execution_intents.sql
+   psql "$DATABASE_URL" -tA -c "select to_regclass('public.execution_intents')"
+   ```
+
+   The second command must print `execution_intents`.
+
+3. Otherwise restore the database or the signing path, then retry with a new `businessTransactionId`, because the original was already accepted.
+
+Nothing was sent to the connector, so a retry with a new `businessTransactionId` cannot repeat the action.
+
+## `GET /ready` returns 503 and the reason mentions `execution_intents`
+
+**Cause:** Execution Intents are enforced on this deployment, and the `execution_intents` table does not exist. Every execution would be refused with `EXECUTION_INTENT_UNAVAILABLE`.
+
+**Fix:** apply `supabase/migrations/20260921120000_add_execution_intents.sql`, as in the section above. The migration only adds a table and is safe to run twice.
+
 ## `POST /execute` returns 503 `CONNECTOR_NOT_REGISTERED`
 
 **Cause:** the request passed authentication, the policy and the approval check, but no connector is registered for its action on this deployment. A connector registers only when its own credentials are configured, for example `PAYTM_CONNECTOR_URL` and `PAYTM_CONNECTOR_SHARED_SECRET` for `paytm:refund`. Nothing was executed. Before this code existed the same case was a bare `500` with no code, so on an older server, look for `No connector registered for capability` in the log.
@@ -4112,11 +4203,38 @@ already accepted. Nothing was sent to the connector.
 **Cause:** the action was released to the connector, but the signed Execution Trust Record could not be
 produced or persisted afterwards. The response names the `businessTransactionId` and `authorizationId`.
 
-**Do not retry as a new transaction.** That could repeat the action. Query `execution_audit_events` for the
-`businessTransactionId` and check the connector's own record to see what ran. The runtime log has a
-critical `execution_released_record_failed` or `execution_released_record_persist_failed` event with the
-cause. The signed record cannot currently be rebuilt automatically (G-53), so record the outcome
-manually and fix the underlying cause.
+**Do not retry as a new transaction.** That could repeat the action.
+
+A signed [Execution Intent](/concepts/execution-intents) exists for it, because it was stored before the action was released. Read it:
+
+```bash
+curl -s "$PARMANA_API_URL/execution-intents/<businessTransactionId>" \
+  -H "Authorization: Bearer $PARMANA_OPERATOR_KEY"
+```
+
+- `status.state` is `RELEASED`: the execution context was saved. Fix the underlying cause (the runtime log has a critical `execution_released_record_failed` or `execution_released_record_persist_failed` event with the cause), then rebuild the record. This never calls the connector:
+
+  ```bash
+  curl -s -X POST "$PARMANA_API_URL/execution-intents/<businessTransactionId>/finalize" \
+    -H "Authorization: Bearer $PARMANA_OPERATOR_KEY"
+  ```
+
+  Both calls need a credential provisioned as a verified human (`credentialHolderType: USER`).
+
+- `status.state` is `PREPARED`: the context was not saved, so finalize refuses with `409 EXECUTION_INTENT_RESULT_NOT_RECORDED`. Query `execution_audit_events` for the `businessTransactionId` and check the connector's own record to see what ran, then close the intent with `POST /execution-intents/<businessTransactionId>/resolve`, giving what you found (`NOT_EXECUTED` or `EXECUTED`) and a note. Record the outcome in your own systems as well.
+- `404 EXECUTION_INTENT_NOT_FOUND`: the transaction predates Execution Intents, or Execution Intents are off on this deployment. Use the manual reconciliation above.
+
+## `POST /execution-intents/<id>/finalize` returns 409 `EXECUTION_INTENT_RESULT_NOT_RECORDED`
+
+**Cause:** the intent exists, but the execution result was never saved, so the signed Trust Record cannot be rebuilt from nothing. The action may or may not have been released. Nothing was called and nothing was changed.
+
+**Fix:** establish the outcome at the connector, using the `businessTransactionId`, `action` and `target` from `GET /execution-intents/<id>`, then close the intent with `POST /execution-intents/<id>/resolve`, giving what you found (`NOT_EXECUTED` or `EXECUTED`) and a required note. Closing it takes it out of `GET /execution-intents/unfinalized`. See [Execution Intents](/concepts/execution-intents#step-4-close-an-intent-you-reconciled-at-the-connector-prepared-or-errored).
+
+## `GET /execution-intents/unfinalized` lists an intent in state `ERRORED`
+
+**Cause:** the release stage raised an error, most often a connector timeout, and the intent recorded `status.failureReason`. **The action may still have been executed**, for example when the connector received the request and answered too slowly.
+
+**Fix:** check the connector for the `businessTransactionId` and `target` before doing anything else. Finalize cannot help, because no result was saved. Once you know what happened, close the intent with `POST /execution-intents/<id>/resolve`, which records what you found and a required note, and takes it out of the list.
 
 ## `PARMANA_POLICY_DIR` and running from a fresh clone
 

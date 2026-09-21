@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/requests/audit-verify-request.schema.json",
+  "$id": "https://schemas.parmanasystems.com/requests/audit-verify-request.schema.json",
   "title": "Audit Verify Request",
   "description": "Request body for POST /audit/verify: the signed caller-authentication audit event and its stored signature, not a lookup by ID. Checked structurally on the server before signature verification runs. Verification operates on canonical bytes and the signature alone, never on event.type.",
   "type": "object",

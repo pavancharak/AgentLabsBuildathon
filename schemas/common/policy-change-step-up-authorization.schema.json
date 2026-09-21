@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/common/policy-change-step-up-authorization.schema.json",
+  "$id": "https://schemas.parmanasystems.com/common/policy-change-step-up-authorization.schema.json",
   "title": "Policy Change Step-Up Authorization",
   "description": "Signed envelope proving a checker's explicit, fresh intent to approve or reject one specific Pending Policy Change (Policy Governance, Layer 4). Produced by PolicyChangeStepUpAuthorizationSigner (@parmana/crypto) using the checker's own step-up private key, never the bearer API key. Verified server-side against: the checker's registered stepUpPublicKey, payload.pendingPolicyChangeId matching the URL's {id}, payload.action matching the endpoint (approve vs reject), payload.expiresAt not yet passed, and payload.nonce not previously seen (single-use, replay-rejected on a second attempt with the same envelope).",
   "type": "object",

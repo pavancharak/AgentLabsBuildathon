@@ -8,12 +8,15 @@ import type {
 
 import {
   BusinessTransactionRepository,
+  ExecutionIntentRepository,
   ExecutionTrustRecordRepository,
   RefusalRecordRepository,
 } from "@parmana/shared";
 
 import type { ExecutionSystem } from "@parmana/execution-system";
 
+import { ExecutionIntentFinalizer } from "./ExecutionIntentFinalizer.js";
+import { ExecutionIntentService } from "./ExecutionIntentService.js";
 import { ExecutionTrustApplication } from "./ExecutionTrustApplication.js";
 import { Runtime } from "./Runtime.js";
 import { RuntimeBuilder } from "./RuntimeBuilder.js";
@@ -48,6 +51,7 @@ export class RuntimeFactory {
     policyExecutionVerifier?: PolicyExecutionVerifier,
     policyGovernanceAnchorResolver?: PolicyGovernanceAnchorResolver,
     signingReadiness?: SigningReadiness,
+    executionIntents?: ExecutionIntentRepository,
   ): ExecutionTrustApplication {
     //
     // Application Services
@@ -90,6 +94,23 @@ export class RuntimeFactory {
       builder.withSigningReadiness(signingReadiness);
     }
 
+    //
+    // Execution Intents (ADR-0012). One service is shared by the runtime (which
+    // signs and stores the intent before release) and the application (which
+    // reads, verifies and finalizes intents).
+    //
+    const executionIntentService = executionIntents
+      ? new ExecutionIntentService(executionIntents)
+      : undefined;
+
+    const executionIntentFinalizer = executionIntentService
+      ? new ExecutionIntentFinalizer(executionIntentService, trustRecords)
+      : undefined;
+
+    if (executionIntentService) {
+      builder.withExecutionIntents(executionIntentService);
+    }
+
     const runtime: Runtime = builder
       .addStage(new TrustChainValidationComponent())
       .addStage(
@@ -112,6 +133,8 @@ export class RuntimeFactory {
       receiptService,
       trustRecords,
       refusalRecords,
+      executionIntentService,
+      executionIntentFinalizer,
     );
   }
 }

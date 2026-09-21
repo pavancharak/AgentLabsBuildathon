@@ -31,6 +31,7 @@ import { executionGatewaySignalStateVerifier } from "./bootstrap/executionGatewa
 import { createPolicyExecutionVerifier } from "./bootstrap/createPolicyExecutionVerifier.js";
 import { createPolicyGovernanceAnchorResolver } from "./bootstrap/createPolicyGovernanceAnchorResolver.js";
 import { createSigningReadiness } from "./bootstrap/createSigningReadiness.js";
+import { createExecutionIntents } from "./bootstrap/createExecutionIntents.js";
 
 const config = loadConfig();
 
@@ -102,5 +103,6 @@ export function createApplication(executionSystem: ExecutionSystem) {
     createPolicyExecutionVerifier(),
     createPolicyGovernanceAnchorResolver(),
     createSigningReadiness(),
+    createExecutionIntents(),
   );
 }

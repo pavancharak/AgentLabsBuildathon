@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/common/intent.schema.json",
+  "$id": "https://schemas.parmanasystems.com/common/intent.schema.json",
   "title": "Intent",
   "description": "Immutable declaration of the action an Authority intends to be executed under an Authorization.",
   "type": "object",

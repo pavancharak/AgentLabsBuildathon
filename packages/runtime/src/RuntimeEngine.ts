@@ -39,6 +39,7 @@ import { RuntimePipeline } from "./RuntimePipeline.js";
 import { BusinessTrustPipeline } from "./BusinessTrustPipeline.js";
 import { ExecutionRecordIncompleteError } from "./errors/ExecutionRecordIncompleteError.js";
 import type { SigningReadiness } from "./SigningReadiness.js";
+import type { ExecutionIntentService } from "./ExecutionIntentService.js";
 
 import { RuntimeHookRunner } from "./hooks/RuntimeHookRunner.js";
 
@@ -180,6 +181,16 @@ export class RuntimeEngine {
      * runs instead of after. Fail closed.
      */
     private readonly signingReadiness?: SigningReadiness,
+    /**
+     * ADR-0012. Optional and trailing for the same backward-compatibility
+     * reason as every dependency above. When omitted, no Execution Intent is
+     * written (current behavior, unchanged). When supplied, a signed intent
+     * is created and stored BEFORE the action is released, and the release
+     * is refused with ExecutionIntentUnavailableError (503) if that fails.
+     * After release the execution context is saved so the Trust Record can
+     * be rebuilt if it cannot be produced inline.
+     */
+    private readonly executionIntents?: ExecutionIntentService,
   ) {
     if (!pipeline) {
       throw new Error("RuntimePipeline is required.");
@@ -222,6 +233,7 @@ export class RuntimeEngine {
       policyGovernanceAnchorResolverConfigured:
         this.policyGovernanceAnchorResolver !== undefined,
       signingReadinessConfigured: this.signingReadiness !== undefined,
+      executionIntentsConfigured: this.executionIntents !== undefined,
       refusalRecordingConfigured:
         this.refusalRecordBuilder !== undefined &&
         this.refusalRecordRepository !== undefined,
@@ -586,10 +598,40 @@ export class RuntimeEngine {
       await this.signingReadiness?.assertReady();
 
       //
+      // Execution Intent (ADR-0012). Sign and store what is about to be
+      // released BEFORE releasing it. If this cannot complete, nothing is
+      // released and the caller gets 503 EXECUTION_INTENT_UNAVAILABLE. From
+      // here on, a released action always has signed evidence behind it.
+      //
+      await this.executionIntents?.prepare(context);
+
+      //
       // Runtime Pipeline. The action is released to the connector inside
       // this call.
       //
-      const processedContext = await this.pipeline.execute(context);
+      let processedContext: RuntimeContext;
+
+      try {
+        processedContext = await this.pipeline.execute(context);
+      } catch (error) {
+        //
+        // The release stage raised an error. The action may still have been
+        // executed, so the intent is marked ERRORED, not "not released".
+        //
+        await this.executionIntents?.markErrored(
+          context.transaction.businessTransactionId,
+          error,
+        );
+
+        throw error;
+      }
+
+      //
+      // Save the execution context before building the record. If the record
+      // cannot be produced or stored, this is what lets it be rebuilt later
+      // without calling the connector again. Best effort, never throws.
+      //
+      await this.executionIntents?.markReleased(processedContext);
 
       //
       // From here the action has been released. Any failure to produce

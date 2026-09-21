@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/common/metadata.schema.json",
+  "$id": "https://schemas.parmanasystems.com/common/metadata.schema.json",
   "title": "Metadata",
   "description": "Immutable Business Transaction metadata supplied by the calling application. Not evaluated by Policy. businessTransactionId is the only required field; it must match the top-level businessTransactionId. Parmana rejects a mismatch with a 400.",
   "type": "object",

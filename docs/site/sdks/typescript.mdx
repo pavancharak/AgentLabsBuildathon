@@ -110,7 +110,7 @@ try {
 | connection failure                                               | `NetworkError`                                                                     |
 | request timeout                                                  | `TimeoutError`                                                                     |
 
-### Telling the two 5xx signing errors apart (1.1.3)
+### Telling the 5xx signing and record errors apart (1.1.3)
 
 `InternalServerError.serverCode` carries the Runtime's own `code` when the response had one. Two values change what
 you should do next:
@@ -118,9 +118,14 @@ you should do next:
 - `SIGNING_UNAVAILABLE` (503): the Runtime refused before releasing the action, because it could not sign an
   Execution Trust Record. **Nothing was executed.** Retry once signing is healthy, with a new `businessTransactionId`,
   because the original was already accepted.
+- `EXECUTION_INTENT_UNAVAILABLE` (503): the Runtime refused before releasing the action, because it could not sign
+  and store the [Execution Intent](/concepts/execution-intents). **Nothing was executed.** Retry once healthy, with a
+  new `businessTransactionId`.
 - `EXECUTION_RECORD_INCOMPLETE` (500): the action **was** released to the execution system, but its signed record
-  could not be produced. **Do not retry as a new transaction.** Reconcile against the connector and the execution
-  audit events for the `businessTransactionId`.
+  could not be produced. **Do not retry as a new transaction.** Tell the operator: a signed Execution Intent exists,
+  and the operator can rebuild the record without repeating the action. The method is `finalizeExecutionIntent`. It is in the SDK
+  source and not in the published 1.1.6, so until the next release the operator uses
+  `POST /execution-intents/<businessTransactionId>/finalize` over HTTP.
 
 ```typescript
 try {
@@ -129,7 +134,10 @@ try {
   if (error instanceof InternalServerError) {
     if (error.serverCode === "EXECUTION_RECORD_INCOMPLETE") {
       // The action ran. Reconcile, never resubmit under a new id.
-    } else if (error.serverCode === "SIGNING_UNAVAILABLE") {
+    } else if (
+      error.serverCode === "SIGNING_UNAVAILABLE" ||
+      error.serverCode === "EXECUTION_INTENT_UNAVAILABLE"
+    ) {
       // Nothing ran. Safe to retry later with a NEW businessTransactionId.
     }
   }

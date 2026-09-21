@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/responses/replay-response.schema.json",
+  "$id": "https://schemas.parmanasystems.com/responses/replay-response.schema.json",
   "title": "Replay Response",
   "description": "Response returned by POST /replay. A deliberately small shape distinct from the Execution Trust Record it replays: it re-verifies the record's stored signature via VerificationCrypto and reports only whether that succeeded, alongside the hash it checked.",
   "type": "object",

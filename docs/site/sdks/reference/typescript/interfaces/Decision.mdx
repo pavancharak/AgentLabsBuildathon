@@ -54,8 +54,38 @@ Defined in: [typescript/src/models/execution.ts:11](https://github.com/pavanchar
 
 ---
 
+### matchedRuleId?
+
+> `readonly` `optional` **matchedRuleId?**: `string`
+
+Defined in: [typescript/src/models/execution.ts:13](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/execution.ts#L13)
+
+Identifier of the Policy rule that matched, or "none". Absent on a Decision built before this field existed.
+
+---
+
+### evaluatedRules?
+
+> `readonly` `optional` **evaluatedRules?**: `number`
+
+Defined in: [typescript/src/models/execution.ts:15](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/execution.ts#L15)
+
+Number of rules evaluated before reaching a match (or exhausting the rule list).
+
+---
+
+### matchedPath?
+
+> `readonly` `optional` **matchedPath?**: readonly `string`[]
+
+Defined in: [typescript/src/models/execution.ts:17](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/execution.ts#L17)
+
+Ordered rule-id trace evaluation walked to reach matchedRuleId.
+
+---
+
 ### evaluatedAt
 
 > `readonly` **evaluatedAt**: `Date`
 
-Defined in: [typescript/src/models/execution.ts:12](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/execution.ts#L12)
+Defined in: [typescript/src/models/execution.ts:18](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/execution.ts#L18)

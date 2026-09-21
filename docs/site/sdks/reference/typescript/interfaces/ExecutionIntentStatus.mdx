@@ -1,0 +1,89 @@
+---
+title: "Interface: ExecutionIntentStatus"
+---
+
+Defined in: typescript/src/models/execution-intent.ts:56
+
+## Properties
+
+### state
+
+> `readonly` **state**: [`ExecutionIntentState`](/sdks/reference/typescript/type-aliases/ExecutionIntentState)
+
+Defined in: typescript/src/models/execution-intent.ts:57
+
+---
+
+### releasedAt?
+
+> `readonly` `optional` **releasedAt?**: `Date`
+
+Defined in: typescript/src/models/execution-intent.ts:58
+
+---
+
+### finalizedAt?
+
+> `readonly` `optional` **finalizedAt?**: `Date`
+
+Defined in: typescript/src/models/execution-intent.ts:59
+
+---
+
+### finalizationMode?
+
+> `readonly` `optional` **finalizationMode?**: [`ExecutionIntentFinalizationMode`](/sdks/reference/typescript/type-aliases/ExecutionIntentFinalizationMode)
+
+Defined in: typescript/src/models/execution-intent.ts:60
+
+---
+
+### trustRecordId?
+
+> `readonly` `optional` **trustRecordId?**: `string`
+
+Defined in: typescript/src/models/execution-intent.ts:61
+
+---
+
+### failureReason?
+
+> `readonly` `optional` **failureReason?**: `string`
+
+Defined in: typescript/src/models/execution-intent.ts:62
+
+---
+
+### resolution?
+
+> `readonly` `optional` **resolution?**: [`ExecutionIntentResolution`](/sdks/reference/typescript/type-aliases/ExecutionIntentResolution)
+
+Defined in: typescript/src/models/execution-intent.ts:68
+
+The next four are set only when state is RESOLVED. A resolution is an
+attributed, timestamped statement by an operator. It is NOT tamper evident
+and it is NOT a Trust Record.
+
+---
+
+### resolutionNote?
+
+> `readonly` `optional` **resolutionNote?**: `string`
+
+Defined in: typescript/src/models/execution-intent.ts:69
+
+---
+
+### resolvedBy?
+
+> `readonly` `optional` **resolvedBy?**: `string`
+
+Defined in: typescript/src/models/execution-intent.ts:70
+
+---
+
+### resolvedAt?
+
+> `readonly` `optional` **resolvedAt?**: `Date`
+
+Defined in: typescript/src/models/execution-intent.ts:71

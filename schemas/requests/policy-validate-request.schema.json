@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/requests/policy-validate-request.schema.json",
+  "$id": "https://schemas.parmanasystems.com/requests/policy-validate-request.schema.json",
   "title": "Policy Validate Request",
   "description": "Request payload for POST /policies/validate. policyId and policyVersion are each required non-empty strings, checked in that order; each missing/empty field is rejected with its own 400 and a distinct message.",
   "type": "object",

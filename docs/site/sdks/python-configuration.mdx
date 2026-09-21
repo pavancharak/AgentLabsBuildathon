@@ -35,10 +35,10 @@ Every request also carries `Content-Type: application/json` and `Accept: applica
 
 Retries are **on by default for `GET` requests**, which is different from the TypeScript SDK, where they are off until you enable them. Set `max_retries=0` to turn them off.
 
-| Request                                                                                                                                            | Retried?                                                                                                                                                                                                                                                                                                         |
-| -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET` requests                                                                                                                                     | Yes, up to `max_retries` times, on a connection error or a `429`, `502`, `503` or `504` response. With the default of `3` that is up to 4 requests. When the server sends a `Retry-After` header on a `429`, the client honors it. After the last retry the response is turned into an error as described below. |
-| `POST` requests (`execute`, `create_transaction`, `verify`, `replay`, `receipt`, `validate_policy`, `verify_refusal_record`, `verify_audit_event`) | **Never.** This is deliberate, because retrying `execute` could repeat a real action.                                                                                                                                                                                                                            |
+| Request                                                                                                                                                                                                                                | Retried?                                                                                                                                                                                                                                                                                                         |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET` requests                                                                                                                                                                                                                         | Yes, up to `max_retries` times, on a connection error or a `429`, `502`, `503` or `504` response. With the default of `3` that is up to 4 requests. When the server sends a `Retry-After` header on a `429`, the client honors it. After the last retry the response is turned into an error as described below. |
+| `POST` requests (`execute`, `create_transaction`, `verify`, `replay`, `receipt`, `validate_policy`, `verify_refusal_record`, `verify_execution_intent`, `finalize_execution_intent`, `resolve_execution_intent`, `verify_audit_event`) | **Never.** This is deliberate, because retrying `execute` could repeat a real action.                                                                                                                                                                                                                            |
 
 ## Errors
 
@@ -62,13 +62,14 @@ Every non 2xx response, and every failure to get one, is raised as a typed error
 
 Every HTTP error has `status_code`, `code` and `request_id`. **The `code` is the SDK's own code** (for example `SERVER_ERROR`), not the server's. The server's code is preserved on `server_code` for `CAPABILITY_NOT_ALLOWED` and, from 1.1.6, on any `InternalServerError`.
 
-That matters for two server errors that both arrive as `InternalServerError`:
+That matters for the server errors that all arrive as `InternalServerError`:
 
-| Server code                         | Meaning                                                                  | Do                                                                                          |
-| ----------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| `SIGNING_UNAVAILABLE` (503)         | Refused before release. **Nothing was executed.**                        | Retry later with a new `businessTransactionId`.                                             |
-| `CONNECTOR_NOT_REGISTERED` (503)    | The action has no connector on this server. **Nothing was executed.**    | Ask the operator to configure the connector, then retry with a new `businessTransactionId`. |
-| `EXECUTION_RECORD_INCOMPLETE` (500) | The action **was** released but its signed record could not be produced. | **Do not resubmit.** Reconcile first.                                                       |
+| Server code                          | Meaning                                                                                                                                   | Do                                                                                                                                                                                                            |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SIGNING_UNAVAILABLE` (503)          | Refused before release. **Nothing was executed.**                                                                                         | Retry later with a new `businessTransactionId`.                                                                                                                                                               |
+| `EXECUTION_INTENT_UNAVAILABLE` (503) | Refused before release, because the signed [Execution Intent](/concepts/execution-intents) could not be stored. **Nothing was executed.** | Retry later with a new `businessTransactionId`.                                                                                                                                                               |
+| `CONNECTOR_NOT_REGISTERED` (503)     | The action has no connector on this server. **Nothing was executed.**                                                                     | Ask the operator to configure the connector, then retry with a new `businessTransactionId`.                                                                                                                   |
+| `EXECUTION_RECORD_INCOMPLETE` (500)  | The action **was** released but its signed record could not be produced.                                                                  | **Do not resubmit.** Tell the operator, who can rebuild the record with `POST /execution-intents/<id>/finalize`. The method is `finalize_execution_intent`, in the SDK source and not in the published 1.1.6. |
 
 From 1.1.6 read `error.server_code`. On 1.1.5 and earlier `server_code` is not set on `InternalServerError`, so use `status_code` (`503` or `500`) and the message: the `SIGNING_UNAVAILABLE` message ends with "Nothing was executed.", and the `EXECUTION_RECORD_INCOMPLETE` message says the action was released and names the `businessTransactionId` and the `authorizationId`.
 
@@ -76,35 +77,41 @@ From 1.1.6 read `error.server_code`. On 1.1.5 and earlier `server_code` is not s
 
 The client has methods for the common calls, and a sub API for each area.
 
-| Client method                                      | Request                   | Returns                                       |
-| -------------------------------------------------- | ------------------------- | --------------------------------------------- |
-| `execute(transaction)`                             | `POST /execute`           | The signed Execution Trust Record.            |
-| `create_transaction(transaction)`                  | `POST /transactions`      | The same record, from the second entry point. |
-| `verify(business_transaction_id)`                  | `POST /verify`            | A `Verification`.                             |
-| `get_latest_verification(business_transaction_id)` | `GET /verification/{id}`  | The latest `Verification`.                    |
-| `transaction(business_transaction_id)`             | `GET /transactions/{id}`  | One `BusinessTransaction`.                    |
-| `trust_record(business_transaction_id)`            | `GET /trust-records/{id}` | The Execution Trust Record.                   |
-| `validate_policy(policy_id, policy_version)`       | `POST /policies/validate` | A dict with `valid` and `errors`.             |
-| `refusal_record(business_transaction_id)`          | `GET /refusal/{id}`       | A `RefusalRecord`.                            |
-| `verify_refusal_record(record)`                    | `POST /refusal/verify`    | `True` or `False`.                            |
-| `verify_audit_event(event, signature)`             | `POST /audit/verify`      | `True` or `False`.                            |
-| `health()`                                         | `GET /health`             | A dict with the health status.                |
+| Client method                                                                 | Request                                 | Returns                                                                                        |
+| ----------------------------------------------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `execute(transaction)`                                                        | `POST /execute`                         | The signed Execution Trust Record.                                                             |
+| `create_transaction(transaction)`                                             | `POST /transactions`                    | The same record, from the second entry point.                                                  |
+| `verify(business_transaction_id)`                                             | `POST /verify`                          | A `Verification`.                                                                              |
+| `get_latest_verification(business_transaction_id)`                            | `GET /verification/{id}`                | The latest `Verification`.                                                                     |
+| `transaction(business_transaction_id)`                                        | `GET /transactions/{id}`                | One `BusinessTransaction`.                                                                     |
+| `trust_record(business_transaction_id)`                                       | `GET /trust-records/{id}`               | The Execution Trust Record.                                                                    |
+| `validate_policy(policy_id, policy_version)`                                  | `POST /policies/validate`               | A dict with `valid` and `errors`.                                                              |
+| `refusal_record(business_transaction_id)`                                     | `GET /refusal/{id}`                     | A `RefusalRecord`.                                                                             |
+| `verify_refusal_record(record)`                                               | `POST /refusal/verify`                  | `True` or `False`.                                                                             |
+| `execution_intent(business_transaction_id)`                                   | `GET /execution-intents/{id}`           | An `ExecutionIntentView`: the signed intent and its status.                                    |
+| `verify_execution_intent(intent)`                                             | `POST /execution-intents/verify`        | `True` or `False`. No credential needed.                                                       |
+| `unfinalized_execution_intents(limit=None)`                                   | `GET /execution-intents/unfinalized`    | `UnfinalizedExecutionIntents`. Needs a verified human credential.                              |
+| `finalize_execution_intent(business_transaction_id)`                          | `POST /execution-intents/{id}/finalize` | `FinalizeExecutionIntentResult`. Never calls the connector. Needs a verified human credential. |
+| `resolve_execution_intent(business_transaction_id, resolution=..., note=...)` | `POST /execution-intents/{id}/resolve`  | `ResolveExecutionIntentResult`. The note is required. Needs a verified human credential.       |
+| `verify_audit_event(event, signature)`                                        | `POST /audit/verify`                    | `True` or `False`.                                                                             |
+| `health()`                                                                    | `GET /health`                           | A dict with the health status.                                                                 |
 
 Two values are properties, not methods, so do not call them: `client.endpoint` is the configured endpoint, and `client.version` is the version of the **SDK package**, for example `1.1.6`. It is not the server's version. To read the server's version call `client.execution.version()`, which sends `GET /version`.
 
 The sub APIs cover the rest, for example `client.replay.replay(...)`, `client.receipt.generate(...)`, `client.receipt.get_latest(...)` and `client.transactions.list(...)`:
 
-| Sub API                | Methods                        |
-| ---------------------- | ------------------------------ |
-| `client.execution`     | `health`, `version`, `execute` |
-| `client.verification`  | `verify`, `get_latest`         |
-| `client.replay`        | `replay`                       |
-| `client.receipt`       | `generate`, `get_latest`       |
-| `client.transactions`  | `create`, `get`, `list`        |
-| `client.trust_records` | `get`                          |
-| `client.policy`        | `validate`                     |
-| `client.refusal`       | `verify`, `get`                |
-| `client.audit`         | `verify`                       |
+| Sub API                    | Methods                                                    |
+| -------------------------- | ---------------------------------------------------------- |
+| `client.execution`         | `health`, `version`, `execute`                             |
+| `client.verification`      | `verify`, `get_latest`                                     |
+| `client.replay`            | `replay`                                                   |
+| `client.receipt`           | `generate`, `get_latest`                                   |
+| `client.transactions`      | `create`, `get`, `list`                                    |
+| `client.trust_records`     | `get`                                                      |
+| `client.policy`            | `validate`                                                 |
+| `client.refusal`           | `verify`, `get`                                            |
+| `client.execution_intents` | `verify`, `get`, `list_unfinalized`, `finalize`, `resolve` |
+| `client.audit`             | `verify`                                                   |
 
 The full signature of every method is in the [API reference](/sdks/reference/python/client).
 

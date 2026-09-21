@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/responses/root-response.schema.json",
+  "$id": "https://schemas.parmanasystems.com/responses/root-response.schema.json",
   "title": "Root Response",
   "description": "Response returned by GET / (packages/api/src/app.ts). Distinct from, and simpler than, GET /health and GET /version; it is not registered under any router file.",
   "type": "object",

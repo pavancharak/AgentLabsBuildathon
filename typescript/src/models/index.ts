@@ -3,6 +3,7 @@ export * from "./authority.js";
 export * from "./authorization.js";
 export * from "./business-transaction.js";
 export * from "./execution.js";
+export * from "./execution-intent.js";
 export * from "./intent.js";
 export * from "./override.js";
 export * from "./policy.js";

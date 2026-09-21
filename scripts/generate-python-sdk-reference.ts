@@ -158,35 +158,36 @@ function escapeMdxUnsafeCharacters(text: string): string {
 }
 
 /**
- * Replaces the "Python SDK Reference" sub-group under the SDKs
- * top-level group with a freshly computed one -- idempotent, mirrors
- * generate-typescript-sdk-reference.ts's updateNav exactly. Every other
- * group and sub-group in docs.json (including "TypeScript SDK
- * Reference") is left untouched.
+ * Replaces the pages of the "API reference" group in the "Python SDK" tab with
+ * a freshly computed list. Idempotent, and mirrors
+ * generate-typescript-sdk-reference.ts's updateNav. Every other group and tab
+ * in docs.json is left untouched.
+ *
+ * The navigation used to have one "SDKs" group with a "Python SDK Reference"
+ * sub group inside it. It was reorganized into one tab per SDK, and this
+ * function follows that structure.
  */
 function updateNav(navPages: string[]): void {
   const config = JSON.parse(readFileSync(DOCS_JSON_PATH, "utf8"));
-  const sdkGroup = config.navigation.tabs[0].groups.find(
-    (g: { group: string }) => g.group === "SDKs",
+
+  const tab = (
+    config.navigation.tabs as {
+      tab: string;
+      groups?: { group: string; pages: unknown[] }[];
+    }[]
+  ).find((candidate) => candidate.tab === "Python SDK");
+
+  const referenceGroup = tab?.groups?.find(
+    (group) => group.group === "API reference",
   );
 
-  if (!sdkGroup) {
+  if (!referenceGroup) {
     throw new Error(
-      "generate-python-sdk-reference: 'SDKs' group not found in docs.json",
+      "generate-python-sdk-reference: the 'API reference' group in the 'Python SDK' tab was not found in docs.json",
     );
   }
 
-  const referenceGroup = {
-    group: "Python SDK Reference",
-    pages: navPages,
-  };
-
-  sdkGroup.pages = sdkGroup.pages.filter(
-    (p: unknown) =>
-      typeof p === "string" ||
-      (p as { group?: string }).group !== "Python SDK Reference",
-  );
-  sdkGroup.pages.push(referenceGroup);
+  referenceGroup.pages = navPages;
 
   writeFileSync(DOCS_JSON_PATH, JSON.stringify(config, null, 2) + "\n", "utf8");
 }

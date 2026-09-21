@@ -44,6 +44,13 @@ from .refusal_record import (
     RefusalBindingViolation,
     RefusalRecord,
 )
+from .execution_intent import (
+    ExecutionIntentState,
+    ExecutionIntentResolution,
+    ExecutionIntentFinalizationMode,
+    ExecutionIntent,
+    ExecutionIntentStatus,
+)
 from .replay_result import ReplayResult
 
 __all__ = [
@@ -59,6 +66,11 @@ __all__ = [
     "Execution",
     "ExecutionAuthorizationPayload",
     "ExecutionEvidence",
+    "ExecutionIntent",
+    "ExecutionIntentFinalizationMode",
+    "ExecutionIntentResolution",
+    "ExecutionIntentState",
+    "ExecutionIntentStatus",
     "ExecutionMode",
     "ExecutionStatus",
     "ExecutionTrustRecord",

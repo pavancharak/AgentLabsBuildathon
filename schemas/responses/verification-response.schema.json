@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/responses/verification-response.schema.json",
+  "$id": "https://schemas.parmanasystems.com/responses/verification-response.schema.json",
   "title": "Verification Response",
   "description": "Response returned by POST /verify and GET /verification/{businessTransactionId}: a Verification.",
   "allOf": [{ "$ref": "../common/verification.schema.json" }],

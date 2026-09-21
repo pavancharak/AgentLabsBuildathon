@@ -2,6 +2,8 @@ import { Router } from "express";
 
 import { PostgresPoolFactory } from "@parmana/storage";
 
+import { executionIntentsEnforced } from "../bootstrap/createExecutionIntents.js";
+
 /**
  * GET /ready
  *
@@ -66,6 +68,31 @@ export function createReadyRouter(options: CreateReadyRouterOptions): Router {
     try {
       const pool = PostgresPoolFactory.create();
       await pool.query("SELECT 1");
+
+      //
+      // ADR-0012: when Execution Intents are enforced, every execution needs
+      // the execution_intents table. Without it the runtime refuses every
+      // action with 503 EXECUTION_INTENT_UNAVAILABLE. Report that here, so a
+      // deployment that skipped the migration is caught at the readiness check
+      // and not on the first real request.
+      //
+      if (executionIntentsEnforced()) {
+        const { rows } = await pool.query(
+          "SELECT to_regclass('public.execution_intents') AS execution_intents",
+        );
+
+        if (rows[0]?.execution_intents == null) {
+          res.status(503).json({
+            status: "NOT_READY",
+            reason:
+              "The execution_intents table does not exist, so every execution would be refused with " +
+              "EXECUTION_INTENT_UNAVAILABLE. Apply supabase/migrations/20260921120000_add_execution_intents.sql " +
+              "to this database, then check GET /ready again.",
+            ...authWarning,
+          });
+          return;
+        }
+      }
 
       res.json({ status: "READY", ...authWarning });
     } catch (error) {

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/common/refusal-record.schema.json",
+  "$id": "https://schemas.parmanasystems.com/common/refusal-record.schema.json",
   "title": "Refusal Record",
   "description": "Durable, signed, independently verifiable evidence that a policy decision rejected a transaction (RFC-0021). Scope is deliberately narrow: covers PolicyEngine.evaluate REJECTs and SignalIntentBinder binding-violation REJECTs only, not caller-authentication failures or webhook signature failures, which are a separate, unsigned audit-sink capability. At most one Refusal Record exists per businessTransactionId.",
   "type": "object",

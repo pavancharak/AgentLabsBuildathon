@@ -1,5 +1,6 @@
 import type {
   BusinessTransactionRepository,
+  ExecutionIntentRepository,
   ExecutionTrustRecordRepository,
   HandbookDownloadLeadRepository,
   PendingPolicyChangeRepository,
@@ -28,6 +29,11 @@ export interface StorageProvider {
    * Refusal Record repository (RFC-0021).
    */
   readonly refusalRecords: RefusalRecordRepository;
+
+  /**
+   * Execution Intent repository (ADR-0012).
+   */
+  readonly executionIntents: ExecutionIntentRepository;
 
   /**
    * Pending Policy Change repository (Policy Governance,

@@ -71,7 +71,7 @@ HTTP timeout in seconds, applied per request.
 
 max_retries:
 Retry attempts for idempotent (GET) requests that fail with
-a connection error or a 502/503/504 response. POST requests
+a connection error or a 429/502/503/504 response. POST requests
 (execute, verify, receipt, replay) are never retried.
 
 backoff_factor:
@@ -183,6 +183,60 @@ def verify_refusal_record(record: RefusalRecord) -> bool
 ```
 
 Verifies a Refusal Record's signature.
+
+#### execution_intent
+
+```python
+def execution_intent(business_transaction_id: str) -> ExecutionIntentView
+```
+
+Retrieves an Execution Intent and its status (ADR-0012). The intent is
+the signed statement, stored before an action is released, of what was
+about to be released.
+
+#### verify_execution_intent
+
+```python
+def verify_execution_intent(intent: ExecutionIntent) -> bool
+```
+
+Verifies an Execution Intent's hash and signature. Needs no
+credential. True proves the intent is genuine and unaltered. It does
+not prove the action was released, or what its result was.
+
+#### unfinalized_execution_intents
+
+```python
+def unfinalized_execution_intents(
+        limit: int | None = None) -> UnfinalizedExecutionIntents
+```
+
+Lists Execution Intents that never reached a signed Trust Record and
+were not closed by hand, oldest first. Needs a credential provisioned
+as a verified human.
+
+#### finalize_execution_intent
+
+```python
+def finalize_execution_intent(
+        business_transaction_id: str) -> FinalizeExecutionIntentResult
+```
+
+Rebuilds the signed Trust Record for a released action whose record
+was never produced. Never calls a connector. Safe to run twice. Needs
+a credential provisioned as a verified human.
+
+#### resolve_execution_intent
+
+```python
+def resolve_execution_intent(business_transaction_id: str, *,
+                             resolution: ExecutionIntentResolution | str,
+                             note: str) -> ResolveExecutionIntentResult
+```
+
+Closes a PREPARED or ERRORED intent that a verified human reconciled at
+the connector. The note is required. The resolution is an attributed
+operator statement in unsigned status, not a Trust Record.
 
 #### verify_audit_event
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.parmana.ai/requests/transaction-create-request.schema.json",
+  "$id": "https://schemas.parmanasystems.com/requests/transaction-create-request.schema.json",
   "title": "Transaction Create Request",
   "description": "Request payload for POST /execute and POST /transactions. status and createdAt are assigned by Parmana and must not be supplied by the client. Validation performed identically by both endpoints (each has its own inline businessTransactionId UUID check, then shares BusinessTransactionMapper.fromRequest and BusinessTransactionValidator): metadata.businessTransactionId must equal businessTransactionId; authorization.authorityId must equal authority.authorityId; intent.authorizationId must equal authorization.authorizationId; policy.name, policy.version, and intent.action must each be non-empty. No other structural validation is performed: authority, authorization, intent, policy, and signals objects are otherwise passed through as supplied, including any additional properties.",
   "type": "object",

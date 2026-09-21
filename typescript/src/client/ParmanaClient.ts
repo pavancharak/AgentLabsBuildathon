@@ -26,6 +26,12 @@ import type {
   ExecutionTrustRecord,
   Receipt,
   RefusalRecord,
+  ExecutionIntent,
+  ExecutionIntentView,
+  FinalizeExecutionIntentResult,
+  ResolveExecutionIntentInput,
+  ResolveExecutionIntentResult,
+  UnfinalizedExecutionIntents,
   Signature,
   Verification,
 } from "../models/index.js";
@@ -57,6 +63,7 @@ import { TrustRecordApi } from "./TrustRecordApi.js";
 import { PolicyApi, type PolicyValidationResult } from "./PolicyApi.js";
 
 import { RefusalApi } from "./RefusalApi.js";
+import { ExecutionIntentApi } from "./ExecutionIntentApi.js";
 
 import { AuditApi } from "./AuditApi.js";
 
@@ -120,6 +127,11 @@ export class ParmanaClient {
   private readonly refusalApi: RefusalApi;
 
   /**
+   * Runtime Execution Intent API (ADR-0012).
+   */
+  private readonly executionIntentApi: ExecutionIntentApi;
+
+  /**
    * Runtime Audit Event API.
    */
   private readonly auditApi: AuditApi;
@@ -156,6 +168,8 @@ export class ParmanaClient {
     this.policyApi = new PolicyApi(this.transport);
 
     this.refusalApi = new RefusalApi(this.transport);
+
+    this.executionIntentApi = new ExecutionIntentApi(this.transport);
 
     this.auditApi = new AuditApi(this.transport);
   }
@@ -281,6 +295,60 @@ export class ParmanaClient {
    */
   public verifyRefusalRecord(record: RefusalRecord): Promise<boolean> {
     return this.refusalApi.verify(record);
+  }
+
+  /**
+   * Retrieves an Execution Intent and its status by Business Transaction ID
+   * (ADR-0012). The intent is the signed statement, stored before an action is
+   * released, of what was about to be released.
+   */
+  public executionIntent(
+    businessTransactionId: string,
+  ): Promise<ExecutionIntentView> {
+    return this.executionIntentApi.get(businessTransactionId);
+  }
+
+  /**
+   * Verifies an Execution Intent's hash and signature. Needs no credential.
+   * `true` proves the intent is genuine and unaltered. It does not prove the
+   * action was released, or what its result was.
+   */
+  public verifyExecutionIntent(intent: ExecutionIntent): Promise<boolean> {
+    return this.executionIntentApi.verify(intent);
+  }
+
+  /**
+   * Lists Execution Intents that never reached a signed Trust Record and were
+   * not closed by hand, oldest first. Needs a credential provisioned as a
+   * verified human.
+   */
+  public unfinalizedExecutionIntents(
+    limit?: number,
+  ): Promise<UnfinalizedExecutionIntents> {
+    return this.executionIntentApi.listUnfinalized(limit);
+  }
+
+  /**
+   * Rebuilds the signed Trust Record for a released action whose record was
+   * never produced. Never calls a connector. Safe to run twice. Needs a
+   * credential provisioned as a verified human.
+   */
+  public finalizeExecutionIntent(
+    businessTransactionId: string,
+  ): Promise<FinalizeExecutionIntentResult> {
+    return this.executionIntentApi.finalize(businessTransactionId);
+  }
+
+  /**
+   * Closes a PREPARED or ERRORED intent that a verified human reconciled at the
+   * connector. The note is required. The resolution is an attributed operator
+   * statement in unsigned status, not a Trust Record.
+   */
+  public resolveExecutionIntent(
+    businessTransactionId: string,
+    input: ResolveExecutionIntentInput,
+  ): Promise<ResolveExecutionIntentResult> {
+    return this.executionIntentApi.resolve(businessTransactionId, input);
   }
 
   /**

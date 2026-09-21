@@ -155,8 +155,9 @@ starts with, so the two forms cannot be confused.
 
 Two consequences worth knowing. A verifier written elsewhere has to implement the same rule to verify a
 large record signed under KMS, and the Python SDK's offline verifier already does. This also does not
-change the order of operations in a request: the connector can still be called before the record is
-signed (gap G-52).
+change the order of operations in a request: the connector is still called before the Execution Trust
+Record is signed. Since ADR-0012 a signed Execution Intent is stored before the connector is called, so a
+released action always has signed evidence behind it (Chapter 8).
 
 ### `SignerKeyProviderAdapter`: closing a real signing/verification divergence
 
