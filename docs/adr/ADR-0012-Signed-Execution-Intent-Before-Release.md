@@ -71,6 +71,8 @@ Live, on 2026-09-21: the production Docker image built from this code, a real Po
 
 A repeat run produced an unplanned real connector timeout, recorded as an intent in state `ERRORED` with the reason `PaytmConnector "paytm" request to capability "paytm:refund" timed out after 10000ms`. That is the designed behavior.
 
+After closing an intent by hand (G-54) was added, the whole check, four scenarios, passed 36 of 36 under the same KMS key. An earlier attempt under KMS had one scenario fail because the agent's own call to Paytm staging failed on the network (`fetch failed`): the intent correctly ended `ERRORED` and the scenario never reached the state it tests. The rig now reports that as inconclusive and retries it, and the rerun passed.
+
 **Not verified:** the Vercel OIDC role signing an intent (it uses the same signer and permissions as the Trust Record), latency from Vercel, and a real Paytm refund.
 
 One observation from the live run, outside this repository: `parmana-paytm-agent` reports any `503` from Parmana as an "ambiguous outcome". For `EXECUTION_INTENT_UNAVAILABLE` and `SIGNING_UNAVAILABLE` the answer is not ambiguous, because those codes mean nothing was executed. The agent could read the code and say so.
