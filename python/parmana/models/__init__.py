@@ -51,6 +51,7 @@ from .execution_intent import (
     ExecutionIntent,
     ExecutionIntentStatus,
 )
+from .policy_change import PendingPolicyChangeStatus, PendingPolicyChange
 from .replay_result import ReplayResult
 
 __all__ = [
@@ -76,6 +77,8 @@ __all__ = [
     "ExecutionTrustRecord",
     "Intent",
     "Override",
+    "PendingPolicyChange",
+    "PendingPolicyChangeStatus",
     "PolicyGovernanceAnchor",
     "PolicyGovernanceAnchorStatus",
     "PolicyReference",

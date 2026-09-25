@@ -68,7 +68,7 @@ Taken from `docs/site/deployment/environment-variables.mdx`. These values pass v
 
 ## F. Self hosted deployment (added 2026-09-25)
 
-Goal set on 2026-09-25: a deployment the customer runs next to the hosted API on Vercel, with enforcement that does not depend on the hosted service. Built and verified the same day, uncommitted, on the branch `feat/self-hosted-deployment`: `docker compose up -d --build --wait` starts it, and `bash docker/local/offline-check/run.sh` proves enforcement with no internet route (12 of 12 checks). The claim is `docs/CLAIMS.md` 2.40, the guide is `DEPLOYMENT.md`, section "Self hosted with Docker Compose", and the record is G-56 to G-62 in `docs/VERIFICATION-GAPS.md`.
+Goal set on 2026-09-25: a deployment the customer runs next to the hosted API on Vercel, with enforcement that does not depend on the hosted service. Built and verified the same day and merged to `main` (`a14bc5c`): `docker compose up -d --build --wait` starts it, and `bash docker/local/offline-check/run.sh` proves enforcement with no internet route (12 of 12 checks). The claim is `docs/CLAIMS.md` 2.40, the guide is `DEPLOYMENT.md`, section "Self hosted with Docker Compose", and the record is G-56 to G-62 in `docs/VERIFICATION-GAPS.md`.
 
 | Item                                                                                              | Gap  | State                                                                                                               |
 | ------------------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------- |
@@ -78,9 +78,12 @@ Goal set on 2026-09-25: a deployment the customer runs next to the hosted API on
 | "Console sync"                                                                                    | G-59 | Dropped 2026-09-25: nothing to extract.                                                                             |
 | Offline run: authorized and refused `POST /execute` with no internet route, Trust Record verified | G-60 | Done 2026-09-25, 12 of 12 on each clean run.                                                                        |
 | Migration bundle not safe to run again on a database with data                                    | G-61 | Mitigated for the Compose deployment. A hosted or hand run database still has no record of which migrations it has. |
-| Policy approval needs the repository's TypeScript scripts on the approver's machine               | G-62 | Open. A small packaged signing tool would close it.                                                                 |
-| Run the CI job `self-hosted` on Linux                                                             | none | Needs a push. Added to `.github/workflows/docker-image.yml`, not run yet.                                           |
-| Commit, review and merge the branch                                                               | none | Needs the operator. Nothing is committed.                                                                           |
+| Policy approval needs the repository's signing script on the approver's machine                   | G-62 | Closed in the source by SDK 1.3.0 (G-64), which signs from either SDK. Open until 1.3.0 is published.               |
+| The SDKs did not cover the same API or policy governance                                          | G-64 | Closed in the source, SDK 1.3.0, tested and run live. Not published.                                                |
+| Publish SDK 1.3.0 to npm and PyPI                                                                 | none | Needs the operator. Follow `typescript/RELEASING.md` and `python/RELEASING.md`.                                     |
+| An unreachable connector gives the caller a bare `500`                                            | G-63 | Open. The Execution Intent records `ERRORED` correctly.                                                             |
+| Run the CI job `self-hosted` on Linux                                                             | none | Done 2026-09-25, CI run 36113024609, 12 of 12.                                                                      |
+| Commit, review and merge the branch                                                               | none | Done by the operator 2026-09-25 (`a14bc5c`). The docs pass that followed is uncommitted.                            |
 | A customer running it, with its own people approving its policies                                 | none | Needs the operator. `docs/CLAIMS.md` section 4 keeps this as a future claim.                                        |
 
 Progress on this section and the second 2026-09-25 initiative is tracked in `docs/progress/2026-09-25-SELF-HOSTED-AND-ORIENTATION.md`.

@@ -1,44 +1,16 @@
 ---
-title: "Local / Self-Hosted Deployment"
-description: "Run Parmana on your own infrastructure: one Docker Compose command for the API and its own Postgres, or a single Node.js process."
+title: "Run the server from source"
+description: "Run the Parmana server as a single Node.js process from a clone of the repository, for development. To run Parmana on your own infrastructure, use the self hosted deployment."
 ---
 
 <Info>
-  **[AVAILABLE]**, this is what actually runs. Multi-instance/HA deployment is
-  [ROADMAP], see [Roadmap](/roadmap). For AWS KMS signing see [AWS KMS
-  signing](/deployment/aws-kms-signing).
+  **Running Parmana on your own infrastructure?** Use the [self hosted
+  deployment](/self-hosted/overview): one Docker Compose command starts the
+  server and its own Postgres, with keys, migrations and policies handled, and
+  the [quickstart](/self-hosted/quickstart) takes you to a first signed
+  decision. This page is for running the server directly from source, mainly for
+  development.
 </Info>
-
-## Docker Compose: one command
-
-The self hosted deployment starts the API and its own Postgres with one command. Nothing is
-sent to Parmana or anywhere else: decisions, signatures, the audit trail and the Trust Records
-stay in your deployment.
-
-```bash
-docker compose up -d --build --wait
-curl http://127.0.0.1:3000/ready
-# {"status":"READY","authDisabled":false}
-```
-
-On the first start it makes the Ed25519 signing keys and an API key in `./parmana-local`,
-creates the database, applies each migration once, and copies the shipped policies into the
-database. Later starts keep all of that, and an upgrade applies only new migrations. Before
-the first authorized request your own people approve the policies you use, through policy
-governance, because a policy that was never approved authorizes nothing in production.
-
-To prove enforcement does not depend on the internet or on Parmana:
-
-```bash
-bash docker/local/offline-check/run.sh
-```
-
-It runs a copy of the stack on a Docker network with no internet route, approves the refund
-policy through governance, sends an authorized and a refused refund, and verifies the Trust
-Record with only the public keys. It ends with `12 of 12 checks passed`.
-
-Everything, including settings, key files, policy approval and upgrades, is in `DEPLOYMENT.md`,
-section "Self hosted with Docker Compose", in the repository.
 
 ## What runs today
 

@@ -137,6 +137,7 @@
                   "sdks/reference/typescript/classes/AuditApi",
                   "sdks/reference/typescript/classes/AuthenticationError",
                   "sdks/reference/typescript/classes/AuthorizationError",
+                  "sdks/reference/typescript/classes/CallerApi",
                   "sdks/reference/typescript/classes/ConfigurationError",
                   "sdks/reference/typescript/classes/ConflictError",
                   "sdks/reference/typescript/classes/ExecutionApi",
@@ -171,6 +172,7 @@
                   "sdks/reference/typescript/interfaces/Authorization",
                   "sdks/reference/typescript/interfaces/BusinessTransaction",
                   "sdks/reference/typescript/interfaces/BusinessTransactionMetadata",
+                  "sdks/reference/typescript/interfaces/CallerIdentity",
                   "sdks/reference/typescript/interfaces/Configuration",
                   "sdks/reference/typescript/interfaces/CreateBusinessTransactionOptions",
                   "sdks/reference/typescript/interfaces/Decision",
@@ -182,11 +184,19 @@
                   "sdks/reference/typescript/interfaces/ExecutionTrustRecord",
                   "sdks/reference/typescript/interfaces/FinalizeExecutionIntentResult",
                   "sdks/reference/typescript/interfaces/Intent",
+                  "sdks/reference/typescript/interfaces/OfflineVerificationResult",
                   "sdks/reference/typescript/interfaces/Override",
                   "sdks/reference/typescript/interfaces/ParmanaErrorOptions",
+                  "sdks/reference/typescript/interfaces/PendingPolicyChange",
+                  "sdks/reference/typescript/interfaces/PolicyChangeForReview",
+                  "sdks/reference/typescript/interfaces/PolicyChangeStepUpAuthorization",
+                  "sdks/reference/typescript/interfaces/PolicyChangeStepUpAuthorizationPayload",
                   "sdks/reference/typescript/interfaces/PolicyGovernanceAnchor",
                   "sdks/reference/typescript/interfaces/PolicyReference",
                   "sdks/reference/typescript/interfaces/PolicyValidationResult",
+                  "sdks/reference/typescript/interfaces/ProposePolicyChangeInput",
+                  "sdks/reference/typescript/interfaces/ProposedPolicyChange",
+                  "sdks/reference/typescript/interfaces/PublicKeyInfo",
                   "sdks/reference/typescript/interfaces/Receipt",
                   "sdks/reference/typescript/interfaces/RefusalBindingViolation",
                   "sdks/reference/typescript/interfaces/RefusalIntentSnapshot",
@@ -195,6 +205,7 @@
                   "sdks/reference/typescript/interfaces/ResolveExecutionIntentInput",
                   "sdks/reference/typescript/interfaces/ResolveExecutionIntentResult",
                   "sdks/reference/typescript/interfaces/RetryPolicy",
+                  "sdks/reference/typescript/interfaces/SignPolicyChangeStepUpInput",
                   "sdks/reference/typescript/interfaces/Signature",
                   "sdks/reference/typescript/interfaces/Transport",
                   "sdks/reference/typescript/interfaces/TransportRequest",
@@ -221,7 +232,9 @@
                   "sdks/reference/typescript/type-aliases/ExecutionMode",
                   "sdks/reference/typescript/type-aliases/ExecutionStatus",
                   "sdks/reference/typescript/type-aliases/FinalizeExecutionIntentOutcome",
+                  "sdks/reference/typescript/type-aliases/PendingPolicyChangeStatus",
                   "sdks/reference/typescript/type-aliases/PolicyGovernanceAnchorStatus",
+                  "sdks/reference/typescript/type-aliases/PublicKeys",
                   "sdks/reference/typescript/type-aliases/ResolveExecutionIntentOutcome",
                   "sdks/reference/typescript/type-aliases/SignatureAlgorithm",
                   "sdks/reference/typescript/type-aliases/VerificationStatus"
@@ -230,7 +243,11 @@
               {
                 "group": "Functions",
                 "pages": [
-                  "sdks/reference/typescript/functions/createBusinessTransaction"
+                  "sdks/reference/typescript/functions/canonicalSerialize",
+                  "sdks/reference/typescript/functions/createBusinessTransaction",
+                  "sdks/reference/typescript/functions/signPolicyChangeStepUp",
+                  "sdks/reference/typescript/functions/verifyExecutionIntentOffline",
+                  "sdks/reference/typescript/functions/verifyExecutionTrustRecordOffline"
                 ]
               },
               {
@@ -264,6 +281,7 @@
             "group": "API reference",
             "pages": [
               "sdks/reference/python/api/audit_api",
+              "sdks/reference/python/api/caller_api",
               "sdks/reference/python/api/execution_api",
               "sdks/reference/python/api/execution_intent_api",
               "sdks/reference/python/api/policy_api",
@@ -279,13 +297,16 @@
               "sdks/reference/python/config/transport",
               "sdks/reference/python/crypto/canonical",
               "sdks/reference/python/crypto/offline_verifier",
+              "sdks/reference/python/crypto/step_up",
               "sdks/reference/python/errors/api_error",
               "sdks/reference/python/errors/configuration_error",
               "sdks/reference/python/errors/http_error",
               "sdks/reference/python/errors/network_error",
               "sdks/reference/python/errors/replay_error",
               "sdks/reference/python/errors/verification_error",
+              "sdks/reference/python/models/caller",
               "sdks/reference/python/models/execution_intent_results",
+              "sdks/reference/python/models/policy_change_results",
               "sdks/reference/python/models/replay_result",
               "sdks/reference/python/serialization/decoder",
               "sdks/reference/python/serialization/encoder",
@@ -331,7 +352,8 @@
               "api-reference/authentication",
               "api-reference/error-handling",
               "api-reference/idempotency-and-nonces",
-              "api-reference/error-catalog"
+              "api-reference/error-catalog",
+              "sdks/api-coverage"
             ]
           },
           {
@@ -433,6 +455,20 @@
       {
         "tab": "Deploy and operate",
         "groups": [
+          {
+            "group": "Self hosted",
+            "pages": [
+              "self-hosted/overview",
+              "self-hosted/quickstart",
+              "self-hosted/policy-approval",
+              "self-hosted/api-keys",
+              "self-hosted/connectors",
+              "self-hosted/offline-verification",
+              "self-hosted/operations",
+              "self-hosted/configuration",
+              "self-hosted/troubleshooting"
+            ]
+          },
           {
             "group": "Deploy",
             "pages": [

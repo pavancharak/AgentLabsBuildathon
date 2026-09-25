@@ -17,7 +17,9 @@ name: Docker image
 # migrations and policy seeding keep what exists, and then runs the offline
 # check: governance approval, an authorized and a refused refund, and the
 # Trust Record verified with only the public keys, all on a network with no
-# internet route (DEPLOYMENT.md, "Self hosted with Docker Compose").
+# internet route (DEPLOYMENT.md, "Self hosted with Docker Compose"). Before
+# that it runs every command of docs/site/self-hosted/quickstart.mdx and fails
+# if any output differs from the page (docker/local/quickstart-check.sh).
 
 on:
   push:
@@ -35,6 +37,8 @@ on:
       - scripts/apply-all-migrations.sql
       - docker-compose.yml
       - docker-compose.offline-check.yml
+      - docs/site/self-hosted/**
+      - scripts/sign-policy-change-step-up.ts
       - policies/**
       - .github/workflows/docker-image.yml
   pull_request:
@@ -50,6 +54,8 @@ on:
       - scripts/apply-all-migrations.sql
       - docker-compose.yml
       - docker-compose.offline-check.yml
+      - docs/site/self-hosted/**
+      - scripts/sign-policy-change-step-up.ts
       - policies/**
       - .github/workflows/docker-image.yml
   workflow_dispatch:
@@ -170,6 +176,20 @@ jobs:
           docker compose logs setup | grep -q 'key "default" already exists, kept'
           docker compose logs migrate | grep -q '] 0 applied'
           docker compose logs seed | grep -q ', 0 added'
+
+      - name: Set up Node for the quickstart's signing step
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Build the scripts the quickstart runs
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run the quickstart exactly as documented
+        run: bash docker/local/quickstart-check.sh
 
       - name: Run the offline check
         run: bash docker/local/offline-check/run.sh

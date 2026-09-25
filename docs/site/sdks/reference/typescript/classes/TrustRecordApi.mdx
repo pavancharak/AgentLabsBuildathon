@@ -43,3 +43,45 @@ Retrieve an Execution Trust Record.
 #### Returns
 
 `Promise`\<[`ExecutionTrustRecord`](/sdks/reference/typescript/interfaces/ExecutionTrustRecord)\>
+
+---
+
+### list()
+
+> **list**(`page?`, `pageSize?`, `options?`): `Promise`\<[`ExecutionTrustRecord`](/sdks/reference/typescript/interfaces/ExecutionTrustRecord)[]\>
+
+Defined in: [typescript/src/client/TrustRecordApi.ts:41](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/TrustRecordApi.ts#L41)
+
+List Execution Trust Records, newest first. Maps to GET /trust-records.
+Only records of Business Transactions this caller submitted are
+returned, so a page may hold fewer than `pageSize` records.
+
+#### Parameters
+
+##### page?
+
+`number` = `1`
+
+##### pageSize?
+
+`number` = `25`
+
+##### options?
+
+###### since?
+
+`string`
+
+Only records of transactions created at or after
+this ISO 8601 time.
+
+###### until?
+
+`string`
+
+Only records of transactions created at or before
+this ISO 8601 time.
+
+#### Returns
+
+`Promise`\<[`ExecutionTrustRecord`](/sdks/reference/typescript/interfaces/ExecutionTrustRecord)[]\>

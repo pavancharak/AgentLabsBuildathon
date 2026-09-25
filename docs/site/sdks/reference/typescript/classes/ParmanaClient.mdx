@@ -2,7 +2,7 @@
 title: "Class: ParmanaClient"
 ---
 
-Defined in: [typescript/src/client/ParmanaClient.ts:73](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L73)
+Defined in: [typescript/src/client/ParmanaClient.ts:83](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L83)
 
 Canonical Parmana SDK client.
 
@@ -12,7 +12,7 @@ Canonical Parmana SDK client.
 
 > **new ParmanaClient**(`configuration`): `ParmanaClient`
 
-Defined in: [typescript/src/client/ParmanaClient.ts:142](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L142)
+Defined in: [typescript/src/client/ParmanaClient.ts:154](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L154)
 
 Creates a Parmana SDK client.
 
@@ -32,7 +32,7 @@ Creates a Parmana SDK client.
 
 > `readonly` **configuration**: [`Configuration`](/sdks/reference/typescript/interfaces/Configuration)
 
-Defined in: [typescript/src/client/ParmanaClient.ts:77](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L77)
+Defined in: [typescript/src/client/ParmanaClient.ts:87](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L87)
 
 Immutable SDK configuration.
 
@@ -42,7 +42,7 @@ Immutable SDK configuration.
 
 > **endpoint**(): `string`
 
-Defined in: [typescript/src/client/ParmanaClient.ts:180](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L180)
+Defined in: [typescript/src/client/ParmanaClient.ts:194](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L194)
 
 Returns the configured Runtime endpoint.
 
@@ -56,7 +56,7 @@ Returns the configured Runtime endpoint.
 
 > **health**(): `Promise`\<`HealthStatus`\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:187](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L187)
+Defined in: [typescript/src/client/ParmanaClient.ts:201](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L201)
 
 Performs a Runtime health check.
 
@@ -70,7 +70,7 @@ Performs a Runtime health check.
 
 > **version**(): `Promise`\<`unknown`\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:194](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L194)
+Defined in: [typescript/src/client/ParmanaClient.ts:208](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L208)
 
 Returns the Runtime name, version, and API version.
 
@@ -84,7 +84,7 @@ Returns the Runtime name, version, and API version.
 
 > **execute**(`transaction`): `Promise`\<[`ExecutionTrustRecord`](/sdks/reference/typescript/interfaces/ExecutionTrustRecord)\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:201](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L201)
+Defined in: [typescript/src/client/ParmanaClient.ts:215](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L215)
 
 Executes a Business Transaction.
 
@@ -104,7 +104,7 @@ Executes a Business Transaction.
 
 > **verify**(`businessTransactionId`): `Promise`\<[`Verification`](/sdks/reference/typescript/interfaces/Verification)\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:213](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L213)
+Defined in: [typescript/src/client/ParmanaClient.ts:227](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L227)
 
 Runs a fresh verification of an Execution Trust Record, appending a
 new Verification to its history. Distinct from
@@ -127,7 +127,7 @@ re-verifying.
 
 > **getLatestVerification**(`businessTransactionId`): `Promise`\<[`Verification`](/sdks/reference/typescript/interfaces/Verification)\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:220](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L220)
+Defined in: [typescript/src/client/ParmanaClient.ts:234](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L234)
 
 Returns the latest Verification.
 
@@ -147,7 +147,7 @@ Returns the latest Verification.
 
 > **replay**(`businessTransactionId`): `Promise`\<[`ReplayResult`](/sdks/reference/typescript/interfaces/ReplayResult)\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:229](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L229)
+Defined in: [typescript/src/client/ParmanaClient.ts:243](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L243)
 
 Performs deterministic replay.
 
@@ -167,7 +167,7 @@ Performs deterministic replay.
 
 > **receipt**(`businessTransactionId`): `Promise`\<[`Receipt`](/sdks/reference/typescript/interfaces/Receipt)\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:236](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L236)
+Defined in: [typescript/src/client/ParmanaClient.ts:250](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L250)
 
 Generates an execution receipt.
 
@@ -187,7 +187,7 @@ Generates an execution receipt.
 
 > **createTransaction**(`transaction`): `Promise`\<[`ExecutionTrustRecord`](/sdks/reference/typescript/interfaces/ExecutionTrustRecord)\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:245](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L245)
+Defined in: [typescript/src/client/ParmanaClient.ts:259](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L259)
 
 Creates (executes) a Business Transaction via POST /transactions,
 a second, independent entry point into the identical execution
@@ -209,7 +209,7 @@ pipeline as execute() (POST /execute). See TransactionApi.create.
 
 > **transaction**(`businessTransactionId`): `Promise`\<[`BusinessTransaction`](/sdks/reference/typescript/interfaces/BusinessTransaction)\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:254](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L254)
+Defined in: [typescript/src/client/ParmanaClient.ts:268](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L268)
 
 Retrieves a Business Transaction.
 
@@ -229,7 +229,7 @@ Retrieves a Business Transaction.
 
 > **transactions**(`page?`, `pageSize?`): `Promise`\<[`BusinessTransaction`](/sdks/reference/typescript/interfaces/BusinessTransaction)[]\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:263](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L263)
+Defined in: [typescript/src/client/ParmanaClient.ts:277](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L277)
 
 Lists Business Transactions.
 
@@ -249,11 +249,31 @@ Lists Business Transactions.
 
 ---
 
+### latestReceipt()
+
+> **latestReceipt**(`businessTransactionId`): `Promise`\<[`Receipt`](/sdks/reference/typescript/interfaces/Receipt)\>
+
+Defined in: [typescript/src/client/ParmanaClient.ts:284](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L284)
+
+Retrieves the most recent receipt without generating a new one.
+
+#### Parameters
+
+##### businessTransactionId
+
+`string`
+
+#### Returns
+
+`Promise`\<[`Receipt`](/sdks/reference/typescript/interfaces/Receipt)\>
+
+---
+
 ### trustRecord()
 
 > **trustRecord**(`businessTransactionId`): `Promise`\<[`ExecutionTrustRecord`](/sdks/reference/typescript/interfaces/ExecutionTrustRecord)\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:270](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L270)
+Defined in: [typescript/src/client/ParmanaClient.ts:291](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L291)
 
 Retrieves an Execution Trust Record.
 
@@ -269,11 +289,81 @@ Retrieves an Execution Trust Record.
 
 ---
 
+### trustRecords()
+
+> **trustRecords**(`page?`, `pageSize?`, `options?`): `Promise`\<[`ExecutionTrustRecord`](/sdks/reference/typescript/interfaces/ExecutionTrustRecord)[]\>
+
+Defined in: [typescript/src/client/ParmanaClient.ts:301](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L301)
+
+Lists Execution Trust Records of this caller's transactions, newest
+first. See TrustRecordApi.list.
+
+#### Parameters
+
+##### page?
+
+`number` = `1`
+
+##### pageSize?
+
+`number` = `25`
+
+##### options?
+
+###### since?
+
+`string`
+
+###### until?
+
+`string`
+
+#### Returns
+
+`Promise`\<[`ExecutionTrustRecord`](/sdks/reference/typescript/interfaces/ExecutionTrustRecord)[]\>
+
+---
+
+### caller()
+
+> **caller**(): `Promise`\<[`CallerIdentity`](/sdks/reference/typescript/interfaces/CallerIdentity)\>
+
+Defined in: [typescript/src/client/ParmanaClient.ts:312](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L312)
+
+Who this API key belongs to and what it may do (GET /callers/me).
+
+#### Returns
+
+`Promise`\<[`CallerIdentity`](/sdks/reference/typescript/interfaces/CallerIdentity)\>
+
+---
+
+### publicKey()
+
+> **publicKey**(`keyId?`): `Promise`\<[`PublicKeyInfo`](/sdks/reference/typescript/interfaces/PublicKeyInfo)\>
+
+Defined in: [typescript/src/client/ParmanaClient.ts:320](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L320)
+
+A signing public key of the deployment (GET /keys/{keyId}), for the
+offline verifiers. Records are signed with `default`.
+
+#### Parameters
+
+##### keyId?
+
+`string` = `"default"`
+
+#### Returns
+
+`Promise`\<[`PublicKeyInfo`](/sdks/reference/typescript/interfaces/PublicKeyInfo)\>
+
+---
+
 ### validatePolicy()
 
 > **validatePolicy**(`policyId`, `policyVersion`): `Promise`\<[`PolicyValidationResult`](/sdks/reference/typescript/interfaces/PolicyValidationResult)\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:279](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L279)
+Defined in: [typescript/src/client/ParmanaClient.ts:327](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L327)
 
 Confirms that a policy (name + version) is loadable by the Runtime.
 
@@ -297,7 +387,7 @@ Confirms that a policy (name + version) is loadable by the Runtime.
 
 > **refusalRecord**(`businessTransactionId`): `Promise`\<[`RefusalRecord`](/sdks/reference/typescript/interfaces/RefusalRecord)\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:289](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L289)
+Defined in: [typescript/src/client/ParmanaClient.ts:337](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L337)
 
 Retrieves a Refusal Record by Business Transaction ID.
 
@@ -317,7 +407,7 @@ Retrieves a Refusal Record by Business Transaction ID.
 
 > **verifyRefusalRecord**(`record`): `Promise`\<`boolean`\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:296](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L296)
+Defined in: [typescript/src/client/ParmanaClient.ts:344](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L344)
 
 Verifies a Refusal Record's signature.
 
@@ -337,7 +427,7 @@ Verifies a Refusal Record's signature.
 
 > **executionIntent**(`businessTransactionId`): `Promise`\<[`ExecutionIntentView`](/sdks/reference/typescript/interfaces/ExecutionIntentView)\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:305](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L305)
+Defined in: [typescript/src/client/ParmanaClient.ts:353](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L353)
 
 Retrieves an Execution Intent and its status by Business Transaction ID
 (ADR-0012). The intent is the signed statement, stored before an action is
@@ -359,7 +449,7 @@ released, of what was about to be released.
 
 > **verifyExecutionIntent**(`intent`): `Promise`\<`boolean`\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:316](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L316)
+Defined in: [typescript/src/client/ParmanaClient.ts:364](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L364)
 
 Verifies an Execution Intent's hash and signature. Needs no credential.
 `true` proves the intent is genuine and unaltered. It does not prove the
@@ -381,7 +471,7 @@ action was released, or what its result was.
 
 > **unfinalizedExecutionIntents**(`limit?`): `Promise`\<[`UnfinalizedExecutionIntents`](/sdks/reference/typescript/interfaces/UnfinalizedExecutionIntents)\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:325](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L325)
+Defined in: [typescript/src/client/ParmanaClient.ts:373](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L373)
 
 Lists Execution Intents that never reached a signed Trust Record and were
 not closed by hand, oldest first. Needs a credential provisioned as a
@@ -403,7 +493,7 @@ verified human.
 
 > **finalizeExecutionIntent**(`businessTransactionId`): `Promise`\<[`FinalizeExecutionIntentResult`](/sdks/reference/typescript/interfaces/FinalizeExecutionIntentResult)\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:336](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L336)
+Defined in: [typescript/src/client/ParmanaClient.ts:384](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L384)
 
 Rebuilds the signed Trust Record for a released action whose record was
 never produced. Never calls a connector. Safe to run twice. Needs a
@@ -425,7 +515,7 @@ credential provisioned as a verified human.
 
 > **resolveExecutionIntent**(`businessTransactionId`, `input`): `Promise`\<[`ResolveExecutionIntentResult`](/sdks/reference/typescript/interfaces/ResolveExecutionIntentResult)\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:347](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L347)
+Defined in: [typescript/src/client/ParmanaClient.ts:395](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L395)
 
 Closes a PREPARED or ERRORED intent that a verified human reconciled at the
 connector. The note is required. The resolution is an attributed operator
@@ -451,7 +541,7 @@ statement in unsigned status, not a Trust Record.
 
 > **verifyAuditEvent**(`event`, `signature`): `Promise`\<`boolean`\>
 
-Defined in: [typescript/src/client/ParmanaClient.ts:357](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L357)
+Defined in: [typescript/src/client/ParmanaClient.ts:405](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L405)
 
 Verifies a signed caller-authentication audit event's signature.
 
@@ -468,3 +558,105 @@ Verifies a signed caller-authentication audit event's signature.
 #### Returns
 
 `Promise`\<`boolean`\>
+
+---
+
+### proposePolicyChange()
+
+> **proposePolicyChange**(`name`, `version`, `input`): `Promise`\<[`ProposedPolicyChange`](/sdks/reference/typescript/interfaces/ProposedPolicyChange)\>
+
+Defined in: [typescript/src/client/ParmanaClient.ts:415](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L415)
+
+Proposes a policy change. See PolicyApi.proposeChange.
+
+#### Parameters
+
+##### name
+
+`string`
+
+##### version
+
+`string`
+
+##### input
+
+[`ProposePolicyChangeInput`](/sdks/reference/typescript/interfaces/ProposePolicyChangeInput)
+
+#### Returns
+
+`Promise`\<[`ProposedPolicyChange`](/sdks/reference/typescript/interfaces/ProposedPolicyChange)\>
+
+---
+
+### policyChanges()
+
+> **policyChanges**(`status?`): `Promise`\<[`PolicyChangeForReview`](/sdks/reference/typescript/interfaces/PolicyChangeForReview)[]\>
+
+Defined in: [typescript/src/client/ParmanaClient.ts:426](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L426)
+
+Lists policy changes for review. See PolicyApi.listChanges.
+
+#### Parameters
+
+##### status?
+
+[`PendingPolicyChangeStatus`](/sdks/reference/typescript/type-aliases/PendingPolicyChangeStatus)
+
+#### Returns
+
+`Promise`\<[`PolicyChangeForReview`](/sdks/reference/typescript/interfaces/PolicyChangeForReview)[]\>
+
+---
+
+### approvePolicyChange()
+
+> **approvePolicyChange**(`pendingPolicyChangeId`, `stepUpAuthorization`): `Promise`\<[`PendingPolicyChange`](/sdks/reference/typescript/interfaces/PendingPolicyChange)\>
+
+Defined in: [typescript/src/client/ParmanaClient.ts:436](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L436)
+
+Approves a policy change with a signed step up authorization. See
+PolicyApi.approveChange and signPolicyChangeStepUp().
+
+#### Parameters
+
+##### pendingPolicyChangeId
+
+`string`
+
+##### stepUpAuthorization
+
+[`PolicyChangeStepUpAuthorization`](/sdks/reference/typescript/interfaces/PolicyChangeStepUpAuthorization)
+
+#### Returns
+
+`Promise`\<[`PendingPolicyChange`](/sdks/reference/typescript/interfaces/PendingPolicyChange)\>
+
+---
+
+### rejectPolicyChange()
+
+> **rejectPolicyChange**(`pendingPolicyChangeId`, `rejectionReason`, `stepUpAuthorization`): `Promise`\<[`PendingPolicyChange`](/sdks/reference/typescript/interfaces/PendingPolicyChange)\>
+
+Defined in: [typescript/src/client/ParmanaClient.ts:450](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/ParmanaClient.ts#L450)
+
+Rejects a policy change with a reason and a signed step up
+authorization. See PolicyApi.rejectChange.
+
+#### Parameters
+
+##### pendingPolicyChangeId
+
+`string`
+
+##### rejectionReason
+
+`string`
+
+##### stepUpAuthorization
+
+[`PolicyChangeStepUpAuthorization`](/sdks/reference/typescript/interfaces/PolicyChangeStepUpAuthorization)
+
+#### Returns
+
+`Promise`\<[`PendingPolicyChange`](/sdks/reference/typescript/interfaces/PendingPolicyChange)\>
