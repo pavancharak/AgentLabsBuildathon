@@ -12,9 +12,10 @@ description: "Real client code, bearer-key authentication, and a typed error tax
   Bearer-key authentication, a real thrown error taxonomy, and full test
   coverage are all in place, along with corrected model types (see below),
   `client.verify()`/`client.version()`, and `client.createTransaction()`.
-  v1.1.6, published 2026-09-20 and confirmed via `npm view @parmana/sdk
-  version`, is the current version. It builds a default `HttpTransport` when you
-  omit `transport`, and sends `userAgent`. v1.1.3 added `serverCode` on
+  v1.2.0, published 2026-09-21 and confirmed via `npm view @parmana/sdk
+  version`, is the current version. It adds the Execution Intent methods.
+  v1.1.6, published 2026-09-20, builds a default `HttpTransport` when you omit
+  `transport`, and sends `userAgent`. v1.1.3 added `serverCode` on
   `InternalServerError` (see below). v1.1.2, published 2026-09-14, added
   `createBusinessTransaction()`. See the fix history at the bottom of this page.
 </Info>
@@ -123,8 +124,8 @@ you should do next:
   new `businessTransactionId`.
 - `EXECUTION_RECORD_INCOMPLETE` (500): the action **was** released to the execution system, but its signed record
   could not be produced. **Do not retry as a new transaction.** Tell the operator: a signed Execution Intent exists,
-  and the operator can rebuild the record without repeating the action. The method is `finalizeExecutionIntent`. It is in the SDK
-  source and not in the published 1.1.6, so until 1.2.0 is published the operator uses
+  and the operator can rebuild the record without repeating the action. The method is `finalizeExecutionIntent`. It is available from
+  version 1.2.0. On 1.1.6 and earlier the operator uses
   `POST /execution-intents/<businessTransactionId>/finalize` over HTTP.
 
 ```typescript

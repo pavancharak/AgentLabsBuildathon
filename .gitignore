@@ -78,3 +78,7 @@ ALL-FIXES-COMPLETE.md
 .vercel
 
 .env*
+
+# Self hosted deployment state made by docker-compose.yml: signing keys,
+# the API key and offline check output. Never commit it.
+parmana-local/

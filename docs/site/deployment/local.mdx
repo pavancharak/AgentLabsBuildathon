@@ -1,6 +1,6 @@
 ---
 title: "Local / Self-Hosted Deployment"
-description: "The real, current deployment model: a single Node.js process, local PEM keys, your choice of memory or Supabase storage."
+description: "Run Parmana on your own infrastructure: one Docker Compose command for the API and its own Postgres, or a single Node.js process."
 ---
 
 <Info>
@@ -9,11 +9,43 @@ description: "The real, current deployment model: a single Node.js process, loca
   signing](/deployment/aws-kms-signing).
 </Info>
 
+## Docker Compose: one command
+
+The self hosted deployment starts the API and its own Postgres with one command. Nothing is
+sent to Parmana or anywhere else: decisions, signatures, the audit trail and the Trust Records
+stay in your deployment.
+
+```bash
+docker compose up -d --build --wait
+curl http://127.0.0.1:3000/ready
+# {"status":"READY","authDisabled":false}
+```
+
+On the first start it makes the Ed25519 signing keys and an API key in `./parmana-local`,
+creates the database, applies each migration once, and copies the shipped policies into the
+database. Later starts keep all of that, and an upgrade applies only new migrations. Before
+the first authorized request your own people approve the policies you use, through policy
+governance, because a policy that was never approved authorizes nothing in production.
+
+To prove enforcement does not depend on the internet or on Parmana:
+
+```bash
+bash docker/local/offline-check/run.sh
+```
+
+It runs a copy of the stack on a Docker network with no internet route, approves the refund
+policy through governance, sends an authorized and a refused refund, and verifies the Trust
+Record with only the public keys. It ends with `12 of 12 checks passed`.
+
+Everything, including settings, key files, policy approval and upgrades, is in `DEPLOYMENT.md`,
+section "Self hosted with Docker Compose", in the repository.
+
 ## What runs today
 
 One Express process (`packages/api/src/server.ts`), single instance, no load balancer or
 orchestration assumed. Signing keys are local PEM files read by `FileKeyProvider`. Storage
-is either fully in-process (`memory`, non-persistent) or Supabase.
+is either fully in-process (`memory`, non-persistent) or Postgres (`postgres`, or its older
+name `supabase`; both use `DATABASE_URL`).
 
 ## Configuration
 
@@ -22,7 +54,7 @@ Real `.env` keys (from this repo, values redacted):
 ```bash
 NODE_ENV=...
 PORT=3000
-PARMANA_STORAGE=supabase     # or: memory
+PARMANA_STORAGE=postgres     # or: supabase (same thing), memory
 HASH_PROVIDER=sha256
 PRIMARY_SIGNATURE_PROVIDER=ed25519   # or: dilithium3 (needs Node >= 24)
 KEY_PROVIDER=local

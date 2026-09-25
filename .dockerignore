@@ -1,5 +1,6 @@
 # Never bake secrets or local dev credentials into the image.
 keys/
+parmana-local/
 .env
 .env.*
 !.env.example

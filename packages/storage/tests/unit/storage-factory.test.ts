@@ -80,4 +80,28 @@ describe("StorageFactory.createFromEnvironment", () => {
       MemoryStorageProvider,
     );
   });
+
+  it("(G-57) returns the Postgres provider for PARMANA_STORAGE=postgres when DATABASE_URL is configured", () => {
+    process.env.NODE_ENV = "production";
+    process.env.PARMANA_STORAGE = "postgres";
+    process.env.DATABASE_URL =
+      "postgresql://parmana:parmana@localhost:5432/parmana";
+
+    expect(StorageFactory.createFromEnvironment()).toBeInstanceOf(
+      SupabaseStorageProvider,
+    );
+  });
+
+  it("(G-57) names PARMANA_STORAGE=postgres and DATABASE_URL when DATABASE_URL is missing", () => {
+    process.env.NODE_ENV = "production";
+    process.env.PARMANA_STORAGE = "postgres";
+    delete process.env.DATABASE_URL;
+
+    expect(() => StorageFactory.createFromEnvironment()).toThrow(
+      /PARMANA_STORAGE=postgres/,
+    );
+    expect(() => StorageFactory.createFromEnvironment()).toThrow(
+      /DATABASE_URL/,
+    );
+  });
 });

@@ -456,13 +456,13 @@ Scope: a live `paytm:refund` through production `/execute` returned `500`. The r
 
 ## Gaps closed in the 2026-09-21 Execution Intents session
 
-Scope: gaps G-52 and G-53, recorded on 2026-09-20 and deferred, then built on 2026-09-21 after the decision was reversed. The design is `docs/adr/ADR-0012-Signed-Execution-Intent-Before-Release.md`. Two limits found while building it, G-54 and G-55, were both closed the same day, G-55 in the source only and not published.
+Scope: gaps G-52 and G-53, recorded on 2026-09-20 and deferred, then built on 2026-09-21 after the decision was reversed. The design is `docs/adr/ADR-0012-Signed-Execution-Intent-Before-Release.md`. Two limits found while building it, G-54 and G-55, were both closed the same day, G-55 published in SDK 1.2.0 on 2026-09-21.
 
 | #   | Gap                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 61  | **A released action could have no signed evidence, and a missing Execution Trust Record could not be rebuilt (G-52, G-53).** CLOSED 2026-09-21 for the risk they named, with limits. Before an action is released, the runtime now signs and stores an Execution Intent, and refuses with `503 EXECUTION_INTENT_UNAVAILABLE`, releasing nothing, if it cannot. After release it saves the execution context on the intent. A missing Trust Record is rebuilt with `POST /execution-intents/{businessTransactionId}/finalize`, which never calls the connector, is idempotent and race safe, and also verifies the record and generates the receipt. Enforced everywhere except `NODE_ENV` `test` or `development`. Limits: an intent proves what was about to be released and not that it was released or what happened; finalize cannot rebuild a record when the context was not saved and refuses with `409`; see G-54 and G-55. | `packages/runtime/tests/unit/execution-intent.test.ts`, `packages/crypto/tests/unit/execution-intent-crypto.test.ts`, `packages/storage/tests/unit/execution-intent-repository.test.ts`, `packages/api/tests/integration/execution-intents.integration.test.ts`, `packages/api/tests/unit/bootstrap/create-execution-intents.test.ts`, `packages/api/tests/unit/routes/ready.test.ts`. The Postgres queries were run against a real Postgres (16 checks). Verified live on 2026-09-21 with the production image, a real Postgres, the real KMS key `alias/default` and the real `parmana-paytm-agent` using fake Paytm staging credentials: 23 of 23 checks (a normal request, a released action with no stored record repaired with the connector called once in total, and an intent that could not be stored releasing nothing). Not verified: the Vercel OIDC role signing an intent, latency from Vercel, a real Paytm refund. `docs/CLAIMS.md` section 2.39.                                                                    |
 | 62  | **An Execution Intent reconciled by hand could not be closed (G-54).** CLOSED 2026-09-21. `POST /execution-intents/{businessTransactionId}/resolve` lets a verified human close a `PREPARED` or `ERRORED` intent with what they found (`NOT_EXECUTED` or `EXECUTED`) and a required note, attributed and timestamped. It leaves the unfinalized list. It never calls a connector, is idempotent, and refuses `RELEASED`, `FINALIZED` and any transaction that has a Trust Record. **Limit:** the resolution is stored in unsigned status, so it is not tamper evident and it is not a Trust Record.                                                                                                                                                                                                                                                                                                                                 | `packages/runtime/tests/unit/execution-intent.test.ts` (closing from `ERRORED` and `PREPARED`, idempotency, a lost race, refusing `RELEASED` and `FINALIZED`, input validation), `packages/storage/tests/unit/execution-intent-repository.test.ts`, `packages/api/tests/integration/execution-intents.integration.test.ts` (over HTTP, including a Trust Record that already exists). The SQL was run against a real Postgres (12 checks, including both constraints). Verified live on 2026-09-21 with the production image, a real Postgres and the real agent chain, a real connector failure produced an `ERRORED` intent that a human closed: 35 of 35 checks with local signing keys, and 37 of 37 under the real AWS KMS key `alias/default`. An earlier KMS attempt failed one scenario for a network reason unrelated to the feature (the agent could not reach Paytm staging), and the check now answers the agent's Paytm call locally, so it no longer depends on the internet (37 of 37 three times in a row under KMS). |
-| 63  | **The SDKs could not verify or manage Execution Intents (G-55).** CLOSED in the source 2026-09-21, **not published**. Both SDKs have the five intent methods, and Python has an offline verifier that needs only the public key. **Limits:** not in 1.1.6, and the TypeScript SDK has no offline intent verifier.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | `typescript/test/ExecutionIntentApi.test.ts` (13 tests), `python/tests/test_execution_intent_api.py` and `python/tests/test_offline_intent_verifier.py` (24 tests, including a REAL server signed intent, and intents signed by the TypeScript signer with non ASCII text, verified in Python). Python: `ruff`, `black`, `mypy` and 109 tests pass. **Both SDKs were run against the live server** (real Docker image, real Postgres): read, verify (including the Python decode then encode round trip the server accepted), list, finalize, resolve, and the error classes for a non human caller, a conflict, a validation error and a missing intent.                                                                                                                                                                                                                                                                                                                                                                             |
+| 63  | **The SDKs could not verify or manage Execution Intents (G-55).** CLOSED 2026-09-21 and **published** in SDK 1.2.0 (TypeScript on npm, Python on PyPI). Both SDKs have the five intent methods, and Python has an offline verifier that needs only the public key. **Limits:** not in 1.1.6 or earlier, and the TypeScript SDK has no offline intent verifier.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | `typescript/test/ExecutionIntentApi.test.ts` (13 tests), `python/tests/test_execution_intent_api.py` and `python/tests/test_offline_intent_verifier.py` (24 tests, including a REAL server signed intent, and intents signed by the TypeScript signer with non ASCII text, verified in Python). Python: `ruff`, `black`, `mypy` and 109 tests pass. **Both SDKs were run against the live server** (real Docker image, real Postgres): read, verify (including the Python decode then encode round trip the server accepted), list, finalize, resolve, and the error classes for a non human caller, a conflict, a validation error and a missing intent.                                                                                                                                                                                                                                                                                                                                                                             |
 
 ---
 
@@ -473,6 +473,126 @@ Scope: gap G-52 found in the live refund run. It is mitigated here, not closed. 
 | #   | Gap                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Verified                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 60  | **The runtime released the action before checking that the evidence signing path could work, and a failure after release surfaced as a generic `500`.** A persistent signing problem (a missing, disabled or denied key, a KMS outage, a key mismatch, a size limit) was only discovered after the connector had been called, and the caller saw `Internal Server Error`, which reads as "nothing happened" and invites a blind retry. MITIGATED 2026-09-20 (ADR-0011): before release the engine proves signing works with a real round trip through the same signer and key, cached for 60 seconds, failing closed with `503 SIGNING_UNAVAILABLE` and nothing executed. A failure after release is now `500 EXECUTION_RECORD_INCOMPLETE` with the `businessTransactionId` and `authorizationId`, and a critical log event. Enforced everywhere except `NODE_ENV` `test` or `development`. This does not remove the residual window, see G-52 and G-53. | `packages/runtime/tests/unit/signing-readiness.test.ts` and `execution-record-incomplete.test.ts` (readiness failure leaves the release counter at zero, failure after release carries the identifiers, a policy rejection before release is not reclassified), `packages/crypto/tests/unit/signing-probe.test.ts`, `packages/api/tests/unit/bootstrap/create-signing-readiness.test.ts`. Verified live on 2026-09-20 (production commit 4047536): `signingReadinessConfigured: true` in the startup log, and a synthetic `paytm:refund` returned `200` with `VERIFIED`, which required the readiness probe to pass against the real KMS. The `503` and `EXECUTION_RECORD_INCOMPLETE` responses are covered by unit tests, not by live fault injection. |
+
+---
+
+## Gaps opened in the 2026-09-25 self hosted deployment audit, and closed the same day
+
+Scope: a read of the source on 2026-09-25, as the first step of offering a deployment the
+customer runs next to the hosted API on Vercel, then the build that closed what the read found.
+The summary of the deployment is in `docs/CURRENT-STATE.md`, section "Self hosted deployment",
+and the operator guide is `DEPLOYMENT.md`, section "Self hosted with Docker Compose".
+
+**Where it was verified:** Docker Desktop 29.8.0 on Windows 11, 2026-09-25, on the uncommitted
+branch `feat/self-hosted-deployment`. The CI job `self-hosted` in
+`.github/workflows/docker-image.yml` repeats the same steps on Linux, but has not run yet,
+because nothing has been pushed. `npx vitest run` before the build: 2,056 passed, 42 skipped,
+0 failed; after it: 2,069 passed, 42 skipped, 0 failed, and `npm run lint` and
+`npx tsc -b packages/api` clean.
+
+**G-56. There was no one command local deployment. CLOSED 2026-09-25.** Before: no Docker
+Compose file existed, and running the image took hand steps (start Postgres, create the roles
+`anon`, `authenticated` and `service_role`, apply the migrations, generate the `default` and
+`gateway` Ed25519 key pairs, hash an API key into `PARMANA_API_KEYS`, mount `keys/`), proven
+only as CI shell steps. **Fix:** `docker-compose.yml` does all of it with
+`docker compose up -d --build --wait`: `setup` (`docker/local/setup.mjs`) makes the keys and an
+API key in `./parmana-local` inside the image, so the host needs only Docker, and keeps them on
+every later start; `migrate` and `seed` prepare the database (G-58); `api` runs the unchanged
+production image with `PARMANA_STORAGE=postgres`. `./parmana-local` is in `.gitignore` and
+`.dockerignore`. **Verified:** a clean start reached `healthy`; `GET /ready` returned
+`{"status":"READY","authDisabled":false}`; `POST /execute` returned `401` with no key and `400`
+with the generated key and an empty body; the startup log showed signing readiness, Execution
+Intents and refusal recording configured. A second start kept both key files and
+`api-keys.json` byte for byte (SHA-256 compared), and the six caller audit rows written before
+it were still there.
+
+**G-57. The storage provider names did not match what the code does. CLOSED 2026-09-25.**
+Before: `StorageFactory.create()` threw "Postgres storage provider not implemented." for
+`postgres`, while `supabase` already was a plain Postgres implementation over `DATABASE_URL`.
+**Fix:** `postgres` now selects the same implementation as `supabase`, everywhere the name is
+checked: `StorageFactory.create()`, `assertStorageConfigured()` and `GET /ready`, through one
+helper, `isPostgresStorage()` (`packages/shared/src/config/StorageProviders.ts`). `supabase`
+keeps working unchanged. SQLite was not built: every non test deployment needs Postgres anyway,
+because the caller audit sink and the nonce store require `DATABASE_URL`. **Tests:**
+`packages/storage/tests/unit/storage-factory.test.ts`,
+`packages/api/tests/unit/bootstrap/assert-storage-configured.test.ts`,
+`packages/api/tests/unit/routes/ready.test.ts` and
+`packages/shared/tests/unit/config-validation.test.ts`, 57 of 57 passing, including the new
+cases for `postgres`. The deployment above runs with `PARMANA_STORAGE=postgres`.
+
+**G-58. Migrations were not applied at start, and one migration assumes Supabase roles.
+CLOSED 2026-09-25 for the Compose deployment.** **Fix:** the `migrate` service
+(`docker/local/migrate.sh`) creates the three roles when missing
+(`docker/local/postgres-roles.sql`), then applies each file in `supabase/migrations/` once, in
+its own transaction, and records it in `parmana_schema_migrations`. The API starts only after it
+succeeds. The `seed` service (`docker/local/seed-policies.mjs`) copies the shipped policies
+into the `policies` table, which production reads instead of the disk, adding only versions
+not already there, so a policy changed through governance is never overwritten. **Verified:**
+first start, `31 applied, 0 already applied` and `14 added`; second start,
+`0 applied, 31 already applied` and `0 added, 14 already present and kept`. **Scope:** the
+container itself still does not migrate; a deployment that runs the image without Compose
+still applies migrations by hand (`DEPLOYMENT.md`, "Applying the schema").
+
+**G-59. "Console sync" named in the 2026-09-25 plan did not exist. CLOSED 2026-09-25, not
+needed.** Nothing in this repository sends audit events to a hosted console: they are written
+in the same request to the deployment's own Postgres (`SupabaseCallerAuditSink`,
+`SupabaseExecutionAuditSink`, `execution_intents`), so there was nothing to extract and
+`/execute` never waited on a remote call. The item was dropped from the plan on 2026-09-25. If a
+central view across customer deployments is wanted later, it is new work, to be designed then.
+The plan's source files (`CLAUDE-API-PACKAGE.md`, `PARMANA-SAAS-LOCAL-EXECUTION-PLAN.md`,
+`PARMANA-SAAS-LOCAL-SERIES-A-PITCH.md`, `PARMANA-CLAUDE-STUDY-REPO-END-STATE.md`) are still not
+in this repository.
+
+**G-60. Running with no outbound network had not been tested. CLOSED 2026-09-25.** Before:
+that enforcement makes no call to the hosted service was a reading of the code. **Fix:** an
+offline check, `bash docker/local/offline-check/run.sh`
+(`docker-compose.offline-check.yml`, `docker/local/offline-check/`). It builds the images while
+online, then runs a separate copy of the stack (own project, own database, the deployment's
+own signing keys, its own throwaway API keys) on a Docker network created with
+`internal: true`. The downstream system is a stand in for `parmana-paytm-agent` that verifies
+the Execution Gateway's signature with only the public key and never calls Paytm. The API's
+rule that a connector URL must be HTTPS in production was kept: the stand in serves HTTPS with
+a certificate made for the run, trusted by the API through `NODE_EXTRA_CA_CERTS` for that run
+only. **Verified:** 12 of 12 checks, on each of four clean runs (the last one after the final edit to the check): no internet route from the
+network (`https://1.1.1.1` and `https://registry.npmjs.org` both unreachable); READY; a
+verified human proposed `customer-refund` 1.0.0 (`201`), was refused as its own approver (`403
+SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE`), and a second human approved it with a signed step up
+authorization (`200`); an authorized refund returned `200` and reached the stand in once, with
+the gateway signature verified; a refund over the policy threshold returned `403 POLICY_DENIED`
+("Refund rejected because the requested refund amount exceeds the maximum permitted
+threshold.") and never reached the stand in; the Trust Record verified with only the two public
+keys, and a copy with the amount changed failed. The saved record was verified again on the
+host, outside Docker, with `scripts/verify-trust-record.ts`: `valid: true`, `hashValid: true`,
+`legacySignatureValid: true`. **Not covered:** a real downstream system, connectors other than
+Paytm, and a machine that has never been online (the images are built while online).
+
+**G-61. The migration bundle is not safe to run again on a database that holds data. FOUND and
+MITIGATED 2026-09-25, `pre-production`.** Found while building G-58: the first version of the
+`migrate` service applied again `scripts/apply-all-migrations.sql` on every start. On the second
+start, with caller audit rows already written, it failed with `check constraint
+"caller_audit_events_type_check" of relation "caller_audit_events" is violated by some row`.
+Several migrations drop and add back that constraint with a longer list of allowed event types
+each time, so running it again adds back an older, narrower constraint over rows written under a newer
+one. The bundle's own header and `DEPLOYMENT.md` said it was safe to run again; both are corrected
+(`scripts/migrationbundle/header.txt`, bundle regenerated,
+`tests/architecture/migration-bundle-up-to-date.test.ts` passing). **Mitigation:** the Compose
+deployment applies each migration once (G-58). **Still open:** a hosted or hand run database
+has no record of which migrations it has, so an operator applying the bundle a second time
+there would hit the same failure. It fails inside the statement and changes nothing, but it
+blocks the upgrade.
+
+**G-62. Approving policies on a self hosted deployment needs the repository's scripts on an
+operator machine. OPEN, `pre-production`.** In production a policy authorizes nothing until it
+has completed policy governance (`docs/CLAIMS.md` 2.35), so a new deployment refuses every
+request with `403 POLICY_DENIED` and "has no PolicyChangeApprovalRecord" until its own people
+approve the policies they use. That is correct and is kept: `seed` does not approve anything,
+because approving would fabricate governance evidence. But issuing the proposer and approver
+keys (`scripts/generate-api-key.ts`) and signing the step up authorization
+(`scripts/sign-policy-change-step-up.ts`) are TypeScript scripts run with `npx tsx` from a
+clone of this repository, and the approver's step up private key must stay on the approver's
+machine. The image does not contain `tsx`. The offline check performs the flow end to end
+(`docker/local/offline-check/check.mjs`), so it works, but a bank's operators would need Node.js
+and the repository on the approver's machine. A small packaged signing tool would close this.
 
 ---
 
@@ -513,6 +633,14 @@ G-13's already-closed `NonceStore`/`CallerAuditSink` gap), G-43 for the equivale
 previously total, absence of any audit trail at all in `parmana-paytm-agent`, a separate
 repository this codebase forwards Paytm refund requests to. **Both were resolved the same
 session they were found** — see their own entries below.
+
+**Addendum (2026-09-25):** the self hosted deployment audit opened G-56 to G-60, and the
+same day's build closed G-56, G-57, G-58 and G-60 and dropped G-59 as not needed, each with
+evidence in its own entry above. The build found G-61 (the migration bundle is not safe to
+run again on a database with data), `pre-production`, now mitigated for the self hosted path,
+and G-62 (policy approval on a self hosted deployment needs the repository's scripts on an
+operator machine), `pre-production`, open. None is a security defect and none affects the
+hosted API on Vercel.
 
 ### blocks-pilot
 
@@ -1339,15 +1467,14 @@ statement in the intent's **unsigned** status. It is not tamper evident and it i
 so for an action that ran and has no Trust Record, the signed intent, the note and the connector's own
 record are the evidence. A signed resolution record would be a further design step, and is not built.
 
-**G-55. The SDKs cannot verify or manage Execution Intents. CLOSED in the source 2026-09-21, gap 63;
-NOT PUBLISHED.** Found 2026-09-21. The TypeScript and Python SDKs had no methods for the `/execution-intents`
-routes. **Closed** in the source: both SDKs have `executionIntent`, `verifyExecutionIntent`,
+**G-55. The SDKs cannot verify or manage Execution Intents. CLOSED 2026-09-21, gap 63;
+PUBLISHED in 1.2.0.** Found 2026-09-21. The TypeScript and Python SDKs had no methods for the `/execution-intents`
+routes. **Closed**: both SDKs have `executionIntent`, `verifyExecutionIntent`,
 `unfinalizedExecutionIntents`, `finalizeExecutionIntent` and `resolveExecutionIntent` (in Python,
 `execution_intent`, `verify_execution_intent`, `unfinalized_execution_intents`,
 `finalize_execution_intent` and `resolve_execution_intent`), and Python has
 `parmana.crypto.verify_execution_intent_offline`, which needs only the public key. **Limits, stated
-plainly:** they are **not in the published 1.1.6**, so no SDK user has them until both SDKs are published at 1.2.0
-(a version bump and a publish, which the operator does). The TypeScript SDK has no offline intent verifier,
+plainly:** they are **not in 1.1.6 or earlier**. Both SDKs were published at 1.2.0 on 2026-09-21. The TypeScript SDK has no offline intent verifier,
 as it has none for Trust Records either.
 
 ### pre-production

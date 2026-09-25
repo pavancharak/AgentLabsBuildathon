@@ -174,7 +174,7 @@ This file is generated from the documentation navigation. Do not edit it by hand
 * [Capture an email address before unlocking the handbook PDF download](https://docs.parmanasystems.com/api-reference/endpoints/create-handbook-download-lead): Backs a programmatic caller that wants a `downloadUrl` back in a JSON response body instead of a redirect -- see GET /handbook/download-leads above for the browser-form variant, which is what the actual docs site page uses.
 ## Deploy and operate: Deploy
 
-* [Local / Self-Hosted Deployment](https://docs.parmanasystems.com/deployment/local): The real, current deployment model: a single Node.js process, local PEM keys, your choice of memory or Supabase storage.
+* [Local / Self-Hosted Deployment](https://docs.parmanasystems.com/deployment/local): Run Parmana on your own infrastructure: one Docker Compose command for the API and its own Postgres, or a single Node.js process.
 * [Production deployment runbook](https://docs.parmanasystems.com/deployment/production): A numbered procedure to deploy the Parmana server to production, with the check that proves each step worked and the fix when it did not.
 * [AWS KMS signing](https://docs.parmanasystems.com/deployment/aws-kms-signing): Keep the signing key inside AWS KMS so the private key is never released. Set it up, verify it works, and understand the 4096 byte KMS limit.
 * [Environment variable reference](https://docs.parmanasystems.com/deployment/environment-variables): Every environment variable the Parmana server reads: whether it is required, its default, its allowed values, and what it does.

@@ -8,6 +8,7 @@ import {
   parseSignatureAlgorithm,
   parseStorageProvider,
 } from "../../src/config/ConfigValidation.js";
+import { isPostgresStorage } from "../../src/config/StorageProviders.js";
 
 describe("parseSignatureAlgorithm", () => {
   it("defaults to ed25519 when unset", () => {
@@ -55,6 +56,7 @@ describe("parseStorageProvider", () => {
   it("selects the provider named by PARMANA_STORAGE", () => {
     expect(parseStorageProvider("memory")).toBe("memory");
     expect(parseStorageProvider("supabase")).toBe("supabase");
+    expect(parseStorageProvider("postgres")).toBe("postgres");
   });
 
   it("defaults to memory when PARMANA_STORAGE is unset", () => {
@@ -73,6 +75,19 @@ describe("parseStorageProvider", () => {
     expect(() => parseStorageProvider("memory")).toThrow(
       "DATABASE_PROVIDER is no longer read; set PARMANA_STORAGE instead.",
     );
+  });
+});
+
+describe("isPostgresStorage (G-57)", () => {
+  it("is true for postgres and supabase, which select the same Postgres storage", () => {
+    expect(isPostgresStorage("postgres")).toBe(true);
+    expect(isPostgresStorage("supabase")).toBe(true);
+  });
+
+  it("is false for memory, unset and unknown names", () => {
+    expect(isPostgresStorage("memory")).toBe(false);
+    expect(isPostgresStorage(undefined)).toBe(false);
+    expect(isPostgresStorage("sqlite")).toBe(false);
   });
 });
 

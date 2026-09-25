@@ -33,25 +33,29 @@ export class StorageFactory {
         return new MemoryStorageProvider();
 
       case "supabase":
+      case "postgres":
         // G-15: name both knobs (PARMANA_STORAGE and the missing
         // DATABASE_URL) before PostgresPoolFactory.create() would
         // otherwise fail with its generic "DATABASE_URL environment
         // variable is missing." — or, worse, construct a pool that
         // only fails on first use.
+        //
+        // G-57: `postgres` selects the same implementation as
+        // `supabase`. Despite its name, SupabaseStorageProvider only
+        // needs a Postgres connection string, so a self hosted
+        // Postgres works under either name.
         if (!hasDatabaseUrlConfig()) {
           throw new Error(
-            "PARMANA_STORAGE=supabase requires DATABASE_URL (a direct " +
-              "Postgres connection string — see Settings → Database → " +
-              "Connection string in the Supabase dashboard) to be " +
-              "configured. Refusing to construct a Supabase storage " +
-              "provider with no credentials.",
+            `PARMANA_STORAGE=${configuration.provider} requires ` +
+              "DATABASE_URL (a direct Postgres connection string, for " +
+              "example postgresql://user:password@host:5432/parmana, or " +
+              "Settings → Database → Connection string in the Supabase " +
+              "dashboard) to be configured. Refusing to construct a " +
+              "Postgres storage provider with no credentials.",
           );
         }
 
         return new SupabaseStorageProvider();
-
-      case "postgres":
-        throw new Error("Postgres storage provider not implemented.");
 
       case "sqlite":
         throw new Error("SQLite storage provider not implemented.");

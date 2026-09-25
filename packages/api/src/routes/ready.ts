@@ -1,5 +1,6 @@
 import { Router } from "express";
 
+import { isPostgresStorage } from "@parmana/shared";
 import { PostgresPoolFactory } from "@parmana/storage";
 
 import { executionIntentsEnforced } from "../bootstrap/createExecutionIntents.js";
@@ -14,7 +15,7 @@ import { executionIntentsEnforced } from "../bootstrap/createExecutionIntents.js
  * up but backed by dead storage apart from one that is genuinely
  * ready to serve traffic — and route around it accordingly.
  *
- * When storage is not Supabase-backed (NODE_ENV=test, or
+ * When storage is not Postgres backed (NODE_ENV=test, or
  * PARMANA_STORAGE=memory outside test), there is no external
  * dependency to probe, so this reports ready unconditionally — the
  * same distinction assertStorageConfigured.ts already draws at boot.
@@ -55,7 +56,7 @@ export function createReadyRouter(options: CreateReadyRouterOptions): Router {
 
     if (
       process.env.NODE_ENV === "test" ||
-      process.env.PARMANA_STORAGE !== "supabase"
+      !isPostgresStorage(process.env.PARMANA_STORAGE)
     ) {
       res.json({
         status: "READY",

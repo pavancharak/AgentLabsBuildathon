@@ -52,4 +52,21 @@ describe("assertStorageConfigured", () => {
 
     expect(() => assertStorageConfigured()).not.toThrow();
   });
+
+  it("(G-57) fails closed when PARMANA_STORAGE=postgres and DATABASE_URL is not configured", () => {
+    process.env.NODE_ENV = "production";
+    process.env.PARMANA_STORAGE = "postgres";
+    delete process.env.DATABASE_URL;
+
+    expect(() => assertStorageConfigured()).toThrow(/DATABASE_URL/);
+  });
+
+  it("(G-57) does not throw when PARMANA_STORAGE=postgres and DATABASE_URL is configured", () => {
+    process.env.NODE_ENV = "production";
+    process.env.PARMANA_STORAGE = "postgres";
+    process.env.DATABASE_URL =
+      "postgresql://parmana:parmana@localhost:5432/parmana";
+
+    expect(() => assertStorageConfigured()).not.toThrow();
+  });
 });
