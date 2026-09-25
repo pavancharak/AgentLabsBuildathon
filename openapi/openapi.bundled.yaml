@@ -508,8 +508,8 @@ paths:
 
 
         Which `intent.action` values work depends on the connectors registered
-        on the server. An action with no registered connector fails with a
-        `500`.
+        on the server. An approved action with no registered connector fails
+        with `503` and code `CONNECTOR_NOT_REGISTERED`, and nothing is executed.
 
 
         How each outcome is reported:
@@ -542,6 +542,13 @@ paths:
         the signed intent exists, and an operator can rebuild the record with
         `POST /execution-intents/{businessTransactionId}/finalize` without
         calling the connector again.
+
+        7. `502` with code `EXECUTION_OUTCOME_UNKNOWN`: the action was released
+        and the call to the connector failed (unreachable, timed out, or an
+        error response), so whether it was performed is unknown. The Execution
+        Intent is `ERRORED`. Do not resubmit under a new id. Check the target
+        system, then close the intent with `POST
+        /execution-intents/{businessTransactionId}/resolve`.
 
 
         The examples named `vendor-payment-flow` are historical captures that
@@ -1025,7 +1032,8 @@ paths:
             execution audit events instead. A structurally incomplete request
             body (a valid-UUID businessTransactionId but missing required nested
             fields, e.g. metadata). A policy rejection is NOT a 500, it is a 403
-            with code POLICY_DENIED."
+            with code POLICY_DENIED, and a failed connector call is a 502 with
+            code EXECUTION_OUTCOME_UNKNOWN."
           content:
             application/json:
               schema:
@@ -1048,6 +1056,35 @@ paths:
                     handler, not a typed RuntimeError
                   value:
                     error: Internal Server Error
+        "502":
+          description: "Code EXECUTION_OUTCOME_UNKNOWN: the action was released to the
+            execution system and the call failed, typically a connector that
+            could not be reached, timed out or answered with an error, so
+            whether the action was performed is unknown. The Execution Intent
+            for this businessTransactionId is in state ERRORED. Do not resubmit
+            under a new businessTransactionId: check the target system, then
+            close the intent with POST
+            /execution-intents/{businessTransactionId}/resolve. The message
+            carries the businessTransactionId and authorizationId, never the
+            connector's own error."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error.schema"
+              examples:
+                executionOutcomeUnknown:
+                  summary: The action was released and the connector call failed
+                  value:
+                    error: "The action for business transaction
+                      '38dcf000-99ed-43af-8666-46c63c8ada74' was released to the
+                      execution system, but the call failed, so whether it was
+                      performed is unknown. Do not retry as a new transaction:
+                      check the target system, then close the Execution Intent
+                      with POST
+                      /execution-intents/38dcf000-99ed-43af-8666-46c63c8ada74/r\
+                      esolve. authorizationId:
+                      4d291c90-9e93-4a8a-b214-8cc6526fe2e3."
+                    code: EXECUTION_OUTCOME_UNKNOWN
         "503":
           $ref: "#/components/responses/SigningUnavailable"
   /transactions:
@@ -1531,11 +1568,12 @@ paths:
         "500":
           description: Server failure. Code EXECUTION_RECORD_INCOMPLETE (the action was
             released but its signed record could not be produced, do not
-            resubmit under a new businessTransactionId), no Connector registered
-            for the request's action, and a structurally incomplete body
-            throwing an uncaught TypeError. A policy rejection is NOT a 500, it
-            is a 403 with code POLICY_DENIED. See the fuller description on POST
-            /execute, same pipeline.
+            resubmit under a new businessTransactionId), and a structurally
+            incomplete body throwing an uncaught TypeError. An approved action
+            with no registered Connector is a 503 CONNECTOR_NOT_REGISTERED, and
+            a failed connector call is a 502 EXECUTION_OUTCOME_UNKNOWN. A policy
+            rejection is NOT a 500, it is a 403 with code POLICY_DENIED. See the
+            fuller description on POST /execute, same pipeline.
           content:
             application/json:
               schema:
@@ -1552,6 +1590,35 @@ paths:
                       events for this businessTransactionId. authorizationId:
                       381ef27a-0955-4085-9e5d-e4223fef2986."
                     code: EXECUTION_RECORD_INCOMPLETE
+        "502":
+          description: "Code EXECUTION_OUTCOME_UNKNOWN: the action was released to the
+            execution system and the call failed, typically a connector that
+            could not be reached, timed out or answered with an error, so
+            whether the action was performed is unknown. The Execution Intent
+            for this businessTransactionId is in state ERRORED. Do not resubmit
+            under a new businessTransactionId: check the target system, then
+            close the intent with POST
+            /execution-intents/{businessTransactionId}/resolve. The message
+            carries the businessTransactionId and authorizationId, never the
+            connector's own error."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error.schema"
+              examples:
+                executionOutcomeUnknown:
+                  summary: The action was released and the connector call failed
+                  value:
+                    error: "The action for business transaction
+                      '38dcf000-99ed-43af-8666-46c63c8ada74' was released to the
+                      execution system, but the call failed, so whether it was
+                      performed is unknown. Do not retry as a new transaction:
+                      check the target system, then close the Execution Intent
+                      with POST
+                      /execution-intents/38dcf000-99ed-43af-8666-46c63c8ada74/r\
+                      esolve. authorizationId:
+                      4d291c90-9e93-4a8a-b214-8cc6526fe2e3."
+                    code: EXECUTION_OUTCOME_UNKNOWN
         "503":
           $ref: "#/components/responses/SigningUnavailable"
     get:

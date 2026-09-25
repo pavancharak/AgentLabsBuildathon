@@ -130,6 +130,9 @@ you should do next:
   and the operator can rebuild the record without repeating the action. The method is `finalizeExecutionIntent`. It is available from
   version 1.2.0. On 1.1.6 and earlier the operator uses
   `POST /execution-intents/<businessTransactionId>/finalize` over HTTP.
+- `EXECUTION_OUTCOME_UNKNOWN` (502, since 2026-09-25): the action was released and the connector call failed, so it
+  **may** have been performed. **Do not retry as a new transaction.** Tell the operator, who checks the target system
+  and closes the intent with `resolveExecutionIntent`.
 
 ```typescript
 try {
@@ -138,6 +141,8 @@ try {
   if (error instanceof InternalServerError) {
     if (error.serverCode === "EXECUTION_RECORD_INCOMPLETE") {
       // The action ran. Reconcile, never resubmit under a new id.
+    } else if (error.serverCode === "EXECUTION_OUTCOME_UNKNOWN") {
+      // The action may have run. Reconcile, never resubmit under a new id.
     } else if (
       error.serverCode === "SIGNING_UNAVAILABLE" ||
       error.serverCode === "EXECUTION_INTENT_UNAVAILABLE"

@@ -123,6 +123,34 @@ Nothing was sent to the connector, so a retry with a new `businessTransactionId`
 
 **Fix:** configure the connector on the server (see the [connector section of the environment reference](/deployment/environment-variables#connectors)), deploy again, then retry with a new `businessTransactionId`, because the original was already accepted.
 
+## `POST /execute` returns 502 `EXECUTION_OUTCOME_UNKNOWN`
+
+**Cause:** the action was released to the connector and the call failed: the connector could not be reached, timed out, or answered with an error. Whether the action was performed is unknown. The response names the `businessTransactionId` and `authorizationId`; the connector's own error is never in the response.
+
+**Do not retry as a new transaction.** That could perform the action twice.
+
+1. Find the cause. The server log has a critical `execution_outcome_unknown` event, and the Execution Intent has it as `status.failureReason`:
+
+   ```bash
+   curl -s "$PARMANA_API_URL/execution-intents/<businessTransactionId>" \
+     -H "Authorization: Bearer $PARMANA_OPERATOR_KEY"
+   ```
+
+   `status.state` is `ERRORED`.
+
+2. Check the target system for this transaction.
+3. Close the intent with what you found, `EXECUTED` or `NOT_EXECUTED`, and a note. This needs a verified human credential and never calls the connector:
+
+   ```bash
+   curl -s -X POST "$PARMANA_API_URL/execution-intents/<businessTransactionId>/resolve" \
+     -H "Authorization: Bearer $PARMANA_OPERATOR_KEY" -H "Content-Type: application/json" \
+     -d '{"resolution":"NOT_EXECUTED","note":"Agent was unreachable; no refund in Paytm for this order."}'
+   ```
+
+4. Fix the connector before sending new requests. If the action was not executed and is still wanted, send it again with a **new** `businessTransactionId`.
+
+Before 2026-09-25 this failure returned a bare `500 Internal Server Error` with no identifiers (`docs/VERIFICATION-GAPS.md` G-63).
+
 ## `POST /execute` returns 500 `EXECUTION_RECORD_INCOMPLETE`
 
 **Cause:** the action was released to the connector, but the signed Execution Trust Record could not be

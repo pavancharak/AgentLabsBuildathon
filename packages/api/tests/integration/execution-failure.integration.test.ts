@@ -26,6 +26,11 @@ import { createInspectableExecutionSystem } from "../bootstrap/createInspectable
  * assumed. See docs/architecture/phase2d-execution-failure-testing.md
  * for the full investigation.
  *
+ * Since G-63 a connector failure no longer reaches errorHandler
+ * unrecognized: RuntimeEngine turns it into 502 EXECUTION_OUTCOME_UNKNOWN,
+ * which carries the transaction's identifiers, matching the ERRORED
+ * Execution Intent, and still never the cause's own message.
+ *
  * Uses createInspectableExecutionSystem (already used by
  * credential-isolation.integration.test.ts and others) to inject a
  * connector executor that deterministically throws, through the real
@@ -60,10 +65,15 @@ describe("Execution Failure", () => {
     const response = await request(app).post("/execute").send(transaction);
 
     //
-    // Deterministic failure, not a fabricated success.
+    // Deterministic failure, not a fabricated success. Since G-63 the
+    // response says what the ERRORED Execution Intent records: the action
+    // was released and its outcome is unknown, with the identifiers needed
+    // to reconcile it. Before G-63 this was a bare 500 with no identifiers.
     //
-    expect(response.status).toBe(500);
-    expect(response.body).toEqual({ error: "Internal Server Error" });
+    expect(response.status).toBe(502);
+    expect(response.body.code).toBe("EXECUTION_OUTCOME_UNKNOWN");
+    expect(response.body.error).toContain(transaction.businessTransactionId);
+    expect(response.body.error).toContain("Do not retry as a new transaction");
 
     // The real failure reason must never reach the caller (error-handler.ts's
     // documented no-leak design) — confirms this isn't accidentally exposing
@@ -148,8 +158,8 @@ describe("Execution Failure", () => {
         .post("/execute")
         .send(createBusinessTransaction());
 
-      expect(response.status).toBe(500);
-      expect(response.body).toEqual({ error: "Internal Server Error" });
+      expect(response.status).toBe(502);
+      expect(response.body.code).toBe("EXECUTION_OUTCOME_UNKNOWN");
     }
   });
 });

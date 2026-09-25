@@ -13,9 +13,11 @@
 -- with a longer list of allowed values each time, so a second run adds back an
 -- older, narrower constraint over rows written under a newer one, and fails
 -- (caller_audit_events_type_check was the first). Apply only the migrations
--- a project does not have yet. The self hosted deployment does this with
--- docker/local/migrate.sh, which applies each file once and records it in
--- parmana_schema_migrations.
+-- a project does not have yet: `npm run db:migrate -- apply` does that for
+-- any Postgres, and the self hosted deployment's docker/local/migrate.sh does
+-- it on every start. Both record each file in parmana_schema_migrations. A
+-- project set up with this file is baselined once first:
+-- `npm run db:migrate -- baseline --through <newest migration it has>`.
 --
 -- Statements are otherwise written to tolerate being applied again:
 --   - CREATE TABLE IF NOT EXISTS / CREATE INDEX IF NOT EXISTS

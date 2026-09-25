@@ -27,6 +27,14 @@ Both SDKs now cover the same operations. Both were published on 2026-09-25: `npm
 - TypeScript: offline verification of Trust Records and Execution Intents (`verifyExecutionTrustRecordOffline`, `verifyExecutionIntentOffline`), which only the Python SDK had; `latestReceipt()`; and `statusCode` on every HTTP error, which only the Python SDK had (`status_code`).
 - Python: the offline verifiers also accept the SDK's own models, so `client.execution_intent(id).intent` can be passed directly; `latest_receipt()` shortcut.
 
+**Changed**
+
+- A request whose action was released and whose connector call then failed (unreachable, timed out, or an error response) now returns `502` with code `EXECUTION_OUTCOME_UNKNOWN` and a message naming the `businessTransactionId` and `authorizationId`. It used to be a bare `500 Internal Server Error`. The Execution Intent is `ERRORED` as before: do not resubmit, check the target system and close the intent with resolve. See the [error catalog](/api-reference/error-catalog).
+
+**Added**
+
+- `npm run db:migrate`: tracked migrations for any Postgres. `status` and `apply --dry-run` are read only, `apply` runs each pending migration once, and `baseline --through <file>` records the migrations a database already has without running them. See the [production runbook](/deployment/production), step 2.
+
 **Corrected**
 
 - `scripts/apply-all-migrations.sql` is safe to run once on an empty database, and **not** safe to run again on a database that holds data. The docs used to say otherwise. For an existing database, apply only the migration files it does not have yet.

@@ -76,8 +76,10 @@ Compose adds this mount to the ones in `docker-compose.yml`; it does not replace
 
 The action has already been authorized, and an Execution Intent signed and stored, before the connector is called. If the call then fails:
 
-- the caller gets `500` with `{"error":"Internal Server Error"}`;
-- the Execution Intent is stored in state `ERRORED`;
-- the API log shows the cause, for example `getaddrinfo ENOTFOUND paytm-agent.internal.example.com`.
+- the caller gets `502` with code `EXECUTION_OUTCOME_UNKNOWN`, and a message naming the `businessTransactionId` and `authorizationId`. The connector's own error is never in the response;
+- the Execution Intent is stored in state `ERRORED`, with the cause as its `failureReason`;
+- the API log has a critical `execution_outcome_unknown` event with the cause, for example `getaddrinfo ENOTFOUND paytm-agent.internal.example.com`.
 
-The response does not say whether the action happened. Check your system, then close the intent with what you found: [Execution Intents](/concepts/execution-intents).
+Whether the action happened is unknown. Do not resend it under a new `businessTransactionId`. Check your system, then close the intent with what you found: [`POST /execution-intents/{id}/resolve`](/concepts/execution-intents). The full procedure is in [Troubleshooting](/troubleshooting#post-execute-returns-502-execution_outcome_unknown).
+
+Before 2026-09-25 the caller got a bare `500 Internal Server Error` here instead.

@@ -46,23 +46,42 @@ Never commit the private files and never bake them into the image. The image sta
 
 ## Step 2: Create the database schema
 
-The server needs the tables in `supabase/migrations/`, and creating them is a manual step. Use one of these:
-
-1. With the Supabase CLI linked to your project, run `supabase db push`.
-2. Otherwise open the Supabase SQL Editor and run the whole file `scripts/apply-all-migrations.sql` once, on an empty database. **Do not run it again on a database that holds data:** several migrations drop and add back the same CHECK constraint, and a second run fails on rows written since. For an existing database, apply only the migration files it does not have yet.
-
-**Check:** in the SQL Editor, `select to_regclass('consumed_nonces'), to_regclass('execution_audit_events'), to_regclass('policies'), to_regclass('execution_intents');` returns four names and no empty value. A missing name means a migration did not apply.
-
-<Warning>
-  **Upgrading a deployment that already exists.** Apply the new migration **before** you deploy the version that needs it. Execution Intents are enforced by default and cannot be switched off in production, so a new version running without the `execution_intents` table refuses every execution with `503 EXECUTION_INTENT_UNAVAILABLE`.
+The server needs the tables in `supabase/migrations/`. Apply them with the tracked migration runner, from the repository root, with `DATABASE_URL` set to the production database. It applies each migration once, each in its own transaction, and records it in the table `parmana_schema_migrations`, so every later run applies only what is new.
 
 ```bash
-psql "$DATABASE_URL" -f supabase/migrations/20260921120000_add_execution_intents.sql
-psql "$DATABASE_URL" -tA -c "select to_regclass('public.execution_intents')"
+npm run db:migrate -- status          # read only: lists applied and pending migrations
+npm run db:migrate -- apply --dry-run # read only: lists what apply would run
+npm run db:migrate -- apply           # applies the pending migrations
 ```
 
-The migration only adds a table, is safe to run twice, and changes no existing table. The second command must print `execution_intents`. See [Execution Intents](/concepts/execution-intents#turn-it-on-the-deployment-order-matters).
+The first line of every command names the database it is using and whether it writes, for example `Database: db.example.supabase.co:5432/postgres as postgres (writes)`. `DATABASE_URL` is taken from your shell, or from the repository's `.env` file when the shell does not set it: check that line before you run `apply`.
 
+**A database that already has the schema but no `parmana_schema_migrations` table** (it was set up with `scripts/apply-all-migrations.sql`, the Supabase SQL Editor or `supabase db push`) must be baselined once, so that `apply` does not run old migrations again:
+
+```bash
+npm run db:migrate -- baseline --through <the newest migration the database already has>
+```
+
+This records every migration up to and including that file as applied, without running any of them. Take the file name exactly as `status` lists it. Only baseline migrations the database really has.
+
+<Warning>
+  Do not run `scripts/apply-all-migrations.sql` on a database that holds data.
+  It applies every migration again, several migrations drop and add back the
+  same CHECK constraint, and a second run fails on rows written since
+  (`docs/VERIFICATION-GAPS.md` G-61). It is only for a new, empty database,
+  pasted into the Supabase SQL Editor.
+</Warning>
+
+**Check:** `npm run db:migrate -- status` ends with `0 pending`, and in the SQL Editor `select to_regclass('consumed_nonces'), to_regclass('execution_audit_events'), to_regclass('policies'), to_regclass('execution_intents');` returns four names and no empty value.
+
+<Warning>
+  **Upgrading a deployment that already exists.** Apply new migrations
+  **before** you deploy the version that needs them: `npm run db:migrate --
+  apply`. Execution Intents are enforced by default and cannot be switched off
+  in production, so a new version running without the `execution_intents` table
+  refuses every execution with `503 EXECUTION_INTENT_UNAVAILABLE`. See
+  [Execution
+  Intents](/concepts/execution-intents#turn-it-on-the-deployment-order-matters).
 </Warning>
 
 If a request later fails with `PGRST205` ("Could not find the table"), the schema cache is stale. Run `NOTIFY pgrst, 'reload schema';` in the SQL Editor, or use Dashboard, Database, API, Reload schema cache.
@@ -208,6 +227,7 @@ Set up these before you send real traffic:
 | Response codes `503` with `SIGNING_UNAVAILABLE`                                                                                 | Any occurrence. The signing path is unhealthy and nothing is being released.                                                                                                                                                                                                            |
 | Response codes `503` with `EXECUTION_INTENT_UNAVAILABLE`                                                                        | Any occurrence. The intent store or signing path is unhealthy and nothing is being released.                                                                                                                                                                                            |
 | Response codes `500` with `EXECUTION_RECORD_INCOMPLETE`                                                                         | Any occurrence. An action was released with no signed record. Repair it with `POST /execution-intents/<id>/finalize`.                                                                                                                                                                   |
+| Response codes `502` with `EXECUTION_OUTCOME_UNKNOWN`                                                                           | Any occurrence. An action was released and its connector call failed; its outcome must be checked and the intent closed with resolve. Several in a row mean the connector is down.                                                                                                      |
 | `GET /execution-intents/unfinalized` (human credential), for example every 15 minutes                                           | Any entry in state `RELEASED`, which is a repairable released action with no signed record. Entries in `PREPARED` or `ERRORED` mean an action whose outcome must be checked at the connector, then closed with `POST /execution-intents/<id>/resolve`. A closed intent leaves the list. |
 | Log events `execution_intent_prepare_failed`, `execution_intent_mark_released_failed`, `execution_intent_mark_finalized_failed` | Any occurrence. All are logged at critical severity.                                                                                                                                                                                                                                    |
 | Log level                                                                                                                       | Set `LOG_LEVEL=info`. Use `debug` only while investigating.                                                                                                                                                                                                                             |

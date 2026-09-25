@@ -151,7 +151,20 @@ find the table ... in the schema cache") on every request touching an
 unapplied table, even though the connection itself was fine and credentials
 were valid.
 
-Two ways to apply it:
+Apply it with the tracked migration runner, which applies each migration
+once and records it in `parmana_schema_migrations`, so later runs apply only
+what is new:
+
+```sh
+npm run db:migrate -- status    # read only
+npm run db:migrate -- apply
+```
+
+A database that already has the schema but no tracking table is baselined
+once first: `npm run db:migrate -- baseline --through <newest migration it
+has>`. The full procedure is in `docs/site/deployment/production.mdx`, step 2.
+
+Other ways to apply it:
 
 1. Supabase CLI, if linked to the project: `supabase db push`.
 2. No CLI link, or a Dashboard-only workflow: run
