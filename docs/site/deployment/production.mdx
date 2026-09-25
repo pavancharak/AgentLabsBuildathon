@@ -3,6 +3,8 @@ title: "Production deployment runbook"
 description: "A numbered procedure to deploy the Parmana server to production, with the check that proves each step worked and the fix when it did not."
 ---
 
+To run Parmana on your own infrastructure with one command, use the [self hosted deployment](/self-hosted/overview) instead. This runbook is for a hand built deployment, for example on Vercel with a Supabase database.
+
 This runbook takes you from an empty environment to a server that is running, authenticated, governed and verified. Do the steps in order. Every step ends with a **Check**. Do not go to the next step until the check passes.
 
 The exact meaning of every variable is in the [Environment variable reference](/deployment/environment-variables). If a startup error appears, look it up in the table at the bottom of that page.
@@ -47,7 +49,7 @@ Never commit the private files and never bake them into the image. The image sta
 The server needs the tables in `supabase/migrations/`, and creating them is a manual step. Use one of these:
 
 1. With the Supabase CLI linked to your project, run `supabase db push`.
-2. Otherwise open the Supabase SQL Editor and run the whole file `scripts/apply-all-migrations.sql` once. It is safe to run again, because every statement is idempotent.
+2. Otherwise open the Supabase SQL Editor and run the whole file `scripts/apply-all-migrations.sql` once, on an empty database. **Do not run it again on a database that holds data:** several migrations drop and add back the same CHECK constraint, and a second run fails on rows written since. For an existing database, apply only the migration files it does not have yet.
 
 **Check:** in the SQL Editor, `select to_regclass('consumed_nonces'), to_regclass('execution_audit_events'), to_regclass('policies'), to_regclass('execution_intents');` returns four names and no empty value. A missing name means a migration did not apply.
 

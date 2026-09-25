@@ -31,6 +31,10 @@ x-api-image: &api-image
   image: parmana-api:local
   build:
     context: .
+  environment: &api-environment
+    # The code loads a .env file when there is one; there is none in the
+    # image. This only silences dotenv's banner in the logs.
+    DOTENV_CONFIG_QUIET: "true"
 
 x-database-url: &database-url postgresql://parmana:${PARMANA_DB_PASSWORD:-parmana-local}@postgres:5432/parmana
 
@@ -40,6 +44,7 @@ services:
     user: "0:0"
     entrypoint: ["node", "/app/docker/local/setup.mjs"]
     environment:
+      <<: *api-environment
       PARMANA_LOCAL_ALLOWED_CAPABILITIES: ${PARMANA_LOCAL_ALLOWED_CAPABILITIES:-paytm:refund}
     volumes:
       - ./docker/local:/app/docker/local:ro
@@ -82,6 +87,7 @@ services:
         condition: service_completed_successfully
     entrypoint: ["node", "/app/docker/local/seed-policies.mjs"]
     environment:
+      <<: *api-environment
       DATABASE_URL: *database-url
     volumes:
       - ./docker/local:/app/docker/local:ro
@@ -100,6 +106,7 @@ services:
       - -c
       - export PARMANA_API_KEYS="$$(cat /app/parmana-local/api-keys.json)" && exec /app/docker/entrypoint.sh
     environment:
+      <<: *api-environment
       NODE_ENV: production
       PARMANA_STORAGE: postgres
       DATABASE_URL: *database-url
