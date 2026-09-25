@@ -17,18 +17,17 @@ description: "Generated models, bearer-key authentication, and a typed error tax
   and the `offline_verifier.py` fix. Two quick follow-up releases, v1.1.3 and
   v1.1.4, corrected the published package metadata (repo name, docs domain,
   added a `Website` URL); v1.1.5 and v1.1.6, both published 2026-09-20, follow;
-  v1.2.0, published 2026-09-21, is the current version, confirmed against the
-  live PyPI registry. v1.2.0 adds the Execution Intent methods and an offline
-  intent verifier. v1.1.6 adds `server_code` to `InternalServerError`. v1.1.5
-  lets the offline verifier accept records over 4096 bytes that AWS KMS signed
-  as a fixed size commitment, and declares its `cryptography` dependency as the
-  optional `verify` extra (`pip install "parmana[verify]"`). v1.1.4 was
+  v1.3.0, published 2026-09-25, is the current version, confirmed against the
+  live PyPI registry. It adds policy governance, step up signing, `caller()`,
+  `public_key()`, `trust_records.list()` and `latest_receipt()`, and lets the
+  offline verifiers take the SDK's own models: see [New in 1.3.0](#new-in-130).
+  v1.2.0, published 2026-09-21, added the Execution Intent methods and an
+  offline intent verifier. v1.1.6 adds `server_code` to `InternalServerError`.
+  v1.1.5 lets the offline verifier accept records over 4096 bytes that AWS KMS
+  signed as a fixed size commitment, and declares its `cryptography` dependency
+  as the optional `verify` extra (`pip install "parmana[verify]"`). v1.1.4 was
   published 2026-09-14. See [Changelog](/changelog) and the fix history at the
-  bottom of this page. **1.3.0 is built and tested but not yet published**: it
-  adds policy governance, step up signing, `caller()`, `public_key()`,
-  `trust_records.list()` and `latest_receipt()`, and lets the offline verifiers
-  take the SDK's own models. See [New in
-  1.3.0](#new-in-130-built-and-tested-not-yet-published).
+  bottom of this page.
 </Info>
 
 ## Install
@@ -242,14 +241,13 @@ server's idempotency key. `authority_type` defaults to `AuthorityType.SERVICE` (
 `tests/test_builders.py` (9 unit tests) / `tests/test_builder_example.py` (proves the
 generated ids round-trip correctly through a real running server, not just in isolation).
 
-## New in 1.3.0 (built and tested, not yet published)
+## New in 1.3.0
 
-<Warning>
-  Everything in this section is in SDK 1.3.0, which is built and tested in this
-  repository but **not yet published to PyPI**. `pip install parmana` installs
-  1.2.0, which does not have it. The full list of what each version covers is on
-  [SDK coverage of the API](/sdks/api-coverage).
-</Warning>
+<Info>
+  Published to PyPI on 2026-09-25. `pip install parmana` installs it. On 1.2.0
+  and earlier none of this section exists. The full list of what each version
+  covers is on [SDK coverage of the API](/sdks/api-coverage).
+</Info>
 
 1.3.0 adds policy governance to both SDKs and makes the Python SDK cover the same operations as the TypeScript SDK.
 

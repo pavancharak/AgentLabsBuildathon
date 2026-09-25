@@ -108,8 +108,9 @@ any customer running it.
 Both SDKs are at 1.3.0 in this repository and cover the same product
 operations, including policy governance with step up signing, offline
 verification in both languages, caller identity, public keys and Trust
-Record listing (`docs/CLAIMS.md` 2.41, G-64). npm and PyPI still serve
-1.2.0: **1.3.0 is not published.** Tests: TypeScript SDK 191, Python SDK
+Record listing (`docs/CLAIMS.md` 2.41, G-64). Both are published: the TypeScript SDK 1.3.0 on npm and the Python
+SDK 1.3.0 on PyPI, on 2026-09-25, each checked by installing it from its
+registry and rerunning the live checks. Tests: TypeScript SDK 191, Python SDK
 119, all passing; each SDK passed 11 of 11 live checks against a self hosted
 deployment. The route by route mapping is `docs/site/sdks/api-coverage.mdx`.
 

@@ -290,11 +290,11 @@ A repaired record has its own `createdAt`, the time of the repair. The times of 
 </Tabs>
 
 <Note>
-  The Python SDK has an offline verifier, `verify_execution_intent_offline`. The
-  published TypeScript SDK (1.2.0) has none, so use the API route or the script
-  above. TypeScript SDK 1.3.0, built but not yet published, adds
-  `verifyExecutionIntentOffline`. See [Use the SDKs](#use-the-sdks) and [SDK
-  coverage of the API](/sdks/api-coverage).
+  Both SDKs have an offline verifier: `verify_execution_intent_offline` in
+  Python, and `verifyExecutionIntentOffline` in TypeScript from 1.3.0 (published
+  2026-09-25). On TypeScript 1.2.0 and earlier, use the API route or the script
+  above. See [Use the SDKs](#use-the-sdks) and [SDK coverage of the
+  API](/sdks/api-coverage).
 </Note>
 
 ## Use the SDKs
@@ -437,7 +437,7 @@ One more signing operation and one more database write happen before every relea
 - Transactions created before this feature have no intent. Their behavior is unchanged.
 - Closing an intent (resolve) records an operator's statement in unsigned status. It is not tamper evident and it does not create a Trust Record.
 - The list route returns intents across all callers, so it needs a verified human credential.
-- The SDK methods for the intent routes are available from SDK 1.2.0. Earlier versions do not have them. The published TypeScript SDK (1.2.0) has no offline intent verifier; 1.3.0, built but not yet published, adds one.
+- The SDK methods for the intent routes are available from SDK 1.2.0. Earlier versions do not have them. The TypeScript SDK has an offline intent verifier from 1.3.0, published 2026-09-25; 1.2.0 has none.
 
 ## What was verified
 

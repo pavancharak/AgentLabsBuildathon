@@ -1075,7 +1075,7 @@ Scope, stated plainly:
 - An intent proves what was about to be released. It does **not** prove that the action was released, or what its result was, because it is written before release. An intent in `PREPARED` or `ERRORED` means the action may or may not have run, and only the connector can say.
 - This does not guarantee that every released action has a signed Trust Record. `EXECUTION_RECORD_INCOMPLETE` is still possible. It is repairable when the execution context was saved (state `RELEASED`). When that save also failed (state `PREPARED`), finalize refuses with `409 EXECUTION_INTENT_RESULT_NOT_RECORDED` and the outcome has to be established from the connector by hand.
 - An `ERRORED` or `PREPARED` intent that an operator reconciled at the connector is closed with `POST /execution-intents/{businessTransactionId}/resolve` (G-54, closed). That records what they found (`NOT_EXECUTED` or `EXECUTED`), a required note, who and when, in the intent's **unsigned** status. It is an attributed operator statement. It is **not** tamper evident and it does **not** create a Trust Record. It never calls a connector, is idempotent, and refuses a `RELEASED` intent (use finalize), a `FINALIZED` intent, and any transaction that already has a Trust Record.
-- The TypeScript and Python SDKs have methods for the intent routes (G-55, closed in the source on 2026-09-21). **They are in SDK 1.2.0, published on 2026-09-21, and not in 1.1.6 or earlier.** The Python SDK has an offline intent verifier that needs only the public key. The TypeScript SDK has none in 1.2.0; 1.3.0, built but not yet published, adds one (2.41).
+- The TypeScript and Python SDKs have methods for the intent routes (G-55, closed in the source on 2026-09-21). **They are in SDK 1.2.0, published on 2026-09-21, and not in 1.1.6 or earlier.** The Python SDK has an offline intent verifier that needs only the public key. The TypeScript SDK has none in 1.2.0; 1.3.0, published to npm on 2026-09-25, adds one (2.41).
 - Transactions created before this change have no intent, and their behavior is unchanged.
 - Deploying this version without the migration `20260921120000_add_execution_intents.sql` makes every execution fail closed with `503 EXECUTION_INTENT_UNAVAILABLE`. That is by design, and `GET /ready` reports it first.
 
@@ -1111,7 +1111,7 @@ A customer can run Parmana on its own infrastructure with one command, `docker c
 
 Scope, stated plainly:
 
-- **A new deployment authorizes nothing until its own people approve the policies they use** through policy governance (2.26, 2.35). `seed` does not approve them. API keys for the proposer and approver are issued inside the image (`docker/local/api-keys.mjs`). Signing the approval needs the repository's TypeScript script on the approver's machine until SDK 1.3.0 is published, which signs from either SDK (2.41, `docs/VERIFICATION-GAPS.md` G-62).
+- **A new deployment authorizes nothing until its own people approve the policies they use** through policy governance (2.26, 2.35). `seed` does not approve them. API keys for the proposer and approver are issued inside the image (`docker/local/api-keys.mjs`). Signing the approval no longer needs the repository: the TypeScript SDK 1.3.0, published on npm on 2026-09-25, signs it (2.41, `docs/VERIFICATION-GAPS.md` G-62, closed). The Python SDK 1.3.0, published on PyPI the same day, signs it too.
 - An authorized action whose connector cannot be reached returns a bare `500` to the caller, although the Execution Intent correctly records `ERRORED` (G-63, open).
 - Verified on Docker Desktop 29.8.0 on Windows 11 and on Linux in CI run 36113024609 (`.github/workflows/docker-image.yml`, job `self-hosted`, 2026-09-25, on the merge commit `a14bc5c`). CI repeats it on every change to the deployment files, and also runs every command of the quickstart page and compares the output (`docker/local/quickstart-check.sh`).
 - The offline run used a stand in for the downstream system (`parmana-paytm-agent`), not a real one. It covers the Paytm connector only.
@@ -1138,7 +1138,7 @@ Evidence
 
 ---
 
-## 2.41 The TypeScript and Python SDKs Cover the Same Product API (Scoped, SDK 1.3.0, Not Yet Published)
+## 2.41 The TypeScript and Python SDKs Cover the Same Product API (Scoped, SDK 1.3.0, Published)
 
 Both SDKs have a method for every product operation of the API, the same set in each, and the same offline and signing capabilities. The mapping, with the reason for each route that has no method, is `docs/site/sdks/api-coverage.mdx`.
 
@@ -1150,7 +1150,7 @@ Both SDKs have a method for every product operation of the API, the same set in 
 
 Scope, stated plainly:
 
-- **Not published.** Both SDKs are at 1.3.0 in this repository. npm and PyPI still serve 1.2.0, which has none of the above. Publishing needs the operator.
+- **Published: both.** `@parmana/sdk` 1.3.0 was published to npm on 2026-09-25 (visible at 10:14:57 UTC); installed from npm into a clean project it reports 1.3.0 with every new export, and it passed the same 11 of 11 live checks against a self hosted deployment. `parmana` 1.3.0 was published to PyPI the same day (wheel and source archive); installed from PyPI into a clean environment it reports 1.3.0 with every new method, and it passed the same 11 of 11 live checks against a self hosted deployment.
 - The routes with no method are the readiness probe, the JWKS document, the API's own description files and the handbook download, each with its reason in the coverage page.
 - ML-DSA-65 is not verified by either SDK; a hybrid record is reported as not valid, with the reason.
 - In Python, `client.version` is the SDK's version, while TypeScript's `version()` is the server's. This existing difference is documented, not changed.
