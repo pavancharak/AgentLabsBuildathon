@@ -580,8 +580,8 @@ has no record of which migrations it has, so an operator applying the bundle a s
 there would hit the same failure. It fails inside the statement and changes nothing, but it
 blocks the upgrade.
 
-**G-62. Approving policies on a self hosted deployment needs the repository's signing script on
-the approver's machine. OPEN, `pre-production`, narrowed 2026-09-25.** In production a policy
+**G-62. Approving policies on a self hosted deployment needed the repository's signing script
+on the approver's machine. CLOSED 2026-09-25 (see the end of this entry).** In production a policy
 authorizes nothing until it has completed policy governance (`docs/CLAIMS.md` 2.35), so a new
 deployment refuses every request with `403 POLICY_DENIED` and "has no
 PolicyChangeApprovalRecord" until its own people approve the policies they use. That is correct
@@ -594,7 +594,7 @@ with the server's own parser. **Still open:** signing the step up authorization
 of the repository with `npm install`, because the approver's step up private key must stay on
 the approver's machine and the image cannot be used there without Docker. **Closed in the
 source the same day (G-64):** SDK 1.3.0 signs from either SDK, installed with `npm install` or
-`pip install`, with no clone of the repository. It stays open until 1.3.0 is published. The steps are documented and tested in CI
+`pip install`, with no clone of the repository. **CLOSED 2026-09-25** when `@parmana/sdk` 1.3.0 was published to npm: an approver installs it with `npm install @parmana/sdk` and signs with `signPolicyChangeStepUp()`, verified from the npm package against a live deployment. The Python SDK 1.3.0 was published to PyPI the same day and signs too (`sign_policy_change_step_up()`), also verified from the PyPI package against a live deployment. The steps are documented and tested in CI
 (`docs/site/self-hosted/policy-approval.mdx`, `docker/local/quickstart-check.sh`).
 
 **G-63. An authorized action whose connector cannot be reached returns a bare `500`. OPEN,
@@ -610,7 +610,7 @@ checked: whether a connector timeout or an HTTP error from a reachable connector
 same way.
 
 **G-64. The two SDKs did not cover the same API, and neither covered policy governance. CLOSED
-in the source 2026-09-25, SDK 1.3.0, not yet published.** Found by mapping each of the 37
+2026-09-25, SDK 1.3.0, published to npm and PyPI the same day.** Found by mapping each of the 37
 operations in `openapi/openapi.yaml` to the methods of each SDK. Before: neither SDK could
 propose, list, approve or reject a policy change, or sign a step up authorization, so policy
 governance needed the repository's scripts (the cause of G-62); neither had `GET /callers/me`,
@@ -623,7 +623,7 @@ rewrites any dict key containing an underscore to camelCase, which would have ch
 customer's policy content if a proposal were sent through it; the new methods send policy
 content and step up authorizations unchanged, and a test checks this. Also: `client.version`
 in Python is the SDK's own version, while `version()` in TypeScript is the server's; documented,
-not changed. **Still open:** publishing 1.3.0 to npm and PyPI.
+not changed. **Published:** the TypeScript SDK 1.3.0 on npm on 2026-09-25, checked by installing it from npm and rerunning the live checks (11 of 11). The Python SDK 1.3.0 was published to PyPI the same day and checked the same way (11 of 11). Nothing is open.
 
 ---
 
@@ -673,7 +673,7 @@ and G-62 (policy approval on a self hosted deployment needs the repository's scr
 operator machine), `pre-production`, open. The docs pass of the same day found G-63 (an
 unreachable connector gives the caller a bare `500`), `pre-production`, open, and the SDK
 alignment pass closed G-64 in the source (the SDKs did not cover the same API or policy
-governance), pending publication of SDK 1.3.0. None is a security defect and none affects the
+governance); the TypeScript SDK 1.3.0 was published to npm the same day, which closed G-62, and the Python SDK 1.3.0 was published to PyPI the same day. None is a security defect and none affects the
 hosted API on Vercel.
 
 ### blocks-pilot

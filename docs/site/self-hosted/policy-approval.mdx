@@ -137,10 +137,11 @@ A signed step up authorization:
 
 SDK 1.3.0 can do steps 3 to 5 from application code, and signs on the approver's machine without a clone of the repository: `signPolicyChangeStepUp()` and `approvePolicyChange()` in TypeScript, `parmana.crypto.sign_policy_change_step_up()` and `approve_policy_change()` in Python. Examples are on the [TypeScript SDK](/sdks/typescript#approve-a-policy-change) and [Python SDK](/sdks/python#approve-a-policy-change) pages.
 
-<Warning>
-  SDK 1.3.0 is built and tested but **not yet published** to npm or PyPI. Until
-  it is, sign with the script above.
-</Warning>
+<Info>
+  SDK 1.3.0 is published on npm and PyPI, so an approver can `npm install
+  @parmana/sdk` or `pip install "parmana[verify]"` and sign without the
+  repository.
+</Info>
 
 A signature made by either SDK is accepted by the server exactly as one made by the script: this is tested for both SDKs against the server's own verifier, and was run against a live self hosted deployment on 2026-09-25.
 

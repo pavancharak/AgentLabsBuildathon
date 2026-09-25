@@ -18,7 +18,7 @@ Goal as set: a deployment the customer runs, with enforcement that does not depe
 | Operator guide on the docs site                  | Done 2026-09-25    | Nine pages under `docs/site/self-hosted/`, every command run as written; the quickstart is checked in CI by `docker/local/quickstart-check.sh`.                      |
 | CI on Linux                                      | Done 2026-09-25    | CI run 36113024609, job `self-hosted`: one command start, restart, offline check 12 of 12.                                                                           |
 | Commit and merge                                 | Done 2026-09-25    | By the operator, `a14bc5c`. The docs pass after it is uncommitted.                                                                                                   |
-| SDK alignment                                    | Done 2026-09-25    | SDK 1.3.0 in both languages covers the same API, including policy governance (G-64, `docs/CLAIMS.md` 2.41). Not published: needs the operator.                       |
+| SDK alignment                                    | Done 2026-09-25    | SDK 1.3.0 in both languages covers the same API, including policy governance (G-64, `docs/CLAIMS.md` 2.41). Published to npm and PyPI on 2026-09-25.                 |
 | Customer deployment                              | Needs the operator | No customer is named in the repository. Their own people must approve their policies before anything is authorized (G-62 describes the tooling this needs today).    |
 | Series A slides                                  | Needs the operator | Not in this repository.                                                                                                                                              |
 

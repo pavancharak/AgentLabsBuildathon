@@ -18,9 +18,9 @@ every commit, run `git log` in the repository for the complete record.
 - **Offline verification.** `bash docker/local/offline-check/run.sh` proves, on a network with no internet route, that policy approval, an authorized and a refused decision, and Trust Record verification with only the public keys all work. See [Offline verification](/self-hosted/offline-verification).
 - `PARMANA_STORAGE=postgres`. It selects the same Postgres storage as `supabase`, which is unchanged. See the [environment variable reference](/deployment/environment-variables#storage).
 
-**SDK 1.3.0, built and tested, not yet published**
+**SDK 1.3.0, published on npm and PyPI**
 
-Both SDKs now cover the same operations. Until 1.3.0 is published, `npm install @parmana/sdk` and `pip install parmana` install 1.2.0, which has none of this. See [SDK coverage of the API](/sdks/api-coverage).
+Both SDKs now cover the same operations. Both were published on 2026-09-25: `npm install @parmana/sdk` and `pip install parmana` install 1.3.0. See [SDK coverage of the API](/sdks/api-coverage).
 
 - Policy governance in both SDKs: propose, list for review, approve and reject a policy change, and sign the step up authorization on the approver's machine (`signPolicyChangeStepUp()`, `parmana.crypto.sign_policy_change_step_up()`). An approver no longer needs a clone of the repository.
 - `caller()` (`GET /callers/me`), `publicKey()` / `public_key()` (`GET /keys/{keyId}`) and Trust Record listing (`GET /trust-records`) in both SDKs.
