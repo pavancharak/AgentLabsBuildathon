@@ -133,10 +133,54 @@ Replay deterministically re-executes the recorded execution.
 # Validate Policy
 
 ```typescript
-const result = await client.validatePolicy(policy);
+const result = await client.validatePolicy("customer-refund", "1.0.0");
+// { valid: true, errors: [] }
 ```
 
-Policy validation checks that a policy is structurally valid before deployment.
+Checks that the named policy version can be loaded by the server. It does not take a policy document.
+
+---
+
+# Policy Governance (1.3.0)
+
+A policy decides nothing until two different people have approved it. One proposes, the other approves with a step up signature made on their own machine:
+
+```typescript
+import { readFileSync } from "node:fs";
+import { signPolicyChangeStepUp } from "@parmana/sdk";
+
+const change = await proposer.proposePolicyChange("customer-refund", "1.0.0", {
+  proposedContent: policyJson,
+  reason: "Adopt the customer-refund policy.",
+});
+
+const stepUp = signPolicyChangeStepUp({
+  pendingPolicyChangeId: change.pendingPolicyChangeId,
+  action: "approve",
+  privateKeyPem: readFileSync("step-up.private.pem", "utf8"),
+  keyId: "bob",
+});
+
+await approver.approvePolicyChange(change.pendingPolicyChangeId, stepUp);
+```
+
+Also: `policyChanges(status?)` to review, `rejectPolicyChange(id, reason, stepUp)`.
+
+---
+
+# Offline Verification (1.3.0)
+
+```typescript
+import { verifyExecutionTrustRecordOffline } from "@parmana/sdk";
+
+const { pem } = await client.publicKey("default");
+const result = verifyExecutionTrustRecordOffline(await client.trustRecord(id), {
+  default: pem,
+});
+// result.valid === true
+```
+
+No network call: only the record and the public key. `verifyExecutionIntentOffline()` does the same for an Execution Intent.
 
 ---
 
@@ -152,8 +196,14 @@ ParmanaClient
 ├── ReceiptApi
 ├── TransactionApi
 ├── TrustRecordApi
-└── PolicyApi
+├── PolicyApi            (validation and governance)
+├── RefusalApi
+├── ExecutionIntentApi
+├── AuditApi
+└── CallerApi            (caller identity and public keys, 1.3.0)
 ```
+
+Every operation and its Python equivalent: https://docs.parmanasystems.com/sdks/api-coverage
 
 The client is intentionally small.
 
@@ -236,20 +286,7 @@ See the `examples/` directory.
 
 # Documentation
 
-The complete SDK documentation is available in:
-
-```
-docs/sdk/
-```
-
-Including:
-
-- SDK Architecture
-- SDK Specification
-- Error Model
-- Configuration
-- Versioning
-- Conformance
+The complete SDK documentation is at https://docs.parmanasystems.com/sdks/typescript, and every operation with its Python equivalent is at https://docs.parmanasystems.com/sdks/api-coverage.
 
 ---
 

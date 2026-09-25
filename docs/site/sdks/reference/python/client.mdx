@@ -246,3 +246,69 @@ def verify_audit_event(event: dict[str, Any], signature: Signature) -> bool
 
 Verifies a signed caller-authentication or Razorpay-webhook
 audit event's signature.
+
+#### latest_receipt
+
+```python
+def latest_receipt(business_transaction_id: str) -> Receipt
+```
+
+Retrieve the most recent receipt without generating a new one.
+See ReceiptApi.get_latest.
+
+#### caller
+
+```python
+def caller() -> CallerIdentity
+```
+
+Who this API key belongs to and what it may do (GET /callers/me).
+
+#### public_key
+
+```python
+def public_key(key_id: str = "default") -> PublicKeyInfo
+```
+
+A signing public key of the deployment (GET /keys/\{keyId\}), for the
+offline verifiers. Records are signed with "default".
+
+#### propose_policy_change
+
+```python
+def propose_policy_change(name: str, version: str, *,
+                          proposed_content: dict[str, Any],
+                          reason: str) -> ProposedPolicyChange
+```
+
+Propose a policy change. See PolicyApi.propose_change.
+
+#### policy_changes
+
+```python
+def policy_changes(status: str | None = None) -> list[PolicyChangeForReview]
+```
+
+List policy changes for review. See PolicyApi.list_changes.
+
+#### approve_policy_change
+
+```python
+def approve_policy_change(
+        pending_policy_change_id: str,
+        step_up_authorization: dict[str, Any]) -> PendingPolicyChange
+```
+
+Approve a policy change with a signed step up authorization. See
+PolicyApi.approve_change and parmana.crypto.sign_policy_change_step_up.
+
+#### reject_policy_change
+
+```python
+def reject_policy_change(
+        pending_policy_change_id: str, rejection_reason: str,
+        step_up_authorization: dict[str, Any]) -> PendingPolicyChange
+```
+
+Reject a policy change with a reason and a signed step up
+authorization. See PolicyApi.reject_change.

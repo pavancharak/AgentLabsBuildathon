@@ -27,8 +27,8 @@ silently skipped or faked.
 from __future__ import annotations
 
 import hashlib
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import dataclass, field, is_dataclass
+from typing import Any, cast
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -36,6 +36,23 @@ from cryptography.hazmat.primitives.hashes import SHA256, Hash
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 
 from .canonical import canonical_serialize
+
+
+def _as_json(value: Any) -> dict[str, Any]:
+    """
+    Accept either the plain dict of a JSON response or file, or the SDK's
+    own decoded model (ExecutionTrustRecord, ExecutionIntent). A model is
+    turned back into the exact JSON the server sent: camelCase keys, unset
+    optional fields left out, and timestamps in JavaScript's toISOString()
+    form, the same encoding verify_refusal_record() relies on.
+    """
+
+    if is_dataclass(value) and not isinstance(value, type):
+        from parmana.serialization import encode
+
+        return cast("dict[str, Any]", encode(value))
+    return cast("dict[str, Any]", value)
+
 
 _SUPPORTED_ALGORITHMS = {"ed25519"}
 
@@ -103,14 +120,17 @@ class OfflineVerificationResult:
 
 
 def verify_execution_trust_record_offline(
-    trust_record: dict[str, Any],
+    trust_record: Any,
     public_keys: dict[str, str],
 ) -> OfflineVerificationResult:
     """
     `trust_record` is a plain dict, exactly as `json.load()` would
-    produce from a Trust Record JSON file or API response body.
+    produce from a Trust Record JSON file or API response body, or the
+    ExecutionTrustRecord that `client.trust_record()` returns.
     `public_keys` maps keyId -> PEM-encoded public key text.
     """
+
+    trust_record = _as_json(trust_record)
 
     errors: list[str] = []
     algorithms_checked: list[str] = []
@@ -215,7 +235,7 @@ def _canonical_execution_intent(intent: dict[str, Any]) -> dict[str, Any]:
 
 
 def verify_execution_intent_offline(
-    intent: dict[str, Any],
+    intent: Any,
     public_keys: dict[str, str],
 ) -> OfflineVerificationResult:
     """
@@ -224,13 +244,16 @@ def verify_execution_intent_offline(
     database, no environment variable: only the intent and the public key(s).
 
     `intent` is a plain dict, exactly as `json.load()` would produce from the
-    `intent` field of GET /execution-intents/:id. `public_keys` maps keyId to
+    `intent` field of GET /execution-intents/:id, or the ExecutionIntent at
+    `client.execution_intent(id).intent`. `public_keys` maps keyId to
     PEM-encoded public key text.
 
     A valid result proves the intent was signed by the holder of that key and
     has not been altered. It does NOT prove the action was released, or what its
     result was: an intent is written BEFORE release.
     """
+
+    intent = _as_json(intent)
 
     errors: list[str] = []
     algorithms_checked: list[str] = []

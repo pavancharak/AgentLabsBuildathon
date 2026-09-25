@@ -1680,6 +1680,10 @@ Source: https://docs.parmanasystems.com/sdks/typescript
   `transport`, and sends `userAgent`. v1.1.3 added `serverCode` on
   `InternalServerError` (see below). v1.1.2, published 2026-09-14, added
   `createBusinessTransaction()`. See the fix history at the bottom of this page.
+  **1.3.0 is built and tested but not yet published**: it adds policy
+  governance, offline verification, `caller()`, `publicKey()`, `trustRecords()`,
+  `latestReceipt()` and `statusCode` on errors. See [New in
+  1.3.0](#new-in-130-built-and-tested-not-yet-published).
 </Info>
 
 <Note>
@@ -1916,6 +1920,149 @@ doubles as the server's idempotency key. `authorityType` defaults to `"SERVICE"`
 `typescript/test/integration/examples.integration.test.ts` (proves the generated ids round-trip
 correctly through a real running server, not just in isolation).
 
+## New in 1.3.0 (built and tested, not yet published)
+
+<Warning>
+  Everything in this section is in SDK 1.3.0, which is built and tested in this
+  repository but **not yet published to npm**. `npm install @parmana/sdk`
+  installs 1.2.0, which does not have it. The full list of what each version
+  covers is on [SDK coverage of the API](/sdks/api-coverage).
+</Warning>
+
+1.3.0 makes the TypeScript SDK cover the same operations as the Python SDK, and adds policy governance to both.
+
+### Who the key is, and the deployment's public key
+
+```typescript
+import { ParmanaClient } from "@parmana/sdk";
+
+const client = new ParmanaClient({
+  endpoint: "http://127.0.0.1:3000",
+  apiKey: "pk_local_...",
+});
+
+const me = await client.caller();
+// { callerId: "local-operator", allowedPrincipalIds: ["local-operator"], allowedCapabilities: ["paytm:refund"], unrestrictedCapabilities: false }
+
+const key = await client.publicKey("default");
+// key.pem is the SPKI PEM that signs Trust Records, Refusal Records and Execution Intents
+```
+
+`publicKey()` needs no API key. Fetch it once and keep it.
+
+### Verify records offline
+
+```typescript
+import {
+  ParmanaClient,
+  verifyExecutionIntentOffline,
+  verifyExecutionTrustRecordOffline,
+} from "@parmana/sdk";
+
+const client = new ParmanaClient({
+  endpoint: "http://127.0.0.1:3000",
+  apiKey: "pk_local_...",
+});
+const { pem } = await client.publicKey("default");
+
+const record = await client.trustRecord("5015499d-b7ba-48fe-a9ad-821862d70ad0");
+const result = verifyExecutionTrustRecordOffline(record, { default: pem });
+// { valid: true, hashValid: true, legacySignatureValid: true, algorithmsChecked: ["ed25519"], errors: [] }
+
+const view = await client.executionIntent(
+  "5015499d-b7ba-48fe-a9ad-821862d70ad0",
+);
+verifyExecutionIntentOffline(view.intent, { default: pem });
+```
+
+No network call and no database: only the record and the public key. The result has the same fields as the Python SDK's, in camelCase. A record that also carries a hybrid ML-DSA-65 `signatures` array is reported as not valid, with an error that says why, because the SDKs do not verify ML-DSA-65.
+
+### Approve a policy change
+
+The approver signs on their own machine; the private key never leaves it.
+
+```typescript
+import { readFileSync } from "node:fs";
+
+import { ParmanaClient, signPolicyChangeStepUp } from "@parmana/sdk";
+
+const endpoint = "http://127.0.0.1:3000";
+const proposer = new ParmanaClient({
+  endpoint,
+  apiKey: "pk_local_... (alice)",
+});
+const approver = new ParmanaClient({ endpoint, apiKey: "pk_local_... (bob)" });
+
+const change = await proposer.proposePolicyChange("customer-refund", "1.0.0", {
+  proposedContent: JSON.parse(
+    readFileSync("policies/customer-refund/1.0.0/policy.json", "utf8"),
+  ),
+  reason: "Adopt the shipped customer-refund policy.",
+});
+
+const open = await approver.policyChanges("PENDING_APPROVAL");
+// each entry has diff.current and diff.proposed
+
+const stepUp = signPolicyChangeStepUp({
+  pendingPolicyChangeId: change.pendingPolicyChangeId,
+  action: "approve",
+  privateKeyPem: readFileSync("approver/step-up.private.pem", "utf8"),
+  keyId: "bob",
+});
+
+const approved = await approver.approvePolicyChange(
+  change.pendingPolicyChangeId,
+  stepUp,
+);
+// approved.status === "APPROVED"
+```
+
+To reject, sign with `action: "reject"` and call `rejectPolicyChange(id, "Why it is rejected.", stepUp)`. A signed authorization is valid once, for one change and one action, for 120 seconds unless you pass `ttlSeconds`. The rules and every error are on [Approve a policy](/self-hosted/policy-approval).
+
+### List Trust Records, and the latest receipt
+
+```typescript
+import { ParmanaClient } from "@parmana/sdk";
+
+const client = new ParmanaClient({
+  endpoint: "http://127.0.0.1:3000",
+  apiKey: "pk_local_...",
+});
+
+const records = await client.trustRecords(1, 25, {
+  since: "2026-09-01T00:00:00Z",
+});
+const receipt = await client.latestReceipt(
+  "5015499d-b7ba-48fe-a9ad-821862d70ad0",
+);
+```
+
+`trustRecords()` returns only records of transactions this key submitted, newest first. A page counts transactions, so it may hold fewer records than `pageSize`. `latestReceipt()` reads the most recent receipt without generating a new one, unlike `receipt()`.
+
+### Every HTTP error carries its status
+
+```typescript
+import { InternalServerError, ParmanaClient } from "@parmana/sdk";
+
+const client = new ParmanaClient({
+  endpoint: "http://127.0.0.1:3000",
+  apiKey: "pk_local_...",
+});
+
+try {
+  await client.execute(transaction); // a BusinessTransaction, see createBusinessTransaction()
+} catch (error) {
+  if (
+    error instanceof InternalServerError &&
+    error.serverCode === "CONNECTOR_NOT_REGISTERED"
+  ) {
+    // error.statusCode === 503: authorized, but nothing was executed
+  }
+}
+```
+
+`statusCode` is set on every error made from an HTTP response, matching the Python SDK's `status_code`. It is absent on network errors and timeouts, where no response arrived.
+
 ## Building from source / contributing
 
 Installing the published package (above) is the right path for using the SDK. To build from
@@ -1929,7 +2076,7 @@ npm run test    # vitest
 
 ## Test suite
 
-157 tests across 16 files. **Run `npx vitest run` from the repo root**, not `typescript/`:
+191 tests across 18 files (2026-09-25, 1.3.0). **Run `npx vitest run` from the repo root**, not `typescript/`:
 several tests read `PARMANA_POLICY_DIR` relative to `process.cwd()` and fail with confusing
 `PolicyNotFoundError`-shaped errors otherwise. Coverage includes: unit tests for every
 error-mapping case (`test/HttpTransport.test.ts`, `test/Errors.test.ts`), unit tests for
@@ -1948,7 +2095,9 @@ a real OS-assigned TCP port, driven by the real `ParmanaClient` over real HTTP:
 a real policy rejection, a real `404`, a real `409` duplicate, plus `version()`, `verify()`, and
 `createTransaction()`, each asserted against the exact typed result and exact message the server
 returned) and `test/integration/examples.integration.test.ts` (runs the quickstart example
-script itself, see [Changelog](/changelog)).
+script itself, see [Changelog](/changelog)). `test/Alignment.test.ts` covers everything added in
+1.3.0, including offline verification of a real server signed Execution Intent and a step up
+authorization accepted by the server's own verifier.
 
 ## Errors defined but never thrown
 
@@ -2039,10 +2188,10 @@ Retries are **off by default**. They run only when both `retryPolicy.enabled` is
 
 What is retried:
 
-| Request                                                                                                                                                                                                                                          | Retried?                                                                                |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| `GET` requests (`health()`, `version()`, `transaction()`, `transactions()`, `trustRecord()`, `getLatestVerification()`, `refusalRecord()`, `executionIntent()`, `unfinalizedExecutionIntents()`)                                                 | Yes, on a network failure, a timeout, a `429` or a `5xx`. Nothing else.                 |
-| `POST` requests (`execute()`, `createTransaction()`, `verify()`, `replay()`, `receipt()`, `validatePolicy()`, `verifyRefusalRecord()`, `verifyExecutionIntent()`, `finalizeExecutionIntent()`, `resolveExecutionIntent()`, `verifyAuditEvent()`) | **Never.** This is deliberate, because retrying `execute()` could repeat a real action. |
+| Request                                                                                                                                                                                                                                                                                                                                   | Retried?                                                                                |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `GET` requests (`health()`, `version()`, `transaction()`, `transactions()`, `trustRecord()`, `getLatestVerification()`, `refusalRecord()`, `executionIntent()`, `unfinalizedExecutionIntents()`, and from 1.3.0 `latestReceipt()`, `trustRecords()`, `caller()`, `publicKey()`, `policyChanges()`)                                        | Yes, on a network failure, a timeout, a `429` or a `5xx`. Nothing else.                 |
+| `POST` requests (`execute()`, `createTransaction()`, `verify()`, `replay()`, `receipt()`, `validatePolicy()`, `verifyRefusalRecord()`, `verifyExecutionIntent()`, `finalizeExecutionIntent()`, `resolveExecutionIntent()`, `verifyAuditEvent()`, and from 1.3.0 `proposePolicyChange()`, `approvePolicyChange()`, `rejectPolicyChange()`) | **Never.** This is deliberate, because retrying `execute()` could repeat a real action. |
 
 Tested: a server that returns `503` twice and then `200`, and a client with `enabled: true` and `maxAttempts: 3`, made 3 requests and returned success. With a supplied transport built from a partial configuration the same client made 1 request and threw `InternalServerError`.
 
@@ -2078,29 +2227,39 @@ On 1.1.2 and earlier `serverCode` is not on `InternalServerError`, so read the c
 
 ## Methods
 
-| Method                                             | Request                                 | Returns                                                                                        |
-| -------------------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `execute(transaction)`                             | `POST /execute`                         | The signed Execution Trust Record.                                                             |
-| `createTransaction(transaction)`                   | `POST /transactions`                    | The same record, from the second entry point.                                                  |
-| `verify(id)`                                       | `POST /verify`                          | A `Verification`.                                                                              |
-| `getLatestVerification(id)`                        | `GET /verification/{id}`                | The latest `Verification`.                                                                     |
-| `replay(id)`                                       | `POST /replay`                          | A `ReplayResult`.                                                                              |
-| `receipt(id)`                                      | `POST /receipt`                         | A `Receipt`.                                                                                   |
-| `transaction(id)`                                  | `GET /transactions/{id}`                | One `BusinessTransaction`.                                                                     |
-| `transactions(page, pageSize)`                     | `GET /transactions`                     | A page of transactions. The defaults are page `1` and page size `25`.                          |
-| `trustRecord(id)`                                  | `GET /trust-records/{id}`               | The Execution Trust Record.                                                                    |
-| `validatePolicy(policyId, policyVersion)`          | `POST /policies/validate`               | A `PolicyValidationResult`.                                                                    |
-| `refusalRecord(id)`                                | `GET /refusal/{id}`                     | A `RefusalRecord`.                                                                             |
-| `verifyRefusalRecord(record)`                      | `POST /refusal/verify`                  | `true` or `false`.                                                                             |
-| `executionIntent(id)`                              | `GET /execution-intents/{id}`           | An `ExecutionIntentView`: the signed intent and its status.                                    |
-| `verifyExecutionIntent(intent)`                    | `POST /execution-intents/verify`        | `true` or `false`. No credential needed.                                                       |
-| `unfinalizedExecutionIntents(limit?)`              | `GET /execution-intents/unfinalized`    | `UnfinalizedExecutionIntents`. Needs a verified human credential.                              |
-| `finalizeExecutionIntent(id)`                      | `POST /execution-intents/{id}/finalize` | `FinalizeExecutionIntentResult`. Never calls the connector. Needs a verified human credential. |
-| `resolveExecutionIntent(id, { resolution, note })` | `POST /execution-intents/{id}/resolve`  | `ResolveExecutionIntentResult`. The note is required. Needs a verified human credential.       |
-| `verifyAuditEvent(event, signature)`               | `POST /audit/verify`                    | `true` or `false`.                                                                             |
-| `health()`                                         | `GET /health`                           | The health status.                                                                             |
-| `version()`                                        | `GET /version`                          | The version information.                                                                       |
-| `endpoint()`                                       | None                                    | The configured endpoint, as a string.                                                          |
+| Method                                                                    | Request                                           | Returns                                                                                                        |
+| ------------------------------------------------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `execute(transaction)`                                                    | `POST /execute`                                   | The signed Execution Trust Record.                                                                             |
+| `createTransaction(transaction)`                                          | `POST /transactions`                              | The same record, from the second entry point.                                                                  |
+| `verify(id)`                                                              | `POST /verify`                                    | A `Verification`.                                                                                              |
+| `getLatestVerification(id)`                                               | `GET /verification/{id}`                          | The latest `Verification`.                                                                                     |
+| `replay(id)`                                                              | `POST /replay`                                    | A `ReplayResult`.                                                                                              |
+| `receipt(id)`                                                             | `POST /receipt`                                   | A `Receipt`.                                                                                                   |
+| `latestReceipt(id)` (1.3.0)                                               | `GET /receipt/latest/{id}`                        | The most recent `Receipt`, without generating a new one.                                                       |
+| `transaction(id)`                                                         | `GET /transactions/{id}`                          | One `BusinessTransaction`.                                                                                     |
+| `transactions(page, pageSize)`                                            | `GET /transactions`                               | A page of transactions. The defaults are page `1` and page size `25`.                                          |
+| `trustRecord(id)`                                                         | `GET /trust-records/{id}`                         | The Execution Trust Record.                                                                                    |
+| `trustRecords(page, pageSize, { since, until })` (1.3.0)                  | `GET /trust-records`                              | This caller's Execution Trust Records, newest first. A page counts transactions, so it may hold fewer records. |
+| `validatePolicy(policyId, policyVersion)`                                 | `POST /policies/validate`                         | A `PolicyValidationResult`.                                                                                    |
+| `proposePolicyChange(name, version, { proposedContent, reason })` (1.3.0) | `POST /policies/{name}/{version}/pending-changes` | A `ProposedPolicyChange`. Needs a verified human credential.                                                   |
+| `policyChanges(status?)` (1.3.0)                                          | `GET /policies/pending-changes`                   | `PolicyChangeForReview[]`, each with `diff.current` and `diff.proposed`. Needs a verified human credential.    |
+| `approvePolicyChange(id, stepUpAuthorization)` (1.3.0)                    | `POST /policies/pending-changes/{id}/approve`     | The `PendingPolicyChange`, `APPROVED`. Needs a verified human with a step up key who is not the proposer.      |
+| `rejectPolicyChange(id, rejectionReason, stepUpAuthorization)` (1.3.0)    | `POST /policies/pending-changes/{id}/reject`      | The `PendingPolicyChange`, `REJECTED`. Same caller rules.                                                      |
+| `refusalRecord(id)`                                                       | `GET /refusal/{id}`                               | A `RefusalRecord`.                                                                                             |
+| `verifyRefusalRecord(record)`                                             | `POST /refusal/verify`                            | `true` or `false`.                                                                                             |
+| `executionIntent(id)`                                                     | `GET /execution-intents/{id}`                     | An `ExecutionIntentView`: the signed intent and its status.                                                    |
+| `verifyExecutionIntent(intent)`                                           | `POST /execution-intents/verify`                  | `true` or `false`. No credential needed.                                                                       |
+| `unfinalizedExecutionIntents(limit?)`                                     | `GET /execution-intents/unfinalized`              | `UnfinalizedExecutionIntents`. Needs a verified human credential.                                              |
+| `finalizeExecutionIntent(id)`                                             | `POST /execution-intents/{id}/finalize`           | `FinalizeExecutionIntentResult`. Never calls the connector. Needs a verified human credential.                 |
+| `resolveExecutionIntent(id, { resolution, note })`                        | `POST /execution-intents/{id}/resolve`            | `ResolveExecutionIntentResult`. The note is required. Needs a verified human credential.                       |
+| `verifyAuditEvent(event, signature)`                                      | `POST /audit/verify`                              | `true` or `false`.                                                                                             |
+| `health()`                                                                | `GET /health`                                     | The health status.                                                                                             |
+| `version()`                                                               | `GET /version`                                    | The version information.                                                                                       |
+| `caller()` (1.3.0)                                                        | `GET /callers/me`                                 | A `CallerIdentity`: caller ID, allowed principal IDs and capabilities.                                         |
+| `publicKey(keyId = "default")` (1.3.0)                                    | `GET /keys/{keyId}`                               | A `PublicKeyInfo` with the PEM, for the offline verifiers. No credential needed.                               |
+| `endpoint()`                                                              | None                                              | The configured endpoint, as a string.                                                                          |
+
+Functions exported next to the client, 1.3.0: `verifyExecutionTrustRecordOffline(record, publicKeys)`, `verifyExecutionIntentOffline(intent, publicKeys)` and `signPolicyChangeStepUp({ pendingPolicyChangeId, action, privateKeyPem, keyId, ttlSeconds? })`. They make no request. See [SDK coverage of the API](/sdks/api-coverage).
 
 The full signature of every method is in the [API reference](/sdks/reference/typescript/classes/ParmanaClient).
 
@@ -2370,7 +2529,7 @@ Source: https://docs.parmanasystems.com/sdks/python
   PyPI](https://pypi.org/project/parmana/1.2.0/). Real, public, installable with
   a plain `pip install parmana`. This page said `v1.0.5` and described only an
   editable local install until 2026-09-14; both were stale, confirmed against
-  the live PyPI registry while fixing this page. 82 passing tests, 0
+  the live PyPI registry while fixing this page. 119 passing tests (1.3.0), 0
   placeholders, `black`/`ruff`/`mypy --strict` all clean across the whole
   package. Bearer-key authentication, the error taxonomy below, and
   `PolicyApi.validate()` are all closed and verified against a real running
@@ -2386,7 +2545,11 @@ Source: https://docs.parmanasystems.com/sdks/python
   as a fixed size commitment, and declares its `cryptography` dependency as the
   optional `verify` extra (`pip install "parmana[verify]"`). v1.1.4 was
   published 2026-09-14. See [Changelog](/changelog) and the fix history at the
-  bottom of this page.
+  bottom of this page. **1.3.0 is built and tested but not yet published**: it
+  adds policy governance, step up signing, `caller()`, `public_key()`,
+  `trust_records.list()` and `latest_receipt()`, and lets the offline verifiers
+  take the SDK's own models. See [New in
+  1.3.0](#new-in-130-built-and-tested-not-yet-published).
 </Info>
 
 ## Install
@@ -2502,22 +2665,42 @@ test double) using `responses`-mocked HTTP built from real, verified response sh
 The client also reuses a `requests.Session()` (connection pooling) and retries idempotent
 GETs with backoff on 429/502/503/504, POSTs are never retried.
 
-## Every endpoint the API exposes has a method
+## Every product endpoint has a method
 
 ```python
-client.execution.execute(transaction)          # POST /execute
-client.execution.health()                       # GET /health
-client.execution.version()                      # GET /version
-client.verification.verify(id)                  # POST /verify        (fresh)
-client.verification.get_latest(id)              # GET /verification/:id (cached)
-client.receipt.generate(id)                     # POST /receipt
-client.receipt.get_latest(id)                   # GET /receipt/latest/:id
-client.replay.replay(id)                        # POST /replay
-client.transactions.create(transaction)         # POST /transactions  (added this pass)
-client.transactions.get(id) / .list()           # GET /transactions[/:id]
-client.trust_records.get(id)                    # GET /trust-records/:id
+client.execution.execute(transaction)             # POST /execute
+client.execution.health()                         # GET /health
+client.execution.version()                        # GET /version (the server's version)
+client.verification.verify(id)                    # POST /verify        (fresh)
+client.verification.get_latest(id)                # GET /verification/:id (cached)
+client.receipt.generate(id)                       # POST /receipt
+client.receipt.get_latest(id)                     # GET /receipt/latest/:id
+client.replay.replay(id)                          # POST /replay
+client.transactions.create(transaction)           # POST /transactions
+client.transactions.get(id)                       # GET /transactions/:id
+client.transactions.list()                        # GET /transactions
+client.trust_records.get(id)                      # GET /trust-records/:id
+client.trust_records.list()                       # GET /trust-records           (1.3.0)
+client.refusal.get(id)                            # GET /refusal/:id
+client.refusal.verify(record)                     # POST /refusal/verify
+client.audit.verify(event, signature)             # POST /audit/verify
+client.execution_intents.get(id)                  # GET /execution-intents/:id
+client.execution_intents.verify(intent)           # POST /execution-intents/verify
+client.execution_intents.list_unfinalized()       # GET /execution-intents/unfinalized
+client.execution_intents.finalize(id)             # POST /execution-intents/:id/finalize
+client.execution_intents.resolve(id, resolution=..., note=...)  # POST /execution-intents/:id/resolve
 client.policy.validate(policy_id, policy_version) # POST /policies/validate
+client.policy.propose_change(name, version, proposed_content=..., reason=...)  # (1.3.0)
+client.policy.list_changes(status)                # GET /policies/pending-changes (1.3.0)
+client.policy.approve_change(id, step_up)         # POST .../approve             (1.3.0)
+client.policy.reject_change(id, reason, step_up)  # POST .../reject              (1.3.0)
+client.callers.me()                               # GET /callers/me              (1.3.0)
+client.callers.public_key(key_id)                 # GET /keys/:keyId             (1.3.0)
 ```
+
+`client.version` (a property, not a call) is the **SDK's** version. The server's version is `client.execution.version()`.
+
+The routes that have no method, and why, are listed on [SDK coverage of the API](/sdks/api-coverage#operations-with-no-sdk-method-and-why): the readiness probe, the JWKS document, the API's own description files and the handbook download. That page also maps every method to its TypeScript equivalent.
 
 `client.transactions.create()` covers `POST /transactions`, a second independent entry point
 into the identical execution pipeline as `execute()`, differing only in its `201` status
@@ -2580,9 +2763,107 @@ server's idempotency key. `authority_type` defaults to `AuthorityType.SERVICE` (
 `tests/test_builders.py` (9 unit tests) / `tests/test_builder_example.py` (proves the
 generated ids round-trip correctly through a real running server, not just in isolation).
 
+## New in 1.3.0 (built and tested, not yet published)
+
+<Warning>
+  Everything in this section is in SDK 1.3.0, which is built and tested in this
+  repository but **not yet published to PyPI**. `pip install parmana` installs
+  1.2.0, which does not have it. The full list of what each version covers is on
+  [SDK coverage of the API](/sdks/api-coverage).
+</Warning>
+
+1.3.0 adds policy governance to both SDKs and makes the Python SDK cover the same operations as the TypeScript SDK.
+
+### Who the key is, and the deployment's public key
+
+```python
+from parmana import ParmanaClient
+
+client = ParmanaClient(endpoint="http://127.0.0.1:3000", api_key="pk_local_...")
+
+me = client.caller()
+# CallerIdentity(caller_id='local-operator', allowed_principal_ids=['local-operator'],
+#                allowed_capabilities=['paytm:refund'], unrestricted_capabilities=False)
+
+key = client.public_key("default")
+# key.pem is the SPKI PEM that signs Trust Records, Refusal Records and Execution Intents
+```
+
+`public_key()` needs no API key. Fetch it once and keep it.
+
+### Verify records offline, straight from the client's results
+
+```python
+from parmana import ParmanaClient
+from parmana.crypto import verify_execution_intent_offline, verify_execution_trust_record_offline
+
+client = ParmanaClient(endpoint="http://127.0.0.1:3000", api_key="pk_local_...")
+pem = client.public_key("default").pem
+
+record = client.trust_record("5015499d-b7ba-48fe-a9ad-821862d70ad0")
+result = verify_execution_trust_record_offline(record, {"default": pem})
+# OfflineVerificationResult(valid=True, hash_valid=True, legacy_signature_valid=True, ...)
+
+view = client.execution_intent("5015499d-b7ba-48fe-a9ad-821862d70ad0")
+verify_execution_intent_offline(view.intent, {"default": pem})
+```
+
+From 1.3.0 the verifiers accept the SDK's own models, as above, as well as the raw JSON dict of a response or a file. Needs `pip install "parmana[verify]"`.
+
+### Approve a policy change
+
+The approver signs on their own machine; the private key never leaves it. Needs `pip install "parmana[verify]"`.
+
+```python
+import json
+from pathlib import Path
+
+from parmana import ParmanaClient
+from parmana.crypto import sign_policy_change_step_up
+
+endpoint = "http://127.0.0.1:3000"
+proposer = ParmanaClient(endpoint=endpoint, api_key="pk_local_... (alice)")
+approver = ParmanaClient(endpoint=endpoint, api_key="pk_local_... (bob)")
+
+change = proposer.propose_policy_change(
+    "customer-refund",
+    "1.0.0",
+    proposed_content=json.loads(Path("policies/customer-refund/1.0.0/policy.json").read_text()),
+    reason="Adopt the shipped customer-refund policy.",
+)
+
+open_changes = approver.policy_changes("PENDING_APPROVAL")
+# each entry has diff.current and diff.proposed
+
+step_up = sign_policy_change_step_up(
+    pending_policy_change_id=change.pending_policy_change_id,
+    action="approve",
+    private_key_pem=Path("approver/step-up.private.pem").read_text(),
+    key_id="bob",
+)
+
+approved = approver.approve_policy_change(change.pending_policy_change_id, step_up)
+# approved.status is PendingPolicyChangeStatus.APPROVED
+```
+
+To reject, sign with `action="reject"` and call `reject_policy_change(change_id, "Why it is rejected.", step_up)`. A signed authorization is valid once, for one change and one action, for 120 seconds unless you pass `ttl_seconds`. `proposed_content` is sent exactly as given: keys are never rewritten, unlike the SDK's model encoding. The rules and every error are on [Approve a policy](/self-hosted/policy-approval).
+
+### List Trust Records, and the latest receipt
+
+```python
+from parmana import ParmanaClient
+
+client = ParmanaClient(endpoint="http://127.0.0.1:3000", api_key="pk_local_...")
+
+records = client.trust_records.list(page=1, page_size=25, since="2026-09-01T00:00:00Z")
+receipt = client.latest_receipt("5015499d-b7ba-48fe-a9ad-821862d70ad0")
+```
+
+`trust_records.list()` returns only records of transactions this key submitted, newest first. A page counts transactions, so it may hold fewer records than `page_size`. `latest_receipt()` reads the most recent receipt without generating a new one, unlike `receipt()`.
+
 ## Test suite
 
-79 tests, `pytest`, confirmed against a real run: unit tests for every error-mapping case
+119 tests, `pytest`, confirmed against a real run on 2026-09-25 (1.3.0): unit tests for every error-mapping case
 including the two classification cases above, bearer-key header
 attachment tests, `create_business_transaction()` (9 cases, `tests/test_builders.py`), and three
 real-server integration suites. `test_live_server_integration.py` spawns the actual
@@ -2594,7 +2875,8 @@ and exact message the server returned. `test_quickstart_example.py` does the sam
 `run_quickstart()`, the quickstart example script itself, additionally asserting its documented
 printed output still matches what it actually prints. `test_builder_example.py` does the same
 for `run_builder_example()` (see above), additionally asserting every builder-derived id pair
-round-trips correctly.
+round-trips correctly. `tests/test_sdk_alignment.py` covers everything added in 1.3.0, including
+a step up authorization signed in Python and accepted by the server's own TypeScript verifier.
 
 <Note>
   `ruff`/`black`/`mypy --strict` are clean across the whole package: `python -m
@@ -2667,10 +2949,10 @@ Every request also carries `Content-Type: application/json` and `Accept: applica
 
 Retries are **on by default for `GET` requests**, which is different from the TypeScript SDK, where they are off until you enable them. Set `max_retries=0` to turn them off.
 
-| Request                                                                                                                                                                                                                                | Retried?                                                                                                                                                                                                                                                                                                         |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET` requests                                                                                                                                                                                                                         | Yes, up to `max_retries` times, on a connection error or a `429`, `502`, `503` or `504` response. With the default of `3` that is up to 4 requests. When the server sends a `Retry-After` header on a `429`, the client honors it. After the last retry the response is turned into an error as described below. |
-| `POST` requests (`execute`, `create_transaction`, `verify`, `replay`, `receipt`, `validate_policy`, `verify_refusal_record`, `verify_execution_intent`, `finalize_execution_intent`, `resolve_execution_intent`, `verify_audit_event`) | **Never.** This is deliberate, because retrying `execute` could repeat a real action.                                                                                                                                                                                                                            |
+| Request                                                                                                                                                                                                                                                                                                                         | Retried?                                                                                                                                                                                                                                                                                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET` requests                                                                                                                                                                                                                                                                                                                  | Yes, up to `max_retries` times, on a connection error or a `429`, `502`, `503` or `504` response. With the default of `3` that is up to 4 requests. When the server sends a `Retry-After` header on a `429`, the client honors it. After the last retry the response is turned into an error as described below. |
+| `POST` requests (`execute`, `create_transaction`, `verify`, `replay`, `receipt`, `validate_policy`, `verify_refusal_record`, `verify_execution_intent`, `finalize_execution_intent`, `resolve_execution_intent`, `verify_audit_event`, and from 1.3.0 `propose_policy_change`, `approve_policy_change`, `reject_policy_change`) | **Never.** This is deliberate, because retrying `execute` could repeat a real action.                                                                                                                                                                                                                            |
 
 ## Errors
 
@@ -2709,41 +2991,49 @@ From 1.1.6 read `error.server_code`. On 1.1.5 and earlier `server_code` is not s
 
 The client has methods for the common calls, and a sub API for each area.
 
-| Client method                                                                 | Request                                 | Returns                                                                                        |
-| ----------------------------------------------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `execute(transaction)`                                                        | `POST /execute`                         | The signed Execution Trust Record.                                                             |
-| `create_transaction(transaction)`                                             | `POST /transactions`                    | The same record, from the second entry point.                                                  |
-| `verify(business_transaction_id)`                                             | `POST /verify`                          | A `Verification`.                                                                              |
-| `get_latest_verification(business_transaction_id)`                            | `GET /verification/{id}`                | The latest `Verification`.                                                                     |
-| `transaction(business_transaction_id)`                                        | `GET /transactions/{id}`                | One `BusinessTransaction`.                                                                     |
-| `trust_record(business_transaction_id)`                                       | `GET /trust-records/{id}`               | The Execution Trust Record.                                                                    |
-| `validate_policy(policy_id, policy_version)`                                  | `POST /policies/validate`               | A dict with `valid` and `errors`.                                                              |
-| `refusal_record(business_transaction_id)`                                     | `GET /refusal/{id}`                     | A `RefusalRecord`.                                                                             |
-| `verify_refusal_record(record)`                                               | `POST /refusal/verify`                  | `True` or `False`.                                                                             |
-| `execution_intent(business_transaction_id)`                                   | `GET /execution-intents/{id}`           | An `ExecutionIntentView`: the signed intent and its status.                                    |
-| `verify_execution_intent(intent)`                                             | `POST /execution-intents/verify`        | `True` or `False`. No credential needed.                                                       |
-| `unfinalized_execution_intents(limit=None)`                                   | `GET /execution-intents/unfinalized`    | `UnfinalizedExecutionIntents`. Needs a verified human credential.                              |
-| `finalize_execution_intent(business_transaction_id)`                          | `POST /execution-intents/{id}/finalize` | `FinalizeExecutionIntentResult`. Never calls the connector. Needs a verified human credential. |
-| `resolve_execution_intent(business_transaction_id, resolution=..., note=...)` | `POST /execution-intents/{id}/resolve`  | `ResolveExecutionIntentResult`. The note is required. Needs a verified human credential.       |
-| `verify_audit_event(event, signature)`                                        | `POST /audit/verify`                    | `True` or `False`.                                                                             |
-| `health()`                                                                    | `GET /health`                           | A dict with the health status.                                                                 |
+| Client method                                                                                     | Request                                           | Returns                                                                                                             |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `execute(transaction)`                                                                            | `POST /execute`                                   | The signed Execution Trust Record.                                                                                  |
+| `create_transaction(transaction)`                                                                 | `POST /transactions`                              | The same record, from the second entry point.                                                                       |
+| `verify(business_transaction_id)`                                                                 | `POST /verify`                                    | A `Verification`.                                                                                                   |
+| `get_latest_verification(business_transaction_id)`                                                | `GET /verification/{id}`                          | The latest `Verification`.                                                                                          |
+| `transaction(business_transaction_id)`                                                            | `GET /transactions/{id}`                          | One `BusinessTransaction`.                                                                                          |
+| `trust_record(business_transaction_id)`                                                           | `GET /trust-records/{id}`                         | The Execution Trust Record.                                                                                         |
+| `validate_policy(policy_id, policy_version)`                                                      | `POST /policies/validate`                         | A dict with `valid` and `errors`.                                                                                   |
+| `propose_policy_change(name, version, proposed_content=..., reason=...)` (1.3.0)                  | `POST /policies/{name}/{version}/pending-changes` | A `ProposedPolicyChange`. The content is sent exactly as given. Needs a verified human credential.                  |
+| `policy_changes(status=None)` (1.3.0)                                                             | `GET /policies/pending-changes`                   | A list of `PolicyChangeForReview`, each with `diff.current` and `diff.proposed`. Needs a verified human credential. |
+| `approve_policy_change(pending_policy_change_id, step_up_authorization)` (1.3.0)                  | `POST /policies/pending-changes/{id}/approve`     | The `PendingPolicyChange`, `APPROVED`. Needs a verified human with a step up key who is not the proposer.           |
+| `reject_policy_change(pending_policy_change_id, rejection_reason, step_up_authorization)` (1.3.0) | `POST /policies/pending-changes/{id}/reject`      | The `PendingPolicyChange`, `REJECTED`. Same caller rules.                                                           |
+| `refusal_record(business_transaction_id)`                                                         | `GET /refusal/{id}`                               | A `RefusalRecord`.                                                                                                  |
+| `verify_refusal_record(record)`                                                                   | `POST /refusal/verify`                            | `True` or `False`.                                                                                                  |
+| `execution_intent(business_transaction_id)`                                                       | `GET /execution-intents/{id}`                     | An `ExecutionIntentView`: the signed intent and its status.                                                         |
+| `verify_execution_intent(intent)`                                                                 | `POST /execution-intents/verify`                  | `True` or `False`. No credential needed.                                                                            |
+| `unfinalized_execution_intents(limit=None)`                                                       | `GET /execution-intents/unfinalized`              | `UnfinalizedExecutionIntents`. Needs a verified human credential.                                                   |
+| `finalize_execution_intent(business_transaction_id)`                                              | `POST /execution-intents/{id}/finalize`           | `FinalizeExecutionIntentResult`. Never calls the connector. Needs a verified human credential.                      |
+| `resolve_execution_intent(business_transaction_id, resolution=..., note=...)`                     | `POST /execution-intents/{id}/resolve`            | `ResolveExecutionIntentResult`. The note is required. Needs a verified human credential.                            |
+| `verify_audit_event(event, signature)`                                                            | `POST /audit/verify`                              | `True` or `False`.                                                                                                  |
+| `health()`                                                                                        | `GET /health`                                     | A dict with the health status.                                                                                      |
+| `latest_receipt(business_transaction_id)` (1.3.0)                                                 | `GET /receipt/latest/{id}`                        | The most recent `Receipt`, without generating a new one.                                                            |
+| `caller()` (1.3.0)                                                                                | `GET /callers/me`                                 | A `CallerIdentity`: caller ID, allowed principal IDs and capabilities.                                              |
+| `public_key(key_id="default")` (1.3.0)                                                            | `GET /keys/{keyId}`                               | A `PublicKeyInfo` with the PEM, for the offline verifiers. No credential needed.                                    |
 
-Two values are properties, not methods, so do not call them: `client.endpoint` is the configured endpoint, and `client.version` is the version of the **SDK package**, for example `1.2.0`. It is not the server's version. To read the server's version call `client.execution.version()`, which sends `GET /version`.
+Two values are properties, not methods, so do not call them: `client.endpoint` is the configured endpoint, and `client.version` is the version of the **SDK package**, for example `1.3.0`. It is not the server's version. To read the server's version call `client.execution.version()`, which sends `GET /version`.
 
 The sub APIs cover the rest, for example `client.replay.replay(...)`, `client.receipt.generate(...)`, `client.receipt.get_latest(...)` and `client.transactions.list(...)`:
 
-| Sub API                    | Methods                                                    |
-| -------------------------- | ---------------------------------------------------------- |
-| `client.execution`         | `health`, `version`, `execute`                             |
-| `client.verification`      | `verify`, `get_latest`                                     |
-| `client.replay`            | `replay`                                                   |
-| `client.receipt`           | `generate`, `get_latest`                                   |
-| `client.transactions`      | `create`, `get`, `list`                                    |
-| `client.trust_records`     | `get`                                                      |
-| `client.policy`            | `validate`                                                 |
-| `client.refusal`           | `verify`, `get`                                            |
-| `client.execution_intents` | `verify`, `get`, `list_unfinalized`, `finalize`, `resolve` |
-| `client.audit`             | `verify`                                                   |
+| Sub API                    | Methods                                                                                        |
+| -------------------------- | ---------------------------------------------------------------------------------------------- |
+| `client.execution`         | `health`, `version`, `execute`                                                                 |
+| `client.verification`      | `verify`, `get_latest`                                                                         |
+| `client.replay`            | `replay`                                                                                       |
+| `client.receipt`           | `generate`, `get_latest`                                                                       |
+| `client.transactions`      | `create`, `get`, `list`                                                                        |
+| `client.trust_records`     | `get`, `list` (1.3.0)                                                                          |
+| `client.policy`            | `validate`, and from 1.3.0 `propose_change`, `list_changes`, `approve_change`, `reject_change` |
+| `client.refusal`           | `verify`, `get`                                                                                |
+| `client.execution_intents` | `verify`, `get`, `list_unfinalized`, `finalize`, `resolve`                                     |
+| `client.audit`             | `verify`                                                                                       |
+| `client.callers`           | `me`, `public_key` (1.3.0)                                                                     |
 
 The full signature of every method is in the [API reference](/sdks/reference/python/client).
 
@@ -3006,46 +3296,18 @@ of mistake structurally impossible.
 
 ---
 
-## Local / Self-Hosted Deployment
+## Run the server from source
 
 Source: https://docs.parmanasystems.com/deployment/local
 
 <Info>
-  **[AVAILABLE]**, this is what actually runs. Multi-instance/HA deployment is
-  [ROADMAP], see [Roadmap](/roadmap). For AWS KMS signing see [AWS KMS
-  signing](/deployment/aws-kms-signing).
+  **Running Parmana on your own infrastructure?** Use the [self hosted
+  deployment](/self-hosted/overview): one Docker Compose command starts the
+  server and its own Postgres, with keys, migrations and policies handled, and
+  the [quickstart](/self-hosted/quickstart) takes you to a first signed
+  decision. This page is for running the server directly from source, mainly for
+  development.
 </Info>
-
-## Docker Compose: one command
-
-The self hosted deployment starts the API and its own Postgres with one command. Nothing is
-sent to Parmana or anywhere else: decisions, signatures, the audit trail and the Trust Records
-stay in your deployment.
-
-```bash
-docker compose up -d --build --wait
-curl http://127.0.0.1:3000/ready
-# {"status":"READY","authDisabled":false}
-```
-
-On the first start it makes the Ed25519 signing keys and an API key in `./parmana-local`,
-creates the database, applies each migration once, and copies the shipped policies into the
-database. Later starts keep all of that, and an upgrade applies only new migrations. Before
-the first authorized request your own people approve the policies you use, through policy
-governance, because a policy that was never approved authorizes nothing in production.
-
-To prove enforcement does not depend on the internet or on Parmana:
-
-```bash
-bash docker/local/offline-check/run.sh
-```
-
-It runs a copy of the stack on a Docker network with no internet route, approves the refund
-policy through governance, sends an authorized and a refused refund, and verifies the Trust
-Record with only the public keys. It ends with `12 of 12 checks passed`.
-
-Everything, including settings, key files, policy approval and upgrades, is in `DEPLOYMENT.md`,
-section "Self hosted with Docker Compose", in the repository.
 
 ## What runs today
 
@@ -3138,6 +3400,8 @@ ML-DSA-65 (post quantum signing), which needs Node 24 or later for native `node:
 
 Source: https://docs.parmanasystems.com/deployment/production
 
+To run Parmana on your own infrastructure with one command, use the [self hosted deployment](/self-hosted/overview) instead. This runbook is for a hand built deployment, for example on Vercel with a Supabase database.
+
 This runbook takes you from an empty environment to a server that is running, authenticated, governed and verified. Do the steps in order. Every step ends with a **Check**. Do not go to the next step until the check passes.
 
 The exact meaning of every variable is in the [Environment variable reference](/deployment/environment-variables). If a startup error appears, look it up in the table at the bottom of that page.
@@ -3182,7 +3446,7 @@ Never commit the private files and never bake them into the image. The image sta
 The server needs the tables in `supabase/migrations/`, and creating them is a manual step. Use one of these:
 
 1. With the Supabase CLI linked to your project, run `supabase db push`.
-2. Otherwise open the Supabase SQL Editor and run the whole file `scripts/apply-all-migrations.sql` once. It is safe to run again, because every statement is idempotent.
+2. Otherwise open the Supabase SQL Editor and run the whole file `scripts/apply-all-migrations.sql` once, on an empty database. **Do not run it again on a database that holds data:** several migrations drop and add back the same CHECK constraint, and a second run fails on rows written since. For an existing database, apply only the migration files it does not have yet.
 
 **Check:** in the SQL Editor, `select to_regclass('consumed_nonces'), to_regclass('execution_audit_events'), to_regclass('policies'), to_regclass('execution_intents');` returns four names and no empty value. A missing name means a migration did not apply.
 

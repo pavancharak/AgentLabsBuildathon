@@ -483,10 +483,9 @@ customer runs next to the hosted API on Vercel, then the build that closed what 
 The summary of the deployment is in `docs/CURRENT-STATE.md`, section "Self hosted deployment",
 and the operator guide is `DEPLOYMENT.md`, section "Self hosted with Docker Compose".
 
-**Where it was verified:** Docker Desktop 29.8.0 on Windows 11, 2026-09-25, on the uncommitted
-branch `feat/self-hosted-deployment`. The CI job `self-hosted` in
-`.github/workflows/docker-image.yml` repeats the same steps on Linux, but has not run yet,
-because nothing has been pushed. `npx vitest run` before the build: 2,056 passed, 42 skipped,
+**Where it was verified:** Docker Desktop 29.8.0 on Windows 11, 2026-09-25, and on Linux in
+CI run 36113024609 (`.github/workflows/docker-image.yml`, job `self-hosted`, 2026-09-25, on the merge commit `a14bc5c`): one command start, the second start keeping everything, and the offline check,
+12 of 12. The work was merged to `main` as `4275365`, merge `a14bc5c`. `npx vitest run` before the build: 2,056 passed, 42 skipped,
 0 failed; after it: 2,069 passed, 42 skipped, 0 failed, and `npm run lint` and
 `npx tsc -b packages/api` clean.
 
@@ -581,18 +580,50 @@ has no record of which migrations it has, so an operator applying the bundle a s
 there would hit the same failure. It fails inside the statement and changes nothing, but it
 blocks the upgrade.
 
-**G-62. Approving policies on a self hosted deployment needs the repository's scripts on an
-operator machine. OPEN, `pre-production`.** In production a policy authorizes nothing until it
-has completed policy governance (`docs/CLAIMS.md` 2.35), so a new deployment refuses every
-request with `403 POLICY_DENIED` and "has no PolicyChangeApprovalRecord" until its own people
-approve the policies they use. That is correct and is kept: `seed` does not approve anything,
-because approving would fabricate governance evidence. But issuing the proposer and approver
-keys (`scripts/generate-api-key.ts`) and signing the step up authorization
-(`scripts/sign-policy-change-step-up.ts`) are TypeScript scripts run with `npx tsx` from a
-clone of this repository, and the approver's step up private key must stay on the approver's
-machine. The image does not contain `tsx`. The offline check performs the flow end to end
-(`docker/local/offline-check/check.mjs`), so it works, but a bank's operators would need Node.js
-and the repository on the approver's machine. A small packaged signing tool would close this.
+**G-62. Approving policies on a self hosted deployment needs the repository's signing script on
+the approver's machine. OPEN, `pre-production`, narrowed 2026-09-25.** In production a policy
+authorizes nothing until it has completed policy governance (`docs/CLAIMS.md` 2.35), so a new
+deployment refuses every request with `403 POLICY_DENIED` and "has no
+PolicyChangeApprovalRecord" until its own people approve the policies they use. That is correct
+and is kept: `seed` does not approve anything, because approving would fabricate governance
+evidence. **Narrowed the same day:** issuing the proposer's and approver's API keys no longer
+needs the repository or hand editing of `api-keys.json`: `docker/local/api-keys.mjs` runs inside
+the image, reads the approver's step up public key from standard input, and checks every change
+with the server's own parser. **Still open:** signing the step up authorization
+(`scripts/sign-policy-change-step-up.ts`) is a TypeScript script run with `npx tsx` from a clone
+of the repository with `npm install`, because the approver's step up private key must stay on
+the approver's machine and the image cannot be used there without Docker. **Closed in the
+source the same day (G-64):** SDK 1.3.0 signs from either SDK, installed with `npm install` or
+`pip install`, with no clone of the repository. It stays open until 1.3.0 is published. The steps are documented and tested in CI
+(`docs/site/self-hosted/policy-approval.mdx`, `docker/local/quickstart-check.sh`).
+
+**G-63. An authorized action whose connector cannot be reached returns a bare `500`. OPEN,
+`pre-production`, found 2026-09-25.** Found while documenting connectors: with
+`PAYTM_CONNECTOR_URL` pointing at a host that does not resolve, an authorized `paytm:refund`
+returned `500` with `{"error":"Internal Server Error"}`. The Execution Intent was stored in state
+`ERRORED`, which is the designed record of an unknown outcome, and the API log shows the cause
+(`getaddrinfo ENOTFOUND ...`). But the response carries no `businessTransactionId`, no code and no
+statement that the outcome is unknown, unlike `EXECUTION_RECORD_INCOMPLETE` (ADR-0011). A caller
+cannot tell this from any other server error and may retry blindly. Documented in
+`docs/site/self-hosted/connectors.mdx` and `docs/site/self-hosted/troubleshooting.mdx`. Not
+checked: whether a connector timeout or an HTTP error from a reachable connector answers the
+same way.
+
+**G-64. The two SDKs did not cover the same API, and neither covered policy governance. CLOSED
+in the source 2026-09-25, SDK 1.3.0, not yet published.** Found by mapping each of the 37
+operations in `openapi/openapi.yaml` to the methods of each SDK. Before: neither SDK could
+propose, list, approve or reject a policy change, or sign a step up authorization, so policy
+governance needed the repository's scripts (the cause of G-62); neither had `GET /callers/me`,
+`GET /keys/{keyId}` or `GET /trust-records`; only Python had offline verification,
+`GET /receipt/latest/{id}` and the HTTP status on errors. **Fix:** both SDKs now have all of it,
+with the same result fields, and the Python offline verifiers also accept the SDK's own models.
+Tests, the live run and the scope are in `docs/CLAIMS.md` 2.41; the mapping is
+`docs/site/sdks/api-coverage.mdx`. **Found while fixing:** the Python SDK's model encoder
+rewrites any dict key containing an underscore to camelCase, which would have changed a
+customer's policy content if a proposal were sent through it; the new methods send policy
+content and step up authorizations unchanged, and a test checks this. Also: `client.version`
+in Python is the SDK's own version, while `version()` in TypeScript is the server's; documented,
+not changed. **Still open:** publishing 1.3.0 to npm and PyPI.
 
 ---
 
@@ -639,7 +670,10 @@ same day's build closed G-56, G-57, G-58 and G-60 and dropped G-59 as not needed
 evidence in its own entry above. The build found G-61 (the migration bundle is not safe to
 run again on a database with data), `pre-production`, now mitigated for the self hosted path,
 and G-62 (policy approval on a self hosted deployment needs the repository's scripts on an
-operator machine), `pre-production`, open. None is a security defect and none affects the
+operator machine), `pre-production`, open. The docs pass of the same day found G-63 (an
+unreachable connector gives the caller a bare `500`), `pre-production`, open, and the SDK
+alignment pass closed G-64 in the source (the SDKs did not cover the same API or policy
+governance), pending publication of SDK 1.3.0. None is a security defect and none affects the
 hosted API on Vercel.
 
 ### blocks-pilot

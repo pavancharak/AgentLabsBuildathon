@@ -324,6 +324,7 @@ const DOMAIN_FILES = [
   "execution-authorization.ts",
   "refusal-record.ts",
   "execution-intent.ts",
+  "pending-policy-change.ts",
 ];
 
 for (const file of DOMAIN_FILES) {
@@ -451,6 +452,11 @@ const MODULES: ModuleSpec[] = [
       "ExecutionIntentStatus",
     ],
     docSource: "domain/execution-intent.ts",
+  },
+  {
+    file: "policy_change",
+    types: ["PendingPolicyChangeStatus", "PendingPolicyChange"],
+    docSource: "domain/pending-policy-change.ts",
   },
 ];
 

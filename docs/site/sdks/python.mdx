@@ -8,7 +8,7 @@ description: "Generated models, bearer-key authentication, and a typed error tax
   PyPI](https://pypi.org/project/parmana/1.2.0/). Real, public, installable with
   a plain `pip install parmana`. This page said `v1.0.5` and described only an
   editable local install until 2026-09-14; both were stale, confirmed against
-  the live PyPI registry while fixing this page. 82 passing tests, 0
+  the live PyPI registry while fixing this page. 119 passing tests (1.3.0), 0
   placeholders, `black`/`ruff`/`mypy --strict` all clean across the whole
   package. Bearer-key authentication, the error taxonomy below, and
   `PolicyApi.validate()` are all closed and verified against a real running
@@ -24,7 +24,11 @@ description: "Generated models, bearer-key authentication, and a typed error tax
   as a fixed size commitment, and declares its `cryptography` dependency as the
   optional `verify` extra (`pip install "parmana[verify]"`). v1.1.4 was
   published 2026-09-14. See [Changelog](/changelog) and the fix history at the
-  bottom of this page.
+  bottom of this page. **1.3.0 is built and tested but not yet published**: it
+  adds policy governance, step up signing, `caller()`, `public_key()`,
+  `trust_records.list()` and `latest_receipt()`, and lets the offline verifiers
+  take the SDK's own models. See [New in
+  1.3.0](#new-in-130-built-and-tested-not-yet-published).
 </Info>
 
 ## Install
@@ -140,22 +144,42 @@ test double) using `responses`-mocked HTTP built from real, verified response sh
 The client also reuses a `requests.Session()` (connection pooling) and retries idempotent
 GETs with backoff on 429/502/503/504, POSTs are never retried.
 
-## Every endpoint the API exposes has a method
+## Every product endpoint has a method
 
 ```python
-client.execution.execute(transaction)          # POST /execute
-client.execution.health()                       # GET /health
-client.execution.version()                      # GET /version
-client.verification.verify(id)                  # POST /verify        (fresh)
-client.verification.get_latest(id)              # GET /verification/:id (cached)
-client.receipt.generate(id)                     # POST /receipt
-client.receipt.get_latest(id)                   # GET /receipt/latest/:id
-client.replay.replay(id)                        # POST /replay
-client.transactions.create(transaction)         # POST /transactions  (added this pass)
-client.transactions.get(id) / .list()           # GET /transactions[/:id]
-client.trust_records.get(id)                    # GET /trust-records/:id
+client.execution.execute(transaction)             # POST /execute
+client.execution.health()                         # GET /health
+client.execution.version()                        # GET /version (the server's version)
+client.verification.verify(id)                    # POST /verify        (fresh)
+client.verification.get_latest(id)                # GET /verification/:id (cached)
+client.receipt.generate(id)                       # POST /receipt
+client.receipt.get_latest(id)                     # GET /receipt/latest/:id
+client.replay.replay(id)                          # POST /replay
+client.transactions.create(transaction)           # POST /transactions
+client.transactions.get(id)                       # GET /transactions/:id
+client.transactions.list()                        # GET /transactions
+client.trust_records.get(id)                      # GET /trust-records/:id
+client.trust_records.list()                       # GET /trust-records           (1.3.0)
+client.refusal.get(id)                            # GET /refusal/:id
+client.refusal.verify(record)                     # POST /refusal/verify
+client.audit.verify(event, signature)             # POST /audit/verify
+client.execution_intents.get(id)                  # GET /execution-intents/:id
+client.execution_intents.verify(intent)           # POST /execution-intents/verify
+client.execution_intents.list_unfinalized()       # GET /execution-intents/unfinalized
+client.execution_intents.finalize(id)             # POST /execution-intents/:id/finalize
+client.execution_intents.resolve(id, resolution=..., note=...)  # POST /execution-intents/:id/resolve
 client.policy.validate(policy_id, policy_version) # POST /policies/validate
+client.policy.propose_change(name, version, proposed_content=..., reason=...)  # (1.3.0)
+client.policy.list_changes(status)                # GET /policies/pending-changes (1.3.0)
+client.policy.approve_change(id, step_up)         # POST .../approve             (1.3.0)
+client.policy.reject_change(id, reason, step_up)  # POST .../reject              (1.3.0)
+client.callers.me()                               # GET /callers/me              (1.3.0)
+client.callers.public_key(key_id)                 # GET /keys/:keyId             (1.3.0)
 ```
+
+`client.version` (a property, not a call) is the **SDK's** version. The server's version is `client.execution.version()`.
+
+The routes that have no method, and why, are listed on [SDK coverage of the API](/sdks/api-coverage#operations-with-no-sdk-method-and-why): the readiness probe, the JWKS document, the API's own description files and the handbook download. That page also maps every method to its TypeScript equivalent.
 
 `client.transactions.create()` covers `POST /transactions`, a second independent entry point
 into the identical execution pipeline as `execute()`, differing only in its `201` status
@@ -218,9 +242,107 @@ server's idempotency key. `authority_type` defaults to `AuthorityType.SERVICE` (
 `tests/test_builders.py` (9 unit tests) / `tests/test_builder_example.py` (proves the
 generated ids round-trip correctly through a real running server, not just in isolation).
 
+## New in 1.3.0 (built and tested, not yet published)
+
+<Warning>
+  Everything in this section is in SDK 1.3.0, which is built and tested in this
+  repository but **not yet published to PyPI**. `pip install parmana` installs
+  1.2.0, which does not have it. The full list of what each version covers is on
+  [SDK coverage of the API](/sdks/api-coverage).
+</Warning>
+
+1.3.0 adds policy governance to both SDKs and makes the Python SDK cover the same operations as the TypeScript SDK.
+
+### Who the key is, and the deployment's public key
+
+```python
+from parmana import ParmanaClient
+
+client = ParmanaClient(endpoint="http://127.0.0.1:3000", api_key="pk_local_...")
+
+me = client.caller()
+# CallerIdentity(caller_id='local-operator', allowed_principal_ids=['local-operator'],
+#                allowed_capabilities=['paytm:refund'], unrestricted_capabilities=False)
+
+key = client.public_key("default")
+# key.pem is the SPKI PEM that signs Trust Records, Refusal Records and Execution Intents
+```
+
+`public_key()` needs no API key. Fetch it once and keep it.
+
+### Verify records offline, straight from the client's results
+
+```python
+from parmana import ParmanaClient
+from parmana.crypto import verify_execution_intent_offline, verify_execution_trust_record_offline
+
+client = ParmanaClient(endpoint="http://127.0.0.1:3000", api_key="pk_local_...")
+pem = client.public_key("default").pem
+
+record = client.trust_record("5015499d-b7ba-48fe-a9ad-821862d70ad0")
+result = verify_execution_trust_record_offline(record, {"default": pem})
+# OfflineVerificationResult(valid=True, hash_valid=True, legacy_signature_valid=True, ...)
+
+view = client.execution_intent("5015499d-b7ba-48fe-a9ad-821862d70ad0")
+verify_execution_intent_offline(view.intent, {"default": pem})
+```
+
+From 1.3.0 the verifiers accept the SDK's own models, as above, as well as the raw JSON dict of a response or a file. Needs `pip install "parmana[verify]"`.
+
+### Approve a policy change
+
+The approver signs on their own machine; the private key never leaves it. Needs `pip install "parmana[verify]"`.
+
+```python
+import json
+from pathlib import Path
+
+from parmana import ParmanaClient
+from parmana.crypto import sign_policy_change_step_up
+
+endpoint = "http://127.0.0.1:3000"
+proposer = ParmanaClient(endpoint=endpoint, api_key="pk_local_... (alice)")
+approver = ParmanaClient(endpoint=endpoint, api_key="pk_local_... (bob)")
+
+change = proposer.propose_policy_change(
+    "customer-refund",
+    "1.0.0",
+    proposed_content=json.loads(Path("policies/customer-refund/1.0.0/policy.json").read_text()),
+    reason="Adopt the shipped customer-refund policy.",
+)
+
+open_changes = approver.policy_changes("PENDING_APPROVAL")
+# each entry has diff.current and diff.proposed
+
+step_up = sign_policy_change_step_up(
+    pending_policy_change_id=change.pending_policy_change_id,
+    action="approve",
+    private_key_pem=Path("approver/step-up.private.pem").read_text(),
+    key_id="bob",
+)
+
+approved = approver.approve_policy_change(change.pending_policy_change_id, step_up)
+# approved.status is PendingPolicyChangeStatus.APPROVED
+```
+
+To reject, sign with `action="reject"` and call `reject_policy_change(change_id, "Why it is rejected.", step_up)`. A signed authorization is valid once, for one change and one action, for 120 seconds unless you pass `ttl_seconds`. `proposed_content` is sent exactly as given: keys are never rewritten, unlike the SDK's model encoding. The rules and every error are on [Approve a policy](/self-hosted/policy-approval).
+
+### List Trust Records, and the latest receipt
+
+```python
+from parmana import ParmanaClient
+
+client = ParmanaClient(endpoint="http://127.0.0.1:3000", api_key="pk_local_...")
+
+records = client.trust_records.list(page=1, page_size=25, since="2026-09-01T00:00:00Z")
+receipt = client.latest_receipt("5015499d-b7ba-48fe-a9ad-821862d70ad0")
+```
+
+`trust_records.list()` returns only records of transactions this key submitted, newest first. A page counts transactions, so it may hold fewer records than `page_size`. `latest_receipt()` reads the most recent receipt without generating a new one, unlike `receipt()`.
+
 ## Test suite
 
-79 tests, `pytest`, confirmed against a real run: unit tests for every error-mapping case
+119 tests, `pytest`, confirmed against a real run on 2026-09-25 (1.3.0): unit tests for every error-mapping case
 including the two classification cases above, bearer-key header
 attachment tests, `create_business_transaction()` (9 cases, `tests/test_builders.py`), and three
 real-server integration suites. `test_live_server_integration.py` spawns the actual
@@ -232,7 +354,8 @@ and exact message the server returned. `test_quickstart_example.py` does the sam
 `run_quickstart()`, the quickstart example script itself, additionally asserting its documented
 printed output still matches what it actually prints. `test_builder_example.py` does the same
 for `run_builder_example()` (see above), additionally asserting every builder-derived id pair
-round-trips correctly.
+round-trips correctly. `tests/test_sdk_alignment.py` covers everything added in 1.3.0, including
+a step up authorization signed in Python and accepted by the server's own TypeScript verifier.
 
 <Note>
   `ruff`/`black`/`mypy --strict` are clean across the whole package: `python -m

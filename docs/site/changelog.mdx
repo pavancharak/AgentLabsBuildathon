@@ -10,6 +10,27 @@ product version). The SDKs are versioned independently on their own registries, 
 and per-version notes. This page covers changes that affect what you can build against, not
 every commit, run `git log` in the repository for the complete record.
 
+## 2026-09-25
+
+**Added**
+
+- **Self hosted deployment.** `docker compose up -d --build --wait` runs Parmana and its own Postgres on your infrastructure, with signing keys, API keys, migrations and policies handled, and nothing sent to Parmana. See [Self hosted Parmana](/self-hosted/overview) and the [quickstart](/self-hosted/quickstart).
+- **Offline verification.** `bash docker/local/offline-check/run.sh` proves, on a network with no internet route, that policy approval, an authorized and a refused decision, and Trust Record verification with only the public keys all work. See [Offline verification](/self-hosted/offline-verification).
+- `PARMANA_STORAGE=postgres`. It selects the same Postgres storage as `supabase`, which is unchanged. See the [environment variable reference](/deployment/environment-variables#storage).
+
+**SDK 1.3.0, built and tested, not yet published**
+
+Both SDKs now cover the same operations. Until 1.3.0 is published, `npm install @parmana/sdk` and `pip install parmana` install 1.2.0, which has none of this. See [SDK coverage of the API](/sdks/api-coverage).
+
+- Policy governance in both SDKs: propose, list for review, approve and reject a policy change, and sign the step up authorization on the approver's machine (`signPolicyChangeStepUp()`, `parmana.crypto.sign_policy_change_step_up()`). An approver no longer needs a clone of the repository.
+- `caller()` (`GET /callers/me`), `publicKey()` / `public_key()` (`GET /keys/{keyId}`) and Trust Record listing (`GET /trust-records`) in both SDKs.
+- TypeScript: offline verification of Trust Records and Execution Intents (`verifyExecutionTrustRecordOffline`, `verifyExecutionIntentOffline`), which only the Python SDK had; `latestReceipt()`; and `statusCode` on every HTTP error, which only the Python SDK had (`status_code`).
+- Python: the offline verifiers also accept the SDK's own models, so `client.execution_intent(id).intent` can be passed directly; `latest_receipt()` shortcut.
+
+**Corrected**
+
+- `scripts/apply-all-migrations.sql` is safe to run once on an empty database, and **not** safe to run again on a database that holds data. The docs used to say otherwise. For an existing database, apply only the migration files it does not have yet.
+
 ## 2026-09-21
 
 **Added**

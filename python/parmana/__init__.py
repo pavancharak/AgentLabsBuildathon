@@ -12,11 +12,17 @@ from .errors import *  # noqa: F401,F403
 from .errors import __all__ as _error_exports
 from .models import *  # noqa: F401,F403
 from .models import __all__ as _model_exports
+from .models.caller import CallerIdentity, PublicKeyInfo
 from .models.execution_intent_results import (
     ExecutionIntentView,
     FinalizeExecutionIntentResult,
     ResolveExecutionIntentResult,
     UnfinalizedExecutionIntents,
+)
+from .models.policy_change_results import (
+    PolicyChangeDiff,
+    PolicyChangeForReview,
+    ProposedPolicyChange,
 )
 from .version import __version__
 
@@ -29,5 +35,10 @@ __all__ = [
     "FinalizeExecutionIntentResult",
     "ResolveExecutionIntentResult",
     "UnfinalizedExecutionIntents",
+    "CallerIdentity",
+    "PublicKeyInfo",
+    "PolicyChangeDiff",
+    "PolicyChangeForReview",
+    "ProposedPolicyChange",
     *_error_exports,
 ]

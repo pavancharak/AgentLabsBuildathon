@@ -71,6 +71,14 @@ export class ParmanaError extends Error {
   public readonly cause?: unknown;
 
   /**
+   * The HTTP status of the response this error was made from, for example
+   * 403 or 503. Absent when no response was received (a network error or
+   * a timeout) and for errors raised by the SDK itself. The Python SDK's
+   * equivalent is `status_code`.
+   */
+  public readonly statusCode?: number;
+
+  /**
    * Creates a ParmanaError.
    */
   constructor(options: ParmanaErrorOptions) {

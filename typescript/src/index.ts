@@ -90,3 +90,22 @@ export { TrustRecordApi } from "./client/TrustRecordApi.js";
 export { RefusalApi } from "./client/RefusalApi.js";
 export { ExecutionIntentApi } from "./client/ExecutionIntentApi.js";
 export { AuditApi } from "./client/AuditApi.js";
+export { CallerApi } from "./client/CallerApi.js";
+
+// -----------------------------------------------------------------------------
+// Offline verification and step up signing
+// -----------------------------------------------------------------------------
+
+export {
+  verifyExecutionTrustRecordOffline,
+  verifyExecutionIntentOffline,
+  type OfflineVerificationResult,
+  type PublicKeys,
+} from "./crypto/offline-verifier.js";
+
+export {
+  signPolicyChangeStepUp,
+  type SignPolicyChangeStepUpInput,
+} from "./crypto/step-up.js";
+
+export { canonicalSerialize } from "./crypto/canonical.js";

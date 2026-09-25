@@ -2,7 +2,7 @@
 title: "Class: PolicyApi"
 ---
 
-Defined in: [typescript/src/client/PolicyApi.ts:39](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/PolicyApi.ts#L39)
+Defined in: [typescript/src/client/PolicyApi.ts:49](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/PolicyApi.ts#L49)
 
 Policy API.
 
@@ -12,7 +12,7 @@ Policy API.
 
 > **new PolicyApi**(`transport`): `PolicyApi`
 
-Defined in: [typescript/src/client/PolicyApi.ts:40](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/PolicyApi.ts#L40)
+Defined in: [typescript/src/client/PolicyApi.ts:50](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/PolicyApi.ts#L50)
 
 #### Parameters
 
@@ -30,7 +30,7 @@ Defined in: [typescript/src/client/PolicyApi.ts:40](https://github.com/pavanchar
 
 > **validate**(`policyId`, `policyVersion`): `Promise`\<[`PolicyValidationResult`](/sdks/reference/typescript/interfaces/PolicyValidationResult)\>
 
-Defined in: [typescript/src/client/PolicyApi.ts:59](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/PolicyApi.ts#L59)
+Defined in: [typescript/src/client/PolicyApi.ts:69](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/PolicyApi.ts#L69)
 
 Confirms that a policy (name + version) is loadable by the Runtime.
 
@@ -61,3 +61,117 @@ envelope, identically to every other route. See
 #### Returns
 
 `Promise`\<[`PolicyValidationResult`](/sdks/reference/typescript/interfaces/PolicyValidationResult)\>
+
+---
+
+### proposeChange()
+
+> **proposeChange**(`name`, `version`, `input`): `Promise`\<[`ProposedPolicyChange`](/sdks/reference/typescript/interfaces/ProposedPolicyChange)\>
+
+Defined in: [typescript/src/client/PolicyApi.ts:96](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/PolicyApi.ts#L96)
+
+Proposes a policy change. Maps to POST
+/policies/{name}/{version}/pending-changes. The API key must belong to
+a verified human (credential holder type USER). `proposedContent.policyId`
+must equal `name`. Only one open proposal per name and version is
+allowed; a second one fails with ConflictError.
+
+#### Parameters
+
+##### name
+
+`string`
+
+##### version
+
+`string`
+
+##### input
+
+[`ProposePolicyChangeInput`](/sdks/reference/typescript/interfaces/ProposePolicyChangeInput)
+
+#### Returns
+
+`Promise`\<[`ProposedPolicyChange`](/sdks/reference/typescript/interfaces/ProposedPolicyChange)\>
+
+---
+
+### listChanges()
+
+> **listChanges**(`status?`): `Promise`\<[`PolicyChangeForReview`](/sdks/reference/typescript/interfaces/PolicyChangeForReview)[]\>
+
+Defined in: [typescript/src/client/PolicyApi.ts:117](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/PolicyApi.ts#L117)
+
+Lists policy changes for review, with the content in effect now next to
+the proposed content. Maps to GET /policies/pending-changes. The API key
+must belong to a verified human.
+
+#### Parameters
+
+##### status?
+
+[`PendingPolicyChangeStatus`](/sdks/reference/typescript/type-aliases/PendingPolicyChangeStatus)
+
+Only changes in this state. Omit for all.
+
+#### Returns
+
+`Promise`\<[`PolicyChangeForReview`](/sdks/reference/typescript/interfaces/PolicyChangeForReview)[]\>
+
+---
+
+### approveChange()
+
+> **approveChange**(`pendingPolicyChangeId`, `stepUpAuthorization`): `Promise`\<[`PendingPolicyChange`](/sdks/reference/typescript/interfaces/PendingPolicyChange)\>
+
+Defined in: [typescript/src/client/PolicyApi.ts:140](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/PolicyApi.ts#L140)
+
+Approves a policy change, which then takes effect. Maps to POST
+/policies/pending-changes/{id}/approve. The API key must belong to a
+verified human with a registered step up key, who is not the proposer.
+Make `stepUpAuthorization` with `signPolicyChangeStepUp()` and action
+"approve"; it is valid once, for 120 seconds by default.
+
+#### Parameters
+
+##### pendingPolicyChangeId
+
+`string`
+
+##### stepUpAuthorization
+
+[`PolicyChangeStepUpAuthorization`](/sdks/reference/typescript/interfaces/PolicyChangeStepUpAuthorization)
+
+#### Returns
+
+`Promise`\<[`PendingPolicyChange`](/sdks/reference/typescript/interfaces/PendingPolicyChange)\>
+
+---
+
+### rejectChange()
+
+> **rejectChange**(`pendingPolicyChangeId`, `rejectionReason`, `stepUpAuthorization`): `Promise`\<[`PendingPolicyChange`](/sdks/reference/typescript/interfaces/PendingPolicyChange)\>
+
+Defined in: [typescript/src/client/PolicyApi.ts:158](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/client/PolicyApi.ts#L158)
+
+Rejects a policy change. Maps to POST
+/policies/pending-changes/{id}/reject. Same caller rules as
+approveChange(); sign with action "reject". A reason is required.
+
+#### Parameters
+
+##### pendingPolicyChangeId
+
+`string`
+
+##### rejectionReason
+
+`string`
+
+##### stepUpAuthorization
+
+[`PolicyChangeStepUpAuthorization`](/sdks/reference/typescript/interfaces/PolicyChangeStepUpAuthorization)
+
+#### Returns
+
+`Promise`\<[`PendingPolicyChange`](/sdks/reference/typescript/interfaces/PendingPolicyChange)\>

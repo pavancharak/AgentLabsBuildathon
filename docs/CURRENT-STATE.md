@@ -48,11 +48,11 @@ skipped.)
 
 ## Self hosted deployment (built 2026-09-25)
 
-Audited and then built on 2026-09-25, on the uncommitted branch
-`feat/self-hosted-deployment`. Progress against the plan is tracked in
+Audited and built on 2026-09-25, merged to `main` the same day (`4275365`,
+merge `a14bc5c`). Progress against the plan is tracked in
 `docs/progress/2026-09-25-SELF-HOSTED-AND-ORIENTATION.md`. The operator guide
-is `DEPLOYMENT.md`, section "Self hosted with Docker Compose". The claim is
-`docs/CLAIMS.md` 2.40, and the gaps are G-56 to G-62 in
+is the docs site section `docs/site/self-hosted/`. The claim is
+`docs/CLAIMS.md` 2.40, and the gaps are G-56 to G-63 in
 `docs/VERIFICATION-GAPS.md`.
 
 **What works, verified by running it (Docker Desktop 29.8.0, Windows 11):**
@@ -96,9 +96,22 @@ docker/local/offline-check/run.sh` runs a copy of the stack on a Docker
   deployment does.
 - There is still no SQLite storage, and none is needed.
 
-**Not yet verified:** the CI job `self-hosted` on Linux (added, not run,
-nothing pushed), a real downstream system instead of the stand in, and any
-customer running it.
+**Verified on Linux** in CI run 36113024609 (job `self-hosted`), which
+repeats on every change to the deployment files and also runs the
+quickstart's commands against its documented output.
+
+**Not yet verified:** a real downstream system instead of the stand in, and
+any customer running it.
+
+## SDKs (aligned 2026-09-25)
+
+Both SDKs are at 1.3.0 in this repository and cover the same product
+operations, including policy governance with step up signing, offline
+verification in both languages, caller identity, public keys and Trust
+Record listing (`docs/CLAIMS.md` 2.41, G-64). npm and PyPI still serve
+1.2.0: **1.3.0 is not published.** Tests: TypeScript SDK 191, Python SDK
+119, all passing; each SDK passed 11 of 11 live checks against a self hosted
+deployment. The route by route mapping is `docs/site/sdks/api-coverage.mdx`.
 
 ## Policy governance (built this session)
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from parmana.api.audit_api import AuditApi
+from parmana.api.caller_api import CallerApi
 from parmana.api.execution_api import ExecutionApi
 from parmana.api.execution_intent_api import ExecutionIntentApi
 from parmana.api.policy_api import PolicyApi
@@ -24,6 +25,7 @@ from parmana.version import __version__
 
 if TYPE_CHECKING:
     from parmana.models.business_transaction import BusinessTransaction
+    from parmana.models.caller import CallerIdentity, PublicKeyInfo
     from parmana.models.execution_intent import (
         ExecutionIntent,
         ExecutionIntentResolution,
@@ -34,6 +36,12 @@ if TYPE_CHECKING:
         ResolveExecutionIntentResult,
         UnfinalizedExecutionIntents,
     )
+    from parmana.models.policy_change import PendingPolicyChange
+    from parmana.models.policy_change_results import (
+        PolicyChangeForReview,
+        ProposedPolicyChange,
+    )
+    from parmana.models.receipt import Receipt
     from parmana.models.refusal_record import RefusalRecord
     from parmana.models.signature import Signature
     from parmana.models.trust_record import ExecutionTrustRecord
@@ -169,6 +177,10 @@ class ParmanaClient:
         )
 
         self.audit = AuditApi(
+            self._transport,
+        )
+
+        self.callers = CallerApi(
             self._transport,
         )
 
@@ -330,4 +342,79 @@ class ParmanaClient:
             f"{self.__class__.__name__}("
             f"endpoint='{self.endpoint}', "
             f"version='{self.version}')"
+        )
+
+    def latest_receipt(self, business_transaction_id: str) -> Receipt:
+        """
+        Retrieve the most recent receipt without generating a new one.
+        See ReceiptApi.get_latest.
+        """
+
+        return self.receipt.get_latest(business_transaction_id)
+
+    def caller(self) -> CallerIdentity:
+        """
+        Who this API key belongs to and what it may do (GET /callers/me).
+        """
+
+        return self.callers.me()
+
+    def public_key(self, key_id: str = "default") -> PublicKeyInfo:
+        """
+        A signing public key of the deployment (GET /keys/{keyId}), for the
+        offline verifiers. Records are signed with "default".
+        """
+
+        return self.callers.public_key(key_id)
+
+    def propose_policy_change(
+        self,
+        name: str,
+        version: str,
+        *,
+        proposed_content: dict[str, Any],
+        reason: str,
+    ) -> ProposedPolicyChange:
+        """
+        Propose a policy change. See PolicyApi.propose_change.
+        """
+
+        return self.policy.propose_change(
+            name, version, proposed_content=proposed_content, reason=reason
+        )
+
+    def policy_changes(self, status: str | None = None) -> list[PolicyChangeForReview]:
+        """
+        List policy changes for review. See PolicyApi.list_changes.
+        """
+
+        return self.policy.list_changes(status)
+
+    def approve_policy_change(
+        self,
+        pending_policy_change_id: str,
+        step_up_authorization: dict[str, Any],
+    ) -> PendingPolicyChange:
+        """
+        Approve a policy change with a signed step up authorization. See
+        PolicyApi.approve_change and parmana.crypto.sign_policy_change_step_up.
+        """
+
+        return self.policy.approve_change(
+            pending_policy_change_id, step_up_authorization
+        )
+
+    def reject_policy_change(
+        self,
+        pending_policy_change_id: str,
+        rejection_reason: str,
+        step_up_authorization: dict[str, Any],
+    ) -> PendingPolicyChange:
+        """
+        Reject a policy change with a reason and a signed step up
+        authorization. See PolicyApi.reject_change.
+        """
+
+        return self.policy.reject_change(
+            pending_policy_change_id, rejection_reason, step_up_authorization
         )

@@ -1,0 +1,113 @@
+---
+title: "Interface: PendingPolicyChange"
+---
+
+Defined in: typescript/src/models/policy-change.ts:23
+
+A proposed change to a policy. One person proposes it and a different
+person approves or rejects it.
+
+## Extended by
+
+- [`PolicyChangeForReview`](/sdks/reference/typescript/interfaces/PolicyChangeForReview)
+- [`ProposedPolicyChange`](/sdks/reference/typescript/interfaces/ProposedPolicyChange)
+
+## Properties
+
+### pendingPolicyChangeId
+
+> `readonly` **pendingPolicyChangeId**: `string`
+
+Defined in: typescript/src/models/policy-change.ts:24
+
+---
+
+### policyName
+
+> `readonly` **policyName**: `string`
+
+Defined in: typescript/src/models/policy-change.ts:25
+
+---
+
+### policyVersion
+
+> `readonly` **policyVersion**: `string`
+
+Defined in: typescript/src/models/policy-change.ts:26
+
+---
+
+### proposedContent
+
+> `readonly` **proposedContent**: `unknown`
+
+Defined in: typescript/src/models/policy-change.ts:31
+
+The full policy content that takes effect when the change is approved.
+
+---
+
+### proposedBy
+
+> `readonly` **proposedBy**: `string`
+
+Defined in: typescript/src/models/policy-change.ts:36
+
+Caller ID of the proposer.
+
+---
+
+### proposedAt
+
+> `readonly` **proposedAt**: `string`
+
+Defined in: typescript/src/models/policy-change.ts:41
+
+ISO 8601 timestamp.
+
+---
+
+### status
+
+> `readonly` **status**: [`PendingPolicyChangeStatus`](/sdks/reference/typescript/type-aliases/PendingPolicyChangeStatus)
+
+Defined in: typescript/src/models/policy-change.ts:43
+
+---
+
+### reason
+
+> `readonly` **reason**: `string`
+
+Defined in: typescript/src/models/policy-change.ts:44
+
+---
+
+### resolvedBy?
+
+> `readonly` `optional` **resolvedBy?**: `string`
+
+Defined in: typescript/src/models/policy-change.ts:49
+
+Caller ID of whoever approved or rejected it. Absent while pending.
+
+---
+
+### resolvedAt?
+
+> `readonly` `optional` **resolvedAt?**: `string`
+
+Defined in: typescript/src/models/policy-change.ts:54
+
+ISO 8601 timestamp. Absent while pending.
+
+---
+
+### rejectionReason?
+
+> `readonly` `optional` **rejectionReason?**: `string`
+
+Defined in: typescript/src/models/policy-change.ts:59
+
+Present only on a rejected change.

@@ -1075,7 +1075,7 @@ Scope, stated plainly:
 - An intent proves what was about to be released. It does **not** prove that the action was released, or what its result was, because it is written before release. An intent in `PREPARED` or `ERRORED` means the action may or may not have run, and only the connector can say.
 - This does not guarantee that every released action has a signed Trust Record. `EXECUTION_RECORD_INCOMPLETE` is still possible. It is repairable when the execution context was saved (state `RELEASED`). When that save also failed (state `PREPARED`), finalize refuses with `409 EXECUTION_INTENT_RESULT_NOT_RECORDED` and the outcome has to be established from the connector by hand.
 - An `ERRORED` or `PREPARED` intent that an operator reconciled at the connector is closed with `POST /execution-intents/{businessTransactionId}/resolve` (G-54, closed). That records what they found (`NOT_EXECUTED` or `EXECUTED`), a required note, who and when, in the intent's **unsigned** status. It is an attributed operator statement. It is **not** tamper evident and it does **not** create a Trust Record. It never calls a connector, is idempotent, and refuses a `RELEASED` intent (use finalize), a `FINALIZED` intent, and any transaction that already has a Trust Record.
-- The TypeScript and Python SDKs have methods for the intent routes (G-55, closed in the source on 2026-09-21). **They are in SDK 1.2.0, published on 2026-09-21, and not in 1.1.6 or earlier.** The Python SDK has an offline intent verifier that needs only the public key. The TypeScript SDK has none.
+- The TypeScript and Python SDKs have methods for the intent routes (G-55, closed in the source on 2026-09-21). **They are in SDK 1.2.0, published on 2026-09-21, and not in 1.1.6 or earlier.** The Python SDK has an offline intent verifier that needs only the public key. The TypeScript SDK has none in 1.2.0; 1.3.0, built but not yet published, adds one (2.41).
 - Transactions created before this change have no intent, and their behavior is unchanged.
 - Deploying this version without the migration `20260921120000_add_execution_intents.sql` makes every execution fail closed with `503 EXECUTION_INTENT_UNAVAILABLE`. That is by design, and `GET /ready` reports it first.
 
@@ -1111,8 +1111,9 @@ A customer can run Parmana on its own infrastructure with one command, `docker c
 
 Scope, stated plainly:
 
-- **A new deployment authorizes nothing until its own people approve the policies they use** through policy governance (2.26, 2.35). `seed` does not approve them. Doing that needs the repository's TypeScript scripts on the approver's machine today (`docs/VERIFICATION-GAPS.md` G-62, open).
-- Verified on one machine, Docker Desktop 29.8.0 on Windows 11. The CI job `self-hosted` runs the same steps on Linux but has not run yet.
+- **A new deployment authorizes nothing until its own people approve the policies they use** through policy governance (2.26, 2.35). `seed` does not approve them. API keys for the proposer and approver are issued inside the image (`docker/local/api-keys.mjs`). Signing the approval needs the repository's TypeScript script on the approver's machine until SDK 1.3.0 is published, which signs from either SDK (2.41, `docs/VERIFICATION-GAPS.md` G-62).
+- An authorized action whose connector cannot be reached returns a bare `500` to the caller, although the Execution Intent correctly records `ERRORED` (G-63, open).
+- Verified on Docker Desktop 29.8.0 on Windows 11 and on Linux in CI run 36113024609 (`.github/workflows/docker-image.yml`, job `self-hosted`, 2026-09-25, on the merge commit `a14bc5c`). CI repeats it on every change to the deployment files, and also runs every command of the quickstart page and compares the output (`docker/local/quickstart-check.sh`).
 - The offline run used a stand in for the downstream system (`parmana-paytm-agent`), not a real one. It covers the Paytm connector only.
 - The images were built while online. The claim is about running, not about building, with no internet.
 - One API instance with one Postgres. No high availability.
@@ -1133,7 +1134,40 @@ Evidence
 - `packages/shared/src/config/StorageProviders.ts` (`isPostgresStorage`), `packages/storage/src/StorageFactory.ts`, `packages/api/src/bootstrap/assertStorageConfigured.ts`, `packages/api/src/routes/ready.ts`
 - `packages/storage/tests/unit/storage-factory.test.ts`, `packages/api/tests/unit/bootstrap/assert-storage-configured.test.ts`, `packages/api/tests/unit/routes/ready.test.ts`, `packages/shared/tests/unit/config-validation.test.ts`
 - `.github/workflows/docker-image.yml`, job `self-hosted`
-- `DEPLOYMENT.md`, section "Self hosted with Docker Compose"; `docs/VERIFICATION-GAPS.md` G-56 to G-62
+- `docs/site/self-hosted/` (the operator guide: overview, quickstart, policy approval, API keys, connectors, offline verification, operations, configuration, troubleshooting), `docker/local/api-keys.mjs`, `docker/local/examples/refund-request.mjs`, `docker/local/quickstart-check.sh`; `docs/VERIFICATION-GAPS.md` G-56 to G-63
+
+---
+
+## 2.41 The TypeScript and Python SDKs Cover the Same Product API (Scoped, SDK 1.3.0, Not Yet Published)
+
+Both SDKs have a method for every product operation of the API, the same set in each, and the same offline and signing capabilities. The mapping, with the reason for each route that has no method, is `docs/site/sdks/api-coverage.mdx`.
+
+- **Policy governance**, which neither SDK had: propose (`POST /policies/{name}/{version}/pending-changes`), list for review (`GET /policies/pending-changes`), approve and reject (`POST /policies/pending-changes/{id}/approve|reject`), and signing the step up authorization on the approver's machine (`signPolicyChangeStepUp()`, `parmana.crypto.sign_policy_change_step_up()`). The signature is the server's own format: key sorted canonical JSON of the payload, Ed25519, base64.
+- **Also in both:** `GET /callers/me`, `GET /keys/{keyId}`, and Trust Record listing (`GET /trust-records`, with `since` and `until`).
+- **TypeScript gains what only Python had:** offline verification of Trust Records and Execution Intents, `GET /receipt/latest/{id}`, and the HTTP status on every error (`statusCode`, Python's `status_code`).
+- **Python gains:** the offline verifiers accept the SDK's own decoded models as well as raw JSON, and a `latest_receipt()` shortcut.
+- Policy content and step up authorizations are sent exactly as given. The Python SDK's model encoder rewrites dict keys with an underscore to camelCase; the new methods do not pass user content through it.
+
+Scope, stated plainly:
+
+- **Not published.** Both SDKs are at 1.3.0 in this repository. npm and PyPI still serve 1.2.0, which has none of the above. Publishing needs the operator.
+- The routes with no method are the readiness probe, the JWKS document, the API's own description files and the handbook download, each with its reason in the coverage page.
+- ML-DSA-65 is not verified by either SDK; a hybrid record is reported as not valid, with the reason.
+- In Python, `client.version` is the SDK's version, while TypeScript's `version()` is the server's. This existing difference is documented, not changed.
+
+Verification
+
+- TypeScript: 191 tests in 18 files pass, including `typescript/test/Alignment.test.ts` (16 tests): the method, path and body of each new operation; offline verification of the same real server signed Execution Intent the Python tests use, and of a Trust Record checked against the server's own reference verifier; a step up authorization accepted by the server's `PolicyChangeStepUpAuthorizationVerifier`; `statusCode` on HTTP errors. The documentation examples were typechecked against the built SDK in strict mode.
+- Python: 119 tests pass, including `python/tests/test_sdk_alignment.py` (10 tests), one of which runs the server's TypeScript verifier on a step up authorization signed in Python. `ruff`, `black` and `mypy` are clean. `npm run check:python-models` covers the newly generated `policy_change.py`.
+- Live, 2026-09-25, each SDK against a self hosted deployment: caller; public key; propose, list, sign and approve a policy change; a reused signature refused (`403`); a refused request (`403 POLICY_DENIED`) with its Refusal Record verified; an authorized request with no connector (`503`, `CONNECTOR_NOT_REGISTERED` on the error); that request's Execution Intent verified offline with the fetched public key; Trust Record listing. 11 of 11 in each.
+- `scripts/check-sdk-docs.ts` passes: every name the SDK pages use exists.
+
+Evidence
+
+- `typescript/src/client/PolicyApi.ts`, `CallerApi.ts`, `TrustRecordApi.ts`, `ReceiptApi.ts`, `ParmanaClient.ts`; `typescript/src/crypto/canonical.ts`, `offline-verifier.ts`, `step-up.ts`; `typescript/src/models/policy-change.ts`, `caller.ts`; `typescript/src/transport/mapHttpErrorResponse.ts`
+- `python/parmana/api/policy_api.py`, `caller_api.py`, `trust_record_api.py`; `python/parmana/crypto/step_up.py`, `offline_verifier.py`; `python/parmana/models/policy_change.py` (generated), `policy_change_results.py`, `caller.py`; `python/parmana/client.py`
+- `typescript/test/Alignment.test.ts`, `python/tests/test_sdk_alignment.py`
+- `docs/site/sdks/api-coverage.mdx`, `docs/site/sdks/typescript.mdx`, `docs/site/sdks/python.mdx`; `docs/VERIFICATION-GAPS.md` G-62 and G-64
 
 ---
 

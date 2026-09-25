@@ -1,0 +1,48 @@
+---
+title: "Interface: CallerIdentity"
+---
+
+Defined in: typescript/src/models/caller.ts:5
+
+Who the API key belongs to and what it may do. The response of
+GET /callers/me.
+
+## Properties
+
+### callerId
+
+> `readonly` **callerId**: `string`
+
+Defined in: typescript/src/models/caller.ts:6
+
+---
+
+### allowedPrincipalIds
+
+> `readonly` **allowedPrincipalIds**: readonly `string`[]
+
+Defined in: typescript/src/models/caller.ts:13
+
+Principal IDs this key may name in a request's
+`authority.principalId`. Only its own caller ID unless the key lists
+others.
+
+---
+
+### allowedCapabilities
+
+> `readonly` **allowedCapabilities**: readonly `string`[]
+
+Defined in: typescript/src/models/caller.ts:18
+
+Capabilities this key may request. Empty means none.
+
+---
+
+### unrestrictedCapabilities
+
+> `readonly` **unrestrictedCapabilities**: `boolean`
+
+Defined in: typescript/src/models/caller.ts:23
+
+True when `allowedCapabilities` contains `*`.

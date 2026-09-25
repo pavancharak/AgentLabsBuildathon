@@ -110,6 +110,25 @@ export function mapHttpErrorResponse(
   body: unknown,
   headers?: Record<string, string>,
 ): ParmanaError {
+  const error = buildHttpError(status, body, headers);
+
+  // Set here, once, rather than threaded through every error class's
+  // constructor: every error this function returns came from an HTTP
+  // response, and carries its status.
+  Object.defineProperty(error, "statusCode", {
+    value: status,
+    enumerable: true,
+    writable: false,
+  });
+
+  return error;
+}
+
+function buildHttpError(
+  status: number,
+  body: unknown,
+  headers?: Record<string, string>,
+): ParmanaError {
   const message = extractMessage(status, body);
   const code = extractCode(body);
 

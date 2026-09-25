@@ -7,7 +7,8 @@
  *
  * Responsibilities:
  * - Validate policies.
- * - Retrieve policy information.
+ * - Policy governance: propose a change, list changes, approve or reject
+ *   one with a signed step up authorization.
  *
  * This API does NOT:
  * - execute transactions
@@ -17,6 +18,15 @@
  */
 
 import type { Transport } from "../config/Transport.js";
+
+import type {
+  PendingPolicyChange,
+  PendingPolicyChangeStatus,
+  PolicyChangeForReview,
+  PolicyChangeStepUpAuthorization,
+  ProposePolicyChangeInput,
+  ProposedPolicyChange,
+} from "../models/policy-change.js";
 
 /**
  * Canonical policy validation result.
@@ -71,6 +81,89 @@ export class PolicyApi {
       },
 
       nonThrowingStatuses: [400, 404],
+    });
+
+    return response.body;
+  }
+
+  /**
+   * Proposes a policy change. Maps to POST
+   * /policies/{name}/{version}/pending-changes. The API key must belong to
+   * a verified human (credential holder type USER). `proposedContent.policyId`
+   * must equal `name`. Only one open proposal per name and version is
+   * allowed; a second one fails with ConflictError.
+   */
+  public async proposeChange(
+    name: string,
+    version: string,
+    input: ProposePolicyChangeInput,
+  ): Promise<ProposedPolicyChange> {
+    const response = await this.transport.send<ProposedPolicyChange>({
+      method: "POST",
+      path: `/policies/${encodeURIComponent(name)}/${encodeURIComponent(version)}/pending-changes`,
+      body: input,
+    });
+
+    return response.body;
+  }
+
+  /**
+   * Lists policy changes for review, with the content in effect now next to
+   * the proposed content. Maps to GET /policies/pending-changes. The API key
+   * must belong to a verified human.
+   *
+   * @param status Only changes in this state. Omit for all.
+   */
+  public async listChanges(
+    status?: PendingPolicyChangeStatus,
+  ): Promise<PolicyChangeForReview[]> {
+    const response = await this.transport.send<{
+      changes: PolicyChangeForReview[];
+    }>({
+      method: "GET",
+      path:
+        status === undefined
+          ? "/policies/pending-changes"
+          : `/policies/pending-changes?status=${encodeURIComponent(status)}`,
+    });
+
+    return response.body.changes;
+  }
+
+  /**
+   * Approves a policy change, which then takes effect. Maps to POST
+   * /policies/pending-changes/{id}/approve. The API key must belong to a
+   * verified human with a registered step up key, who is not the proposer.
+   * Make `stepUpAuthorization` with `signPolicyChangeStepUp()` and action
+   * "approve"; it is valid once, for 120 seconds by default.
+   */
+  public async approveChange(
+    pendingPolicyChangeId: string,
+    stepUpAuthorization: PolicyChangeStepUpAuthorization,
+  ): Promise<PendingPolicyChange> {
+    const response = await this.transport.send<PendingPolicyChange>({
+      method: "POST",
+      path: `/policies/pending-changes/${encodeURIComponent(pendingPolicyChangeId)}/approve`,
+      body: { stepUpAuthorization },
+    });
+
+    return response.body;
+  }
+
+  /**
+   * Rejects a policy change. Maps to POST
+   * /policies/pending-changes/{id}/reject. Same caller rules as
+   * approveChange(); sign with action "reject". A reason is required.
+   */
+  public async rejectChange(
+    pendingPolicyChangeId: string,
+    rejectionReason: string,
+    stepUpAuthorization: PolicyChangeStepUpAuthorization,
+  ): Promise<PendingPolicyChange> {
+    const response = await this.transport.send<PendingPolicyChange>({
+      method: "POST",
+      path: `/policies/pending-changes/${encodeURIComponent(pendingPolicyChangeId)}/reject`,
+      body: { rejectionReason, stepUpAuthorization },
     });
 
     return response.body;

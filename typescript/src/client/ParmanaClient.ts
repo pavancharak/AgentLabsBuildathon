@@ -37,6 +37,15 @@ import type {
 } from "../models/index.js";
 
 import type { ReplayResult } from "../models/replay-result.js";
+import type { CallerIdentity, PublicKeyInfo } from "../models/caller.js";
+import type {
+  PendingPolicyChange,
+  PendingPolicyChangeStatus,
+  PolicyChangeForReview,
+  PolicyChangeStepUpAuthorization,
+  ProposePolicyChangeInput,
+  ProposedPolicyChange,
+} from "../models/policy-change.js";
 
 import type { Configuration } from "../config/Configuration.js";
 
@@ -66,6 +75,7 @@ import { RefusalApi } from "./RefusalApi.js";
 import { ExecutionIntentApi } from "./ExecutionIntentApi.js";
 
 import { AuditApi } from "./AuditApi.js";
+import { CallerApi } from "./CallerApi.js";
 
 /**
  * Canonical Parmana SDK client.
@@ -136,6 +146,8 @@ export class ParmanaClient {
    */
   private readonly auditApi: AuditApi;
 
+  private readonly callerApi: CallerApi;
+
   /**
    * Creates a Parmana SDK client.
    */
@@ -172,6 +184,8 @@ export class ParmanaClient {
     this.executionIntentApi = new ExecutionIntentApi(this.transport);
 
     this.auditApi = new AuditApi(this.transport);
+
+    this.callerApi = new CallerApi(this.transport);
   }
 
   /**
@@ -265,12 +279,46 @@ export class ParmanaClient {
   }
 
   /**
+   * Retrieves the most recent receipt without generating a new one.
+   */
+  public latestReceipt(businessTransactionId: string): Promise<Receipt> {
+    return this.receiptApi.getLatest(businessTransactionId);
+  }
+
+  /**
    * Retrieves an Execution Trust Record.
    */
   public trustRecord(
     businessTransactionId: string,
   ): Promise<ExecutionTrustRecord> {
     return this.trustRecordApi.get(businessTransactionId);
+  }
+
+  /**
+   * Lists Execution Trust Records of this caller's transactions, newest
+   * first. See TrustRecordApi.list.
+   */
+  public trustRecords(
+    page = 1,
+    pageSize = 25,
+    options: { readonly since?: string; readonly until?: string } = {},
+  ): Promise<ExecutionTrustRecord[]> {
+    return this.trustRecordApi.list(page, pageSize, options);
+  }
+
+  /**
+   * Who this API key belongs to and what it may do (GET /callers/me).
+   */
+  public caller(): Promise<CallerIdentity> {
+    return this.callerApi.me();
+  }
+
+  /**
+   * A signing public key of the deployment (GET /keys/{keyId}), for the
+   * offline verifiers. Records are signed with `default`.
+   */
+  public publicKey(keyId = "default"): Promise<PublicKeyInfo> {
+    return this.callerApi.publicKey(keyId);
   }
 
   /**
@@ -359,5 +407,55 @@ export class ParmanaClient {
     signature: Signature,
   ): Promise<boolean> {
     return this.auditApi.verify(event, signature);
+  }
+
+  /**
+   * Proposes a policy change. See PolicyApi.proposeChange.
+   */
+  public proposePolicyChange(
+    name: string,
+    version: string,
+    input: ProposePolicyChangeInput,
+  ): Promise<ProposedPolicyChange> {
+    return this.policyApi.proposeChange(name, version, input);
+  }
+
+  /**
+   * Lists policy changes for review. See PolicyApi.listChanges.
+   */
+  public policyChanges(
+    status?: PendingPolicyChangeStatus,
+  ): Promise<PolicyChangeForReview[]> {
+    return this.policyApi.listChanges(status);
+  }
+
+  /**
+   * Approves a policy change with a signed step up authorization. See
+   * PolicyApi.approveChange and signPolicyChangeStepUp().
+   */
+  public approvePolicyChange(
+    pendingPolicyChangeId: string,
+    stepUpAuthorization: PolicyChangeStepUpAuthorization,
+  ): Promise<PendingPolicyChange> {
+    return this.policyApi.approveChange(
+      pendingPolicyChangeId,
+      stepUpAuthorization,
+    );
+  }
+
+  /**
+   * Rejects a policy change with a reason and a signed step up
+   * authorization. See PolicyApi.rejectChange.
+   */
+  public rejectPolicyChange(
+    pendingPolicyChangeId: string,
+    rejectionReason: string,
+    stepUpAuthorization: PolicyChangeStepUpAuthorization,
+  ): Promise<PendingPolicyChange> {
+    return this.policyApi.rejectChange(
+      pendingPolicyChangeId,
+      rejectionReason,
+      stepUpAuthorization,
+    );
   }
 }

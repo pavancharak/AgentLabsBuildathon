@@ -1,14 +1,28 @@
 """
 Parmana Policy API.
 
-Validate Runtime policies.
+Validate Runtime policies, and run policy governance: propose a change,
+list changes, approve or reject one with a signed step up authorization.
 """
 
 from __future__ import annotations
 
 from typing import Any, cast
+from urllib.parse import quote
 
 from parmana.config.transport import Transport
+from parmana.models.policy_change import PendingPolicyChange
+from parmana.models.policy_change_results import (
+    PolicyChangeForReview,
+    ProposedPolicyChange,
+)
+from parmana.serialization import decode
+
+
+def _change_path(pending_policy_change_id: str, action: str) -> str:
+    return (
+        f"/policies/pending-changes/{quote(pending_policy_change_id, safe='')}/{action}"
+    )
 
 
 class PolicyApi:
@@ -18,6 +32,7 @@ class PolicyApi:
     Responsibilities
     ----------------
     - Confirm a policy (name + version) is loadable by the Runtime
+    - Propose a policy change, list changes for review, approve or reject one
 
     This API does NOT:
     - validate an arbitrary policy document's contents. POST
@@ -76,4 +91,106 @@ class PolicyApi:
                 },
                 non_throwing_statuses=frozenset({400, 404}),
             ),
+        )
+
+    def propose_change(
+        self,
+        name: str,
+        version: str,
+        *,
+        proposed_content: dict[str, Any],
+        reason: str,
+    ) -> ProposedPolicyChange:
+        """
+        Propose a policy change.
+
+        Maps to POST /policies/{name}/{version}/pending-changes. The API key
+        must belong to a verified human (credential holder type USER).
+        `proposed_content` is the whole policy.json, sent exactly as given;
+        its `policyId` must equal `name`. Only one open proposal per name and
+        version is allowed; a second one raises ConflictError.
+        """
+
+        return self._transport.send(
+            method="POST",
+            path=(
+                f"/policies/{quote(name, safe='')}"
+                f"/{quote(version, safe='')}/pending-changes"
+            ),
+            body={"proposedContent": proposed_content, "reason": reason},
+            response_model=ProposedPolicyChange,
+        )
+
+    def list_changes(
+        self,
+        status: str | None = None,
+    ) -> list[PolicyChangeForReview]:
+        """
+        List policy changes for review, with the content in effect now next
+        to the proposed content.
+
+        Maps to GET /policies/pending-changes. The API key must belong to a
+        verified human.
+
+        Parameters
+        ----------
+        status:
+            "PENDING_APPROVAL", "APPROVED" or "REJECTED". Omit for all.
+        """
+
+        path = "/policies/pending-changes"
+        if status is not None:
+            path += f"?status={quote(status, safe='')}"
+
+        payload = cast(
+            "dict[str, Any]",
+            self._transport.send(method="GET", path=path),
+        )
+
+        return decode(payload["changes"], list[PolicyChangeForReview])
+
+    def approve_change(
+        self,
+        pending_policy_change_id: str,
+        step_up_authorization: dict[str, Any],
+    ) -> PendingPolicyChange:
+        """
+        Approve a policy change, which then takes effect.
+
+        Maps to POST /policies/pending-changes/{id}/approve. The API key must
+        belong to a verified human with a registered step up key, who is not
+        the proposer. Make `step_up_authorization` with
+        `parmana.crypto.sign_policy_change_step_up(action="approve", ...)`;
+        it is valid once, for 120 seconds by default.
+        """
+
+        return self._transport.send(
+            method="POST",
+            path=_change_path(pending_policy_change_id, "approve"),
+            body={"stepUpAuthorization": step_up_authorization},
+            response_model=PendingPolicyChange,
+        )
+
+    def reject_change(
+        self,
+        pending_policy_change_id: str,
+        rejection_reason: str,
+        step_up_authorization: dict[str, Any],
+    ) -> PendingPolicyChange:
+        """
+        Reject a policy change.
+
+        Maps to POST /policies/pending-changes/{id}/reject. Same caller rules
+        as `approve_change()`; sign with action "reject". A reason is
+        required.
+        """
+
+        return self._transport.send(
+            method="POST",
+            path=_change_path(pending_policy_change_id, "reject"),
+            body={
+                "rejectionReason": rejection_reason,
+                "stepUpAuthorization": step_up_authorization,
+            },
+            response_model=PendingPolicyChange,
         )
