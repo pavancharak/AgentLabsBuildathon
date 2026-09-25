@@ -24,6 +24,7 @@
     "generate:hybrid-secondary-key": "tsx scripts/generate-keypair.ts --algorithm dilithium3 --key-id default-secondary",
     "generate:api-key": "tsx scripts/generate-api-key.ts",
     "generate:migration-bundle": "tsx scripts/generate-migration-bundle.ts",
+    "db:migrate": "tsx scripts/migrate-database.ts",
     "verify:kms": "tsx scripts/verify-kms-signing.ts",
     "generate:llms-txt": "tsx scripts/generate-llms-txt.ts",
     "check:sdk-docs": "tsx scripts/check-sdk-docs.ts",

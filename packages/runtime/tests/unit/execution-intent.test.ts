@@ -9,6 +9,7 @@ import {
   Authorization,
   BusinessTransaction,
   BusinessTransactionStatus,
+  ConnectorNotRegisteredError,
   ExecutionIntent,
   ExecutionTrustRecord,
   StoredExecutionIntent,
@@ -38,6 +39,7 @@ import { Runtime } from "../../src/Runtime.js";
 import { RuntimeAuthorizationSigner } from "../../src/RuntimeAuthorizationSigner.js";
 import { RuntimeEngine } from "../../src/RuntimeEngine.js";
 import { RuntimePipeline } from "../../src/RuntimePipeline.js";
+import { ExecutionOutcomeUnknownError } from "../../src/errors/ExecutionOutcomeUnknownError.js";
 import type { RuntimeComponent } from "../../src/RuntimeComponent.js";
 import { ExecutionIntentNotFinalizableError } from "../../src/errors/ExecutionIntentNotFinalizableError.js";
 import { ExecutionIntentNotFoundError } from "../../src/errors/ExecutionIntentNotFoundError.js";
@@ -335,7 +337,17 @@ describe("ADR-0012: intent status through the lifecycle", () => {
 
     const error = await runtime.execute(transaction()).catch((e: unknown) => e);
 
-    expect((error as Error).message).toBe("connector timed out");
+    // G-63: the caller is told what the intent records: outcome unknown.
+    expect(error).toBeInstanceOf(ExecutionOutcomeUnknownError);
+    expect((error as ExecutionOutcomeUnknownError).status).toBe(502);
+    expect((error as ExecutionOutcomeUnknownError).code).toBe(
+      "EXECUTION_OUTCOME_UNKNOWN",
+    );
+    expect((error as ExecutionOutcomeUnknownError).businessTransactionId).toBe(
+      TX,
+    );
+    expect((error as Error).message).not.toContain("connector timed out");
+    expect((error as Error).cause).toBeInstanceOf(Error);
     expect(release.calls).toBe(1);
 
     const stored = await repository.findByTransactionId(TX);
@@ -343,6 +355,18 @@ describe("ADR-0012: intent status through the lifecycle", () => {
     expect(stored!.status.state).toBe("ERRORED");
     expect(stored!.status.failureReason).toBe("connector timed out");
     expect(stored!.releasedContext).toBeUndefined();
+  });
+
+  it("passes a release error that already has a typed response through unchanged (G-63)", async () => {
+    const typed = new ConnectorNotRegisteredError("paytm:refund");
+    const { runtime, repository } = setup({ releaseFailsWith: typed });
+
+    const error = await runtime.execute(transaction()).catch((e: unknown) => e);
+
+    expect(error).toBe(typed);
+
+    const stored = await repository.findByTransactionId(TX);
+    expect(stored!.status.state).toBe("ERRORED");
   });
 
   it("still returns the record, and logs at critical severity, when a status update fails after release", async () => {

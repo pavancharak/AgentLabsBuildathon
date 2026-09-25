@@ -14,12 +14,14 @@ import {
   ExecutableContent,
   ExecutionTrustRecord,
   JsonValue,
+  ParmanaError,
   RefusalRecordRepository,
   toExecutableContent,
 } from "@parmana/shared";
 
 import {
   PolicyEngine,
+  PolicyError,
   PolicyOutcome,
   PolicyRouter,
   SignalIntentBinder,
@@ -38,6 +40,8 @@ import type { RuntimeContext } from "./context/RuntimeContext.js";
 import { RuntimePipeline } from "./RuntimePipeline.js";
 import { BusinessTrustPipeline } from "./BusinessTrustPipeline.js";
 import { ExecutionRecordIncompleteError } from "./errors/ExecutionRecordIncompleteError.js";
+import { ExecutionOutcomeUnknownError } from "./errors/ExecutionOutcomeUnknownError.js";
+import { RuntimeError } from "./errors/RuntimeError.js";
 import type { SigningReadiness } from "./SigningReadiness.js";
 import type { ExecutionIntentService } from "./ExecutionIntentService.js";
 
@@ -623,7 +627,7 @@ export class RuntimeEngine {
           error,
         );
 
-        throw error;
+        throw this.outcomeUnknown(context, error);
       }
 
       //
@@ -665,6 +669,51 @@ export class RuntimeEngine {
 
       throw error;
     }
+  }
+
+  /**
+   * Builds the error for a failure of the release itself (G-63): the action
+   * was handed to the execution system and the call failed, so whether it
+   * was performed is unknown, which is exactly what the ERRORED intent
+   * records. An error that already has its own typed response (a
+   * RuntimeError, a ParmanaError such as ConnectorNotRegisteredError, which
+   * states that nothing was executed, or a PolicyError the API maps to 400
+   * or 404) is passed through unchanged.
+   * Anything else, typically a connector that could not be reached, timed
+   * out or answered with an error, used to reach the API as a bare 500
+   * with no identifiers; it is now EXECUTION_OUTCOME_UNKNOWN with the
+   * businessTransactionId and authorizationId, logged at critical severity.
+   */
+  private outcomeUnknown(context: RuntimeContext, cause: unknown): unknown {
+    if (
+      cause instanceof RuntimeError ||
+      cause instanceof ParmanaError ||
+      cause instanceof PolicyError
+    ) {
+      return cause;
+    }
+
+    const businessTransactionId = context.transaction.businessTransactionId;
+
+    const authorizationId = context.authorization?.payload.authorizationId;
+
+    console.error({
+      event: "execution_outcome_unknown",
+      severity: "critical",
+      businessTransactionId,
+      authorizationId,
+      error: cause instanceof Error ? cause.message : String(cause),
+      // The whole error, so the underlying reason is in the log too: a
+      // failed fetch reports only "fetch failed", with the real cause (for
+      // example getaddrinfo ENOTFOUND) nested inside it.
+      detail: cause,
+    });
+
+    return new ExecutionOutcomeUnknownError(
+      businessTransactionId,
+      authorizationId,
+      cause,
+    );
   }
 
   /**

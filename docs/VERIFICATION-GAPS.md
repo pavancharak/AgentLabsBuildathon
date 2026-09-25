@@ -565,7 +565,7 @@ host, outside Docker, with `scripts/verify-trust-record.ts`: `valid: true`, `has
 `legacySignatureValid: true`. **Not covered:** a real downstream system, connectors other than
 Paytm, and a machine that has never been online (the images are built while online).
 
-**G-61. The migration bundle is not safe to run again on a database that holds data. FOUND and
+**G-61. The migration bundle is not safe to run again on a database that holds data. FOUND,
 MITIGATED 2026-09-25, `pre-production`.** Found while building G-58: the first version of the
 `migrate` service applied again `scripts/apply-all-migrations.sql` on every start. On the second
 start, with caller audit rows already written, it failed with `check constraint
@@ -579,6 +579,27 @@ deployment applies each migration once (G-58). **Still open:** a hosted or hand 
 has no record of which migrations it has, so an operator applying the bundle a second time
 there would hit the same failure. It fails inside the statement and changes nothing, but it
 blocks the upgrade.
+
+**CLOSED 2026-09-25.** `npm run db:migrate` (`scripts/migrate-database.ts`,
+`scripts/migrations/runMigrations.ts`) brings the same tracking to any Postgres through
+`DATABASE_URL`: `status` (read only), `apply` (each pending migration once, in its own
+transaction, recorded in `parmana_schema_migrations`, the table the Compose deployment already
+uses) and `apply --dry-run` (read only), and `baseline --through <file>` for a database whose
+schema was created by other means, which records the migrations as applied without running
+them. Every command prints the database it uses, and whether it writes, before doing anything;
+a mistyped command opens no connection. **Verified** on a real Postgres 16: a fresh database,
+31 applied then 0 on a second run; and the failure this gap describes, reproduced first (the
+bundle run again over a row of a newer event type fails on
+`caller_audit_events_type_check`), then fixed on the same database by `baseline` (31 recorded)
+and `apply` (0 applied, the row intact). Unit tests: `scripts/tests/run-migrations.test.ts`
+(7), including that `status` and `--dry-run` write nothing. The production runbook
+(`docs/site/deployment/production.mdx`, step 2), `DEPLOYMENT.md` and the bundle's header now
+point to it. **Incident while building it:** one check meant to run without `DATABASE_URL`
+read it from the repository's `.env` instead and connected to the Supabase project in that
+file; the first version of `status` then created an empty `parmana_schema_migrations` table
+there. Nothing else was written and no migration ran. `status` has been read only since, and
+the database is named before any command runs. The empty table is harmless and is left for
+the operator to keep (it is what `baseline` would create) or drop.
 
 **G-62. Approving policies on a self hosted deployment needed the repository's signing script
 on the approver's machine. CLOSED 2026-09-25 (see the end of this entry).** In production a policy
@@ -597,7 +618,7 @@ source the same day (G-64):** SDK 1.3.0 signs from either SDK, installed with `n
 `pip install`, with no clone of the repository. **CLOSED 2026-09-25** when `@parmana/sdk` 1.3.0 was published to npm: an approver installs it with `npm install @parmana/sdk` and signs with `signPolicyChangeStepUp()`, verified from the npm package against a live deployment. The Python SDK 1.3.0 was published to PyPI the same day and signs too (`sign_policy_change_step_up()`), also verified from the PyPI package against a live deployment. The steps are documented and tested in CI
 (`docs/site/self-hosted/policy-approval.mdx`, `docker/local/quickstart-check.sh`).
 
-**G-63. An authorized action whose connector cannot be reached returns a bare `500`. OPEN,
+**G-63. An authorized action whose connector cannot be reached returned a bare `500`. CLOSED 2026-09-25,
 `pre-production`, found 2026-09-25.** Found while documenting connectors: with
 `PAYTM_CONNECTOR_URL` pointing at a host that does not resolve, an authorized `paytm:refund`
 returned `500` with `{"error":"Internal Server Error"}`. The Execution Intent was stored in state
@@ -608,6 +629,26 @@ cannot tell this from any other server error and may retry blindly. Documented i
 `docs/site/self-hosted/connectors.mdx` and `docs/site/self-hosted/troubleshooting.mdx`. Not
 checked: whether a connector timeout or an HTTP error from a reachable connector answers the
 same way.
+
+**CLOSED 2026-09-25.** A release error that has no typed response of its own is now
+`502 EXECUTION_OUTCOME_UNKNOWN` (`packages/runtime/src/errors/ExecutionOutcomeUnknownError.ts`,
+`RuntimeEngine.outcomeUnknown()`), whose message names the `businessTransactionId` and
+`authorizationId` and tells the caller not to retry as a new transaction and to close the
+intent with resolve, matching the ERRORED intent. The cause's own message is still never in
+the response; it is in a critical `execution_outcome_unknown` log line (with the full error,
+so a nested reason such as `getaddrinfo ENOTFOUND` is visible) and in the intent's
+`failureReason`. Errors that already have a typed response (a `RuntimeError`, a
+`ParmanaError` such as `CONNECTOR_NOT_REGISTERED`, a `PolicyError`) pass through unchanged. It
+covers timeouts and HTTP error responses too: every connector adapter raises a plain `Error`
+for them, which takes the same path. **Tests:**
+`packages/runtime/tests/unit/execution-intent.test.ts` (a release error becomes
+`EXECUTION_OUTCOME_UNKNOWN` with the ids and without the cause's message; a typed error passes
+through), `packages/api/tests/integration/execution-failure.integration.test.ts` (over HTTP:
+`502`, the code, the transaction id, and the injected failure message absent). **Verified
+live** on the self hosted deployment with `PAYTM_CONNECTOR_URL` pointing at a host that does
+not resolve: `502`, `EXECUTION_OUTCOME_UNKNOWN`, both ids in the message, the intent `ERRORED`,
+and the critical log line. The OpenAPI description of `POST /execute` and `POST
+/transactions`, the error catalog and every page that listed outcome codes now include it.
 
 **G-64. The two SDKs did not cover the same API, and neither covered policy governance. CLOSED
 2026-09-25, SDK 1.3.0, published to npm and PyPI the same day.** Found by mapping each of the 37
@@ -671,7 +712,8 @@ evidence in its own entry above. The build found G-61 (the migration bundle is n
 run again on a database with data), `pre-production`, now mitigated for the self hosted path,
 and G-62 (policy approval on a self hosted deployment needs the repository's scripts on an
 operator machine), `pre-production`, open. The docs pass of the same day found G-63 (an
-unreachable connector gives the caller a bare `500`), `pre-production`, open, and the SDK
+unreachable connector gave the caller a bare `500`), `pre-production`, and G-63 and G-61 were
+both closed later the same day (`502 EXECUTION_OUTCOME_UNKNOWN`; `npm run db:migrate`), and the SDK
 alignment pass closed G-64 in the source (the SDKs did not cover the same API or policy
 governance); the TypeScript SDK 1.3.0 was published to npm the same day, which closed G-62, and the Python SDK 1.3.0 was published to PyPI the same day. None is a security defect and none affects the
 hosted API on Vercel.

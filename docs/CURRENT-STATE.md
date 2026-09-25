@@ -79,8 +79,13 @@ docker/local/offline-check/run.sh` runs a copy of the stack on a Docker
 **Found while building it:**
 
 - `scripts/apply-all-migrations.sql` is not safe to run again on a database
-  with data, although its header said so. Corrected, and the Compose
-  deployment applies each migration once instead (G-61).
+  with data, although its header said so. Corrected; the Compose deployment
+  applies each migration once, and `npm run db:migrate` does the same for any
+  Postgres, with `baseline` for a database set up with the bundle (G-61,
+  closed).
+- An unreachable connector gave the caller a bare `500`. It is now
+  `502 EXECUTION_OUTCOME_UNKNOWN` with the transaction's identifiers, matching
+  the ERRORED Execution Intent (G-63, closed).
 - A new deployment authorizes nothing until its own people approve its
   policies through governance. That is kept on purpose, but the approval
   tools are TypeScript scripts that need the repository and Node.js on the
