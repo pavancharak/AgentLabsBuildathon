@@ -7,17 +7,23 @@
 -- Supabase Dashboard's SQL Editor. See DEPLOYMENT.md's "Applying the schema"
 -- section for when and why this is needed.
 --
--- Safe to run against an empty project AND safe to re-run against a project
--- this script has already been applied to. No synthetic idempotency
--- wrapping (DO $$ guard blocks) was added, because every statement below is
--- already idempotent as originally authored:
+-- Safe to run once against an empty project. NOT safe to run again against a
+-- project that already holds data (G-61, docs/VERIFICATION-GAPS.md, found on
+-- 2026-09-25): several migrations drop and add back the same CHECK constraint
+-- with a longer list of allowed values each time, so a second run adds back an
+-- older, narrower constraint over rows written under a newer one, and fails
+-- (caller_audit_events_type_check was the first). Apply only the migrations
+-- a project does not have yet. The self hosted deployment does this with
+-- docker/local/migrate.sh, which applies each file once and records it in
+-- parmana_schema_migrations.
+--
+-- Statements are otherwise written to tolerate being applied again:
 --   - CREATE TABLE IF NOT EXISTS / CREATE INDEX IF NOT EXISTS
 --   - ALTER TABLE ... ADD COLUMN IF NOT EXISTS
 --   - ALTER TABLE ... ENABLE ROW LEVEL SECURITY (a Postgres no-op if RLS is
 --     already enabled -- it does not error on re-application)
 --   - ALTER TABLE ... DROP CONSTRAINT IF EXISTS immediately followed by an
---     unconditional ADD CONSTRAINT (self-guarding: a re-run drops what the
---     previous run added, then adds it back identically)
+--     unconditional ADD CONSTRAINT, which is the exception described above
 -- Column definitions, primary keys, RLS enablement, and constraints are
 -- preserved exactly from source -- nothing here was "improved."
 

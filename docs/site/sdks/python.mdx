@@ -5,7 +5,7 @@ description: "Generated models, bearer-key authentication, and a typed error tax
 
 <Info>
   **[AVAILABLE]**, **published**, [`parmana` on
-  PyPI](https://pypi.org/project/parmana/1.1.6/). Real, public, installable with
+  PyPI](https://pypi.org/project/parmana/1.2.0/). Real, public, installable with
   a plain `pip install parmana`. This page said `v1.0.5` and described only an
   editable local install until 2026-09-14; both were stale, confirmed against
   the live PyPI registry while fixing this page. 82 passing tests, 0
@@ -17,13 +17,14 @@ description: "Generated models, bearer-key authentication, and a typed error tax
   and the `offline_verifier.py` fix. Two quick follow-up releases, v1.1.3 and
   v1.1.4, corrected the published package metadata (repo name, docs domain,
   added a `Website` URL); v1.1.5 and v1.1.6, both published 2026-09-20, follow;
-  v1.1.6 is the current version, confirmed against the live PyPI registry.
-  v1.1.6 adds `server_code` to `InternalServerError`. v1.1.5 lets the offline
-  verifier accept records over 4096 bytes that AWS KMS signed as a fixed size
-  commitment, and declares its `cryptography` dependency as the optional
-  `verify` extra (`pip install "parmana[verify]"`). v1.1.4 was published
-  2026-09-14. See [Changelog](/changelog) and the fix history at the bottom of
-  this page.
+  v1.2.0, published 2026-09-21, is the current version, confirmed against the
+  live PyPI registry. v1.2.0 adds the Execution Intent methods and an offline
+  intent verifier. v1.1.6 adds `server_code` to `InternalServerError`. v1.1.5
+  lets the offline verifier accept records over 4096 bytes that AWS KMS signed
+  as a fixed size commitment, and declares its `cryptography` dependency as the
+  optional `verify` extra (`pip install "parmana[verify]"`). v1.1.4 was
+  published 2026-09-14. See [Changelog](/changelog) and the fix history at the
+  bottom of this page.
 </Info>
 
 ## Install

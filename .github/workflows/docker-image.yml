@@ -11,6 +11,13 @@ name: Docker image
 # migration applied, requires authentication to be on, and requires a request
 # with a valid key to reach request validation. It does not deploy anywhere. The
 # production runbook covers a real deployment.
+#
+# The self-hosted job starts the self hosted deployment the way a customer
+# does (docker compose up), starts it a second time to prove setup,
+# migrations and policy seeding keep what exists, and then runs the offline
+# check: governance approval, an authorized and a refused refund, and the
+# Trust Record verified with only the public keys, all on a network with no
+# internet route (DEPLOYMENT.md, "Self hosted with Docker Compose").
 
 on:
   push:
@@ -26,6 +33,9 @@ on:
       - docs/site/parmana-handbook.pdf
       - supabase/migrations/**
       - scripts/apply-all-migrations.sql
+      - docker-compose.yml
+      - docker-compose.offline-check.yml
+      - policies/**
       - .github/workflows/docker-image.yml
   pull_request:
     paths:
@@ -38,6 +48,9 @@ on:
       - docs/site/parmana-handbook.pdf
       - supabase/migrations/**
       - scripts/apply-all-migrations.sql
+      - docker-compose.yml
+      - docker-compose.offline-check.yml
+      - policies/**
       - .github/workflows/docker-image.yml
   workflow_dispatch:
 
@@ -128,3 +141,39 @@ jobs:
         run: |
           docker logs parmana || true
           docker logs parmana-prod || true
+
+  self-hosted:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start the self hosted deployment with one command
+        run: docker compose up -d --build --wait
+
+      - name: Check it answers correctly
+        run: |
+          READY=$(curl -fsS http://127.0.0.1:3000/ready)
+          echo "ready: $READY"
+          echo "$READY" | grep -q '"status":"READY"'
+          echo "$READY" | grep -q '"authDisabled":false'
+          KEY=$(docker compose run --rm --no-deps --entrypoint cat setup /app/parmana-local/api-key.txt | tr -d '\r\n')
+          NOKEY=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3000/execute -H 'Content-Type: application/json' -d '{}')
+          test "$NOKEY" = "401"
+          WITHKEY=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3000/execute -H 'Content-Type: application/json' -H "Authorization: Bearer $KEY" -d '{}')
+          test "$WITHKEY" = "400"
+
+      - name: Start it again and check nothing is replaced
+        run: |
+          docker compose down
+          docker compose up -d --wait
+          docker compose logs setup | grep -q 'key "default" already exists, kept'
+          docker compose logs migrate | grep -q '] 0 applied'
+          docker compose logs seed | grep -q ', 0 added'
+
+      - name: Run the offline check
+        run: bash docker/local/offline-check/run.sh
+
+      - name: Show the logs if a step failed
+        if: failure()
+        run: docker compose logs || true

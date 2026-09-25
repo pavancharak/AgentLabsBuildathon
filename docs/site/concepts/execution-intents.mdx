@@ -298,9 +298,8 @@ A repaired record has its own `createdAt`, the time of the repair. The times of 
 ## Use the SDKs
 
 <Warning>
-  These methods are in the SDK source, and are **not in the published 1.1.6**.
-  They are in SDK 1.2.0, which is prepared and not yet published. Until then,
-  use the HTTP API.
+  These methods are available from SDK 1.2.0 (published 2026-09-21). On 1.1.6
+  and earlier, use the HTTP API.
 </Warning>
 
 | Task                            | TypeScript (`ParmanaClient`)                       | Python (`ParmanaClient`)                                              | Credential                   |
@@ -436,7 +435,7 @@ One more signing operation and one more database write happen before every relea
 - Transactions created before this feature have no intent. Their behavior is unchanged.
 - Closing an intent (resolve) records an operator's statement in unsigned status. It is not tamper evident and it does not create a Trust Record.
 - The list route returns intents across all callers, so it needs a verified human credential.
-- The SDK methods for the intent routes are in the SDK source and are **not in the published 1.1.6**. They are in SDK 1.2.0, which is prepared and not yet published. The TypeScript SDK has no offline intent verifier.
+- The SDK methods for the intent routes are available from SDK 1.2.0. Earlier versions do not have them. The TypeScript SDK has no offline intent verifier.
 
 ## What was verified
 

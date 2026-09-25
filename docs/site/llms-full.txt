@@ -181,9 +181,9 @@ The full list, with the exact messages, is the [error catalog](/api-reference/er
 
 | You use                                | Package                                     | Current version | Install                                                       |
 | -------------------------------------- | ------------------------------------------- | --------------- | ------------------------------------------------------------- |
-| TypeScript or JavaScript               | [`@parmana/sdk`](/sdks/typescript) on npm   | 1.1.6           | `npm install @parmana/sdk`                                    |
-| Python                                 | [`parmana`](/sdks/python) on PyPI           | 1.1.6           | `pip install parmana`                                         |
-| Python, and you verify records offline | `parmana` with the `verify` extra           | 1.1.6           | `pip install "parmana[verify]"`                               |
+| TypeScript or JavaScript               | [`@parmana/sdk`](/sdks/typescript) on npm   | 1.2.0           | `npm install @parmana/sdk`                                    |
+| Python                                 | [`parmana`](/sdks/python) on PyPI           | 1.2.0           | `pip install parmana`                                         |
+| Python, and you verify records offline | `parmana` with the `verify` extra           | 1.2.0           | `pip install "parmana[verify]"`                               |
 | Another language                       | The [REST API](/api-reference/introduction) | Not applicable  | Any HTTP client, see [Other languages](/sdks/other-languages) |
 
 Both SDKs never retry `POST /execute` for you. They only retry idempotent `GET` requests, so an SDK can never turn a
@@ -1674,9 +1674,10 @@ Source: https://docs.parmanasystems.com/sdks/typescript
   Bearer-key authentication, a real thrown error taxonomy, and full test
   coverage are all in place, along with corrected model types (see below),
   `client.verify()`/`client.version()`, and `client.createTransaction()`.
-  v1.1.6, published 2026-09-20 and confirmed via `npm view @parmana/sdk
-  version`, is the current version. It builds a default `HttpTransport` when you
-  omit `transport`, and sends `userAgent`. v1.1.3 added `serverCode` on
+  v1.2.0, published 2026-09-21 and confirmed via `npm view @parmana/sdk
+  version`, is the current version. It adds the Execution Intent methods.
+  v1.1.6, published 2026-09-20, builds a default `HttpTransport` when you omit
+  `transport`, and sends `userAgent`. v1.1.3 added `serverCode` on
   `InternalServerError` (see below). v1.1.2, published 2026-09-14, added
   `createBusinessTransaction()`. See the fix history at the bottom of this page.
 </Info>
@@ -1785,8 +1786,8 @@ you should do next:
   new `businessTransactionId`.
 - `EXECUTION_RECORD_INCOMPLETE` (500): the action **was** released to the execution system, but its signed record
   could not be produced. **Do not retry as a new transaction.** Tell the operator: a signed Execution Intent exists,
-  and the operator can rebuild the record without repeating the action. The method is `finalizeExecutionIntent`. It is in the SDK
-  source and not in the published 1.1.6, so until 1.2.0 is published the operator uses
+  and the operator can rebuild the record without repeating the action. The method is `finalizeExecutionIntent`. It is available from
+  version 1.2.0. On 1.1.6 and earlier the operator uses
   `POST /execution-intents/<businessTransactionId>/finalize` over HTTP.
 
 ```typescript
@@ -2066,12 +2067,12 @@ Every non 2xx response, and every failure to get one, is thrown as a typed error
 
 Several `InternalServerError` cases need different handling, and from 1.1.3 you can tell them apart with `error.serverCode`:
 
-| `serverCode`                         | Meaning                                                                                                                                   | Do                                                                                                                                                                                                          |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SIGNING_UNAVAILABLE` (503)          | Refused before release. **Nothing was executed.**                                                                                         | Retry later with a new `businessTransactionId`.                                                                                                                                                             |
-| `EXECUTION_INTENT_UNAVAILABLE` (503) | Refused before release, because the signed [Execution Intent](/concepts/execution-intents) could not be stored. **Nothing was executed.** | Retry later with a new `businessTransactionId`.                                                                                                                                                             |
-| `CONNECTOR_NOT_REGISTERED` (503)     | The action has no connector on this server. **Nothing was executed.**                                                                     | Ask the operator to configure the connector, then retry with a new `businessTransactionId`.                                                                                                                 |
-| `EXECUTION_RECORD_INCOMPLETE` (500)  | The action **was** released but its signed record could not be produced.                                                                  | **Do not resubmit.** Tell the operator, who can rebuild the record with `POST /execution-intents/<id>/finalize`. The method is `finalizeExecutionIntent`, in the SDK source and not in the published 1.1.6. |
+| `serverCode`                         | Meaning                                                                                                                                   | Do                                                                                                                                                                              |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SIGNING_UNAVAILABLE` (503)          | Refused before release. **Nothing was executed.**                                                                                         | Retry later with a new `businessTransactionId`.                                                                                                                                 |
+| `EXECUTION_INTENT_UNAVAILABLE` (503) | Refused before release, because the signed [Execution Intent](/concepts/execution-intents) could not be stored. **Nothing was executed.** | Retry later with a new `businessTransactionId`.                                                                                                                                 |
+| `CONNECTOR_NOT_REGISTERED` (503)     | The action has no connector on this server. **Nothing was executed.**                                                                     | Ask the operator to configure the connector, then retry with a new `businessTransactionId`.                                                                                     |
+| `EXECUTION_RECORD_INCOMPLETE` (500)  | The action **was** released but its signed record could not be produced.                                                                  | **Do not resubmit.** Tell the operator, who can rebuild the record with `POST /execution-intents/<id>/finalize`. The method is `finalizeExecutionIntent`, available from 1.2.0. |
 
 On 1.1.2 and earlier `serverCode` is not on `InternalServerError`, so read the code from the error message.
 
@@ -2366,7 +2367,7 @@ Source: https://docs.parmanasystems.com/sdks/python
 
 <Info>
   **[AVAILABLE]**, **published**, [`parmana` on
-  PyPI](https://pypi.org/project/parmana/1.1.6/). Real, public, installable with
+  PyPI](https://pypi.org/project/parmana/1.2.0/). Real, public, installable with
   a plain `pip install parmana`. This page said `v1.0.5` and described only an
   editable local install until 2026-09-14; both were stale, confirmed against
   the live PyPI registry while fixing this page. 82 passing tests, 0
@@ -2378,13 +2379,14 @@ Source: https://docs.parmanasystems.com/sdks/python
   and the `offline_verifier.py` fix. Two quick follow-up releases, v1.1.3 and
   v1.1.4, corrected the published package metadata (repo name, docs domain,
   added a `Website` URL); v1.1.5 and v1.1.6, both published 2026-09-20, follow;
-  v1.1.6 is the current version, confirmed against the live PyPI registry.
-  v1.1.6 adds `server_code` to `InternalServerError`. v1.1.5 lets the offline
-  verifier accept records over 4096 bytes that AWS KMS signed as a fixed size
-  commitment, and declares its `cryptography` dependency as the optional
-  `verify` extra (`pip install "parmana[verify]"`). v1.1.4 was published
-  2026-09-14. See [Changelog](/changelog) and the fix history at the bottom of
-  this page.
+  v1.2.0, published 2026-09-21, is the current version, confirmed against the
+  live PyPI registry. v1.2.0 adds the Execution Intent methods and an offline
+  intent verifier. v1.1.6 adds `server_code` to `InternalServerError`. v1.1.5
+  lets the offline verifier accept records over 4096 bytes that AWS KMS signed
+  as a fixed size commitment, and declares its `cryptography` dependency as the
+  optional `verify` extra (`pip install "parmana[verify]"`). v1.1.4 was
+  published 2026-09-14. See [Changelog](/changelog) and the fix history at the
+  bottom of this page.
 </Info>
 
 ## Install
@@ -2694,12 +2696,12 @@ Every HTTP error has `status_code`, `code` and `request_id`. **The `code` is the
 
 That matters for the server errors that all arrive as `InternalServerError`:
 
-| Server code                          | Meaning                                                                                                                                   | Do                                                                                                                                                                                                            |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SIGNING_UNAVAILABLE` (503)          | Refused before release. **Nothing was executed.**                                                                                         | Retry later with a new `businessTransactionId`.                                                                                                                                                               |
-| `EXECUTION_INTENT_UNAVAILABLE` (503) | Refused before release, because the signed [Execution Intent](/concepts/execution-intents) could not be stored. **Nothing was executed.** | Retry later with a new `businessTransactionId`.                                                                                                                                                               |
-| `CONNECTOR_NOT_REGISTERED` (503)     | The action has no connector on this server. **Nothing was executed.**                                                                     | Ask the operator to configure the connector, then retry with a new `businessTransactionId`.                                                                                                                   |
-| `EXECUTION_RECORD_INCOMPLETE` (500)  | The action **was** released but its signed record could not be produced.                                                                  | **Do not resubmit.** Tell the operator, who can rebuild the record with `POST /execution-intents/<id>/finalize`. The method is `finalize_execution_intent`, in the SDK source and not in the published 1.1.6. |
+| Server code                          | Meaning                                                                                                                                   | Do                                                                                                                                                                                |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SIGNING_UNAVAILABLE` (503)          | Refused before release. **Nothing was executed.**                                                                                         | Retry later with a new `businessTransactionId`.                                                                                                                                   |
+| `EXECUTION_INTENT_UNAVAILABLE` (503) | Refused before release, because the signed [Execution Intent](/concepts/execution-intents) could not be stored. **Nothing was executed.** | Retry later with a new `businessTransactionId`.                                                                                                                                   |
+| `CONNECTOR_NOT_REGISTERED` (503)     | The action has no connector on this server. **Nothing was executed.**                                                                     | Ask the operator to configure the connector, then retry with a new `businessTransactionId`.                                                                                       |
+| `EXECUTION_RECORD_INCOMPLETE` (500)  | The action **was** released but its signed record could not be produced.                                                                  | **Do not resubmit.** Tell the operator, who can rebuild the record with `POST /execution-intents/<id>/finalize`. The method is `finalize_execution_intent`, available from 1.2.0. |
 
 From 1.1.6 read `error.server_code`. On 1.1.5 and earlier `server_code` is not set on `InternalServerError`, so use `status_code` (`503` or `500`) and the message: the `SIGNING_UNAVAILABLE` message ends with "Nothing was executed.", and the `EXECUTION_RECORD_INCOMPLETE` message says the action was released and names the `businessTransactionId` and the `authorizationId`.
 
@@ -2726,7 +2728,7 @@ The client has methods for the common calls, and a sub API for each area.
 | `verify_audit_event(event, signature)`                                        | `POST /audit/verify`                    | `True` or `False`.                                                                             |
 | `health()`                                                                    | `GET /health`                           | A dict with the health status.                                                                 |
 
-Two values are properties, not methods, so do not call them: `client.endpoint` is the configured endpoint, and `client.version` is the version of the **SDK package**, for example `1.1.6`. It is not the server's version. To read the server's version call `client.execution.version()`, which sends `GET /version`.
+Two values are properties, not methods, so do not call them: `client.endpoint` is the configured endpoint, and `client.version` is the version of the **SDK package**, for example `1.2.0`. It is not the server's version. To read the server's version call `client.execution.version()`, which sends `GET /version`.
 
 The sub APIs cover the rest, for example `client.replay.replay(...)`, `client.receipt.generate(...)`, `client.receipt.get_latest(...)` and `client.transactions.list(...)`:
 
@@ -3014,11 +3016,43 @@ Source: https://docs.parmanasystems.com/deployment/local
   signing](/deployment/aws-kms-signing).
 </Info>
 
+## Docker Compose: one command
+
+The self hosted deployment starts the API and its own Postgres with one command. Nothing is
+sent to Parmana or anywhere else: decisions, signatures, the audit trail and the Trust Records
+stay in your deployment.
+
+```bash
+docker compose up -d --build --wait
+curl http://127.0.0.1:3000/ready
+# {"status":"READY","authDisabled":false}
+```
+
+On the first start it makes the Ed25519 signing keys and an API key in `./parmana-local`,
+creates the database, applies each migration once, and copies the shipped policies into the
+database. Later starts keep all of that, and an upgrade applies only new migrations. Before
+the first authorized request your own people approve the policies you use, through policy
+governance, because a policy that was never approved authorizes nothing in production.
+
+To prove enforcement does not depend on the internet or on Parmana:
+
+```bash
+bash docker/local/offline-check/run.sh
+```
+
+It runs a copy of the stack on a Docker network with no internet route, approves the refund
+policy through governance, sends an authorized and a refused refund, and verifies the Trust
+Record with only the public keys. It ends with `12 of 12 checks passed`.
+
+Everything, including settings, key files, policy approval and upgrades, is in `DEPLOYMENT.md`,
+section "Self hosted with Docker Compose", in the repository.
+
 ## What runs today
 
 One Express process (`packages/api/src/server.ts`), single instance, no load balancer or
 orchestration assumed. Signing keys are local PEM files read by `FileKeyProvider`. Storage
-is either fully in-process (`memory`, non-persistent) or Supabase.
+is either fully in-process (`memory`, non-persistent) or Postgres (`postgres`, or its older
+name `supabase`; both use `DATABASE_URL`).
 
 ## Configuration
 
@@ -3027,7 +3061,7 @@ Real `.env` keys (from this repo, values redacted):
 ```bash
 NODE_ENV=...
 PORT=3000
-PARMANA_STORAGE=supabase     # or: memory
+PARMANA_STORAGE=postgres     # or: supabase (same thing), memory
 HASH_PROVIDER=sha256
 PRIMARY_SIGNATURE_PROVIDER=ed25519   # or: dilithium3 (needs Node >= 24)
 KEY_PROVIDER=local
@@ -3777,11 +3811,11 @@ that names `PARMANA_API_KEYS`.
 
 ## Storage
 
-| Variable            | Required     | Default  | Values or format             | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| ------------------- | ------------ | -------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `PARMANA_STORAGE`   | No           | `memory` | `memory`, `supabase`         | Where business transactions and trust records are kept. `memory` loses everything on restart and must not be used in production. `supabase` uses Postgres through `DATABASE_URL`. The value `postgres` passes validation but the server fails with "Postgres storage provider not implemented", so do not use it.                                                                                                                                                  |
-| `DATABASE_URL`      | Not test     | None     | A Postgres connection string | A direct Postgres connection string. It is required whenever `NODE_ENV` is not `test`, **regardless of `PARMANA_STORAGE`**, because the nonce store, the caller audit trail, the execution audit trail, the approval nonce store and the step up nonce store are always durable outside tests. It also backs shared rate limit counters. Use the Supabase **transaction pooler** string for serverless hosts, see [Production deployment](/deployment/production). |
-| `DATABASE_PROVIDER` | Never set it | None     | None                         | Removed. If it is set at all, the server stops with "DATABASE_PROVIDER is no longer read; set PARMANA_STORAGE instead."                                                                                                                                                                                                                                                                                                                                            |
+| Variable            | Required     | Default  | Values or format                 | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------- | ------------ | -------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PARMANA_STORAGE`   | No           | `memory` | `memory`, `postgres`, `supabase` | Where business transactions and trust records are kept. `memory` loses everything on restart and must not be used in production. `postgres` uses any Postgres through `DATABASE_URL`, and is the name for a self hosted database. `supabase` is the same implementation under its older name, kept so existing deployments are unchanged.                                                                                                                          |
+| `DATABASE_URL`      | Not test     | None     | A Postgres connection string     | A direct Postgres connection string. It is required whenever `NODE_ENV` is not `test`, **regardless of `PARMANA_STORAGE`**, because the nonce store, the caller audit trail, the execution audit trail, the approval nonce store and the step up nonce store are always durable outside tests. It also backs shared rate limit counters. Use the Supabase **transaction pooler** string for serverless hosts, see [Production deployment](/deployment/production). |
+| `DATABASE_PROVIDER` | Never set it | None     | None                             | Removed. If it is set at all, the server stops with "DATABASE_PROVIDER is no longer read; set PARMANA_STORAGE instead."                                                                                                                                                                                                                                                                                                                                            |
 
 ## Signing keys and gateway identity
 

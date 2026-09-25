@@ -22,6 +22,171 @@ what's required and why. `GET /health` (liveness) and `GET /ready`
 (readiness — see [Health checks](#health-checks)) are both served once the
 process is up.
 
+## Self hosted with Docker Compose
+
+For running Parmana on your own infrastructure, next to or instead of the
+hosted API. One command starts the API and its own Postgres. Nothing is sent
+to Parmana or anywhere else: decisions, signatures, the audit trail and the
+Trust Records stay in this deployment.
+
+**You need** Docker with Compose v2.24 or newer, and a clone of this
+repository. Nothing else is needed on the host.
+
+### Start it
+
+```sh
+docker compose up -d --build --wait
+```
+
+This runs, in order (`docker-compose.yml`):
+
+| Service    | What it does                                                                                                                                                                                                                                                          |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setup`    | The first time, makes the two Ed25519 key pairs (`default` signs authorizations and Trust Records, `gateway` signs the Execution Gateway's attestations) and one API key, in `./parmana-local`. On every later start it keeps what exists (`docker/local/setup.mjs`). |
+| `postgres` | The deployment's own database, in the Docker volume `parmana_postgres-data`. Not published to the host.                                                                                                                                                               |
+| `migrate`  | Creates the roles the migrations expect, then applies each file in `supabase/migrations/` once, in its own transaction, recorded in `parmana_schema_migrations` (`docker/local/migrate.sh`). An upgrade applies only the new files.                                   |
+| `seed`     | Copies the policies shipped in the image into the `policies` table, adding only versions that are not there yet. It never overwrites a policy changed through policy governance (`docker/local/seed-policies.mjs`).                                                   |
+| `api`      | The same image as the hosted API, in production mode, with `PARMANA_STORAGE=postgres`. Published on `127.0.0.1:3000`.                                                                                                                                                 |
+
+Then:
+
+```sh
+curl http://127.0.0.1:3000/ready
+# {"status":"READY","authDisabled":false}
+```
+
+### Settings
+
+Set these in the shell or in a `.env` file next to `docker-compose.yml`:
+
+| Variable                             | Default          | Meaning                                                                                                                                                |
+| ------------------------------------ | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PARMANA_DB_PASSWORD`                | `parmana-local`  | Postgres password. Change it for anything but a trial, before the first start.                                                                         |
+| `PARMANA_BIND`                       | `127.0.0.1`      | Host address the API is published on. Put a TLS proxy in front before publishing it beyond the host.                                                   |
+| `PARMANA_PORT`                       | `3000`           | Host port.                                                                                                                                             |
+| `PARMANA_LOCAL_ALLOWED_CAPABILITIES` | `paytm:refund`   | Capabilities the generated API key may use, comma separated. Read only when the key is made.                                                           |
+| `PARMANA_LOCAL_CALLER_ID`            | `local-operator` | Caller ID of the generated API key. The key may only act for this principal ID (see [Caller authentication](#caller-authentication-parmana_api_keys)). |
+
+Connectors are configured the same way as for the hosted API (see
+[Everything else](#everything-else)), by adding their variables to the `api`
+service, for example in a `docker-compose.override.yml`.
+
+### What is in `./parmana-local`
+
+| File                 | Holds                                                                                                                                                 |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `keys/*.private.pem` | The two signing private keys, mode `0600`. Back them up: without them no new record can be signed with the same key, though old records still verify. |
+| `keys/*.public.pem`  | The public keys. Give these to anyone who needs to verify a Trust Record.                                                                             |
+| `api-keys.json`      | The `PARMANA_API_KEYS` value the API starts with. Holds only the API key's SHA-256 hash.                                                              |
+| `api-key.txt`        | The API key itself, written once. Move it to a secret store, then delete this file.                                                                   |
+| `offline-check/`     | Output of the offline check, below.                                                                                                                   |
+
+The directory is in `.gitignore` and `.dockerignore`. On Linux its files
+belong to uid 1000, the image's `node` user, which the API runs as. Read the
+API key with:
+
+```sh
+docker compose run --rm --no-deps --entrypoint cat setup /app/parmana-local/api-key.txt
+```
+
+### Before the first authorized request: approve your policies
+
+In production every policy must have completed policy governance before it
+can authorize anything (`docs/CLAIMS.md` 2.35). `seed` puts the shipped
+policies in the database, but it does not approve them, because an approval
+is a decision your own people make and record. Until a policy is approved, a
+request under it is refused with `403 POLICY_DENIED` and "has no
+PolicyChangeApprovalRecord".
+
+Approval takes two different verified humans: a proposer, and an approver
+with a step up key. Issue their API keys with `scripts/generate-api-key.ts`
+(`--caller-id <id> --credential-holder-type USER`, plus
+`--generate-step-up-key` for the approver), add the printed entries to the
+array in `parmana-local/api-keys.json`, run
+`docker compose restart api`, then:
+
+1. The proposer sends `POST /policies/{name}/{version}/pending-changes` with
+   the policy content and a reason.
+2. The approver signs a step up authorization with
+   `scripts/sign-policy-change-step-up.ts` and sends
+   `POST /policies/pending-changes/{id}/approve`. The proposer is refused.
+
+`docker/local/offline-check/check.mjs` performs exactly these two steps and
+can be read as a worked example.
+
+### Upgrade
+
+```sh
+git pull
+docker compose up -d --build --wait
+```
+
+`migrate` applies only the migrations the database does not have, and
+`seed` adds only new policy versions. Keys and API keys are kept.
+
+### Offline check: prove enforcement without the internet
+
+```sh
+bash docker/local/offline-check/run.sh
+```
+
+It builds the images while the internet is reachable, then starts a
+separate copy of the stack (its own project, `parmana-offline-check`, and
+its own database) on a Docker network created with `internal: true`, so no
+container in it has a route to the internet or to Parmana. It uses the
+deployment's own signing keys and its own throwaway API keys, and checks:
+
+1. the network has no internet route;
+2. the API reports READY;
+3. policy governance works: a proposer proposes the `customer-refund`
+   policy, is refused as its own approver, and a second human approves it
+   with a signed step up authorization;
+4. an authorized refund returns `200` and reaches the downstream system,
+   which verifies the Execution Gateway's signature with only the public key;
+5. a refund the policy's rules refuse returns `403 POLICY_DENIED` and never
+   reaches the downstream system;
+6. the Trust Record verifies with only the public keys, and a copy with one
+   changed field does not.
+
+The downstream system is a stand in for `parmana-paytm-agent`
+(`docker/local/offline-check/paytm-agent-stand-in.mjs`). It never calls
+Paytm. It serves HTTPS with a certificate made for the run, because the API
+refuses a plain HTTP connector URL in production, and the API trusts that
+one certificate for the run only.
+
+It ends with `12 of 12 checks passed` and leaves the Trust Record and the
+public keys in `parmana-local/offline-check/`. Anyone can verify that record
+again, on any machine, with only the public keys:
+
+```sh
+npx tsx scripts/verify-trust-record.ts parmana-local/offline-check/trust-record.json \
+  default=parmana-local/offline-check/default.public.pem \
+  gateway=parmana-local/offline-check/gateway.public.pem
+```
+
+The check removes its own containers and database when it ends. The
+deployment started with `docker compose up` is not touched.
+
+### Stop, or remove everything
+
+```sh
+docker compose down        # stop; the database and ./parmana-local are kept
+docker compose down -v     # also delete the database
+```
+
+Deleting `./parmana-local` deletes the signing keys. Only do that on
+purpose.
+
+### Limits
+
+- One API instance with one Postgres. No high availability or replicas are
+  set up.
+- Signing keys are files on the host. For keys held in a key service, see
+  AWS KMS signing (`docs/site/deployment/aws-kms-signing.mdx`).
+- Tested on 2026-09-25 with Docker Desktop 29.8.0 on Windows 11. The CI job
+  `self-hosted` in `.github/workflows/docker-image.yml` runs the same steps
+  on Linux; it has not run yet.
+
 ## What's in the image
 
 One image, one process, started by `docker/entrypoint.sh`: the API server
@@ -91,8 +256,11 @@ openssl rsa -in default.private.pem -pubout -out default.public.pem
 
 - `memory` (default) — no external dependency; fine for a single-instance
   deployment with no durability guarantee across restarts.
-- `supabase` — requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (or
-  `SUPABASE_ANON_KEY`). Validated eagerly at boot, not lazily on first
+- `postgres`: any Postgres, reached through `DATABASE_URL`. The name to
+  use for a self hosted database.
+- `supabase`: the same implementation as `postgres` (it also reads only
+  `DATABASE_URL`, not `SUPABASE_URL`), kept so existing deployments are
+  unchanged. Both are validated eagerly at boot, not lazily on first
   request.
 
 Independent of `PARMANA_STORAGE`: the caller-authentication audit trail
@@ -121,9 +289,13 @@ Two ways to apply it:
 2. No CLI link, or a Dashboard-only workflow: run
    `scripts/apply-all-migrations.sql` (a concatenation of every file in
    `supabase/migrations/`, in chronological order, unmodified) once, in
-   full, via the Supabase Dashboard's SQL Editor. Safe to re-run — every
-   statement is already idempotent (`CREATE TABLE IF NOT EXISTS`,
-   `ADD COLUMN IF NOT EXISTS`, etc. — see that file's own header comment).
+   full, via the Supabase Dashboard's SQL Editor, on an empty database.
+   **Not safe to run again on a database that already holds data:** several
+   migrations drop and add back the same CHECK constraint, and running it
+   again adds an older constraint back over newer rows, which fails
+   (`docs/VERIFICATION-GAPS.md` G-61). For an existing database apply only
+   the new files, as shown below. The Docker Compose deployment does this
+   for you (`docker/local/migrate.sh`).
 
 After applying, PostgREST's schema cache can lag behind the newly created
 tables until it reloads. If `GET /ready` (or any Supabase-backed route)
@@ -194,9 +366,9 @@ application config.
 ## Health checks
 
 - **`GET /health`** — pure liveness, no external dependency touched.
-- **`GET /ready`** — readiness: when storage is Supabase-backed, makes one
-  cheap `HEAD`-style read against `consumed_nonces` to confirm the
-  connection and credentials actually work, returning `503` if not — so an
+- **`GET /ready`**: readiness. When storage is Postgres backed
+  (`PARMANA_STORAGE=postgres` or `supabase`), runs one cheap `SELECT 1` to
+  confirm the connection and credentials actually work, returning `503` if not — so an
   orchestrator can tell "up but backed by dead storage" apart from
   "genuinely ready" and route around it. When storage is `memory`, there's
   no external dependency to probe, so it reports ready unconditionally.

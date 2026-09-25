@@ -104,6 +104,20 @@ describe("GET /ready", () => {
     expect(typeof response.body.reason).toBe("string");
   });
 
+  it("(G-57) probes Postgres when PARMANA_STORAGE=postgres, the same as supabase", async () => {
+    const app = await buildApp();
+
+    process.env.NODE_ENV = "production";
+    process.env.PARMANA_STORAGE = "postgres";
+    process.env.DATABASE_URL =
+      "postgresql://unreachable:unreachable@127.0.0.1:1/postgres";
+
+    const response = await request(app).get("/ready");
+
+    expect(response.status).toBe(503);
+    expect(response.body.status).toBe("NOT_READY");
+  });
+
   describe("Execution Intents table (ADR-0012)", () => {
     function fakePool(intentsTable: string | null) {
       const queries: string[] = [];

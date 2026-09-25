@@ -1,4 +1,4 @@
-import { loadConfig } from "@parmana/shared";
+import { isPostgresStorage, loadConfig } from "@parmana/shared";
 
 import { assertDatabaseUrlConfigured } from "./assertDatabaseUrlConfigured.js";
 
@@ -6,7 +6,7 @@ import { assertDatabaseUrlConfigured } from "./assertDatabaseUrlConfigured.js";
  * Eagerly validates durable storage configuration at boot, before the
  * port is bound.
  *
- * Without this, `PARMANA_STORAGE=supabase` with missing storage
+ * Without this, `PARMANA_STORAGE=supabase` (or `postgres`) with missing storage
  * credentials boots "successfully" and only fails on the first request
  * that touches a repository — `repositories.ts`'s lazy `Proxy` defers
  * `StorageFactory.createFromEnvironment()` until first use, deliberately
@@ -31,7 +31,7 @@ export function assertStorageConfigured(): void {
 
   const config = loadConfig();
 
-  if (config.storage.provider === "supabase") {
+  if (isPostgresStorage(config.storage.provider)) {
     assertDatabaseUrlConfigured(
       "Storage (business transactions / trust records)",
     );

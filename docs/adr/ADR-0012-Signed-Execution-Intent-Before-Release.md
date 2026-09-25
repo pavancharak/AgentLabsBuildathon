@@ -55,7 +55,7 @@ The order of a request is now: decide, authorize, signing readiness, **sign and 
 4. **Open, recorded rather than hidden:**
    - **G-53 residual.** The execution context is saved best effort. When that save fails too, the intent stays `PREPARED`, finalize refuses with `409 EXECUTION_INTENT_RESULT_NOT_RECORDED`, and the outcome must be established from the connector by hand. Covered by unit tests, not by live fault injection.
    - **G-54, closed the same day.** An intent reconciled by hand could not be closed, so `PREPARED` and `ERRORED` intents stayed in the unfinalized list forever. `POST /execution-intents/{id}/resolve` now closes them (state `RESOLVED`, with the resolution, a required note, who and when). The resolution is an attributed statement in unsigned status, not a signed record.
-   - **G-55, closed in the source the same day.** The SDKs had no methods for the intent routes. Both now have `executionIntent`, `verifyExecutionIntent`, `unfinalizedExecutionIntents`, `finalizeExecutionIntent` and `resolveExecutionIntent`, and Python has an offline verifier. **They are not in the published 1.1.6.** The TypeScript SDK has no offline intent verifier, as it has none for Trust Records either.
+   - **G-55, closed the same day and published in SDK 1.2.0 on 2026-09-21.** The SDKs had no methods for the intent routes. Both now have `executionIntent`, `verifyExecutionIntent`, `unfinalizedExecutionIntents`, `finalizeExecutionIntent` and `resolveExecutionIntent`, and Python has an offline verifier. **They are not in 1.1.6 or earlier.** The TypeScript SDK has no offline intent verifier, as it has none for Trust Records either.
 
 ## Verification
 

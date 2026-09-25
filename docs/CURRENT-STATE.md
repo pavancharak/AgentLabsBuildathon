@@ -2,7 +2,8 @@
 
 > Not a roadmap. No dates, no version targets, no performance numbers that
 > don't exist in this repo. Every line below was verified directly against
-> source or a command actually run, on 2026-09-08. Where something is
+> source or a command actually run, on 2026-09-08, except the test counts
+> and the self hosted deployment section, verified on 2026-09-25. Where something is
 > mentioned elsewhere in this repo's docs/comments but doesn't exist in
 > code, that is stated explicitly, not implied.
 
@@ -28,17 +29,76 @@ capabilities exist: `hubspot:deal-fetch`, `hubspot:deal-update`,
 `github:pr-fetch`, `github:pr-merge`.
 
 **Storage**: `@parmana/storage`'s `StorageFactory` selects `memory` or
-`supabase` (`postgres`/`sqlite` are declared valid config values but both
-throw "not implemented" if selected). The Supabase backend goes through a
+Postgres. `postgres` and `supabase` select the same Postgres storage
+(since 2026-09-25, G-57). `sqlite` is not a valid `PARMANA_STORAGE` value,
+and the factory still throws "not implemented" for it. The Postgres backend goes through a
 raw `pg.Pool`, not `supabase-js`/PostgREST. Tests always force `memory`
 regardless of configuration.
 
 **Package version**: `0.1.0` (`package.json`). There is no tagged release
 history in this repository.
 
-**Tests**: 1,551 passing, 38 skipped, 0 failing — run directly, this
-session (`npx vitest run`). The skips are Supabase/live-credential-gated
-suites that skip cleanly with no credentials configured.
+**Tests**: 2,069 passing, 42 skipped, 0 failing across 246 test files
+(231 passed, 15 skipped). Run directly with `npx vitest run` on
+2026-09-25, after the self hosted deployment build, branch
+`feat/self-hosted-deployment`. The skips are suites gated on live
+credentials that skip cleanly when none are configured. (Earlier the same
+day, before the build: 2,056 passing. On 2026-09-08: 1,551 passing, 38
+skipped.)
+
+## Self hosted deployment (built 2026-09-25)
+
+Audited and then built on 2026-09-25, on the uncommitted branch
+`feat/self-hosted-deployment`. Progress against the plan is tracked in
+`docs/progress/2026-09-25-SELF-HOSTED-AND-ORIENTATION.md`. The operator guide
+is `DEPLOYMENT.md`, section "Self hosted with Docker Compose". The claim is
+`docs/CLAIMS.md` 2.40, and the gaps are G-56 to G-62 in
+`docs/VERIFICATION-GAPS.md`.
+
+**What works, verified by running it (Docker Desktop 29.8.0, Windows 11):**
+
+- **One command start.** `docker compose up -d --build --wait` starts
+  `setup` (keys and an API key in `./parmana-local`, made inside the image),
+  `postgres`, `migrate` (roles, then each migration once, recorded in
+  `parmana_schema_migrations`), `seed` (shipped policies into the
+  `policies` table, never overwriting) and `api` (the unchanged production
+  image, `PARMANA_STORAGE=postgres`). A second start keeps keys, API keys,
+  data and policies.
+- **`PARMANA_STORAGE=postgres`** selects the same Postgres storage as
+  `supabase`, which is unchanged (G-57).
+- **Enforcement with no internet route.** `bash
+docker/local/offline-check/run.sh` runs a copy of the stack on a Docker
+  network with `internal: true` and passed 12 of 12 checks on each clean
+  run: policy approval by a second human with a step up signature, an
+  authorized refund executed, a refused refund never released, and the
+  Trust Record verified with only the public keys (G-60).
+- **Nothing to extract for "console sync".** Audit events were already
+  written to the deployment's own Postgres in the same request. The item
+  was dropped (G-59).
+
+**Found while building it:**
+
+- `scripts/apply-all-migrations.sql` is not safe to run again on a database
+  with data, although its header said so. Corrected, and the Compose
+  deployment applies each migration once instead (G-61).
+- A new deployment authorizes nothing until its own people approve its
+  policies through governance. That is kept on purpose, but the approval
+  tools are TypeScript scripts that need the repository and Node.js on the
+  approver's machine (G-62, open).
+
+**Unchanged:**
+
+- The hosted API on Vercel. `vercel.json`, `api/index.ts` and the two
+  `@vercel/*` packages (loaded only when `AWS_ROLE_ARN` or
+  `PARMANA_GITHUB_VERCEL_CONNECT_CONNECTOR_ID` is set) are not used by the
+  container.
+- The container still does not migrate by itself. Only the Compose
+  deployment does.
+- There is still no SQLite storage, and none is needed.
+
+**Not yet verified:** the CI job `self-hosted` on Linux (added, not run,
+nothing pushed), a real downstream system instead of the stand in, and any
+customer running it.
 
 ## Policy governance (built this session)
 
@@ -64,7 +124,7 @@ stored before release, release is refused with 503 EXECUTION_INTENT_UNAVAILABLE 
 Trust Record (G-53) can be rebuilt with `POST /execution-intents/{id}/finalize` without calling the
 connector. Verified live with a real KMS key and a real Postgres. The migration
 `20260921120000_add_execution_intents.sql` must be applied before deploying. Still open: finalize cannot
-rebuild a record when the execution context was not saved (409), and the SDK methods for intents are in the source but not in the published 1.1.6 (G-55). An
+rebuild a record when the execution context was not saved (409), and the SDK methods for intents shipped in SDK 1.2.0 on 2026-09-21 (G-55). An
 intent reconciled by hand is closed with `POST /execution-intents/{id}/resolve` (G-54, an unsigned operator
 statement).
 
