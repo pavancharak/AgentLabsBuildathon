@@ -45,9 +45,13 @@ package boundary was chosen).
 
 ### The canonical binding table
 
-`CANONICAL_CAPABILITY_POLICY_BINDINGS` (`CapabilityPolicyBinding.ts:43-71`) is a `ReadonlyMap`
-from capability string to `PolicyReference` (`{ name, version, schemaVersion }`). Current real
-production bindings:
+`CANONICAL_CAPABILITY_POLICY_BINDINGS` (`CapabilityPolicyBinding.ts`) is a `ReadonlyMap`
+from capability string to `PolicyReference` (`{ name, version, schemaVersion }`). The **name** is
+fixed in code. The **version** in the table applies only where policy governance is not
+enforced (`NODE_ENV` `test` and `development`). Where it is, production included, the version in
+effect is the one most recently approved through policy governance (G-66), so a new version goes
+live when it is approved, with no deploy. Current bindings, with the version used without
+governance:
 
 | Capability            | Bound policy                  |
 | --------------------- | ----------------------------- |
@@ -55,7 +59,7 @@ production bindings:
 | `hubspot:deal-update` | `hubspot-deal-update` @ 1.0.0 |
 | `github:pr-fetch`     | `github-pr-approval` @ 1.0.0  |
 | `github:pr-merge`     | `github-pr-approval` @ 1.0.0  |
-| `paytm:refund`        | `customer-refund` @ 1.0.0     |
+| `paytm:refund`        | `customer-refund` @ 1.1.0     |
 | `slack:post-message`  | `slack-post-message` @ 1.0.0  |
 
 Every entry corresponds to a capability actually registered in production bootstrap
@@ -68,12 +72,16 @@ the caller was allowed to select a different one.
 
 ### The request-time check
 
-`CapabilityPolicyBinder.findViolation(action, declared)`
-(`CapabilityPolicyBinding.ts:104-123`) looks up `action` in the canonical table. No entry means
-nothing to enforce, returns `undefined`. An entry that matches the declared
-`(name, version)` also returns `undefined`. Any mismatch returns a
-`CapabilityPolicyBindingViolation` (`{ action, expected, declared }`), which the runtime
-pipeline (Chapter 8) turns into a rejection before the (wrong) policy file is even evaluated.
+`await CapabilityPolicyBinder.findViolation(action, declared)` looks up `action` in the
+canonical table. No entry means nothing to enforce, returns `undefined`. Otherwise the declared
+name must equal the bound name, and the declared version must equal the version in effect: the
+one most recently approved for that name (`findMostRecentForName` on the approval records),
+where policy governance is enforced, or the table's version elsewhere. An older version is
+refused even if it was approved in the past; approving it again makes it current, which is how a
+rollback works. No approved version, or a failed lookup, refuses the request with a `reason`.
+Any mismatch returns a `CapabilityPolicyBindingViolation` (`{ action, expected, declared,
+reason? }`), which the runtime pipeline (Chapter 8) turns into a rejection before the (wrong)
+policy file is even evaluated.
 
 ### The startup-time companion check
 

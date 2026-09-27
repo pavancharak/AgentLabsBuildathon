@@ -44,7 +44,7 @@ an approval flag, a fraud-check result, a policy name — the model is broken, e
 
 ## Step by step
 
-**1. Read the policy file directly.** `cat policies/customer-refund/1.0.0/policy.json` — don't guess
+**1. Read the policy file directly.** `cat policies/customer-refund/1.1.0/policy.json` — don't guess
 field names from a description.
 
 **2. Pick the exact capability string.** Case- and character-exact. This single detail is the most
@@ -128,12 +128,12 @@ placeholder to fix later — from day one.
   },
   "policy": {
     "name": "customer-refund",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "schemaVersion": "1.0.0"
   },
   "signals": {
     "refundEligible": true,
-    "managerApproved": true,
+    "managerApproved": false,
     "fraudCheckPassed": true,
     "refundAmount": 500
   },

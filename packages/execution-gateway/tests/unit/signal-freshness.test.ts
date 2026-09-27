@@ -1,6 +1,6 @@
 import { generateKeyPairSync } from "node:crypto";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   AuthorizationSigner,
@@ -147,6 +147,34 @@ describe("ExecutionGateway signal-freshness check (G-31)", () => {
     expect(result.valid).toBe(true);
     expect(result.checks.signalsStillCurrent).toBe(true);
     expect(result.signalDivergence).toBeUndefined();
+  });
+
+  it('asks the verifier with stage "release", so a single use approval consumed at authorization is not consumed again', async () => {
+    const { privateKey, publicKey } = generateKeyPair();
+    const originalHash = await signalsHasher.hash(ORIGINAL_SIGNALS);
+    const signed = await signAuthorization(privateKey, originalHash);
+    const verifier = new FixedSignalStateVerifier([]);
+    const spy = vi.spyOn(verifier, "findViolations");
+
+    const gateway = new ExecutionGateway({
+      // Legacy fixture: predates fail-closed policy binding.
+      allowUnverifiedPolicy: true,
+      publicKey,
+      nonceStore: new MemoryNonceStore(),
+      signalStateVerifier: verifier,
+      connector: new RecordingConnector(),
+    });
+
+    await gateway.verify(buildRequest(signed, ORIGINAL_SIGNALS));
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0][0]).toEqual({
+      action: SAMPLE_EXECUTABLE_CONTENT.action,
+      businessTransactionId: SAMPLE_EXECUTABLE_CONTENT.businessTransactionId,
+      intentParameters: SAMPLE_EXECUTABLE_CONTENT.parameters,
+      intentTarget: SAMPLE_EXECUTABLE_CONTENT.target,
+      stage: "release",
+    });
   });
 
   it("fails with signalsStillCurrent: false and named divergence when the verifier reports drift", async () => {

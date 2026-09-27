@@ -1,3 +1,4 @@
+import type { Policy } from "./Policy.js";
 import type { PolicySignals } from "./PolicySignals.js";
 
 /**
@@ -9,6 +10,35 @@ export interface SignalStateVerificationRequest {
   readonly action: string;
   readonly businessTransactionId: string;
   readonly intentParameters?: Readonly<Record<string, unknown>>;
+
+  /**
+   * The Intent's target, such as "acme/api#42" for a pull request.
+   */
+  readonly intentTarget?: string;
+
+  /**
+   * Where the check runs. "authorize" (the default when absent) is
+   * RuntimeEngine, before an authorization is signed. "release" is the
+   * Execution Gateway checking the same signals again just before it
+   * releases the request (G-31).
+   *
+   * A verifier that consumes something single use, such as an Approval
+   * Artifact's nonce, must consume it only at "authorize". At "release"
+   * the same artifact was already consumed for this transaction, and the
+   * signed execution authorization, itself single use and bound to these
+   * signals by signalsHash, prevents it being used for another one.
+   */
+  readonly stage?: "authorize" | "release";
+
+  /**
+   * The policy these signals are evaluated under. RuntimeEngine passes
+   * the policy it evaluated. The Execution Gateway passes the policy it
+   * loaded and confirmed has the content hash signed into the
+   * authorization, so both checks read the same declarations (for
+   * example approvalSignals). Absent only where the gateway runs
+   * without a policy repository, which production does not allow.
+   */
+  readonly policy?: Policy;
 }
 
 /**

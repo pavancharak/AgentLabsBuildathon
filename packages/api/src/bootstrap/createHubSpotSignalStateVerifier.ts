@@ -1,4 +1,3 @@
-import { ApprovalVerifier } from "@parmana/approval";
 import {
   CryptoBootstrap,
   DEFAULT_KEY_ID,
@@ -10,8 +9,9 @@ import type { ExecutionSystem } from "@parmana/execution-system";
 
 import { loadConfig } from "@parmana/shared";
 
-import { createApprovalIssuerRegistry } from "./createApprovalIssuerRegistry.js";
-import { createApprovalNonceStore } from "./createApprovalNonceStore.js";
+import type { ApprovalVerifier } from "@parmana/approval";
+
+import { createApprovalVerifier } from "./createApprovalVerifier.js";
 
 /**
  * Creates the production Signal/State Verifier for the
@@ -31,6 +31,7 @@ import { createApprovalNonceStore } from "./createApprovalNonceStore.js";
  */
 export function createHubSpotSignalStateVerifier(
   executionSystem: ExecutionSystem,
+  approvalVerifier: ApprovalVerifier = createApprovalVerifier(),
 ): SignalStateVerifier {
   const { ttlSeconds: authorizationTtlSeconds } = loadConfig().authorization;
 
@@ -44,10 +45,6 @@ export function createHubSpotSignalStateVerifier(
     policyVersion: "1.0.0",
     crypto,
     authorizationTtlSeconds,
-    approvalVerifier: new ApprovalVerifier({
-      crypto,
-      issuerRegistry: createApprovalIssuerRegistry(),
-      nonceStore: createApprovalNonceStore(),
-    }),
+    approvalVerifier,
   });
 }

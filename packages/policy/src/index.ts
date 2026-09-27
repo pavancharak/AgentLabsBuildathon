@@ -38,7 +38,10 @@ export {
   CANONICAL_CAPABILITY_POLICY_BINDINGS,
   CapabilityPolicyBinder,
 } from "@parmana/capability-registry";
-export type { CapabilityPolicyBindingViolation } from "@parmana/capability-registry";
+export type {
+  CapabilityPolicyBindingViolation,
+  CurrentPolicyVersionSource,
+} from "@parmana/capability-registry";
 
 // -----------------------------------------------------------------------------
 // Routing & Registry
@@ -51,7 +54,10 @@ export { PolicyRouter } from "./PolicyRouter.js";
 // Validation
 // -----------------------------------------------------------------------------
 
-export { PolicyValidator } from "./PolicyValidator.js";
+export {
+  DEFAULT_APPROVAL_ARTIFACT_SIGNAL,
+  PolicyValidator,
+} from "./PolicyValidator.js";
 export type { RuleConflictWarning } from "./PolicyValidator.js";
 
 // -----------------------------------------------------------------------------
@@ -67,6 +73,7 @@ export { SupabasePolicyRepository } from "./SupabasePolicyRepository.js";
 // -----------------------------------------------------------------------------
 
 export type {
+  ApprovalSignalDeclaration,
   Policy,
   PolicyCondition,
   PolicyInput,

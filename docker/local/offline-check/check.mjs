@@ -39,7 +39,7 @@ const identities = JSON.parse(readFileSync("/identities/secrets.json", "utf8"));
 const { operator, proposer, approver } = identities;
 
 const policyName = "customer-refund";
-const policyVersion = "1.0.0";
+const policyVersion = "1.1.0";
 const policyContent = JSON.parse(
   readFileSync(
     `/app/policies/${policyName}/${policyVersion}/policy.json`,
@@ -239,7 +239,7 @@ check(
 // 4. Authorized refund.
 const before = await acceptedByStandIn();
 
-const authorized = refund({ amount: 500, managerApproved: true });
+const authorized = refund({ amount: 500, managerApproved: false });
 const authorizedResponse = await call(
   "POST",
   "/execute",

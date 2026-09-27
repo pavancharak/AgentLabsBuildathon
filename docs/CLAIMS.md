@@ -514,6 +514,8 @@ Evidence
 
 **Update (2026-08-26, G-30 architecture follow-up, Option C implemented):** `CANONICAL_CAPABILITY_POLICY_BINDINGS` and `CapabilityPolicyBinder` moved out of `@parmana/policy` into a new leaf package, `@parmana/capability-registry`, depending only on `@parmana/shared`. `@parmana/policy`'s own public API is unaffected — `packages/policy/src/index.ts` re-exports both symbols from the new package unchanged, so every existing consumer importing from `@parmana/policy` needed no changes; confirmed by grep across the ~10 files that do (`RuntimeEngine.ts`, `RuntimeBuilder.ts`, `execute.ts`, and others). **Deviation from the original Option C sketch, corrected before implementing:** the plan in `G-30-ARCHITECTURE-OPTIONS.md` proposed also importing capability-identifier constants from `@parmana/connector-github`/`@parmana/connector-hubspot` into the new package to remove identifier-string duplication. Checked before doing it: `@parmana/connector-hubspot` already depends on `@parmana/policy` directly, and `@parmana/connector-github` depends on `@parmana/connector-sdk`, which also depends on `@parmana/policy` — either import would have created a direct dependency cycle back through the package this extraction was built to be depended on by. Not done; the four capability-identifier strings remain hand-typed in `CapabilityPolicyBinding.ts`, same as before the move, still duplicated against `GitHubCapabilities.ts`/`HubSpotCapabilities.ts`'s own separate constants. What this move does close: the `packages/policy` → `packages/api` backwards-dependency edge Option B would have required. Full detail in `G-30-ARCHITECTURE-OPTIONS.md` and `G-30-RESOLUTION-ARCHITECTURE.md` (repo root). Verified: full rebuild (`npx tsc -b`, clean) and full suite unchanged at 1274 passed, 37 skipped, 0 failed.
 
+**Update (2026-09-27, G-66, on branch `feat/policy-version-from-governance`, not merged):** the binding pins the policy **name**; where policy governance is enforced, the **version** is the one most recently approved for that name, not the one written in the table. See 2.43.
+
 ---
 
 ## 2.23 Independently Certified Authorization (Phase 3D)
@@ -995,7 +997,7 @@ What changed on 2026-09-20 (`packages/execution-gateway/src/ExecutionGateway.ts`
 Scope, stated plainly:
 
 - This binds execution to the policy a human checker approved. It does not prove the policy is correct or wise, and it does not model per policy or per role approver authority. Any provisioned human checker with a step up key can approve any policy (see G-50 in `docs/VERIFICATION-GAPS.md`).
-- Signals such as `managerApproved` and `fraudCheckPassed` are caller declared unless a `SignalStateVerifier` covers that capability. Only the HubSpot verifier is wired today, so an amount bound (`boundSignals`) holds but an attested approval signal is only as true as the caller says (G-51).
+- Signals such as `fraudCheckPassed` are caller declared unless a `SignalStateVerifier` covers that capability. The HubSpot verifier and, for any signal a policy declares in `approvalSignals` (such as `managerApproved` on refunds), `ApprovalSignalVerifier` (2.42) are wired; other signals are only as true as the caller says (G-51).
 - The claim holds for execution routed through the gateway. A request that never reaches the gateway is not covered (see 3.1).
 - Direct edits to the policy store outside the API are prevented from executing (hash mismatch against the approval record) but are still only detected, not blocked, at the storage layer.
 
@@ -1168,6 +1170,64 @@ Evidence
 - `python/parmana/api/policy_api.py`, `caller_api.py`, `trust_record_api.py`; `python/parmana/crypto/step_up.py`, `offline_verifier.py`; `python/parmana/models/policy_change.py` (generated), `policy_change_results.py`, `caller.py`; `python/parmana/client.py`
 - `typescript/test/Alignment.test.ts`, `python/tests/test_sdk_alignment.py`
 - `docs/site/sdks/api-coverage.mdx`, `docs/site/sdks/typescript.mdx`, `docs/site/sdks/python.mdx`; `docs/VERIFICATION-GAPS.md` G-62 and G-64
+
+## 2.42 Signed Human Approval Declared by Policy, First Used for Large Refunds (Scoped, 2026-09-27)
+
+A `paytm:refund` above 10000 executes only with a signed approval from a trusted approver, for that order, covering that amount, used once. A refund whose signals say `managerApproved: true` without one is refused, at any amount.
+
+- **Policy:** `customer-refund` 1.1.0, bound to `paytm:refund`. Up to 10000: authorized automatically after the eligibility and fraud checks. Above 10000 and up to 100000: only with `managerApproved: true`. Above 100000: refused. Refusals that need a manager have their own rule id, `reject-manager-approval-required`.
+- **Verification, for any action:** a policy declares which signals need a signed approval in `approvalSignals`, with dot paths to the resource (or the Intent's `target`) and, optionally, the value in the Intent (`customer-refund` 1.1.0: `managerApproved`, `parameters.orderId`, `parameters.amount`). `ApprovalSignalVerifier` enforces every declaration, with no per action code. It runs when policy would approve, before the authorization is signed, and again in the Execution Gateway just before release, against the policy the gateway loaded and hash checked. It checks the approver is trusted and not revoked, the Ed25519 signature, the expiry, the action, the resource and the value (read from the Intent, never from the caller's signals), checks every approval before using any, and uses each once, at authorization. `PolicyValidator` rejects a declaration no rule reads, a resource path other than `target` or one into the Intent's parameters, a key that is also bound, or two declarations sharing an approval.
+- **Approvers** sign on their own machine with `scripts/sign-approval.ts`, from a key made by `scripts/generate-approver-key.ts`. Approver keys are Ed25519 whatever the server's own signing algorithm is.
+
+Scope, stated plainly:
+
+- **No approver is configured.** `TRUSTED_APPROVAL_ISSUERS` is empty, so in a deployment every approval is refused until an operator adds one and deploys. The success path is proven in tests with a test approver, not in production.
+- **Not deployed with 1.1.0 approved.** In production the policy authorizes nothing until it completes policy governance (2.35).
+- A refused request is not held for a person, and nobody is notified. The agent sends a new request with the approval.
+- `refundEligible` and `fraudCheckPassed` are still caller declared (G-51).
+- Holds for refunds routed through Parmana (3.1).
+
+Verification
+
+- `packages/api/tests/integration/paytm-refund.integration.test.ts` (15 tests, the real production bootstrap with a test approver): a 75000 refund with a valid approval executes exactly once; no approval, another order, a smaller approved amount, an untrusted key, a changed payload, another capability, and a reused approval are each refused with zero connector calls; above 100000 is refused with an approval; `customer-refund` 1.0.0 is refused by the binding.
+- `packages/approval/tests/unit/ApprovalSignalVerifier.test.ts` (24: a refund with an amount, a merge whose resource is the Intent's target with no amount, a numeric resource, two approvals in one policy, nested paths, single use across both checks, and a request with no policy), `packages/policy/tests/unit/PolicyValidator-approvalSignals.test.ts` (14), `packages/policy/tests/unit/CustomerRefundPolicy110.test.ts` (11), `packages/crypto/tests/unit/approval-artifact-signer.test.ts` (6), `scripts/tests/approver-scripts.test.ts` (14).
+- With `ApprovalSignalVerifier` removed from the app, 7 of the 15 refund integration tests fail; with the gateway not passing the policy at release, the valid approval is refused there (fails closed).
+- Building it found and closed G-67: an approval could never pass the gateway's second check, for HubSpot too.
+
+Evidence
+
+- `policies/customer-refund/1.1.0/policy.json`; `packages/capability-registry/src/CapabilityPolicyBinding.ts`
+- `packages/approval/src/ApprovalSignalVerifier.ts`; `packages/policy/src/types/Policy.ts` (`approvalSignals`), `PolicyValidator.ts`; `packages/api/src/bootstrap/createApprovalVerifier.ts`, `createApprovalSignalVerifier.ts`; `packages/api/src/application.ts`; `packages/execution-gateway/src/ExecutionGateway.ts` (passes the verified policy at release)
+- `packages/crypto/src/ApprovalArtifactCrypto.ts`; `packages/approval/src/ApprovalVerifier.ts` (`consumeNonce`); `packages/policy/src/types/SignalStateVerifier.ts` (`stage`)
+- `scripts/generate-approver-key.ts`, `scripts/sign-approval.ts`; `docs/site/concepts/human-approval.mdx`; `docs/VERIFICATION-GAPS.md` G-65, G-67
+
+## 2.43 A Live Action's Policy Version Is Decided by Policy Governance, Not by a Deploy (Scoped, 2026-09-27)
+
+For a capability in `CANONICAL_CAPABILITY_POLICY_BINDINGS`, the policy name is fixed in code and the version is the one most recently approved for that name through policy governance. A new version takes effect when a second person approves it; approving an older version again rolls back to it. No code change and no deploy.
+
+- A request that names the bound policy at any other version, including an older version that was approved in the past, is refused before any rule runs, with a message naming the version in effect.
+- No approved version, or a failed lookup of it, refuses the request.
+- Where policy governance is not enforced (`NODE_ENV` test and development, unless `POLICY_EXECUTION_VERIFICATION_ENFORCED` is `true`), the version written in the table applies. The two are switched on by the same rule.
+
+Scope, stated plainly:
+
+- **Not merged.** Built on `feat/policy-version-from-governance`, stacked on PR #46.
+- Binding an action to a different policy name, adding a capability, and adding an approver still need a deploy.
+- Agents must send the version in effect. After an approval, requests naming the previous version are refused until agents update. There is no endpoint to ask for the version in effect ahead of time.
+- The version is read from the latest approval record without verifying it; the same request then verifies that record's signature and content hash (2.35, 2.36), so a record changed outside the API refuses the request.
+
+Verification
+
+- `packages/api/tests/unit/GovernedPolicyVersion.test.ts` (5, through `RuntimeBuilder` with governance enforced): no approval refuses; an approved 1.0.0 runs; approving 1.1.0 makes it current and refuses 1.0.0; approving 1.0.0 again rolls back; a failed lookup refuses. Without the version source, 2 of the 5 fail.
+- `packages/capability-registry/tests/unit/CapabilityPolicyBinder.test.ts` (15), `packages/api/tests/unit/bootstrap/create-current-policy-version-source.test.ts` (10), `packages/storage/tests/unit/policy-change-approval-record-most-recent-for-name.test.ts` (2).
+
+Evidence
+
+- `packages/capability-registry/src/CapabilityPolicyBinding.ts` (`CurrentPolicyVersionSource`, async `CapabilityPolicyBinder`)
+- `packages/api/src/governance/GovernedPolicyVersionSource.ts`, `packages/api/src/bootstrap/createCurrentPolicyVersionSource.ts`, `packages/api/src/application.ts`
+- `packages/runtime/src/RuntimeBuilder.ts` (`withCurrentPolicyVersions`), `RuntimeFactory.ts`, `RuntimeEngine.ts`
+- `packages/shared/src/repositories/policy-change-approval-record-repository.ts` (`findMostRecentForName`), `packages/storage/src/memory/` and `supabase/` implementations
+- `docs/VERIFICATION-GAPS.md` G-66
 
 ---
 
@@ -1710,6 +1770,8 @@ Evidence
 
 **Scope, precisely:** one capability (`paytm:refund`) forwarding to one fixed remote endpoint (`POST /connector/paytm-refund`) on the configured connector service. Not in scope: any other Paytm API (charge, payout, settlement query), a webhook/event-driven confirmation path analogous to the historical Razorpay connector's (§3.8/§3.9), a `PaytmSignalStateVerifier` independently re-deriving `refundEligible`/`managerApproved`/`fraudCheckPassed` (`customer-refund/1.0.0`'s own `unboundSignalReasons` already document these as independent-system facts the Intent cannot express — no analogous "read capability" exists to re-verify them against, unlike HubSpot's deal-fetch), and — stated plainly, not glossed over — the actual `parmana-paytm-agent` service and its own idempotent-`refId`/checksum-verification implementation, which live entirely outside this repository and were not built, run, or verified by this milestone. What this milestone verifies is Parmana's side of the contract: it authorizes correctly, forwards exactly what was authorized and nothing else, validates what comes back before trusting it, and never calls anything when denied.
 
+**Update (2026-09-27):** `paytm:refund` is now bound to `customer-refund` 1.1.0, and `managerApproved` is verified against a signed approval (2.42). The scenarios above that used 1.0.0 were moved to 1.1.0 in the same test file. `refundEligible` and `fraudCheckPassed` are still not re-derived.
+
 ---
 
 # Maturity Assessment (TRL)
@@ -1812,7 +1874,7 @@ Examples include:
 
 - Deterministic signature output for post-quantum (ML-DSA-65) signing. ML-DSA-65 signatures are randomized by design: signing the same message twice with the same key produces two different, independently valid signatures. Only signature verification is deterministic. Determinism-of-output claims (2.8) apply to Ed25519 only.
 
-- That a refused decision escalates to a person who can approve it. A refusal is final. People can review refusals in the Refusal Records (3.11), but there is no approval path for refunds, and the HubSpot one has no approver configured (G-65, G-51 in `docs/VERIFICATION-GAPS.md`).
+- That a refused decision escalates to a person who can approve it. A refusal is final and nothing notifies anyone. People can review refusals in the Refusal Records (3.11), and a manager can sign an approval that lets a new request for a large refund run (2.42), but no approver is configured yet (G-65 in `docs/VERIFICATION-GAPS.md`).
 
 - That rule violations are structurally impossible, as an unscoped claim. The supported version: an action routed through Parmana does not execute unless the policy bound to it (2.22), approved through governance (2.35), approves it. An agent that holds its own credentials to a system is outside that, and a signal nothing verifies is only as true as the caller says (G-51).
 

@@ -674,7 +674,8 @@ an approval, and the agent retries with the approval attached. Two gaps were fou
 fixed.
 
 **G-65. A refused request cannot be escalated to a person and then approved. FOUND 2026-09-27,
-`pre-production`, open.** What the code does today:
+`pre-production`. BUILT the same day for refunds (see "Built" at the end of this entry); open
+until deployed with a real approver.** What the code did when found:
 
 - **Policy has two outcomes.** `PolicyOutcome` is `APPROVE` or `REJECT`
   (`packages/policy/src/types/PolicyOutcome.ts`), and `DecisionOutcome` is `APPROVED` or
@@ -745,8 +746,74 @@ manager's approval lets a refused refund run.
 - "No faking. No workarounds." is not true until steps 1 to 5 ship, and then only for actions
   routed through Parmana.
 
+**Built 2026-09-27.** Steps 1, 2, 4 and 5 of the plan, with one correction to the plan itself:
+approval signatures are verified with Ed25519 only (`APPROVAL_ARTIFACT_CRYPTO_PROVIDER`,
+`packages/crypto/src/ApprovalArtifactCrypto.ts`), not with the server's configured provider,
+because approver keys belong to people, like step up keys.
+
+- **Verifier, for any action:** a policy declares approval backed signals in `approvalSignals`
+  (the Intent's `target` or a path into its parameters for the resource, and optionally a path
+  to a number the approval must cover).
+  `ApprovalSignalVerifier` (`packages/approval/src/`) enforces them with no per action code, at
+  both checks: `RuntimeEngine` and the Execution Gateway both pass the policy
+  (`SignalStateVerificationRequest.policy`; the gateway passes the one it loaded and hash checked).
+  It checks every approval before using any, and uses each once, at authorization.
+  `PolicyValidator` rejects unsafe declarations. Wired next to HubSpot's in
+  `packages/api/src/application.ts`, sharing one `ApprovalVerifier` (`createApprovalVerifier.ts`),
+  so an approval is single use across actions. A first version checked refunds only
+  (`PaytmRefundApprovalVerifier`); it was replaced the same day, before merge, so a new use case is
+  a policy change, not a code change.
+- **Policy:** `customer-refund` 1.1.0. Automatic up to 10000; above 10000 and up to 100000 only
+  with `managerApproved: true`; above 100000 refused; its own rejection reason for "needs a
+  manager approval" (`reject-manager-approval-required`), so the refusals waiting for a manager
+  can be queried by rule id. `paytm:refund` is bound to 1.1.0. **Behavior change:** 1.0.0 required
+  `managerApproved: true` for every refund and nothing checked it; 1.1.0 needs no approval up to
+  10000, and a checked one above.
+- **Approver tools:** `scripts/generate-approver-key.ts` (key pair, named the way the server
+  loads it, never overwrites) and `scripts/sign-approval.ts` (one capability, one resource, an
+  amount limit, 15 minutes by default, at most a day, single use).
+- **Found while building (G-67 below):** an approval could never pass through the gateway.
+- **Tests:** `packages/api/tests/integration/paytm-refund.integration.test.ts` (15, through the
+  real production bootstrap): a 75000 refund with a valid approval executes exactly once; each of
+  no approval, another order, a smaller approved amount, an untrusted key, a changed payload,
+  another capability and a reused approval is refused with zero connector calls; above 100000 is
+  refused even with an approval; the old version 1.0.0 is refused by the binding.
+  `packages/approval/tests/unit/ApprovalSignalVerifier.test.ts` (24),
+  `packages/policy/tests/unit/PolicyValidator-approvalSignals.test.ts` (14),
+  `packages/policy/tests/unit/CustomerRefundPolicy110.test.ts` (11, every rule),
+  `packages/crypto/tests/unit/approval-artifact-signer.test.ts` (6),
+  `scripts/tests/approver-scripts.test.ts` (14, including the script's output accepted by the
+  server's verifier).
+- **Still open:** step 3. `TRUSTED_APPROVAL_ISSUERS` is still empty, so in a deployment every
+  approval is refused until an operator adds a real approver and deploys. In production,
+  `customer-refund` 1.1.0 authorizes nothing until it is proposed and approved through policy
+  governance; until then every refund is refused. `refundEligible` and `fraudCheckPassed` are
+  still caller declared (G-51). Nothing notifies a manager of a refusal; they find it by query.
+
+**G-67. A valid Approval Artifact could never pass the Execution Gateway, so an approved HubSpot
+amount change was always refused. FOUND and CLOSED 2026-09-27, `blocks-pilot`.** Found while
+building G-65. The same `SignalStateVerifier` runs twice for one request: in `RuntimeEngine`
+before the authorization is signed, and in `ExecutionGateway` just before release (G-31).
+`HubSpotSignalStateVerifier` consumed the approval's single use nonce on both runs, so the second
+run always saw the nonce as used, reported `preAuthorizedForAmountChange` as false, and the
+gateway refused the request. It fails closed (nothing executed), and it was not seen because
+`TRUSTED_APPROVAL_ISSUERS` is empty and no test sent a valid approval through the gateway; the
+only integration test (TD-23) checks a refusal. **Fix:** `SignalStateVerificationRequest.stage`
+(`"authorize"` or `"release"`; the gateway passes `"release"`) and
+`ApprovalVerificationRequest.consumeNonce`. A verifier consumes an approval only at
+`"authorize"`; at `"release"` every other check still runs. Reuse stays impossible: the nonce is
+recorded at authorization, and the execution authorization is itself single use and bound to the
+same signals by `signalsHash`. **Verified:** an integration test sends a valid approval through
+the real bootstrap for HubSpot
+(`hubspot-deal-update.integration.test.ts`) and for refunds; with the fix reverted, both fail,
+and with it, both pass. Unit tests: `packages/approval/tests/unit/ApprovalVerifier.test.ts`
+(consumeNonce), `packages/execution-gateway/tests/unit/signal-freshness.test.ts` (the gateway
+passes `"release"`).
+
 **G-66. The policy version for each action is fixed in code, so a policy change needs a
-redeploy. FOUND 2026-09-27, `pre-production`, open.** `CANONICAL_CAPABILITY_POLICY_BINDINGS`
+redeploy. FOUND 2026-09-27, `pre-production`. BUILT the same day on branch
+`feat/policy-version-from-governance`, stacked on PR #46, not merged (see "Built" at the end of
+this entry).** `CANONICAL_CAPABILITY_POLICY_BINDINGS`
 (`packages/capability-registry/src/CapabilityPolicyBinding.ts:44`) maps each live capability to
 one policy name, version and schema version, for example `paytm:refund` to `customer-refund`
 1.0.0. `CapabilityPolicyBinder` (called at `packages/runtime/src/RuntimeEngine.ts:361`) refuses
@@ -768,6 +835,47 @@ fails. A new version then goes live through propose and approve, with no deploy.
 new capability still needs a deploy. **Alternative:** move the whole map into the database
 behind maker and checker. That needs a new table and a new change type, because
 `pending_policy_changes` carries only policy content.
+
+**Built 2026-09-27 (the recommended option).** The name stays in
+`CANONICAL_CAPABILITY_POLICY_BINDINGS`; the version comes from policy governance.
+
+- `CapabilityPolicyBinder` takes an optional `CurrentPolicyVersionSource` and is now async. With
+  it, the declared version must equal the version in effect for the bound name; without it
+  (`NODE_ENV` test and development), the version in the table applies. No approved version, or a
+  failed lookup, refuses the request with a `reason`.
+- The version in effect is the `policyVersion` of the most recent approval record for the name,
+  across versions (`PolicyChangeApprovalRecordRepository.findMostRecentForName`, memory and
+  Postgres; the existing index on `(policy_name, policy_version, approved_at)` serves it).
+  Approving a version makes it current; approving an older version again rolls back to it.
+- `GovernedPolicyVersionSource` (`packages/api/src/governance/`) reads it.
+  `createCurrentPolicyVersionSource.ts` turns it on under exactly the rule of
+  `createPolicyExecutionVerifier.ts`, so the version comes from governance wherever governance is
+  enforced, and nowhere else. Wired through `RuntimeFactory.create` and
+  `RuntimeBuilder.withCurrentPolicyVersions`.
+- It reads only the version from the record. The same request then verifies that record's
+  signature and content hash (`PolicyGovernanceExecutionVerifier`, and again at the gateway), so
+  a record changed in the database outside the API makes the request fail, not pass.
+- **Tests:** `packages/capability-registry/tests/unit/CapabilityPolicyBinder.test.ts` (15, 8 new:
+  approved version accepted over the table's, the table's version refused once another is
+  approved, an older approved version refused, another name refused, the bound name looked up
+  and never the declared one, none approved, lookup failure, unbound actions untouched);
+  `packages/api/tests/unit/GovernedPolicyVersion.test.ts` (5, through `RuntimeBuilder` with
+  governance enforced: no approval refuses, 1.0.0 approved runs, approving 1.1.0 makes it current
+  and refuses 1.0.0, approving 1.0.0 again rolls back, lookup failure refuses; without the source,
+  2 fail); `packages/api/tests/unit/bootstrap/create-current-policy-version-source.test.ts` (10,
+  on exactly where governance is enforced);
+  `packages/storage/tests/unit/policy-change-approval-record-most-recent-for-name.test.ts` (2).
+- **Behavior change to know:** agents name the version in each request. Once a new version is
+  approved, a request naming the old one is refused, with a message naming the version in effect.
+  There is no endpoint yet to ask for the version in effect ahead of time.
+- **With PR #46:** once both are deployed, refunds keep running under the version already
+  approved in production (1.0.0, where `managerApproved` is not verified) until 1.1.0 is approved.
+  Approving 1.1.0 is what switches refunds to verified manager approvals; no deploy is needed for
+  that step.
+- **Still needs a deploy:** binding an action to a different policy name, adding a capability,
+  and adding an approver. `HubSpotSignalStateVerifier`'s own deal read still names
+  `hubspot-deal-update` 1.0.0 in code; it goes straight to the gateway, not through this binder,
+  and keeps working while 1.0.0 stays approved.
 
 ---
 
@@ -820,6 +928,18 @@ both closed later the same day (`502 EXECUTION_OUTCOME_UNKNOWN`; `npm run db:mig
 alignment pass closed G-64 in the source (the SDKs did not cover the same API or policy
 governance); the TypeScript SDK 1.3.0 was published to npm the same day, which closed G-62, and the Python SDK 1.3.0 was published to PyPI the same day. None is a security defect and none affects the
 hosted API on Vercel.
+
+**Addendum (2026-09-27):** a check of a positioning draft against the source code opened G-65 (a
+refused request cannot be escalated to a person and approved) and G-66 (the policy version for
+each action is fixed in code). Building G-65 the same day found G-67 (a valid approval could never
+pass the gateway), `blocks-pilot`, closed in the same change. **One security defect on `main`,
+live wherever the Paytm connector is configured (not checked for production on this date):** a
+`paytm:refund` agent can send `managerApproved: true` with no manager, and nothing checks it
+(G-51); with `customer-refund` 1.0.0 that approves any eligible,
+fraud checked refund up to 10000. PR #46 (branch `feat/refund-manager-approval`, not merged)
+closes it: `managerApproved` is declared in `approvalSignals` and verified. Until #46 is merged
+and deployed, the defect stands. G-66 stays open and is the next item. The resume point is
+`docs/progress/2026-09-27-HUMAN-APPROVAL.md`.
 
 ### blocks-pilot
 
@@ -1579,7 +1699,9 @@ against real state, so a caller can declare them true. The same applies to GitHu
 **Not fixed. Option:** add capability scoped `SignalStateVerifier` implementations, starting with a signed
 approval artifact for `managerApproved` (the `SignedApprovalGuard` and `ApprovalIssuerRegistry` machinery
 already exists in `packages/approval`). **Addendum (2026-09-27):** G-65 has a step by step plan for
-`paytm:refund`.
+`paytm:refund`. **Narrowed the same day:** for `paytm:refund`, `managerApproved: true` is now verified
+against a signed approval (G-65, `approvalSignals` in the policy, `ApprovalSignalVerifier`). `refundEligible` and
+`fraudCheckPassed`, and the GitHub and Slack signals, are still caller declared.
 
 **G-52. The connector can be called before the Execution Trust Record can be signed, so a signing
 failure leaves an executed action with no signed trust record.** Found 2026-09-20 in the same live

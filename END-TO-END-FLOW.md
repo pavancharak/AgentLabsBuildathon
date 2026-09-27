@@ -38,7 +38,7 @@ Three separate systems, three separate deployments, three separate configuration
       |     writes a caller-audit-trail event (Supabase, DATABASE_URL) -- fails closed
       |     (503 AUDIT_UNAVAILABLE) if that write fails.
       |  2. BusinessTransactionMapper + BusinessTransactionValidator validate structure.
-      |  3. RuntimeEngine evaluates the named policy (e.g. customer-refund@1.0.0)
+      |  3. RuntimeEngine evaluates the named policy (e.g. customer-refund@1.1.0)
       |     against the submitted `signals`.
       |  4. If APPROVED: RuntimeAuthorizationSigner mints and Ed25519-signs an
       |     ExecutionAuthorizationPayload (authorizationId, policyContentHash,
@@ -301,9 +301,9 @@ Reusing the same `businessTransactionId` across attempts — including while you
 
 (HTTP 409.) This happens as soon as the transaction is successfully **persisted**, which can occur even if a _later_ step in the same request ultimately fails or the response is never seen (e.g. a network timeout after the write succeeded). **Generate a fresh UUID for `businessTransactionId` (and matching `metadata.businessTransactionId`) on every real attempt.** Reuse it only if you are deliberately testing idempotency behavior itself.
 
-### 7.3 The policy: `customer-refund@1.0.0`, exact thresholds
+### 7.3 The policy: `customer-refund@1.1.0`, exact thresholds
 
-From `policies/customer-refund/1.0.0/policy.json` — these are the real, current values, not approximate:
+From `policies/customer-refund/1.1.0/policy.json`. These are the real, current values:
 
 ```json
 {
@@ -317,8 +317,9 @@ From `policies/customer-refund/1.0.0/policy.json` — these are the real, curren
 }
 ```
 
-- **Approved** iff `refundEligible == true` AND `managerApproved == true` AND `fraudCheckPassed == true` AND `refundAmount <= 10000`.
-- **Rejected**, with a specific reason, if `refundAmount > 10000` or `fraudCheckPassed == false`.
+- **Approved automatically** when `refundEligible == true` AND `fraudCheckPassed == true` AND `refundAmount <= 10000`. Send `managerApproved: false`.
+- **Approved with a manager approval** when the same two checks pass, `10000 < refundAmount <= 100000`, AND `managerApproved == true`. `managerApproved: true` is verified: it needs a signed approval in `signals.approvalArtifact` for this order and amount, or the request is refused (see `docs/site/concepts/human-approval.mdx`).
+- **Rejected**, with a specific reason, if `fraudCheckPassed == false`, `refundEligible == false`, `refundAmount > 100000`, or `refundAmount > 10000` without a manager approval.
 - **Rejected**, generic reason, for anything else that doesn't match an explicit rule (fail-closed default).
 - **`boundSignals`**: `signals.refundAmount` is checked against `intent.parameters.amount` by `SignalIntentBinder` — they must match. Declaring `signals.refundAmount: 500` while `intent.parameters.amount` is actually `50000` is caught and rejected as a binding-tamper attempt, before policy evaluation runs at all — this is a deliberate security check (the exact scenario `docs/CLAIMS.md` §3.22's binding-tamper test proves), not a bug to route around by making the two numbers match something convenient. **Always set them to the same value.**
 
@@ -358,12 +359,12 @@ Verified working, verbatim structure (values below are illustrative placeholders
   },
   "policy": {
     "name": "customer-refund",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "schemaVersion": "1.0.0"
   },
   "signals": {
     "refundEligible": true,
-    "managerApproved": true,
+    "managerApproved": false,
     "fraudCheckPassed": true,
     "refundAmount": 5
   },
@@ -410,10 +411,10 @@ const body = {
     parameters: { orderId, transactionId: txnId, amount: 5 },
     createdAt: now,
   },
-  policy: { name: "customer-refund", version: "1.0.0", schemaVersion: "1.0.0" },
+  policy: { name: "customer-refund", version: "1.1.0", schemaVersion: "1.0.0" },
   signals: {
     refundEligible: true,
-    managerApproved: true,
+    managerApproved: false,
     fraudCheckPassed: true,
     refundAmount: 5,
   },

@@ -1,5 +1,7 @@
 # Paytm Refund Connector
 
+> **Update (2026-09-27):** `paytm:refund` is now bound to `customer-refund` 1.1.0: automatic up to 10000, a verified signed manager approval above 10000 and up to 100000, refused above 100000. This page describes the connector as built with 1.0.0. See `docs/site/concepts/human-approval.mdx` and `docs/CLAIMS.md` 2.42.
+
 **Status:** Implemented this milestone. See `docs/CLAIMS.md` §3.22 for the full evidence list (exact
 files, exact test counts, exact commands run). This document is the architecture/operator reference;
 CLAIMS.md is the checkable claim.

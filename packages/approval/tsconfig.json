@@ -22,6 +22,9 @@
     },
     {
       "path": "../envelope-verifier"
+    },
+    {
+      "path": "../policy"
     }
   ]
 }

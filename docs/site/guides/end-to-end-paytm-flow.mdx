@@ -212,10 +212,15 @@ while debugging with the same test payload — eventually returns `409`:
 attempt even if that attempt's overall response was never seen. **Generate a fresh UUID on
 every real attempt.**
 
-**Policy thresholds** (`customer-refund@1.0.0`, exact current values):
+**Policy thresholds** (`customer-refund@1.1.0`, exact current values):
 
-- Approved iff `refundEligible == true` AND `managerApproved == true` AND
-  `fraudCheckPassed == true` AND `refundAmount <= 10000`.
+- Approved automatically when `refundEligible` and `fraudCheckPassed` are `true` and
+  `refundAmount <= 10000`. Send `managerApproved: false` for these.
+- Above 10000 and up to 100000, approved only with `managerApproved: true` **and** a signed
+  manager approval in `signals.approvalArtifact`. Parmana verifies the signature, the order and
+  the amount; `managerApproved: true` without a valid approval is refused. See
+  [Human approval](/concepts/human-approval).
+- Above 100000, refused.
 - `boundSignals` binds `signals.refundAmount` to `intent.parameters.amount` — they must
   match, or `SignalIntentBinder` rejects it as a binding-tamper attempt before policy
   evaluation runs at all. Always set both to the same value.
@@ -252,12 +257,12 @@ The full, verified-working shape:
   },
   "policy": {
     "name": "customer-refund",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "schemaVersion": "1.0.0"
   },
   "signals": {
     "refundEligible": true,
-    "managerApproved": true,
+    "managerApproved": false,
     "fraudCheckPassed": true,
     "refundAmount": 5
   },

@@ -24,6 +24,7 @@
   "dependencies": {
     "@parmana/crypto": "0.1.0",
     "@parmana/envelope-verifier": "0.1.0",
+    "@parmana/policy": "0.1.0",
     "@parmana/shared": "0.1.0"
   },
   "devDependencies": {

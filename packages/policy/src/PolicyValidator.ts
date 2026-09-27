@@ -7,6 +7,16 @@ import type {
 import { PolicyValidationError } from "./errors/PolicyValidationError.js";
 
 /**
+ * The signal that carries an approval when an approvalSignals entry
+ * names no artifact of its own.
+ */
+export const DEFAULT_APPROVAL_ARTIFACT_SIGNAL = "approvalArtifact";
+
+const PARAMETER_PATH = /^parameters(\.[A-Za-z0-9_]+)+$/;
+
+const SIGNAL_NAME = /^[A-Za-z0-9_]+$/;
+
+/**
  * One pair of rules whose conditions can be simultaneously true (or, for
  * "always", one rule that is not the final one). Advisory only -- see
  * PolicyValidator.findRuleConflicts' own doc comment for why this is
@@ -217,6 +227,8 @@ export class PolicyValidator {
       }
     }
 
+    this.validateApprovalSignals(policy);
+
     //
     // Fail-closed boundSignals coverage: every rule-referenced fact
     // must be either bound (boundSignals) or explicitly acknowledged
@@ -407,10 +419,22 @@ export class PolicyValidator {
   public findUncoveredFacts(policy: Policy): string[] {
     const boundKeys = new Set(Object.keys(policy.boundSignals ?? {}));
 
-    const acknowledgedKeys = new Set(
-      Object.keys(policy.unboundSignalReasons ?? {}),
-    );
+    const acknowledgedKeys = new Set([
+      ...Object.keys(policy.unboundSignalReasons ?? {}),
+      ...Object.keys(policy.approvalSignals ?? {}),
+    ]);
 
+    const referenced = this.referencedFacts(policy);
+
+    return Array.from(referenced).filter(
+      (fact) => !boundKeys.has(fact) && !acknowledgedKeys.has(fact),
+    );
+  }
+
+  /**
+   * Every fact any rule condition references.
+   */
+  private referencedFacts(policy: Policy): Set<string> {
     const referenced = new Set<string>();
 
     const walk = (condition: PolicyCondition): void => {
@@ -434,9 +458,109 @@ export class PolicyValidator {
       walk(rule.condition);
     }
 
-    return Array.from(referenced).filter(
-      (fact) => !boundKeys.has(fact) && !acknowledgedKeys.has(fact),
-    );
+    return referenced;
+  }
+
+  /**
+   * Validates approvalSignals (G-65). Fails closed on anything that
+   * would make an approval check ambiguous or silently skipped: a key no
+   * rule reads, a key that is also bound to the Intent, a path outside
+   * the Intent's parameters, or two declarations sharing one artifact.
+   */
+  private validateApprovalSignals(policy: Policy): void {
+    const declarations = policy.approvalSignals;
+
+    if (declarations === undefined) {
+      return;
+    }
+
+    if (
+      typeof declarations !== "object" ||
+      declarations === null ||
+      Array.isArray(declarations)
+    ) {
+      throw new PolicyValidationError(
+        "Policy approvalSignals must be an object.",
+      );
+    }
+
+    const referenced = this.referencedFacts(policy);
+    const artifacts = new Set<string>();
+    const keys = Object.keys(declarations);
+
+    for (const [signalKey, declaration] of Object.entries(declarations)) {
+      const label = `Policy approvalSignals['${signalKey}']`;
+
+      if (!signalKey.trim()) {
+        throw new PolicyValidationError(
+          "Policy approvalSignals keys cannot be empty.",
+        );
+      }
+
+      if (
+        typeof declaration !== "object" ||
+        declaration === null ||
+        Array.isArray(declaration)
+      ) {
+        throw new PolicyValidationError(`${label} must be an object.`);
+      }
+
+      if (!referenced.has(signalKey)) {
+        throw new PolicyValidationError(
+          `${label} names a fact no rule references, so its approval would never matter.`,
+        );
+      }
+
+      if (
+        policy.boundSignals !== undefined &&
+        Object.prototype.hasOwnProperty.call(policy.boundSignals, signalKey)
+      ) {
+        throw new PolicyValidationError(
+          `${label} is contradictory: '${signalKey}' already has a boundSignals entry.`,
+        );
+      }
+
+      if (
+        declaration.resourceId !== "target" &&
+        !PARAMETER_PATH.test(String(declaration.resourceId))
+      ) {
+        throw new PolicyValidationError(
+          `${label}.resourceId must be "target" or a dot-path into the Intent's parameters, such as "parameters.orderId".`,
+        );
+      }
+
+      if (
+        declaration.value !== undefined &&
+        !PARAMETER_PATH.test(String(declaration.value))
+      ) {
+        throw new PolicyValidationError(
+          `${label}.value must be a dot-path into the Intent's parameters, such as "parameters.amount".`,
+        );
+      }
+
+      const artifact = declaration.artifact ?? DEFAULT_APPROVAL_ARTIFACT_SIGNAL;
+
+      if (!SIGNAL_NAME.test(artifact)) {
+        throw new PolicyValidationError(
+          `${label}.artifact must be a signal name of letters, digits and underscores.`,
+        );
+      }
+
+      if (artifacts.has(artifact) || keys.includes(artifact)) {
+        throw new PolicyValidationError(
+          `${label}.artifact '${artifact}' is used by another approval signal. ` +
+            "Give each approval signal its own artifact signal.",
+        );
+      }
+
+      if (referenced.has(artifact)) {
+        throw new PolicyValidationError(
+          `${label}.artifact '${artifact}' is read by a rule; it must only carry the approval.`,
+        );
+      }
+
+      artifacts.add(artifact);
+    }
   }
 
   /**

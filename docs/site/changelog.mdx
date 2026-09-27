@@ -12,6 +12,21 @@ every commit, run `git log` in the repository for the complete record.
 
 ## 2026-09-27
 
+**Added**
+
+- **Signed human approval, declared in the policy, for any action.** A policy lists in `approvalSignals` which of its signals need a signed approval and where the resource (and optionally an amount) is in the request. `ApprovalSignalVerifier` enforces it for every action, before authorization and again at the gateway, and each approval is used once. Adding an approval to an action is a policy change. See [Human approval](/concepts/human-approval#add-an-approval-to-any-action).
+- **Large refunds use it first.** A `paytm:refund` above 10000 runs only with a signed approval from a trusted approver, for that order and covering that amount. `managerApproved: true` without one is refused. Approvers create a key with `scripts/generate-approver-key.ts` and sign with `scripts/sign-approval.ts`. No approver is configured by default.
+
+**Changed**
+
+- **A live action's policy version is decided by policy governance.** The policy name for each action stays fixed in code; the version is the one most recently approved for that name. A new version takes effect when it is approved, with no deploy, and approving an older version again rolls back. A request naming any other version is refused with a message naming the version in effect, so agents must send that version. See [Human approval](/concepts/human-approval#why-each-action-is-bound-to-one-policy).
+- **`paytm:refund` now uses `customer-refund` 1.1.0.** Up to 10000 is automatic, with no `managerApproved` needed; above 10000 and up to 100000 needs a signed manager approval; above 100000 is refused. In production, refunds move to 1.1.0 when it is approved through policy governance.
+- Approval signatures are verified with Ed25519 only, whatever the server's own signing algorithm is.
+
+**Fixed**
+
+- A valid signed approval (HubSpot amount changes) was always refused at the gateway, because the approval was used up by the first of the two checks. It is now used once, at authorization (G-67).
+
 **Documentation**
 
 - **Human approval.** A new page, [Human approval](/concepts/human-approval), states where people approve what agents do today, how to query refused requests, and what is not available yet: a refused request cannot be approved afterwards, and refunds have no checked manager approval. Recorded as G-65 and G-66 in `docs/VERIFICATION-GAPS.md`.
