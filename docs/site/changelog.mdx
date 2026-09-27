@@ -10,6 +10,16 @@ product version). The SDKs are versioned independently on their own registries, 
 and per-version notes. This page covers changes that affect what you can build against, not
 every commit, run `git log` in the repository for the complete record.
 
+## 2026-09-28
+
+**Added**
+
+- **`GET /policies/in-effect?capability=paytm:refund`** returns the policy a request for a capability must declare right now: the bound name and the version most recently approved through policy governance. Agents can read it before sending instead of writing a version into their code, so approving a new version needs no change to the agent. See [Get the policy in effect](/api-reference/endpoints/get-policy-in-effect).
+
+**Fixed**
+
+- On the hosted API, a malformed JSON body returned `500`; it now returns `400 Malformed JSON body.` (G-69).
+
 ## 2026-09-27
 
 **Added**

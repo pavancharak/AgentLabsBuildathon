@@ -293,4 +293,89 @@ describe("CapabilityPolicyBinder", () => {
       expect(versions.calls).toEqual([]);
     });
   });
+
+  describe("policyInEffect (what an agent should declare)", () => {
+    const refund = (version: string): PolicyReference => ({
+      name: "customer-refund",
+      version,
+      schemaVersion: "1.0.0",
+    });
+
+    it("is the approved version where governance decides it", async () => {
+      const binder = new CapabilityPolicyBinder({
+        async currentVersion() {
+          return "1.2.0";
+        },
+      });
+
+      expect(await binder.policyInEffect("paytm:refund")).toEqual({
+        kind: "in-effect",
+        policy: refund("1.2.0"),
+      });
+    });
+
+    it("is accepted by findViolation, and nothing else is", async () => {
+      const binder = new CapabilityPolicyBinder({
+        async currentVersion() {
+          return "1.2.0";
+        },
+      });
+
+      const inEffect = await binder.policyInEffect("paytm:refund");
+      if (inEffect?.kind !== "in-effect") throw new Error("expected a policy");
+
+      expect(
+        await binder.findViolation("paytm:refund", inEffect.policy),
+      ).toBeUndefined();
+      expect(
+        await binder.findViolation("paytm:refund", refund("1.1.0")),
+      ).toBeDefined();
+    });
+
+    it("is the binding in code where governance does not decide it", async () => {
+      expect(
+        await new CapabilityPolicyBinder().policyInEffect("paytm:refund"),
+      ).toEqual({
+        kind: "in-effect",
+        policy: CANONICAL_CAPABILITY_POLICY_BINDINGS.get("paytm:refund"),
+      });
+    });
+
+    it("is unavailable, saying so, when no version was approved", async () => {
+      const binder = new CapabilityPolicyBinder({
+        async currentVersion() {
+          return undefined;
+        },
+      });
+
+      const inEffect = await binder.policyInEffect("paytm:refund");
+
+      expect(inEffect?.kind).toBe("unavailable");
+      expect(inEffect).toMatchObject({ noApprovedVersion: true });
+    });
+
+    it("is unavailable, not a guess, when the lookup fails", async () => {
+      const binder = new CapabilityPolicyBinder({
+        async currentVersion() {
+          throw new Error("database unreachable");
+        },
+      });
+
+      const inEffect = await binder.policyInEffect("paytm:refund");
+
+      expect(inEffect).toMatchObject({
+        kind: "unavailable",
+        noApprovedVersion: false,
+      });
+      expect(inEffect?.kind === "unavailable" && inEffect.reason).toContain(
+        "database unreachable",
+      );
+    });
+
+    it("is undefined for an action with no canonical binding", async () => {
+      expect(
+        await new CapabilityPolicyBinder().policyInEffect("PAY"),
+      ).toBeUndefined();
+    });
+  });
 });

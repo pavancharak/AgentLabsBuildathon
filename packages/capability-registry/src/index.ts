@@ -11,4 +11,5 @@ export {
 export type {
   CapabilityPolicyBindingViolation,
   CurrentPolicyVersionSource,
+  PolicyInEffect,
 } from "./CapabilityPolicyBinding.js";
