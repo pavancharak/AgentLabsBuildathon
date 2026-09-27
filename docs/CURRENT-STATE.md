@@ -123,9 +123,9 @@ registry and rerunning the live checks. Tests: TypeScript SDK 191, Python SDK
 119, all passing; each SDK passed 11 of 11 live checks against a self hosted
 deployment. The route by route mapping is `docs/site/sdks/api-coverage.mdx`.
 
-## Human approval (built 2026-09-27, PR #46, not merged)
+## Human approval (built 2026-09-27, on `main`, deployed)
 
-Read from the branch `feat/refund-manager-approval`, not from `main`.
+Merged to `main` and deployed to production on 2026-09-27 (PR #46, merge `4eebd5f`).
 
 - A policy declares in `approvalSignals` which of its signals need a
   person's signed approval, and where the resource (a `parameters` path or
@@ -137,8 +137,9 @@ Read from the branch `feat/refund-manager-approval`, not from `main`.
   a verified manager approval above 10000 and up to 100000, refused above.
 - Approvers sign on their own machine with `scripts/sign-approval.ts`, with
   an Ed25519 key from `scripts/generate-approver-key.ts`.
-- **Not in effect anywhere yet:** `TRUSTED_APPROVAL_ISSUERS` is empty, the
-  branch is not merged, and production has not approved 1.1.0.
+- **Not in effect in production yet:** `TRUSTED_APPROVAL_ISSUERS` is empty,
+  and production has not approved `customer-refund` 1.1.0, so refunds still
+  run under 1.0.0 (the version in effect comes from governance, G-66).
 - **Does not exist:** an escalation state that holds a request for a person,
   or any notification. A refused request stays refused; the agent sends a
   new request with the approval.
@@ -275,6 +276,6 @@ handed to this session, and none of them are:
   mistake.
 - Capability to policy binding covers 6 capabilities and 4 of the 14 policy
   names. A fail closed startup check (`assertConnectorCapabilitiesBound`)
-  stops a _newly registered_ capability from shipping unbound. On `main` the binding pins an exact policy version in code, so a new version of a live policy needs a code change and a deploy (G-66). PR #47 (not merged) takes the version from policy governance instead.
+  stops a _newly registered_ capability from shipping unbound. The binding pins the policy name in code; where policy governance is enforced, the version in effect is the one most recently approved (G-66, on `main` since 2026-09-27), so a new version needs no deploy.
 - Signing keys are read from disk files (`FileKeyProvider`) at a fixed
   default key ID; there is no key-rotation mechanism in code.
