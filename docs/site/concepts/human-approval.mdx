@@ -103,10 +103,13 @@ changed payload, an unknown or revoked approver, an expired approval, or one alr
     `manager-priya__manager-priya-key-1.public.pem`.
   </Step>
   <Step title="The operator trusts it">
-    Copy the public key file to `$PARMANA_KEY_DIR/approval-issuers/`, add `{ approverId:
-    "manager-priya", keyId: "manager-priya-key-1", revoked: false }` to
-    `TRUSTED_APPROVAL_ISSUERS` in `packages/api/src/bootstrap/createApprovalIssuerRegistry.ts`,
-    and deploy. To revoke the key later, set `revoked: true` and deploy.
+    Add `{ approverId: "manager-priya", keyId: "manager-priya-key-1", revoked: false,
+    publicKeyPem: "<the contents of the .public.pem file>" }` to `TRUSTED_APPROVAL_ISSUERS` in
+    `packages/api/src/bootstrap/createApprovalIssuerRegistry.ts`, and deploy. Public keys are not
+    secret, so the key can live in the code, which is how it works on Vercel. On a deployment
+    with a key directory you can leave out `publicKeyPem` and copy the file to
+    `$PARMANA_KEY_DIR/approval-issuers/` instead. To revoke the key later, set `revoked: true` and
+    deploy.
   </Step>
 </Steps>
 

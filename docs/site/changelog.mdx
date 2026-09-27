@@ -25,6 +25,7 @@ every commit, run `git log` in the repository for the complete record.
 
 **Fixed**
 
+- An approver could not be added on Vercel, because approver public keys were read only from files the platform cannot provide. A trusted approver entry can now carry its public key as `publicKeyPem` (G-68).
 - A valid signed approval (HubSpot amount changes) was always refused at the gateway, because the approval was used up by the first of the two checks. It is now used once, at authorization (G-67).
 
 **Documentation**
