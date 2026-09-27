@@ -26,6 +26,7 @@ import { createReplayRouter } from "./routes/replay.js";
 import { createReceiptGetRouter } from "./routes/receipt-get.js";
 import { createTransactionsRouter } from "./routes/transactions.js";
 import { createCallersMeRouter } from "./routes/callers-me.js";
+import { createPolicyInEffectRouter } from "./routes/policy-in-effect.js";
 import { createTrustRecordsRouter } from "./routes/trust-records.js";
 import { createVerifyGetRouter } from "./routes/verify-get.js";
 import { createVerifyRouter } from "./routes/verify.js";
@@ -330,6 +331,19 @@ export function createApp(
    * Policies
    */
   app.use("/policies", policyRoutes);
+
+  /**
+   * The policy a capability's requests must declare right now (G-66
+   * follow up), so agents need not write a version into their code.
+   */
+  app.use(
+    "/policies",
+    createPolicyInEffectRouter(
+      options.callerAuth !== "disabled"
+        ? options.callerAuth.auditSink
+        : undefined,
+    ),
+  );
 
   /**
    * Policy Governance (maker-checker). Mounted at the same /policies

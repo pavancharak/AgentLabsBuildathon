@@ -1213,7 +1213,7 @@ Scope, stated plainly:
 
 - **Merged and deployed** 2026-09-27 (PR #47 into #46, then #46 into `main`, merge `4eebd5f`). Production's `customer-refund` versions in effect were not checked after the deploy.
 - Binding an action to a different policy name, adding a capability, and adding an approver still need a deploy.
-- Agents must send the version in effect. After an approval, requests naming the previous version are refused until agents update. There is no endpoint to ask for the version in effect ahead of time.
+- Agents must send the version in effect. After an approval, requests naming the previous version are refused until agents update. **Added 2026-09-28:** `GET /policies/in-effect?capability=<action>` returns the policy to declare right now, from the same `CapabilityPolicyBinder.policyInEffect` the check uses, so an agent that asks before each request needs no update when a version is approved. It answers a caller whose key may invoke the capability, or a human caller (`packages/api/src/routes/policy-in-effect.ts`; `packages/api/tests/integration/policy-in-effect.integration.test.ts`).
 - The version is read from the latest approval record without verifying it; the same request then verifies that record's signature and content hash (2.35, 2.36), so a record changed outside the API refuses the request.
 
 Verification

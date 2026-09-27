@@ -138,6 +138,7 @@ This file is generated from the documentation navigation. Do not edit it by hand
 * [Replay an Execution Trust Record](https://docs.parmanasystems.com/api-reference/endpoints/replay-transaction): Re-verifies the stored signature on the Execution Trust Record for businessTransactionId and returns its hash alongside the verification result.
 ## REST API: Policies
 
+* [Get the policy a capability's requests must declare right now](https://docs.parmanasystems.com/api-reference/endpoints/get-policy-in-effect): Returns the policy bound to a capability and the version a request for it must declare right now.
 * [Validate that a Policy exists and is readable](https://docs.parmanasystems.com/api-reference/endpoints/validate-policy): Checks that policies/{policyId}/{policyVersion}/policy.json exists and parses.
 ## REST API: Policy Governance
 

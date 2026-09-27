@@ -138,6 +138,38 @@ export class CapabilityPolicyBinder {
     action: string,
     declared: PolicyReference,
   ): Promise<CapabilityPolicyBindingViolation | undefined> {
+    const inEffect = await this.policyInEffect(action);
+
+    if (inEffect === undefined) {
+      return undefined;
+    }
+
+    if (inEffect.kind === "unavailable") {
+      return {
+        action,
+        expected: inEffect.bound,
+        declared,
+        reason: inEffect.reason,
+      };
+    }
+
+    const expected = inEffect.policy;
+
+    return expected.name === declared.name &&
+      expected.version === declared.version
+      ? undefined
+      : { action, expected, declared };
+  }
+
+  /**
+   * The policy a request for this action must declare right now, by the
+   * same rule findViolation enforces, so an agent can ask for it instead
+   * of writing a version into its code. Undefined when the action has no
+   * canonical entry (nothing is enforced for it).
+   */
+  public async policyInEffect(
+    action: string,
+  ): Promise<PolicyInEffect | undefined> {
     const bound = CANONICAL_CAPABILITY_POLICY_BINDINGS.get(action);
 
     if (bound === undefined) {
@@ -145,9 +177,7 @@ export class CapabilityPolicyBinder {
     }
 
     if (this.currentVersions === undefined) {
-      return bound.name === declared.name && bound.version === declared.version
-        ? undefined
-        : { action, expected: bound, declared };
+      return { kind: "in-effect", policy: bound };
     }
 
     let currentVersion: string | undefined;
@@ -156,9 +186,9 @@ export class CapabilityPolicyBinder {
       currentVersion = await this.currentVersions.currentVersion(bound.name);
     } catch (error) {
       return {
-        action,
-        expected: bound,
-        declared,
+        kind: "unavailable",
+        bound,
+        noApprovedVersion: false,
         reason:
           `the version of policy "${bound.name}" in effect for capability "${action}" ` +
           `could not be looked up: ${error instanceof Error ? error.message : String(error)}`,
@@ -167,19 +197,30 @@ export class CapabilityPolicyBinder {
 
     if (currentVersion === undefined) {
       return {
-        action,
-        expected: bound,
-        declared,
+        kind: "unavailable",
+        bound,
+        noApprovedVersion: true,
         reason:
           `no version of policy "${bound.name}", which capability "${action}" requires, ` +
           "has been approved through policy governance",
       };
     }
 
-    const expected: PolicyReference = { ...bound, version: currentVersion };
-
-    return bound.name === declared.name && currentVersion === declared.version
-      ? undefined
-      : { action, expected, declared };
+    return { kind: "in-effect", policy: { ...bound, version: currentVersion } };
   }
 }
+
+/**
+ * The result of CapabilityPolicyBinder.policyInEffect for a bound
+ * action: the policy to declare, or why none can be accepted right now
+ * (no version approved, or the lookup failed), in which case every
+ * request for the action is refused.
+ */
+export type PolicyInEffect =
+  | { readonly kind: "in-effect"; readonly policy: PolicyReference }
+  | {
+      readonly kind: "unavailable";
+      readonly bound: PolicyReference;
+      readonly noApprovedVersion: boolean;
+      readonly reason: string;
+    };

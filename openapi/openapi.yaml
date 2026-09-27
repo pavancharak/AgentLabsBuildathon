@@ -2989,6 +2989,99 @@ paths:
                     error: Execution Trust Record not found.
                     code: VERIFICATION_FAILED
 
+  /policies/in-effect:
+    get:
+      tags:
+        - Policies
+      summary: Get the policy a capability's requests must declare right now
+      operationId: getPolicyInEffect
+      description: >
+        Returns the policy bound to a capability and the version a request
+        for it must declare right now. Where policy governance decides the
+        version (production), it is the version most recently approved for
+        the policy name, so approving a new version changes the answer with
+        no deploy. An agent reads it before sending instead of writing a
+        version into its code. It is the same rule POST /execute enforces,
+        so a request declaring this policy passes that check; the request is
+        still checked. Allowed for a caller whose key may invoke the
+        capability, and for human callers. See
+        packages/api/src/routes/policy-in-effect.ts.
+      parameters:
+        - name: capability
+          in: query
+          required: true
+          description: The capability, the Intent action, for example paytm:refund.
+          schema:
+            type: string
+          example: "paytm:refund"
+      responses:
+        "200":
+          description: The policy to declare.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - capability
+                  - policy
+                properties:
+                  capability:
+                    type: string
+                  policy:
+                    type: object
+                    required:
+                      - name
+                      - version
+                      - schemaVersion
+                    properties:
+                      name:
+                        type: string
+                      version:
+                        type: string
+                      schemaVersion:
+                        type: string
+              examples:
+                refund:
+                  summary: The refund capability after customer-refund 1.1.0 was approved
+                  value:
+                    capability: "paytm:refund"
+                    policy:
+                      name: customer-refund
+                      version: "1.1.0"
+                      schemaVersion: "1.0.0"
+        "400":
+          description: The capability query parameter is missing.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: The key may not invoke this capability (code CAPABILITY_NOT_ALLOWED).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+        "404":
+          description: No policy is bound to this capability (code CAPABILITY_NOT_BOUND).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+        "409":
+          description: No version of the bound policy has been approved, so every request for the capability is refused (code NO_APPROVED_POLICY_VERSION).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+        "503":
+          description: The version in effect could not be looked up, so every request for the capability is refused meanwhile (code POLICY_VERSION_UNAVAILABLE).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+
   /policies/validate:
     post:
       tags:
