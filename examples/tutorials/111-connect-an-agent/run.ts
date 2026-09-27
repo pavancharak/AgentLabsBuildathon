@@ -8,7 +8,7 @@ import type { BusinessTransaction } from "@parmana/shared";
 // Demonstrates the exact contract documented in
 // docs/connectors/CONNECTING_AN_AGENT.md, end to end, through the real
 // Express app (a real listening HTTP server, not a hand-rolled stand-in)
-// and the real customer-refund@1.0.0 policy + paytm:refund capability +
+// and the real customer-refund@1.1.0 policy + paytm:refund capability +
 // connector-paytm -- the same pipeline the real parmana-phinite-agent
 // integration uses. The Paytm connector is registered for real, pointed
 // at a hermetic MockPaytmConnectorServer, so an APPROVED scenario below
@@ -111,12 +111,12 @@ function refundTransaction(overrides: {
     },
     policy: {
       name: "customer-refund",
-      version: "1.0.0",
+      version: "1.1.0",
       schemaVersion: "1.0.0",
     },
     signals: overrides.signals ?? {
       refundEligible: true,
-      managerApproved: true,
+      managerApproved: false,
       fraudCheckPassed: true,
       refundAmount: amount,
     },
@@ -193,7 +193,7 @@ try {
   console.log();
 
   console.log(
-    "Scenario 3: Correct capability, policy denies (managerApproved: false) -- a real, correct decision, not a bug",
+    "Scenario 3: Correct capability, policy denies (50000 is above the automatic limit and has no manager approval) -- a real, correct decision, not a bug",
   );
   console.log("--------------------------------------------------");
   const denied = await fetch(`${baseUrl}/execute`, {
@@ -204,11 +204,12 @@ try {
     },
     body: JSON.stringify(
       refundTransaction({
+        amount: 50_000,
         signals: {
           refundEligible: true,
           managerApproved: false,
           fraudCheckPassed: true,
-          refundAmount: 500,
+          refundAmount: 50_000,
         },
       }),
     ),
@@ -299,6 +300,7 @@ try {
     console.log(
       "✗ Expected every scenario above to match the documented contract.",
     );
+    process.exitCode = 1;
   }
 
   console.log();

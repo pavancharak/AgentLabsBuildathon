@@ -674,7 +674,8 @@ an approval, and the agent retries with the approval attached. Two gaps were fou
 fixed.
 
 **G-65. A refused request cannot be escalated to a person and then approved. FOUND 2026-09-27,
-`pre-production`, open.** What the code does today:
+`pre-production`. BUILT the same day for refunds (see "Built" at the end of this entry); open
+until deployed with a real approver.** What the code did when found:
 
 - **Policy has two outcomes.** `PolicyOutcome` is `APPROVE` or `REJECT`
   (`packages/policy/src/types/PolicyOutcome.ts`), and `DecisionOutcome` is `APPROVED` or
@@ -744,6 +745,63 @@ manager's approval lets a refused refund run.
 - The regression bar is the full workspace suite (`npm test`), not 68 tests.
 - "No faking. No workarounds." is not true until steps 1 to 5 ship, and then only for actions
   routed through Parmana.
+
+**Built 2026-09-27.** Steps 1, 2, 4 and 5 of the plan, with one correction to the plan itself:
+approval signatures are verified with Ed25519 only (`APPROVAL_ARTIFACT_CRYPTO_PROVIDER`,
+`packages/crypto/src/ApprovalArtifactCrypto.ts`), not with the server's configured provider,
+because approver keys belong to people, like step up keys.
+
+- **Verifier:** `PaytmRefundApprovalVerifier` (`packages/connector-paytm/src/`). When a refund
+  declares `managerApproved: true`, it requires a valid `signals.approvalArtifact` for
+  `paytm:refund`, `resourceId` equal to the Intent's `parameters.orderId`, and a scope covering
+  the Intent's `parameters.amount`. Wired next to HubSpot's in `packages/api/src/application.ts`,
+  sharing one `ApprovalVerifier` (`createApprovalVerifier.ts`), so an approval is single use
+  across capabilities.
+- **Policy:** `customer-refund` 1.1.0. Automatic up to 10000; above 10000 and up to 100000 only
+  with `managerApproved: true`; above 100000 refused; its own rejection reason for "needs a
+  manager approval" (`reject-manager-approval-required`), so the refusals waiting for a manager
+  can be queried by rule id. `paytm:refund` is bound to 1.1.0. **Behavior change:** 1.0.0 required
+  `managerApproved: true` for every refund and nothing checked it; 1.1.0 needs no approval up to
+  10000, and a checked one above.
+- **Approver tools:** `scripts/generate-approver-key.ts` (key pair, named the way the server
+  loads it, never overwrites) and `scripts/sign-approval.ts` (one capability, one resource, an
+  amount limit, 15 minutes by default, at most a day, single use).
+- **Found while building (G-67 below):** an approval could never pass through the gateway.
+- **Tests:** `packages/api/tests/integration/paytm-refund.integration.test.ts` (15, through the
+  real production bootstrap): a 75000 refund with a valid approval executes exactly once; each of
+  no approval, another order, a smaller approved amount, an untrusted key, a changed payload,
+  another capability and a reused approval is refused with zero connector calls; above 100000 is
+  refused even with an approval; the old version 1.0.0 is refused by the binding.
+  `packages/connector-paytm/tests/unit/paytm-refund-approval-verifier.test.ts` (12),
+  `packages/policy/tests/unit/CustomerRefundPolicy110.test.ts` (10, every rule),
+  `packages/crypto/tests/unit/approval-artifact-signer.test.ts` (6),
+  `scripts/tests/approver-scripts.test.ts` (13, including the script's output accepted by the
+  server's verifier).
+- **Still open:** step 3. `TRUSTED_APPROVAL_ISSUERS` is still empty, so in a deployment every
+  approval is refused until an operator adds a real approver and deploys. In production,
+  `customer-refund` 1.1.0 authorizes nothing until it is proposed and approved through policy
+  governance; until then every refund is refused. `refundEligible` and `fraudCheckPassed` are
+  still caller declared (G-51). Nothing notifies a manager of a refusal; they find it by query.
+
+**G-67. A valid Approval Artifact could never pass the Execution Gateway, so an approved HubSpot
+amount change was always refused. FOUND and CLOSED 2026-09-27, `blocks-pilot`.** Found while
+building G-65. The same `SignalStateVerifier` runs twice for one request: in `RuntimeEngine`
+before the authorization is signed, and in `ExecutionGateway` just before release (G-31).
+`HubSpotSignalStateVerifier` consumed the approval's single use nonce on both runs, so the second
+run always saw the nonce as used, reported `preAuthorizedForAmountChange` as false, and the
+gateway refused the request. It fails closed (nothing executed), and it was not seen because
+`TRUSTED_APPROVAL_ISSUERS` is empty and no test sent a valid approval through the gateway; the
+only integration test (TD-23) checks a refusal. **Fix:** `SignalStateVerificationRequest.stage`
+(`"authorize"` or `"release"`; the gateway passes `"release"`) and
+`ApprovalVerificationRequest.consumeNonce`. A verifier consumes an approval only at
+`"authorize"`; at `"release"` every other check still runs. Reuse stays impossible: the nonce is
+recorded at authorization, and the execution authorization is itself single use and bound to the
+same signals by `signalsHash`. **Verified:** an integration test sends a valid approval through
+the real bootstrap for HubSpot
+(`hubspot-deal-update.integration.test.ts`) and for refunds; with the fix reverted, both fail,
+and with it, both pass. Unit tests: `packages/approval/tests/unit/ApprovalVerifier.test.ts`
+(consumeNonce), `packages/execution-gateway/tests/unit/signal-freshness.test.ts` (the gateway
+passes `"release"`).
 
 **G-66. The policy version for each action is fixed in code, so a policy change needs a
 redeploy. FOUND 2026-09-27, `pre-production`, open.** `CANONICAL_CAPABILITY_POLICY_BINDINGS`
@@ -1579,7 +1637,9 @@ against real state, so a caller can declare them true. The same applies to GitHu
 **Not fixed. Option:** add capability scoped `SignalStateVerifier` implementations, starting with a signed
 approval artifact for `managerApproved` (the `SignedApprovalGuard` and `ApprovalIssuerRegistry` machinery
 already exists in `packages/approval`). **Addendum (2026-09-27):** G-65 has a step by step plan for
-`paytm:refund`.
+`paytm:refund`. **Narrowed the same day:** for `paytm:refund`, `managerApproved: true` is now verified
+against a signed approval (G-65, `PaytmRefundApprovalVerifier`). `refundEligible` and
+`fraudCheckPassed`, and the GitHub and Slack signals, are still caller declared.
 
 **G-52. The connector can be called before the Execution Trust Record can be signed, so a signing
 failure leaves an executed action with no signed trust record.** Found 2026-09-20 in the same live

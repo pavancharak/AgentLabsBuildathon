@@ -995,7 +995,7 @@ What changed on 2026-09-20 (`packages/execution-gateway/src/ExecutionGateway.ts`
 Scope, stated plainly:
 
 - This binds execution to the policy a human checker approved. It does not prove the policy is correct or wise, and it does not model per policy or per role approver authority. Any provisioned human checker with a step up key can approve any policy (see G-50 in `docs/VERIFICATION-GAPS.md`).
-- Signals such as `managerApproved` and `fraudCheckPassed` are caller declared unless a `SignalStateVerifier` covers that capability. Only the HubSpot verifier is wired today, so an amount bound (`boundSignals`) holds but an attested approval signal is only as true as the caller says (G-51).
+- Signals such as `fraudCheckPassed` are caller declared unless a `SignalStateVerifier` covers that capability. The HubSpot verifier and, for `managerApproved` on refunds, `PaytmRefundApprovalVerifier` (2.42) are wired; other signals are only as true as the caller says (G-51).
 - The claim holds for execution routed through the gateway. A request that never reaches the gateway is not covered (see 3.1).
 - Direct edits to the policy store outside the API are prevented from executing (hash mismatch against the approval record) but are still only detected, not blocked, at the storage layer.
 
@@ -1168,6 +1168,35 @@ Evidence
 - `python/parmana/api/policy_api.py`, `caller_api.py`, `trust_record_api.py`; `python/parmana/crypto/step_up.py`, `offline_verifier.py`; `python/parmana/models/policy_change.py` (generated), `policy_change_results.py`, `caller.py`; `python/parmana/client.py`
 - `typescript/test/Alignment.test.ts`, `python/tests/test_sdk_alignment.py`
 - `docs/site/sdks/api-coverage.mdx`, `docs/site/sdks/typescript.mdx`, `docs/site/sdks/python.mdx`; `docs/VERIFICATION-GAPS.md` G-62 and G-64
+
+## 2.42 Signed Manager Approval for Large Refunds (Scoped, 2026-09-27)
+
+A `paytm:refund` above 10000 executes only with a signed approval from a trusted approver, for that order, covering that amount, used once. A refund whose signals say `managerApproved: true` without one is refused, at any amount.
+
+- **Policy:** `customer-refund` 1.1.0, bound to `paytm:refund`. Up to 10000: authorized automatically after the eligibility and fraud checks. Above 10000 and up to 100000: only with `managerApproved: true`. Above 100000: refused. Refusals that need a manager have their own rule id, `reject-manager-approval-required`.
+- **Verification:** `PaytmRefundApprovalVerifier` runs when policy would approve, before the authorization is signed, and again in the Execution Gateway just before release. It checks the approver is trusted and not revoked, the Ed25519 signature, the expiry, the capability, the order (the Intent's `parameters.orderId`) and the amount (the Intent's `parameters.amount`, never the caller's signal), and consumes the approval's nonce once, at authorization.
+- **Approvers** sign on their own machine with `scripts/sign-approval.ts`, from a key made by `scripts/generate-approver-key.ts`. Approver keys are Ed25519 whatever the server's own signing algorithm is.
+
+Scope, stated plainly:
+
+- **No approver is configured.** `TRUSTED_APPROVAL_ISSUERS` is empty, so in a deployment every approval is refused until an operator adds one and deploys. The success path is proven in tests with a test approver, not in production.
+- **Not deployed with 1.1.0 approved.** In production the policy authorizes nothing until it completes policy governance (2.35).
+- A refused request is not held for a person, and nobody is notified. The agent sends a new request with the approval.
+- `refundEligible` and `fraudCheckPassed` are still caller declared (G-51).
+- Holds for refunds routed through Parmana (3.1).
+
+Verification
+
+- `packages/api/tests/integration/paytm-refund.integration.test.ts` (15 tests, the real production bootstrap with a test approver): a 75000 refund with a valid approval executes exactly once; no approval, another order, a smaller approved amount, an untrusted key, a changed payload, another capability, and a reused approval are each refused with zero connector calls; above 100000 is refused with an approval; `customer-refund` 1.0.0 is refused by the binding.
+- `packages/connector-paytm/tests/unit/paytm-refund-approval-verifier.test.ts` (12), `packages/policy/tests/unit/CustomerRefundPolicy110.test.ts` (10), `packages/crypto/tests/unit/approval-artifact-signer.test.ts` (6), `scripts/tests/approver-scripts.test.ts` (13).
+- Building it found and closed G-67: an approval could never pass the gateway's second check, for HubSpot too.
+
+Evidence
+
+- `policies/customer-refund/1.1.0/policy.json`; `packages/capability-registry/src/CapabilityPolicyBinding.ts`
+- `packages/connector-paytm/src/PaytmRefundApprovalVerifier.ts`; `packages/api/src/bootstrap/createApprovalVerifier.ts`, `createPaytmRefundApprovalVerifier.ts`; `packages/api/src/application.ts`
+- `packages/crypto/src/ApprovalArtifactCrypto.ts`; `packages/approval/src/ApprovalVerifier.ts` (`consumeNonce`); `packages/policy/src/types/SignalStateVerifier.ts` (`stage`)
+- `scripts/generate-approver-key.ts`, `scripts/sign-approval.ts`; `docs/site/concepts/human-approval.mdx`; `docs/VERIFICATION-GAPS.md` G-65, G-67
 
 ---
 
@@ -1710,6 +1739,8 @@ Evidence
 
 **Scope, precisely:** one capability (`paytm:refund`) forwarding to one fixed remote endpoint (`POST /connector/paytm-refund`) on the configured connector service. Not in scope: any other Paytm API (charge, payout, settlement query), a webhook/event-driven confirmation path analogous to the historical Razorpay connector's (§3.8/§3.9), a `PaytmSignalStateVerifier` independently re-deriving `refundEligible`/`managerApproved`/`fraudCheckPassed` (`customer-refund/1.0.0`'s own `unboundSignalReasons` already document these as independent-system facts the Intent cannot express — no analogous "read capability" exists to re-verify them against, unlike HubSpot's deal-fetch), and — stated plainly, not glossed over — the actual `parmana-paytm-agent` service and its own idempotent-`refId`/checksum-verification implementation, which live entirely outside this repository and were not built, run, or verified by this milestone. What this milestone verifies is Parmana's side of the contract: it authorizes correctly, forwards exactly what was authorized and nothing else, validates what comes back before trusting it, and never calls anything when denied.
 
+**Update (2026-09-27):** `paytm:refund` is now bound to `customer-refund` 1.1.0, and `managerApproved` is verified against a signed approval (2.42). The scenarios above that used 1.0.0 were moved to 1.1.0 in the same test file. `refundEligible` and `fraudCheckPassed` are still not re-derived.
+
 ---
 
 # Maturity Assessment (TRL)
@@ -1812,7 +1843,7 @@ Examples include:
 
 - Deterministic signature output for post-quantum (ML-DSA-65) signing. ML-DSA-65 signatures are randomized by design: signing the same message twice with the same key produces two different, independently valid signatures. Only signature verification is deterministic. Determinism-of-output claims (2.8) apply to Ed25519 only.
 
-- That a refused decision escalates to a person who can approve it. A refusal is final. People can review refusals in the Refusal Records (3.11), but there is no approval path for refunds, and the HubSpot one has no approver configured (G-65, G-51 in `docs/VERIFICATION-GAPS.md`).
+- That a refused decision escalates to a person who can approve it. A refusal is final and nothing notifies anyone. People can review refusals in the Refusal Records (3.11), and a manager can sign an approval that lets a new request for a large refund run (2.42), but no approver is configured yet (G-65 in `docs/VERIFICATION-GAPS.md`).
 
 - That rule violations are structurally impossible, as an unscoped claim. The supported version: an action routed through Parmana does not execute unless the policy bound to it (2.22), approved through governance (2.35), approves it. An agent that holds its own credentials to a system is outside that, and a signal nothing verifies is only as true as the caller says (G-51).
 

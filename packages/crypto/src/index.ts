@@ -31,6 +31,7 @@ export * from "./SignatureCommitment.js";
 export * from "./AuthorizationSigner.js";
 export * from "./AuthorizationVerifier.js";
 export * from "./PolicyChangeStepUpAuthorizationCrypto.js";
+export * from "./ApprovalArtifactCrypto.js";
 
 // -----------------------------------------------------------------------------
 // High-Level Crypto Services

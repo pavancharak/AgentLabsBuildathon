@@ -1,6 +1,10 @@
+import { generateKeyPairSync } from "node:crypto";
+
 import request from "supertest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { BusinessTransaction } from "@parmana/shared";
+import { StaticApprovalIssuerRegistry } from "@parmana/approval";
+import { ApprovalArtifactSigner } from "@parmana/crypto";
 import {
   MockHubSpotServer,
   HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN,
@@ -9,6 +13,31 @@ import {
 import { createApplication } from "../../src/application.js";
 import { createApp } from "../../src/app.js";
 import { createExecutionSystem } from "../../src/bootstrap/createExecutionSystem.js";
+
+//
+// One trusted approver for this file only, so the success path of an
+// approved over threshold amount change can be exercised end to end.
+// "manager-jane", used by the TD-23 case below, is deliberately not in
+// this list and stays untrusted.
+//
+const approver = vi.hoisted(() => ({
+  approverId: "manager-priya",
+  keyId: "manager-priya-key-1",
+}));
+
+const approverKeys = generateKeyPairSync("ed25519");
+
+vi.mock("../../src/bootstrap/createApprovalIssuerRegistry.js", () => ({
+  createApprovalIssuerRegistry: () =>
+    new StaticApprovalIssuerRegistry([
+      {
+        approverId: approver.approverId,
+        keyId: approver.keyId,
+        publicKey: approverKeys.publicKey,
+        revoked: false,
+      },
+    ]),
+}));
 
 /**
  * HTTP-level proof that the HubSpot deal-update connector is reachable
@@ -486,5 +515,50 @@ describe("HubSpot deal update (HTTP boundary)", () => {
     expect(hubspotPatchCalls).toHaveLength(0);
 
     fetchSpy.mockRestore();
+  });
+  it("executes an over threshold amount change exactly once when it carries a valid Approval Artifact from a trusted approver, passing both the authorization check and the gateway's check at release", async () => {
+    const { app, server: mockServer } = await buildApp();
+
+    mockServer.setDeal({
+      id: "9007",
+      properties: {
+        dealstage: "appointmentscheduled",
+        amount: "5000",
+        pipeline: "default",
+      },
+    });
+
+    const approval = await new ApprovalArtifactSigner().sign(
+      {
+        approverId: approver.approverId,
+        keyId: approver.keyId,
+        capability: "hubspot:deal-update",
+        resourceId: "9007",
+        scope: { field: "amountDeltaAbs", comparator: "lte", value: 45_000 },
+        ttlSeconds: 900,
+      },
+      approverKeys.privateKey,
+    );
+
+    const transaction = dealUpdateTransaction({
+      dealId: "9007",
+      amount: 50_000,
+      signals: {
+        currentDealStage: "appointmentscheduled",
+        proposedAmount: 50_000,
+        dealStageChangeRequested: false,
+        dealStageTransitionAllowed: true,
+        amountChangeRequested: true,
+        amountDeltaAbs: 45_000,
+        amountChangeExceedsThreshold: true,
+        preAuthorizedForAmountChange: true,
+        approvalArtifact: JSON.parse(JSON.stringify(approval)),
+      },
+    });
+
+    const response = await request(app).post("/execute").send(transaction);
+
+    expect(response.status).toBe(200);
+    expect(mockServer.getDeal("9007")?.properties.amount).toBe("50000");
   });
 });

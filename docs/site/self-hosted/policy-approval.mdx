@@ -54,7 +54,7 @@ The request body holds the full policy content and a reason:
   "reason": "Why this policy should take effect.",
   "proposedContent": {
     "policyId": "customer-refund",
-    "policyVersion": "1.0.0",
+    "policyVersion": "1.1.0",
     "...": "the whole policy.json"
   }
 }
@@ -64,13 +64,13 @@ For a policy that ships with Parmana, build the body from its file:
 
 ```bash
 printf '{"reason":"Adopt the shipped customer-refund policy.","proposedContent":%s}' \
-  "$(cat policies/customer-refund/1.0.0/policy.json)" > proposal.json
+  "$(cat policies/customer-refund/1.1.0/policy.json)" > proposal.json
 ```
 
 Send it. The name and version in the URL must match `policyId` and `policyVersion` in the content:
 
 ```bash
-curl -s -X POST http://127.0.0.1:3000/policies/customer-refund/1.0.0/pending-changes \
+curl -s -X POST http://127.0.0.1:3000/policies/customer-refund/1.1.0/pending-changes \
   -H "Authorization: Bearer $ALICE_KEY" -H "Content-Type: application/json" \
   --data @proposal.json > proposed.json
 

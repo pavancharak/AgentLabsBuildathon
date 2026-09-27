@@ -41,6 +41,16 @@ describe("Reference Policy Determinism", () => {
       },
     },
     {
+      name: "customer-refund 1.1.0",
+      file: "customer-refund/1.1.0/policy.json",
+      signals: {
+        refundEligible: true,
+        managerApproved: false,
+        fraudCheckPassed: true,
+        refundAmount: 5000,
+      },
+    },
+    {
       name: "database-change",
       file: "database-change/3.0.0/policy.json",
       signals: {

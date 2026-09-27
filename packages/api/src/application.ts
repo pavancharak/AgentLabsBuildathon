@@ -26,7 +26,9 @@ import {
   refusalRecordRepository,
 } from "./repositories.js";
 
+import { createApprovalVerifier } from "./bootstrap/createApprovalVerifier.js";
 import { createHubSpotSignalStateVerifier } from "./bootstrap/createHubSpotSignalStateVerifier.js";
+import { createPaytmRefundApprovalVerifier } from "./bootstrap/createPaytmRefundApprovalVerifier.js";
 import { executionGatewaySignalStateVerifier } from "./bootstrap/executionGatewaySignalStateVerifier.js";
 import { createPolicyExecutionVerifier } from "./bootstrap/createPolicyExecutionVerifier.js";
 import { createPolicyGovernanceAnchorResolver } from "./bootstrap/createPolicyGovernanceAnchorResolver.js";
@@ -80,8 +82,15 @@ export const policyRepository: PolicyRepository = new Proxy(
 );
 
 export function createApplication(executionSystem: ExecutionSystem) {
+  //
+  // One ApprovalVerifier for every capability, so an Approval Artifact
+  // is single use across all of them (createApprovalVerifier.ts).
+  //
+  const approvalVerifier = createApprovalVerifier();
+
   const signalStateVerifier = new CompositeSignalStateVerifier([
-    createHubSpotSignalStateVerifier(executionSystem),
+    createHubSpotSignalStateVerifier(executionSystem, approvalVerifier),
+    createPaytmRefundApprovalVerifier(approvalVerifier),
   ]);
 
   //

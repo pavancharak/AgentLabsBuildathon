@@ -366,12 +366,12 @@ with the current time.
   },
   "policy": {
     "name": "customer-refund",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "schemaVersion": "1.0.0"
   },
   "signals": {
     "refundEligible": true,
-    "managerApproved": true,
+    "managerApproved": false,
     "fraudCheckPassed": true,
     "refundAmount": 5
   }
@@ -2003,9 +2003,9 @@ const proposer = new ParmanaClient({
 });
 const approver = new ParmanaClient({ endpoint, apiKey: "pk_local_... (bob)" });
 
-const change = await proposer.proposePolicyChange("customer-refund", "1.0.0", {
+const change = await proposer.proposePolicyChange("customer-refund", "1.1.0", {
   proposedContent: JSON.parse(
-    readFileSync("policies/customer-refund/1.0.0/policy.json", "utf8"),
+    readFileSync("policies/customer-refund/1.1.0/policy.json", "utf8"),
   ),
   reason: "Adopt the shipped customer-refund policy.",
 });
@@ -2837,7 +2837,7 @@ approver = ParmanaClient(endpoint=endpoint, api_key="pk_local_... (bob)")
 change = proposer.propose_policy_change(
     "customer-refund",
     "1.0.0",
-    proposed_content=json.loads(Path("policies/customer-refund/1.0.0/policy.json").read_text()),
+    proposed_content=json.loads(Path("policies/customer-refund/1.1.0/policy.json").read_text()),
     reason="Adopt the shipped customer-refund policy.",
 )
 

@@ -305,7 +305,7 @@ approver = ParmanaClient(endpoint=endpoint, api_key="pk_local_... (bob)")
 change = proposer.propose_policy_change(
     "customer-refund",
     "1.0.0",
-    proposed_content=json.loads(Path("policies/customer-refund/1.0.0/policy.json").read_text()),
+    proposed_content=json.loads(Path("policies/customer-refund/1.1.0/policy.json").read_text()),
     reason="Adopt the shipped customer-refund policy.",
 )
 

@@ -1,26 +1,123 @@
 ---
 title: "Human approval"
-description: "Where people approve what agents do today, how to review refused requests, and what is not available yet."
+description: "Where people approve what agents do: policies, large refunds and large HubSpot amount changes, and how to review refused requests."
 ---
 
-People take part in three places today: they approve policies before those policies can
-authorize anything, they approve large HubSpot amount changes with a signed approval, and they
-review every refused request. Parmana does not yet hold a refused request for a person to
-approve.
+People take part in four places: they approve policies before those policies can authorize
+anything, they sign approvals for large refunds and large HubSpot amount changes, and they
+review every refused request. Parmana does not hold a request while it waits for a person: a
+refused request stays refused, and the agent sends a new one with the approval attached.
 
 | What a person does                                               | Status                                      |
 | ---------------------------------------------------------------- | ------------------------------------------- |
 | Approve a policy before it can authorize anything                | **[AVAILABLE]**                             |
 | Review refused requests                                          | **[AVAILABLE]**                             |
+| Sign an approval for a refund above 10000                        | **[AVAILABLE]**, no approver configured yet |
 | Sign an approval for a HubSpot amount change above the threshold | **[AVAILABLE]**, no approver configured yet |
-| Approve a refused request so it can run                          | **[NOT AVAILABLE]**                         |
-| Sign an approval for a Paytm refund                              | **[NOT AVAILABLE]**                         |
+| Approve a refused request so that same request runs              | **[NOT AVAILABLE]**                         |
 
 ## Approve policies
 
 In production, a policy authorizes nothing until one person proposes it and a second person
 approves it with a signed step up authorization. The same person cannot do both. See
 [Policy governance](/self-hosted/policy-approval).
+
+## Approve a large refund
+
+The `customer-refund` 1.1.0 policy authorizes an eligible refund that passed the fraud check:
+
+| Refund amount             | What it needs                     |
+| ------------------------- | --------------------------------- |
+| Up to 10000               | Nothing more. Authorized at once. |
+| Above 10000, up to 100000 | A signed approval from a manager  |
+| Above 100000              | Refused, even with an approval    |
+
+The flow for a refund of 75000 on order `ORD-1042`:
+
+<Steps>
+  <Step title="The agent's request is refused">
+    The agent sends the refund with `managerApproved: false`. Parmana refuses it with `403
+    POLICY_DENIED`: "amounts above 10000 require a signed manager approval". Nothing is
+    executed, and a signed [Refusal Record](/concepts/refusal-records) is stored.
+  </Step>
+  <Step title="A manager reviews it">
+    The manager finds the refusal, for example with the query in
+    [Review refused requests](#review-refused-requests).
+  </Step>
+  <Step title="The manager signs an approval, on their own machine">
+    ```bash
+    npx tsx scripts/sign-approval.ts \
+      --private-key-file ~/.parmana/manager-priya__manager-priya-key-1.private.pem \
+      --approver-id manager-priya --key-id manager-priya-key-1 \
+      --capability paytm:refund --resource-id ORD-1042 --max-amount 75000 \
+      --out approval.json
+    ```
+    The approval is for this order only, for refunds up to 75000, valid for 15 minutes
+    (`--ttl-seconds` changes it, up to a day), and can be used once.
+  </Step>
+  <Step title="The agent sends a new request with the approval">
+    A new `businessTransactionId`, the same order and amount, `managerApproved: true`, and the
+    contents of `approval.json` in `signals.approvalArtifact`:
+
+    ```json
+    "signals": {
+      "refundEligible": true,
+      "fraudCheckPassed": true,
+      "refundAmount": 75000,
+      "managerApproved": true,
+      "approvalArtifact": { "payload": { "...": "..." }, "signature": { "...": "..." } }
+    }
+    ```
+
+  </Step>
+  <Step title="Parmana verifies the approval and executes">
+    Before authorizing, Parmana checks that the approval is signed by a trusted approver, has
+    not expired or been revoked, is for `paytm:refund`, for this order (the Intent's
+    `parameters.orderId`), covers this amount (the Intent's `parameters.amount`), and has not
+    been used before. The gateway checks it again just before release. Then the refund runs.
+  </Step>
+</Steps>
+
+`managerApproved: true` without a valid approval is refused, at any amount:
+
+```text
+Execution rejected: Rejected: declared signal(s) do not match independently verified state (managerApproved=true != verified managerApproved=false).
+```
+
+The same happens for an approval for another order, a smaller amount, another action, a
+changed payload, an unknown or revoked approver, an expired approval, or one already used.
+
+## Set up an approver
+
+<Steps>
+  <Step title="The manager creates a key pair on their own machine">
+    ```bash
+    npx tsx scripts/generate-approver-key.ts \
+      --approver-id manager-priya --key-id manager-priya-key-1 --out-dir ~/.parmana
+    ```
+    The private key stays on that machine. The manager sends the operator the public key file,
+    `manager-priya__manager-priya-key-1.public.pem`.
+  </Step>
+  <Step title="The operator trusts it">
+    Copy the public key file to `$PARMANA_KEY_DIR/approval-issuers/`, add `{ approverId:
+    "manager-priya", keyId: "manager-priya-key-1", revoked: false }` to
+    `TRUSTED_APPROVAL_ISSUERS` in `packages/api/src/bootstrap/createApprovalIssuerRegistry.ts`,
+    and deploy. To revoke the key later, set `revoked: true` and deploy.
+  </Step>
+</Steps>
+
+<Info>
+  No approver is configured in the current deployment, so every approval is
+  refused until an operator adds one. Approver keys are always Ed25519, whatever
+  signing algorithm the server itself uses.
+</Info>
+
+## Approve a HubSpot amount change
+
+For `hubspot:deal-update`, an amount change above the configured threshold runs only with
+`preAuthorizedForAmountChange: true` and a signed approval in `signals.approvalArtifact`. Sign
+it the same way, with `--capability hubspot:deal-update`, the deal id as `--resource-id`, and
+the largest amount change allowed as `--max-amount`.
 
 ## Review refused requests
 
@@ -40,6 +137,9 @@ where decision_json -> 'policy' ->> 'name' = 'customer-refund'
 order by created_at desc
 limit 50;
 ```
+
+To list only the refunds waiting for a manager, add
+`and decision_json ->> 'matchedRuleId' = 'reject-manager-approval-required'`.
 
 Requests refused before policy runs, such as a failed authentication or a capability the caller
 is not allowed to use, are in `caller_audit_events`:
@@ -64,30 +164,15 @@ limit 50;
   Each miss is logged as `refusal_record_write_failed`.
 </Warning>
 
-## Approve a HubSpot amount change
-
-For `hubspot:deal-update`, an amount change above the configured threshold runs only with a
-signed approval from a trusted approver, sent in `signals.approvalArtifact`. Parmana checks the
-signature, the approver, the expiry, the deal, the amount, and that the approval has not been
-used before.
-
-<Info>
-  No approver is configured in the current deployment, so every such approval is
-  refused. An operator adds one by placing the approver's public key under
-  `$PARMANA_KEY_DIR/approval-issuers/` and adding an entry to
-  `TRUSTED_APPROVAL_ISSUERS`.
-</Info>
-
-## Not available yet
+## Not available
 
 **A refused request cannot be approved afterwards.** A policy decision is approve or refuse.
-Nothing waits for a person. To act on a refused request, send a new one that the policy
-approves.
+Nothing waits for a person, and nothing notifies one. After a manager signs an approval, the
+agent sends a new request.
 
-**Refunds have no checked approval.** The `customer-refund` policy reads `managerApproved`, but
-nothing verifies it, so a caller can send `true` without a manager. Refunds above 10000 are
-refused whatever `managerApproved` says. A signed approval for refunds is planned; see G-65 and
-G-51 in `docs/VERIFICATION-GAPS.md`.
+**Eligibility and fraud signals are still the caller's word.** `refundEligible` and
+`fraudCheckPassed` are not checked against another system (G-51 in
+`docs/VERIFICATION-GAPS.md`).
 
 ## Why each action is bound to one policy
 
@@ -96,10 +181,11 @@ caller could send a refund and name a policy written for Slack messages, which h
 limit. So each live action is bound to one policy:
 
 ```text
-paytm:refund         ->  customer-refund 1.0.0
+paytm:refund         ->  customer-refund 1.1.0
 hubspot:deal-update  ->  hubspot-deal-update 1.0.0
 ```
 
-A request that names a different policy is refused before any policy runs. Today the version is
-part of the binding, so a new policy version needs a code change and a deploy. Taking the
-version from policy governance instead is planned; see G-66 in `docs/VERIFICATION-GAPS.md`.
+A request that names a different policy, or an older version, is refused before any policy
+runs. The version is part of the binding, so a new policy version needs a code change and a
+deploy. Taking the version from policy governance instead is planned; see G-66 in
+`docs/VERIFICATION-GAPS.md`.

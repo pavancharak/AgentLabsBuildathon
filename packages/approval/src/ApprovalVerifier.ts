@@ -17,6 +17,16 @@ export interface ApprovalVerificationRequest {
   readonly action: string;
   readonly resourceId: string;
   readonly requestedValue: unknown;
+
+  /**
+   * Whether to consume the artifact's nonce. Defaults to true. Set to
+   * false only when the same artifact was already consumed for the same
+   * transaction, as when the Execution Gateway checks signals again at
+   * release (SignalStateVerificationRequest.stage "release"). With
+   * false, every other check still runs, and checks.nonceUnseen reports
+   * the result of those other checks, since the nonce is not looked at.
+   */
+  readonly consumeNonce?: boolean;
 }
 
 /**
@@ -152,12 +162,16 @@ export class ApprovalVerifier {
       resourceMatches &&
       scopeSatisfied;
 
-    const nonceUnseen = priorChecksPassed
-      ? await this.options.nonceStore.checkAndRecord(
-          artifact.payload.nonce,
-          artifact.payload.expiresAt,
-        )
-      : false;
+    const consumeNonce = request.consumeNonce !== false;
+
+    const nonceUnseen = !priorChecksPassed
+      ? false
+      : consumeNonce
+        ? await this.options.nonceStore.checkAndRecord(
+            artifact.payload.nonce,
+            artifact.payload.expiresAt,
+          )
+        : true;
 
     return {
       valid: priorChecksPassed && nonceUnseen,

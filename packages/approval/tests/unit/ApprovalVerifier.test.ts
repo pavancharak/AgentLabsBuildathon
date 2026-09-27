@@ -624,4 +624,95 @@ describe("ApprovalVerifier", () => {
 
     expect(resultA).toEqual(resultB);
   });
+
+  describe("consumeNonce: false (the Execution Gateway's check at release)", () => {
+    function setup() {
+      const { privateKey, publicKey } = generateKeyPair();
+      const nonceStore = new MemoryNonceStore();
+      const verifier = new ApprovalVerifier({
+        crypto,
+        issuerRegistry: new StaticApprovalIssuerRegistry([
+          {
+            approverId: "manager-jane",
+            keyId: "manager-jane-key-1",
+            publicKey,
+            revoked: false,
+          },
+        ]),
+        nonceStore,
+      });
+      return { privateKey, nonceStore, verifier };
+    }
+
+    const request = {
+      action: "hubspot:deal-update",
+      resourceId: "9005",
+      requestedValue: 40_000,
+    };
+    const now = new Date("2026-08-05T12:30:00.000Z");
+
+    it("accepts an artifact already consumed at authorization, without consuming it again", async () => {
+      const { privateKey, nonceStore, verifier } = setup();
+      const artifact = await signPayload(buildPayload(), privateKey);
+
+      const atAuthorization = await verifier.verify(artifact, request, now);
+      const atRelease = await verifier.verify(
+        artifact,
+        { ...request, consumeNonce: false },
+        now,
+      );
+
+      expect(atAuthorization.valid).toBe(true);
+      expect(atRelease.valid).toBe(true);
+      expect(atRelease.checks.nonceUnseen).toBe(true);
+
+      // Still consumed exactly once: a new presentation is a replay.
+      expect(
+        await nonceStore.checkAndRecord("nonce-1", buildPayload().expiresAt),
+      ).toBe(false);
+    });
+
+    it("does not record the nonce, so it cannot be used to skip authorization", async () => {
+      const { privateKey, verifier } = setup();
+      const artifact = await signPayload(buildPayload(), privateKey);
+
+      await verifier.verify(artifact, { ...request, consumeNonce: false }, now);
+      const atAuthorization = await verifier.verify(artifact, request, now);
+
+      expect(atAuthorization.valid).toBe(true);
+    });
+
+    it("still runs every other check: a request above the approved scope is rejected", async () => {
+      const { privateKey, verifier } = setup();
+      const artifact = await signPayload(buildPayload(), privateKey);
+
+      const result = await verifier.verify(
+        artifact,
+        { ...request, requestedValue: 60_000, consumeNonce: false },
+        now,
+      );
+
+      expect(result.valid).toBe(false);
+      expect(result.checks.scopeSatisfied).toBe(false);
+      expect(result.checks.nonceUnseen).toBe(false);
+    });
+
+    it("still checks the signature: a changed payload is rejected", async () => {
+      const { privateKey, verifier } = setup();
+      const artifact = await signPayload(buildPayload(), privateKey);
+      const tampered = {
+        ...artifact,
+        payload: { ...artifact.payload, resourceId: "9999" },
+      };
+
+      const result = await verifier.verify(
+        tampered,
+        { ...request, resourceId: "9999", consumeNonce: false },
+        now,
+      );
+
+      expect(result.valid).toBe(false);
+      expect(result.checks.signatureVerified).toBe(false);
+    });
+  });
 });

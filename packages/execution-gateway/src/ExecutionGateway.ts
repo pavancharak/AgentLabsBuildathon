@@ -433,6 +433,7 @@ export class ExecutionGateway implements ExecutionSystem {
             action: executableContent.action,
             businessTransactionId: executableContent.businessTransactionId,
             intentParameters: executableContent.parameters,
+            stage: "release",
           },
           request.signals as PolicySignals,
         );

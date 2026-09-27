@@ -199,6 +199,7 @@ export class HubSpotSignalStateVerifier implements SignalStateVerifier {
         signals,
         dealId,
         verified.amountDeltaAbs as number,
+        request.stage !== "release",
       );
 
       if (preAuthorizationViolation !== undefined) {
@@ -219,11 +220,17 @@ export class HubSpotSignalStateVerifier implements SignalStateVerifier {
    * cannot present a genuine approval for a smaller amount and reuse
    * it to authorize a larger one -- ApprovalVerifier's own
    * scopeSatisfied check rejects that mismatch.
+   *
+   * consumeNonce is false when the Execution Gateway checks again at
+   * release: the artifact was consumed for this transaction at
+   * authorization, and consuming it a second time would refuse every
+   * approved request.
    */
   private async verifyPreAuthorization(
     signals: PolicySignals,
     dealId: string,
     amountDeltaAbs: number,
+    consumeNonce: boolean,
   ): Promise<SignalStateViolation | undefined> {
     const verifier = this.options.approvalVerifier;
 
@@ -240,6 +247,7 @@ export class HubSpotSignalStateVerifier implements SignalStateVerifier {
             action: HUBSPOT_DEAL_UPDATE_CAPABILITY,
             resourceId: dealId,
             requestedValue: amountDeltaAbs,
+            consumeNonce,
           })
         ).valid
       : false;

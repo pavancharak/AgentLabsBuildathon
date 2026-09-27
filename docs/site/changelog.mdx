@@ -12,6 +12,19 @@ every commit, run `git log` in the repository for the complete record.
 
 ## 2026-09-27
 
+**Added**
+
+- **Signed manager approval for large refunds.** A `paytm:refund` above 10000 runs only with a signed approval from a trusted approver, for that order and covering that amount, used once. `managerApproved: true` without one is refused. Approvers create a key with `scripts/generate-approver-key.ts` and sign with `scripts/sign-approval.ts`. No approver is configured by default. See [Human approval](/concepts/human-approval).
+
+**Changed**
+
+- **`paytm:refund` now uses `customer-refund` 1.1.0.** Up to 10000 is automatic, with no `managerApproved` needed; above 10000 and up to 100000 needs a signed manager approval; above 100000 is refused. Requests naming 1.0.0 for `paytm:refund` are refused. In production, 1.1.0 must be proposed and approved through policy governance before it authorizes anything.
+- Approval signatures are verified with Ed25519 only, whatever the server's own signing algorithm is.
+
+**Fixed**
+
+- A valid signed approval (HubSpot amount changes) was always refused at the gateway, because the approval was used up by the first of the two checks. It is now used once, at authorization (G-67).
+
 **Documentation**
 
 - **Human approval.** A new page, [Human approval](/concepts/human-approval), states where people approve what agents do today, how to query refused requests, and what is not available yet: a refused request cannot be approved afterwards, and refunds have no checked manager approval. Recorded as G-65 and G-66 in `docs/VERIFICATION-GAPS.md`.
