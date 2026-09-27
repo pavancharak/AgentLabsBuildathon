@@ -55,6 +55,7 @@
               "concepts/gateway-attestation",
               "concepts/execution-trust-records",
               "concepts/refusal-records",
+              "concepts/human-approval",
               "concepts/execution-intents",
               "concepts/caller-audit-trail",
               "concepts/determinism-and-clocks",

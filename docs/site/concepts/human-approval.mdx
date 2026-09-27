@@ -1,0 +1,105 @@
+---
+title: "Human approval"
+description: "Where people approve what agents do today, how to review refused requests, and what is not available yet."
+---
+
+People take part in three places today: they approve policies before those policies can
+authorize anything, they approve large HubSpot amount changes with a signed approval, and they
+review every refused request. Parmana does not yet hold a refused request for a person to
+approve.
+
+| What a person does                                               | Status                                      |
+| ---------------------------------------------------------------- | ------------------------------------------- |
+| Approve a policy before it can authorize anything                | **[AVAILABLE]**                             |
+| Review refused requests                                          | **[AVAILABLE]**                             |
+| Sign an approval for a HubSpot amount change above the threshold | **[AVAILABLE]**, no approver configured yet |
+| Approve a refused request so it can run                          | **[NOT AVAILABLE]**                         |
+| Sign an approval for a Paytm refund                              | **[NOT AVAILABLE]**                         |
+
+## Approve policies
+
+In production, a policy authorizes nothing until one person proposes it and a second person
+approves it with a signed step up authorization. The same person cannot do both. See
+[Policy governance](/self-hosted/policy-approval).
+
+## Review refused requests
+
+Every request that a policy refuses is stored with a signed
+[Refusal Record](/concepts/refusal-records). To list recent refunds that were refused:
+
+```sql
+select
+  refusal_record_id,
+  business_transaction_id,
+  submitted_by,
+  created_at,
+  decision_json ->> 'reason'                   as reason,
+  evaluated_intent_json -> 'parameters'        as parameters
+from refusal_records
+where decision_json -> 'policy' ->> 'name' = 'customer-refund'
+order by created_at desc
+limit 50;
+```
+
+Requests refused before policy runs, such as a failed authentication or a capability the caller
+is not allowed to use, are in `caller_audit_events`:
+
+```sql
+select occurred_at, caller_id, capability, type, reason
+from caller_audit_events
+where type in (
+  'caller.rejected',
+  'caller.capability_denied',
+  'caller.principal_denied',
+  'caller.non_human_denied',
+  'caller.structural_rejected'
+)
+order by occurred_at desc
+limit 50;
+```
+
+<Warning>
+  A Refusal Record is written after the request is refused, and a failed write
+  does not change the refusal. A query can therefore miss a refused request.
+  Each miss is logged as `refusal_record_write_failed`.
+</Warning>
+
+## Approve a HubSpot amount change
+
+For `hubspot:deal-update`, an amount change above the configured threshold runs only with a
+signed approval from a trusted approver, sent in `signals.approvalArtifact`. Parmana checks the
+signature, the approver, the expiry, the deal, the amount, and that the approval has not been
+used before.
+
+<Info>
+  No approver is configured in the current deployment, so every such approval is
+  refused. An operator adds one by placing the approver's public key under
+  `$PARMANA_KEY_DIR/approval-issuers/` and adding an entry to
+  `TRUSTED_APPROVAL_ISSUERS`.
+</Info>
+
+## Not available yet
+
+**A refused request cannot be approved afterwards.** A policy decision is approve or refuse.
+Nothing waits for a person. To act on a refused request, send a new one that the policy
+approves.
+
+**Refunds have no checked approval.** The `customer-refund` policy reads `managerApproved`, but
+nothing verifies it, so a caller can send `true` without a manager. Refunds above 10000 are
+refused whatever `managerApproved` says. A signed approval for refunds is planned; see G-65 and
+G-51 in `docs/VERIFICATION-GAPS.md`.
+
+## Why each action is bound to one policy
+
+Each request names the policy that should judge it. If Parmana accepted any approved policy, a
+caller could send a refund and name a policy written for Slack messages, which has no refund
+limit. So each live action is bound to one policy:
+
+```text
+paytm:refund         ->  customer-refund 1.0.0
+hubspot:deal-update  ->  hubspot-deal-update 1.0.0
+```
+
+A request that names a different policy is refused before any policy runs. Today the version is
+part of the binding, so a new policy version needs a code change and a deploy. Taking the
+version from policy governance instead is planned; see G-66 in `docs/VERIFICATION-GAPS.md`.

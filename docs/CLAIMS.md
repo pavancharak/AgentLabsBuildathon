@@ -1812,6 +1812,12 @@ Examples include:
 
 - Deterministic signature output for post-quantum (ML-DSA-65) signing. ML-DSA-65 signatures are randomized by design: signing the same message twice with the same key produces two different, independently valid signatures. Only signature verification is deterministic. Determinism-of-output claims (2.8) apply to Ed25519 only.
 
+- That a refused decision escalates to a person who can approve it. A refusal is final. People can review refusals in the Refusal Records (3.11), but there is no approval path for refunds, and the HubSpot one has no approver configured (G-65, G-51 in `docs/VERIFICATION-GAPS.md`).
+
+- That rule violations are structurally impossible, as an unscoped claim. The supported version: an action routed through Parmana does not execute unless the policy bound to it (2.22), approved through governance (2.35), approves it. An agent that holds its own credentials to a system is outside that, and a signal nothing verifies is only as true as the caller says (G-51).
+
+- That enforcement adds no overhead. Each request adds policy evaluation, signing, a nonce check, storage writes and a network hop.
+
 Such claims depend on deployment environments, operational controls, and assumptions beyond the scope of the reference implementation.
 
 ---

@@ -666,6 +666,109 @@ content and step up authorizations unchanged, and a test checks this. Also: `cli
 in Python is the SDK's own version, while `version()` in TypeScript is the server's; documented,
 not changed. **Published:** the TypeScript SDK 1.3.0 on npm on 2026-09-25, checked by installing it from npm and rerunning the live checks (11 of 11). The Python SDK 1.3.0 was published to PyPI the same day and checked the same way (11 of 11). Nothing is open.
 
+## Gaps opened in the 2026-09-27 human approval review
+
+Scope: a proposed product flow was checked against the source code only, not against earlier
+documentation. The flow: an agent's refund is refused, a manager finds it in the database, signs
+an approval, and the agent retries with the approval attached. Two gaps were found. Neither is
+fixed.
+
+**G-65. A refused request cannot be escalated to a person and then approved. FOUND 2026-09-27,
+`pre-production`, open.** What the code does today:
+
+- **Policy has two outcomes.** `PolicyOutcome` is `APPROVE` or `REJECT`
+  (`packages/policy/src/types/PolicyOutcome.ts`), and `DecisionOutcome` is `APPROVED` or
+  `REJECTED` (`packages/shared/src/domain/decision.ts`). A refusal is final. Nothing holds a
+  request for review and nothing notifies a person. `BusinessTransactionStatus.OVERRIDDEN` is
+  declared and never set.
+- **Finding refused requests works.** A policy refusal is stored in `refusal_records` with the
+  intent, the decision (including the policy name and the reason), any binding violations,
+  `submitted_by` and `created_at`, and it is signed. Refusals that happen before policy runs
+  (authentication, capability scoping, principal checks, structural validation) are in
+  `caller_audit_events` instead. The `refusal_records` write can fail without failing the
+  request (`docs/CLAIMS.md` 3.11), so a query can miss rows; each miss is logged as
+  `refusal_record_write_failed`.
+- **A retry is a new transaction.** `business_transaction_id` is unique, so the refused
+  transaction cannot be run again.
+- **For `paytm:refund`, a signed approval changes nothing.** `customer-refund` 1.0.0 approves
+  only when `refundAmount` is 10000 or less. Above that, `reject-excessive-refund` applies and has
+  no approval exception, so a ₹75,000 refund is refused with or without a manager. At or below
+  10000, `managerApproved` is a value the caller sends and nothing checks (G-51), so an agent can
+  approve itself.
+- **The only checked approval is on HubSpot.** A signed approval is verified only for
+  `hubspot:deal-update` amount changes above the threshold (`HubSpotSignalStateVerifier`,
+  `packages/approval`). `TRUSTED_APPROVAL_ISSUERS` is empty
+  (`packages/api/src/bootstrap/createApprovalIssuerRegistry.ts:40`), so every such approval fails
+  today.
+
+**What can be said today:** a refused action is blocked and leaves a signed Refusal Record that
+people can review. **What cannot be said:** that a decision escalates to a person, or that a
+manager's approval lets a refused refund run.
+
+**Plan, not built:**
+
+1. **Verify the approval.** Add a `SignalStateVerifier` for `paytm:refund`, the same shape as
+   `HubSpotSignalStateVerifier`. It reads `signals.approvalArtifact` and calls
+   `ApprovalVerifier.verify` with `action: "paytm:refund"`, `resourceId` set to the Intent's
+   `parameters.orderId`, and `requestedValue` set to the Intent's `parameters.amount` (never the
+   caller's own signal). It returns a violation when `managerApproved` is `true` without a valid
+   artifact. Add it to the `CompositeSignalStateVerifier` in `packages/api/src/application.ts:83`,
+   so it also runs again at the gateway (G-31).
+2. **Change the policy.** A new `customer-refund` version: approve automatically at or below
+   10000 with the eligibility and fraud checks; above 10000, approve only when `managerApproved`
+   is `true`, up to a hard maximum; refuse above the maximum. Bind the new version (G-66).
+3. **Provision an approver.** The manager creates a key pair on their own machine and keeps the
+   private key there. The public key goes to
+   `$PARMANA_KEY_DIR/approval-issuers/<approverId>__<keyId>.public.pem`, with an entry in
+   `TRUSTED_APPROVAL_ISSUERS`, then deploy.
+4. **Give the manager a signing tool.** An SDK function or script that produces a
+   `SignedApproval` for one order and one amount scope, with a short expiry and a single use
+   nonce (consumed in `consumed_approval_nonces`).
+5. **Test it.** A valid approval executes. Each of these is refused with zero connector calls:
+   no artifact, expired, unknown issuer, revoked issuer, a different order, an amount above the
+   approved scope, a reused nonce, a changed payload, and `managerApproved: true` with no artifact.
+   Refunds at or below the automatic limit behave as before.
+
+**Corrections to an earlier draft of this plan:**
+
+- The check belongs in a `SignalStateVerifier`, which runs before policy evaluation and again
+  at the gateway. It does not belong in `RuntimeEngine` after evaluation.
+- The approval travels in `signals.approvalArtifact`, as it does for HubSpot. `ExecutionIntent`
+  does not change.
+- `PolicyOutcome` is an enum and needs no `requiresApproval` field. The threshold is expressed
+  in the policy's rules.
+- Approval signatures use the deployment's crypto provider (`CryptoBootstrap`, Ed25519 by
+  default), not ECDSA on prime256v1.
+- The public key is a PEM file under `PARMANA_KEY_DIR`, not a `MANAGER_APPROVER_PUBLIC_KEY`
+  variable. Private keys are never distributed; each approver holds their own.
+- The regression bar is the full workspace suite (`npm test`), not 68 tests.
+- "No faking. No workarounds." is not true until steps 1 to 5 ship, and then only for actions
+  routed through Parmana.
+
+**G-66. The policy version for each action is fixed in code, so a policy change needs a
+redeploy. FOUND 2026-09-27, `pre-production`, open.** `CANONICAL_CAPABILITY_POLICY_BINDINGS`
+(`packages/capability-registry/src/CapabilityPolicyBinding.ts:44`) maps each live capability to
+one policy name, version and schema version, for example `paytm:refund` to `customer-refund`
+1.0.0. `CapabilityPolicyBinder` (called at `packages/runtime/src/RuntimeEngine.ts:361`) refuses
+a request that names any other policy, and `assertConnectorCapabilitiesBound.ts` refuses to start
+when a live capability has no entry. This binding is the fix for G-30 and must stay. The cost: a
+new policy, or a new version of a bound one such as `customer-refund` 1.1.0, is not used until
+the map is edited and deployed, and then approved through policy governance.
+
+**Why "check the policy is approved" is not enough on its own.** Production already refuses a
+policy with no approval record (`docs/CLAIMS.md` 2.35). Without the binding, a caller could name
+an approved policy written for a different action, for example `slack-post-message` 1.0.0 for a
+refund, or an older approved version of the right policy with looser rules.
+
+**Option (recommended):** keep the policy **name** in code and take the **version** from
+policy governance. The current version for a name is the one with the latest
+`policy_change_approval_records` entry. The binder requires the declared name to equal the bound
+name and the declared version to equal the current one, and refuses the request if the lookup
+fails. A new version then goes live through propose and approve, with no deploy. A new name or a
+new capability still needs a deploy. **Alternative:** move the whole map into the database
+behind maker and checker. That needs a new table and a new change type, because
+`pending_policy_changes` carries only policy content.
+
 ---
 
 ## Remaining gaps, by severity
@@ -1475,7 +1578,8 @@ request. For `customer-refund` (Paytm), `refundAmount` is bound to `parameters.a
 against real state, so a caller can declare them true. The same applies to GitHub and Slack signals.
 **Not fixed. Option:** add capability scoped `SignalStateVerifier` implementations, starting with a signed
 approval artifact for `managerApproved` (the `SignedApprovalGuard` and `ApprovalIssuerRegistry` machinery
-already exists in `packages/approval`).
+already exists in `packages/approval`). **Addendum (2026-09-27):** G-65 has a step by step plan for
+`paytm:refund`.
 
 **G-52. The connector can be called before the Execution Trust Record can be signed, so a signing
 failure leaves an executed action with no signed trust record.** Found 2026-09-20 in the same live
