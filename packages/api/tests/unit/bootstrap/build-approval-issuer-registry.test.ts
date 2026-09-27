@@ -5,7 +5,10 @@ import path from "node:path";
 
 import { afterAll, describe, expect, it } from "vitest";
 
-import { buildApprovalIssuerRegistry } from "../../../src/bootstrap/createApprovalIssuerRegistry.js";
+import {
+  buildApprovalIssuerRegistry,
+  createApprovalIssuerRegistry,
+} from "../../../src/bootstrap/createApprovalIssuerRegistry.js";
 
 function ed25519Pem(): string {
   return generateKeyPairSync("ed25519")
@@ -130,5 +133,36 @@ describe("buildApprovalIssuerRegistry", () => {
     const registry = buildApprovalIssuerRegistry([], noDirectory);
 
     expect(registry.resolve("anyone", "any")).toBeUndefined();
+  });
+});
+
+describe("createApprovalIssuerRegistry (the list deployed to production)", () => {
+  // Every configured entry carries its key inline, so building the real
+  // list reads no key directory and cannot fail at startup on Vercel.
+  const registry = createApprovalIssuerRegistry();
+
+  it("trusts the refund manager's Ed25519 key, not revoked", () => {
+    const manager = registry.resolve(
+      "manager-charak1987",
+      "manager-charak1987-key-1",
+    );
+
+    expect(manager).toBeDefined();
+    expect(manager?.revoked).toBe(false);
+    expect(manager?.publicKey.asymmetricKeyType).toBe("ed25519");
+    expect(
+      manager?.publicKey
+        .export({ format: "der", type: "spki" })
+        .toString("base64"),
+    ).toBe("MCowBQYDK2VwAyEAVMs/E6N2XEQfEEWlwMg0wRS0L4svbZ0W785aAxUP78M=");
+  });
+
+  it("trusts no other key id for that approver, and no unknown approver", () => {
+    expect(
+      registry.resolve("manager-charak1987", "manager-charak1987-key-2"),
+    ).toBeUndefined();
+    expect(
+      registry.resolve("manager-priya", "manager-priya-key-1"),
+    ).toBeUndefined();
   });
 });

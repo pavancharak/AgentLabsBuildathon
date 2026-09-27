@@ -785,7 +785,8 @@ because approver keys belong to people, like step up keys.
   `scripts/tests/approver-scripts.test.ts` (14, including the script's output accepted by the
   server's verifier).
 - **Still open:** step 3. `TRUSTED_APPROVAL_ISSUERS` is still empty, so in a deployment every
-  approval is refused until an operator adds a real approver and deploys. In production,
+  approval is refused until an operator adds a real approver and deploys. **Update (2026-09-28):**
+  step 3 done in code: `manager-charak1987` is listed, held by the operator. In production,
   `customer-refund` 1.1.0 authorizes nothing until it is proposed and approved through policy
   governance; until then every refund is refused. `refundEligible` and `fraudCheckPassed` are
   still caller declared (G-51). Nothing notifies a manager of a refusal; they find it by query.
@@ -959,7 +960,8 @@ production. It is closed there: every production API key was rotated on 2026-09-
 `TRUSTED_APPROVAL_ISSUERS`, every production refund above 10000 is refused. The change was proposed by
 `policy-maker` and approved by `reviewer-charak1987`: two distinct credentials held by one person, which
 the server cannot tell apart from two people. `refundEligible` and `fraudCheckPassed` are still caller
-declared.
+declared. **Update (2026-09-28):** one approver, `manager-charak1987`, held by the operator, is now listed
+in `TRUSTED_APPROVAL_ISSUERS`; refunds above 10000 need that approver's signature.
 
 ### blocks-pilot
 

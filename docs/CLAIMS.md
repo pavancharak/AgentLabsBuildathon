@@ -1181,7 +1181,7 @@ A `paytm:refund` above 10000 executes only with a signed approval from a trusted
 
 Scope, stated plainly:
 
-- **No approver is configured.** `TRUSTED_APPROVAL_ISSUERS` is empty, so in a deployment every approval is refused until an operator adds one and deploys. The success path is proven in tests with a test approver, not in production.
+- **One approver is configured.** `TRUSTED_APPROVAL_ISSUERS` lists one approver, `manager-charak1987` (added 2026-09-28, held by the operator, who also holds the maker and checker credentials); an approval from anyone else is refused. It takes effect in production when its change is deployed. The success path is proven in tests with a test approver; an approval signed by `manager-charak1987` being accepted in production has not been checked yet.
 - **Approved in production, 2026-09-27 18:53:40 UTC** (pending change `008f504d-0efd-4bec-b33a-2991bb84099f`), so refunds in production run under 1.1.0. With no approver configured, every production refund above 10000 is refused. The approval was made with two distinct credentials held by one person, not by two people (2.43).
 - A refused request is not held for a person, and nobody is notified. The agent sends a new request with the approval.
 - `refundEligible` and `fraudCheckPassed` are still caller declared (G-51).

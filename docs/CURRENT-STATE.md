@@ -139,8 +139,9 @@ Merged to `main` and deployed to production on 2026-09-27 (PR #46, merge `4eebd5
   an Ed25519 key from `scripts/generate-approver-key.ts`.
 - **In production:** `customer-refund` 1.1.0 was approved on 2026-09-27
   18:53:40 UTC, so refunds run under 1.1.0 (the version in effect comes from
-  governance, G-66). `TRUSTED_APPROVAL_ISSUERS` is still empty, so every
-  refund above 10000 is refused. The maker and checker credentials are
+  governance, G-66). `TRUSTED_APPROVAL_ISSUERS` lists one approver,
+  `manager-charak1987` (added 2026-09-28), so a refund above 10000 needs
+  that approver's signature. The maker, checker and approver credentials are
   currently held by one person.
 - **Does not exist:** an escalation state that holds a request for a person,
   or any notification. A refused request stays refused; the agent sends a
