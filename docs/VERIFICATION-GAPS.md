@@ -810,6 +810,18 @@ and with it, both pass. Unit tests: `packages/approval/tests/unit/ApprovalVerifi
 (consumeNonce), `packages/execution-gateway/tests/unit/signal-freshness.test.ts` (the gateway
 passes `"release"`).
 
+**G-68. An approver could not be provisioned on Vercel. FOUND and CLOSED 2026-09-27,
+`blocks-pilot`.** Found while preparing the go live steps for G-65. `createApprovalIssuerRegistry.ts`
+read each trusted approver's public key only from
+`$PARMANA_KEY_DIR/approval-issuers/<approverId>__<keyId>.public.pem`. On Vercel the key directory
+is filled only by `PARMANA_KEY_MATERIAL_JSON`, which writes flat `<keyId>.private.pem` and
+`.public.pem` pairs, needs a private key, and cannot write into a subfolder. So no approver could be
+added in production, and every signed approval would stay refused. **Fix:** an entry in
+`TRUSTED_APPROVAL_ISSUERS` may carry the key as `publicKeyPem` (public keys are not secret; the list
+is reviewed code); the file stays as the fallback. `buildApprovalIssuerRegistry` stops the server at
+startup on a missing file, a key that does not parse, a key that is not Ed25519, or a duplicate
+entry. **Tests:** `packages/api/tests/unit/bootstrap/build-approval-issuer-registry.test.ts` (8).
+
 **G-66. The policy version for each action is fixed in code, so a policy change needs a
 redeploy. FOUND 2026-09-27, `pre-production`. BUILT the same day, merged to `main` and deployed to production on 2026-09-27 (PR #46, merge `4eebd5f`) (see "Built" at the end of
 this entry).** `CANONICAL_CAPABILITY_POLICY_BINDINGS`

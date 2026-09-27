@@ -1,4 +1,4 @@
-import { createPublicKey } from "node:crypto";
+import { createPublicKey, type KeyObject } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -9,10 +9,19 @@ import type {
 } from "@parmana/approval";
 import { loadConfig } from "@parmana/shared";
 
-interface ConfiguredApprovalIssuer {
+export interface ConfiguredApprovalIssuer {
   readonly approverId: string;
   readonly keyId: string;
   readonly revoked: boolean;
+
+  /**
+   * The approver's Ed25519 public key as PEM, written here in the entry.
+   * Public keys are not secret, and this list is reviewed code. This is
+   * the way to provision an approver where the server cannot read
+   * files you add, such as on Vercel. When absent, the key is read from
+   * $PARMANA_KEY_DIR/approval-issuers/<approverId>__<keyId>.public.pem.
+   */
+  readonly publicKeyPem?: string;
 }
 
 /**
@@ -34,55 +43,95 @@ interface ConfiguredApprovalIssuer {
  * every preAuthorizedForAmountChange claim is rejected
  * (ApprovalVerifier.verify's issuerKnown check fails for every
  * artifact) until an operator adds a real entry here and provisions
- * the matching public key file below, rather than silently trusting
- * an unconfigured default.
+ * the matching public key (inline as publicKeyPem, or as a file
+ * below), rather than silently trusting an unconfigured default.
+ *
+ * To add an approver: they run scripts/generate-approver-key.ts on their
+ * own machine and send the .public.pem file; paste its contents into
+ * publicKeyPem, open a pull request, deploy. To revoke: revoked: true.
  */
 const TRUSTED_APPROVAL_ISSUERS: readonly ConfiguredApprovalIssuer[] = [];
 
 /**
- * Creates the ApprovalIssuerRegistry used by the ApprovalVerifier
- * wired into HubSpotSignalStateVerifier.
- *
- * Each configured issuer's public key is loaded the same way
- * createGatewayKeyPair.ts loads the Gateway's own keypair: a PEM file
- * under PARMANA_KEY_DIR, generated out-of-band (never generated
- * automatically). Scoped to its own approval-issuers/ subdirectory,
- * distinct from the Gateway's and RuntimeAuthorizationSigner's own
- * key files, since these are a different trust domain entirely (an
- * external business approver's key, never Parmana's own runtime key).
+ * Creates the ApprovalIssuerRegistry used by the ApprovalVerifier every
+ * approval check shares (createApprovalVerifier.ts).
  */
 export function createApprovalIssuerRegistry(): ApprovalIssuerRegistry {
-  if (TRUSTED_APPROVAL_ISSUERS.length === 0) {
-    return new StaticApprovalIssuerRegistry([]);
-  }
+  return buildApprovalIssuerRegistry(TRUSTED_APPROVAL_ISSUERS, () => {
+    const config = loadConfig();
 
-  const config = loadConfig();
+    if (!config.keys.keyDirectory) {
+      throw new Error("PARMANA_KEY_DIR is not configured.");
+    }
 
-  if (!config.keys.keyDirectory) {
-    throw new Error("PARMANA_KEY_DIR is not configured.");
-  }
+    return config.keys.keyDirectory;
+  });
+}
 
-  const issuers: TrustedApprovalIssuer[] = TRUSTED_APPROVAL_ISSUERS.map(
-    ({ approverId, keyId, revoked }) => {
-      const publicKeyPath = join(
-        config.keys.keyDirectory as string,
-        "approval-issuers",
-        `${approverId}__${keyId}.public.pem`,
-      );
+/**
+ * Builds the registry from configured entries. A key is taken from the
+ * entry's publicKeyPem when present, otherwise from its file under
+ * approval-issuers/ in the key directory, which is looked up only when
+ * a file is needed. Fails closed at startup: a missing file, an
+ * unparseable key, a key that is not Ed25519 (approvals are verified
+ * with Ed25519 only, APPROVAL_ARTIFACT_CRYPTO_PROVIDER), or the same
+ * approver and key id twice stops the server.
+ */
+export function buildApprovalIssuerRegistry(
+  entries: readonly ConfiguredApprovalIssuer[],
+  keyDirectory: () => string,
+): ApprovalIssuerRegistry {
+  const seen = new Set<string>();
 
-      if (!existsSync(publicKeyPath)) {
+  const issuers: TrustedApprovalIssuer[] = entries.map(
+    ({ approverId, keyId, revoked, publicKeyPem }) => {
+      const label = `${approverId}__${keyId}`;
+
+      if (seen.has(label)) {
         throw new Error(
-          `Approval issuer public key not found: ${publicKeyPath}. Provision it before starting -- ` +
-            "no key is generated automatically.",
+          `Approval issuer ${approverId} with key ${keyId} is listed twice.`,
         );
       }
 
-      return {
-        approverId,
-        keyId,
-        publicKey: createPublicKey(readFileSync(publicKeyPath, "utf8")),
-        revoked,
-      };
+      seen.add(label);
+
+      let pem = publicKeyPem;
+
+      if (pem === undefined) {
+        const publicKeyPath = join(
+          keyDirectory(),
+          "approval-issuers",
+          `${label}.public.pem`,
+        );
+
+        if (!existsSync(publicKeyPath)) {
+          throw new Error(
+            `Approval issuer public key not found: ${publicKeyPath}. Provision it, or put it in the entry as publicKeyPem, before starting -- ` +
+              "no key is generated automatically.",
+          );
+        }
+
+        pem = readFileSync(publicKeyPath, "utf8");
+      }
+
+      let publicKey: KeyObject;
+
+      try {
+        publicKey = createPublicKey(pem);
+      } catch (error) {
+        throw new Error(
+          `Approval issuer ${approverId} key ${keyId}: the public key is not a valid PEM public key (${error instanceof Error ? error.message : String(error)}).`,
+          { cause: error },
+        );
+      }
+
+      if (publicKey.asymmetricKeyType !== "ed25519") {
+        throw new Error(
+          `Approval issuer ${approverId} key ${keyId}: the public key is ${publicKey.asymmetricKeyType}, but approval keys must be Ed25519.`,
+        );
+      }
+
+      return { approverId, keyId, publicKey, revoked };
     },
   );
 

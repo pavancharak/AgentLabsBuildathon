@@ -48,10 +48,41 @@ Refund rules in `customer-refund` 1.1.0: up to 10000 automatic after the eligibi
 In this order:
 
 1. **Approve `customer-refund` 1.1.0 in production** through policy governance: one person proposes, a second approves with a step up signature. The code is deployed; this approval is what switches refunds from 1.0.0 to verified manager approvals, with no deploy.
-2. **Add a real approver.** The manager runs `scripts/generate-approver-key.ts` on their own machine. The operator puts the public key file under `$PARMANA_KEY_DIR/approval-issuers/`, adds the entry to `TRUSTED_APPROVAL_ISSUERS` in `packages/api/src/bootstrap/createApprovalIssuerRegistry.ts`, and deploys. It ships empty, so every approval is refused until then.
+2. **Add a real approver.** The manager runs `scripts/generate-approver-key.ts` on their own machine and sends the `.public.pem` file. The operator adds `{ approverId, keyId, revoked: false, publicKeyPem }` to `TRUSTED_APPROVAL_ISSUERS` in `packages/api/src/bootstrap/createApprovalIssuerRegistry.ts`, opens a pull request, and deploys. The inline `publicKeyPem` is what makes this possible on Vercel (G-68).
 3. **Confirm the numbers:** 10000 automatic limit, 100000 maximum.
 4. **CI:** everything passed on #46 except `verify-policy-approvals`, which needs the `SUPABASE_URL` and `SUPABASE_ANON_KEY` secrets in GitHub Actions (none are set) and an approved 1.1.0. #46 was merged with that check failing.
 5. **Know the behavior change:** refunds up to 10000 no longer need `managerApproved: true`.
+
+## Go live commands for production
+
+Production API: `https://parmana-api-real.vercel.app`. The 2026-09-20 inventory showed policies proposed by `charak1987` and approved by `policy-reviewer-1` (`docs/REMAINING-WORK.md`, B.6). Each person runs their own part with their own key; the server refuses an approval from the proposer.
+
+**The proposer**, from a clone of `main`:
+
+```bash
+export PARMANA_URL=https://parmana-api-real.vercel.app
+export PROPOSER_KEY=<the proposer's API key>
+
+printf '{"reason":"Refunds above 10000 need a verified manager approval (G-65).","proposedContent":%s}'   "$(cat policies/customer-refund/1.1.0/policy.json)" > proposal.json
+
+curl -s -X POST $PARMANA_URL/policies/customer-refund/1.1.0/pending-changes   -H "Authorization: Bearer $PROPOSER_KEY" -H "Content-Type: application/json"   --data @proposal.json
+```
+
+The response holds `pendingPolicyChangeId`; send it to the approver.
+
+**The approver**, on their own machine with their step up private key:
+
+```bash
+export PARMANA_URL=https://parmana-api-real.vercel.app
+export APPROVER_KEY=<the approver's API key>
+export CHANGE_ID=<the pendingPolicyChangeId>
+
+npx tsx scripts/sign-policy-change-step-up.ts   --private-key-file <path to the approver's step up private key> --key-id <the approver's caller id>   --pending-policy-change-id "$CHANGE_ID" --action approve > signed.txt
+
+curl -s -X POST $PARMANA_URL/policies/pending-changes/$CHANGE_ID/approve   -H "Authorization: Bearer $APPROVER_KEY" -H "Content-Type: application/json"   -d "{\"stepUpAuthorization\":$(grep '^{' signed.txt)}"
+```
+
+The signature is valid for 120 seconds, so send it right after signing. The response says `"status":"APPROVED"`. From then on refunds must name `customer-refund` 1.1.0.
 
 ## Open, in order of what to do next
 

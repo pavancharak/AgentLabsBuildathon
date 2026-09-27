@@ -7,10 +7,12 @@ import { join } from "node:path";
  * Artifacts (scripts/sign-approval.ts).
  *
  * Run by the approver, on their own machine. The private key never
- * leaves it. The public key file is named the way the server loads it:
- * the operator copies it to $PARMANA_KEY_DIR/approval-issuers/ and adds
- * { approverId, keyId, revoked: false } to TRUSTED_APPROVAL_ISSUERS in
- * packages/api/src/bootstrap/createApprovalIssuerRegistry.ts.
+ * leaves it. The operator adds { approverId, keyId, revoked: false,
+ * publicKeyPem } to TRUSTED_APPROVAL_ISSUERS in
+ * packages/api/src/bootstrap/createApprovalIssuerRegistry.ts, pasting
+ * the public key file's contents as publicKeyPem, and deploys. The file
+ * is also named the way the server loads it from
+ * $PARMANA_KEY_DIR/approval-issuers/, for deployments that use files.
  *
  * Usage:
  *   npx tsx scripts/generate-approver-key.ts \
@@ -105,12 +107,11 @@ function main(args = process.argv.slice(2)): void {
     );
     console.log();
     console.log(
-      "The operator copies the public key file to $PARMANA_KEY_DIR/approval-issuers/",
+      `The operator adds { approverId: "${approverId}", keyId: "${keyId}", revoked: false, publicKeyPem: <the public key file's contents> }`,
     );
     console.log(
-      `and adds { approverId: "${approverId}", keyId: "${keyId}", revoked: false }`,
+      "to TRUSTED_APPROVAL_ISSUERS in packages/api/src/bootstrap/createApprovalIssuerRegistry.ts, then deploys.",
     );
-    console.log("to TRUSTED_APPROVAL_ISSUERS, then deploys.");
     console.log();
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
