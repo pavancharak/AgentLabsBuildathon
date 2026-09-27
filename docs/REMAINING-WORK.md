@@ -101,16 +101,17 @@ The source documents the 2026-09-25 plan refers to (`PARMANA-SAAS-LOCAL-EXECUTIO
 
 Goal: agents run routine work automatically, and a person approves the actions a policy says need one, with proof, without Parmana holding a request open. Built on 2026-09-27 on branch `feat/refund-manager-approval`, PR #46, not merged. The claim is `docs/CLAIMS.md` 2.42, the record is G-65, G-66 and G-67 in `docs/VERIFICATION-GAPS.md`, the guide is `docs/site/concepts/human-approval.mdx`, and the resume point, with what to do next, is `docs/progress/2026-09-27-HUMAN-APPROVAL.md`.
 
-| Item                                                                  | Gap  | State                                                                             |
-| --------------------------------------------------------------------- | ---- | --------------------------------------------------------------------------------- |
-| Approvals declared by policy, enforced for any action                 | G-65 | Built, PR #46. 24 unit tests, 14 validator tests.                                 |
-| Refunds above 10000 need a manager approval (`customer-refund` 1.1.0) | G-65 | Built, PR #46. 15 integration tests through the real bootstrap.                   |
-| A valid approval could never pass the gateway                         | G-67 | Fixed, PR #46. HubSpot and refund success tests.                                  |
-| Approver key and signing tools                                        | none | Built, PR #46. `scripts/generate-approver-key.ts`, `scripts/sign-approval.ts`.    |
-| Docker quickstart and offline checks with 1.1.0                       | none | Updated, not run locally. Run in CI on #46.                                       |
-| Approve 1.1.0 in production, add an approver, deploy                  | none | Needs the operator, see section A.                                                |
-| Policy version from governance, no redeploy                           | G-66 | Built, PR #47, stacked on #46. 32 tests.                                          |
-| A way for agents to learn the version in effect before sending        | none | Open. Today a request naming another version is refused with a message naming it. |
-| Approvers managed without a deploy                                    | none | Open.                                                                             |
-| Notify a manager when a request waits for approval                    | none | Open. Today they find it by query.                                                |
-| `signApproval()` in the SDKs                                          | none | Open.                                                                             |
+| Item                                                                  | Gap  | State                                                                                                                                         |
+| --------------------------------------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Approvals declared by policy, enforced for any action                 | G-65 | Built, PR #46. 24 unit tests, 14 validator tests.                                                                                             |
+| Refunds above 10000 need a manager approval (`customer-refund` 1.1.0) | G-65 | Built, PR #46. 15 integration tests through the real bootstrap.                                                                               |
+| A valid approval could never pass the gateway                         | G-67 | Fixed, PR #46. HubSpot and refund success tests.                                                                                              |
+| Approver key and signing tools                                        | none | Built, PR #46. `scripts/generate-approver-key.ts`, `scripts/sign-approval.ts`.                                                                |
+| Docker quickstart and offline checks with 1.1.0                       | none | Passed in CI on #46, 2026-09-27 (`self-hosted`, `build-and-boot`).                                                                            |
+| CI `verify-policy-approvals`                                          | none | Fails on #46 without checking: `SUPABASE_URL` is not set in GitHub Actions. Needs the operator: set the secrets, approve 1.1.0 in production. |
+| Approve 1.1.0 in production, add an approver, deploy                  | none | Needs the operator, see section A.                                                                                                            |
+| Policy version from governance, no redeploy                           | G-66 | Built, PR #47, stacked on #46. 32 tests.                                                                                                      |
+| A way for agents to learn the version in effect before sending        | none | Open. Today a request naming another version is refused with a message naming it.                                                             |
+| Approvers managed without a deploy                                    | none | Open.                                                                                                                                         |
+| Notify a manager when a request waits for approval                    | none | Open. Today they find it by query.                                                                                                            |
+| `signApproval()` in the SDKs                                          | none | Open.                                                                                                                                         |
