@@ -77,6 +77,22 @@ export class SupabasePolicyChangeApprovalRecordRepository implements PolicyChang
 
     return row ? toPolicyChangeApprovalRecord(row) : null;
   }
+
+  /**
+   * The most recent approval record for a policy name, across all its
+   * versions: the version currently in effect (G-66).
+   */
+  async findMostRecentForName(
+    policyName: string,
+  ): Promise<PolicyChangeApprovalRecord | null> {
+    const { rows } = await this.pool.query(SELECT_MOST_RECENT_FOR_NAME_SQL, [
+      policyName,
+    ]);
+
+    const row = rows[0] as PolicyChangeApprovalRecordRow | undefined;
+
+    return row ? toPolicyChangeApprovalRecord(row) : null;
+  }
 }
 
 const INSERT_APPROVAL_RECORD_SQL = `
@@ -94,6 +110,13 @@ const SELECT_BY_ID_SQL = `
 
 const SELECT_ALL_SQL = `
   SELECT * FROM policy_change_approval_records ORDER BY approved_at DESC
+`;
+
+const SELECT_MOST_RECENT_FOR_NAME_SQL = `
+  SELECT * FROM policy_change_approval_records
+  WHERE policy_name = $1
+  ORDER BY approved_at DESC, policy_change_approval_record_id DESC
+  LIMIT 1
 `;
 
 const SELECT_MOST_RECENT_FOR_SQL = `

@@ -27,6 +27,7 @@ import {
 } from "./repositories.js";
 
 import { createApprovalVerifier } from "./bootstrap/createApprovalVerifier.js";
+import { createCurrentPolicyVersionSource } from "./bootstrap/createCurrentPolicyVersionSource.js";
 import { createHubSpotSignalStateVerifier } from "./bootstrap/createHubSpotSignalStateVerifier.js";
 import { createApprovalSignalVerifier } from "./bootstrap/createApprovalSignalVerifier.js";
 import { executionGatewaySignalStateVerifier } from "./bootstrap/executionGatewaySignalStateVerifier.js";
@@ -113,5 +114,6 @@ export function createApplication(executionSystem: ExecutionSystem) {
     createPolicyGovernanceAnchorResolver(),
     createSigningReadiness(),
     createExecutionIntents(),
+    createCurrentPolicyVersionSource(),
   );
 }

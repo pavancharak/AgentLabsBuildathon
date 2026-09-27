@@ -30,7 +30,7 @@ console.log(
   "Scenario 1: An action with no canonical binding (every test/tutorial-only action)",
 );
 console.log("--------------------------------------------------");
-const violation1 = binder.findViolation("PAY", {
+const violation1 = await binder.findViolation("PAY", {
   name: "payment-approval",
   version: "1.0.0",
   schemaVersion: "1.0.0",
@@ -44,7 +44,7 @@ console.log(
   "Scenario 2: A real capability paired with its own correct, canonical policy",
 );
 console.log("--------------------------------------------------");
-const violation2 = binder.findViolation("hubspot:deal-update", {
+const violation2 = await binder.findViolation("hubspot:deal-update", {
   name: "hubspot-deal-update",
   version: "1.0.0",
   schemaVersion: "1.0.0",
@@ -63,7 +63,7 @@ console.log("--------------------------------------------------");
 // rule is trivially satisfiable by caller-declared signals alone,
 // entirely decoupled from the real deal state that would actually be
 // mutated.
-const violation3 = binder.findViolation("hubspot:deal-update", {
+const violation3 = await binder.findViolation("hubspot:deal-update", {
   name: "vendor-payment",
   version: "2.0.0",
   schemaVersion: "1.0.0",
@@ -75,7 +75,7 @@ console.log(
   "Scenario 4: The same substitution shape against hubspot:deal-fetch",
 );
 console.log("--------------------------------------------------");
-const violation4 = binder.findViolation("hubspot:deal-fetch", {
+const violation4 = await binder.findViolation("hubspot:deal-fetch", {
   name: "customer-refund",
   version: "1.0.0",
   schemaVersion: "1.0.0",
@@ -85,7 +85,7 @@ console.log();
 
 console.log("Scenario 5: Correct policy NAME, but the wrong VERSION");
 console.log("--------------------------------------------------");
-const violation5 = binder.findViolation("hubspot:deal-update", {
+const violation5 = await binder.findViolation("hubspot:deal-update", {
   name: "hubspot-deal-update",
   version: "9.9.9",
   schemaVersion: "1.0.0",

@@ -19,7 +19,8 @@ every commit, run `git log` in the repository for the complete record.
 
 **Changed**
 
-- **`paytm:refund` now uses `customer-refund` 1.1.0.** Up to 10000 is automatic, with no `managerApproved` needed; above 10000 and up to 100000 needs a signed manager approval; above 100000 is refused. Requests naming 1.0.0 for `paytm:refund` are refused. In production, 1.1.0 must be proposed and approved through policy governance before it authorizes anything.
+- **A live action's policy version is decided by policy governance.** The policy name for each action stays fixed in code; the version is the one most recently approved for that name. A new version takes effect when it is approved, with no deploy, and approving an older version again rolls back. A request naming any other version is refused with a message naming the version in effect, so agents must send that version. See [Human approval](/concepts/human-approval#why-each-action-is-bound-to-one-policy).
+- **`paytm:refund` now uses `customer-refund` 1.1.0.** Up to 10000 is automatic, with no `managerApproved` needed; above 10000 and up to 100000 needs a signed manager approval; above 100000 is refused. In production, refunds move to 1.1.0 when it is approved through policy governance.
 - Approval signatures are verified with Ed25519 only, whatever the server's own signing algorithm is.
 
 **Fixed**

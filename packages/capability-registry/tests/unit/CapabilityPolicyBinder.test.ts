@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   CANONICAL_CAPABILITY_POLICY_BINDINGS,
   CapabilityPolicyBinder,
+  type CurrentPolicyVersionSource,
 } from "../../src/CapabilityPolicyBinding.js";
 import type { PolicyReference } from "@parmana/shared";
 
@@ -26,10 +27,10 @@ import type { PolicyReference } from "@parmana/shared";
  * depend on all of @parmana/policy to find out.
  */
 describe("CapabilityPolicyBinder", () => {
-  it("reports no violation for an action with no canonical binding (every test/tutorial action)", () => {
+  it("reports no violation for an action with no canonical binding (every test/tutorial action)", async () => {
     const binder = new CapabilityPolicyBinder();
 
-    const violation = binder.findViolation("PAY", {
+    const violation = await binder.findViolation("PAY", {
       name: "payment-approval",
       version: "1.0.0",
       schemaVersion: "1.0.0",
@@ -38,10 +39,10 @@ describe("CapabilityPolicyBinder", () => {
     expect(violation).toBeUndefined();
   });
 
-  it("reports no violation when the declared policy matches the canonical binding", () => {
+  it("reports no violation when the declared policy matches the canonical binding", async () => {
     const binder = new CapabilityPolicyBinder();
 
-    const violation = binder.findViolation("hubspot:deal-update", {
+    const violation = await binder.findViolation("hubspot:deal-update", {
       name: "hubspot-deal-update",
       version: "1.0.0",
       schemaVersion: "1.0.0",
@@ -50,7 +51,7 @@ describe("CapabilityPolicyBinder", () => {
     expect(violation).toBeUndefined();
   });
 
-  it("blocks the exact live-shaped exploit: a real capability paired with an unrelated, unprotected policy", () => {
+  it("blocks the exact live-shaped exploit: a real capability paired with an unrelated, unprotected policy", async () => {
     const binder = new CapabilityPolicyBinder();
 
     // The exact attack found during verification: hubspot:deal-update
@@ -64,7 +65,10 @@ describe("CapabilityPolicyBinder", () => {
       schemaVersion: "1.0.0",
     };
 
-    const violation = binder.findViolation("hubspot:deal-update", declared);
+    const violation = await binder.findViolation(
+      "hubspot:deal-update",
+      declared,
+    );
 
     expect(violation).toEqual({
       action: "hubspot:deal-update",
@@ -77,10 +81,10 @@ describe("CapabilityPolicyBinder", () => {
     });
   });
 
-  it("blocks the same shape of substitution for hubspot:deal-fetch", () => {
+  it("blocks the same shape of substitution for hubspot:deal-fetch", async () => {
     const binder = new CapabilityPolicyBinder();
 
-    const violation = binder.findViolation("hubspot:deal-fetch", {
+    const violation = await binder.findViolation("hubspot:deal-fetch", {
       name: "customer-refund",
       version: "1.0.0",
       schemaVersion: "1.0.0",
@@ -93,10 +97,10 @@ describe("CapabilityPolicyBinder", () => {
     });
   });
 
-  it("reports a violation for a version mismatch even when the policy name matches", () => {
+  it("reports a violation for a version mismatch even when the policy name matches", async () => {
     const binder = new CapabilityPolicyBinder();
 
-    const violation = binder.findViolation("hubspot:deal-update", {
+    const violation = await binder.findViolation("hubspot:deal-update", {
       name: "hubspot-deal-update",
       version: "9.9.9",
       schemaVersion: "1.0.0",
@@ -105,7 +109,7 @@ describe("CapabilityPolicyBinder", () => {
     expect(violation).toBeDefined();
   });
 
-  it("has exactly one canonical policy per bound capability", () => {
+  it("has exactly one canonical policy per bound capability", async () => {
     const seenActions = new Set<string>();
 
     for (const action of CANONICAL_CAPABILITY_POLICY_BINDINGS.keys()) {
@@ -116,7 +120,7 @@ describe("CapabilityPolicyBinder", () => {
     expect(CANONICAL_CAPABILITY_POLICY_BINDINGS.size).toBe(seenActions.size);
   });
 
-  it("binds every capability the production connector registry actually registers", () => {
+  it("binds every capability the production connector registry actually registers", async () => {
     const boundActions = new Set(CANONICAL_CAPABILITY_POLICY_BINDINGS.keys());
 
     //
@@ -150,7 +154,7 @@ describe("CapabilityPolicyBinder", () => {
     //
     // paytm:refund (packages/api/src/bootstrap/createConnectorRegistry.ts,
     // wired alongside the remote Paytm connector) is bound to
-    // customer-refund/1.0.0 -- the same policy customer-refund's own
+    // customer-refund (1.1.0 since G-65) -- the same policy customer-refund's own
     // unit/reference-policy tests already exercise directly (see
     // packages/policy/tests/unit/ReferencePolicies*.test.ts).
     //
@@ -167,5 +171,126 @@ describe("CapabilityPolicyBinder", () => {
         "slack:post-message",
       ]),
     );
+  });
+
+  describe("with the version taken from policy governance (G-66)", () => {
+    function source(
+      versions: Record<string, string | undefined>,
+    ): CurrentPolicyVersionSource & { calls: string[] } {
+      const calls: string[] = [];
+      return {
+        calls,
+        async currentVersion(policyName: string) {
+          calls.push(policyName);
+          return versions[policyName];
+        },
+      };
+    }
+
+    const refund = (version: string): PolicyReference => ({
+      name: "customer-refund",
+      version,
+      schemaVersion: "1.0.0",
+    });
+
+    it("accepts the approved version, even when the binding in code names another", async () => {
+      const binder = new CapabilityPolicyBinder(
+        source({ "customer-refund": "1.2.0" }),
+      );
+
+      expect(
+        await binder.findViolation("paytm:refund", refund("1.2.0")),
+      ).toBeUndefined();
+    });
+
+    it("refuses the version written in code when governance has approved another", async () => {
+      const binder = new CapabilityPolicyBinder(
+        source({ "customer-refund": "1.2.0" }),
+      );
+
+      expect(
+        await binder.findViolation("paytm:refund", refund("1.1.0")),
+      ).toEqual({
+        action: "paytm:refund",
+        expected: refund("1.2.0"),
+        declared: refund("1.1.0"),
+      });
+    });
+
+    it("refuses an older version that was approved in the past", async () => {
+      const binder = new CapabilityPolicyBinder(
+        source({ "customer-refund": "1.1.0" }),
+      );
+
+      expect(
+        await binder.findViolation("paytm:refund", refund("1.0.0")),
+      ).toBeDefined();
+    });
+
+    it("still refuses another policy name, whatever its version", async () => {
+      const binder = new CapabilityPolicyBinder(
+        source({ "customer-refund": "1.1.0" }),
+      );
+
+      const violation = await binder.findViolation("paytm:refund", {
+        name: "slack-post-message",
+        version: "1.1.0",
+        schemaVersion: "1.0.0",
+      });
+
+      expect(violation?.expected.name).toBe("customer-refund");
+    });
+
+    it("looks up the bound name, never the declared one", async () => {
+      const versions = source({
+        "customer-refund": "1.1.0",
+        "slack-post-message": "1.0.0",
+      });
+      const binder = new CapabilityPolicyBinder(versions);
+
+      await binder.findViolation("paytm:refund", {
+        name: "slack-post-message",
+        version: "1.0.0",
+        schemaVersion: "1.0.0",
+      });
+
+      expect(versions.calls).toEqual(["customer-refund"]);
+    });
+
+    it("refuses when no version was ever approved, and says so", async () => {
+      const binder = new CapabilityPolicyBinder(source({}));
+
+      const violation = await binder.findViolation(
+        "paytm:refund",
+        refund("1.1.0"),
+      );
+
+      expect(violation?.reason).toContain("has been approved");
+    });
+
+    it("refuses when the lookup fails, and says so", async () => {
+      const binder = new CapabilityPolicyBinder({
+        async currentVersion() {
+          throw new Error("database unreachable");
+        },
+      });
+
+      const violation = await binder.findViolation(
+        "paytm:refund",
+        refund("1.1.0"),
+      );
+
+      expect(violation?.reason).toContain("database unreachable");
+    });
+
+    it("does not look anything up for an unbound action", async () => {
+      const versions = source({});
+      const binder = new CapabilityPolicyBinder(versions);
+
+      expect(
+        await binder.findViolation("PAY", refund("1.0.0")),
+      ).toBeUndefined();
+      expect(versions.calls).toEqual([]);
+    });
   });
 });

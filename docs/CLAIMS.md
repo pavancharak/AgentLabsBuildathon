@@ -514,6 +514,8 @@ Evidence
 
 **Update (2026-08-26, G-30 architecture follow-up, Option C implemented):** `CANONICAL_CAPABILITY_POLICY_BINDINGS` and `CapabilityPolicyBinder` moved out of `@parmana/policy` into a new leaf package, `@parmana/capability-registry`, depending only on `@parmana/shared`. `@parmana/policy`'s own public API is unaffected — `packages/policy/src/index.ts` re-exports both symbols from the new package unchanged, so every existing consumer importing from `@parmana/policy` needed no changes; confirmed by grep across the ~10 files that do (`RuntimeEngine.ts`, `RuntimeBuilder.ts`, `execute.ts`, and others). **Deviation from the original Option C sketch, corrected before implementing:** the plan in `G-30-ARCHITECTURE-OPTIONS.md` proposed also importing capability-identifier constants from `@parmana/connector-github`/`@parmana/connector-hubspot` into the new package to remove identifier-string duplication. Checked before doing it: `@parmana/connector-hubspot` already depends on `@parmana/policy` directly, and `@parmana/connector-github` depends on `@parmana/connector-sdk`, which also depends on `@parmana/policy` — either import would have created a direct dependency cycle back through the package this extraction was built to be depended on by. Not done; the four capability-identifier strings remain hand-typed in `CapabilityPolicyBinding.ts`, same as before the move, still duplicated against `GitHubCapabilities.ts`/`HubSpotCapabilities.ts`'s own separate constants. What this move does close: the `packages/policy` → `packages/api` backwards-dependency edge Option B would have required. Full detail in `G-30-ARCHITECTURE-OPTIONS.md` and `G-30-RESOLUTION-ARCHITECTURE.md` (repo root). Verified: full rebuild (`npx tsc -b`, clean) and full suite unchanged at 1274 passed, 37 skipped, 0 failed.
 
+**Update (2026-09-27, G-66, on branch `feat/policy-version-from-governance`, not merged):** the binding pins the policy **name**; where policy governance is enforced, the **version** is the one most recently approved for that name, not the one written in the table. See 2.43.
+
 ---
 
 ## 2.23 Independently Certified Authorization (Phase 3D)
@@ -1198,6 +1200,34 @@ Evidence
 - `packages/approval/src/ApprovalSignalVerifier.ts`; `packages/policy/src/types/Policy.ts` (`approvalSignals`), `PolicyValidator.ts`; `packages/api/src/bootstrap/createApprovalVerifier.ts`, `createApprovalSignalVerifier.ts`; `packages/api/src/application.ts`; `packages/execution-gateway/src/ExecutionGateway.ts` (passes the verified policy at release)
 - `packages/crypto/src/ApprovalArtifactCrypto.ts`; `packages/approval/src/ApprovalVerifier.ts` (`consumeNonce`); `packages/policy/src/types/SignalStateVerifier.ts` (`stage`)
 - `scripts/generate-approver-key.ts`, `scripts/sign-approval.ts`; `docs/site/concepts/human-approval.mdx`; `docs/VERIFICATION-GAPS.md` G-65, G-67
+
+## 2.43 A Live Action's Policy Version Is Decided by Policy Governance, Not by a Deploy (Scoped, 2026-09-27)
+
+For a capability in `CANONICAL_CAPABILITY_POLICY_BINDINGS`, the policy name is fixed in code and the version is the one most recently approved for that name through policy governance. A new version takes effect when a second person approves it; approving an older version again rolls back to it. No code change and no deploy.
+
+- A request that names the bound policy at any other version, including an older version that was approved in the past, is refused before any rule runs, with a message naming the version in effect.
+- No approved version, or a failed lookup of it, refuses the request.
+- Where policy governance is not enforced (`NODE_ENV` test and development, unless `POLICY_EXECUTION_VERIFICATION_ENFORCED` is `true`), the version written in the table applies. The two are switched on by the same rule.
+
+Scope, stated plainly:
+
+- **Not merged.** Built on `feat/policy-version-from-governance`, stacked on PR #46.
+- Binding an action to a different policy name, adding a capability, and adding an approver still need a deploy.
+- Agents must send the version in effect. After an approval, requests naming the previous version are refused until agents update. There is no endpoint to ask for the version in effect ahead of time.
+- The version is read from the latest approval record without verifying it; the same request then verifies that record's signature and content hash (2.35, 2.36), so a record changed outside the API refuses the request.
+
+Verification
+
+- `packages/api/tests/unit/GovernedPolicyVersion.test.ts` (5, through `RuntimeBuilder` with governance enforced): no approval refuses; an approved 1.0.0 runs; approving 1.1.0 makes it current and refuses 1.0.0; approving 1.0.0 again rolls back; a failed lookup refuses. Without the version source, 2 of the 5 fail.
+- `packages/capability-registry/tests/unit/CapabilityPolicyBinder.test.ts` (15), `packages/api/tests/unit/bootstrap/create-current-policy-version-source.test.ts` (10), `packages/storage/tests/unit/policy-change-approval-record-most-recent-for-name.test.ts` (2).
+
+Evidence
+
+- `packages/capability-registry/src/CapabilityPolicyBinding.ts` (`CurrentPolicyVersionSource`, async `CapabilityPolicyBinder`)
+- `packages/api/src/governance/GovernedPolicyVersionSource.ts`, `packages/api/src/bootstrap/createCurrentPolicyVersionSource.ts`, `packages/api/src/application.ts`
+- `packages/runtime/src/RuntimeBuilder.ts` (`withCurrentPolicyVersions`), `RuntimeFactory.ts`, `RuntimeEngine.ts`
+- `packages/shared/src/repositories/policy-change-approval-record-repository.ts` (`findMostRecentForName`), `packages/storage/src/memory/` and `supabase/` implementations
+- `docs/VERIFICATION-GAPS.md` G-66
 
 ---
 

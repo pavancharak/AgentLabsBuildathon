@@ -275,8 +275,6 @@ handed to this session, and none of them are:
   mistake.
 - Capability to policy binding covers 6 capabilities and 4 of the 14 policy
   names. A fail closed startup check (`assertConnectorCapabilitiesBound`)
-  stops a _newly registered_ capability from shipping unbound. The binding
-  pins an exact policy version in code, so a new version of a live policy
-  needs a code change and a deploy (G-66, open).
+  stops a _newly registered_ capability from shipping unbound. On `main` the binding pins an exact policy version in code, so a new version of a live policy needs a code change and a deploy (G-66). PR #47 (not merged) takes the version from policy governance instead.
 - Signing keys are read from disk files (`FileKeyProvider`) at a fixed
   default key ID; there is no key-rotation mechanism in code.

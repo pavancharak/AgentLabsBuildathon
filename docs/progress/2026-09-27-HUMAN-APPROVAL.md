@@ -6,14 +6,14 @@ This page is the resume point for the human approval work. It records what is do
 
 ## Where things stand
 
-| Item                              | State                                                                                                                                                                            |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Branch                            | `feat/refund-manager-approval`                                                                                                                                                   |
-| Pull request                      | #46, open, not merged. Commits `90adade` (refunds, G-67 fix) and `5c72204` (approvals declared by policy, for any action).                                                       |
-| Tests at the last commit          | `npx vitest run` through the pre commit hook, 2026-09-27: 2,195 passed, 42 skipped, 0 failed, 253 files (238 passed, 15 skipped). Typecheck, lint, format, build, examples pass. |
-| Not run yet                       | The Docker quickstart check and the offline check. Docker was not running on the development machine; both run in CI on the pull request.                                        |
-| Deployed                          | No. Production still binds `paytm:refund` to `customer-refund` 1.0.0.                                                                                                            |
-| Earlier pull request, same thread | #45, merged: recorded G-65 and G-66, added the Human approval page, three claims Parmana does not make.                                                                          |
+| Item                              | State                                                                                                                                                                                                                  |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Branches                          | `feat/refund-manager-approval` (PR #46), and `feat/policy-version-from-governance` stacked on it (PR #47, G-66).                                                                                                       |
+| Pull requests                     | #46 open, not merged: `90adade` (refunds, G-67 fix), `5c72204` (approvals declared by policy), `9557e93` (these docs). #47 open, not merged, based on #46: G-66. Merge #46 first; GitHub then retargets #47 to `main`. |
+| Tests at the last commit          | `npx vitest run` through the pre commit hook, 2026-09-27: 2,195 passed, 42 skipped, 0 failed, 253 files (238 passed, 15 skipped). Typecheck, lint, format, build, examples pass.                                       |
+| Not run yet                       | The Docker quickstart check and the offline check. Docker was not running on the development machine; both run in CI on the pull request.                                                                              |
+| Deployed                          | No. Production still binds `paytm:refund` to `customer-refund` 1.0.0.                                                                                                                                                  |
+| Earlier pull request, same thread | #45, merged: recorded G-65 and G-66, added the Human approval page, three claims Parmana does not make.                                                                                                                |
 
 **Why merging #46 matters:** on `main`, a `paytm:refund` agent can send `managerApproved: true` with no manager and nothing checks it (G-51), so `customer-refund` 1.0.0 approves any eligible, fraud checked refund up to 10000. This is live wherever the Paytm connector is configured; whether production has it configured was not checked on 2026-09-27. #46 closes it.
 
@@ -47,7 +47,7 @@ Refund rules in `customer-refund` 1.1.0: up to 10000 automatic after the eligibi
 
 In this order:
 
-1. **Approve `customer-refund` 1.1.0 in production** through policy governance: one person proposes, a second approves with a step up signature. This works before the deploy. If the code deploys first, every refund is refused until 1.1.0 is approved.
+1. **Approve `customer-refund` 1.1.0 in production** through policy governance: one person proposes, a second approves with a step up signature. This works before the deploy. **Order depends on #47:** with #46 alone, deploying first refuses every refund until 1.1.0 is approved (the version is fixed in code). With #47 too, refunds keep running under the version already approved (1.0.0, `managerApproved` unchecked) until 1.1.0 is approved, and approving it is what switches them over, with no deploy.
 2. **Add a real approver.** The manager runs `scripts/generate-approver-key.ts` on their own machine. The operator puts the public key file under `$PARMANA_KEY_DIR/approval-issuers/`, adds the entry to `TRUSTED_APPROVAL_ISSUERS` in `packages/api/src/bootstrap/createApprovalIssuerRegistry.ts`, and deploys. It ships empty, so every approval is refused until then.
 3. **Confirm the numbers:** 10000 automatic limit, 100000 maximum.
 4. **Check CI on #46**, including the Docker quickstart and offline checks, then merge and deploy.
@@ -55,7 +55,7 @@ In this order:
 
 ## Open, in order of what to do next
 
-1. **G-66: policy version fixed in code.** A new policy version for a live action needs a code change and a deploy. Plan, recorded in G-66: keep the policy name in `CANONICAL_CAPABILITY_POLICY_BINDINGS`, take the version from policy governance (the version with the latest `policy_change_approval_records` entry for that name), require the declared version to equal it, and refuse the request if the lookup fails. Touches `CapabilityPolicyBinding.ts`, the binder call at `packages/runtime/src/RuntimeEngine.ts` (it is synchronous today; the lookup is async), `assertConnectorCapabilitiesBound.ts`, and the tests that name versions. Must keep refusing an older approved version.
+1. **G-66: BUILT 2026-09-27, PR #47, not merged.** The version for a live action now comes from policy governance: the most recently approved version for the bound name. Approving a version makes it current, approving an older one again rolls back. Evidence in G-66 and `docs/CLAIMS.md` 2.43. **New follow up from it:** agents name the version in each request, so after an approval requests naming the previous version are refused (the message names the version in effect). An endpoint that returns the version in effect, or agents reading it before sending, is open.
 2. **Approvers without a deploy.** `TRUSTED_APPROVAL_ISSUERS` is a list in code. Moving it into the database behind maker and checker would let an operator add or revoke an approver without a deploy.
 3. **Notification.** Nothing tells a manager a request is waiting. They find it with the query on the Human approval page (filter `matchedRuleId = 'reject-manager-approval-required'`).
 4. **SDK support for approvals.** Signing is a repository script. The SDKs could offer `signApproval()` the way they offer `signPolicyChangeStepUp()`.

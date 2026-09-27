@@ -137,9 +137,8 @@ npx tsx scripts/sign-approval.ts   --private-key-file ~/.parmana/lead-sam__lead-
 ```
 
 The change goes live like any policy change: a new version, proposed and approved through
-policy governance. No code changes, with two exceptions today: a live action's policy version is
-bound in code, so the new version needs that one line changed and a deploy (G-66), and a new
-approver needs a deploy.
+policy governance. It takes effect when it is approved, with no code change and no deploy. Two
+things still need a deploy: a new approver, and binding an action to a different policy name.
 
 Rules for a declaration, checked when the policy loads:
 
@@ -218,14 +217,15 @@ agent sends a new request.
 
 Each request names the policy that should judge it. If Parmana accepted any approved policy, a
 caller could send a refund and name a policy written for Slack messages, which has no refund
-limit. So each live action is bound to one policy:
+limit. So each live action is bound to one policy name:
 
 ```text
-paytm:refund         ->  customer-refund 1.1.0
-hubspot:deal-update  ->  hubspot-deal-update 1.0.0
+paytm:refund         ->  customer-refund
+hubspot:deal-update  ->  hubspot-deal-update
 ```
 
-A request that names a different policy, or an older version, is refused before any policy
-runs. The version is part of the binding, so a new policy version needs a code change and a
-deploy. Taking the version from policy governance instead is planned; see G-66 in
-`docs/VERIFICATION-GAPS.md`.
+The name is fixed in code. The version is not: in production it is the version most recently
+approved through policy governance. Approving `customer-refund` 1.2.0 makes 1.2.0 the version
+refunds must use, with no deploy, and approving 1.1.0 again rolls back. A request that names a
+different policy, or any other version, is refused before any policy runs, with a message that
+names the version in effect. Agents must then send that version.
