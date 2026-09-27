@@ -811,8 +811,7 @@ and with it, both pass. Unit tests: `packages/approval/tests/unit/ApprovalVerifi
 passes `"release"`).
 
 **G-66. The policy version for each action is fixed in code, so a policy change needs a
-redeploy. FOUND 2026-09-27, `pre-production`. BUILT the same day on branch
-`feat/policy-version-from-governance`, stacked on PR #46, not merged (see "Built" at the end of
+redeploy. FOUND 2026-09-27, `pre-production`. BUILT the same day, merged to `main` and deployed to production on 2026-09-27 (PR #46, merge `4eebd5f`) (see "Built" at the end of
 this entry).** `CANONICAL_CAPABILITY_POLICY_BINDINGS`
 (`packages/capability-registry/src/CapabilityPolicyBinding.ts:44`) maps each live capability to
 one policy name, version and schema version, for example `paytm:refund` to `customer-refund`
@@ -936,9 +935,7 @@ pass the gateway), `blocks-pilot`, closed in the same change. **One security def
 live wherever the Paytm connector is configured (not checked for production on this date):** a
 `paytm:refund` agent can send `managerApproved: true` with no manager, and nothing checks it
 (G-51); with `customer-refund` 1.0.0 that approves any eligible,
-fraud checked refund up to 10000. PR #46 (branch `feat/refund-manager-approval`, not merged)
-closes it: `managerApproved` is declared in `approvalSignals` and verified. Until #46 is merged
-and deployed, the defect stands. G-66 stays open and is the next item. The resume point is
+fraud checked refund up to 10000. PR #46, merged to `main` and deployed to production on 2026-09-27 (PR #46, merge `4eebd5f`), closes it once `customer-refund` 1.1.0 is approved in production: 1.1.0 declares `managerApproved` in `approvalSignals`, and it is verified. Until that approval, refunds run under 1.0.0 and the defect stands. G-66 was built and merged in the same PR. The resume point is
 `docs/progress/2026-09-27-HUMAN-APPROVAL.md`.
 
 ### blocks-pilot

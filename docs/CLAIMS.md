@@ -514,7 +514,7 @@ Evidence
 
 **Update (2026-08-26, G-30 architecture follow-up, Option C implemented):** `CANONICAL_CAPABILITY_POLICY_BINDINGS` and `CapabilityPolicyBinder` moved out of `@parmana/policy` into a new leaf package, `@parmana/capability-registry`, depending only on `@parmana/shared`. `@parmana/policy`'s own public API is unaffected — `packages/policy/src/index.ts` re-exports both symbols from the new package unchanged, so every existing consumer importing from `@parmana/policy` needed no changes; confirmed by grep across the ~10 files that do (`RuntimeEngine.ts`, `RuntimeBuilder.ts`, `execute.ts`, and others). **Deviation from the original Option C sketch, corrected before implementing:** the plan in `G-30-ARCHITECTURE-OPTIONS.md` proposed also importing capability-identifier constants from `@parmana/connector-github`/`@parmana/connector-hubspot` into the new package to remove identifier-string duplication. Checked before doing it: `@parmana/connector-hubspot` already depends on `@parmana/policy` directly, and `@parmana/connector-github` depends on `@parmana/connector-sdk`, which also depends on `@parmana/policy` — either import would have created a direct dependency cycle back through the package this extraction was built to be depended on by. Not done; the four capability-identifier strings remain hand-typed in `CapabilityPolicyBinding.ts`, same as before the move, still duplicated against `GitHubCapabilities.ts`/`HubSpotCapabilities.ts`'s own separate constants. What this move does close: the `packages/policy` → `packages/api` backwards-dependency edge Option B would have required. Full detail in `G-30-ARCHITECTURE-OPTIONS.md` and `G-30-RESOLUTION-ARCHITECTURE.md` (repo root). Verified: full rebuild (`npx tsc -b`, clean) and full suite unchanged at 1274 passed, 37 skipped, 0 failed.
 
-**Update (2026-09-27, G-66, on branch `feat/policy-version-from-governance`, not merged):** the binding pins the policy **name**; where policy governance is enforced, the **version** is the one most recently approved for that name, not the one written in the table. See 2.43.
+**Update (2026-09-27, G-66, merged to `main` and deployed to production on 2026-09-27 (PR #46, merge `4eebd5f`)):** the binding pins the policy **name**; where policy governance is enforced, the **version** is the one most recently approved for that name, not the one written in the table. See 2.43.
 
 ---
 
@@ -1211,7 +1211,7 @@ For a capability in `CANONICAL_CAPABILITY_POLICY_BINDINGS`, the policy name is f
 
 Scope, stated plainly:
 
-- **Not merged.** Built on `feat/policy-version-from-governance`, stacked on PR #46.
+- **Merged and deployed** 2026-09-27 (PR #47 into #46, then #46 into `main`, merge `4eebd5f`). Production's `customer-refund` versions in effect were not checked after the deploy.
 - Binding an action to a different policy name, adding a capability, and adding an approver still need a deploy.
 - Agents must send the version in effect. After an approval, requests naming the previous version are refused until agents update. There is no endpoint to ask for the version in effect ahead of time.
 - The version is read from the latest approval record without verifying it; the same request then verifies that record's signature and content hash (2.35, 2.36), so a record changed outside the API refuses the request.
