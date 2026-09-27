@@ -823,6 +823,19 @@ is reviewed code); the file stays as the fallback. `buildApprovalIssuerRegistry`
 startup on a missing file, a key that does not parse, a key that is not Ed25519, or a duplicate
 entry. **Tests:** `packages/api/tests/unit/bootstrap/build-approval-issuer-registry.test.ts` (8).
 
+**G-69. On Vercel, a malformed JSON body returned 500 instead of 400. FOUND and CLOSED
+2026-09-28.** Seen on 2026-09-27 (a malformed approve request to production returned `500`, the same
+request locally `400 Malformed JSON body`), diagnosed on 2026-09-28 by sending malformed JSON with no
+API key to production and reading its log. Vercel's Node.js runtime gives the request its own lazy
+`req.body` getter; `express.json()` reads `req.body` first (`body-parser/lib/types/json.js:112`), so the
+getter's error, `Invalid JSON` with `statusCode: 400` and no `type`, reached
+`packages/api/src/middleware/error-handler.ts` instead of body-parser's `entity.parse.failed` error, and
+fell through to the generic `500`. Every such request was still refused before authentication and
+before any route ran, so nothing executed; the response was wrong, and the malformed body audit event
+(G-29) was skipped. **Fix:** the error handler also maps that error to `400 Malformed JSON body.`
+**Tests:** `packages/api/tests/unit/error-handler-vercel-invalid-json.test.ts` (3, reproducing the getter
+in front of the real `express.json()`; the 400 case fails without the fix).
+
 **G-66. The policy version for each action is fixed in code, so a policy change needs a
 redeploy. FOUND 2026-09-27, `pre-production`. BUILT the same day, merged to `main` and deployed to production on 2026-09-27 (PR #46, merge `4eebd5f`) (see "Built" at the end of
 this entry).** `CANONICAL_CAPABILITY_POLICY_BINDINGS`
