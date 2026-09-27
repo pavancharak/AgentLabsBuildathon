@@ -53,6 +53,15 @@ In this order:
 4. **CI:** everything passed on #46 except `verify-policy-approvals`, which needs the `SUPABASE_URL` and `SUPABASE_ANON_KEY` secrets in GitHub Actions (none are set) and an approved 1.1.0. #46 was merged with that check failing.
 5. **Know the behavior change:** refunds up to 10000 no longer need `managerApproved: true`.
 
+## State of the production approval (2026-09-27)
+
+- **Proposed:** `customer-refund` 1.1.0, pending change `008f504d-0efd-4bec-b33a-2991bb84099f`, proposed by the operator through the API. Not approved.
+- **Waiting for a second person.** Decision: a different person approves it, on their own machine. Until then refunds run under 1.0.0.
+- **Before they approve:**
+  1. They generate their own step up key pair; only the public half is sent. The existing `reviewer.step-up.private.pem` has been kept on the proposer's machine (never committed, ignored by git), so it cannot show a second person. Update the `policy-reviewer-1` caller (or add a new caller for them) with the new step up public key, redeploy, and delete that file.
+  2. Rotate the proposer's and the reviewer's API keys: both were shown in a chat transcript on 2026-09-27.
+- **Open, not diagnosed:** a malformed approve request (placeholder change id, empty body) to production returned `500 Internal Server Error`. The same request to a local server returns `400 Malformed JSON body`. Production logs were not available from the working session.
+
 ## Go live commands for production
 
 Production API: `https://parmana-api-real.vercel.app`. The 2026-09-20 inventory showed policies proposed by `charak1987` and approved by `policy-reviewer-1` (`docs/REMAINING-WORK.md`, B.6). Each person runs their own part with their own key; the server refuses an approval from the proposer.
@@ -82,7 +91,7 @@ npx tsx scripts/sign-policy-change-step-up.ts   --private-key-file <path to the 
 curl -s -X POST $PARMANA_URL/policies/pending-changes/$CHANGE_ID/approve   -H "Authorization: Bearer $APPROVER_KEY" -H "Content-Type: application/json"   -d "{\"stepUpAuthorization\":$(grep '^{' signed.txt)}"
 ```
 
-The signature is valid for 120 seconds, so send it right after signing. The response says `"status":"APPROVED"`. From then on refunds must name `customer-refund` 1.1.0.
+The signature is valid for 120 seconds, so send it right after signing. On Windows PowerShell, which has no `export` or `printf`, use `$url = "..."`, `Read-Host -AsSecureString` for the key, `Get-Content ... -Raw` to build the body, and `Invoke-RestMethod` with the body sent as UTF-8 bytes. The response says `"status":"APPROVED"`. From then on refunds must name `customer-refund` 1.1.0.
 
 ## Open, in order of what to do next
 
