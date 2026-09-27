@@ -3,7 +3,9 @@
 > Not a roadmap. No dates, no version targets, no performance numbers that
 > don't exist in this repo. Every line below was verified directly against
 > source or a command actually run, on 2026-09-08, except the test counts
-> and the self hosted deployment section, verified on 2026-09-25. Where something is
+> and the self hosted deployment section, verified on 2026-09-25, and the
+> connector list, policy reachability and human approval sections, verified
+> on 2026-09-27. Where something is
 > mentioned elsewhere in this repo's docs/comments but doesn't exist in
 > code, that is stated explicitly, not implied.
 
@@ -21,12 +23,14 @@ single-use, credential-isolated session, destroyed after use → a signed
 `ExecutionTrustRecord` is produced.
 
 **Reachable today** (`packages/api/src/bootstrap/createConnectorRegistry.ts`,
-read directly): exactly two real external systems, each gated on real
-credentials being configured — HubSpot (`HUBSPOT_PRIVATE_APP_TOKEN`) and
-GitHub (`GITHUB_APP_ID`/`GITHUB_INSTALLATION_ID`/`GITHUB_APP_PRIVATE_KEY`) —
-plus a `test-fixture` connector gated to `NODE_ENV=test`. Four real
-capabilities exist: `hubspot:deal-fetch`, `hubspot:deal-update`,
-`github:pr-fetch`, `github:pr-merge`.
+read directly on 2026-09-27): four connectors, each registered only when its
+configuration is present. HubSpot (`HUBSPOT_PRIVATE_APP_TOKEN`), GitHub
+(`GITHUB_APP_ID`, `GITHUB_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY`), Paytm
+refunds through a separate connector service (`PAYTM_CONNECTOR_URL`,
+`PAYTM_CONNECTOR_SHARED_SECRET`) and Slack (`SLACK_BOT_TOKEN`), plus a
+`test-fixture` connector gated to `NODE_ENV=test`. Six capabilities:
+`hubspot:deal-fetch`, `hubspot:deal-update`, `github:pr-fetch`,
+`github:pr-merge`, `paytm:refund`, `slack:post-message`.
 
 **Storage**: `@parmana/storage`'s `StorageFactory` selects `memory` or
 Postgres. `postgres` and `supabase` select the same Postgres storage
@@ -119,6 +123,28 @@ registry and rerunning the live checks. Tests: TypeScript SDK 191, Python SDK
 119, all passing; each SDK passed 11 of 11 live checks against a self hosted
 deployment. The route by route mapping is `docs/site/sdks/api-coverage.mdx`.
 
+## Human approval (built 2026-09-27, PR #46, not merged)
+
+Read from the branch `feat/refund-manager-approval`, not from `main`.
+
+- A policy declares in `approvalSignals` which of its signals need a
+  person's signed approval, and where the resource (a `parameters` path or
+  the Intent's `target`) and, optionally, a value to cover are in the
+  request. `ApprovalSignalVerifier` (`packages/approval`) enforces it for any
+  action, before authorization and again at the gateway, and uses each
+  approval once. HubSpot amount changes keep their own check.
+- `paytm:refund` is bound to `customer-refund` 1.1.0: automatic up to 10000,
+  a verified manager approval above 10000 and up to 100000, refused above.
+- Approvers sign on their own machine with `scripts/sign-approval.ts`, with
+  an Ed25519 key from `scripts/generate-approver-key.ts`.
+- **Not in effect anywhere yet:** `TRUSTED_APPROVAL_ISSUERS` is empty, the
+  branch is not merged, and production has not approved 1.1.0.
+- **Does not exist:** an escalation state that holds a request for a person,
+  or any notification. A refused request stays refused; the agent sends a
+  new request with the approval.
+- Tests on the branch, 2026-09-27: 2,195 passed, 42 skipped, 0 failed, 253
+  files. Resume point: `docs/progress/2026-09-27-HUMAN-APPROVAL.md`.
+
 ## Policy governance (built this session)
 
 A maker-checker approval flow for changes to policy content: real
@@ -155,13 +181,12 @@ approval record are refused until that changes.
 
 ## On disk, but not reachable
 
-10 policy files exist under `policies/`. Only 2 (`github-pr-approval`,
-`hubspot-deal-update`) correspond to a capability any registered connector
-can actually invoke. The other 8 — `access-control`, `connector-capability`,
-`customer-refund`, `database-change`, `llm-tool-call`,
-`production-deployment`, `rag-document-access`, `vendor-payment` — have no
-connector that can invoke them today. They are reference/example content,
-not live surface.
+14 policy names exist under `policies/` (checked 2026-09-27). 4 are bound to a
+capability a registered connector can invoke (`CapabilityPolicyBinding.ts`):
+`hubspot-deal-update`, `github-pr-approval`, `customer-refund` (version 1.0.0
+on `main`; 1.1.0 on the PR #46 branch) and `slack-post-message`. The others
+have no connector that can invoke them today. They are reference and example
+content, not live surface.
 
 ## Dead code: deleted (2026-09-08)
 
@@ -248,9 +273,10 @@ handed to this session, and none of them are:
   for any request — a no-op stub. Not used by any real connector path
   today, but would silently "succeed" everything if ever wired in by
   mistake.
-- Capability→policy binding coverage is 4 of 12 policies/capabilities. A
-  fail-closed startup check (`assertConnectorCapabilitiesBound`) stops a
-  _newly registered_ capability from shipping unbound, but does not
-  retroactively bind the 8 currently-unreachable policies.
+- Capability to policy binding covers 6 capabilities and 4 of the 14 policy
+  names. A fail closed startup check (`assertConnectorCapabilitiesBound`)
+  stops a _newly registered_ capability from shipping unbound. The binding
+  pins an exact policy version in code, so a new version of a live policy
+  needs a code change and a deploy (G-66, open).
 - Signing keys are read from disk files (`FileKeyProvider`) at a fixed
   default key ID; there is no key-rotation mechanism in code.

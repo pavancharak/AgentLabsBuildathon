@@ -886,6 +886,18 @@ alignment pass closed G-64 in the source (the SDKs did not cover the same API or
 governance); the TypeScript SDK 1.3.0 was published to npm the same day, which closed G-62, and the Python SDK 1.3.0 was published to PyPI the same day. None is a security defect and none affects the
 hosted API on Vercel.
 
+**Addendum (2026-09-27):** a check of a positioning draft against the source code opened G-65 (a
+refused request cannot be escalated to a person and approved) and G-66 (the policy version for
+each action is fixed in code). Building G-65 the same day found G-67 (a valid approval could never
+pass the gateway), `blocks-pilot`, closed in the same change. **One security defect on `main`,
+live wherever the Paytm connector is configured (not checked for production on this date):** a
+`paytm:refund` agent can send `managerApproved: true` with no manager, and nothing checks it
+(G-51); with `customer-refund` 1.0.0 that approves any eligible,
+fraud checked refund up to 10000. PR #46 (branch `feat/refund-manager-approval`, not merged)
+closes it: `managerApproved` is declared in `approvalSignals` and verified. Until #46 is merged
+and deployed, the defect stands. G-66 stays open and is the next item. The resume point is
+`docs/progress/2026-09-27-HUMAN-APPROVAL.md`.
+
 ### blocks-pilot
 
 **Stale-narrative notice, added 2026-08-24, read before relying on anything below.** The
