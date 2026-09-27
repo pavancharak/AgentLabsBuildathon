@@ -60,7 +60,7 @@ In this order:
 - **API keys rotated, 2026-09-27.** Every production API key was replaced: `PARMANA_API_KEYS` on Vercel now holds exactly `charak1987` (human, proposer), `reviewer-charak1987` (human, with a step up key) and `paytm-refund-agent` (`paytm:refund` only). The keys shown in a chat transcript (the proposer's and `policy-reviewer-1`'s), `policy-maker`, and the old `paytm-refund-agent` key are revoked. Checked after the final redeploy: each new key authenticates as its own caller, unauthenticated `POST /execute` returns `401`. The refund agent's own Vercel project (`parmana-paytm-agent`) was given its new key.
 - **Old reviewer key file deleted:** `reviewer.step-up.private.pem` is gone from the operator's machine.
 - **Open for the refund agent:** its code is not in this repository. It must send `customer-refund` version 1.1.0 (requests naming 1.0.0 are now refused, G-66), and its `PARMANA_PRINCIPAL_ID` must be `paytm-refund-agent` (the new key may only act as itself). Neither was checked.
-- **Open, not diagnosed:** a malformed approve request (placeholder change id, empty body) to production returned `500 Internal Server Error`. The same request to a local server returns `400 Malformed JSON body`. Production logs were not available from the working session.
+- **Diagnosed and fixed 2026-09-28 (G-69):** a malformed approve request to production returned `500 Internal Server Error`, locally `400 Malformed JSON body`. Cause: on Vercel, the runtime's own `req.body` getter throws a different error for malformed JSON than body-parser does, and the error handler did not recognize it. Nothing was executed by such a request.
 
 ## Go live commands for production
 

@@ -26,8 +26,19 @@ import type { CallerAuditSink } from "../auth/CallerAuditSink.js";
  * ("entity.too.large") and malformed JSON ("entity.parse.failed"),
  * so every route gets the same clean 413/400 instead of falling through
  * to the generic 500 below.
+ *
+ * On Vercel, malformed JSON arrives in a third shape. Vercel's Node.js
+ * runtime gives the request its own lazy req.body getter, and
+ * express.json() reads req.body first, so the getter's error reaches
+ * here instead of body-parser's: an Error "Invalid JSON" with
+ * statusCode 400 and no type. Found 2026-09-28 from production logs,
+ * where it produced a 500.
  */
 function bodyParserErrorStatus(error: unknown): number | undefined {
+  if (isVercelInvalidJsonError(error)) {
+    return 400;
+  }
+
   if (typeof error !== "object" || error === null || !("type" in error)) {
     return undefined;
   }
@@ -43,6 +54,14 @@ function bodyParserErrorStatus(error: unknown): number | undefined {
   }
 
   return undefined;
+}
+
+function isVercelInvalidJsonError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message === "Invalid JSON" &&
+    (error as { statusCode?: unknown }).statusCode === 400
+  );
 }
 
 /**
