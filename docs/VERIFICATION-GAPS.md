@@ -950,6 +950,17 @@ live wherever the Paytm connector is configured (not checked for production on t
 fraud checked refund up to 10000. PR #46, merged to `main` and deployed to production on 2026-09-27 (PR #46, merge `4eebd5f`), closes it once `customer-refund` 1.1.0 is approved in production: 1.1.0 declares `managerApproved` in `approvalSignals`, and it is verified. Until that approval, refunds run under 1.0.0 and the defect stands. G-66 was built and merged in the same PR. The resume point is
 `docs/progress/2026-09-27-HUMAN-APPROVAL.md`.
 
+**Addendum (2026-09-28):** the production Vercel project had `PAYTM_CONNECTOR_URL`,
+`PAYTM_CONNECTOR_SHARED_SECRET` and `PAYTM_CONNECTOR_TIMEOUT_MS` set (names checked with the Vercel CLI
+on 2026-09-27, values not read) and a `paytm-refund-agent` API key, so the G-51 defect above was live in
+production. It is closed there: every production API key was rotated on 2026-09-27, and
+`customer-refund` 1.1.0 was approved in production at 2026-09-27 18:53:40 UTC (change
+`008f504d-0efd-4bec-b33a-2991bb84099f`), so `managerApproved: true` is verified. With no approver in
+`TRUSTED_APPROVAL_ISSUERS`, every production refund above 10000 is refused. The change was proposed by
+`policy-maker` and approved by `reviewer-charak1987`: two distinct credentials held by one person, which
+the server cannot tell apart from two people. `refundEligible` and `fraudCheckPassed` are still caller
+declared.
+
 ### blocks-pilot
 
 **Stale-narrative notice, added 2026-08-24, read before relying on anything below.** The
@@ -1710,7 +1721,9 @@ approval artifact for `managerApproved` (the `SignedApprovalGuard` and `Approval
 already exists in `packages/approval`). **Addendum (2026-09-27):** G-65 has a step by step plan for
 `paytm:refund`. **Narrowed the same day:** for `paytm:refund`, `managerApproved: true` is now verified
 against a signed approval (G-65, `approvalSignals` in the policy, `ApprovalSignalVerifier`). `refundEligible` and
-`fraudCheckPassed`, and the GitHub and Slack signals, are still caller declared.
+`fraudCheckPassed`, and the GitHub and Slack signals, are still caller declared. **Update (2026-09-28):**
+the narrowing is in effect in production since `customer-refund` 1.1.0 was approved there on 2026-09-27;
+before that the defect was live in production (the Paytm connector is configured there).
 
 **G-52. The connector can be called before the Execution Trust Record can be signed, so a signing
 failure leaves an executed action with no signed trust record.** Found 2026-09-20 in the same live

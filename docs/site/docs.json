@@ -91,6 +91,7 @@
               "guides/write-your-first-policy",
               "guides/policy-governance-maker-checker",
               "guides/policy-lifecycle-and-approvals",
+              "guides/credentials-maker-checker-approver",
               "guides/authorize-and-execute",
               "guides/connect-an-agent",
               "guides/session-credentials",

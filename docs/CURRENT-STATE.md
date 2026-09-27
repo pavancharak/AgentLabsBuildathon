@@ -137,9 +137,11 @@ Merged to `main` and deployed to production on 2026-09-27 (PR #46, merge `4eebd5
   a verified manager approval above 10000 and up to 100000, refused above.
 - Approvers sign on their own machine with `scripts/sign-approval.ts`, with
   an Ed25519 key from `scripts/generate-approver-key.ts`.
-- **Not in effect in production yet:** `TRUSTED_APPROVAL_ISSUERS` is empty,
-  and production has not approved `customer-refund` 1.1.0, so refunds still
-  run under 1.0.0 (the version in effect comes from governance, G-66).
+- **In production:** `customer-refund` 1.1.0 was approved on 2026-09-27
+  18:53:40 UTC, so refunds run under 1.1.0 (the version in effect comes from
+  governance, G-66). `TRUSTED_APPROVAL_ISSUERS` is still empty, so every
+  refund above 10000 is refused. The maker and checker credentials are
+  currently held by one person.
 - **Does not exist:** an escalation state that holds a request for a person,
   or any notification. A refused request stays refused; the agent sends a
   new request with the approval.
@@ -184,8 +186,9 @@ approval record are refused until that changes.
 
 14 policy names exist under `policies/` (checked 2026-09-27). 4 are bound to a
 capability a registered connector can invoke (`CapabilityPolicyBinding.ts`):
-`hubspot-deal-update`, `github-pr-approval`, `customer-refund` (version 1.0.0
-on `main`; 1.1.0 on the PR #46 branch) and `slack-post-message`. The others
+`hubspot-deal-update`, `github-pr-approval`, `customer-refund` (1.0.0 and
+1.1.0 on disk; the version in effect is the one most recently approved, 1.1.0
+in production) and `slack-post-message`. The others
 have no connector that can invoke them today. They are reference and example
 content, not live surface.
 

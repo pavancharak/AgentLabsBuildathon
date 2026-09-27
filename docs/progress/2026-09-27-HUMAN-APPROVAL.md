@@ -1,6 +1,6 @@
 # Progress: human approval for agent actions
 
-Started: 2026-09-27. Last updated: 2026-09-27.
+Started: 2026-09-27. Last updated: 2026-09-28.
 
 This page is the resume point for the human approval work. It records what is done and verified, what is open, and what comes next. Gap numbers refer to `docs/VERIFICATION-GAPS.md`. Claims stay governed by `docs/CLAIMS.md`: the claim for this work is 2.42, and nothing here is a claim until it is there.
 
@@ -12,10 +12,10 @@ This page is the resume point for the human approval work. It records what is do
 | Pull requests                     | #47 (G-66) merged into #46 at `77df35e`; #46 merged into `main` at `4eebd5f`, 2026-09-27.                                                                                                                                                                                                                                                                                      |
 | Tests at the last commit          | `npx vitest run` through the pre commit hook, 2026-09-27: 2,195 passed, 42 skipped, 0 failed, 253 files (238 passed, 15 skipped). Typecheck, lint, format, build, examples pass.                                                                                                                                                                                               |
 | CI on #46                         | 2026-09-27: `build-and-test`, `build-and-boot`, `self-hosted` (the Docker quickstart check and the offline check, with `customer-refund` 1.1.0) and the Python SDK jobs passed. `verify-policy-approvals` failed without checking anything: `SUPABASE_URL is not set` in CI. With the secret set, it would still fail until `customer-refund` 1.1.0 is approved in production. |
-| Deployed                          | Yes, 2026-09-27: Vercel deployed the `main` merge; `/health` UP, `/ready` READY with auth on, unauthenticated `POST /execute` returns `401`. Refunds still run under `customer-refund` 1.0.0 until 1.1.0 is approved in production.                                                                                                                                            |
+| Deployed                          | Yes, 2026-09-27: Vercel deployed the `main` merge; `/health` UP, `/ready` READY with auth on, unauthenticated `POST /execute` returns `401`. `customer-refund` 1.1.0 was approved in production at 2026-09-27 18:53:40 UTC, so refunds now run under 1.1.0 (see below).                                                                                                        |
 | Earlier pull request, same thread | #45, merged: recorded G-65 and G-66, added the Human approval page, three claims Parmana does not make.                                                                                                                                                                                                                                                                        |
 
-**Why approving 1.1.0 matters:** under `customer-refund` 1.0.0, a `paytm:refund` agent can send `managerApproved: true` with no manager and nothing checks it (G-51), so `customer-refund` 1.0.0 approves any eligible, fraud checked refund up to 10000. This is live wherever the Paytm connector is configured; whether production has it configured was not checked on 2026-09-27. Approving 1.1.0 in production closes it; the code for that is deployed.
+**Why approving 1.1.0 mattered:** under `customer-refund` 1.0.0, a `paytm:refund` agent can send `managerApproved: true` with no manager and nothing checks it (G-51), so `customer-refund` 1.0.0 approves any eligible, fraud checked refund up to 10000. On 2026-09-27 the production Vercel project was found to have `PAYTM_CONNECTOR_URL`, `PAYTM_CONNECTOR_SHARED_SECRET` and `PAYTM_CONNECTOR_TIMEOUT_MS` set (variable names checked with the Vercel CLI, values not read), and a `paytm-refund-agent` API key existed, so this was live in production until the key rotation and the approval below closed it. Where `PAYTM_CONNECTOR_URL` points (a real Paytm connector service or a stand in) was not checked.
 
 ## How this started
 
@@ -47,19 +47,19 @@ Refund rules in `customer-refund` 1.1.0: up to 10000 automatic after the eligibi
 
 In this order:
 
-1. **Approve `customer-refund` 1.1.0 in production** through policy governance: one person proposes, a second approves with a step up signature. The code is deployed; this approval is what switches refunds from 1.0.0 to verified manager approvals, with no deploy.
-2. **Add a real approver.** The manager runs `scripts/generate-approver-key.ts` on their own machine and sends the `.public.pem` file. The operator adds `{ approverId, keyId, revoked: false, publicKeyPem }` to `TRUSTED_APPROVAL_ISSUERS` in `packages/api/src/bootstrap/createApprovalIssuerRegistry.ts`, opens a pull request, and deploys. The inline `publicKeyPem` is what makes this possible on Vercel (G-68).
+1. **Approve `customer-refund` 1.1.0 in production: DONE 2026-09-27 18:53:40 UTC** (see the next section). No deploy was needed.
+2. **Add a real approver.** Still open: `TRUSTED_APPROVAL_ISSUERS` is empty, so in production every refund above 10000 is refused, with or without an approval. The manager runs `scripts/generate-approver-key.ts` on their own machine and sends the `.public.pem` file. The operator adds `{ approverId, keyId, revoked: false, publicKeyPem }` to `TRUSTED_APPROVAL_ISSUERS` in `packages/api/src/bootstrap/createApprovalIssuerRegistry.ts`, opens a pull request, and deploys. The inline `publicKeyPem` is what makes this possible on Vercel (G-68).
 3. **Confirm the numbers:** 10000 automatic limit, 100000 maximum.
 4. **CI:** everything passed on #46 except `verify-policy-approvals`, which needs the `SUPABASE_URL` and `SUPABASE_ANON_KEY` secrets in GitHub Actions (none are set) and an approved 1.1.0. #46 was merged with that check failing.
 5. **Know the behavior change:** refunds up to 10000 no longer need `managerApproved: true`.
 
-## State of the production approval (2026-09-27)
+## State of the production approval (updated 2026-09-28)
 
-- **Proposed:** `customer-refund` 1.1.0, pending change `008f504d-0efd-4bec-b33a-2991bb84099f`, proposed by the operator through the API. Not approved.
-- **Waiting for a second person.** Decision: a different person approves it, on their own machine. Until then refunds run under 1.0.0.
-- **Before they approve:**
-  1. They generate their own step up key pair; only the public half is sent. The existing `reviewer.step-up.private.pem` has been kept on the proposer's machine (never committed, ignored by git), so it cannot show a second person. Update the `policy-reviewer-1` caller (or add a new caller for them) with the new step up public key, redeploy, and delete that file.
-  2. Rotate the proposer's and the reviewer's API keys: both were shown in a chat transcript on 2026-09-27.
+- **Approved:** `customer-refund` 1.1.0, pending change `008f504d-0efd-4bec-b33a-2991bb84099f`, status `APPROVED`, resolved at 2026-09-27 18:53:40 UTC by `reviewer-charak1987` with a step up signature. The change was proposed on 2026-09-27 10:37:48 UTC by the caller `policy-maker` (not `charak1987`, as this page said before). Checked after the approval with both human keys: `GET /policies/pending-changes` shows it `APPROVED`.
+- **One person holds both roles.** The operator decided on 2026-09-27 to hold the maker, checker and refund manager roles for now, instead of waiting for a second person. The server enforces that the approving caller differs from the proposing one; it cannot tell that both credentials belong to one person. So this approval, like the earlier approvals by `policy-reviewer-1` (whose keys were also held by the proposer), is two credentials held by one person, not two people. Nothing may claim two person control for production until a second person holds the checker key.
+- **API keys rotated, 2026-09-27.** Every production API key was replaced: `PARMANA_API_KEYS` on Vercel now holds exactly `charak1987` (human, proposer), `reviewer-charak1987` (human, with a step up key) and `paytm-refund-agent` (`paytm:refund` only). The keys shown in a chat transcript (the proposer's and `policy-reviewer-1`'s), `policy-maker`, and the old `paytm-refund-agent` key are revoked. Checked after the final redeploy: each new key authenticates as its own caller, unauthenticated `POST /execute` returns `401`. The refund agent's own Vercel project (`parmana-paytm-agent`) was given its new key.
+- **Old reviewer key file deleted:** `reviewer.step-up.private.pem` is gone from the operator's machine.
+- **Open for the refund agent:** its code is not in this repository. It must send `customer-refund` version 1.1.0 (requests naming 1.0.0 are now refused, G-66), and its `PARMANA_PRINCIPAL_ID` must be `paytm-refund-agent` (the new key may only act as itself). Neither was checked.
 - **Open, not diagnosed:** a malformed approve request (placeholder change id, empty body) to production returned `500 Internal Server Error`. The same request to a local server returns `400 Malformed JSON body`. Production logs were not available from the working session.
 
 ## Go live commands for production
