@@ -38,19 +38,30 @@ export interface ConfiguredApprovalIssuer {
  * Open Question #1) -- this list only verifies against whatever
  * entries it is deployed with.
  *
- * Empty by default: no real business-approver key has been
- * provisioned yet. This is the correct fail-closed starting state --
- * every preAuthorizedForAmountChange claim is rejected
- * (ApprovalVerifier.verify's issuerKnown check fails for every
- * artifact) until an operator adds a real entry here and provisions
- * the matching public key (inline as publicKeyPem, or as a file
- * below), rather than silently trusting an unconfigured default.
+ * An artifact from any approver not listed here is rejected
+ * (ApprovalVerifier.verify's issuerKnown check), so an empty list
+ * refuses every approval: the fail-closed starting state.
  *
  * To add an approver: they run scripts/generate-approver-key.ts on their
  * own machine and send the .public.pem file; paste its contents into
  * publicKeyPem, open a pull request, deploy. To revoke: revoked: true.
+ *
+ * Entries:
+ * - manager-charak1987 (added 2026-09-28): the refund manager for
+ *   customer-refund 1.1.0 approvals above 10000. Held by the operator,
+ *   who also holds the maker and checker credentials for now.
  */
-const TRUSTED_APPROVAL_ISSUERS: readonly ConfiguredApprovalIssuer[] = [];
+const TRUSTED_APPROVAL_ISSUERS: readonly ConfiguredApprovalIssuer[] = [
+  {
+    approverId: "manager-charak1987",
+    keyId: "manager-charak1987-key-1",
+    revoked: false,
+    publicKeyPem:
+      "-----BEGIN PUBLIC KEY-----\n" +
+      "MCowBQYDK2VwAyEAVMs/E6N2XEQfEEWlwMg0wRS0L4svbZ0W785aAxUP78M=\n" +
+      "-----END PUBLIC KEY-----\n",
+  },
+];
 
 /**
  * Creates the ApprovalIssuerRegistry used by the ApprovalVerifier every
