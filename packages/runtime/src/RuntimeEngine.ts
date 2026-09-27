@@ -450,7 +450,9 @@ export class RuntimeEngine {
               action: transaction.intent.action,
               businessTransactionId: transaction.businessTransactionId,
               intentParameters: transaction.intent.parameters,
+              intentTarget: transaction.intent.target,
               stage: "authorize",
+              policy,
             },
             signals,
           )

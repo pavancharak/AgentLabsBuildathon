@@ -28,7 +28,7 @@ import {
 
 import { createApprovalVerifier } from "./bootstrap/createApprovalVerifier.js";
 import { createHubSpotSignalStateVerifier } from "./bootstrap/createHubSpotSignalStateVerifier.js";
-import { createPaytmRefundApprovalVerifier } from "./bootstrap/createPaytmRefundApprovalVerifier.js";
+import { createApprovalSignalVerifier } from "./bootstrap/createApprovalSignalVerifier.js";
 import { executionGatewaySignalStateVerifier } from "./bootstrap/executionGatewaySignalStateVerifier.js";
 import { createPolicyExecutionVerifier } from "./bootstrap/createPolicyExecutionVerifier.js";
 import { createPolicyGovernanceAnchorResolver } from "./bootstrap/createPolicyGovernanceAnchorResolver.js";
@@ -90,7 +90,7 @@ export function createApplication(executionSystem: ExecutionSystem) {
 
   const signalStateVerifier = new CompositeSignalStateVerifier([
     createHubSpotSignalStateVerifier(executionSystem, approvalVerifier),
-    createPaytmRefundApprovalVerifier(approvalVerifier),
+    createApprovalSignalVerifier(approvalVerifier),
   ]);
 
   //

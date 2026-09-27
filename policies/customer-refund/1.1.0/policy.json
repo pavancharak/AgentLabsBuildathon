@@ -15,9 +15,15 @@
     "refundAmount": "parameters.amount"
   },
 
+  "approvalSignals": {
+    "managerApproved": {
+      "resourceId": "parameters.orderId",
+      "value": "parameters.amount"
+    }
+  },
+
   "unboundSignalReasons": {
     "refundEligible": "Result of an independent eligibility check against the customer/order record; not a value the Intent itself declares.",
-    "managerApproved": "Verified, not trusted: when true, PaytmRefundApprovalVerifier requires a signed Approval Artifact in signals.approvalArtifact from a trusted approver, for this order and covering this amount. The Intent carries no approval field to bind against.",
     "fraudCheckPassed": "Result of an independent fraud-assessment system; not something the Intent's target/parameters could express."
   },
 

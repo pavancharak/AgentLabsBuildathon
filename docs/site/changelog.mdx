@@ -14,7 +14,8 @@ every commit, run `git log` in the repository for the complete record.
 
 **Added**
 
-- **Signed manager approval for large refunds.** A `paytm:refund` above 10000 runs only with a signed approval from a trusted approver, for that order and covering that amount, used once. `managerApproved: true` without one is refused. Approvers create a key with `scripts/generate-approver-key.ts` and sign with `scripts/sign-approval.ts`. No approver is configured by default. See [Human approval](/concepts/human-approval).
+- **Signed human approval, declared in the policy, for any action.** A policy lists in `approvalSignals` which of its signals need a signed approval and where the resource (and optionally an amount) is in the request. `ApprovalSignalVerifier` enforces it for every action, before authorization and again at the gateway, and each approval is used once. Adding an approval to an action is a policy change. See [Human approval](/concepts/human-approval#add-an-approval-to-any-action).
+- **Large refunds use it first.** A `paytm:refund` above 10000 runs only with a signed approval from a trusted approver, for that order and covering that amount. `managerApproved: true` without one is refused. Approvers create a key with `scripts/generate-approver-key.ts` and sign with `scripts/sign-approval.ts`. No approver is configured by default.
 
 **Changed**
 

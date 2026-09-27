@@ -172,6 +172,7 @@ describe("ExecutionGateway signal-freshness check (G-31)", () => {
       action: SAMPLE_EXECUTABLE_CONTENT.action,
       businessTransactionId: SAMPLE_EXECUTABLE_CONTENT.businessTransactionId,
       intentParameters: SAMPLE_EXECUTABLE_CONTENT.parameters,
+      intentTarget: SAMPLE_EXECUTABLE_CONTENT.target,
       stage: "release",
     });
   });

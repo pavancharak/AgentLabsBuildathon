@@ -19,8 +19,6 @@ export {
 
 export { PaytmMetadata } from "./PaytmMetadata.js";
 
-export { PaytmRefundApprovalVerifier } from "./PaytmRefundApprovalVerifier.js";
-
 export {
   MockPaytmConnectorServer,
   type MockPaytmConnectorServerOptions,

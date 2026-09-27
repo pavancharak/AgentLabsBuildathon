@@ -128,7 +128,7 @@ describe("sign-approval", () => {
     expect((await verifier.verify(asJson, request)).valid).toBe(true);
     expect((await verifier.verify(asJson, request)).valid).toBe(false);
     expect(approval.payload.scope).toEqual({
-      field: "amount",
+      field: "value",
       comparator: "lte",
       value: 75_000,
     });
@@ -148,17 +148,56 @@ describe("sign-approval", () => {
     expect(DEFAULT_TTL_SECONDS).toBe(900);
   });
 
-  it("uses amountDeltaAbs for HubSpot deal updates", () => {
-    const args = signArgs("k.pem");
-    args[args.indexOf("paytm:refund")] = "hubspot:deal-update";
-
-    expect(parseSignApprovalArguments(args).capability).toBe(
-      "hubspot:deal-update",
+  it("signs for any action, and without --max-amount names exactly the resource", async () => {
+    const dir = tempDir();
+    const files = generateApproverKey(
+      dir,
+      "manager-priya",
+      "manager-priya-key-1",
     );
+    const args = signArgs(files.privateKeyPath);
+    args[args.indexOf("paytm:refund")] = "github:pr-merge";
+    args[args.indexOf("ORD-1042")] = "42";
+    args.splice(args.indexOf("--max-amount"), 2);
+
+    const parsed = parseSignApprovalArguments(args);
+    const approval = await signApproval(parsed);
+
+    expect(parsed.maxAmount).toBeUndefined();
+    expect(approval.payload.capability).toBe("github:pr-merge");
+    expect(approval.payload.scope).toEqual({
+      field: "resourceId",
+      comparator: "eq",
+      value: "42",
+    });
+
+    const verifier = new ApprovalVerifier({
+      crypto: APPROVAL_ARTIFACT_CRYPTO_PROVIDER,
+      issuerRegistry: new StaticApprovalIssuerRegistry([
+        {
+          approverId: "manager-priya",
+          keyId: "manager-priya-key-1",
+          publicKey: createPublicKey(readFileSync(files.publicKeyPath, "utf8")),
+          revoked: false,
+        },
+      ]),
+      nonceStore: new MemoryNonceStore(),
+    });
+
+    expect(
+      (
+        await verifier.verify(JSON.parse(JSON.stringify(approval)), {
+          action: "github:pr-merge",
+          resourceId: "42",
+          requestedValue: "42",
+        })
+      ).valid,
+    ).toBe(true);
   });
 
   it.each([
-    [["--capability", "slack:post-message"], "--capability"],
+    [["--capability", "refund"], "--capability"],
+    [["--capability", "paytm refund"], "--capability"],
     [["--max-amount", "0"], "--max-amount"],
     [["--max-amount", "abc"], "--max-amount"],
     [["--ttl-seconds", "0"], "--ttl-seconds"],

@@ -13,9 +13,9 @@ import type { PolicySignals } from "../../src/types/PolicySignals.js";
  * customer-refund 1.1.0 (G-65): refunds up to 10000 are automatic,
  * refunds above 10000 and up to 100000 need a manager approval, refunds
  * above 100000 are refused. managerApproved is only a policy fact here;
- * that it is backed by a signed approval is PaytmRefundApprovalVerifier's
- * job, tested in packages/connector-paytm and the paytm-refund
- * integration test.
+ * that it is backed by a signed approval is declared in approvalSignals
+ * and enforced by @parmana/approval's ApprovalSignalVerifier, tested
+ * there and in the paytm-refund integration test.
  */
 describe("customer-refund 1.1.0", () => {
   const policy = JSON.parse(
@@ -43,6 +43,15 @@ describe("customer-refund 1.1.0", () => {
   it("is a valid policy", () => {
     expect(() => new PolicyValidator().validate(policy)).not.toThrow();
     expect(policy.policyVersion).toBe("1.1.0");
+  });
+
+  it("declares managerApproved as approval backed, for the order and amount in the Intent", () => {
+    expect(policy.approvalSignals).toEqual({
+      managerApproved: {
+        resourceId: "parameters.orderId",
+        value: "parameters.amount",
+      },
+    });
   });
 
   it.each([

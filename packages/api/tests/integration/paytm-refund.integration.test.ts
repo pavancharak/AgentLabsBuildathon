@@ -60,7 +60,7 @@ vi.mock("../../src/bootstrap/createApprovalIssuerRegistry.js", () => ({
  *
  * Manager approval (G-65): refunds above 10000 run only with a signed
  * Approval Artifact from a trusted approver, verified by
- * PaytmRefundApprovalVerifier before authorization and again by the
+ * customer-refund 1.1.0's approvalSignals, enforced by ApprovalSignalVerifier before authorization
  * Execution Gateway at release.
  */
 describe("Paytm refund (HTTP boundary)", () => {

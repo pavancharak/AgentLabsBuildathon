@@ -1,17 +1,19 @@
 ---
 title: "Human approval"
-description: "Where people approve what agents do: policies, large refunds and large HubSpot amount changes, and how to review refused requests."
+description: "Where people approve what agents do: policies, and any action a policy says needs a signed approval, such as large refunds. How to add an approval to an action, and how to review refused requests."
 ---
 
-People take part in four places: they approve policies before those policies can authorize
-anything, they sign approvals for large refunds and large HubSpot amount changes, and they
-review every refused request. Parmana does not hold a request while it waits for a person: a
-refused request stays refused, and the agent sends a new one with the approval attached.
+People approve policies before those policies can authorize anything, sign approvals for any
+action a policy says needs one, and review every refused request. Which actions need an
+approval is written in the policy, not in code, so adding one to a new action is a policy
+change. Parmana does not hold a request while it waits for a person: a refused request stays
+refused, and the agent sends a new one with the approval attached.
 
 | What a person does                                               | Status                                      |
 | ---------------------------------------------------------------- | ------------------------------------------- |
 | Approve a policy before it can authorize anything                | **[AVAILABLE]**                             |
 | Review refused requests                                          | **[AVAILABLE]**                             |
+| Sign an approval for any action whose policy declares one        | **[AVAILABLE]**, no approver configured yet |
 | Sign an approval for a refund above 10000                        | **[AVAILABLE]**, no approver configured yet |
 | Sign an approval for a HubSpot amount change above the threshold | **[AVAILABLE]**, no approver configured yet |
 | Approve a refused request so that same request runs              | **[NOT AVAILABLE]**                         |
@@ -74,7 +76,9 @@ The flow for a refund of 75000 on order `ORD-1042`:
     Before authorizing, Parmana checks that the approval is signed by a trusted approver, has
     not expired or been revoked, is for `paytm:refund`, for this order (the Intent's
     `parameters.orderId`), covers this amount (the Intent's `parameters.amount`), and has not
-    been used before. The gateway checks it again just before release. Then the refund runs.
+    been used before. The gateway runs the same checks again just before release. Then the
+    refund runs. The policy says which order and amount to check, in its `approvalSignals`
+    (see [Add an approval to any action](#add-an-approval-to-any-action)).
   </Step>
 </Steps>
 
@@ -112,12 +116,48 @@ changed payload, an unknown or revoked approver, an expired approval, or one alr
   signing algorithm the server itself uses.
 </Info>
 
+## Add an approval to any action
+
+A policy declares which of its signals need a signed approval in `approvalSignals`, with a path
+to the resource in the Intent and, optionally, a path to a number the approval must cover. For
+a merge that needs a release manager:
+
+```json
+"approvalSignals": {
+  "releaseManagerApproved": { "resourceId": "target" }
+}
+```
+
+A rule then reads the signal like any other, for example `{ "fact": "releaseManagerApproved",
+"operator": "is_true" }`. The approver signs without `--max-amount`, since there is no amount;
+the approval then names exactly this pull request, `acme/api#42`:
+
+```bash
+npx tsx scripts/sign-approval.ts   --private-key-file ~/.parmana/lead-sam__lead-sam-key-1.private.pem   --approver-id lead-sam --key-id lead-sam-key-1   --capability github:pr-merge --resource-id "acme/api#42" --out approval.json
+```
+
+The change goes live like any policy change: a new version, proposed and approved through
+policy governance. No code changes, with two exceptions today: a live action's policy version is
+bound in code, so the new version needs that one line changed and a deploy (G-66), and a new
+approver needs a deploy.
+
+Rules for a declaration, checked when the policy loads:
+
+- `resourceId` is `"target"` (the Intent's target, such as `acme/api#42` for a pull request) or a
+  path into the Intent's `parameters`, such as `parameters.orderId`. A number is compared as its
+  decimal string. `value` is a path into `parameters` to a number.
+- The key must be read by a rule, and must not also be in `boundSignals`.
+- With more than one approval signal, give each its own `artifact`, the signal that carries its
+  approval. The default is `approvalArtifact`.
+
 ## Approve a HubSpot amount change
 
 For `hubspot:deal-update`, an amount change above the configured threshold runs only with
 `preAuthorizedForAmountChange: true` and a signed approval in `signals.approvalArtifact`. Sign
 it the same way, with `--capability hubspot:deal-update`, the deal id as `--resource-id`, and
-the largest amount change allowed as `--max-amount`.
+the largest amount change allowed as `--max-amount`. HubSpot keeps its own check, because its
+limit applies to an amount change worked out from a live read of the deal, not to a value in the
+request.
 
 ## Review refused requests
 

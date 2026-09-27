@@ -995,7 +995,7 @@ What changed on 2026-09-20 (`packages/execution-gateway/src/ExecutionGateway.ts`
 Scope, stated plainly:
 
 - This binds execution to the policy a human checker approved. It does not prove the policy is correct or wise, and it does not model per policy or per role approver authority. Any provisioned human checker with a step up key can approve any policy (see G-50 in `docs/VERIFICATION-GAPS.md`).
-- Signals such as `fraudCheckPassed` are caller declared unless a `SignalStateVerifier` covers that capability. The HubSpot verifier and, for `managerApproved` on refunds, `PaytmRefundApprovalVerifier` (2.42) are wired; other signals are only as true as the caller says (G-51).
+- Signals such as `fraudCheckPassed` are caller declared unless a `SignalStateVerifier` covers that capability. The HubSpot verifier and, for any signal a policy declares in `approvalSignals` (such as `managerApproved` on refunds), `ApprovalSignalVerifier` (2.42) are wired; other signals are only as true as the caller says (G-51).
 - The claim holds for execution routed through the gateway. A request that never reaches the gateway is not covered (see 3.1).
 - Direct edits to the policy store outside the API are prevented from executing (hash mismatch against the approval record) but are still only detected, not blocked, at the storage layer.
 
@@ -1169,12 +1169,12 @@ Evidence
 - `typescript/test/Alignment.test.ts`, `python/tests/test_sdk_alignment.py`
 - `docs/site/sdks/api-coverage.mdx`, `docs/site/sdks/typescript.mdx`, `docs/site/sdks/python.mdx`; `docs/VERIFICATION-GAPS.md` G-62 and G-64
 
-## 2.42 Signed Manager Approval for Large Refunds (Scoped, 2026-09-27)
+## 2.42 Signed Human Approval Declared by Policy, First Used for Large Refunds (Scoped, 2026-09-27)
 
 A `paytm:refund` above 10000 executes only with a signed approval from a trusted approver, for that order, covering that amount, used once. A refund whose signals say `managerApproved: true` without one is refused, at any amount.
 
 - **Policy:** `customer-refund` 1.1.0, bound to `paytm:refund`. Up to 10000: authorized automatically after the eligibility and fraud checks. Above 10000 and up to 100000: only with `managerApproved: true`. Above 100000: refused. Refusals that need a manager have their own rule id, `reject-manager-approval-required`.
-- **Verification:** `PaytmRefundApprovalVerifier` runs when policy would approve, before the authorization is signed, and again in the Execution Gateway just before release. It checks the approver is trusted and not revoked, the Ed25519 signature, the expiry, the capability, the order (the Intent's `parameters.orderId`) and the amount (the Intent's `parameters.amount`, never the caller's signal), and consumes the approval's nonce once, at authorization.
+- **Verification, for any action:** a policy declares which signals need a signed approval in `approvalSignals`, with dot paths to the resource (or the Intent's `target`) and, optionally, the value in the Intent (`customer-refund` 1.1.0: `managerApproved`, `parameters.orderId`, `parameters.amount`). `ApprovalSignalVerifier` enforces every declaration, with no per action code. It runs when policy would approve, before the authorization is signed, and again in the Execution Gateway just before release, against the policy the gateway loaded and hash checked. It checks the approver is trusted and not revoked, the Ed25519 signature, the expiry, the action, the resource and the value (read from the Intent, never from the caller's signals), checks every approval before using any, and uses each once, at authorization. `PolicyValidator` rejects a declaration no rule reads, a resource path other than `target` or one into the Intent's parameters, a key that is also bound, or two declarations sharing an approval.
 - **Approvers** sign on their own machine with `scripts/sign-approval.ts`, from a key made by `scripts/generate-approver-key.ts`. Approver keys are Ed25519 whatever the server's own signing algorithm is.
 
 Scope, stated plainly:
@@ -1188,13 +1188,14 @@ Scope, stated plainly:
 Verification
 
 - `packages/api/tests/integration/paytm-refund.integration.test.ts` (15 tests, the real production bootstrap with a test approver): a 75000 refund with a valid approval executes exactly once; no approval, another order, a smaller approved amount, an untrusted key, a changed payload, another capability, and a reused approval are each refused with zero connector calls; above 100000 is refused with an approval; `customer-refund` 1.0.0 is refused by the binding.
-- `packages/connector-paytm/tests/unit/paytm-refund-approval-verifier.test.ts` (12), `packages/policy/tests/unit/CustomerRefundPolicy110.test.ts` (10), `packages/crypto/tests/unit/approval-artifact-signer.test.ts` (6), `scripts/tests/approver-scripts.test.ts` (13).
+- `packages/approval/tests/unit/ApprovalSignalVerifier.test.ts` (24: a refund with an amount, a merge whose resource is the Intent's target with no amount, a numeric resource, two approvals in one policy, nested paths, single use across both checks, and a request with no policy), `packages/policy/tests/unit/PolicyValidator-approvalSignals.test.ts` (14), `packages/policy/tests/unit/CustomerRefundPolicy110.test.ts` (11), `packages/crypto/tests/unit/approval-artifact-signer.test.ts` (6), `scripts/tests/approver-scripts.test.ts` (14).
+- With `ApprovalSignalVerifier` removed from the app, 7 of the 15 refund integration tests fail; with the gateway not passing the policy at release, the valid approval is refused there (fails closed).
 - Building it found and closed G-67: an approval could never pass the gateway's second check, for HubSpot too.
 
 Evidence
 
 - `policies/customer-refund/1.1.0/policy.json`; `packages/capability-registry/src/CapabilityPolicyBinding.ts`
-- `packages/connector-paytm/src/PaytmRefundApprovalVerifier.ts`; `packages/api/src/bootstrap/createApprovalVerifier.ts`, `createPaytmRefundApprovalVerifier.ts`; `packages/api/src/application.ts`
+- `packages/approval/src/ApprovalSignalVerifier.ts`; `packages/policy/src/types/Policy.ts` (`approvalSignals`), `PolicyValidator.ts`; `packages/api/src/bootstrap/createApprovalVerifier.ts`, `createApprovalSignalVerifier.ts`; `packages/api/src/application.ts`; `packages/execution-gateway/src/ExecutionGateway.ts` (passes the verified policy at release)
 - `packages/crypto/src/ApprovalArtifactCrypto.ts`; `packages/approval/src/ApprovalVerifier.ts` (`consumeNonce`); `packages/policy/src/types/SignalStateVerifier.ts` (`stage`)
 - `scripts/generate-approver-key.ts`, `scripts/sign-approval.ts`; `docs/site/concepts/human-approval.mdx`; `docs/VERIFICATION-GAPS.md` G-65, G-67
 

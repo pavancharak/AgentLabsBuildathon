@@ -10,6 +10,7 @@ import {
 
 import type {
   PolicyExecutionVerifier,
+  Policy,
   PolicyRepository,
   PolicySignals,
   SignalStateVerifier,
@@ -315,6 +316,7 @@ export class ExecutionGateway implements ExecutionSystem {
     }
 
     let policyStillCurrent: boolean | undefined;
+    let verifiedPolicy: Policy | undefined;
     let policyContentMismatch: GatewayVerificationResult["policyContentMismatch"];
 
     const { policyName, policyVersion, policyContentHash } =
@@ -354,6 +356,10 @@ export class ExecutionGateway implements ExecutionSystem {
         const currentHash = await this.policyContentHasher.hash(currentPolicy);
 
         policyStillCurrent = currentHash === policyContentHash;
+
+        if (policyStillCurrent) {
+          verifiedPolicy = currentPolicy;
+        }
 
         if (!policyStillCurrent) {
           policyContentMismatch = {
@@ -433,7 +439,9 @@ export class ExecutionGateway implements ExecutionSystem {
             action: executableContent.action,
             businessTransactionId: executableContent.businessTransactionId,
             intentParameters: executableContent.parameters,
+            intentTarget: executableContent.target,
             stage: "release",
+            ...(verifiedPolicy !== undefined ? { policy: verifiedPolicy } : {}),
           },
           request.signals as PolicySignals,
         );

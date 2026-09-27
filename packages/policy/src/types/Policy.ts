@@ -291,10 +291,62 @@ export interface Policy {
   unboundSignalReasons?: Record<string, string>;
 
   /**
+   * Signals that are true only when a person signed an approval for this
+   * request (G-65). For each key, a signal value of true is accepted only
+   * with a valid Approval Artifact (@parmana/approval's ApprovalVerifier)
+   * for this action, for the resource at `resourceId` in the Intent, and,
+   * when `value` is given, with a scope that covers the value at that
+   * path. The resource and value are read from the Intent, never from the
+   * caller's signals. Checked by ApprovalSignalVerifier before
+   * authorization and again by the Execution Gateway at release.
+   *
+   * A key here counts as covered for PolicyValidator's fail closed fact
+   * coverage, like a boundSignals key.
+   *
+   * Example:
+   *
+   * {
+   *   "managerApproved": {
+   *     "resourceId": "parameters.orderId",
+   *     "value": "parameters.amount"
+   *   }
+   * }
+   */
+  approvalSignals?: Record<string, ApprovalSignalDeclaration>;
+
+  /**
    * Ordered evaluation rules.
    *
    * Rules are evaluated sequentially.
    * The first matching rule wins.
    */
   rules: PolicyRule[];
+}
+
+/**
+ * How one approval backed signal finds what the approval must cover.
+ * Paths are dot paths into the Intent's parameters ("parameters.x");
+ * resourceId may also be "target", the Intent's whole target.
+ */
+export interface ApprovalSignalDeclaration {
+  /**
+   * Path to the resource the approval is for, such as
+   * "parameters.orderId", or "target" for the Intent's target (a pull
+   * request's "acme/api#42"). A number is compared as its decimal string.
+   */
+  readonly resourceId: string;
+
+  /**
+   * Optional path to a number the approval's scope must cover, such as
+   * an amount. Without it, the approval must name exactly this resource
+   * (scope comparator "eq" on the resource id).
+   */
+  readonly value?: string;
+
+  /**
+   * The signal that carries the SignedApproval. Defaults to
+   * "approvalArtifact". Needed only when one policy declares more than
+   * one approval signal, each with its own approval.
+   */
+  readonly artifact?: string;
 }

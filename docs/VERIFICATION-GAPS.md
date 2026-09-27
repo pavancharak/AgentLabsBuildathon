@@ -751,12 +751,18 @@ approval signatures are verified with Ed25519 only (`APPROVAL_ARTIFACT_CRYPTO_PR
 `packages/crypto/src/ApprovalArtifactCrypto.ts`), not with the server's configured provider,
 because approver keys belong to people, like step up keys.
 
-- **Verifier:** `PaytmRefundApprovalVerifier` (`packages/connector-paytm/src/`). When a refund
-  declares `managerApproved: true`, it requires a valid `signals.approvalArtifact` for
-  `paytm:refund`, `resourceId` equal to the Intent's `parameters.orderId`, and a scope covering
-  the Intent's `parameters.amount`. Wired next to HubSpot's in `packages/api/src/application.ts`,
-  sharing one `ApprovalVerifier` (`createApprovalVerifier.ts`), so an approval is single use
-  across capabilities.
+- **Verifier, for any action:** a policy declares approval backed signals in `approvalSignals`
+  (the Intent's `target` or a path into its parameters for the resource, and optionally a path
+  to a number the approval must cover).
+  `ApprovalSignalVerifier` (`packages/approval/src/`) enforces them with no per action code, at
+  both checks: `RuntimeEngine` and the Execution Gateway both pass the policy
+  (`SignalStateVerificationRequest.policy`; the gateway passes the one it loaded and hash checked).
+  It checks every approval before using any, and uses each once, at authorization.
+  `PolicyValidator` rejects unsafe declarations. Wired next to HubSpot's in
+  `packages/api/src/application.ts`, sharing one `ApprovalVerifier` (`createApprovalVerifier.ts`),
+  so an approval is single use across actions. A first version checked refunds only
+  (`PaytmRefundApprovalVerifier`); it was replaced the same day, before merge, so a new use case is
+  a policy change, not a code change.
 - **Policy:** `customer-refund` 1.1.0. Automatic up to 10000; above 10000 and up to 100000 only
   with `managerApproved: true`; above 100000 refused; its own rejection reason for "needs a
   manager approval" (`reject-manager-approval-required`), so the refusals waiting for a manager
@@ -772,10 +778,11 @@ because approver keys belong to people, like step up keys.
   no approval, another order, a smaller approved amount, an untrusted key, a changed payload,
   another capability and a reused approval is refused with zero connector calls; above 100000 is
   refused even with an approval; the old version 1.0.0 is refused by the binding.
-  `packages/connector-paytm/tests/unit/paytm-refund-approval-verifier.test.ts` (12),
-  `packages/policy/tests/unit/CustomerRefundPolicy110.test.ts` (10, every rule),
+  `packages/approval/tests/unit/ApprovalSignalVerifier.test.ts` (24),
+  `packages/policy/tests/unit/PolicyValidator-approvalSignals.test.ts` (14),
+  `packages/policy/tests/unit/CustomerRefundPolicy110.test.ts` (11, every rule),
   `packages/crypto/tests/unit/approval-artifact-signer.test.ts` (6),
-  `scripts/tests/approver-scripts.test.ts` (13, including the script's output accepted by the
+  `scripts/tests/approver-scripts.test.ts` (14, including the script's output accepted by the
   server's verifier).
 - **Still open:** step 3. `TRUSTED_APPROVAL_ISSUERS` is still empty, so in a deployment every
   approval is refused until an operator adds a real approver and deploys. In production,
@@ -1638,7 +1645,7 @@ against real state, so a caller can declare them true. The same applies to GitHu
 approval artifact for `managerApproved` (the `SignedApprovalGuard` and `ApprovalIssuerRegistry` machinery
 already exists in `packages/approval`). **Addendum (2026-09-27):** G-65 has a step by step plan for
 `paytm:refund`. **Narrowed the same day:** for `paytm:refund`, `managerApproved: true` is now verified
-against a signed approval (G-65, `PaytmRefundApprovalVerifier`). `refundEligible` and
+against a signed approval (G-65, `approvalSignals` in the policy, `ApprovalSignalVerifier`). `refundEligible` and
 `fraudCheckPassed`, and the GitHub and Slack signals, are still caller declared.
 
 **G-52. The connector can be called before the Execution Trust Record can be signed, so a signing

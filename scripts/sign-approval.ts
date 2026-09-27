@@ -6,36 +6,30 @@ import type { ApprovalScope, SignedApproval } from "@parmana/shared";
 
 /**
  * Signs an Approval Artifact: one approver approving one action on one
- * resource, up to an amount, for a limited time, once.
+ * resource, optionally up to an amount, for a limited time, once. Works
+ * for any action whose policy declares approvalSignals.
  *
  * Run by the approver on their own machine, against the private key
  * from scripts/generate-approver-key.ts. It never talks to the API. It
  * prints the approval as JSON, or with --out writes only the JSON to a
- * file; the agent sends it as signals.approvalArtifact on a new request,
- * with managerApproved: true for a refund.
+ * file; the agent sends it in the signal the policy names (by default
+ * signals.approvalArtifact) on a new request, with the approval signal
+ * set to true.
  *
  * Usage, approving a refund of up to 75000 on order ORD-1042:
- *   npx tsx scripts/sign-approval.ts \
- *     --private-key-file ~/.parmana/manager-priya__manager-priya-key-1.private.pem \
- *     --approver-id manager-priya \
- *     --key-id manager-priya-key-1 \
- *     --capability paytm:refund \
- *     --resource-id ORD-1042 \
- *     --max-amount 75000  *     --out approval.json
+ *   npx tsx scripts/sign-approval.ts  *     --private-key-file ~/.parmana/manager-priya__manager-priya-key-1.private.pem  *     --approver-id manager-priya  *     --key-id manager-priya-key-1  *     --capability paytm:refund  *     --resource-id ORD-1042  *     --max-amount 75000  *     --out approval.json
  *
- * The resource is the order id for paytm:refund and the deal id for
- * hubspot:deal-update. --max-amount is compared with the refund amount
- * for paytm:refund and with the absolute amount change for
- * hubspot:deal-update.
+ * --resource-id is the value at the policy's approvalSignals resourceId
+ * path: an order id, or for "target" the Intent's target, such as
+ * acme/api#42 for a pull request. --max-amount is needed when
+ * the policy declares a value path (an amount), and must be left out
+ * when it does not: the approval then names exactly this resource.
  */
 
 export const DEFAULT_TTL_SECONDS = 900;
 export const MAX_TTL_SECONDS = 86_400;
 
-const SCOPE_FIELD_BY_CAPABILITY: Readonly<Record<string, string>> = {
-  "paytm:refund": "amount",
-  "hubspot:deal-update": "amountDeltaAbs",
-};
+const CAPABILITY = /^[A-Za-z0-9_-]+:[A-Za-z0-9_.-]+$/;
 
 export interface SignApprovalArguments {
   readonly privateKeyFile: string;
@@ -43,7 +37,7 @@ export interface SignApprovalArguments {
   readonly keyId: string;
   readonly capability: string;
   readonly resourceId: string;
-  readonly maxAmount: number;
+  readonly maxAmount?: number;
   readonly ttlSeconds: number;
   readonly out?: string;
 }
@@ -63,16 +57,20 @@ export function parseSignApprovalArguments(
 ): SignApprovalArguments {
   const capability = argument(args, "--capability");
 
-  if (SCOPE_FIELD_BY_CAPABILITY[capability] === undefined) {
+  if (!CAPABILITY.test(capability)) {
     throw new Error(
-      `--capability must be one of: ${Object.keys(SCOPE_FIELD_BY_CAPABILITY).join(", ")}`,
+      `--capability must be an action such as paytm:refund or github:pr-merge: ${capability}`,
     );
   }
 
-  const maxAmount = Number(argument(args, "--max-amount"));
+  let maxAmount: number | undefined;
 
-  if (!Number.isFinite(maxAmount) || maxAmount <= 0) {
-    throw new Error("--max-amount must be a positive number.");
+  if (args.includes("--max-amount")) {
+    maxAmount = Number(argument(args, "--max-amount"));
+
+    if (!Number.isFinite(maxAmount) || maxAmount <= 0) {
+      throw new Error("--max-amount must be a positive number.");
+    }
   }
 
   const ttlSeconds = args.includes("--ttl-seconds")
@@ -101,21 +99,20 @@ export function parseSignApprovalArguments(
     keyId: argument(args, "--key-id"),
     capability,
     resourceId,
-    maxAmount,
+    ...(maxAmount !== undefined ? { maxAmount } : {}),
     ttlSeconds,
     ...(args.includes("--out") ? { out: argument(args, "--out") } : {}),
   };
 }
 
-export function approvalScope(
-  capability: string,
-  maxAmount: number,
-): ApprovalScope {
-  return {
-    field: SCOPE_FIELD_BY_CAPABILITY[capability],
-    comparator: "lte",
-    value: maxAmount,
-  };
+/**
+ * The scope ApprovalSignalVerifier checks: an amount limit when the
+ * policy declares a value, otherwise exactly this resource.
+ */
+export function approvalScope(parsed: SignApprovalArguments): ApprovalScope {
+  return parsed.maxAmount !== undefined
+    ? { field: "value", comparator: "lte", value: parsed.maxAmount }
+    : { field: "resourceId", comparator: "eq", value: parsed.resourceId };
 }
 
 export async function signApproval(
@@ -131,7 +128,7 @@ export async function signApproval(
       keyId: parsed.keyId,
       capability: parsed.capability,
       resourceId: parsed.resourceId,
-      scope: approvalScope(parsed.capability, parsed.maxAmount),
+      scope: approvalScope(parsed),
       ttlSeconds: parsed.ttlSeconds,
     },
     privateKey,
@@ -145,7 +142,9 @@ async function main(args = process.argv.slice(2)): Promise<void> {
 
     console.log();
     console.log(
-      `Signed approval for ${parsed.capability} on ${parsed.resourceId}, up to ${parsed.maxAmount}, ` +
+      `Signed approval for ${parsed.capability} on ${parsed.resourceId}` +
+        (parsed.maxAmount !== undefined ? `, up to ${parsed.maxAmount}` : "") +
+        ", " +
         `expires ${approval.payload.expiresAt}, usable once.`,
     );
     if (parsed.out !== undefined) {

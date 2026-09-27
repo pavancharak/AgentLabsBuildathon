@@ -103,6 +103,31 @@ policy](/guides/write-your-first-policy) for what a rejection actually does).
   and its exact scope.
 </Warning>
 
+## Requiring a signed human approval
+
+Some signals should be true only when a person approved this exact request: a manager for a
+large refund, a release manager for a merge. `Policy.approvalSignals` declares them. For each
+key, the caller's `true` counts only with a valid signed approval, for this action, for the
+resource at `resourceId` in the Intent and, when `value` is given, covering the number at that
+path:
+
+```json
+"approvalSignals": {
+  "managerApproved": {
+    "resourceId": "parameters.orderId",
+    "value": "parameters.amount"
+  }
+}
+```
+
+The approval travels in `signals.approvalArtifact` (or the signal named by `artifact`).
+`ApprovalSignalVerifier` checks it for any action, before the authorization is signed and again
+at the gateway just before release, and uses it once. The resource and value come from the
+Intent, never from the caller's signals. Without `value`, the approval must name exactly this
+resource. A declared key counts as covered, like a `boundSignals` key, and the validator
+rejects a key no rule reads, a path other than `target` or one into `parameters`, a key that is
+also bound, or two keys sharing one approval. See [Human approval](/concepts/human-approval).
+
 ## Minimal example
 
 From `policies/vendor-payment/2.0.0/policy.json`, a real policy in this repo:

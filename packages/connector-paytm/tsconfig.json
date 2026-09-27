@@ -13,8 +13,6 @@
   "references": [
     { "path": "../shared" },
     { "path": "../crypto" },
-    { "path": "../connector-sdk" },
-    { "path": "../policy" },
-    { "path": "../approval" }
+    { "path": "../connector-sdk" }
   ]
 }
