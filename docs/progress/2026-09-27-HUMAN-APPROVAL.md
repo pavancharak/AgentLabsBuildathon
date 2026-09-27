@@ -41,7 +41,7 @@ The agreed flow instead of escalation: a refused request is recorded with a sign
 | Approver tools                               | `scripts/generate-approver-key.ts`, `scripts/sign-approval.ts` (any action, amount optional, 15 minutes default, one day at most) | `scripts/tests/approver-scripts.test.ts` (14), and both run from the command line                                                         |
 | Docs                                         | `docs/site/concepts/human-approval.mdx`, `docs/site/concepts/policies-and-the-decision.mdx`, quickstart, guides, changelog        | Docs tests pass; LLM index regenerated                                                                                                    |
 
-Refund rules in `customer-refund` 1.1.0: up to 10000 automatic after the eligibility and fraud checks; above 10000 and up to 100000 only with a verified manager approval for that order, covering that amount; above 100000 refused. The 100000 maximum was chosen during the build and is waiting for the operator to confirm.
+Refund rules in `customer-refund` 1.1.0: up to 10000 automatic after the eligibility and fraud checks; above 10000 and up to 100000 only with a verified manager approval for that order, covering that amount; above 100000 refused. The operator confirmed both limits, 10000 automatic and 100000 maximum, on 2026-09-28.
 
 ## To make it take effect in production (needs the operator)
 
@@ -49,7 +49,7 @@ In this order:
 
 1. **Approve `customer-refund` 1.1.0 in production: DONE 2026-09-27 18:53:40 UTC** (see the next section). No deploy was needed.
 2. **Add a real approver: DONE in code 2026-09-28.** `TRUSTED_APPROVAL_ISSUERS` lists `manager-charak1987` (key `manager-charak1987-key-1`), held by the operator. Still to check: a refund above 10000 with that approver's signature executes in production. How it was done: the manager runs `scripts/generate-approver-key.ts` on their own machine and sends the `.public.pem` file. The operator adds `{ approverId, keyId, revoked: false, publicKeyPem }` to `TRUSTED_APPROVAL_ISSUERS` in `packages/api/src/bootstrap/createApprovalIssuerRegistry.ts`, opens a pull request, and deploys. The inline `publicKeyPem` is what makes this possible on Vercel (G-68).
-3. **Confirm the numbers:** 10000 automatic limit, 100000 maximum.
+3. **Confirm the numbers: DONE 2026-09-28.** The operator confirmed 10000 automatic and 100000 maximum.
 4. **CI:** everything passed on #46 except `verify-policy-approvals`, which needs the `SUPABASE_URL` and `SUPABASE_ANON_KEY` secrets in GitHub Actions (none are set) and an approved 1.1.0. #46 was merged with that check failing.
 5. **Know the behavior change:** refunds up to 10000 no longer need `managerApproved: true`.
 
