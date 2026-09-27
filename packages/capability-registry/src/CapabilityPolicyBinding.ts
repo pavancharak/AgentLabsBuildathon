@@ -2,13 +2,30 @@ import type { PolicyReference } from "@parmana/shared";
 
 /**
  * One violation of the capability/policy binding: the caller declared
- * a policy reference other than the one canonically bound to this
- * capability.
+ * a policy reference other than the one bound to this capability, or
+ * the version in effect could not be established.
  */
 export interface CapabilityPolicyBindingViolation {
   readonly action: string;
   readonly expected: PolicyReference;
   readonly declared: PolicyReference;
+
+  /**
+   * Set when no version in effect could be established for the bound
+   * policy name (none approved, or the lookup failed). The request is
+   * refused either way; this says why.
+   */
+  readonly reason?: string;
+}
+
+/**
+ * Where the version in effect for a bound policy name comes from when
+ * policy governance decides it (G-66): the version with the most recent
+ * approval record for that name. Returns undefined when no version of
+ * the name was ever approved. Throws when it cannot tell.
+ */
+export interface CurrentPolicyVersionSource {
+  currentVersion(policyName: string): Promise<string | undefined>;
 }
 
 /**
@@ -18,7 +35,14 @@ export interface CapabilityPolicyBindingViolation {
  * Every entry here corresponds to a capability actually registered in
  * production bootstrap (`packages/api/src/bootstrap/createConnectorRegistry.ts`)
  * and the one policy file already purpose-built to authorize it
- * (`policies/<name>/<version>/policy.json`). Actions with no entry here
+ * (`policies/<name>/<version>/policy.json`).
+ *
+ * The policy NAME is fixed here and changes only with a deploy. The
+ * VERSION here is used only where policy governance does not decide it
+ * (NODE_ENV test and development, see CapabilityPolicyBinder). Where it
+ * does, production included, the version in effect is the one most
+ * recently approved through policy governance (G-66), so a new version
+ * goes live when it is approved, with no deploy. Actions with no entry here
  * (every test/tutorial/example fixture action, and any future capability
  * not yet given a canonical policy) are entirely unaffected by
  * `CapabilityPolicyBinder` -- this table is additive, not a replacement
@@ -97,27 +121,65 @@ export const CANONICAL_CAPABILITY_POLICY_BINDINGS: ReadonlyMap<
  */
 export class CapabilityPolicyBinder {
   /**
+   * With currentVersions, the declared version must equal the version
+   * in effect for the bound name, as policy governance decides it: an
+   * older version, even one approved in the past, is refused, and so is
+   * any request when none is approved or the lookup fails. Without it,
+   * the declared version must equal the version in the binding above.
+   */
+  constructor(private readonly currentVersions?: CurrentPolicyVersionSource) {}
+
+  /**
    * Returns the binding violation for this action/declared-policy pair,
    * or undefined when there is nothing to enforce (no canonical entry
    * for this action) or the declared policy already matches it.
    */
-  public findViolation(
+  public async findViolation(
     action: string,
     declared: PolicyReference,
-  ): CapabilityPolicyBindingViolation | undefined {
-    const expected = CANONICAL_CAPABILITY_POLICY_BINDINGS.get(action);
+  ): Promise<CapabilityPolicyBindingViolation | undefined> {
+    const bound = CANONICAL_CAPABILITY_POLICY_BINDINGS.get(action);
 
-    if (expected === undefined) {
+    if (bound === undefined) {
       return undefined;
     }
 
-    if (
-      expected.name === declared.name &&
-      expected.version === declared.version
-    ) {
-      return undefined;
+    if (this.currentVersions === undefined) {
+      return bound.name === declared.name && bound.version === declared.version
+        ? undefined
+        : { action, expected: bound, declared };
     }
 
-    return { action, expected, declared };
+    let currentVersion: string | undefined;
+
+    try {
+      currentVersion = await this.currentVersions.currentVersion(bound.name);
+    } catch (error) {
+      return {
+        action,
+        expected: bound,
+        declared,
+        reason:
+          `the version of policy "${bound.name}" in effect for capability "${action}" ` +
+          `could not be looked up: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+
+    if (currentVersion === undefined) {
+      return {
+        action,
+        expected: bound,
+        declared,
+        reason:
+          `no version of policy "${bound.name}", which capability "${action}" requires, ` +
+          "has been approved through policy governance",
+      };
+    }
+
+    const expected: PolicyReference = { ...bound, version: currentVersion };
+
+    return bound.name === declared.name && currentVersion === declared.version
+      ? undefined
+      : { action, expected, declared };
   }
 }

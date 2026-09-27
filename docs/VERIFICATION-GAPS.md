@@ -811,7 +811,9 @@ and with it, both pass. Unit tests: `packages/approval/tests/unit/ApprovalVerifi
 passes `"release"`).
 
 **G-66. The policy version for each action is fixed in code, so a policy change needs a
-redeploy. FOUND 2026-09-27, `pre-production`, open.** `CANONICAL_CAPABILITY_POLICY_BINDINGS`
+redeploy. FOUND 2026-09-27, `pre-production`. BUILT the same day on branch
+`feat/policy-version-from-governance`, stacked on PR #46, not merged (see "Built" at the end of
+this entry).** `CANONICAL_CAPABILITY_POLICY_BINDINGS`
 (`packages/capability-registry/src/CapabilityPolicyBinding.ts:44`) maps each live capability to
 one policy name, version and schema version, for example `paytm:refund` to `customer-refund`
 1.0.0. `CapabilityPolicyBinder` (called at `packages/runtime/src/RuntimeEngine.ts:361`) refuses
@@ -833,6 +835,47 @@ fails. A new version then goes live through propose and approve, with no deploy.
 new capability still needs a deploy. **Alternative:** move the whole map into the database
 behind maker and checker. That needs a new table and a new change type, because
 `pending_policy_changes` carries only policy content.
+
+**Built 2026-09-27 (the recommended option).** The name stays in
+`CANONICAL_CAPABILITY_POLICY_BINDINGS`; the version comes from policy governance.
+
+- `CapabilityPolicyBinder` takes an optional `CurrentPolicyVersionSource` and is now async. With
+  it, the declared version must equal the version in effect for the bound name; without it
+  (`NODE_ENV` test and development), the version in the table applies. No approved version, or a
+  failed lookup, refuses the request with a `reason`.
+- The version in effect is the `policyVersion` of the most recent approval record for the name,
+  across versions (`PolicyChangeApprovalRecordRepository.findMostRecentForName`, memory and
+  Postgres; the existing index on `(policy_name, policy_version, approved_at)` serves it).
+  Approving a version makes it current; approving an older version again rolls back to it.
+- `GovernedPolicyVersionSource` (`packages/api/src/governance/`) reads it.
+  `createCurrentPolicyVersionSource.ts` turns it on under exactly the rule of
+  `createPolicyExecutionVerifier.ts`, so the version comes from governance wherever governance is
+  enforced, and nowhere else. Wired through `RuntimeFactory.create` and
+  `RuntimeBuilder.withCurrentPolicyVersions`.
+- It reads only the version from the record. The same request then verifies that record's
+  signature and content hash (`PolicyGovernanceExecutionVerifier`, and again at the gateway), so
+  a record changed in the database outside the API makes the request fail, not pass.
+- **Tests:** `packages/capability-registry/tests/unit/CapabilityPolicyBinder.test.ts` (15, 8 new:
+  approved version accepted over the table's, the table's version refused once another is
+  approved, an older approved version refused, another name refused, the bound name looked up
+  and never the declared one, none approved, lookup failure, unbound actions untouched);
+  `packages/api/tests/unit/GovernedPolicyVersion.test.ts` (5, through `RuntimeBuilder` with
+  governance enforced: no approval refuses, 1.0.0 approved runs, approving 1.1.0 makes it current
+  and refuses 1.0.0, approving 1.0.0 again rolls back, lookup failure refuses; without the source,
+  2 fail); `packages/api/tests/unit/bootstrap/create-current-policy-version-source.test.ts` (10,
+  on exactly where governance is enforced);
+  `packages/storage/tests/unit/policy-change-approval-record-most-recent-for-name.test.ts` (2).
+- **Behavior change to know:** agents name the version in each request. Once a new version is
+  approved, a request naming the old one is refused, with a message naming the version in effect.
+  There is no endpoint yet to ask for the version in effect ahead of time.
+- **With PR #46:** once both are deployed, refunds keep running under the version already
+  approved in production (1.0.0, where `managerApproved` is not verified) until 1.1.0 is approved.
+  Approving 1.1.0 is what switches refunds to verified manager approvals; no deploy is needed for
+  that step.
+- **Still needs a deploy:** binding an action to a different policy name, adding a capability,
+  and adding an approver. `HubSpotSignalStateVerifier`'s own deal read still names
+  `hubspot-deal-update` 1.0.0 in code; it goes straight to the gateway, not through this binder,
+  and keeps working while 1.0.0 stays approved.
 
 ---
 

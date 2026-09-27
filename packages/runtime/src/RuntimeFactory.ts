@@ -1,5 +1,6 @@
 import type { SigningReadiness } from "./SigningReadiness.js";
 import type {
+  CurrentPolicyVersionSource,
   PolicyExecutionVerifier,
   PolicyGovernanceAnchorResolver,
   PolicyRepository,
@@ -52,6 +53,7 @@ export class RuntimeFactory {
     policyGovernanceAnchorResolver?: PolicyGovernanceAnchorResolver,
     signingReadiness?: SigningReadiness,
     executionIntents?: ExecutionIntentRepository,
+    currentPolicyVersions?: CurrentPolicyVersionSource,
   ): ExecutionTrustApplication {
     //
     // Application Services
@@ -82,6 +84,10 @@ export class RuntimeFactory {
 
     if (policyExecutionVerifier) {
       builder.withPolicyExecutionVerifier(policyExecutionVerifier);
+    }
+
+    if (currentPolicyVersions) {
+      builder.withCurrentPolicyVersions(currentPolicyVersions);
     }
 
     if (policyGovernanceAnchorResolver) {

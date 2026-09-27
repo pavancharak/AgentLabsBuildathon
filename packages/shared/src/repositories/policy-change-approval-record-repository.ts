@@ -31,4 +31,15 @@ export interface PolicyChangeApprovalRecordRepository {
     policyName: string,
     policyVersion: string,
   ): Promise<PolicyChangeApprovalRecord | null>;
+
+  /**
+   * The most recent approval record for a policy name, across all its
+   * versions (latest approvedAt), or null if no version of it was ever
+   * approved. Its policyVersion is the version currently in effect for
+   * that name (G-66): approving a version makes it current, and
+   * approving an older version again rolls back to it.
+   */
+  findMostRecentForName(
+    policyName: string,
+  ): Promise<PolicyChangeApprovalRecord | null>;
 }

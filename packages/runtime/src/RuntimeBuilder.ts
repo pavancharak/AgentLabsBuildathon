@@ -14,6 +14,7 @@ import {
 } from "@parmana/policy";
 
 import type {
+  CurrentPolicyVersionSource,
   PolicyExecutionVerifier,
   PolicyGovernanceAnchorResolver,
   PolicyRepository,
@@ -51,6 +52,8 @@ export class RuntimeBuilder {
 
   private policyExecutionVerifier?: PolicyExecutionVerifier;
 
+  private currentPolicyVersions?: CurrentPolicyVersionSource;
+
   private policyGovernanceAnchorResolver?: PolicyGovernanceAnchorResolver;
 
   private signingReadiness?: SigningReadiness;
@@ -85,6 +88,19 @@ export class RuntimeBuilder {
    */
   public withPolicyExecutionVerifier(verifier: PolicyExecutionVerifier): this {
     this.policyExecutionVerifier = verifier;
+
+    return this;
+  }
+
+  /**
+   * Take the version in effect for each bound capability's policy from
+   * policy governance (G-66) instead of the version written in
+   * CANONICAL_CAPABILITY_POLICY_BINDINGS. Configure it wherever
+   * withPolicyExecutionVerifier is configured: both mean policy
+   * governance decides.
+   */
+  public withCurrentPolicyVersions(source: CurrentPolicyVersionSource): this {
+    this.currentPolicyVersions = source;
 
     return this;
   }
@@ -202,7 +218,9 @@ export class RuntimeBuilder {
 
     const signalIntentBinder = new SignalIntentBinder();
 
-    const capabilityPolicyBinder = new CapabilityPolicyBinder();
+    const capabilityPolicyBinder = new CapabilityPolicyBinder(
+      this.currentPolicyVersions,
+    );
 
     //
     // Trust subsystem

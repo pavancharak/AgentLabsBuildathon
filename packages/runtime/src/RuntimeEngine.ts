@@ -358,7 +358,7 @@ export class RuntimeEngine {
 
     const capabilityBindingViolation =
       policyExecutionViolation === undefined
-        ? this.capabilityPolicyBinder?.findViolation(
+        ? await this.capabilityPolicyBinder?.findViolation(
             transaction.intent.action,
             transaction.policy,
           )
@@ -396,9 +396,11 @@ export class RuntimeEngine {
               policyVersion: policy.policyVersion,
               outcome: PolicyOutcome.REJECT,
               reason:
-                `Rejected: capability "${capabilityBindingViolation.action}" requires policy ` +
-                `"${capabilityBindingViolation.expected.name}"@"${capabilityBindingViolation.expected.version}", but ` +
-                `"${capabilityBindingViolation.declared.name}"@"${capabilityBindingViolation.declared.version}" was declared.`,
+                capabilityBindingViolation.reason !== undefined
+                  ? `Rejected: ${capabilityBindingViolation.reason}.`
+                  : `Rejected: capability "${capabilityBindingViolation.action}" requires policy ` +
+                    `"${capabilityBindingViolation.expected.name}"@"${capabilityBindingViolation.expected.version}", but ` +
+                    `"${capabilityBindingViolation.declared.name}"@"${capabilityBindingViolation.declared.version}" was declared.`,
               matchedRuleId: "capability-policy-binding-violation",
               evaluatedRules: 0,
               matchedPath: [],

@@ -47,4 +47,20 @@ export class MemoryPolicyChangeApprovalRecordRepository implements PolicyChangeA
       candidate.approvedAt > mostRecent.approvedAt ? candidate : mostRecent,
     );
   }
+
+  async findMostRecentForName(
+    policyName: string,
+  ): Promise<PolicyChangeApprovalRecord | null> {
+    const matches = [...this.records.values()].filter(
+      (record) => record.policyName === policyName,
+    );
+
+    if (matches.length === 0) {
+      return null;
+    }
+
+    return matches.reduce((mostRecent, candidate) =>
+      candidate.approvedAt > mostRecent.approvedAt ? candidate : mostRecent,
+    );
+  }
 }

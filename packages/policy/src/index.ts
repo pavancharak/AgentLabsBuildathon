@@ -38,7 +38,10 @@ export {
   CANONICAL_CAPABILITY_POLICY_BINDINGS,
   CapabilityPolicyBinder,
 } from "@parmana/capability-registry";
-export type { CapabilityPolicyBindingViolation } from "@parmana/capability-registry";
+export type {
+  CapabilityPolicyBindingViolation,
+  CurrentPolicyVersionSource,
+} from "@parmana/capability-registry";
 
 // -----------------------------------------------------------------------------
 // Routing & Registry
