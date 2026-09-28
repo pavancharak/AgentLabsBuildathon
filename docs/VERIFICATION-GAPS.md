@@ -1196,6 +1196,24 @@ server CPU or fill the leads table.
 - **Not checked:** behind Vercel the key is `req.ip` with `trust proxy` set to one hop; whether that is
   the real client address there was not checked live. The leads table has no size cap beyond this.
 
+**G-79. CI's policy approval check never checked anything. FOUND 2026-09-28, `pre-production`
+(detection only; production refuses unapproved policies on its own, 2.35). CLOSED the same day.**
+The `verify-policy-approvals` job in `.github/workflows/ci.yml` compares every changed
+`policies/**/policy.json` with its approval record in the production database. It failed on every run
+that changed a policy, without checking: first because `SUPABASE_URL` and `SUPABASE_ANON_KEY` were not
+set in GitHub Actions ("Refusing to run without it"), and, once they were, because `loadConfig()`
+refused to start without `PARMANA_POLICY_DIR`, which that job never set (the other job sets it at job
+level). The second cause was hidden behind the first. A red check that always fails for a setup reason
+teaches people to merge past it, which is how this job's purpose (D-6) is lost.
+
+- **Fix:** the operator set both secrets on 2026-09-28 (the read only anon key, never the service role
+  key), and PR #74 sets `PARMANA_POLICY_DIR: ./policies` on the step.
+- **Verified:** run on the operator's machine the way CI runs it (no `.env`, only these three values),
+  the check reports that all four policy files approved that day (`customer-refund` 1.2.0,
+  `github-pr-approval` 1.1.0, `github-pr-read` 1.0.0, `llm-tool-call` 1.1.0) match their approval
+  records. PRs since then that change no policy file pass the job without a check, as designed.
+- **Not yet seen:** a CI run of the fixed job on a pull request that changes a policy file.
+
 ---
 
 ## Remaining gaps, by severity
@@ -3866,6 +3884,12 @@ decision (billing or visibility, neither a call this document or a code change c
 - **Option C: leave advisory-only.** The gate still runs and still reports on every PR;
   the residual risk is a human merging past a red X, not a gate that fails silently or
   doesn't run at all.
+
+**Update (2026-09-28):** the repository is public now (`gh api repos/pavancharak/AgentLabsBuildathon`
+reports `visibility: public`), so the blocker above no longer applies, and `main` has no branch
+protection (`Branch not protected`). Until 2026-09-28 the gate could not check anything anyway (G-79).
+Making `verify-policy-approvals` a required status check on `main` is now a settings change the owner
+can make; not done.
 
 ---
 
