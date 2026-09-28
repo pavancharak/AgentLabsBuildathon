@@ -2,18 +2,22 @@
 
 ## Objective
 
-Show a person signing off on one critical action: a refund above the automatic limit runs
-only with a signed approval from a trusted manager, for that order and at least that
-amount, used once. It uses the real `policies/customer-refund/1.1.0/policy.json` and the
-real components the server runs.
+Show a person signing off on one critical action: a refund runs only with a signed approval
+from a trusted manager, for that order and at least that amount, used once. It uses the real
+`policies/customer-refund/1.2.0/policy.json` and the real components the server runs.
 
 ## What the policy says
 
-| Refund amount         | Result                                               |
-| --------------------- | ---------------------------------------------------- |
-| up to 10000           | approved automatically                               |
-| above 10000 to 100000 | needs `managerApproved`, backed by a signed approval |
-| above 100000          | refused, approval or not                             |
+| Refund amount     | Result                                               |
+| ----------------- | ---------------------------------------------------- |
+| 0 or less         | refused                                              |
+| above 0 to 100000 | needs `managerApproved`, backed by a signed approval |
+| above 100000      | refused, approval or not                             |
+
+In 1.1.0, a refund up to 10000 was approved automatically, on the agent's word alone that the
+order was eligible and passed the fraud check. Nothing checks those two facts, so an agent
+manipulated by prompt injection could approve its own refunds. 1.2.0 closes that (G-75): they
+can only refuse a refund now.
 
 `managerApproved` is declared in the policy's `approvalSignals`:
 
@@ -30,7 +34,7 @@ request (taken from the request, never from the agent's signals), and never used
 
 ## The steps
 
-1. A refund of 5000 is approved with no person involved.
+1. A refund of 5000 with no manager is refused: every refund needs one.
 2. A refund of 75000 with no manager is refused (`reject-manager-approval-required`). The
    server also writes a signed Refusal Record, which a manager can review.
 3. The agent sends `managerApproved: true` with no approval: refused.
@@ -73,5 +77,5 @@ See the guide `docs/site/guides/policy-lifecycle-and-approvals.mdx`, part 2.
 - `packages/approval/src/ApprovalVerifier.ts`
 - `packages/policy/src/types/Policy.ts` (`approvalSignals`)
 - Tests: `packages/approval/tests/unit/ApprovalSignalVerifier.test.ts`,
-  `packages/policy/tests/unit/CustomerRefundPolicy110.test.ts`,
+  `packages/policy/tests/unit/CustomerRefundPolicy120.test.ts`,
   `packages/api/tests/integration/paytm-refund.integration.test.ts`

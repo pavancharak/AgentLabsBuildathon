@@ -1086,6 +1086,33 @@ permission and runs the tool itself.
   approved version.
 - **Tests:** `packages/policy/tests/unit/ApprovalBackedPolicies.test.ts`.
 
+**G-75. An agent could authorize a refund up to 10000 by declaring the order eligible and the fraud
+check passed. FOUND 2026-09-28, `blocks-pilot`, live in production (the Paytm connector is configured
+there and `customer-refund` 1.1.0 is in effect). FIXED in the repository the same day as
+`customer-refund` 1.2.0; takes effect in production when 1.2.0 is approved.**
+`customer-refund` 1.1.0's `approve-refund-automatic` rule approves when `refundEligible` and
+`fraudCheckPassed` are true and `refundAmount` is at most 10000. Both facts are caller declared
+(`unboundSignalReasons`), and no verifier covers them (G-51). An agent with the `paytm:refund` grant
+could refund any order it can name, up to 10000 per request, by sending both as true. The same rule
+approved a refund of 0 or a negative amount, since nothing set a lower bound.
+
+- **Fix:** `customer-refund` 1.2.0 approves only with `managerApproved` true, which is approval backed
+  (the same `approvalSignals` declaration as 1.1.0: order and amount from the Intent), refuses 0 or
+  less, and refuses above 100000. The eligibility and fraud facts only refuse. The binding table names
+  1.2.0, so test and development use it, and the in effect version in production follows governance.
+- **Tests:** `packages/policy/tests/unit/CustomerRefundPolicy120.test.ts` (11) and the refund case in
+  `ApprovalBackedPolicies.test.ts`; `packages/api/tests/integration/paytm-refund.integration.test.ts`
+  moved to 1.2.0 with 2 new cases (every caller fact true and no approval, with `managerApproved` false
+  and true; a refund of 0), 18 in all. Tutorials 111 and 119 moved to 1.2.0.
+- **Product change:** every refund now needs a manager. Automatic small refunds need an eligibility and
+  fraud check the server reads itself (a `SignalStateVerifier` against the order and a fraud service),
+  which does not exist.
+- **To finish in production:** propose and approve `customer-refund` 1.2.0; the refund agent reads the
+  version from `GET /policies/in-effect` and already forwards `approvalArtifact` (G-70), so it needs no
+  change, but every refund it sends will need a signed approval.
+- **Not changed:** the self hosted quickstart and offline checks (`docker/local`) still adopt 1.1.0 for
+  their demo refund, because the image trusts no approver whose key it holds.
+
 ---
 
 ## Remaining gaps, by severity

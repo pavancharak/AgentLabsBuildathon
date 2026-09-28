@@ -209,6 +209,11 @@ Field-by-field notes that matter:
 - **Every `boundSignals` entry must equal its bound `intent.parameters` path.** Here,
   `signals.refundAmount` must equal `intent.parameters.amount` exactly, or the request is rejected
   before policy evaluation — this is what prevents "authorize 500, execute 50000."
+- **Read the version from `GET /policies/in-effect?capability=paytm:refund`** rather than writing
+  it into your code. The example shows 1.1.0, where a refund up to 10000 needs no approval. Under
+  `customer-refund` 1.2.0 (G-75, in effect once approved) every refund needs `managerApproved: true`
+  and a signed manager approval in `signals.approvalArtifact`, because `refundEligible` and
+  `fraudCheckPassed` are your agent's own claims and nothing checks them.
 - **`authority.principalId` must be one your caller is permitted to assert** — with no explicit
   `allowedPrincipalIds` grant, that's your own `callerId` only.
 

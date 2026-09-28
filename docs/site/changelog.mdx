@@ -17,6 +17,7 @@ every commit, run `git log` in the repository for the complete record.
 An AI attack review (an agent manipulated by prompt injection calling the API) found facts that an agent declares, and nothing checks, could authorize real actions. See `docs/VERIFICATION-GAPS.md` G-73 to G-78.
 
 - **A pull request merge needs a signed approval** for that pull request (`github-pr-approval` 1.1.0, G-73). The review, check, branch and risk signals come from the caller and can only refuse a merge now. Reading a pull request (`github:pr-fetch`) has its own policy, `github-pr-read` 1.0.0. Both apply in production once approved through policy governance; until `github-pr-read` is approved, reads are refused.
+- **Every refund needs a signed manager approval** (`customer-refund` 1.2.0, G-75). Under 1.1.0 a refund up to 10000 was authorized on the agent's own claim that the order was eligible and passed the fraud check. 1.2.0 also refuses a refund of 0 or less. In production it applies once 1.2.0 is approved; until then refunds run under 1.1.0. Read the version with `GET /policies/in-effect?capability=paytm:refund`.
 - **An LLM tool call needs a signed human approval** for that tool (`llm-tool-call` 1.1.0, G-74), instead of the caller declaring `humanApproval: true`.
 
 **Added**

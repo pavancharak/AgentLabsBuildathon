@@ -222,15 +222,17 @@ while debugging with the same test payload — eventually returns `409`:
 attempt even if that attempt's overall response was never seen. **Generate a fresh UUID on
 every real attempt.**
 
-**Policy thresholds** (`customer-refund@1.1.0`, exact current values):
+**Policy thresholds** (`customer-refund@1.2.0`, exact values):
 
-- Approved automatically when `refundEligible` and `fraudCheckPassed` are `true` and
-  `refundAmount <= 10000`. Send `managerApproved: false` for these.
-- Above 10000 and up to 100000, approved only with `managerApproved: true` **and** a signed
-  manager approval in `signals.approvalArtifact`. Parmana verifies the signature, the order and
-  the amount; `managerApproved: true` without a valid approval is refused. See
+- Every refund above 0 and up to 100000 is approved only with `refundEligible` and
+  `fraudCheckPassed` `true`, `managerApproved: true` **and** a signed manager approval in
+  `signals.approvalArtifact`. Parmana verifies the signature, the order and the amount;
+  `managerApproved: true` without a valid approval is refused. See
   [Human approval](/concepts/human-approval).
-- Above 100000, refused.
+- 0 or less, or above 100000, refused.
+- Production runs the version most recently approved; ask `GET /policies/in-effect?capability=paytm:refund`.
+  Under 1.1.0 (in production until 1.2.0 is approved) a refund up to 10000 needs no approval:
+  send `managerApproved: false` for these.
 - `boundSignals` binds `signals.refundAmount` to `intent.parameters.amount` — they must
   match, or `SignalIntentBinder` rejects it as a binding-tamper attempt before policy
   evaluation runs at all. Always set both to the same value.

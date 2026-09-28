@@ -89,7 +89,8 @@ export const CANONICAL_CAPABILITY_POLICY_BINDINGS: ReadonlyMap<
   ],
   [
     "paytm:refund",
-    { name: "customer-refund", version: "1.1.0", schemaVersion: "1.0.0" },
+    // G-75: 1.2.0 needs a signed manager approval for every refund.
+    { name: "customer-refund", version: "1.2.0", schemaVersion: "1.0.0" },
   ],
   [
     "slack:post-message",

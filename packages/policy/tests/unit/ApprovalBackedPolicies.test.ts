@@ -66,6 +66,8 @@ interface Case {
   readonly resourceId: string;
   /** Every caller declared fact at its most permissive value. */
   readonly permissive: PolicySignals;
+  /** One caller declared fact that must refuse even with an approval. */
+  readonly failing: PolicySignals;
 }
 
 const CASES: readonly Case[] = [
@@ -81,6 +83,7 @@ const CASES: readonly Case[] = [
       branchProtected: true,
       riskScore: 0,
     },
+    failing: { riskScore: 99 },
   },
   {
     name: "llm-tool-call",
@@ -93,12 +96,25 @@ const CASES: readonly Case[] = [
       executionEnvironment: "production",
       riskScore: 0,
     },
+    failing: { riskScore: 99 },
+  },
+  {
+    name: "customer-refund",
+    version: "1.2.0",
+    approvalFact: "managerApproved",
+    resourceId: "parameters.orderId",
+    permissive: {
+      refundEligible: true,
+      fraudCheckPassed: true,
+      refundAmount: 1,
+    },
+    failing: { fraudCheckPassed: false },
   },
 ];
 
 describe.each(CASES)(
   "$name $version: only a signed approval authorizes",
-  ({ name, version, approvalFact, resourceId, permissive }) => {
+  ({ name, version, approvalFact, resourceId, permissive, failing }) => {
     const policy = loadPolicy(name, version);
     const engine = new PolicyEngine();
 
@@ -147,7 +163,7 @@ describe.each(CASES)(
         engine.evaluate(policy, {
           ...permissive,
           [approvalFact]: true,
-          riskScore: 99,
+          ...failing,
         }).outcome,
       ).toBe(PolicyOutcome.REJECT);
     });
