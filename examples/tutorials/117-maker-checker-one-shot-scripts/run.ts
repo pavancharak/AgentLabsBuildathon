@@ -308,7 +308,9 @@ try {
 
   console.log();
   console.log("Tutorial Complete");
-  console.log("Next: Tutorial 118 - (none yet -- this is the newest tutorial)");
+  console.log(
+    "Next: Tutorial 118 - The HubSpot State Check Signs With the Configured Key",
+  );
 } finally {
   console.log = originalLog;
   console.error = originalError;

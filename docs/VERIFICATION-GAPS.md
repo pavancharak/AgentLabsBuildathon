@@ -991,6 +991,31 @@ refId; how Paytm answers a reused refId with a different amount was not checked.
 - **Not checked:** how Paytm answers a second refund of one transaction in practice (total refunded
   above the transaction amount, or its own limits on partial refunds).
 
+**G-72. The HubSpot state check signed its own deal fetch with the local key file, so under
+`KEY_PROVIDER=aws-kms` every `hubspot:deal-update` was refused. FOUND 2026-09-28, `pre-production`
+(fails closed; nothing unsafe ran). FIXED the same day on branch `fix/hubspot-verifier-key-provider`.
+Whether production has the HubSpot connector configured was not checked.**
+Before a `hubspot:deal-update` is authorized, `HubSpotSignalStateVerifier` fetches the real deal through
+the gateway with its own signed authorization. `packages/api/src/bootstrap/createHubSpotSignalStateVerifier.ts`
+built it with `keys: new FileKeyProvider()`, the last `new FileKeyProvider()` in the API bootstrap code,
+so the fetch was signed with the local `default` key whatever `KEY_PROVIDER` said, while the gateway
+verifies against the key `SignerBootstrap` selects (G-48's fix). Under KMS the two keys differ, the fetch
+is refused, the verifier reports a `hubspot:deal-fetch` violation, and the request is refused. Found while
+checking the connector guide against the code (docs cleanup pass 4).
+
+- **Fix:** `HubSpotSignalStateVerifier` takes `resolveSigner` (a `Signer`, ADR-0009) as an alternative to
+  `keys`, exactly one of the two, and `executeHubSpotCapability` signs with
+  `AuthorizationSigner.signWithSigner` when given a `Signer`. Production wiring resolves the `Signer`
+  from `SignerBootstrap` on first use (`lazySignerBootstrap`); a failed resolution is not cached and each
+  check fails closed until it succeeds. `keys` remains for tests and tutorials with local keys.
+- **Tests:** `packages/connector-hubspot/tests/unit/HubSpotSignalStateVerifier.signer.test.ts` (4 new:
+  a Signer signed fetch accepted by a gateway stub that checks the signature, a fetch signed with a
+  different key refused, an unresolvable Signer fails closed, construction with neither or both options
+  refused), `packages/api/tests/unit/bootstrap/create-hubspot-signal-state-verifier.test.ts` (2 new: the
+  Signer is resolved once, on first use; a failure is retried). Tutorial 118
+  (`examples/tutorials/118-hubspot-verifier-signer`) shows the refusal and the fix.
+- **Not checked:** a live `hubspot:deal-update` under KMS.
+
 ---
 
 ## Remaining gaps, by severity

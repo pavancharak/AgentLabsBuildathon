@@ -1,7 +1,8 @@
 import {
   CryptoBootstrap,
   DEFAULT_KEY_ID,
-  FileKeyProvider,
+  SignerBootstrap,
+  type Signer,
 } from "@parmana/crypto";
 import { HubSpotSignalStateVerifier } from "@parmana/connector-hubspot";
 import type { SignalStateVerifier } from "@parmana/policy";
@@ -14,14 +15,37 @@ import type { ApprovalVerifier } from "@parmana/approval";
 import { createApprovalVerifier } from "./createApprovalVerifier.js";
 
 /**
+ * Resolves the Signer on first use, not at construction, so this stays
+ * a plain synchronous factory and nothing calls a key backend while
+ * the module loads. A failed resolution is not cached: the next
+ * verification tries again, and until then each one fails closed.
+ */
+export function lazySignerBootstrap(
+  create: () => Promise<Signer> = () => SignerBootstrap.create(),
+): () => Promise<Signer> {
+  let pending: Promise<Signer> | undefined;
+
+  return () => {
+    pending ??= create().catch((error: unknown) => {
+      pending = undefined;
+      throw error;
+    });
+    return pending;
+  };
+}
+
+/**
  * Creates the production Signal/State Verifier for the
  * hubspot-deal-update capability (G-24 residual closure, RFC-0022;
- * TD-23 preAuthorizedForAmountChange closure, Phase 3C). Signs its own
- * independent verification fetches with the same signing key and
- * key-loading mechanism RuntimeAuthorizationSigner already uses
- * (FileKeyProvider, keyId "default") -- lazily, on each call -- so
- * this stays a plain, synchronous constructor with no new async
- * wiring at startup.
+ * TD-23 preAuthorizedForAmountChange closure, Phase 3C).
+ *
+ * Signs its own verification fetches through the Signer SignerBootstrap
+ * selects from KEY_PROVIDER (ADR-0009), the same composition root
+ * RuntimeAuthorizationSigner and the gateway use, so the fetch is
+ * signed with the key the gateway verifies against. It used to read the
+ * local key file directly (new FileKeyProvider()), which under
+ * KEY_PROVIDER=aws-kms signed with a different key than the gateway
+ * verified, so every hubspot:deal-update was refused.
  *
  * approvalVerifier is always supplied here (never omitted) -- the
  * production wiring path is where independent verification of
@@ -32,6 +56,7 @@ import { createApprovalVerifier } from "./createApprovalVerifier.js";
 export function createHubSpotSignalStateVerifier(
   executionSystem: ExecutionSystem,
   approvalVerifier: ApprovalVerifier = createApprovalVerifier(),
+  resolveSigner: () => Promise<Signer> = lazySignerBootstrap(),
 ): SignalStateVerifier {
   const { ttlSeconds: authorizationTtlSeconds } = loadConfig().authorization;
 
@@ -39,7 +64,7 @@ export function createHubSpotSignalStateVerifier(
 
   return new HubSpotSignalStateVerifier({
     gateway: executionSystem,
-    keys: new FileKeyProvider(),
+    resolveSigner,
     signerKeyId: DEFAULT_KEY_ID,
     policyName: "hubspot-deal-update",
     policyVersion: "1.0.0",
