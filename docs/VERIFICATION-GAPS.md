@@ -1084,6 +1084,14 @@ permission and runs the tool itself.
   1.0.0, which stays approved. An integration using the decision alone must require 1.1.0 in the signed
   authorization. Options: bind an agreed action name such as `llm:tool-call`, or a way to retire an
   approved version.
+- **Update (2026-09-28): CLOSED** by retiring older versions, for every policy. `PolicyGovernanceExecutionVerifier`,
+  which runs before authorization and again at release, now refuses any version other than the one most
+  recently approved for that policy name, naming the version in effect. So once `llm-tool-call` 1.1.0 is
+  approved, 1.0.0 is refused whatever action names it. Approving an older version again makes it current
+  (a rollback), as G-66 already did for connector actions. Tests: `PolicyGovernanceExecutionVerifier.test.ts`
+  (2 new: superseded refused, rollback), `GovernedPolicyVersion.test.ts` (2 updated: the refusal now names
+  the version in effect as superseded). Callers of any policy must send the version in effect; an
+  authorization signed just before a newer approval is refused at release.
 - **Tests:** `packages/policy/tests/unit/ApprovalBackedPolicies.test.ts`.
 
 **G-75. An agent could authorize a refund up to 10000 by declaring the order eligible and the fraud
@@ -1110,8 +1118,11 @@ approved a refund of 0 or a negative amount, since nothing set a lower bound.
 - **To finish in production:** propose and approve `customer-refund` 1.2.0; the refund agent reads the
   version from `GET /policies/in-effect` and already forwards `approvalArtifact` (G-70), so it needs no
   change, but every refund it sends will need a signed approval.
-- **Not changed:** the self hosted quickstart and offline checks (`docker/local`) still adopt 1.1.0 for
-  their demo refund, because the image trusts no approver whose key it holds.
+- **Self hosted (updated 2026-09-28):** the quickstart, its check (`docker/local/quickstart-check.sh`) and
+  `refund-request.mjs` adopt 1.2.0; the quickstart now also shows a refund of 500 without an approval
+  refused. The offline check (`docker/local/offline-check`) stays on 1.1.0 on purpose: it proves an
+  authorized refund runs end to end with no internet route, which under 1.2.0 needs an approver key the
+  server trusts, and adding a demo approver to the trusted list would weaken every deployment.
 
 **G-76. An agent could post any text to any Slack channel the bot is in, by declaring the channel
 authorized. FOUND 2026-09-28, `blocks-pilot` wherever the Slack connector is configured (not checked for
@@ -1257,7 +1268,8 @@ production:** G-75, a `paytm:refund` up to 10000 authorized on the agent's own e
 claims under `customer-refund` 1.1.0. Fixed in the repository on branch `fix/ai-attack-hardening`
 (`customer-refund` 1.2.0); it stays open in production until 1.2.0 is approved. G-73 (GitHub merges) is
 fixed the same way and needs approval; G-76 (Slack channels) and G-78 (public rate limits) take effect
-on deploy; G-77 is closed by a test; G-74 (`llm-tool-call`) is partly open.
+on deploy; G-77 is closed by a test; G-74 (`llm-tool-call`) is closed by retiring superseded versions,
+effective once 1.1.0 is approved.
 
 **Addendum (2026-09-28, refund agent):** reading the refund agent against Parmana's release path
 found **G-70**, `blocks-pilot`: `parmana-paytm-agent`'s `/agent/refunds` called Paytm itself after
