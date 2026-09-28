@@ -241,6 +241,8 @@ Execution rejected: Rejected: declared signal(s) do not match independently veri
 
 To find refusals waiting for a manager, query the Refusal Records for `matchedRuleId = 'reject-manager-approval-required'` (see [Human approval](/concepts/human-approval#review-refused-requests)).
 
+To see the whole flow run, without a server or AWS, run tutorial 119: `npx tsx examples/tutorials/119-human-approval-for-one-action/run.ts`. It uses the real `customer-refund` 1.1.0 policy and shows an automatic refund, a refusal, a refused unsigned claim, a signed approval accepted and checked again before release, and an approval refused when reused, stretched to a larger amount or moved to another order.
+
 ## Where it is recorded
 
 | Table                                   | Holds                                                                               |

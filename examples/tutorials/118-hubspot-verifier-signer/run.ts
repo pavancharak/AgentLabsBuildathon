@@ -197,6 +197,7 @@ try {
 
   console.log();
   console.log("Tutorial Complete");
+  console.log("Next: Tutorial 119 - Human Approval for One Action");
 } finally {
   if (previousKeyDir === undefined) {
     delete process.env.PARMANA_KEY_DIR;
