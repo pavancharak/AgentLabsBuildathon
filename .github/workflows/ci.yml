@@ -166,4 +166,7 @@ jobs:
           # which bypass RLS and grant read+write on every table.
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          # loadConfig() refuses to start without it; the same value
+          # build-and-test sets at job level.
+          PARMANA_POLICY_DIR: ./policies
         run: npx tsx scripts/verify-policy-changes-approved.ts ${{ steps.changed-policies.outputs.files }}
