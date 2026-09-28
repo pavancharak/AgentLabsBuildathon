@@ -146,11 +146,12 @@ Merged to `main` and deployed to production on 2026-09-27 (PR #46, merge `4eebd5
 - **Refund agent (G-70, 2026-09-28):** `parmana-paytm-agent`'s `/agent/refunds`
   called Paytm itself after Parmana had already released the refund through
   its connector, so an approved refund could be paid twice; and it declared
-  `customer-refund` 1.0.0, so every refund it sends is refused today. Fixed in
-  that repository's PR #6 (one Paytm call, version read from
-  `GET /policies/in-effect`, signed approvals forwarded), not merged yet.
-  Production `PAYTM_CONNECTOR_URL` was set again to the agent's address on
-  2026-09-28 and takes effect on the next deploy.
+  `customer-refund` 1.0.0, so every refund it sent was refused. Fixed and
+  deployed 2026-09-28 in that repository's PR #6 (one Paytm call, version
+  read from `GET /policies/in-effect`, signed approvals forwarded).
+  Production `PAYTM_CONNECTOR_URL` points at the agent. A refusal through the
+  agent was verified in production; an approved refund has not been
+  observed live yet.
 - **Does not exist:** an escalation state that holds a request for a person,
   or any notification. A refused request stays refused; the agent sends a
   new request with the approval.

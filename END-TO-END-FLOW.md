@@ -91,6 +91,8 @@ Three separate systems, three separate deployments, three separate configuration
 
 **The one thing to internalize before anything else:** `parmana-api-real` and `parmana-paytm-agent` are two separate Vercel projects with two separate, independently-managed sets of environment variables. Nothing is shared between them automatically. Every piece of configuration below must be set on **both**, separately, even when the value happens to be identical (e.g. `PAYTM_CONNECTOR_SHARED_SECRET`) or even when the underlying resource is the same (e.g. `DATABASE_URL` — same Supabase project, but each service holds its own copy of the connection string).
 
+**Calling through the agent's own `/agent/refunds` (added 2026-09-28).** An agent can also call `parmana-paytm-agent`'s `POST /agent/refunds`, which calls `POST /execute` on its behalf. The flow is the same: Parmana alone sends the refund to Paytm, once, through `/connector/paytm-refund`, and `/agent/refunds` returns Paytm's result from the Trust Record. Until 2026-09-28 that endpoint also called Paytm itself after an approval, so an approved refund could be paid twice (G-70 in `docs/VERIFICATION-GAPS.md`, fixed in that repository's PR #6). It now also reads the policy version from `GET /policies/in-effect` before every refund.
+
 ---
 
 ## 2. Prerequisites
