@@ -16,6 +16,8 @@ import {
   PAYTM_ALLOWED_REFUND_PARAMETERS,
   PAYTM_AUTHORIZATION_SIGNATURE_TTL_MS,
   PAYTM_CONNECTOR_TEST_MODE_PLACEHOLDER_SECRET,
+  PAYTM_REFUND_REASON_MAX_LENGTH,
+  PAYTM_REFUND_REFERENCE_MAX_LENGTH,
   canonicalPaytmAuthorizationString,
   deriveDeterministicPaytmRefId,
   isPaytmAgentRefundExecutionResult,
@@ -69,8 +71,9 @@ const PAYTM_REFUND_PATH = "/connector/paytm-refund";
  * call, not silently dropped.
  *
  * Idempotency: refId is deterministically derived from (orderId,
- * transactionId) -- never Math.random()/Date.now() -- so a retried
- * request for the same logical refund always carries the same refId.
+ * transactionId), plus the caller's refundReference when one is sent
+ * (G-71) -- never Math.random()/Date.now() -- so a retried request for
+ * the same logical refund always carries the same refId.
  * See deriveDeterministicPaytmRefId's own doc comment for why this
  * matters given the connector service's own idempotency gap.
  *
@@ -176,7 +179,23 @@ export class GatewayPaytmAdapter implements Connector {
       "parameters.amount",
     );
     const amountString = amount.toFixed(2);
-    const refId = deriveDeterministicPaytmRefId(orderId, txnId);
+    // G-71: both optional. A reference makes the refId per refund, not
+    // per transaction; a reason reaches Paytm as the refund comment.
+    const refundReference = optionalBoundedString(
+      request.parameters.refundReference,
+      "parameters.refundReference",
+      PAYTM_REFUND_REFERENCE_MAX_LENGTH,
+    );
+    const refundReason = optionalBoundedString(
+      request.parameters.refundReason,
+      "parameters.refundReason",
+      PAYTM_REFUND_REASON_MAX_LENGTH,
+    );
+    const refId = deriveDeterministicPaytmRefId(
+      orderId,
+      txnId,
+      refundReference,
+    );
 
     // ADR-0009 Phase 2B: sign the authorization so parmana-paytm-agent
     // can cryptographically verify this request was actually approved
@@ -218,7 +237,13 @@ export class GatewayPaytmAdapter implements Connector {
             intent: {
               action: PAYTM_AGENT_WIRE_ACTION,
               target: request.target,
-              parameters: { orderId, txnId, refId, amount: amountString },
+              parameters: {
+                orderId,
+                txnId,
+                refId,
+                amount: amountString,
+                ...(refundReason !== undefined ? { reason: refundReason } : {}),
+              },
             },
           },
           authorization: {
@@ -295,6 +320,26 @@ function requireString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0) {
     throw new Error(
       `PaytmConnector request is missing required field "${field}".`,
+    );
+  }
+  return value;
+}
+
+function optionalBoundedString(
+  value: unknown,
+  field: string,
+  maxLength: number,
+): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (
+    typeof value !== "string" ||
+    value.trim().length === 0 ||
+    value.length > maxLength
+  ) {
+    throw new Error(
+      `PaytmConnector request field "${field}" must be a non empty string of at most ${maxLength} characters.`,
     );
   }
   return value;

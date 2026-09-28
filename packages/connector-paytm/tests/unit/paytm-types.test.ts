@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -61,6 +62,7 @@ describe("PAYTM_ALLOWED_REFUND_PARAMETERS", () => {
       "transactionId",
       "amount",
       "refundReason",
+      "refundReference",
     ]);
   });
 });
@@ -84,6 +86,32 @@ describe("deriveDeterministicPaytmRefId", () => {
     const a = deriveDeterministicPaytmRefId("order-9", "txn-9");
     const b = deriveDeterministicPaytmRefId("order-9", "txn-9");
     expect(a).toBe(b);
+  });
+
+  it("G-71: with a refundReference, separate refunds of one transaction get separate refIds, and one refund keeps one", () => {
+    const first = deriveDeterministicPaytmRefId("order-1", "txn-1", "REF-A");
+    expect(deriveDeterministicPaytmRefId("order-1", "txn-1", "REF-A")).toBe(
+      first,
+    );
+    expect(deriveDeterministicPaytmRefId("order-1", "txn-1", "REF-B")).not.toBe(
+      first,
+    );
+    expect(first).not.toBe(deriveDeterministicPaytmRefId("order-1", "txn-1"));
+    expect(first).toMatch(/^refid_[0-9a-f]{24}$/);
+  });
+
+  it("G-71: without a refundReference the refId is exactly what it was before the change", () => {
+    // Pinned so a refund retried across the change keeps its refId.
+    expect(deriveDeterministicPaytmRefId("order-1", "txn-1")).toBe(
+      "refid_" +
+        createHash("sha256").update("order-1:txn-1").digest("hex").slice(0, 24),
+    );
+  });
+
+  it("G-71: a ':' inside an id cannot make two different triples collide", () => {
+    expect(deriveDeterministicPaytmRefId("a:b", "c", "d")).not.toBe(
+      deriveDeterministicPaytmRefId("a", "b:c", "d"),
+    );
   });
 
   it("never uses randomness or wall-clock time (called twice in the same process yields the same value)", () => {

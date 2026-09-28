@@ -8,6 +8,7 @@ import { ApprovalArtifactSigner } from "@parmana/crypto";
 import {
   MockPaytmConnectorServer,
   PAYTM_CONNECTOR_TEST_MODE_PLACEHOLDER_SECRET,
+  deriveDeterministicPaytmRefId,
 } from "@parmana/connector-paytm";
 
 import { createApplication } from "../../src/application.js";
@@ -118,6 +119,7 @@ describe("Paytm refund (HTTP boundary)", () => {
     amount: number;
     signals: BusinessTransaction["signals"];
     policy?: BusinessTransaction["policy"];
+    extraParameters?: Readonly<Record<string, unknown>>;
   }): BusinessTransaction {
     const businessTransactionId = crypto.randomUUID();
     const authorityId = crypto.randomUUID();
@@ -158,6 +160,7 @@ describe("Paytm refund (HTTP boundary)", () => {
           orderId: overrides.orderId,
           transactionId: overrides.transactionId,
           amount: overrides.amount,
+          ...overrides.extraParameters,
         }),
         createdAt: new Date(),
       },
@@ -242,6 +245,51 @@ describe("Paytm refund (HTTP boundary)", () => {
     expect(response.status).toBe(200);
     expect(mockServer.calls).toHaveLength(1);
     expect(mockServer.paytmInvocationCount).toBe(1);
+  });
+
+  it("G-71: two refunds of one Paytm transaction with different refundReference values reach the connector with different refIds, and the reason is sent", async () => {
+    const { app, server: mockServer } = await buildApp();
+    const signals = {
+      refundEligible: true,
+      managerApproved: false,
+      fraudCheckPassed: true,
+      refundAmount: 200,
+    };
+
+    for (const refundReference of ["REF-PART-1", "REF-PART-2"]) {
+      const response = await request(app)
+        .post("/execute")
+        .send(
+          refundTransaction({
+            orderId: "order-partial-1",
+            transactionId: "txn-partial-1",
+            amount: 200,
+            signals,
+            extraParameters: {
+              refundReference,
+              refundReason: "Partial return",
+            },
+          }),
+        );
+      expect(response.status).toBe(200);
+    }
+
+    expect(mockServer.calls).toHaveLength(2);
+    expect(mockServer.calls[0]?.parameters.refId).toBe(
+      deriveDeterministicPaytmRefId(
+        "order-partial-1",
+        "txn-partial-1",
+        "REF-PART-1",
+      ),
+    );
+    expect(mockServer.calls[1]?.parameters.refId).toBe(
+      deriveDeterministicPaytmRefId(
+        "order-partial-1",
+        "txn-partial-1",
+        "REF-PART-2",
+      ),
+    );
+    expect(mockServer.calls[0]?.parameters.reason).toBe("Partial return");
   });
 
   it("Scenario A: rejects by policy through POST /execute and never calls the Paytm connector when a refund above the automatic limit has no manager approval", async () => {

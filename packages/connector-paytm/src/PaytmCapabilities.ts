@@ -50,6 +50,8 @@ export interface PaytmRefundParameters {
   readonly transactionId: string;
   /** Refund amount, in the same currency unit customer-refund's policy evaluates (boundSignals: parameters.amount). */
   readonly amount: number;
-  /** Optional, human-readable refund reason forwarded for the connector service's own audit trail. */
+  /** Optional, human readable refund reason; sent to the connector service as `reason`, which passes it to Paytm as the refund comment (G-71). */
   readonly refundReason?: string;
+  /** Optional caller id for ONE refund; when present the Paytm refId is derived from it too, so separate refunds of one transaction get separate refIds (G-71). */
+  readonly refundReference?: string;
 }

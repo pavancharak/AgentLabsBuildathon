@@ -105,6 +105,76 @@ describe("GatewayPaytmAdapter", () => {
     });
   });
 
+  it("G-71: a refundReference makes the refId per refund, and a refundReason is sent as reason", async () => {
+    const withReference = (refundReference: string) => ({
+      ...refundRequest({ orderId: "order-7", transactionId: "txn-7" }),
+      parameters: {
+        orderId: "order-7",
+        transactionId: "txn-7",
+        amount: 100,
+        refundReference,
+        refundReason: "Arrived damaged",
+      },
+    });
+
+    await connector().execute(withReference("REF-A"), context());
+    await connector().execute(withReference("REF-A"), context());
+    await connector().execute(withReference("REF-B"), context());
+
+    const refIds = server.calls.map((call) => call.parameters.refId);
+    expect(refIds[0]).toBe(
+      deriveDeterministicPaytmRefId("order-7", "txn-7", "REF-A"),
+    );
+    expect(refIds[1]).toBe(refIds[0]);
+    expect(refIds[2]).toBe(
+      deriveDeterministicPaytmRefId("order-7", "txn-7", "REF-B"),
+    );
+    expect(refIds[2]).not.toBe(refIds[0]);
+    expect(server.calls[0]?.parameters.reason).toBe("Arrived damaged");
+  });
+
+  it("G-71: sends no reason when none is given, and keeps the old refId without a reference", async () => {
+    await connector().execute(
+      refundRequest({ orderId: "order-8", transactionId: "txn-8" }),
+      context(),
+    );
+
+    expect(server.calls[0]?.parameters).not.toHaveProperty("reason");
+    expect(server.calls[0]?.parameters.refId).toBe(
+      deriveDeterministicPaytmRefId("order-8", "txn-8"),
+    );
+  });
+
+  it.each([
+    ["an empty refundReference", { refundReference: "  " }],
+    ["a refundReference that is not a string", { refundReference: 42 }],
+    [
+      "a refundReference over 128 characters",
+      { refundReference: "r".repeat(129) },
+    ],
+    ["a refundReason over 256 characters", { refundReason: "x".repeat(257) }],
+  ])("G-71: refuses %s before any network call", async (_label, extra) => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+    await expect(
+      connector().execute(
+        {
+          ...refundRequest(),
+          parameters: {
+            orderId: "order-1",
+            transactionId: "txn-1",
+            amount: 500,
+            ...extra,
+          },
+        },
+        context(),
+      ),
+    ).rejects.toThrow(/must be a non empty string of at most/);
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
+
   it("deny-by-default: refuses an unsupported parameter before any network call", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
