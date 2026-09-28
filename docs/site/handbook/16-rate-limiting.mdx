@@ -5,10 +5,13 @@ description: "Two independent express-rate-limit limiters, one for POST /execute
 
 ## What It Is
 
-Two independent `express-rate-limit` limiters, one for `POST /execute` (keyed by
-authenticated caller identity) and one for `GET /health`/`GET /ready` (keyed by IP, far more
-permissive), each backed by either an in-process store or a durable, fleet-wide Postgres store
-depending on deployment configuration.
+Three independent `express-rate-limit` limiters, one for `POST /execute` (keyed by
+authenticated caller identity), one for `GET /health`/`GET /ready` (keyed by IP, far more
+permissive) and, since 2026-09-28 (G-78), one shared by the unauthenticated routes that check
+signatures or write data (`POST /refusal/verify`, `POST /execution-intents/verify`,
+`POST /audit/verify`, `/handbook`; keyed by IP, 60 per minute by default). Each is backed by either
+an in-process store or a durable, fleet-wide Postgres store depending on deployment
+configuration.
 
 ## Why It Was Built
 
@@ -123,8 +126,9 @@ confirms the limiter is entirely skipped when caller-auth is disabled.
 
 ## Integration Requirements
 
-| Variable                        | Effect                                                                                                    |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `RATE_LIMIT_EXECUTE_PER_MINUTE` | Overrides the default execute-limiter ceiling (`DEFAULT_EXECUTE_PER_MINUTE = 30`).                        |
-| `RATE_LIMIT_HEALTH_PER_MINUTE`  | Overrides the default health/ready-limiter ceiling (`DEFAULT_HEALTH_PER_MINUTE = 300`).                   |
-| `DATABASE_URL`                  | If set, both limiters use the durable, fleet-wide `PostgresRateLimitStore` instead of per-process memory. |
+| Variable                        | Effect                                                                                                                  |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `RATE_LIMIT_EXECUTE_PER_MINUTE` | Overrides the default execute-limiter ceiling (`DEFAULT_EXECUTE_PER_MINUTE = 30`).                                      |
+| `RATE_LIMIT_HEALTH_PER_MINUTE`  | Overrides the default health/ready-limiter ceiling (`DEFAULT_HEALTH_PER_MINUTE = 300`).                                 |
+| `RATE_LIMIT_PUBLIC_PER_MINUTE`  | Overrides the default ceiling for the unauthenticated verify routes and `/handbook` (`DEFAULT_PUBLIC_PER_MINUTE = 60`). |
+| `DATABASE_URL`                  | If set, both limiters use the durable, fleet-wide `PostgresRateLimitStore` instead of per-process memory.               |

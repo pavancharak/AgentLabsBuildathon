@@ -287,6 +287,11 @@ export interface RateLimitConfig {
    * GET /health and GET /ready, keyed by IP.
    */
   readonly healthPerMinute: number;
+
+  /**
+   * The unauthenticated verify routes and /handbook, keyed by IP (G-78).
+   */
+  readonly publicPerMinute: number;
 }
 
 /**
@@ -372,6 +377,8 @@ export function loadConfig(): Readonly<Config> {
       executePerMinute: Number(process.env.RATE_LIMIT_EXECUTE_PER_MINUTE ?? 30),
 
       healthPerMinute: Number(process.env.RATE_LIMIT_HEALTH_PER_MINUTE ?? 300),
+
+      publicPerMinute: Number(process.env.RATE_LIMIT_PUBLIC_PER_MINUTE ?? 60),
     }),
 
     logging: Object.freeze({

@@ -1162,6 +1162,21 @@ reviewing refusals the reason they need.
   no connector (`llm-tool-call` and the reference policies) are outside the test; `llm-tool-call` 1.1.0
   meets the rule (G-74).
 
+**G-78. The unauthenticated routes that check signatures or write data had no rate limit. FOUND
+2026-09-28, `pre-production`. FIXED the same day; takes effect on deploy.**
+`POST /refusal/verify`, `POST /execution-intents/verify` and `POST /audit/verify` verify signatures
+(including ML-DSA-65 where configured) for anyone, and `/handbook/download-leads` inserts a row for any
+well formed email. Only `/health` and `/ready` had an IP limit. Anyone, an agent included, could spend
+server CPU or fill the leads table.
+
+- **Fix:** `createPublicRateLimiter` (`packages/api/src/middleware/rate-limit.ts`), keyed by IP, one
+  counter shared by the four routes, `RATE_LIMIT_PUBLIC_PER_MINUTE` (default 60), its own `public:`
+  store (Postgres when `DATABASE_URL` is set) in `server.ts` and `api/index.ts`. The OpenAPI spec declares
+  `429` on those routes.
+- **Tests:** `packages/api/tests/integration/rate-limit.integration.test.ts` (3 new).
+- **Not checked:** behind Vercel the key is `req.ip` with `trust proxy` set to one hop; whether that is
+  the real client address there was not checked live. The leads table has no size cap beyond this.
+
 ---
 
 ## Remaining gaps, by severity
@@ -1235,6 +1250,14 @@ production. It is closed there: every production API key was rotated on 2026-09-
 the server cannot tell apart from two people. `refundEligible` and `fraudCheckPassed` are still caller
 declared. **Update (2026-09-28):** one approver, `manager-charak1987`, held by the operator, is now listed
 in `TRUSTED_APPROVAL_ISSUERS`; refunds above 10000 need that approver's signature.
+
+**Addendum (2026-09-28, AI attack review):** a review of what a manipulated agent can do found G-73
+to G-78 (section "Gaps opened in the 2026-09-28 AI attack review" above). **One live security defect in
+production:** G-75, a `paytm:refund` up to 10000 authorized on the agent's own eligibility and fraud
+claims under `customer-refund` 1.1.0. Fixed in the repository on branch `fix/ai-attack-hardening`
+(`customer-refund` 1.2.0); it stays open in production until 1.2.0 is approved. G-73 (GitHub merges) is
+fixed the same way and needs approval; G-76 (Slack channels) and G-78 (public rate limits) take effect
+on deploy; G-77 is closed by a test; G-74 (`llm-tool-call`) is partly open.
 
 **Addendum (2026-09-28, refund agent):** reading the refund agent against Parmana's release path
 found **G-70**, `blocks-pilot`: `parmana-paytm-agent`'s `/agent/refunds` called Paytm itself after

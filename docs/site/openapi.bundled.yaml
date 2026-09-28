@@ -2023,6 +2023,8 @@ paths:
                     error: Request body must be a Refusal Record (refusalRecordId,
                       businessTransactionId, decision, refusalRecordHash,
                       signature required).
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /parmana-handbook.pdf:
     get:
       tags:
@@ -2088,6 +2090,8 @@ paths:
               schema:
                 type: string
               example: A valid email address is required.
+        "429":
+          $ref: "#/components/responses/RateLimited"
     post:
       tags:
         - Handbook
@@ -2140,6 +2144,8 @@ paths:
                   summary: Real captured response
                   value:
                     error: A valid email address is required.
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /refusal/{businessTransactionId}:
     get:
       tags:
@@ -2241,6 +2247,8 @@ paths:
                     error: Request body must be an Execution Intent (intentId,
                       businessTransactionId, authorizationId, intentHash,
                       signature required).
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /execution-intents/unfinalized:
     get:
       tags:
@@ -2617,6 +2625,8 @@ paths:
                   value:
                     error: "Request body must be { event, signature } (event: type, occurredAt,
                       route; signature: algorithm, keyId, value required)."
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /receipt:
     post:
       tags:
@@ -5878,10 +5888,12 @@ components:
                 error: authentication required
     RateLimited:
       description: The caller exceeded the per minute limit on this route
-        (RATE_LIMIT_EXECUTE_PER_MINUTE, default 30 per authenticated caller).
-        The request never reached the handler, so nothing was recorded or
-        executed. Wait the number of seconds in the Retry-After header, then
-        retry.
+        (RATE_LIMIT_EXECUTE_PER_MINUTE, default 30 per authenticated caller, on
+        /execute; RATE_LIMIT_HEALTH_PER_MINUTE, default 300 per IP address, on
+        /health and /ready; RATE_LIMIT_PUBLIC_PER_MINUTE, default 60 per IP
+        address, shared by the unauthenticated verify routes and /handbook). The
+        request never reached the handler, so nothing was recorded or executed.
+        Wait the number of seconds in the Retry-After header, then retry.
       headers:
         Retry-After:
           description: Seconds to wait before retrying.

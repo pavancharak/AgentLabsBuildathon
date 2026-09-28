@@ -62,6 +62,7 @@ async function buildApp() {
   const callerAuth = createCallerAuthenticator();
   const executeRateLimitStore = createRateLimitStore("execute:");
   const healthRateLimitStore = createRateLimitStore("health:");
+  const publicRateLimitStore = createRateLimitStore("public:");
 
   const app = createApp(application, {
     callerAuth: callerAuth.disabled
@@ -74,6 +75,7 @@ async function buildApp() {
       ...loadConfig().rateLimit,
       ...(executeRateLimitStore ? { executeStore: executeRateLimitStore } : {}),
       ...(healthRateLimitStore ? { healthStore: healthRateLimitStore } : {}),
+      ...(publicRateLimitStore ? { publicStore: publicRateLimitStore } : {}),
     },
     ...(callerAuth.disabled
       ? {}

@@ -1381,7 +1381,10 @@ limit would either starve every caller behind it or be loose enough to mean noth
 mounted only when caller authentication is enabled; there is no caller identity to key off when
 auth is disabled. `GET /health` and `GET /ready` get a separate, deliberately more permissive
 limit keyed by IP instead, since both are legitimately polled on a fixed interval by PaaS
-health-check infrastructure and must never be tight enough to throttle that.
+health-check infrastructure and must never be tight enough to throttle that. The unauthenticated
+routes that check signatures or write data (`POST /refusal/verify`, `POST /execution-intents/verify`,
+`POST /audit/verify`, `/handbook`) share a third limit keyed by IP, `RATE_LIMIT_PUBLIC_PER_MINUTE`,
+60 per minute by default.
 
 A rejected request gets `429`, `{"error":"Rate limit exceeded. Try again later.","code":
 "RATE_LIMITED"}`, and a `Retry-After` header, and never reaches policy evaluation or signing.
@@ -1621,9 +1624,9 @@ Source: https://docs.parmanasystems.com/api-reference/error-catalog
 
 ## Rate limited
 
-| Status | Code           | Message                                 | Condition                                                                                                                                                                    | Routes                                       | What to do                                                                                                                                                                                                                                         |
-| ------ | -------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 429    | `RATE_LIMITED` | `Rate limit exceeded. Try again later.` | Caller (by authenticated identity, not IP) exceeded the configured `/execute` rate limit, or the caller's IP exceeded the separate, more permissive `/health`/`/ready` limit | `POST /execute`, `GET /health`, `GET /ready` | Back off; the response carries a `Retry-After` header. Not a transient server issue — no nonce is consumed and nothing is signed for a request rejected here. See [Authentication](/api-reference/authentication#rate-limiting) for the mechanism. |
+| Status | Code           | Message                                 | Condition                                                                                                                                                                                                                                                     | Routes                                                                                                                                                   | What to do                                                                                                                                                                                                                                         |
+| ------ | -------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 429    | `RATE_LIMITED` | `Rate limit exceeded. Try again later.` | Caller (by authenticated identity, not IP) exceeded the configured `/execute` rate limit, or the caller's IP exceeded the separate, more permissive `/health`/`/ready` limit, or the shared per IP limit on the unauthenticated verify routes and `/handbook` | `POST /execute`, `GET /health`, `GET /ready`, `POST /refusal/verify`, `POST /execution-intents/verify`, `POST /audit/verify`, `/handbook/download-leads` | Back off; the response carries a `Retry-After` header. Not a transient server issue — no nonce is consumed and nothing is signed for a request rejected here. See [Authentication](/api-reference/authentication#rate-limiting) for the mechanism. |
 
 ## Conflict
 
@@ -4192,10 +4195,11 @@ Both write into `PARMANA_KEY_DIR`, or `./keys` if it is unset, and refuse to ove
 
 ## Rate limits
 
-| Variable                        | Required | Default | Values or format | What it does                                                                                                                       |
-| ------------------------------- | -------- | ------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `RATE_LIMIT_EXECUTE_PER_MINUTE` | No       | `30`    | Integer          | Requests per minute per authenticated caller on `POST /execute`. Over the limit the API returns `429` with a `Retry-After` header. |
-| `RATE_LIMIT_HEALTH_PER_MINUTE`  | No       | `300`   | Integer          | Requests per minute per IP address on `GET /health` and `GET /ready`.                                                              |
+| Variable                        | Required | Default | Values or format | What it does                                                                                                                                                                                                             |
+| ------------------------------- | -------- | ------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `RATE_LIMIT_EXECUTE_PER_MINUTE` | No       | `30`    | Integer          | Requests per minute per authenticated caller on `POST /execute`. Over the limit the API returns `429` with a `Retry-After` header.                                                                                       |
+| `RATE_LIMIT_HEALTH_PER_MINUTE`  | No       | `300`   | Integer          | Requests per minute per IP address on `GET /health` and `GET /ready`.                                                                                                                                                    |
+| `RATE_LIMIT_PUBLIC_PER_MINUTE`  | No       | `60`    | Integer          | Requests per minute per IP address, shared across `POST /refusal/verify`, `POST /execution-intents/verify`, `POST /audit/verify` and `/handbook`, the unauthenticated routes that check signatures or write data (G-78). |
 
 With `DATABASE_URL` set, the counters are shared across instances. Without it they are per process, so the effective limit
 is the value multiplied by the number of instances, and the server logs `rate_limit_store_not_durable`.

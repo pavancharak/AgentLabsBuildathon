@@ -20,6 +20,7 @@ An AI attack review (an agent manipulated by prompt injection calling the API) f
 - **Every refund needs a signed manager approval** (`customer-refund` 1.2.0, G-75). Under 1.1.0 a refund up to 10000 was authorized on the agent's own claim that the order was eligible and passed the fraud check. 1.2.0 also refuses a refund of 0 or less. In production it applies once 1.2.0 is approved; until then refunds run under 1.1.0. Read the version with `GET /policies/in-effect?capability=paytm:refund`.
 - **Slack posts go only to channels on the server's allowlist** (G-76). Set `SLACK_ALLOWED_CHANNEL_IDS` (comma separated channel ids); unset refuses every post. The caller's `channelAuthorized` is no longer trusted, and `parameters.channel` must equal the Intent's `target`. Applies on deploy.
 - **A connector policy cannot let caller facts alone authorize a write** (G-77). A test requires every approve rule of a bound write capability to need a signed approval or a fact the server checks. If you add a connector, classify its capabilities in `connector-policies-not-self-authorizing.test.ts`.
+- **Rate limit on the public routes that do work** (G-78): `POST /refusal/verify`, `POST /execution-intents/verify`, `POST /audit/verify` and `/handbook` share a per IP limit, `RATE_LIMIT_PUBLIC_PER_MINUTE` (default 60). Over it they return `429` with `Retry-After`.
 - **An LLM tool call needs a signed human approval** for that tool (`llm-tool-call` 1.1.0, G-74), instead of the caller declaring `humanApproval: true`.
 
 **Added**
