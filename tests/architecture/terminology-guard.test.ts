@@ -34,7 +34,6 @@ const FORBIDDEN_PHRASE = /execution governance/i;
  *       that happens to share the name "Execution Governance"
  */
 const EXCLUDED_BASENAMES = new Set([
-  "ROADMAP-v1.md",
   "VERIFICATION-GAPS.md",
   "how-parmana-thinks.mdx",
   "execution-authorization.mdx",
@@ -117,7 +116,6 @@ describe("CI terminology guard (Phase 2C regression coverage)", () => {
 
   it("historical self-narration files are excluded and legitimately contain the phrase", () => {
     const historical = [
-      "docs/ROADMAP-v1.md",
       "docs/VERIFICATION-GAPS.md",
       "docs/architecture/repository-certification.md",
       "docs/architecture/phase2b-technical-debt-assessment.md",

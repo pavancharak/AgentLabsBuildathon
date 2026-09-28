@@ -93,6 +93,13 @@ Both SDKs raise a typed error for every non 2xx response. From 1.3.0 both carry 
 | `429`  |                      | `RateLimitError`         | `RateLimitError`         |
 | `5xx`  | kept on `serverCode` | `InternalServerError`    | `InternalServerError`    |
 
+Every error, from the server or raised by the SDK itself, extends `ParmanaError`. The ones raised without a server response are `ConfigurationError` (bad client configuration), `NetworkError` and `TimeoutError` (the request did not complete; in Python `TimeoutError` is a subclass of `NetworkError`, in TypeScript both extend `ParmanaError` directly), and `VerificationError` and `ReplayError` (the result failed a check or could not be replayed).
+
+## Parity rules both SDKs keep
+
+- **The same core methods on the client itself**: `execute`, `verify`, `replay`, `validatePolicy` (`validate_policy` in Python) and `health`, in addition to the grouped APIs (`client.policies`, `client.executionIntents` and so on).
+- **The same error class names** as listed above, so one catch clause means the same thing in both languages.
+
 ## How this is kept true
 
 - `scripts/check-sdk-docs.ts` fails the build when a page names a method, option or export that does not exist in the SDK.

@@ -124,9 +124,8 @@ field exists to resolve.
 `@parmana/storage`'s public index, and implements `PolicyRepository`. As of this writing, it
 is not referenced anywhere in `MemoryStorageProvider`, `StorageProvider`, or
 `application.ts`, the actual in-memory policy path uses `FilePolicyRepository` against a
-scratch or configured directory instead. This is the same category of finding the existing
-`docs/book/` chapter 16 already documents for `@parmana/receipt`/`@parmana/replay`: real,
-presumably tested code that is not part of the live wiring. Confirm this yourself before
+scratch or configured directory instead. This is the same category of finding once documented for
+`@parmana/receipt`/`@parmana/replay`: real, presumably tested code that is not part of the live wiring. Confirm this yourself before
 relying on it (see "How to Validate" below), it may simply be unused, or it may be a recent
 addition not yet wired in.
 

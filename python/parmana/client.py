@@ -199,7 +199,7 @@ class ParmanaClient:
         return __version__
 
     #
-    # Canonical flat capabilities (docs/sdk/SDK_CONFORMANCE.md #5:
+    # Canonical flat capabilities (docs/site/sdks/api-coverage.mdx, parity rules:
     # execute(), verify(), replay(), validatePolicy(), health()), plus
     # the other operations typescript/src/client/ParmanaClient.ts
     # exposes at the top level. `replay()`, `receipt()`, and

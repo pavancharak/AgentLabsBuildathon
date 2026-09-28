@@ -39,9 +39,8 @@ import { TrustChainValidationComponent } from "../../src/components/TrustChainVa
  * Explicit about what this does NOT measure: HTTP request/response
  * overhead, Express middleware, real database writes (Postgres/Supabase),
  * or a real connector's network round trip -- all of those sit outside
- * RuntimeEngine itself. See
- * docs/investigations/2026-08-10-latency-and-voice-ai-readiness.md,
- * which explicitly flags a full POST /execute round trip as still
+ * RuntimeEngine itself. See the
+ * 2026-08-10 latency investigation (in git history), which explicitly flags a full POST /execute round trip as still
  * unmeasured; this test narrows, but does not close, that open
  * question.
  */

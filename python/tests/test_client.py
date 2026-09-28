@@ -76,7 +76,7 @@ def test_client_creation_without_endpoint_raises_configuration_error(endpoint):
 @responses.activate
 def test_flat_client_methods_delegate_to_the_matching_nested_api():
     """
-    docs/sdk/SDK_CONFORMANCE.md #5 requires execute(), verify(),
+    docs/site/sdks/api-coverage.mdx, parity rules requires execute(), verify(),
     replay(), validatePolicy(), and health() directly on ParmanaClient,
     not only on nested API namespaces.
     """
@@ -99,7 +99,7 @@ def test_replay_receipt_transactions_are_callable_and_still_navigable():
     ReplayApi/ReceiptApi/TransactionApi are exposed on ParmanaClient
     under the same name as the operation itself (`client.replay`,
     `client.receipt`, `client.transactions`), so the flat
-    docs/sdk/SDK_CONFORMANCE.md #5 capability can't be a same-named
+    docs/site/sdks/api-coverage.mdx, parity rules capability can't be a same-named
     method without shadowing the existing namespace object. Making each
     namespace object itself callable (__call__) satisfies both shapes
     at once -- this proves neither broke the other.
