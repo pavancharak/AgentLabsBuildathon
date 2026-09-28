@@ -957,16 +957,38 @@ twice.**
   returns `200` with `refund.success` true and the merchant dashboard shows one refund for it.
 
 **G-71. Only one refund per Paytm transaction can go through Parmana, and the refund reason never
-reaches Paytm. FOUND 2026-09-28, `pre-production`. Not fixed.** `GatewayPaytmAdapter` sends
+reaches Paytm. FOUND 2026-09-28, `pre-production`. FIXED in code the same day, Parmana side (branch
+`fix/g71-paytm-refund-reference`) and agent side; see "Fix" below for what is deployed.**
+`GatewayPaytmAdapter` sent
 `deriveDeterministicPaytmRefId(orderId, transactionId)` as the refId
 (`packages/connector-paytm/src/PaytmTypes.ts`), deliberately, so a retry of one refund reuses the
 same refId. It follows that a second, partial refund of the same Paytm transaction gets the same
 refId; how Paytm answers a reused refId with a different amount was not checked. Separately,
 `refundReason` is in `PAYTM_ALLOWED_REFUND_PARAMETERS`, but the adapter sends only `orderId`, `txnId`,
-`refId` and `amount` to the connector service, so a reason is accepted and dropped. **Option:** let
-the Intent carry a caller refund reference, bound like the amount, and derive the refId from
-(`orderId`, `transactionId`, that reference), keeping retries of one refund on one refId; send the
-reason as a parameter the connector service forwards to Paytm.
+`refId` and `amount` to the connector service, so a reason is accepted and dropped.
+
+- **Fix, Parmana side:** `refundReference` joins `PAYTM_ALLOWED_REFUND_PARAMETERS`. When the Intent
+  carries it, `deriveDeterministicPaytmRefId(orderId, transactionId, refundReference)` keys the refId on
+  all three (JSON encoded, so a `:` inside an id cannot make two triples collide): retries of one
+  refund keep one refId, a different refund of the same transaction gets another. Without it the
+  derivation is byte for byte what it was, so a refund retried across the change keeps its refId.
+  `refundReason` is now sent to the connector service as `reason`. Both are optional; a value that is
+  not a non empty string, or longer than 128 (reference) or 256 (reason) characters, is refused before
+  any network call. These limits are the adapter's own; Paytm's limit on a refund comment was not
+  checked. Both are Intent parameters, so they are inside the signed, hash checked Intent, but not
+  inside the narrower signature the connector service verifies (it covers `orderId`, `txnId`, `amount`
+  and the expiry, as before; `refId` was never in it).
+- **Fix, agent side (`parmana-paytm-agent`):** `/agent/refunds` sends its `refId` as
+  `refundReference` and its `reason` as `refundReason`; `/connector/paytm-refund` passes `reason` to
+  Paytm as the refund comment. The agent must be deployed after Parmana: before that, Parmana's
+  allowlist refuses the new parameters.
+- **Tests:** `packages/connector-paytm/tests/unit/paytm-types.test.ts` (3 new: per refund refIds, the
+  old derivation pinned, no `:` collisions), `packages/execution-gateway/tests/unit/paytm-connector.test.ts`
+  (6 new: reference and reason sent, none sent when absent, four refusals before any network call),
+  `packages/api/tests/integration/paytm-refund.integration.test.ts` (1 new: two refunds of one
+  transaction through `POST /execute` reach the connector with different refIds, reason sent).
+- **Not checked:** how Paytm answers a second refund of one transaction in practice (total refunded
+  above the transaction amount, or its own limits on partial refunds).
 
 ---
 
@@ -1050,7 +1072,8 @@ refused); possible before that. Fixed in that repository's PR #6, which also mak
 policy version from `GET /policies/in-effect`. **Update (2026-09-28):** merged and deployed the same
 day; a refusal was verified in production through the agent; the approved path is covered by tests and
 closes fully when one refund is observed live with one Paytm call. The same review found **G-71**, `pre-production`: one refund per Paytm transaction through
-Parmana, and the refund reason is not sent to Paytm.
+Parmana, and the refund reason is not sent to Paytm. Fixed in code the same day (optional
+`refundReference`, reason forwarded), Parmana first, then the agent.
 
 ### blocks-pilot
 

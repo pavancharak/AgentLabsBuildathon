@@ -284,6 +284,15 @@ The full, verified-working shape:
 
 Use `"authorityType": "SERVICE"` — `"AGENT"` doesn't exist in `AuthorityType`.
 
+**Optional parameters (added 2026-09-28, G-71).** `intent.parameters` may also carry:
+
+| Parameter         | Limit          | Effect                                                                                                                                                                                                                                                                                                           |
+| ----------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `refundReference` | 128 characters | Your own id for this one refund. The Paytm refId is derived from the order, the transaction and this reference, so separate partial refunds of one transaction get separate refIds. Send the same value when you retry the same refund. Without it, every refund of one transaction shares one refId, as before. |
+| `refundReason`    | 256 characters | Sent to Paytm as the refund comment.                                                                                                                                                                                                                                                                             |
+
+Anything else in `intent.parameters` is refused before any call to the connector.
+
 Synthetic order/transaction IDs (not a real prior Paytm charge) are fine for a
 connectivity/wiring test — the request is approved, correctly signed, correctly verified,
 and correctly forwarded; Paytm's staging API simply returns a non-success result because

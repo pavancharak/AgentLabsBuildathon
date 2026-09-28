@@ -173,6 +173,7 @@ export class MockPaytmConnectorServer {
     let txnId: string;
     let refId: string;
     let amount: string;
+    let reason: string | undefined;
     let expiresAt: number;
     let signatureB64: string;
     let keyId: string;
@@ -211,6 +212,9 @@ export class MockPaytmConnectorServer {
       txnId = requireParameter(parameters, "txnId");
       refId = requireParameter(parameters, "refId");
       amount = requireParameter(parameters, "amount");
+      // Optional since G-71: the refund comment the real service passes to Paytm.
+      reason =
+        typeof parameters.reason === "string" ? parameters.reason : undefined;
 
       // ADR-0009 Phase 2B: signature fields, mirroring the real
       // parmana-paytm-agent's own verification (added at the same
@@ -281,7 +285,13 @@ export class MockPaytmConnectorServer {
       businessTransactionId: transactionId,
       action,
       target,
-      parameters: { orderId, txnId, refId, amount },
+      parameters: {
+        orderId,
+        txnId,
+        refId,
+        amount,
+        ...(reason !== undefined ? { reason } : {}),
+      },
     });
 
     const resultStatus = (this.forcedResultStatus ?? "S").toUpperCase();

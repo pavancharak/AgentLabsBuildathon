@@ -22,7 +22,16 @@ export const PAYTM_ALLOWED_REFUND_PARAMETERS = Object.freeze([
   "transactionId",
   "amount",
   "refundReason",
+  "refundReference",
 ] as const);
+
+/**
+ * Upper bounds this connector enforces on the two optional free text
+ * parameters before forwarding them (G-71). They are this connector's
+ * own limits; Paytm's own limit on a refund comment was not checked.
+ */
+export const PAYTM_REFUND_REFERENCE_MAX_LENGTH = 128;
+export const PAYTM_REFUND_REASON_MAX_LENGTH = 256;
 
 export type PaytmAllowedRefundParameter =
   (typeof PAYTM_ALLOWED_REFUND_PARAMETERS)[number];
@@ -148,14 +157,33 @@ export function canonicalPaytmAuthorizationString(input: {
  * own refId-based idempotency on /refund/apply is what ultimately
  * prevents a duplicate refund even if the connector service's own call
  * to Paytm is retried independently.
+ *
+ * G-71: keyed on (orderId, transactionId) alone, every refund of one
+ * Paytm transaction gets the same refId, so a second, partial refund of
+ * it looks to Paytm like the first one again. A caller that sends
+ * `refundReference` (its own stable id for ONE refund) gets a refId keyed
+ * on (orderId, transactionId, refundReference): retries of that refund
+ * keep one refId, and a different refund of the same transaction gets
+ * another. Without a reference the derivation is unchanged, so a refund
+ * retried across this change keeps its refId.
  */
 export function deriveDeterministicPaytmRefId(
   orderId: string,
   transactionId: string,
+  refundReference?: string,
 ): string {
-  const digest = createHash("sha256")
-    .update(`${orderId}:${transactionId}`)
-    .digest("hex");
+  const seed =
+    refundReference === undefined
+      ? `${orderId}:${transactionId}`
+      : // JSON, not ":" joining: a ":" inside an id cannot make two
+        // different triples collide.
+        JSON.stringify([
+          "paytm-refund-ref:v2",
+          orderId,
+          transactionId,
+          refundReference,
+        ]);
+  const digest = createHash("sha256").update(seed).digest("hex");
   return `refid_${digest.slice(0, 24)}`;
 }
 

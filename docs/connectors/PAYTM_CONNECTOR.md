@@ -2,7 +2,7 @@
 
 > **Update (2026-09-27):** `paytm:refund` is now bound to `customer-refund` 1.1.0: automatic up to 10000, a verified signed manager approval above 10000 and up to 100000, refused above 100000. This page describes the connector as built with 1.0.0. See `docs/site/concepts/human-approval.mdx` and `docs/CLAIMS.md` 2.42.
 
-> **Update (2026-09-28):** the connector service's other endpoint, `/agent/refunds`, called Paytm itself after Parmana had already released the refund through this connector, so an approved refund could be paid twice (G-70). Fixed and deployed in `parmana-paytm-agent` PR #6: Parmana, through this connector, is the only path to Paytm. Also recorded: one refund per Paytm transaction, because the refId below is derived from `orderId` and `transactionId` only, and `refundReason` is not forwarded (G-71).
+> **Update (2026-09-28):** the connector service's other endpoint, `/agent/refunds`, called Paytm itself after Parmana had already released the refund through this connector, so an approved refund could be paid twice (G-70). Fixed and deployed in `parmana-paytm-agent` PR #6: Parmana, through this connector, is the only path to Paytm. Also found and fixed the same day (G-71): an optional `refundReference` makes the refId per refund instead of per transaction, and `refundReason` now reaches Paytm; see "Idempotency and replay protection".
 
 **Status:** Implemented this milestone. See `docs/CLAIMS.md` §3.22 for the full evidence list (exact
 files, exact test counts, exact commands run). This document is the architecture/operator reference;
@@ -72,7 +72,7 @@ without Parmana's private key, regardless of how the shared secret was obtained.
 ```
 1. AI Agent calls Parmana POST /execute with:
      intent.action = "paytm:refund"
-     intent.parameters = { orderId, transactionId, amount, refundReason? }
+     intent.parameters = { orderId, transactionId, amount, refundReason?, refundReference? }
      policy = { name: "customer-refund", version: "1.0.0", schemaVersion: "1.0.0" }
      signals = { refundEligible, managerApproved, fraudCheckPassed, refundAmount }
 
@@ -91,7 +91,8 @@ without Parmana's private key, regardless of how the shared secret was obtained.
 
 6. GatewayPaytmAdapter validates the request shape (deny-by-default
    parameter allowlist), deterministically derives refId from
-   (orderId, transactionId), resolves the connector shared secret, and
+   (orderId, transactionId), plus refundReference when sent (G-71),
+   resolves the connector shared secret, and
    sends the REAL parmana-paytm-agent wire contract as JSON to
    PAYTM_CONNECTOR_URL/connector/paytm-refund, authenticated with
    PAYTM_CONNECTOR_SHARED_SECRET as a Bearer token:
@@ -102,7 +103,7 @@ without Parmana's private key, regardless of how the shared secret was obtained.
          "intent": {
            "action": "paytm-refund",
            "target": "...",
-           "parameters": { "orderId", "txnId", "refId", "amount" }
+           "parameters": { "orderId", "txnId", "refId", "amount", "reason"? }
          }
        },
        "authorization": {
@@ -260,6 +261,24 @@ regardless of Parmana's own `businessTransactionId` (which differs across distin
 attempts for the same logical refund). Paytm's own `/refund/apply` is documented as idempotent per
 `refId`, so this is what ultimately prevents a duplicate refund even if the connector service's own
 call to Paytm were retried independently.
+
+**More than one refund per transaction (G-71, 2026-09-28).** Keyed on `(orderId, transactionId)`
+alone, every refund of one Paytm transaction got the same `refId`, so a second, partial refund looked
+to Paytm like the first again. A caller may now send `refundReference` in the Intent's parameters: its
+own stable id for ONE refund (the refund agent sends its `refId`). The adapter then derives the `refId`
+from `(orderId, transactionId, refundReference)`:
+
+| Intent parameters                            | Paytm `refId`                              | Effect                                |
+| -------------------------------------------- | ------------------------------------------ | ------------------------------------- |
+| no `refundReference`                         | hash of `orderId:transactionId`, unchanged | one refund per transaction, as before |
+| `refundReference` `R1`, sent twice (a retry) | the same value both times                  | Paytm sees one refund                 |
+| `refundReference` `R1`, then `R2`            | two different values                       | two separate refunds                  |
+
+A caller that wants per refund refIds must reuse the same reference when it retries one refund; a new
+reference is a new refund. `refundReference` is at most 128 characters and `refundReason` at most 256;
+anything else is refused before any network call. `refundReason` is sent to the connector service as
+`reason`, which passes it to Paytm as the refund comment. How Paytm itself answers a second refund of
+one transaction (for example, a total above the transaction amount) was not checked.
 
 ## Paytm execution outcome
 
