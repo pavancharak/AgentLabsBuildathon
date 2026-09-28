@@ -14,6 +14,8 @@ every commit, run `git log` in the repository for the complete record.
 
 **Security**
 
+**Approved in production the same day:** `customer-refund` 1.2.0, `github-pr-approval` 1.1.0, `github-pr-read` 1.0.0 and `llm-tool-call` 1.1.0. Every refund now needs a signed manager approval.
+
 An AI attack review (an agent manipulated by prompt injection calling the API) found facts that an agent declares, and nothing checks, could authorize real actions. See `docs/VERIFICATION-GAPS.md` G-73 to G-78.
 
 - **A pull request merge needs a signed approval** for that pull request (`github-pr-approval` 1.1.0, G-73). The review, check, branch and risk signals come from the caller and can only refuse a merge now. Reading a pull request (`github:pr-fetch`) has its own policy, `github-pr-read` 1.0.0. Both apply in production once approved through policy governance; until `github-pr-read` is approved, reads are refused.

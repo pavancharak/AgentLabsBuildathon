@@ -1041,7 +1041,10 @@ limit (G-78).
 **G-73. An agent could authorize a pull request merge by declaring GitHub facts true. FOUND
 2026-09-28, `blocks-pilot` wherever the GitHub connector is configured (not checked for production).
 FIXED in the repository the same day on branch `fix/ai-attack-hardening`; takes effect in production
-when `github-pr-approval` 1.1.0 and `github-pr-read` 1.0.0 are approved.**
+when `github-pr-approval` 1.1.0 and `github-pr-read` 1.0.0 are approved. APPROVED in production
+2026-09-28: 1.1.0 at 17:30:00 UTC (change `39bfa083-7850-4cdc-bfd0-67738fc61432`), `github-pr-read`
+1.0.0 at 17:30:18 UTC (change `af938bab-f205-4e02-8adf-e602edcd7695`) (proposed by `charak1987` at 17:16 UTC, approved by `reviewer-charak1987`, two credentials held by one person). No
+reviewer is in `TRUSTED_APPROVAL_ISSUERS` yet, so every merge through Parmana is refused.**
 `github-pr-approval` 1.0.0 approved `github:pr-merge` when `repositoryAuthorized`,
 `requiredReviewsCompleted`, `statusChecksPassed` and `branchProtected` were true and `riskScore` was at
 most 20. All five are caller declared (`unboundSignalReasons`), no `SignalStateVerifier` covers GitHub,
@@ -1069,7 +1072,9 @@ protection stood in the way.
 
 **G-74. `llm-tool-call` approves a tool call when the caller declares `humanApproval: true`. FOUND
 2026-09-28, `pre-production` (no connector runs a tool call, so the hosted API executes nothing).
-FIXED in the repository the same day as `llm-tool-call` 1.1.0; partly open, see below.**
+FIXED in the repository the same day as `llm-tool-call` 1.1.0; closed by the update below. 1.1.0
+APPROVED in production 2026-09-28 17:30:53 UTC (change `8751d3dc-7fa3-4037-b23b-b059d9ae9d42`), so
+1.0.0 is refused there as superseded.**
 `llm-tool-call` 1.0.0 (approved in production 2026-09-16) approves when the caller declares
 `humanApproval`, `toolAllowed` and `resourceAuthorized` true, the environment `production` and
 `riskScore` at most 25. `humanApproval` is the caller's own word that a person agreed. The action used
@@ -1097,7 +1102,9 @@ permission and runs the tool itself.
 **G-75. An agent could authorize a refund up to 10000 by declaring the order eligible and the fraud
 check passed. FOUND 2026-09-28, `blocks-pilot`, live in production (the Paytm connector is configured
 there and `customer-refund` 1.1.0 is in effect). FIXED in the repository the same day as
-`customer-refund` 1.2.0; takes effect in production when 1.2.0 is approved.**
+`customer-refund` 1.2.0; takes effect in production when 1.2.0 is approved. CLOSED in production
+2026-09-28: 1.2.0 APPROVED (change `5916b946-6ee0-4ae0-ac1f-6384d021653b`) (proposed by `charak1987` at 17:16 UTC, approved by `reviewer-charak1987`, two credentials held by one person). Every refund now
+needs a signed approval from `manager-charak1987`, the one trusted approver.**
 `customer-refund` 1.1.0's `approve-refund-automatic` rule approves when `refundEligible` and
 `fraudCheckPassed` are true and `refundAmount` is at most 10000. Both facts are caller declared
 (`unboundSignalReasons`), and no verifier covers them (G-51). An agent with the `paytm:refund` grant
@@ -1266,10 +1273,13 @@ in `TRUSTED_APPROVAL_ISSUERS`; refunds above 10000 need that approver's signatur
 to G-78 (section "Gaps opened in the 2026-09-28 AI attack review" above). **One live security defect in
 production:** G-75, a `paytm:refund` up to 10000 authorized on the agent's own eligibility and fraud
 claims under `customer-refund` 1.1.0. Fixed in the repository on branch `fix/ai-attack-hardening`
-(`customer-refund` 1.2.0); it stays open in production until 1.2.0 is approved. G-73 (GitHub merges) is
-fixed the same way and needs approval; G-76 (Slack channels) and G-78 (public rate limits) take effect
-on deploy; G-77 is closed by a test; G-74 (`llm-tool-call`) is closed by retiring superseded versions,
-effective once 1.1.0 is approved.
+(`customer-refund` 1.2.0). G-73 (GitHub merges) is fixed the same way; G-76 (Slack channels) and G-78
+(public rate limits) take effect on deploy; G-77 is closed by a test; G-74 (`llm-tool-call`) is closed
+by retiring superseded versions. **Update (2026-09-28):** PRs #70 and #71 are merged; #70's bindings are live in production (`GET /policies/in-effect`
+refused `github:pr-fetch` for want of an approved `github-pr-read` before the approvals), and
+`customer-refund` 1.2.0, `github-pr-approval` 1.1.0, `github-pr-read` 1.0.0 and `llm-tool-call` 1.1.0 are
+approved in production, so G-75 is closed there. Still open: whether `SLACK_ALLOWED_CHANNEL_IDS` is set
+wherever Slack is configured was not checked.
 
 **Addendum (2026-09-28, refund agent):** reading the refund agent against Parmana's release path
 found **G-70**, `blocks-pilot`: `parmana-paytm-agent`'s `/agent/refunds` called Paytm itself after
