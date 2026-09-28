@@ -12,8 +12,8 @@ description: "26 paths, generated from openapi/openapi.yaml into the sidebar und
   spec path, and every spec path needs a real, currently-mounted route behind
   it, in both directions, or the test fails by name. `GET /documentation` and
   `GET /reference` are the one explicit, allowlisted exception: rendered doc
-  surfaces, not API resources, see [Three views of the same
-  spec](#three-views-of-the-same-spec) below.
+  surfaces, not API resources, see [Views of the same
+  spec](#views-of-the-same-spec) below.
 </Info>
 
 ## Base URL
@@ -40,7 +40,7 @@ The **REST API** tab lists every endpoint on its own page, grouped by area: Exec
 
 If you are an AI agent, follow [Integrate Parmana: specification for AI agents](/agents/integrate) instead of reading the pages one by one.
 
-## Three views of the same spec
+## Views of the same spec
 
 Every route, request/response shape, and status code ultimately comes from one file,
 [`openapi/openapi.yaml`](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/openapi/openapi.yaml),
@@ -70,6 +70,25 @@ surfaces, so none of them can drift from what the server actually does:
     it.
   </Card>
 </CardGroup>
+
+### Postman
+
+[`postman/parmana.postman_collection.json`](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/postman/parmana.postman_collection.json)
+has one request for every endpoint, in one folder per area, with the example bodies from the
+spec. It is generated from the same OpenAPI file (`npm run generate:postman`), and a test fails
+if it falls behind.
+
+1. In Postman, choose **Import** and select the file.
+2. Create an environment with a secret variable `apiKey` holding your API key. The collection
+   sends it as `Authorization: Bearer {{apiKey}}`; requests the API marks as public send no key.
+   Never put the key in the collection itself.
+3. `baseUrl` defaults to the production deployment. Override it in the environment for your
+   own deployment, for example `http://localhost:3000`.
+
+Most example bodies use sample ids, so replace them before sending. Approving or rejecting a
+policy change needs a fresh step up signature from the approver's own machine; the sample
+signature in those two requests has expired. See
+[Policy lifecycle and approvals](/guides/policy-lifecycle-and-approvals).
 
 Every route's own base URL, including on your own deployment, not just the one linked above,
 is documented on [Deploy patterns](/guides/deploy-patterns#the-openapi-spec-endpoint).
