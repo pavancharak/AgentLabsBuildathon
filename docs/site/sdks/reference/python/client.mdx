@@ -312,3 +312,39 @@ def reject_policy_change(
 
 Reject a policy change with a reason and a signed step up
 authorization. See PolicyApi.reject_change.
+
+#### list_approvers
+
+```python
+def list_approvers() -> list[ApprovalIssuer]
+```
+
+Every approver key the server trusts or trusted. See ApproverApi.list.
+
+#### approver_changes
+
+```python
+def approver_changes(status: str | None = None) -> list[ApprovalIssuerChange]
+```
+
+List approver changes. See ApproverApi.list_changes.
+
+#### approve_approver_change
+
+```python
+def approve_approver_change(
+        change_id: str,
+        step_up_authorization: dict[str, Any]) -> ApprovalIssuerChange
+```
+
+Approve and apply an approver change. See ApproverApi.approve_change.
+
+#### reject_approver_change
+
+```python
+def reject_approver_change(
+        change_id: str, rejection_reason: str,
+        step_up_authorization: dict[str, Any]) -> ApprovalIssuerChange
+```
+
+Reject an approver change. See ApproverApi.reject_change.

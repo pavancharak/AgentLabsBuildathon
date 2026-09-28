@@ -1,4 +1,5 @@
 import type {
+  ApprovalIssuerRepository,
   BusinessTransactionRepository,
   ExecutionIntentRepository,
   ExecutionTrustRecordRepository,
@@ -51,4 +52,6 @@ export interface StorageProvider {
    * Handbook download leads (docs/site/handbook/download.mdx).
    */
   readonly handbookDownloadLeads: HandbookDownloadLeadRepository;
+
+  readonly approvalIssuers: ApprovalIssuerRepository;
 }

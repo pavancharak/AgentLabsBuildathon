@@ -39,6 +39,11 @@ import type {
 import type { ReplayResult } from "../models/replay-result.js";
 import type { CallerIdentity, PublicKeyInfo } from "../models/caller.js";
 import type {
+  ApprovalIssuer,
+  ApprovalIssuerChange,
+  ProposeApproverChangeInput,
+} from "../models/approval-issuer.js";
+import type {
   PendingPolicyChange,
   PendingPolicyChangeStatus,
   PolicyChangeForReview,
@@ -70,6 +75,7 @@ import { TransactionApi } from "./TransactionApi.js";
 import { TrustRecordApi } from "./TrustRecordApi.js";
 
 import { PolicyApi, type PolicyValidationResult } from "./PolicyApi.js";
+import { ApproverApi } from "./ApproverApi.js";
 
 import { RefusalApi } from "./RefusalApi.js";
 import { ExecutionIntentApi } from "./ExecutionIntentApi.js";
@@ -131,6 +137,8 @@ export class ParmanaClient {
    */
   private readonly policyApi: PolicyApi;
 
+  private readonly approverApi: ApproverApi;
+
   /**
    * Runtime Refusal Record API.
    */
@@ -178,6 +186,8 @@ export class ParmanaClient {
     this.trustRecordApi = new TrustRecordApi(this.transport);
 
     this.policyApi = new PolicyApi(this.transport);
+
+    this.approverApi = new ApproverApi(this.transport);
 
     this.refusalApi = new RefusalApi(this.transport);
 
@@ -454,6 +464,57 @@ export class ParmanaClient {
   ): Promise<PendingPolicyChange> {
     return this.policyApi.rejectChange(
       pendingPolicyChangeId,
+      rejectionReason,
+      stepUpAuthorization,
+    );
+  }
+
+  /**
+   * Every approver key the server trusts or trusted. See ApproverApi.list.
+   */
+  public approvers(): Promise<ApprovalIssuer[]> {
+    return this.approverApi.list();
+  }
+
+  /**
+   * Proposes adding or revoking an approver key. See
+   * ApproverApi.proposeChange.
+   */
+  public proposeApproverChange(
+    input: ProposeApproverChangeInput,
+  ): Promise<ApprovalIssuerChange> {
+    return this.approverApi.proposeChange(input);
+  }
+
+  /**
+   * Lists approver changes. See ApproverApi.listChanges.
+   */
+  public approverChanges(
+    status?: PendingPolicyChangeStatus,
+  ): Promise<ApprovalIssuerChange[]> {
+    return this.approverApi.listChanges(status);
+  }
+
+  /**
+   * Approves and applies an approver change. See ApproverApi.approveChange.
+   */
+  public approveApproverChange(
+    changeId: string,
+    stepUpAuthorization: PolicyChangeStepUpAuthorization,
+  ): Promise<ApprovalIssuerChange> {
+    return this.approverApi.approveChange(changeId, stepUpAuthorization);
+  }
+
+  /**
+   * Rejects an approver change. See ApproverApi.rejectChange.
+   */
+  public rejectApproverChange(
+    changeId: string,
+    rejectionReason: string,
+    stepUpAuthorization: PolicyChangeStepUpAuthorization,
+  ): Promise<ApprovalIssuerChange> {
+    return this.approverApi.rejectChange(
+      changeId,
       rejectionReason,
       stepUpAuthorization,
     );

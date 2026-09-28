@@ -61,6 +61,16 @@ The offline verifiers make no network call. Get the public key once with `public
 | `POST /policies/pending-changes/{id}/reject`           | `rejectPolicyChange(id, reason, stepUp)` **1.3.0**    | `reject_policy_change(id, reason, step_up)` **1.3.0**, `policy.reject_change(...)` |
 | Sign a step up authorization on the approver's machine | `signPolicyChangeStepUp({...})` **1.3.0**             | `parmana.crypto.sign_policy_change_step_up(...)` **1.3.0**                         |
 
+## Approvers
+
+| Operation                                     | TypeScript                                           | Python                                                                  |
+| --------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------- |
+| `GET /approval-issuers`                       | `approvers()` **1.4.0**                              | `list_approvers()`, `approvers.list()` **1.4.0**                        |
+| `POST /approval-issuers/changes`              | `proposeApproverChange({ action, ... })` **1.4.0**   | `approvers.propose_add(...)`, `approvers.propose_revoke(...)` **1.4.0** |
+| `GET /approval-issuers/changes`               | `approverChanges(status?)` **1.4.0**                 | `approver_changes(status=None)` **1.4.0**                               |
+| `POST /approval-issuers/changes/{id}/approve` | `approveApproverChange(id, stepUp)` **1.4.0**        | `approve_approver_change(id, step_up)` **1.4.0**                        |
+| `POST /approval-issuers/changes/{id}/reject`  | `rejectApproverChange(id, reason, stepUp)` **1.4.0** | `reject_approver_change(id, reason, step_up)` **1.4.0**                 |
+
 ## Caller and service
 
 | Operation         | TypeScript           | Python                                                                                                              |

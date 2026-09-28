@@ -118,7 +118,22 @@ jobs:
           # Supabase provides these roles. Plain Postgres does not.
           docker exec pg psql -U postgres -v ON_ERROR_STOP=1 -c "create role anon; create role authenticated; create role service_role;"
           docker exec -i pg psql -U postgres -v ON_ERROR_STOP=1 < scripts/apply-all-migrations.sql
-          docker exec pg psql -U postgres -tA -c "select to_regclass('consumed_nonces'), to_regclass('execution_audit_events'), to_regclass('policies')"
+          docker exec pg psql -U postgres -tA -c "select to_regclass('consumed_nonces'), to_regclass('execution_audit_events'), to_regclass('policies'), to_regclass('approval_issuers')"
+
+      - name: Set up Node for the repository tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Run the Postgres repository tests against these migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+          ALLOW_LIVE_SUPABASE: "1"
+        run: |
+          npm ci
+          npm run build
+          npx vitest run packages/storage/tests/integration/supabase-approval-issuer-repository.integration.test.ts
 
       - name: Start the container in production mode
         run: |

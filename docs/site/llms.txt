@@ -10,8 +10,8 @@ This file is generated from the documentation navigation. Do not edit it by hand
 * There is no fixed public API base URL. Every deployment has its own, so ask the operator for it.
 * Authentication: every request carries `Authorization: Bearer <key>`. The operator issues the key.
 * On any running server, the machine readable API description is at `/openapi.json`, `/openapi.yaml` and `/api-manifest.json`.
-* TypeScript SDK: `@parmana/sdk` 1.3.0 on npm.
-* Python SDK: `parmana` 1.3.0 on PyPI.
+* TypeScript SDK: `@parmana/sdk` 1.4.0 on npm.
+* Python SDK: `parmana` 1.4.0 on PyPI.
 * If you are an AI agent, start with https://docs.parmanasystems.com/agents/integrate and follow it exactly.
 * For the integration pages concatenated into one document, read https://docs.parmanasystems.com/llms-full.txt.
 
@@ -56,6 +56,7 @@ This file is generated from the documentation navigation. Do not edit it by hand
 * [Write Your First Policy](https://docs.parmanasystems.com/guides/write-your-first-policy): Write a custom Policy, evaluate a transaction against it, and confirm both the approve and reject paths.
 * [Policy Governance: Maker-Checker Approval](https://docs.parmanasystems.com/guides/policy-governance-maker-checker): Propose, review, and approve a policy change end to end, with the exact commands and how to debug each failure mode.
 * [Policy lifecycle and approvals](https://docs.parmanasystems.com/guides/policy-lifecycle-and-approvals): End to end: write a policy, propose it, have a second person approve it, how it takes effect, and how a person signs off on a single critical action.
+* [Manage approvers](https://docs.parmanasystems.com/guides/manage-approvers): Add, rotate and revoke the people whose signed approvals a policy accepts, through maker checker, with no code change and no deploy.
 * [Credentials for maker, checker, approver and agent](https://docs.parmanasystems.com/guides/credentials-maker-checker-approver): Every key a Parmana deployment needs, who creates each one, every command to create, deploy, test, rotate and use them, and how the production keys were rebuilt on 2026-09-27.
 * [Authorize and Execute an Action End to End](https://docs.parmanasystems.com/guides/authorize-and-execute): See the signed authorization envelope Quickstart hides behind the REST API, then run the same request through the full gateway-wired server.
 * [Connect an External Agent](https://docs.parmanasystems.com/guides/connect-an-agent): Complete guide for a new developer: what's needed, why, how to build and send the request, and how to troubleshoot every failure mode — grounded in the actual source, using the real parmana-phinite-agent integration as the worked example.
@@ -146,6 +147,13 @@ This file is generated from the documentation navigation. Do not edit it by hand
 * [List pending policy changes (maker-checker)](https://docs.parmanasystems.com/api-reference/endpoints/list-pending-policy-changes): Lists Pending Policy Changes, each alongside a diff view: current (the live content at (policyName, policyVersion) today, or null if that version has never been published) and proposed (the change's own proposedContent).
 * [Approve a pending policy change (checker)](https://docs.parmanasystems.com/api-reference/endpoints/approve-policy-change): Approves a Pending Policy Change (checker).
 * [Reject a pending policy change (checker)](https://docs.parmanasystems.com/api-reference/endpoints/reject-policy-change): Rejects a Pending Policy Change (checker).
+## REST API: Approvers
+
+* [List approver keys](https://docs.parmanasystems.com/api-reference/endpoints/list-approval-issuers): Every approver key the server trusts, or trusted, to sign approvals for policies that declare approvalSignals.
+* [List approver changes](https://docs.parmanasystems.com/api-reference/endpoints/list-approval-issuer-changes): Approver changes, newest first, optionally filtered by status.
+* [Propose adding or revoking an approver key](https://docs.parmanasystems.com/api-reference/endpoints/propose-approval-issuer-change): Proposes adding an approver key (action add, with the approver Ed25519 public key) or revoking a key added this way (action revoke).
+* [Approve an approver change](https://docs.parmanasystems.com/api-reference/endpoints/approve-approval-issuer-change): Approves an approver change and applies it in one step: add trusts the key from the next approval checked, revoke refuses every approval the key ever signed from the next request on.
+* [Reject an approver change](https://docs.parmanasystems.com/api-reference/endpoints/reject-approval-issuer-change): Rejects an approver change.
 ## REST API: Refusal Records
 
 * [Verify a Refusal Record's signature](https://docs.parmanasystems.com/api-reference/endpoints/verify-refusal-record): Verifies a Refusal Record's signature (RFC-0021).

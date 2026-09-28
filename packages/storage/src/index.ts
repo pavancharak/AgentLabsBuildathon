@@ -27,6 +27,7 @@ export * from "./memory/MemoryPolicyRepository.js";
 export * from "./memory/MemoryPendingPolicyChangeRepository.js";
 export * from "./memory/MemoryPolicyChangeApprovalRecordRepository.js";
 export * from "./memory/MemoryHandbookDownloadLeadRepository.js";
+export * from "./memory/MemoryApprovalIssuerRepository.js";
 
 // -----------------------------------------------------------------------------
 // Errors
@@ -43,6 +44,7 @@ export * from "./supabase/SupabaseRefusalRecordRepository.js";
 export * from "./supabase/SupabasePendingPolicyChangeRepository.js";
 export * from "./supabase/SupabasePolicyChangeApprovalRecordRepository.js";
 export * from "./supabase/SupabaseHandbookDownloadLeadRepository.js";
+export * from "./supabase/SupabaseApprovalIssuerRepository.js";
 export * from "./supabase/SupabaseNonceStore.js";
 export * from "./supabase/SupabaseApprovalNonceStore.js";
 export * from "./supabase/SupabasePolicyChangeStepUpNonceStore.js";

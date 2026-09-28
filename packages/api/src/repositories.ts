@@ -68,3 +68,7 @@ export const policyChangeApprovalRecordRepository = lazyRepository(
 export const handbookDownloadLeadRepository = lazyRepository(
   (provider) => provider.handbookDownloadLeads,
 );
+
+export const approvalIssuerRepository = lazyRepository(
+  (provider) => provider.approvalIssuers,
+);
