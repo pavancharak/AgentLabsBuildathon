@@ -76,7 +76,7 @@ limit would either starve every caller behind it or be loose enough to mean noth
 mounted only when caller authentication is enabled; there is no caller identity to key off when
 auth is disabled. `GET /health` and `GET /ready` get a separate, deliberately more permissive
 limit keyed by IP instead, since both are legitimately polled on a fixed interval by PaaS
-health-check infrastructure and must never be tight enough to throttle that. The unauthenticated
+health check infrastructure and must never be tight enough to throttle that. The unauthenticated
 routes that check signatures or write data (`POST /refusal/verify`, `POST /execution-intents/verify`,
 `POST /audit/verify`, `/handbook`) share a third limit keyed by IP, `RATE_LIMIT_PUBLIC_PER_MINUTE`,
 60 per minute by default.
