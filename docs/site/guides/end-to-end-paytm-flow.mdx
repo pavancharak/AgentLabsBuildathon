@@ -68,6 +68,18 @@ sequenceDiagram
   own copy of the connection string).
 </Warning>
 
+<Note>
+  **Calling through the agent's own `/agent/refunds` (added 2026-09-28).** An
+  agent can also call `parmana-paytm-agent`'s `POST /agent/refunds`, which calls
+  `POST /execute` above on its behalf. The flow is the same: Parmana alone sends
+  the refund to Paytm, once, through `/connector/paytm-refund`, and
+  `/agent/refunds` returns Paytm's result from the Trust Record. Until
+  2026-09-28 that endpoint also called Paytm itself after an approval, so an
+  approved refund could be paid twice (G-70, fixed in that repository's PR #6).
+  It now also reads the policy version from `GET /policies/in-effect` before
+  every refund.
+</Note>
+
 ## Prerequisites
 
 - Write access to both Vercel projects (`parmana-api-real` and `parmana-paytm-agent` in the

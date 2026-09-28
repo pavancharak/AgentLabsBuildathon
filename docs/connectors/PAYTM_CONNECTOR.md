@@ -2,6 +2,8 @@
 
 > **Update (2026-09-27):** `paytm:refund` is now bound to `customer-refund` 1.1.0: automatic up to 10000, a verified signed manager approval above 10000 and up to 100000, refused above 100000. This page describes the connector as built with 1.0.0. See `docs/site/concepts/human-approval.mdx` and `docs/CLAIMS.md` 2.42.
 
+> **Update (2026-09-28):** the connector service's other endpoint, `/agent/refunds`, called Paytm itself after Parmana had already released the refund through this connector, so an approved refund could be paid twice (G-70). Fixed and deployed in `parmana-paytm-agent` PR #6: Parmana, through this connector, is the only path to Paytm. Also recorded: one refund per Paytm transaction, because the refId below is derived from `orderId` and `transactionId` only, and `refundReason` is not forwarded (G-71).
+
 **Status:** Implemented this milestone. See `docs/CLAIMS.md` §3.22 for the full evidence list (exact
 files, exact test counts, exact commands run). This document is the architecture/operator reference;
 CLAIMS.md is the checkable claim.

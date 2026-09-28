@@ -19,6 +19,11 @@ every commit, run `git log` in the repository for the complete record.
 **Fixed**
 
 - On the hosted API, a malformed JSON body returned `500`; it now returns `400 Malformed JSON body.` (G-69).
+- **Paytm refund agent (`parmana-paytm-agent`, a separate service): an approved refund could be paid twice** (G-70). Its `/agent/refunds` endpoint asked Parmana to execute the refund and then called Paytm itself as well, while Parmana had already sent the refund to Paytm through its connector. The agent no longer calls Paytm; it returns Paytm's result from the Trust Record. It also reads the policy version from `GET /policies/in-effect` instead of sending 1.0.0, and can forward a signed manager approval (`approvalArtifact`). Deployed 2026-09-28; a refused refund was verified in production, and an approved one has not been observed live yet.
+
+**Known limits**
+
+- Only one refund per Paytm transaction can go through Parmana, because the Paytm refId is derived from the order and transaction ids; and a refund reason is accepted but not sent to Paytm (G-71).
 
 ## 2026-09-27
 
