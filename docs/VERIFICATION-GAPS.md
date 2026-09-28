@@ -957,8 +957,9 @@ twice.**
   returns `200` with `refund.success` true and the merchant dashboard shows one refund for it.
 
 **G-71. Only one refund per Paytm transaction can go through Parmana, and the refund reason never
-reaches Paytm. FOUND 2026-09-28, `pre-production`. FIXED in code the same day, Parmana side (branch
-`fix/g71-paytm-refund-reference`) and agent side; see "Fix" below for what is deployed.**
+reaches Paytm. FOUND 2026-09-28, `pre-production`. FIXED and deployed the same day: Parmana PR #59
+(merge `6bd2800`), then `parmana-paytm-agent` PR #7 (merge `0ee7376`). Covered by tests; a second
+refund of one transaction has not been observed live.**
 `GatewayPaytmAdapter` sent
 `deriveDeterministicPaytmRefId(orderId, transactionId)` as the refId
 (`packages/connector-paytm/src/PaytmTypes.ts`), deliberately, so a retry of one refund reuses the
@@ -1072,8 +1073,8 @@ refused); possible before that. Fixed in that repository's PR #6, which also mak
 policy version from `GET /policies/in-effect`. **Update (2026-09-28):** merged and deployed the same
 day; a refusal was verified in production through the agent; the approved path is covered by tests and
 closes fully when one refund is observed live with one Paytm call. The same review found **G-71**, `pre-production`: one refund per Paytm transaction through
-Parmana, and the refund reason is not sent to Paytm. Fixed in code the same day (optional
-`refundReference`, reason forwarded), Parmana first, then the agent.
+Parmana, and the refund reason is not sent to Paytm. Fixed and deployed the same day (optional
+`refundReference`, reason forwarded): Parmana PR #59, then agent PR #7.
 
 ### blocks-pilot
 
