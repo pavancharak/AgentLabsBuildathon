@@ -334,5 +334,7 @@ Full account: `docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md
 - **The Paytm connector specifically** — see `docs/connectors/PAYTM_CONNECTOR.md`.
 - **`parmana-paytm-agent`'s own `/agent/refunds` endpoint** — a second, separate integration shape
   (an agent calls that service, which itself calls Parmana) — not the pattern documented here.
+  Either way Parmana alone releases an approved refund to Paytm, once; the service must not call
+  Paytm itself as well (G-70, fixed in `parmana-paytm-agent` PR #6).
 - **Policy authoring** — see `docs/site/guides/write-your-first-policy.mdx` and
   `LIVE-API-GUIDE.md` (repo root) for the exact condition/operator language.

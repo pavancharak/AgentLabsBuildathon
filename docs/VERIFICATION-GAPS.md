@@ -892,7 +892,9 @@ behind maker and checker. That needs a new table and a new change type, because
   `packages/storage/tests/unit/policy-change-approval-record-most-recent-for-name.test.ts` (2).
 - **Behavior change to know:** agents name the version in each request. Once a new version is
   approved, a request naming the old one is refused, with a message naming the version in effect.
-  There is no endpoint yet to ask for the version in effect ahead of time.
+  There is no endpoint yet to ask for the version in effect ahead of time. **Update
+  (2026-09-28):** `GET /policies/in-effect?capability=<action>` now returns it (PR #56); the refund
+  agent reads it before every refund from `parmana-paytm-agent` PR #6 on (G-70).
 - **With PR #46:** once both are deployed, refunds keep running under the version already
   approved in production (1.0.0, where `managerApproved` is not verified) until 1.1.0 is approved.
   Approving 1.1.0 is what switches refunds to verified manager approvals; no deploy is needed for
@@ -901,6 +903,60 @@ behind maker and checker. That needs a new table and a new change type, because
   and adding an approver. `HubSpotSignalStateVerifier`'s own deal read still names
   `hubspot-deal-update` 1.0.0 in code; it goes straight to the gateway, not through this binder,
   and keeps working while 1.0.0 stays approved.
+
+## Gaps opened in the 2026-09-28 refund agent review
+
+**G-70. The refund agent paid an approved refund twice: once through Parmana's connector, then
+again itself. FOUND 2026-09-28, `blocks-pilot`, in `parmana-paytm-agent`. Fix in that repository's
+PR #6, not merged when this was written.** `parmana-paytm-agent` has two endpoints. On
+`/agent/refunds` it asked Parmana `POST /execute` and, when the answer was APPROVED, called Paytm
+itself (`src/governed-refund.ts`, `this.paytm.initiateRefund`, with the caller's `refId`, by default
+`PARMANA-<uuid>`). But Parmana releases an approved action inside that same `/execute` call
+(`packages/runtime/src/RuntimeEngine.ts`, "The action is released to the connector inside this
+call"): with `PAYTM_CONNECTOR_URL` set, the Paytm connector is registered for `paytm:refund`
+(`packages/api/src/bootstrap/createConnectorRegistry.ts`), and `GatewayPaytmAdapter` sends the
+refund to `PAYTM_CONNECTOR_URL/connector/paytm-refund`, the agent's other endpoint, which calls Paytm
+with a refId from `deriveDeterministicPaytmRefId(orderId, transactionId)`. Two different refIds, so
+Paytm's per refId idempotency would not catch the second call: **an approved refund could be paid
+twice.**
+
+- **Where it applied:** wherever Parmana's `PAYTM_CONNECTOR_URL` points at the agent. In production
+  the value is stored as a Sensitive Vercel variable and could not be read back; a live run on
+  2026-09-20 did reach the agent's `/connector/paytm-refund` (G-52). On 2026-09-28 the operator set it
+  again to `https://parmana-paytm-agent.vercel.app`; that takes effect on the next deploy of
+  `parmana-api-real`.
+- **When:** before 2026-09-27 18:53:40 UTC, `customer-refund` 1.0.0 was the version in effect and the
+  agent declared 1.0.0, so an approved refund through `/agent/refunds` took both paths. From then on it
+  was dormant: the agent still declared 1.0.0 (`src/parmana/refund-authorizer.ts`), which the binder
+  refuses once 1.1.0 is in effect (`CapabilityPolicyBinding.ts`, declared version must equal it), so
+  no refund was approved. Whether any real refund was paid twice before 2026-09-27 was not checked:
+  that needs the Paytm merchant records (a second refund on one order, with a refId starting
+  `PARMANA-`).
+- **Why earlier reviews missed it:** each side was checked alone. ADR-0009 called `/agent/refunds`
+  "a separate, already correct path", and CLAIMS 3.22 describes Parmana's path only.
+- **Fix (agent PR #6):** `GovernedPaytmRefundService` has no Paytm client. It returns what Paytm
+  reported from the last execution's `evidence` in the Trust Record `/execute` returns
+  (`readRefundExecution`); an approval with no evidence fails and leaves the refId `UNKNOWN` for
+  reconciliation, never falling back to calling Paytm. The same PR reads the policy version from
+  `GET /policies/in-effect` before every refund (a failed lookup stops before `/execute`), forwards
+  an optional signed manager approval as `signals.approvalArtifact`, answers `502` when Paytm did not
+  report success, and runs the agent's build time env check only for production builds.
+- **Tests (agent):** 80 passed (57 before), including that an approved refund makes no Paytm call and
+  no network call from `/agent/refunds`.
+- **Closes when:** PR #6 is merged and deployed, `parmana-api-real` is redeployed with the new
+  `PAYTM_CONNECTOR_URL`, and one refund up to 10000 is approved with exactly one Paytm call.
+
+**G-71. Only one refund per Paytm transaction can go through Parmana, and the refund reason never
+reaches Paytm. FOUND 2026-09-28, `pre-production`. Not fixed.** `GatewayPaytmAdapter` sends
+`deriveDeterministicPaytmRefId(orderId, transactionId)` as the refId
+(`packages/connector-paytm/src/PaytmTypes.ts`), deliberately, so a retry of one refund reuses the
+same refId. It follows that a second, partial refund of the same Paytm transaction gets the same
+refId; how Paytm answers a reused refId with a different amount was not checked. Separately,
+`refundReason` is in `PAYTM_ALLOWED_REFUND_PARAMETERS`, but the adapter sends only `orderId`, `txnId`,
+`refId` and `amount` to the connector service, so a reason is accepted and dropped. **Option:** let
+the Intent carry a caller refund reference, bound like the amount, and derive the refId from
+(`orderId`, `transactionId`, that reference), keeping retries of one refund on one refId; send the
+reason as a parameter the connector service forwards to Paytm.
 
 ---
 
@@ -975,6 +1031,15 @@ production. It is closed there: every production API key was rotated on 2026-09-
 the server cannot tell apart from two people. `refundEligible` and `fraudCheckPassed` are still caller
 declared. **Update (2026-09-28):** one approver, `manager-charak1987`, held by the operator, is now listed
 in `TRUSTED_APPROVAL_ISSUERS`; refunds above 10000 need that approver's signature.
+
+**Addendum (2026-09-28, refund agent):** reading the refund agent against Parmana's release path
+found **G-70**, `blocks-pilot`: `parmana-paytm-agent`'s `/agent/refunds` called Paytm itself after
+Parmana had already released the refund through its connector, so an approved refund could be paid
+twice. Dormant in production since 1.1.0 was approved (the agent declared 1.0.0 and every refund was
+refused); possible before that. Fixed in that repository's PR #6, which also makes the agent read the
+policy version from `GET /policies/in-effect`; closed when that is merged, deployed and proven with one
+refund. The same review found **G-71**, `pre-production`: one refund per Paytm transaction through
+Parmana, and the refund reason is not sent to Paytm.
 
 ### blocks-pilot
 

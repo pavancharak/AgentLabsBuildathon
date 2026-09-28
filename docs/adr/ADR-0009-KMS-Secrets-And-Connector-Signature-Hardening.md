@@ -69,6 +69,10 @@ to a better secrets store — it requires adding a signature check to the wire p
 itself. (A separate, already-correct path exists: `/agent/refunds` calls back into
 real Parmana policy via `ParmanaRefundAuthorizer` — only `/connector/paytm-refund`,
 the path the Gateway itself calls after already authorizing internally, has this gap.)
+**Correction (2026-09-28, G-70):** `/agent/refunds` was not correct. After Parmana approved,
+it also called Paytm itself, while Parmana had already released the refund through
+`/connector/paytm-refund`, so an approved refund could be paid twice. Fixed in
+`parmana-paytm-agent` PR #6; see `docs/VERIFICATION-GAPS.md` G-70.
 
 ## Deployment context
 
