@@ -1,0 +1,1249 @@
+{
+  "info": {
+    "name": "Parmana API",
+    "description": "Generated from openapi/openapi.yaml (API version 1.0.0) by `npm run generate:postman`. Do not edit by hand.\n\nSet `apiKey` in a Postman environment (never commit a key) and, if needed, change `baseUrl`. Requests that need no key use no auth.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{apiKey}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://parmana-api-real.vercel.app",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Execution",
+      "description": "Executes a Business Transaction through the complete Execution Trust pipeline",
+      "item": [
+        {
+          "name": "Execute a Business Transaction (test-fixture-flow)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"businessTransactionId\": \"e54187e6-431f-4e1c-9c0e-ff2cb5d6d40a\",\n  \"metadata\": {\n    \"businessTransactionId\": \"e54187e6-431f-4e1c-9c0e-ff2cb5d6d40a\",\n    \"correlationId\": \"9c039d73-7fb1-461f-908f-c646c905633c\",\n    \"sourceSystem\": \"docs-api-reference\",\n    \"submittedBy\": \"docs-example\",\n    \"submittedAt\": \"2026-09-14T17:17:50.000Z\"\n  },\n  \"authority\": {\n    \"authorityId\": \"f10f016f-b7c0-443e-8307-d26f5fa98067\",\n    \"authorityType\": \"SERVICE\",\n    \"principalId\": \"docs-example-caller\",\n    \"displayName\": \"Docs Example Caller\",\n    \"issuedAt\": \"2026-09-14T17:17:50.000Z\"\n  },\n  \"authorization\": {\n    \"authorizationId\": \"5f112f4c-a43d-41dd-bfee-66a49efe33de\",\n    \"authorityId\": \"f10f016f-b7c0-443e-8307-d26f5fa98067\",\n    \"purpose\": \"API reference example: refund authorization\",\n    \"issuedAt\": \"2026-09-14T17:17:50.000Z\"\n  },\n  \"intent\": {\n    \"intentId\": \"462c2efd-3b88-4f59-8c47-8ba01a63d37e\",\n    \"authorizationId\": \"5f112f4c-a43d-41dd-bfee-66a49efe33de\",\n    \"action\": \"test:fixture-execute\",\n    \"target\": \"vendor://payments\",\n    \"parameters\": {\n      \"amount\": 1000,\n      \"currency\": \"USD\"\n    },\n    \"createdAt\": \"2026-09-14T17:17:50.000Z\"\n  },\n  \"policy\": {\n    \"name\": \"vendor-payment\",\n    \"version\": \"2.0.0\",\n    \"schemaVersion\": \"1.0.0\"\n  },\n  \"signals\": {\n    \"vendorVerified\": true,\n    \"invoiceVerified\": true,\n    \"paymentApproved\": true,\n    \"sufficientFunds\": true,\n    \"paymentAmount\": 1000,\n    \"riskScore\": 5,\n    \"vendorId\": \"vendor://payments\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/execute",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "execute"
+              ]
+            },
+            "description": "A request that runs on a server started with NODE_ENV=test, using the test only capability test:fixture-execute. It was captured live on 2026-09-14 and is approved.\n\noperationId: executeTransaction\n\nRuns the complete pipeline synchronously and returns the finished Execution Trust Record. In order, the server accepts and stores the Business Transaction, evaluates the policy, signs an authorization for an approved action and releases it to the connector, then builds, signs and verifies the record and generates a receipt.\n\n`businessTransactionId` must be a valid UUID (v1 to v5). It is the idempotency key: sending the same one again returns `409`. The server assigns `status` and `createdAt`, sets `metadata.submittedBy` from the authenticated key, and drops any top level field that is not in the request schema.\n\nWhich `intent.action` values work depends on the connectors registered on the server. An approved action with no registered connector fails with `503` and code `CONNECTOR_NOT_REGISTERED`, and nothing is executed.\n\nHow each outcome is reported:\n\n1. `200`: approved and released. The body is the signed Execution Trust Record.\n2. `403` with code `POLICY_DENIED`: a policy refused. This is final and nothing was released.\n3. `403` with code `CAPABILITY_NOT_ALLOWED`, or with no code: the key may not invoke the action, or may not assert that principal.\n4. `429`: rate limited. Nothing was recorded. Wait for the `Retry-After` header.\n5. `503` with code `SIGNING_UNAVAILABLE`, `EXECUTION_INTENT_UNAVAILABLE`, `AUDIT_UNAVAILABLE` or `CONNECTOR_NOT_REGISTERED`: refused before release. Nothing was executed. For `CONNECTOR_NOT_REGISTERED` the operator must configure the connector for that action before any retry. For `EXECUTION_INTENT_UNAVAILABLE` the signed Execution Intent could not be signed and stored, so nothing was released. Retry later with a new businessTransactionId.\n6. `500` with code `EXECUTION_RECORD_INCOMPLETE`: the action was released but its signed record could not be produced. Do not resubmit under a new id. Read `GET /execution-intents/{businessTransactionId}`: the signed intent exists, and an operator can rebuild the record with `POST /execution-intents/{businessTransactionId}/finalize` without calling the connector again.\n7. `502` with code `EXECUTION_OUTCOME_UNKNOWN`: the action was released and the call to the connector failed (unreachable, timed out, or an error response), so whether it was performed is unknown. The Execution Intent is `ERRORED`. Do not resubmit under a new id. Check the target system, then close the intent with `POST /execution-intents/{businessTransactionId}/resolve`.\n\nThe examples named `vendor-payment-flow` are historical captures that show the response shape. The `payments:execute` action they use no longer exists on a current server. See the [Error catalog](/api-reference/error-catalog) and [Integrate Parmana: specification for AI agents](/agents/integrate)."
+          }
+        },
+        {
+          "name": "Execute a Business Transaction (vendor-payment-flow)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"businessTransactionId\": \"44b34a79-e0f2-49d7-a48e-e52fff88182e\",\n  \"metadata\": {\n    \"businessTransactionId\": \"44b34a79-e0f2-49d7-a48e-e52fff88182e\",\n    \"correlationId\": \"cc1ca975-4935-4e9a-a591-8897af6b56fb\",\n    \"sourceSystem\": \"vendor-payment-service\",\n    \"submittedBy\": \"ap-automation\",\n    \"submittedAt\": \"2026-07-13T17:36:00.835Z\"\n  },\n  \"authority\": {\n    \"authorityId\": \"db5c5260-bb4c-40a2-a081-2928b5fe7720\",\n    \"authorityType\": \"SERVICE\",\n    \"principalId\": \"ap-automation-svc\",\n    \"displayName\": \"Accounts Payable Automation\",\n    \"issuedAt\": \"2026-07-13T17:36:00.835Z\"\n  },\n  \"authorization\": {\n    \"authorizationId\": \"63bdc429-14e4-4ef4-8007-f3c0c9564261\",\n    \"authorityId\": \"db5c5260-bb4c-40a2-a081-2928b5fe7720\",\n    \"purpose\": \"Authorize vendor payment disbursement\",\n    \"issuedAt\": \"2026-07-13T17:36:00.835Z\"\n  },\n  \"intent\": {\n    \"intentId\": \"1e77d0b3-2e57-4e31-b780-03abc92f1b69\",\n    \"authorizationId\": \"63bdc429-14e4-4ef4-8007-f3c0c9564261\",\n    \"action\": \"payments:execute\",\n    \"target\": \"vendor/V-500\",\n    \"parameters\": {\n      \"amount\": 5000,\n      \"currency\": \"USD\"\n    },\n    \"createdAt\": \"2026-07-13T17:36:00.835Z\"\n  },\n  \"policy\": {\n    \"name\": \"vendor-payment\",\n    \"version\": \"2.0.0\",\n    \"schemaVersion\": \"1.0.0\"\n  },\n  \"signals\": {\n    \"vendorVerified\": true,\n    \"invoiceVerified\": true,\n    \"paymentApproved\": true,\n    \"sufficientFunds\": true,\n    \"paymentAmount\": 5000,\n    \"riskScore\": 12\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/execute",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "execute"
+              ]
+            },
+            "description": "Historical capture (vendor-payment 2.0.0, approved). The payments:execute action no longer exists on a current server. Shown for the response shape only.\n\noperationId: executeTransaction\n\nRuns the complete pipeline synchronously and returns the finished Execution Trust Record. In order, the server accepts and stores the Business Transaction, evaluates the policy, signs an authorization for an approved action and releases it to the connector, then builds, signs and verifies the record and generates a receipt.\n\n`businessTransactionId` must be a valid UUID (v1 to v5). It is the idempotency key: sending the same one again returns `409`. The server assigns `status` and `createdAt`, sets `metadata.submittedBy` from the authenticated key, and drops any top level field that is not in the request schema.\n\nWhich `intent.action` values work depends on the connectors registered on the server. An approved action with no registered connector fails with `503` and code `CONNECTOR_NOT_REGISTERED`, and nothing is executed.\n\nHow each outcome is reported:\n\n1. `200`: approved and released. The body is the signed Execution Trust Record.\n2. `403` with code `POLICY_DENIED`: a policy refused. This is final and nothing was released.\n3. `403` with code `CAPABILITY_NOT_ALLOWED`, or with no code: the key may not invoke the action, or may not assert that principal.\n4. `429`: rate limited. Nothing was recorded. Wait for the `Retry-After` header.\n5. `503` with code `SIGNING_UNAVAILABLE`, `EXECUTION_INTENT_UNAVAILABLE`, `AUDIT_UNAVAILABLE` or `CONNECTOR_NOT_REGISTERED`: refused before release. Nothing was executed. For `CONNECTOR_NOT_REGISTERED` the operator must configure the connector for that action before any retry. For `EXECUTION_INTENT_UNAVAILABLE` the signed Execution Intent could not be signed and stored, so nothing was released. Retry later with a new businessTransactionId.\n6. `500` with code `EXECUTION_RECORD_INCOMPLETE`: the action was released but its signed record could not be produced. Do not resubmit under a new id. Read `GET /execution-intents/{businessTransactionId}`: the signed intent exists, and an operator can rebuild the record with `POST /execution-intents/{businessTransactionId}/finalize` without calling the connector again.\n7. `502` with code `EXECUTION_OUTCOME_UNKNOWN`: the action was released and the call to the connector failed (unreachable, timed out, or an error response), so whether it was performed is unknown. The Execution Intent is `ERRORED`. Do not resubmit under a new id. Check the target system, then close the intent with `POST /execution-intents/{businessTransactionId}/resolve`.\n\nThe examples named `vendor-payment-flow` are historical captures that show the response shape. The `payments:execute` action they use no longer exists on a current server. See the [Error catalog](/api-reference/error-catalog) and [Integrate Parmana: specification for AI agents](/agents/integrate)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "description": "Business Transaction creation and retrieval",
+      "item": [
+        {
+          "name": "List Business Transactions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "25",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "operationId: listTransactions\n\nReturns every accepted Business Transaction. page and pageSize are accepted and forwarded to the storage provider, but the response is a bare array with no pagination metadata (no page/pageSize/totalItems). See the response schema description."
+          }
+        },
+        {
+          "name": "Create (execute) a Business Transaction (test-fixture-flow)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"businessTransactionId\": \"4cfe5661-42a6-4db0-8372-2d24dca235f2\",\n  \"metadata\": {\n    \"businessTransactionId\": \"4cfe5661-42a6-4db0-8372-2d24dca235f2\",\n    \"sourceSystem\": \"docs-api-reference\",\n    \"submittedBy\": \"docs-example\"\n  },\n  \"authority\": {\n    \"authorityId\": \"be8afa44-ee3c-44c2-a4a2-ba119e128948\",\n    \"authorityType\": \"SERVICE\",\n    \"principalId\": \"docs-example-caller\",\n    \"issuedAt\": \"2026-09-14T17:18:27.000Z\"\n  },\n  \"authorization\": {\n    \"authorizationId\": \"81a1c120-d296-458b-bbe5-824a8617f23a\",\n    \"authorityId\": \"be8afa44-ee3c-44c2-a4a2-ba119e128948\",\n    \"purpose\": \"API reference example: transactions endpoint\",\n    \"issuedAt\": \"2026-09-14T17:18:27.000Z\"\n  },\n  \"intent\": {\n    \"intentId\": \"ceb89d68-13ac-4ff9-b7b9-dd0e15637baa\",\n    \"authorizationId\": \"81a1c120-d296-458b-bbe5-824a8617f23a\",\n    \"action\": \"test:fixture-execute\",\n    \"target\": \"vendor://payments\",\n    \"parameters\": {\n      \"amount\": 250,\n      \"currency\": \"USD\"\n    },\n    \"createdAt\": \"2026-09-14T17:18:27.000Z\"\n  },\n  \"policy\": {\n    \"name\": \"vendor-payment\",\n    \"version\": \"2.0.0\",\n    \"schemaVersion\": \"1.0.0\"\n  },\n  \"signals\": {\n    \"vendorVerified\": true,\n    \"invoiceVerified\": true,\n    \"paymentApproved\": true,\n    \"sufficientFunds\": true,\n    \"paymentAmount\": 250,\n    \"riskScore\": 5,\n    \"vendorId\": \"vendor://payments\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "description": "Real captured request, currently runnable (test:fixture-execute, the generic NODE_ENV=test-only capability, APPROVED). Prefer this over vendor-payment-flow-transactions-endpoint below, which depends on a connector removed from this repository, see the POST /execute description above for the same caveat.\n\noperationId: createTransaction\n\nIdentical to `POST /execute` in every way except the success status: this endpoint returns `201` where `POST /execute` returns `200`. The request, the pipeline, the errors and the response body are the same, so read [Execute a Business Transaction](/api-reference/endpoints/execute-transaction) for the full behavior."
+          }
+        },
+        {
+          "name": "Create (execute) a Business Transaction (vendor-payment-flow-transactions-endpoint)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"businessTransactionId\": \"ffe803db-fb24-498a-9826-47ddc7e7167d\",\n  \"metadata\": {\n    \"businessTransactionId\": \"ffe803db-fb24-498a-9826-47ddc7e7167d\",\n    \"correlationId\": \"303003bf-3939-407d-855d-ffb338532d6d\",\n    \"sourceSystem\": \"vendor-payment-service\",\n    \"submittedBy\": \"ap-automation\",\n    \"submittedAt\": \"2026-07-08T03:54:34.783Z\"\n  },\n  \"authority\": {\n    \"authorityId\": \"05ff9e2e-e5dd-40aa-9964-02c2574396c9\",\n    \"authorityType\": \"SERVICE\",\n    \"principalId\": \"ap-automation-svc\",\n    \"displayName\": \"Accounts Payable Automation\",\n    \"issuedAt\": \"2026-07-08T03:54:34.784Z\"\n  },\n  \"authorization\": {\n    \"authorizationId\": \"5fb16a24-6688-4f6f-98ee-53a117f0f2c9\",\n    \"authorityId\": \"05ff9e2e-e5dd-40aa-9964-02c2574396c9\",\n    \"purpose\": \"Authorize vendor payment disbursement\",\n    \"issuedAt\": \"2026-07-08T03:54:34.784Z\"\n  },\n  \"intent\": {\n    \"intentId\": \"023fbdd4-f206-4a42-b7dd-d5f865fd2c74\",\n    \"authorizationId\": \"5fb16a24-6688-4f6f-98ee-53a117f0f2c9\",\n    \"action\": \"payments:execute\",\n    \"target\": \"vendor/V-300\",\n    \"parameters\": {\n      \"amount\": 3300,\n      \"currency\": \"USD\"\n    },\n    \"createdAt\": \"2026-07-08T03:54:34.784Z\"\n  },\n  \"policy\": {\n    \"name\": \"vendor-payment\",\n    \"version\": \"2.0.0\",\n    \"schemaVersion\": \"1.0.0\"\n  },\n  \"signals\": {\n    \"vendorVerified\": true,\n    \"invoiceVerified\": true,\n    \"paymentApproved\": true,\n    \"sufficientFunds\": true,\n    \"paymentAmount\": 3300,\n    \"riskScore\": 9\n  },\n  \"status\": \"APPROVED\",\n  \"unexpectedField\": \"should-not-be-persisted\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transactions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            },
+            "description": "Real captured request (vendor-payment 2.0.0, APPROVED), includes a client-supplied status and an unrecognized top-level field to demonstrate both are rejected/dropped, never persisted (see the 201 response below)\n\noperationId: createTransaction\n\nIdentical to `POST /execute` in every way except the success status: this endpoint returns `201` where `POST /execute` returns `200`. The request, the pipeline, the errors and the response body are the same, so read [Execute a Business Transaction](/api-reference/endpoints/execute-transaction) for the full behavior."
+          }
+        },
+        {
+          "name": "Get Business Transaction",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/:businessTransactionId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transactions",
+                ":businessTransactionId"
+              ],
+              "variable": [
+                {
+                  "key": "businessTransactionId",
+                  "value": "",
+                  "description": "Unique Business Transaction identifier."
+                }
+              ]
+            },
+            "description": "operationId: getTransaction\n\nReturns a bare Business Transaction by ID. No format validation is applied to the path parameter."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Verification",
+      "description": "Deterministic verification of an Execution Trust Record",
+      "item": [
+        {
+          "name": "Verify an Execution Trust Record",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"businessTransactionId\": \"44b34a79-e0f2-49d7-a48e-e52fff88182e\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "verify"
+              ]
+            },
+            "description": "Real captured request\n\noperationId: verifyTransaction\n\nDeterministically re-validates the complete Execution Trust Record for businessTransactionId: recomputed hash vs. stored hash, signature verification, and authorization binding on every APPROVED Execution. All checks always run; failures are joined into one message. Appends a new immutable Verification to the record."
+          }
+        },
+        {
+          "name": "Get latest Verification",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/verification/:businessTransactionId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "verification",
+                ":businessTransactionId"
+              ],
+              "variable": [
+                {
+                  "key": "businessTransactionId",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "operationId: getLatestVerification\n\nReturns the most recent Verification for the Execution Trust Record identified by businessTransactionId. Registered from packages/api/src/routes/verify-get.ts, whose own internal comment (misleadingly) says \"GET /verify/:id\"; the real mounted path, per packages/api/src/app.ts, is /verification/:id."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Receipts",
+      "description": "Cryptographically signed Execution Trust Receipts",
+      "item": [
+        {
+          "name": "Generate a Receipt",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"businessTransactionId\": \"44b34a79-e0f2-49d7-a48e-e52fff88182e\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/receipt",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "receipt"
+              ]
+            },
+            "description": "Real captured request\n\noperationId: generateReceipt\n\nGenerates a cryptographically signed Receipt for businessTransactionId. If no Execution Trust Record exists for businessTransactionId, this fails with a 404 (VerificationFailedError, the same not-found error used by POST /verify and POST /replay). If the record exists but its latest Verification does not have status VERIFIED, this fails with a 409 (ReceiptGenerationError) instead."
+          }
+        },
+        {
+          "name": "Get latest Receipt",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/receipt/latest/:businessTransactionId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "receipt",
+                "latest",
+                ":businessTransactionId"
+              ],
+              "variable": [
+                {
+                  "key": "businessTransactionId",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "operationId: getLatestReceipt\n\nReturns the most recent Receipt for the Execution Trust Record identified by businessTransactionId. Registered from packages/api/src/routes/receipt-get.ts, whose own internal comment (misleadingly) says \"GET /receipt/:id\"; the real mounted path, per packages/api/src/app.ts, is /receipt/latest/:id."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Trust Records",
+      "description": "Execution Trust Record retrieval",
+      "item": [
+        {
+          "name": "Bulk-export Execution Trust Records (compliance/audit)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trust-records",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "trust-records"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "25",
+                  "disabled": true
+                },
+                {
+                  "key": "since",
+                  "value": "",
+                  "description": "Only include records whose transaction.createdAt is on or after this ISO 8601 timestamp.",
+                  "disabled": true
+                },
+                {
+                  "key": "until",
+                  "value": "",
+                  "description": "Only include records whose transaction.createdAt is on or before this ISO 8601 timestamp.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "operationId: listTrustRecords\n\nReturns the full, signed Execution Trust Record (transaction, executions, verifications, receipts, authorization) for every transaction on the requested page -- the periodic full-export capability for external audit/compliance review, distinct from GET /trust-records/{businessTransactionId} (single-record lookup) and GET /transactions (raw Business Transaction only, no execution/verification/receipt history). Scoping and pagination mirror GET /transactions exactly: an authenticated caller sees only transactions they submitted, page/pageSize page over the same storage-provider listing GET /transactions uses, and the response is a bare array with no pagination metadata. since/until (ISO 8601) additionally filter by transaction.createdAt for a bounded date-range export."
+          }
+        },
+        {
+          "name": "Get Execution Trust Record",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trust-records/:businessTransactionId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "trust-records",
+                ":businessTransactionId"
+              ],
+              "variable": [
+                {
+                  "key": "businessTransactionId",
+                  "value": "",
+                  "description": "Business Transaction identifier (not the Trust Record's own trustRecordId)."
+                }
+              ]
+            },
+            "description": "operationId: getTrustRecord\n\nReturns the complete Execution Trust Record for businessTransactionId (looked up by Business Transaction ID, despite the path segment name; there is no separate trustRecordId lookup)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Replay",
+      "description": "Deterministic replay of a recorded Execution Trust Record",
+      "item": [
+        {
+          "name": "Replay an Execution Trust Record",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"businessTransactionId\": \"44b34a79-e0f2-49d7-a48e-e52fff88182e\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/replay",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "replay"
+              ]
+            },
+            "description": "Real captured request\n\noperationId: replayTransaction\n\nRe-verifies the stored signature on the Execution Trust Record for businessTransactionId and returns its hash alongside the verification result. Does not re-run Policy evaluation or re-execute anything. See ExecutionTrustApplication.replay. When businessTransactionId does not correspond to any Execution Trust Record, this throws VerificationFailedError (the same not-found error used by POST /verify), which the shared error handler maps to a 404 naming the missing resource. See the 404 response and its notFound example."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Policies",
+      "description": "Policy existence/readability check",
+      "item": [
+        {
+          "name": "Get the policy a capability's requests must declare right now",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/policies/in-effect?capability=paytm:refund",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "policies",
+                "in-effect"
+              ],
+              "query": [
+                {
+                  "key": "capability",
+                  "value": "paytm:refund",
+                  "description": "The capability, the Intent action, for example paytm:refund."
+                }
+              ]
+            },
+            "description": "operationId: getPolicyInEffect\n\nReturns the policy bound to a capability and the version a request for it must declare right now. Where policy governance decides the version (production), it is the version most recently approved for the policy name, so approving a new version changes the answer with no deploy. An agent reads it before sending instead of writing a version into its code. It is the same rule POST /execute enforces, so a request declaring this policy passes that check; the request is still checked. Allowed for a caller whose key may invoke the capability, and for human callers. See packages/api/src/routes/policy-in-effect.ts."
+          }
+        },
+        {
+          "name": "Validate that a Policy exists and is readable (vendor-payment)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"policyId\": \"vendor-payment\",\n  \"policyVersion\": \"2.0.0\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/policies/validate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "policies",
+                "validate"
+              ]
+            },
+            "description": "Real captured request\n\noperationId: validatePolicy\n\nChecks that policies/{policyId}/{policyVersion}/policy.json exists and parses. Does NOT use the shared Error envelope for its failure responses: every status code (200, 400, 404) returns the same {valid, errors} shape. Field checks run in order: policyId first, then policyVersion; the first missing/empty field short-circuits with its own message. The one exception is 401: caller authentication runs in middleware, before this handler is ever reached, so a rejected caller gets the shared Error envelope ({\"error\": \"authentication required\"}), not {valid, errors}."
+          }
+        },
+        {
+          "name": "Validate that a Policy exists and is readable (notFound)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"policyId\": \"does-not-exist\",\n  \"policyVersion\": \"9.9.9\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/policies/validate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "policies",
+                "validate"
+              ]
+            },
+            "description": "Real captured request, unknown policy\n\noperationId: validatePolicy\n\nChecks that policies/{policyId}/{policyVersion}/policy.json exists and parses. Does NOT use the shared Error envelope for its failure responses: every status code (200, 400, 404) returns the same {valid, errors} shape. Field checks run in order: policyId first, then policyVersion; the first missing/empty field short-circuits with its own message. The one exception is 401: caller authentication runs in middleware, before this handler is ever reached, so a rejected caller gets the shared Error envelope ({\"error\": \"authentication required\"}), not {valid, errors}."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Policy Governance",
+      "description": "Maker-checker proposal, listing, approval, and rejection of policy changes",
+      "item": [
+        {
+          "name": "Propose a policy change (maker)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"proposedContent\": {\n    \"policyId\": \"openapi-capture-demo\",\n    \"policyVersion\": \"1.0.0\",\n    \"schemaVersion\": \"1.0.0\",\n    \"rules\": [\n      {\n        \"id\": \"always-approve\",\n        \"condition\": {\n          \"always\": true\n        },\n        \"outcome\": {\n          \"action\": \"approve\",\n          \"reason\": \"OpenAPI spec capture fixture\"\n        }\n      }\n    ]\n  },\n  \"reason\": \"Capture a real Pending Policy Change for the OpenAPI spec\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/policies/:name/:version/pending-changes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "policies",
+                ":name",
+                ":version",
+                "pending-changes"
+              ],
+              "variable": [
+                {
+                  "key": "name",
+                  "value": ""
+                },
+                {
+                  "key": "version",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "operationId: proposePolicyChange\n\nProposes a change to a policy's content (Policy Governance, maker-checker). {version} is the existing version this proposal is a change against (\"the version being replaced\"); proposedContent's own policyVersion may equal it (an in-place content patch) or differ (a version bump). Requires a human-authenticated caller (credentialHolderType USER); a SERVICE-credentialed or unverified caller is denied with 403 NON_HUMAN_CALLER_DENIED, and a signed caller.non_human_denied audit event is recorded. proposedContent is validated with the same rules POST /policies/validate checks, plus: proposedContent.policyId must equal {name}, and proposedContent.policyVersion must match ^[A-Za-z0-9._-]+$."
+          }
+        },
+        {
+          "name": "List pending policy changes (maker-checker)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/policies/pending-changes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "policies",
+                "pending-changes"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "operationId: listPendingPolicyChanges\n\nLists Pending Policy Changes, each alongside a diff view: current (the live content at (policyName, policyVersion) today, or null if that version has never been published) and proposed (the change's own proposedContent). Requires a human-authenticated caller, the same discipline as POST .../pending-changes."
+          }
+        },
+        {
+          "name": "Approve a pending policy change (checker)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stepUpAuthorization\": {\n    \"payload\": {\n      \"version\": 1,\n      \"nonce\": \"343ee454-92c6-4ef9-9cfe-e98329e51f53\",\n      \"pendingPolicyChangeId\": \"6f4e4020-adf5-4449-938d-27aab58f66b7\",\n      \"action\": \"approve\",\n      \"authorizedAt\": \"2026-09-15T03:47:51.939Z\",\n      \"expiresAt\": \"2026-09-15T03:49:51.939Z\"\n    },\n    \"signature\": \"keOXnzUk8KcGrQTkpXC4Ki8ps3GTvMANwqq96b+toxba07gjkcmpyL/vaPZ7+pPZ1HAOJOOy3rj5XfhcwOTnAw==\",\n    \"keyId\": \"human-checker-step-up-key\",\n    \"algorithm\": \"ed25519\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/policies/pending-changes/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "policies",
+                "pending-changes",
+                ":id",
+                "approve"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "operationId: approvePolicyChange\n\nApproves a Pending Policy Change (checker). Requires, in order, all fail-closed: a human-authenticated caller distinct from the proposer (maker != checker, 403 SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE otherwise), and a valid step-up authorization envelope proving fresh, explicit intent (403 STEP_UP_AUTHORIZATION_INVALID on a missing, malformed, expired, replayed, wrong-id, wrong-action, or wrong-key-signed envelope). Once both pass, this writes the live policies/{policyName}/{policyVersion}/policy.json file and records a signed PolicyChangeApprovalRecord BEFORE marking the change APPROVED, so a failure partway through never leaves a pending change falsely resolved with no corresponding live effect. Per-check step-up diagnostic detail is logged server-side only, never in this response."
+          }
+        },
+        {
+          "name": "Reject a pending policy change (checker)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rejectionReason\": \"Does not meet the bar for this fixture\",\n  \"stepUpAuthorization\": {\n    \"payload\": {\n      \"version\": 1,\n      \"nonce\": \"4807fe45-0379-415b-9455-b8cb84eb5554\",\n      \"pendingPolicyChangeId\": \"5617ba3c-fb07-437d-9131-232b84bbb863\",\n      \"action\": \"reject\",\n      \"authorizedAt\": \"2026-09-15T03:48:16.755Z\",\n      \"expiresAt\": \"2026-09-15T03:50:16.755Z\"\n    },\n    \"signature\": \"Wu5/oibGCjvkTklGQPiDMDemqxCVbSyuoVT7WHW63rGq8Av5KFTW6vMkUCP03pANv8bDu60bZVuVcTDVmLXpDA==\",\n    \"keyId\": \"human-checker-step-up-key\",\n    \"algorithm\": \"ed25519\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/policies/pending-changes/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "policies",
+                "pending-changes",
+                ":id",
+                "reject"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "operationId: rejectPolicyChange\n\nRejects a Pending Policy Change (checker). Same discipline as approve (human, maker != checker, step-up authorization), but never touches the live policy file, a rejection is purely a repository state transition with no PolicyChangeApprovalRecord of its own."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Refusal Records",
+      "description": "Durable, signed evidence that a policy decision rejected a transaction (RFC-0021)",
+      "item": [
+        {
+          "name": "Verify a Refusal Record's signature",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refusalRecordId\": \"eddc5dd1-a791-4470-9534-11b3fc573ab8\",\n  \"businessTransactionId\": \"353c73fb-5e87-4dbe-8bfc-c15c8f18d871\",\n  \"decision\": {\n    \"decisionId\": \"3919f4b6-cbc8-44ec-a6a1-8887ee85f314\",\n    \"intentId\": \"4ba6b14a-c593-4f5c-ab58-dcef38a29364\",\n    \"policy\": {\n      \"name\": \"vendor-payment\",\n      \"version\": \"2.0.0\",\n      \"schemaVersion\": \"1.0.0\"\n    },\n    \"signals\": {\n      \"vendorVerified\": false,\n      \"invoiceVerified\": true,\n      \"paymentApproved\": true,\n      \"sufficientFunds\": true,\n      \"paymentAmount\": 1000,\n      \"riskScore\": 5,\n      \"vendorId\": \"vendor://payments\"\n    },\n    \"outcome\": \"REJECTED\",\n    \"reason\": \"Vendor payment rejected because the vendor has not been verified.\",\n    \"evaluatedAt\": \"2026-09-15T03:27:45.666Z\"\n  },\n  \"evaluatedIntent\": {\n    \"target\": \"vendor://payments\",\n    \"parameters\": {\n      \"amount\": 1000,\n      \"currency\": \"USD\"\n    }\n  },\n  \"createdAt\": \"2026-09-15T03:27:45.666Z\",\n  \"refusalRecordHash\": \"47d8200e839f9b4a1a53dba941e318553c9b024bc64d26c5b613e5ae2aeb65ca\",\n  \"signature\": {\n    \"algorithm\": \"ed25519\",\n    \"keyId\": \"default\",\n    \"value\": \"tT32/iJ0bEDxjc+/KPeAegTBSrzpRFW14f9Vyv3Ykx+H/rLHcgd7SlFH/BAXut8sEH2mpo0smg82tSoXmZkpDQ==\",\n    \"signedAt\": \"2026-09-15T03:27:45.668Z\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/refusal/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "refusal",
+                "verify"
+              ]
+            },
+            "description": "operationId: verifyRefusalRecord\n\nVerifies a Refusal Record's signature (RFC-0021). Deliberately mounted before this app's caller-auth middleware, see packages/api/src/app.ts: no caller authentication or API key is required, by design. This is the capability that makes a refusal independently third-party verifiable. It takes the record itself, not a lookup by ID, no database access, no ownership check, nothing but the artifact and Parmana's public key."
+          }
+        },
+        {
+          "name": "Get a Refusal Record by transaction ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/refusal/:businessTransactionId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "refusal",
+                ":businessTransactionId"
+              ],
+              "variable": [
+                {
+                  "key": "businessTransactionId",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "operationId: getRefusalRecord\n\nLooks up a Refusal Record by businessTransactionId from Parmana's own storage. Unlike POST /refusal/verify, this route stays behind caller authentication and ownership scoping identically to GET /verify, GET /verification/{businessTransactionId}, and GET /trust-records/{businessTransactionId}: the underlying transaction content (signals, intent parameters) may be sensitive, so lookup is scoped even though independent signature verification (the other route) is not."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Execution Intents",
+      "description": "A signed statement, stored before an action is released, of exactly what is about to be released, plus the operator tools to find and repair a released action that has no signed Trust Record (ADR-0012)",
+      "item": [
+        {
+          "name": "Verify an Execution Intent's signature",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"intentId\": \"b41fe9b9-5730-4d34-aab0-4ab63ae69d3b\",\n  \"businessTransactionId\": \"4c2eb3b2-3382-4bc2-bf22-2a072e6cf428\",\n  \"decisionId\": \"20b4e030-09cd-4447-86fc-b73279d23121\",\n  \"authorizationId\": \"5977535b-d887-423d-b422-01ece1fc7bf1\",\n  \"policyName\": \"customer-refund\",\n  \"policyVersion\": \"1.0.0\",\n  \"policyContentHash\": \"6a2e92fbde0f4c5dc56b4e202bf45ce24c99e565cf3ddaacaa21a11c71b7e1ea\",\n  \"signalsHash\": \"e22a7b9fd6e0a39e28521f9ffb726d6a57499236055fa6ff2caabd2268f4a395\",\n  \"businessTransactionHash\": \"9df286daf38c6eba272f47153e0fb3efef5ee61d778f6baecd5a53861763763a\",\n  \"action\": \"paytm:refund\",\n  \"target\": \"DRY-ORDER-1789969223742\",\n  \"submittedBy\": \"sandbox-agent\",\n  \"grantedCapability\": \"paytm:refund\",\n  \"createdAt\": \"2026-09-21T05:40:28.434Z\",\n  \"intentHash\": \"13922de380518d582c6bb3e88b1d88908e71565f191119f4cadc7de4e30cf5ed\",\n  \"signature\": {\n    \"keyId\": \"default\",\n    \"value\": \"UhXnkSnm5A3QU4CVrKGbP3FcTWkShnitn86psJprJpqgEBnsXWzDcZ+ktSO0FJek1X+n9DvO3SjR+WvSofS1CA==\",\n    \"signedAt\": \"2026-09-21T05:40:28.555Z\",\n    \"algorithm\": \"ed25519\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/execution-intents/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "execution-intents",
+                "verify"
+              ]
+            },
+            "description": "operationId: verifyExecutionIntent\n\nVerifies an Execution Intent's hash and signature (ADR-0012). Deliberately mounted before this app's caller-auth middleware, see packages/api/src/app.ts: no caller authentication or API key is required, by design, the same as POST /refusal/verify. It takes the intent itself, reads no storage, and needs nothing but the artifact and Parmana's public key. A `valid: true` result proves the intent was signed by the holder of the key and has not been altered. It does NOT prove the action was released, or what its result was, because an intent is written BEFORE release. To check the outcome, look for the signed Execution Trust Record for the same businessTransactionId. For a check that needs no call to this API at all, use scripts/verify-execution-intent.ts with the public key from GET /keys/{keyId}."
+          }
+        },
+        {
+          "name": "List Execution Intents that never reached a signed Trust Record",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/execution-intents/unfinalized",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "execution-intents",
+                "unfinalized"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "",
+                  "description": "Maximum number of intents to return. Default 50, maximum 200. A value that is not a positive integer uses the default.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "operationId: listUnfinalizedExecutionIntents\n\nLists Execution Intents that never reached a signed Execution Trust Record and were not closed by hand, oldest first (ADR-0012). Each one is an action that may have been released with no signed record, or whose outcome nobody has reconciled yet, and needs an operator. Entries in state RELEASED are repaired with POST /execution-intents/{businessTransactionId}/finalize. Entries in state PREPARED or ERRORED are reconciled at the connector and then closed with POST /execution-intents/{businessTransactionId}/resolve, after which they no longer appear here. Requires a credential provisioned as a verified human (`credentialHolderType: USER`), because the list spans every caller's transactions. Any other credential gets `403` with code `NON_HUMAN_CALLER_DENIED`. The saved release context used to rebuild a record is internal and is never returned."
+          }
+        },
+        {
+          "name": "Get an Execution Intent and its status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/execution-intents/:businessTransactionId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "execution-intents",
+                ":businessTransactionId"
+              ],
+              "variable": [
+                {
+                  "key": "businessTransactionId",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "operationId: getExecutionIntent\n\nReturns the signed Execution Intent for a businessTransactionId and its operational status (ADR-0012). The state tells you where the request got to. PREPARED: the intent is signed and stored, and the action may or may not have been released. RELEASED: the release stage returned and the execution context was saved. FINALIZED: a signed Execution Trust Record exists. ERRORED: the release stage raised an error, the action may still have been executed. RESOLVED: a verified human reconciled a PREPARED or ERRORED intent at the connector and closed it (the status carries `resolution`, `resolutionNote`, `resolvedBy` and `resolvedAt`, an unsigned operator statement). Stays behind caller authentication and ownership scoping, identically to GET /trust-records/{businessTransactionId} and GET /refusal/{businessTransactionId}. Transactions created before ADR-0012 have no intent and return `404`."
+          }
+        },
+        {
+          "name": "Rebuild the signed Trust Record for a released action",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/execution-intents/:businessTransactionId/finalize",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "execution-intents",
+                ":businessTransactionId",
+                "finalize"
+              ],
+              "variable": [
+                {
+                  "key": "businessTransactionId",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "operationId: finalizeExecutionIntent\n\nRebuilds the signed Execution Trust Record for an action that was released but whose record was never produced (ADR-0012). It NEVER calls a connector: it reads the execution context that was saved right after release and runs the same record building step the runtime uses, then verifies the record and generates its receipt, so a repaired record ends in the same state as an ordinary one. It is idempotent: if a Trust Record already exists it returns that record with outcome `ALREADY_FINALIZED` and builds nothing, so running it twice, or twice at once, produces one record. It refuses with `409` when no execution result was saved, because a record cannot be rebuilt from nothing. Requires a credential provisioned as a verified human (`credentialHolderType: USER`), otherwise `403` with code `NON_HUMAN_CALLER_DENIED`. This is the only supported way to create a Trust Record after the fact."
+          }
+        },
+        {
+          "name": "Close an intent you reconciled by hand",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resolution\": \"NOT_EXECUTED\",\n  \"note\": \"Checked the Paytm dashboard for this order. No refund exists.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/execution-intents/:businessTransactionId/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "execution-intents",
+                ":businessTransactionId",
+                "resolve"
+              ],
+              "variable": [
+                {
+                  "key": "businessTransactionId",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "operationId: resolveExecutionIntent\n\nCloses an Execution Intent in state `PREPARED` or `ERRORED` after a verified human reconciled it at the connector (G-54). Those are the intents whose outcome only an operator can establish, because no execution result was saved. The body records what you found (`NOT_EXECUTED` or `EXECUTED`) and a required note. The intent moves to `RESOLVED` and leaves `GET /execution-intents/unfinalized`. It never calls a connector. It is idempotent: resolving an intent that is already `RESOLVED` changes nothing and returns `ALREADY_RESOLVED` with the original resolution, note and author. It refuses a `RELEASED` intent, because its execution result is saved and `finalize` is the right operation, and it refuses a `FINALIZED` intent, or any intent whose transaction already has a signed Trust Record. **The resolution is an attributed, timestamped statement by an operator, stored in the intent's unsigned status. It is not tamper evident and it is not a Trust Record.** Requires a credential provisioned as a verified human (`credentialHolderType: USER`), otherwise `403` with code `NON_HUMAN_CALLER_DENIED`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audit",
+      "description": "Signed caller-authentication audit events, independently third-party-verifiable",
+      "item": [
+        {
+          "name": "Verify a signed caller-authentication audit event",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": {\n    \"type\": \"caller_authenticated\",\n    \"occurredAt\": \"2026-09-15T03:00:00.000Z\",\n    \"route\": \"/version\"\n  },\n  \"signature\": {\n    \"algorithm\": \"ed25519\",\n    \"keyId\": \"default\",\n    \"value\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/audit/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audit",
+                "verify"
+              ]
+            },
+            "description": "operationId: verifyAuditEvent\n\nVerifies a signed caller-authentication audit event's signature, the same unauthenticated, third-party-verifiable capability as POST /refusal/verify, over the durable caller_audit_events audit trail instead of Refusal Records. No database lookup involved, pure signature-over-bytes verification against the event and signature supplied in the request body. Only production (Supabase) audit sinks sign; in-memory test sinks never produce a genuinely valid signature for this route to confirm."
+          }
+        }
+      ]
+    },
+    {
+      "name": "System",
+      "description": "Operational endpoints",
+      "item": [
+        {
+          "name": "Root",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": []
+            },
+            "description": "operationId: getRoot\n\nMinimal liveness response. Not registered under any router file, defined directly in packages/api/src/app.ts, ahead of every mounted route. Requires caller authentication, like every route not listed as exempt in this document's top-level description. See the security scheme above."
+          }
+        },
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "operationId: getHealth\n\nReturns the operational health of the Parmana service. Always returns status: \"UP\" unconditionally. See the response schema description for exactly what this endpoint does and does not check.\n\nOne of several routes exempt from caller authentication, see the top of this document for the full list. Liveness probes must be able to reach it with no credential, see packages/api/src/app.ts (mounted ahead of the caller-auth middleware)."
+          }
+        },
+        {
+          "name": "Readiness check",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ready",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ready"
+              ]
+            },
+            "description": "operationId: getReady\n\nReadiness probe, distinct from GET /health's pure liveness check: when storage is Supabase-backed, this one actually queries Postgres (SELECT 1, no table rows transferred) so an orchestrator can tell a process that is up but backed by dead storage apart from one that is genuinely ready to serve traffic. When storage is not Supabase-backed (NODE_ENV=test, or PARMANA_STORAGE=memory outside test), there is no external dependency to probe, so this reports READY unconditionally. Exempt from caller authentication for the same reason GET /health is, see packages/api/src/routes/ready.ts."
+          }
+        },
+        {
+          "name": "Get the OpenAPI spec",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/openapi.yaml",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "openapi.yaml"
+              ]
+            },
+            "description": "operationId: getOpenApiSpec\n\nServes the bundled, self-contained OpenAPI document (openapi/openapi.bundled.yaml, produced by `npm run bundle:openapi` from openapi/openapi.yaml + schemas/*.json) as a static file, see packages/api/src/routes/openapi.ts. Exempt from caller authentication for the same reason GET /health is: a caller cannot discover how to get a key from a spec it isn't allowed to read. See [Deploy patterns](/guides/deploy-patterns#the-openapi-spec-endpoint) for the tradeoff of exposing this in production versus disabling it."
+          }
+        },
+        {
+          "name": "Get the OpenAPI spec, as JSON",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/openapi.json",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "openapi.json"
+              ]
+            },
+            "description": "operationId: getOpenApiSpecJson\n\nThe same bundled spec as GET /openapi.yaml, JSON-serialized instead of YAML, see packages/api/src/routes/openapi-json.ts. Exists because some tooling, and most AI coding agents, expects a machine-readable spec at a .json path by convention. Both routes describe the identical spec; pick whichever format your tooling consumes."
+          }
+        },
+        {
+          "name": "Machine-readable SDK and discovery manifest",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api-manifest.json",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api-manifest.json"
+              ]
+            },
+            "description": "operationId: getApiManifest\n\nA single machine-readable index for coding agents and tooling: the OpenAPI spec locations, the rendered documentation views, the authentication scheme, and both official SDKs (TypeScript and Python) with their real, current package name, registry, and version, read directly from each package's own manifest at startup, see packages/api/src/routes/api-manifest.ts. Go and Java are reported as null: no SDK exists for those languages in this repository (see /sdks/other-languages on the documentation site). Exempt from caller authentication for the same reason GET /openapi.json is."
+          }
+        },
+        {
+          "name": "Service version",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/version",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "version"
+              ]
+            },
+            "description": "operationId: getVersion\n\nReturns hardcoded deployment identifiers. See the response schema description: these three literals are not read from package.json, environment variables, or build metadata. Requires caller authentication, like every route not listed as exempt in this document's top-level description."
+          }
+        },
+        {
+          "name": "Fetch a public signing key for independent, offline verification",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/keys/:keyId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "keys",
+                ":keyId"
+              ],
+              "variable": [
+                {
+                  "key": "keyId",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "operationId: getKey\n\nDeliberately unauthenticated, like GET /audit/verify and GET /refusal/verify. A third party (regulator, auditor, customer tool) fetching the key it needs to independently verify a signature cannot be required to already hold a Parmana credential to reach it. Returns the current or any still-retained historical key's public half; a keyId whose private key was rotated away from is still resolvable here as long as its files were not deleted. See packages/crypto/src/OfflineVerifier.ts (and its Python counterpart, python/parmana/crypto/ offline_verifier.py) for a reference verifier that consumes exactly this response's `pem` field with zero further network calls."
+          }
+        },
+        {
+          "name": "List every public signing key this deployment can currently produce",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/.well-known/jwks.json",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ".well-known",
+                "jwks.json"
+              ]
+            },
+            "description": "operationId: getJwks\n\nSame unauthenticated, third-party-verification purpose as GET /keys/{keyId}, this is the enumeration form. Not a standards-pure RFC 7517 JWK Set (not every entry necessarily has a `jwk` field), but a superset any consumer that only wants `.jwk` per entry can filter down to."
+          }
+        },
+        {
+          "name": "Get the authenticated caller's identity and resolved scope",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/callers/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "callers",
+                "me"
+              ]
+            },
+            "description": "operationId: getCallerMe\n\nThe proof artifact a security review asks for: \"show me this agent's identity and exactly what it's authorized to do.\" Read-only, self-lookup only, an authenticated caller sees its own record, never another caller's, and this never returns key material. Values are resolved (the effective scope after defaults are applied), not the raw configured entry: allowedPrincipalIds defaults to [callerId] and allowedCapabilities defaults to an empty array when unset on the key, see packages/api/src/routes/callers-me.ts. Requires caller authentication, like every route not listed as exempt in this document's top-level description.\n\nReturns 404 with {\"error\":\"No authenticated caller identity available.\"} when no caller identity is present on the request, which in practice only happens when caller authentication is disabled (PARMANA_AUTH_DISABLED=true, local development only). Under normal, authenticated operation this route always has a callerId by the time it runs."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Handbook",
+      "item": [
+        {
+          "name": "Download the Parmana Handbook (PDF)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/parmana-handbook.pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "parmana-handbook.pdf"
+              ]
+            },
+            "description": "operationId: getHandbookPdf\n\nServes the handbook PDF (docs/site/parmana-handbook.pdf, generated by scripts/generate-handbook-pdf.ts from docs/site/handbook/*.mdx) as a static file directly from this API, see packages/api/src/routes/handbook-pdf.ts. Not served from the docs site itself: PDF file serving on Mintlify requires an Enterprise plan. Exempt from caller authentication for the same reason GET /openapi.yaml is: a visitor downloading documentation has no Parmana credential yet."
+          }
+        },
+        {
+          "name": "Capture an email address, then redirect straight to the handbook PDF",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/handbook/download-leads?email=<email>",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "handbook",
+                "download-leads"
+              ],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "<email>"
+                }
+              ]
+            },
+            "description": "operationId: getHandbookDownloadLead\n\nBacks the plain-HTML-form download at docs/site/handbook/download.mdx -- a GET so a `<form method=\"get\">` with no client-side JavaScript can submit it directly, since the docs site host may sandbox or strip inline `<script>` tags. Deliberately mounted before this app's caller-auth middleware, see packages/api/src/app.ts: a visitor downloading the handbook has no Parmana credential yet. Records the email address; does not send a verification email, see migration 20260916150000_add_handbook_download_leads.sql's own comment for why that is a deliberate scope boundary, not an oversight."
+          }
+        },
+        {
+          "name": "Capture an email address before unlocking the handbook PDF download",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"<email>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/handbook/download-leads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "handbook",
+                "download-leads"
+              ]
+            },
+            "description": "operationId: createHandbookDownloadLead\n\nBacks a programmatic caller that wants a `downloadUrl` back in a JSON response body instead of a redirect -- see GET /handbook/download-leads above for the browser-form variant, which is what the actual docs site page uses. Same capture, same non-verification scope boundary."
+          }
+        }
+      ]
+    }
+  ]
+}
