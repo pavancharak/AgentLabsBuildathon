@@ -115,10 +115,10 @@ describe("execution boundary — exactly one production execution pipeline", () 
       // mode it returns undefined and "vendor-payment" is not registered at
       // all, so payments:execute fails closed like any other unimplemented
       // capability (Phase 2A — see
-      // docs/architecture/phase2a-production-connectors.md; the prior
+      // the Phase 2A production connectors record (in git history); the prior
       // unconditional-registration gap is documented in
-      // docs/architecture/execution-pipeline-report.md §8 and
-      // docs/architecture/repository-certification.md §4.9/TD-1 as the
+      // §8 of the Phase 1E execution pipeline report (in git history) and
+      // §4.9/TD-1 of the repository certification record (in git history) as the
       // finding this fixed). Still the one class outside execution-gateway
       // allowed to `implement Connector`; when it is constructed, it flows
       // through the full ExecutionGateway pipeline like any other.

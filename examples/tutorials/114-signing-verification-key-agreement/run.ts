@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 //
-// docs/VERIFICATION-GAPS.md G-48 / docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md
-// item 7 -- the most significant bug found migrating the gateway signing
+// docs/VERIFICATION-GAPS.md G-48, and item 7 of the 2026-09-15 KMS migration
+// troubleshooting guide (in git history) -- the most significant bug found migrating the gateway signing
 // key to AWS KMS, and the one that produced the classic "ambiguous
 // outcome" failure: a real, legitimate authorization failed
 // verification with [signatureVerified, businessTransactionHashMatches,
@@ -56,8 +56,8 @@ writeKeyPair("default");
 
 // A SEPARATE, never-materialized-to-this-directory keypair, standing in
 // for "a stale key file left over from before a migration" -- the exact
-// scenario found in production (docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md
-// item 4's fix kept an old default.public.pem present on disk as a side
+// scenario found in production (item 4 of the 2026-09-15 KMS migration troubleshooting
+// guide, in git history: its fix kept an old default.public.pem present on disk as a side
 // effect, which is exactly what this "stale" key represents here).
 const stalePair = generateKeyPairSync("ed25519");
 

@@ -160,6 +160,33 @@ Binding an action to a different policy name, or adding a new action, still need
 - The gateway checks the approval record again just before release.
 - At startup, the server checks every policy against its latest approval record and logs the result.
 
+These checks are on whenever `NODE_ENV` is anything other than `test` or `development`, and nothing switches them off in production. In `test` or `development` they are off unless `POLICY_EXECUTION_VERIFICATION_ENFORCED=true`. So approve every policy a deployment executes against **before** promoting it; a policy still `PENDING_APPROVAL`, or rejected with no approved replacement, is refused on the first request.
+
+### 8. Check what is approved
+
+`content_hash_after` is a hash of the canonical JSON (keys sorted), not of the file bytes, so a plain file hash will not match. Use the script that compares every policy on disk with its latest approval record:
+
+```bash
+npx tsx scripts/verify-policy-changes-approved.ts --full-scan
+```
+
+The CI job `verify-policy-approvals` runs the same check for policy files changed in a push or pull request. A rejection writes no approval record: the change's `rejectionReason` is the record it leaves.
+
+### Sign and submit in one step
+
+Signing and sending by hand leaves a gap in which the 120 second step up lifetime can run out. `scripts/local-review-action.ts` signs and submits in one process, on the approver's own machine:
+
+```powershell
+$env:REVIEWER_KEY = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((Read-Host "Approver API key" -AsSecureString)))
+npx tsx scripts/local-review-action.ts --pending-policy-change-id <id> --action approve `
+  --private-key-file <path to your step-up.private.pem> --key-id <your caller id> `
+  --api-base https://your-parmana-host
+```
+
+Always pass `--private-key-file`, `--key-id` and `--api-base`: the defaults name a local file, a caller id and a host from this project's own setup. The script prints the HTTP status and response only, never a key.
+
+`scripts/refresh-approved-policy-content.ts` proposes the file on disk and approves it in one run, so it needs both the proposer's and the approver's keys in one process. That is one person acting as both; use it only in a test environment, never where the approval record must stand for a second person.
+
 ## Part 2: a person signs off on one action
 
 Some actions need a person each time, such as a refund above 10000. The policy declares which signal needs a signed approval, and where the request says what the approval is for:
@@ -224,6 +251,27 @@ To find refusals waiting for a manager, query the Refusal Records for `matchedRu
 | `consumed_policy_change_step_up_nonces` | Step up authorizations already used                                                 |
 | `consumed_approval_nonces`              | Action approvals already used                                                       |
 | `refusal_records`                       | Every refused request, signed                                                       |
+
+## Troubleshooting
+
+| You see                                    | Cause                                                                                                                                                           | Fix                                                                                                                                                                                |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `401` `authentication required`            | The API key is missing, wrong or rotated, or the header is not `Authorization: Bearer <key>`                                                                    | Check the variable is set in this terminal (`$env:REVIEWER_KEY.Length` prints a number, not `0`).                                                                                  |
+| `403 STEP_UP_AUTHORIZATION_INVALID`        | The signature expired (over 120 seconds), was already used, or was made with a private key that does not match the `stepUpPublicKey` registered for this caller | Sign again and send at once, or use `local-review-action.ts`. If it persists, check your private key matches the registered public key (after a rotation, replace the `.pem` too). |
+| `403 SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE` | The approving API key belongs to the proposer                                                                                                                   | A different person approves with their own key. There is no override.                                                                                                              |
+| `403 NON_HUMAN_CALLER_DENIED`              | The API key is not registered as a human (`credentialHolderType USER`)                                                                                          | The operator registers it as a human.                                                                                                                                              |
+| `400` naming a field on propose            | The body is malformed, `policyId` does not match the name in the URL, or the version has characters outside `A-Z a-z 0-9 . _ -`                                 | Read the `error` message; it names the field.                                                                                                                                      |
+| `400 Malformed JSON body`                  | The shell changed the quotes in an inline JSON body                                                                                                             | Build the body in a variable or a file as shown above, not inline in the command.                                                                                                  |
+| `409 CONFLICT` on propose                  | A proposal for this policy version is already open                                                                                                              | Approve or reject the open one first.                                                                                                                                              |
+| Approved content lacks fields the file has | Proposals are frozen snapshots. An old proposal approved later carries the old content                                                                          | Reject stale proposals and propose again from the current file, then run the full scan above.                                                                                      |
+
+## Good to know
+
+- A decision is final. A change moves from `PENDING_APPROVAL` to `APPROVED` or `REJECTED` once and never back; to change your mind, propose again.
+- The step up private key is never sent. Only the signed authorization it produces is.
+- With a database configured, approved content is written to the `policies` table through `SupabasePolicyRepository`, and requests read it from there. With `PARMANA_STORAGE=memory` it is written to the local file.
+- `packages/governance-ui` can propose, list and show a diff, but cannot approve or reject: a web page that collected a step up private key would break the rule that the key never leaves its owner's machine.
+- The code for this flow is small: `packages/api/src/routes/pending-policy-changes.ts`, `packages/api/src/governance/PolicyChangeApprovalService.ts` and `packages/api/src/auth/PolicyChangeStepUpVerifier.ts`.
 
 ## Keep it honest
 

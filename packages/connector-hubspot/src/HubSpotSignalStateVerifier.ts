@@ -41,7 +41,7 @@ export interface HubSpotSignalStateVerifierOptions {
    * that field). When supplied, an over-threshold amount change's
    * preAuthorizedForAmountChange claim is verified against a real,
    * independently-issued SignedApproval carried in
-   * signals.approvalArtifact (docs/architecture/phase3a-authorization-artifact-design.md),
+   * signals.approvalArtifact (the Phase 3A approval artifact design, in git history),
    * rather than trusted from the caller -- closing the gap where a
    * caller could declare preAuthorizedForAmountChange: true with
    * nothing behind it.

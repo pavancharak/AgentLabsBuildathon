@@ -38,7 +38,7 @@ Every rule below is backed by an automated test that fails the build if violated
 2. Compare each declared signal against the independently-fetched value; return a `SignalStateViolation` for each mismatch.
 3. Wire it into the composite verifier: `packages/api/src/bootstrap/create<Vendor>SignalStateVerifier.ts`, composed with the others via `CompositeSignalStateVerifier` in `packages/api/src/application.ts`.
 
-See [`../architecture/execution-walkthrough.md` §3](../architecture/execution-walkthrough.md) for exactly where this runs in the request lifecycle (after policy evaluation, before authorization is signed).
+See step 4 of [The Execution Pipeline](https://docs.parmanasystems.com/architecture/execution-pipeline) for exactly where this runs in the request lifecycle (after policy evaluation, before authorization is signed).
 
 ## Adding a policy
 

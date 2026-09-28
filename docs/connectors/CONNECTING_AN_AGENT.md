@@ -89,8 +89,7 @@ JSON array of caller records). Adding it requires redeploying/restarting the API
 
 **If you're the deployment operator adding this key, not just the agent developer:** `PARMANA_API_KEYS`
 is a single environment variable holding a JSON **array**. Two real mistakes were made adding a new
-caller to a live deployment (2026-09-15/16, `docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md`
-item 6), both from hand-editing the value in a hosting provider's dashboard rather than scripting it:
+caller to a live deployment (2026-09-15/16, item 6 of the KMS migration troubleshooting guide, in git history), both from hand-editing the value in a hosting provider's dashboard rather than scripting it:
 
 - **Pasting the new entry as the entire value**, not appended to the array — e.g. saving
   `{"callerId":"my-refund-agent",...}` instead of `[{"callerId":"existing-caller",...},{"callerId":"my-refund-agent",...}]`.
@@ -325,7 +324,7 @@ Part 3 table exists to help a caller correctly _not_ blame on themselves:
    caller's request at all. See `examples/tutorials/114-signing-verification-key-agreement/` for a
    runnable reproduction.
 
-Full account: `docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md`.
+Full account: the 2026-09-15 KMS migration troubleshooting guide (in git history).
 
 ## What this guide does not cover
 

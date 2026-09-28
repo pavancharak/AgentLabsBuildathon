@@ -16,7 +16,7 @@ import { MemoryNonceStore } from "@parmana/envelope-verifier";
 import { MemoryPolicyChangeApprovalRecordRepository } from "@parmana/storage";
 
 //
-// docs/operations/policy-governance-developer-guide.md §5: chaining
+// "Sign and submit in one step" in docs/site/guides/policy-lifecycle-and-approvals.mdx: chaining
 // sign-then-submit by hand across the 120-second step-up window is
 // fragile in practice -- shell-quoting mangles the JSON body, a human
 // relay between the two steps burns the window, a stale credential

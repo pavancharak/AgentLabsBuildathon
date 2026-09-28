@@ -1,6 +1,6 @@
 # Repository Invariants — Phase 1F Canonical Reference
 
-This document is the canonical reference for the architectural invariants established by Phases 1A–1E (passive connector SDKs, execution ownership inside `execution-gateway`, internalized implementation, a single production execution pipeline) and locked permanently in Phase 1F. It supersedes informal descriptions scattered across prior phase reports — those reports remain useful history (see `docs/architecture/execution-pipeline-report.md`), but this document is what to trust for "is X enforced, and how."
+This document is the canonical reference for the architectural invariants established by Phases 1A to 1E (passive connector SDKs, execution ownership inside `execution-gateway`, internalized implementation, a single production execution pipeline) and locked permanently in Phase 1F. It supersedes informal descriptions scattered across prior phase reports (those reports remain in git history), but this document is what to trust for "is X enforced, and how."
 
 Every invariant below is backed by an automated test that fails the build on violation, not by convention or code review discipline.
 

@@ -71,8 +71,8 @@ single-purpose agent; `/callers/me`'s `unrestrictedCapabilities` is literally
   appending it to the array (every caller gets a 500 until fixed — the server
   fails closed on malformed JSON), and losing existing entries by replacing
   rather than appending. Always paste the complete array — every existing entry
-  plus the new one. Full account:
-  `docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md`.
+  plus the new one. Full account: the 2026-09-15 KMS migration troubleshooting
+  guide (in git history).
 </Warning>
 
 **4. Verify the key before writing agent code:**
@@ -168,7 +168,7 @@ Every row is cited to the exact source producing it:
 | `403`  | `POLICY_DENIED`          | `ExecutionGate.enforce` — uniform for _every_ rejection cause                                                                                                       | A real, correct decision. `message` names the actual rule that matched (excessive amount, failed fraud check, etc.).                                                                                     | Respect it. Never retry with altered parameters.                                                                                                                                                                                         |
 | `404`  | —                        | `PolicyNotFoundError`                                                                                                                                               | `policy.name`/`version` not deployed on this instance.                                                                                                                                                   | Check spelling/version and confirm deployment.                                                                                                                                                                                           |
 | `409`  | —                        | `DuplicateBusinessTransactionError`                                                                                                                                 | Reused `businessTransactionId`.                                                                                                                                                                          | Fresh UUID per attempt; design idempotency separately if needed.                                                                                                                                                                         |
-| `500`  | —                        | Generic fallback — catches an unregistered-connector error **and** `ExecutionGateway` rejecting a signed envelope (bad signature, tampered content, replayed nonce) | Deliberately ambiguous by design, not a flaw in the error handler. Very often "APPROVED, but no connector registered" — or a Parmana-side signing/verification bug with nothing to do with your request. | Check server logs for the exact message before assuming it's your bug — `docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md` (repo root) documents a real example of this exact failure mode caused entirely server-side. |
+| `500`  | —                        | Generic fallback — catches an unregistered-connector error **and** `ExecutionGateway` rejecting a signed envelope (bad signature, tampered content, replayed nonce) | Deliberately ambiguous by design, not a flaw in the error handler. Very often "APPROVED, but no connector registered" — or a Parmana-side signing/verification bug with nothing to do with your request. | Check server logs for the exact message before assuming it's your bug — the 2026-09-15 KMS migration troubleshooting guide (in git history) (repo root) documents a real example of this exact failure mode caused entirely server-side. |
 | (none) | —                        | Timeout/network                                                                                                                                                     | Unknown whether Parmana ever received it.                                                                                                                                                                | Treat as unresolved — never guess APPROVED or REJECTED.                                                                                                                                                                                  |
 
 ## Common mistakes
@@ -197,7 +197,7 @@ entry (500 for every caller) → no `allowedPrincipalIds` grant for the asserted
 genuine Parmana-side bug where the gateway's signing and verification paths silently used different
 keys after a KMS migration (500, unrelated to the request itself —
 `examples/tutorials/114-signing-verification-key-agreement/` reproduces it). None of these were agent
-bugs. Full account: `docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md`.
+bugs. Full account: the 2026-09-15 KMS migration troubleshooting guide (in git history).
 
 ## Next
 
