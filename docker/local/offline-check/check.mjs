@@ -39,6 +39,11 @@ const identities = JSON.parse(readFileSync("/identities/secrets.json", "utf8"));
 const { operator, proposer, approver } = identities;
 
 const policyName = "customer-refund";
+// Stays on 1.1.0 on purpose. This check proves an authorized refund runs
+// end to end with no internet route, and under 1.2.0 (G-75) every refund
+// needs a manager approval signed by a key the server trusts. The image
+// holds no such key, and adding a demo approver to the trusted list would
+// weaken every deployment. The network here is isolated and throwaway.
 const policyVersion = "1.1.0";
 const policyContent = JSON.parse(
   readFileSync(

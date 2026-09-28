@@ -140,13 +140,13 @@ callerId=bob  credentialHolderType=USER  allowedCapabilities=(none)  allowedPrin
 
 ## Step 4: Approve the `customer-refund` policy
 
-**4a. Alice proposes the policy** exactly as it ships in `policies/customer-refund/1.1.0/policy.json`:
+**4a. Alice proposes the policy** exactly as it ships in `policies/customer-refund/1.2.0/policy.json`:
 
 ```bash
 printf '{"reason":"Adopt the shipped customer-refund policy.","proposedContent":%s}' \
-  "$(cat policies/customer-refund/1.1.0/policy.json)" > proposal.json
+  "$(cat policies/customer-refund/1.2.0/policy.json)" > proposal.json
 
-curl -s -X POST http://127.0.0.1:3000/policies/customer-refund/1.1.0/pending-changes \
+curl -s -X POST http://127.0.0.1:3000/policies/customer-refund/1.2.0/pending-changes \
   -H "Authorization: Bearer $ALICE_KEY" -H "Content-Type: application/json" \
   --data @proposal.json > proposed.json
 
@@ -182,7 +182,7 @@ Parmana refuses the approval if Alice sends it (`403 SAME_ACTOR_CANNOT_APPROVE_O
 
 ## Step 5: Get your first decision
 
-Build a request for a refund of 50,000. The policy authorizes refunds up to 10,000 automatically; above that it needs a signed manager approval, and this request has none:
+Build a request for a refund of 50,000. The policy authorizes a refund only with a signed manager approval for its order and amount, and this request has none:
 
 ```bash
 docker compose run --rm --no-deps --entrypoint node setup \
@@ -201,7 +201,7 @@ curl -s -w '\nHTTP %{http_code}\n' -X POST http://127.0.0.1:3000/execute \
 Expected output:
 
 ```text
-{"error":"Execution rejected: Refund rejected because amounts above 10000 require a signed manager approval. Retry as a new request with managerApproved true and the approval in signals.approvalArtifact.","code":"POLICY_DENIED"}
+{"error":"Execution rejected: Refund rejected. Every refund needs a signed manager approval for this order, covering this amount, in signals.approvalArtifact, with managerApproved true, and every other policy condition satisfied.","code":"POLICY_DENIED"}
 HTTP 403
 ```
 
@@ -252,7 +252,7 @@ Expected output:
 - A policy approved by two people, recorded and signed.
 - A refused request with a signed Refusal Record.
 
-A request the policy **authorizes** is released to a connector, the service that performs the action. Until one is configured, an authorized request returns `503 CONNECTOR_NOT_REGISTERED` and nothing is executed. To see the full authorized path, including a Trust Record verified with only the public keys, run the [offline check](/self-hosted/offline-verification). To connect your own system, see [Connectors](/self-hosted/connectors).
+A refund of 500 without an approval is refused the same way: the agent's own claims that the order is eligible and passed the fraud check are not enough (G-75). A request the policy **authorizes**, here a refund with a signed manager approval, is released to a connector, the service that performs the action. Until one is configured, an authorized request returns `503 CONNECTOR_NOT_REGISTERED` and nothing is executed. To see the full authorized path, including a Trust Record verified with only the public keys, run the [offline check](/self-hosted/offline-verification). To connect your own system, see [Connectors](/self-hosted/connectors).
 
 ## Clean up
 

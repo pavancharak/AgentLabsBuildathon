@@ -334,9 +334,9 @@ const proposer = new ParmanaClient({
 });
 const approver = new ParmanaClient({ endpoint, apiKey: "pk_local_... (bob)" });
 
-const change = await proposer.proposePolicyChange("customer-refund", "1.1.0", {
+const change = await proposer.proposePolicyChange("customer-refund", "1.2.0", {
   proposedContent: JSON.parse(
-    readFileSync("policies/customer-refund/1.1.0/policy.json", "utf8"),
+    readFileSync("policies/customer-refund/1.2.0/policy.json", "utf8"),
   ),
   reason: "Adopt the shipped customer-refund policy.",
 });
