@@ -160,7 +160,8 @@ describe("policy version taken from policy governance (G-66)", () => {
 
     const older = await outcome("1.0.0");
     expect(older).toContain("Execution rejected");
-    expect(older).toContain('requires policy "customer-refund"@"1.1.0"');
+    // Refused as superseded (G-74), naming the version in effect.
+    expect(older).toContain('the version in effect is "1.1.0"');
   });
 
   it("rolls back when an older version is approved again", async () => {
@@ -168,7 +169,7 @@ describe("policy version taken from policy governance (G-66)", () => {
 
     expect(await outcome("1.0.0")).toBe("APPROVED");
     expect(await outcome("1.1.0")).toContain(
-      'requires policy "customer-refund"@"1.0.0"',
+      'the version in effect is "1.0.0"',
     );
   });
 

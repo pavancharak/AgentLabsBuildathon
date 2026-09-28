@@ -44,8 +44,9 @@ an approval flag, a fraud-check result, a policy name — the model is broken, e
 
 ## Step by step
 
-**1. Read the policy file directly.** `cat policies/customer-refund/1.1.0/policy.json` — don't guess
-field names from a description.
+**1. Read the policy file directly.** `cat policies/customer-refund/1.2.0/policy.json`; don't guess
+field names from a description. Ask the server which version is in effect:
+`GET /policies/in-effect?capability=paytm:refund`.
 
 **2. Pick the exact capability string.** Case- and character-exact. This single detail is the most
 common integration failure in practice.
@@ -128,21 +129,26 @@ placeholder to fix later — from day one.
   },
   "policy": {
     "name": "customer-refund",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "schemaVersion": "1.0.0"
   },
   "signals": {
     "refundEligible": true,
-    "managerApproved": false,
+    "managerApproved": true,
     "fraudCheckPassed": true,
-    "refundAmount": 500
+    "refundAmount": 500,
+    "approvalArtifact": {
+      "...": "the signed manager approval for this order and amount"
+    }
   },
   "status": "RECEIVED"
 }
 ```
 
-`policy.name`/`policy.version` is never inferred from `intent.action` — name it explicitly, or a
-caller could pair a real capability with an unrelated policy.
+`policy.name`/`policy.version` is never inferred from `intent.action`: name it explicitly, or a
+caller could pair a real capability with an unrelated policy. Under `customer-refund` 1.2.0 every
+refund needs a signed manager approval (G-75); without one the request is refused with `403
+POLICY_DENIED`, whatever your agent declares about eligibility and fraud.
 
 **7. Send it, handle the response** — see the complete reference table below.
 

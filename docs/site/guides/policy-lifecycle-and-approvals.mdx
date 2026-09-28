@@ -72,9 +72,9 @@ export PARMANA_URL=https://your-parmana-host
 export PROPOSER_KEY=<the proposer's API key>
 
 printf '{"reason":"Why this should take effect.","proposedContent":%s}' \
-  "$(cat policies/customer-refund/1.1.0/policy.json)" > proposal.json
+  "$(cat policies/customer-refund/1.2.0/policy.json)" > proposal.json
 
-curl -s -X POST $PARMANA_URL/policies/customer-refund/1.1.0/pending-changes \
+curl -s -X POST $PARMANA_URL/policies/customer-refund/1.2.0/pending-changes \
   -H "Authorization: Bearer $PROPOSER_KEY" -H "Content-Type: application/json" \
   --data @proposal.json
 ```
@@ -82,9 +82,9 @@ curl -s -X POST $PARMANA_URL/policies/customer-refund/1.1.0/pending-changes \
 ```powershell PowerShell
 $url = "https://your-parmana-host"
 $key = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((Read-Host "Proposer API key" -AsSecureString)))
-$policy = Get-Content policies/customer-refund/1.1.0/policy.json -Raw
+$policy = Get-Content policies/customer-refund/1.2.0/policy.json -Raw
 $body = '{"reason":"Why this should take effect.","proposedContent":' + $policy + '}'
-$r = Invoke-RestMethod -Method Post -Uri "$url/policies/customer-refund/1.1.0/pending-changes" `
+$r = Invoke-RestMethod -Method Post -Uri "$url/policies/customer-refund/1.2.0/pending-changes" `
   -Headers @{ Authorization = "Bearer $key" } -ContentType "application/json" `
   -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
 $r.pendingPolicyChangeId
@@ -241,7 +241,7 @@ Execution rejected: Rejected: declared signal(s) do not match independently veri
 
 To find refusals waiting for a manager, query the Refusal Records for `matchedRuleId = 'reject-manager-approval-required'` (see [Human approval](/concepts/human-approval#review-refused-requests)).
 
-To see the whole flow run, without a server or AWS, run tutorial 119: `npx tsx examples/tutorials/119-human-approval-for-one-action/run.ts`. It uses the real `customer-refund` 1.1.0 policy and shows an automatic refund, a refusal, a refused unsigned claim, a signed approval accepted and checked again before release, and an approval refused when reused, stretched to a larger amount or moved to another order.
+To see the whole flow run, without a server or AWS, run tutorial 119: `npx tsx examples/tutorials/119-human-approval-for-one-action/run.ts`. It uses the real `customer-refund` 1.2.0 policy and shows a small refund refused without a manager, a refusal, a refused unsigned claim, a signed approval accepted and checked again before release, and an approval refused when reused, stretched to a larger amount or moved to another order.
 
 ## Where it is recorded
 

@@ -25,10 +25,10 @@
 //                                     act for its own caller ID unless it
 //                                     lists other principal IDs.
 //
-// With the shipped customer-refund 1.1.0 policy, an eligible refund that
-// passed the fraud check is authorized automatically up to 10000, needs a
-// signed manager approval above 10000 and up to 100000, and is refused
-// above 100000.
+// With the shipped customer-refund 1.2.0 policy, every refund above 0 and
+// up to 100000 needs a signed manager approval for its order, covering its
+// amount (G-75), and anything else is refused. The eligibility and fraud
+// signals this script sends can only refuse a refund.
 
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -101,7 +101,7 @@ const request = {
     parameters: { orderId, transactionId: `txn-${orderId}`, amount },
     createdAt: now,
   },
-  policy: { name: "customer-refund", version: "1.1.0", schemaVersion: "1.0.0" },
+  policy: { name: "customer-refund", version: "1.2.0", schemaVersion: "1.0.0" },
   signals: {
     refundEligible: true,
     managerApproved:

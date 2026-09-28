@@ -65,6 +65,26 @@ export class PolicyGovernanceExecutionVerifier implements PolicyExecutionVerifie
       };
     }
 
+    //
+    // G-74: approving a new version of a policy retires the older ones,
+    // for every policy, not only those bound to a connector capability
+    // (G-66). Otherwise a caller could keep naming an older, still
+    // approved version whose rules a newer approval replaced. Approving
+    // an older version again makes it the current one (a rollback).
+    //
+    const latest =
+      await this.policyChangeApprovalRecordRepository.findMostRecentForName(
+        policyName,
+      );
+
+    if (latest !== null && latest.policyVersion !== policyVersion) {
+      return {
+        reason:
+          `policy "${policyName}"@"${policyVersion}" was superseded: the version in effect ` +
+          `is "${latest.policyVersion}", the one most recently approved`,
+      };
+    }
+
     return undefined;
   }
 }

@@ -110,4 +110,61 @@ describe("PolicyGovernanceExecutionVerifier", () => {
 
     expect(violation).toBeUndefined();
   });
+
+  describe("an older approved version is superseded by a newer approval (G-74)", () => {
+    async function approvals(
+      ...versions: ReadonlyArray<{ version: string; approvedAt: string }>
+    ) {
+      const crypto = new PolicyChangeCrypto();
+      const repository = new MemoryPolicyChangeApprovalRecordRepository();
+
+      for (const { version, approvedAt } of versions) {
+        await repository.create(
+          await fixtureRecord(crypto, {
+            policyVersion: version,
+            approvedAt: new Date(approvedAt),
+            contentHashAfter: `hash-${version}`,
+          }),
+        );
+      }
+
+      return new PolicyGovernanceExecutionVerifier(repository, crypto);
+    }
+
+    it("refuses the older version and names the version in effect", async () => {
+      const verifier = await approvals(
+        { version: "1.0.0", approvedAt: "2026-08-01T00:05:00.000Z" },
+        { version: "1.1.0", approvedAt: "2026-09-01T00:05:00.000Z" },
+      );
+
+      expect(
+        await verifier.verify("vendor-payment", "1.1.0", "hash-1.1.0"),
+      ).toBeUndefined();
+
+      const violation = await verifier.verify(
+        "vendor-payment",
+        "1.0.0",
+        "hash-1.0.0",
+      );
+
+      expect(violation?.reason).toContain("was superseded");
+      expect(violation?.reason).toContain('the version in effect is "1.1.0"');
+    });
+
+    it("approving the older version again makes it current (a rollback)", async () => {
+      const verifier = await approvals(
+        { version: "1.0.0", approvedAt: "2026-08-01T00:05:00.000Z" },
+        { version: "1.1.0", approvedAt: "2026-09-01T00:05:00.000Z" },
+        { version: "1.0.0", approvedAt: "2026-09-02T00:05:00.000Z" },
+      );
+
+      expect(
+        await verifier.verify("vendor-payment", "1.0.0", "hash-1.0.0"),
+      ).toBeUndefined();
+      expect(
+        (await verifier.verify("vendor-payment", "1.1.0", "hash-1.1.0"))
+          ?.reason,
+      ).toContain("was superseded");
+    });
+  });
 });
