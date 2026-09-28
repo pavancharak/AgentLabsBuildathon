@@ -16,8 +16,8 @@ import type { Signature } from "./signature.js";
  * Decision, not that an independent business authority approved an
  * exception to it.
  *
- * Design frozen in docs/architecture/phase3a-authorization-artifact-design.md
- * (§7). This file implements that specification's schema exactly --
+ * Design frozen in §7 of the Phase 3A approval artifact design (in git
+ * history). This file implements that specification's schema exactly --
  * field names, types, and mandatory/optional status are not
  * reinterpreted here.
  *

@@ -68,9 +68,9 @@ const FAILED_BEFORE_SIGNATURE: ApprovalVerificationResult = {
 };
 
 /**
- * Verifies a SignedApproval per
- * docs/architecture/phase3a-authorization-artifact-design.md §10's
- * frozen algorithm: deterministic, fixed order, no early return
+ * Verifies a SignedApproval per the frozen algorithm in
+ * §10 of the Phase 3A approval artifact design (in git history):
+ * deterministic, fixed order, no early return
  * between independent checks (mirroring AuthorizationVerifier.verify()'s
  * own no-timing-oracle discipline), nonce consumption attempted last
  * and only when every other check has already independently passed

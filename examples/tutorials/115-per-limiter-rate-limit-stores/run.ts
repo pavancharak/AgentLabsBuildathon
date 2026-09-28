@@ -1,8 +1,8 @@
 import type { Pool } from "pg";
 
 //
-// docs/VERIFICATION-GAPS.md G-49 / docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md
-// item 5: createApp() used to pass ONE shared PostgresRateLimitStore
+// docs/VERIFICATION-GAPS.md G-49, and item 5 of the 2026-09-15 KMS migration
+// troubleshooting guide (in git history): createApp() used to pass ONE shared PostgresRateLimitStore
 // instance to both the /execute and /health,/ready rate limiters --
 // express-rate-limit v8 explicitly documents that a Store instance
 // must not back more than one limiter.
@@ -24,7 +24,7 @@ import type { Pool } from "pg";
 // express-rate-limit version, or under stricter `validate` config) --
 // just not the mechanism that was actually crashing requests that
 // night. Corrected in docs/VERIFICATION-GAPS.md G-49 and
-// docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md at
+// the 2026-09-15 KMS migration troubleshooting guide (in git history) at
 // the same time this tutorial was corrected.
 //
 // Hermetic: a minimal fake `pg.Pool` stands in for a real database

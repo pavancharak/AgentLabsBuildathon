@@ -19,9 +19,7 @@ const repoRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 
 const docsToCheck = [
   "docs/architecture/system-architecture.md",
-  "docs/architecture/execution-walkthrough.md",
   "docs/developer/extending-parmana.md",
-  "docs/architecture/execution-pipeline-report.md",
   "docs/architecture/repository-invariants.md",
   "docs/CLAIMS.md",
 ];

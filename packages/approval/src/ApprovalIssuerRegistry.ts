@@ -12,7 +12,7 @@ import type { KeyObject } from "node:crypto";
  * invalidates every artifact they ever signed, a coarser but simpler
  * and operationally real guarantee than tracking individual
  * approvalIds. Per-artifact revocation remains a possible future
- * refinement (see docs/architecture/phase3c-approval-artifact.md,
+ * refinement (see the Phase 3C approval artifact record, in git history,
  * Remaining Limitations) -- not implemented here.
  */
 export interface TrustedApprovalIssuer {

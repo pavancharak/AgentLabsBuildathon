@@ -34,7 +34,7 @@ regexes = [
 
   # SHA-256 hash of the publicly documented local-dev demo caller key
   # (raw key "my-secret-api-key", see docs/site/api-reference/authentication.mdx
-  # and docs/guides/e2e/04-execute-transaction.md). A hash is not reversible
+  # and docs/site/deployment/local.mdx). A hash is not reversible
   # and the raw value it hashes is intentionally public.
   '''325ededd6c3b9988f623c7f964abb9b016b76b0f8b3474df0f7d7c23b941381f''',
 

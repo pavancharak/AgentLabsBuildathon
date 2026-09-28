@@ -5,8 +5,8 @@ import type { ApprovalScope } from "@parmana/shared";
  * an ApprovalScope's bound.
  *
  * A small, self-contained implementation of exactly the six
- * comparators docs/architecture/phase3a-authorization-artifact-design.md
- * §7.1 restricts ApprovalScope.comparator to (eq, lte, gte, lt, gt,
+ * comparators §7.1 of the Phase 3A approval artifact design (in
+ * git history) restricts ApprovalScope.comparator to (eq, lte, gte, lt, gt,
  * between) -- deliberately not importing @parmana/policy's
  * OperatorEvaluator, which supports a much larger operator set for
  * arbitrary policy conditions and represents "between" as a 2-element

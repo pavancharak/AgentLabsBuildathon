@@ -13,7 +13,7 @@ import type { ApprovalPayload, SignedApproval } from "@parmana/shared";
 // HubSpot-specific pipeline (HubSpotSignalStateVerifier). This
 // tutorial exercises ApprovalVerifier itself, generically, connector-
 // agnostic -- the deterministic verification algorithm frozen in
-// docs/architecture/phase3a-authorization-artifact-design.md, with
+// the Phase 3A approval artifact design (in git history), with
 // its full per-check breakdown (`result.checks`), independent
 // verifier instances, and durable cross-process replay protection. A
 // regression that breaks the shared component for a non-HubSpot shape

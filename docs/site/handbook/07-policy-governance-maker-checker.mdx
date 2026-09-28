@@ -254,12 +254,11 @@ to `policies/{name}/{version}/policy.json` that skips the pending-change API ent
   `packages/crypto/src/PolicyChangeStepUpAuthorizationCrypto.ts`, plus
   `packages/api/tests/unit/verifyPolicyGovernanceIntegrityAtStartup.test.ts` (7 cases) for
   the integrity checker specifically.
-- To actually run the real flow against a real deployment, the two operational documents
-  already written for exactly this purpose are `docs/operations/policy-approval-runbook.md`
-  (a copy-pasteable checklist for a specific batch of pending policies) and
-  `docs/operations/policy-governance-developer-guide.md` (the full lifecycle, every
-  command, and a troubleshooting table for every failure mode actually hit while building
-  this feature). This chapter explains the system; those two are the how-to.
+- To actually run the real flow against a real deployment, use
+  [Policy lifecycle and approvals](/guides/policy-lifecycle-and-approvals) (the full
+  lifecycle, every command, and a troubleshooting table) and
+  [Credentials for maker, checker, approver and agent](/guides/credentials-maker-checker-approver).
+  This chapter explains the system; those two are the how to.
 
 ## Integration requirements
 

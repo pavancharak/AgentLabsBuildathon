@@ -202,7 +202,7 @@ This file is generated from the documentation navigation. Do not edit it by hand
 ## Deploy and operate: Operate
 
 * [Troubleshooting](https://docs.parmanasystems.com/troubleshooting): Real problems encountered while building and using this repo, with real causes.
-* [Database Schema Reference](https://docs.parmanasystems.com/storage/schema-reference): Every live table: what it's for, its columns, which migration built it, what code owns it — plus a library of real SQL for troubleshooting, audit, and verification.
+* [Database Schema Reference](https://docs.parmanasystems.com/storage/schema-reference): Every live table: what it is for, its columns, which migration built it, what code owns it, plus a library of real SQL for troubleshooting, audit and verification.
 ## Reference: Packages
 
 * [@parmana/shared](https://docs.parmanasystems.com/reference/shared): Domain types, config loading, and error classes every other package depends on. No business logic of its own.

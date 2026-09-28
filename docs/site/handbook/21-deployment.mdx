@@ -95,9 +95,9 @@ AWS_ROLE_ARN     # the IAM role Vercel's OIDC token assumes
 
 (Confirmed by grepping `packages/crypto/src/providers/signer/KmsSigner.ts` directly; these are
 the only two `process.env` reads in that file, `KmsSigner requires AWS_REGION to be set` is a
-real thrown error if `AWS_REGION` is missing.) `docs/operations/aws-kms-vercel-oidc-setup-guide.md`
+real thrown error if `AWS_REGION` is missing.) [AWS KMS signing](/deployment/aws-kms-signing)
 documents the Vercel side of the setup (`vercel env add AWS_REGION production`, and the trust
-policy connecting Vercel's OIDC issuer to the IAM role). `docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md`
+policy connecting Vercel's OIDC issuer to the IAM role). The 2026-09-15 KMS migration troubleshooting guide (in git history)
 records the real incidents hit while migrating to this from static keys, cross-check its
 specific claims against current source rather than assuming they still describe live bugs; the
 migration referenced there is complete as of this session.
@@ -114,7 +114,7 @@ independently of that specific `KEY_PROVIDER` flag, verify the current wiring in
 
 There is no example tutorial that actually deploys to either platform (that would require real
 cloud credentials and is out of scope for a hermetic tutorial suite), but
-`docs/site/guides/deploy-patterns.mdx` and `docs/operations/aws-kms-vercel-oidc-setup-guide.md`
+`docs/site/guides/deploy-patterns.mdx` and [AWS KMS signing](/deployment/aws-kms-signing)
 walk through the real, current deployment steps for each target.
 
 ## How to validate this yourself
@@ -124,8 +124,8 @@ walk through the real, current deployment steps for each target.
 - `packages/policy/src/SupabasePolicyRepository.ts`'s own doc comment for the EROFS incident
   account.
 - `supabase/migrations/20260916060000_add_policies_table.sql` for the schema the fix depends on.
-- `docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md` and
-  `docs/operations/aws-kms-vercel-oidc-setup-guide.md` for the full operational history.
+- the 2026-09-15 KMS migration troubleshooting guide (in git history) and
+  [AWS KMS signing](/deployment/aws-kms-signing) for the full operational history.
 
 ## Requirements
 

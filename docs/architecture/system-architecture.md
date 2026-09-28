@@ -2,12 +2,11 @@
 
 Canonical, implementation-derived overview of Parmana's architecture: what each package is responsible for, how a business action flows from HTTP request to audited receipt, and where the repository's architectural boundaries are enforced.
 
-This document describes the system **as implemented**, verified against source as of Phase 1G. It does not describe intended or historical architecture. Where earlier design documents disagree with this one, this one — and the two documents it's built on — win:
+This document describes the system **as implemented**, verified against source as of Phase 1G. It does not describe intended or historical architecture. Where earlier design documents disagree with this one, this one and the document it is built on win:
 
-- [`execution-pipeline-report.md`](./execution-pipeline-report.md) — the Phase 1E execution-graph baseline (call graph, ownership map, static search results).
 - [`repository-invariants.md`](./repository-invariants.md) — the Phase 1F canonical list of automatically-enforced architectural invariants, with the exact test that enforces each one.
 
-This document doesn't repeat their content; it's the entry point that ties them together with package responsibilities and the surrounding subsystems (authorization, signal verification, replay, audit) they don't individually cover end to end. For a class-by-class narrated trace of one request, see [`execution-walkthrough.md`](./execution-walkthrough.md). For how to extend the system safely, see [`../developer/extending-parmana.md`](../developer/extending-parmana.md).
+This document doesn't repeat its content; it's the entry point that ties it together with package responsibilities and the surrounding subsystems (authorization, signal verification, replay, audit) it doesn't cover end to end. For a class-by-class narrated trace of one request, see [The Execution Pipeline](https://docs.parmanasystems.com/architecture/execution-pipeline) on the documentation site. For how to extend the system safely, see [`../developer/extending-parmana.md`](../developer/extending-parmana.md).
 
 ---
 
@@ -63,7 +62,7 @@ HTTP request
           → ReceiptService.generate()
 ```
 
-Full narrated walkthrough with exact method-call ordering (including where `hookRunner` callbacks fire): [`execution-walkthrough.md`](./execution-walkthrough.md).
+A class by class trace of one request, with every point where it can stop: [The Execution Pipeline](https://docs.parmanasystems.com/architecture/execution-pipeline) on the documentation site.
 
 **Production binding:** `ExecutionSystem` is bound to `ExecutionGateway` exactly once, in `packages/api/src/bootstrap/createExecutionSystem.ts` — its own doc comment calls this "the single architectural entry point for execution-system composition." No other `ExecutionSystem` implementation is constructed in production bootstrap.
 

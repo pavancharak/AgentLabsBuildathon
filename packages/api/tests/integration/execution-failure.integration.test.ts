@@ -23,7 +23,7 @@ import { createInspectableExecutionSystem } from "../bootstrap/createInspectable
  * thrown error to a generic `{ error: "Internal Server Error" }` 500,
  * by design, specifically so internal failure detail is never leaked to
  * a caller — confirmed empirically before rewriting this file, not
- * assumed. See docs/architecture/phase2d-execution-failure-testing.md
+ * assumed. See the Phase 2D execution failure testing record (in git history)
  * for the full investigation.
  *
  * Since G-63 a connector failure no longer reaches errorHandler

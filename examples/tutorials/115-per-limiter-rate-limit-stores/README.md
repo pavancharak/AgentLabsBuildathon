@@ -7,7 +7,7 @@ Reproduce a real, pre-existing bug found and fixed the same night as the KMS mig
 between the `/execute` and `/health`,`/ready` rate limiters, which
 `express-rate-limit`'s own documented contract disallows. Mirrors
 `docs/VERIFICATION-GAPS.md` G-49 and
-`docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md` item 5 — **including
+item 5 of the 2026-09-15 KMS migration troubleshooting guide (in git history) — **including
 a correction to the initial diagnosis**, kept visible rather than silently rewritten.
 
 ## What You'll Learn
@@ -55,7 +55,7 @@ evidence that it caused the failure.** This project's own documentation initiall
 conflated the two, stated the causal claim as fact, and only caught the error while
 building this tutorial and checking the claim against the library's actual source. The
 correction is kept visible in `docs/VERIFICATION-GAPS.md` G-49,
-`docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md`, and here — not
+the 2026-09-15 KMS migration troubleshooting guide (in git history), and here — not
 quietly rewritten — because the mistake itself (assuming causation from proximity in a
 log) is exactly the kind of thing worth remembering for the next incident.
 

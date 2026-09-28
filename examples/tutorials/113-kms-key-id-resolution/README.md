@@ -43,9 +43,9 @@ Before this fix, `KmsSigner.sign("default", data)` called AWS KMS's `SignCommand
 can make a bare, unprefixed string resolve to a real key, regardless of how the actual
 KMS key or its aliases are named. Every real signing and verification call failed the
 moment `KEY_PROVIDER=aws-kms` was first turned on in production
-(`docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md`, item 1). The fix
+(item 1 of the 2026-09-15 KMS migration troubleshooting guide, in git history). The fix
 also means `alias/default` **must exist in AWS** for the logical `"default"` key to
-resolve at all — see `docs/operations/aws-kms-vercel-oidc-setup-guide.md`, Part 2.
+resolve at all — see `docs/site/deployment/aws-kms-signing.mdx`, step 1.
 
 ## Next Tutorial
 

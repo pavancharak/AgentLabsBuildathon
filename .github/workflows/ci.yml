@@ -59,15 +59,8 @@ jobs:
         #     fact — never as live vocabulary a reader would adopt.
         #       - docs/VERIFICATION-GAPS.md: narrates the terminology
         #         sweep itself.
-        #       - docs/architecture/repository-certification.md,
-        #         docs/architecture/phase2b-technical-debt-assessment.md,
-        #         docs/architecture/phase2c-terminology-guard.md: each
-        #         independently found and/or fixed this exact guard gap,
-        #         and necessarily quotes the retired phrase to document
-        #         what was found. Expect this category to keep gaining
-        #         entries over time — that is normal, not a regression;
-        #         see phase2c-terminology-guard.md for why a per-file list
-        #         is the deliberate choice here, not a stopgap.
+        #         A per file list is the deliberate choice here, not a
+        #         stopgap; expect it to gain entries over time.
         #
         # (2) Third-party citation: docs/site's two "Related work" notes
         #     cite an unrelated third-party academic framework that is
@@ -99,9 +92,6 @@ jobs:
             --exclude='VERIFICATION-GAPS.md' \
             --exclude='how-parmana-thinks.mdx' \
             --exclude='execution-authorization.mdx' \
-            --exclude='repository-certification.md' \
-            --exclude='phase2b-technical-debt-assessment.md' \
-            --exclude='phase2c-terminology-guard.md' \
             --exclude='changelog.mdx' \
             --exclude='ci.yml' \
             --exclude='terminology-guard.test.ts' \

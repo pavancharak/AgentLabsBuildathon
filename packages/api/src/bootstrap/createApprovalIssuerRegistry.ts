@@ -34,7 +34,7 @@ export interface ConfiguredApprovalIssuer {
  * operational model already established for trusted connector
  * identities. A self-service onboarding flow for approvers is
  * deliberately out of scope (see
- * docs/architecture/phase3a-authorization-artifact-design.md §17,
+ * §17 of the Phase 3A approval artifact design (in git history),
  * Open Question #1) -- this list only verifies against whatever
  * entries it is deployed with.
  *

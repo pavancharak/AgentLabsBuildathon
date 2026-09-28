@@ -23,7 +23,7 @@ Writes to a scratch temp directory (`mkdtempSync`), never the real `policies/` t
 
 ## Why This Matters
 
-`docs/CLAIMS.md` §2.34 closed the _detection_ gap: a bypass of Policy Governance would eventually be noticed, at startup or on a 5-minute interval. This tutorial demonstrates the _prevention_ half added afterward: the same bypass simply doesn't execute in the first place, once `PolicyGovernanceExecutionVerifier` is wired in. In production this is feature-flagged (`POLICY_EXECUTION_VERIFICATION_ENFORCED`, default `false`) — every real policy in this system is still `PENDING_APPROVAL` (see `docs/operations/policy-approval-runbook.md`), so turning it on unconditionally today would refuse all of them, not just a genuine bypass. This tutorial builds the same verifier directly, against a scratch policy of its own, specifically so it can show all four outcomes without depending on that real-world state.
+`docs/CLAIMS.md` §2.34 closed the _detection_ gap: a bypass of Policy Governance would eventually be noticed, at startup or on a 5-minute interval. This tutorial demonstrates the _prevention_ half added afterward: the same bypass simply doesn't execute in the first place, once `PolicyGovernanceExecutionVerifier` is wired in. In production this is feature-flagged (`POLICY_EXECUTION_VERIFICATION_ENFORCED`, default `false`) — every real policy in this system is still `PENDING_APPROVAL` (see the policy approval runbook, in git history), so turning it on unconditionally today would refuse all of them, not just a genuine bypass. This tutorial builds the same verifier directly, against a scratch policy of its own, specifically so it can show all four outcomes without depending on that real-world state.
 
 ## Next Tutorial
 

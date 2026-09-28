@@ -12,7 +12,7 @@ import { StaticApprovalIssuerRegistry } from "../../src/ApprovalIssuerRegistry.j
 /**
  * TD-23 closure, Phase 3C. Implements the exact deterministic
  * verification algorithm frozen in
- * docs/architecture/phase3a-authorization-artifact-design.md §10.
+ * §10 of the Phase 3A approval artifact design (in git history).
  */
 const crypto = CryptoBootstrap.create();
 

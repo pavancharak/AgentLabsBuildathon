@@ -6,7 +6,7 @@ Reproduce the most significant bug found migrating the gateway signing key to AW
 signing and verification silently resolving _different_ keys, producing exactly the
 "ambiguous outcome" failure this codebase's fail-closed design otherwise works hard to
 avoid — and demonstrate the real fix. Mirrors `docs/VERIFICATION-GAPS.md` G-48 and
-`docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md` item 7.
+item 7 of the 2026-09-15 KMS migration troubleshooting guide (in git history).
 
 ## What You'll Learn
 

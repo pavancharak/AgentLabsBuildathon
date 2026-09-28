@@ -1,9 +1,0 @@
-{
-  "receiptId": "6f1e7586-ae5d-4718-8d06-36aa541bdb8b",
-  "businessTransactionId": "b9404bdf-ad2a-4dce-8001-0eacd0974200",
-  "trustRecordHash": "f6b35361c5cf90fefef039c56cacafdb9cc030f0d2c1259e6eb3b565c58cc3e4",
-  "receiptHash": "bd1280f038f0e9257b86f006fb023d90ae1f00d0b9f12451c72bf7d06c469ac6",
-  "issuedAt": "2026-07-18T04:05:47.378Z",
-  "algorithm": "ed25519",
-  "signature": "r4+YxAtVIL7BHJhEr5bPZSq1lvAKf50C3umPmIrMwfb9wAGks5Oxs4A+Ohae/6H7qddb3QxTvxcNtVR4Uo75CQ=="
-}

@@ -9,9 +9,9 @@ import { describe, expect, it } from "vitest";
  * (.github/workflows/ci.yml, "Guard against retired terminology" step).
  *
  * The guard itself is inline bash with no test of its own — this is what
- * let TD-2 (repository-certification.md TD-2) go unnoticed: the guard
- * silently failed against the committed tree with nobody finding out until
- * someone happened to run it by hand. This file re-implements the guard's
+ * let TD-2 (the repository certification record, in git history) go
+ * unnoticed: the guard silently failed against the committed tree with
+ * nobody finding out until someone happened to run it by hand. This file re-implements the guard's
  * exact matching logic in TypeScript so its behavior is asserted on every
  * `npm test` run, not just when CI happens to execute the workflow step.
  *
@@ -37,9 +37,6 @@ const EXCLUDED_BASENAMES = new Set([
   "VERIFICATION-GAPS.md",
   "how-parmana-thinks.mdx",
   "execution-authorization.mdx",
-  "repository-certification.md",
-  "phase2b-technical-debt-assessment.md",
-  "phase2c-terminology-guard.md",
   "changelog.mdx",
   "ci.yml",
   // This file: its own matching pattern and test fixtures necessarily
@@ -100,7 +97,7 @@ describe("CI terminology guard (Phase 2C regression coverage)", () => {
     const activeDocs = [
       "README.md",
       "docs/architecture/system-architecture.md",
-      "docs/architecture/execution-walkthrough.md",
+      "docs/site/architecture/execution-pipeline.mdx",
       "docs/architecture/repository-invariants.md",
       "docs/developer/extending-parmana.md",
     ];
@@ -115,12 +112,7 @@ describe("CI terminology guard (Phase 2C regression coverage)", () => {
   });
 
   it("historical self-narration files are excluded and legitimately contain the phrase", () => {
-    const historical = [
-      "docs/VERIFICATION-GAPS.md",
-      "docs/architecture/repository-certification.md",
-      "docs/architecture/phase2b-technical-debt-assessment.md",
-      "docs/site/changelog.mdx",
-    ];
+    const historical = ["docs/VERIFICATION-GAPS.md", "docs/site/changelog.mdx"];
 
     for (const doc of historical) {
       const basename = doc.split("/").pop()!;

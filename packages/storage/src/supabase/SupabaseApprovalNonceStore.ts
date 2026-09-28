@@ -11,7 +11,7 @@ import { isUniqueViolation } from "../errors/PostgresErrorCodes.js";
  * Deliberately backed by its own table (consumed_approval_nonces),
  * separate from consumed_nonces (SupabaseNonceStore, ExecutionGateway's
  * own Authorization-envelope replay protection) -- per
- * docs/architecture/phase3a-authorization-artifact-design.md §13, an
+ * §13 of the Phase 3A approval artifact design (in git history), an
  * Approval Artifact's nonce and a Gateway authorization envelope's
  * nonce are distinct trust domains issued by distinct parties (an
  * external business approver vs. Parmana's own runtime); sharing one

@@ -61,7 +61,7 @@ distinct closure sessions), this section names the eras and points at where to r
 
 The gateway's signing key moved from a local file-based key to AWS KMS, authenticated via
 Vercel OIDC rather than static AWS credentials. Six real bugs were found and fixed in the
-course of this migration; `docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md`
+course of this migration; the 2026-09-15 KMS migration troubleshooting guide (in git history)
 is the detailed account. The one worth naming specifically here, because of how it was
 found: `SignerKeyProviderAdapter` (packages/crypto) had a divergence between the key used to
 _sign_ and the key used to _verify_, a signing/verification key mismatch that would have

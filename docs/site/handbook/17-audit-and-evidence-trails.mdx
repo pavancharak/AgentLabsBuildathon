@@ -73,8 +73,8 @@ next, documented rather than silently changed.
 ### Execution Audit Events
 
 `SupabaseExecutionAuditSink` (`packages/storage/src/supabase/SupabaseExecutionAuditSink.ts`)
-covers the execution-control lifecycle separately from caller authentication. Per
-`docs/architecture/DATABASE_SCHEMA_REFERENCE.md`'s own note (verify this claim yourself if you
+covers the execution-control lifecycle separately from caller authentication. Per the
+[Database Schema Reference](/storage/schema-reference) (verify this claim yourself if you
 touch this table, it is a real operational fact worth confirming against current deployment
 config, not just trusting a comment), the underlying `execution_audit_events` table is shared
 cross-repository with a separate `parmana-paytm-agent` repository, meaning this table's schema

@@ -122,7 +122,7 @@ so a durable store never needs to retain a nonce longer than
 - Migrating a deployment from one algorithm to another (e.g. Ed25519 to
   ML-DSA-65) while retaining the ability to verify authorizations issued
   before the switch is not currently supported — see
-  `docs/architecture/post-quantum-cryptography.md`.
+  the post quantum cryptography design note (in git history).
 
 ## Claims
 

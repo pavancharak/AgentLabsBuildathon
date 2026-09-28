@@ -51,8 +51,8 @@ instance to both `createExecuteRateLimiter` and `createHealthReadyRateLimiter` c
 request on a fresh cold start.
 
 **A documented correction, not silently fixed:** it was first assumed this crashed the whole
-request (`docs/VERIFICATION-GAPS.md`, `docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md`
-item 5), inferred from seeing the `ERR_ERL_STORE_REUSE` log line next to a real HTTP 500.
+request (`docs/VERIFICATION-GAPS.md`, and item 5 of the 2026-09-15 KMS migration troubleshooting
+guide, in git history), inferred from seeing the `ERR_ERL_STORE_REUSE` log line next to a real HTTP 500.
 Reading `express-rate-limit`'s actual installed source shows every validation is wrapped in a
 try/catch that only logs the violation and never re-throws, the reuse warning is real, but
 harmless on its own. The 500 that request actually returned was caused by a completely
