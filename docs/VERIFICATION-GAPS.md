@@ -1207,12 +1207,14 @@ level). The second cause was hidden behind the first. A red check that always fa
 teaches people to merge past it, which is how this job's purpose (D-6) is lost.
 
 - **Fix:** the operator set both secrets on 2026-09-28 (the read only anon key, never the service role
-  key), and PR #74 sets `PARMANA_POLICY_DIR: ./policies` on the step.
-- **Verified:** run on the operator's machine the way CI runs it (no `.env`, only these three values),
-  the check reports that all four policy files approved that day (`customer-refund` 1.2.0,
-  `github-pr-approval` 1.1.0, `github-pr-read` 1.0.0, `llm-tool-call` 1.1.0) match their approval
-  records. PRs since then that change no policy file pass the job without a check, as designed.
-- **Not yet seen:** a CI run of the fixed job on a pull request that changes a policy file.
+  key), and PR #74 sets `PARMANA_POLICY_DIR: ./policies` on the step. PR #78 makes the job check every
+  policy file on every run (`--full-scan`) instead of only changed ones, so every run proves the check
+  can reach the approval records and catches drift.
+- **Verified:** CI on PR #78 ran the full scan: all 19 policy files match their approval records. The
+  same result on the operator's machine, run the way CI runs it.
+- **Consequence:** a pull request that adds a policy version passes only once that version is approved
+  in production, so propose and approve from the branch before merging. Pull requests from forks get
+  no secrets and fail the check.
 
 ---
 
@@ -3855,7 +3857,7 @@ be true first.
 
 ---
 
-### D-6. CI's `verify-policy-approvals` gate is advisory only, not a required branch-protection check (2026-09-10)
+### D-6. CI's `verify-policy-approvals` gate is advisory only, not a required branch-protection check (2026-09-10; resolved 2026-09-28)
 
 Not a code gap: `.github/workflows/ci.yml` already runs the maker-checker verification job
 on every push/PR, and its own inline comment already states plainly that it is advisory
@@ -3888,8 +3890,8 @@ decision (billing or visibility, neither a call this document or a code change c
 **Update (2026-09-28):** the repository is public now (`gh api repos/pavancharak/AgentLabsBuildathon`
 reports `visibility: public`), so the blocker above no longer applies, and `main` has no branch
 protection (`Branch not protected`). Until 2026-09-28 the gate could not check anything anyway (G-79).
-Making `verify-policy-approvals` a required status check on `main` is now a settings change the owner
-can make; not done.
+**RESOLVED 2026-09-28:** `verify-policy-approvals` is a required status check on `main`, enforced for
+administrators too (branch protection set through the GitHub API, checked with a read back).
 
 ---
 

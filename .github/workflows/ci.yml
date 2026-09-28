@@ -105,30 +105,29 @@ jobs:
 
   verify-policy-approvals:
     # Preventive Policy Governance gate (maker-checker): fails the run if
-    # any policies/{name}/{version}/policy.json touched by this push/PR
-    # has no matching PolicyChangeApprovalRecord for its exact content --
-    # i.e. a direct file edit that bypassed the maker-checker API. A
-    # separate job (not a step in build-and-test above) deliberately: it
-    # needs its own distinct pass/fail status, since this is the specific
-    # check meant to become a required status check if/when this repo's
-    # plan or visibility ever allows branch protection to be enabled (see
-    # docs/VERIFICATION-GAPS.md D-6: advisory only today, not
-    # enforced).
+    # any policies/{name}/{version}/policy.json in the tree has no
+    # matching PolicyChangeApprovalRecord for its exact content -- i.e. a
+    # file edit that bypassed the maker-checker API, or a new policy
+    # version not yet approved. A separate job (not a step in
+    # build-and-test above) so it has its own pass/fail status: it is a
+    # required status check on main (docs/VERIFICATION-GAPS.md D-6, G-79).
+    #
+    # Checks every policy file on every run (--full-scan), not only the
+    # changed ones, so it also catches drift and always proves it can
+    # reach the approval records. A pull request that adds a policy
+    # version passes only after that version is approved in production.
     #
     # Fail-CLOSED by design, the opposite discipline of
     # verifyPolicyGovernanceIntegrityAtStartup.ts's own fail-open startup
     # check: scripts/verify-policy-changes-approved.ts exits non-zero on
     # an unapproved file AND on any failure to complete the check at all
-    # (Supabase unreachable, malformed response, ...) -- there is no
-    # "couldn't check, let it pass" path here.
+    # (Supabase unreachable, missing secrets, malformed response, ...) --
+    # there is no "couldn't check, let it pass" path here. Pull requests
+    # from forks get no secrets, so they fail this check.
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          # Need the base commit to diff against, not just the tip --
-          # actions/checkout@v4 defaults to a depth-1 shallow clone.
-          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -140,25 +139,7 @@ jobs:
       - name: Build (needed for @parmana/crypto's compiled hashing code)
         run: npm run build
 
-      - name: Determine changed policy files
-        id: changed-policies
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          else
-            BASE_SHA="${{ github.event.before }}"
-          fi
-
-          if [ -z "$BASE_SHA" ] || ! git cat-file -e "$BASE_SHA" 2>/dev/null; then
-            echo "No usable base commit to diff against (e.g. a new branch's first push) -- nothing to check this run."
-            echo "files=" >> "$GITHUB_OUTPUT"
-          else
-            CHANGED=$(git diff --name-only "$BASE_SHA" "${{ github.sha }}" -- 'policies/**/policy.json' | tr '\n' ' ')
-            echo "files=$CHANGED" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Verify changed policy files are approved
-        if: steps.changed-policies.outputs.files != ''
+      - name: Verify every policy file is approved
         env:
           # Scoped, read-only credential -- see
           # supabase/migrations/20260818150000_add_ci_read_only_policy_for_approval_records.sql.
@@ -169,4 +150,4 @@ jobs:
           # loadConfig() refuses to start without it; the same value
           # build-and-test sets at job level.
           PARMANA_POLICY_DIR: ./policies
-        run: npx tsx scripts/verify-policy-changes-approved.ts ${{ steps.changed-policies.outputs.files }}
+        run: npx tsx scripts/verify-policy-changes-approved.ts --full-scan
