@@ -1,5 +1,5 @@
 import { ApprovalVerifier, isSignedApprovalShape } from "@parmana/approval";
-import type { CryptoProvider, KeyProvider } from "@parmana/crypto";
+import type { CryptoProvider, KeyProvider, Signer } from "@parmana/crypto";
 import type { ExecutionSystem } from "@parmana/execution-system";
 import type {
   PolicySignals,
@@ -21,7 +21,21 @@ import type { HubSpotDeal } from "./HubSpotTypes.js";
 
 export interface HubSpotSignalStateVerifierOptions {
   readonly gateway: ExecutionSystem;
-  readonly keys: KeyProvider;
+
+  /**
+   * How the verifier signs its own deal fetch. Supply exactly one.
+   *
+   * resolveSigner signs through a Signer (ADR-0009), so the fetch is
+   * signed with the key KEY_PROVIDER selects, the same key the gateway
+   * verifies against; production wiring uses it, resolving
+   * SignerBootstrap. keys reads a raw private key and so only works
+   * with local key files: under KEY_PROVIDER=aws-kms it would sign with
+   * a different key than the gateway verifies, and every fetch would be
+   * refused. It remains for tests and tutorials that use local keys.
+   */
+  readonly resolveSigner?: () => Promise<Signer>;
+  readonly keys?: KeyProvider;
+
   readonly signerKeyId: string;
   readonly policyName: string;
   readonly policyVersion: string;
@@ -88,7 +102,16 @@ const VERIFIED_SIGNAL_KEYS = [
  * approved on faith in the caller's own claim.
  */
 export class HubSpotSignalStateVerifier implements SignalStateVerifier {
-  constructor(private readonly options: HubSpotSignalStateVerifierOptions) {}
+  constructor(private readonly options: HubSpotSignalStateVerifierOptions) {
+    if (
+      (options.resolveSigner === undefined) ===
+      (options.keys === undefined)
+    ) {
+      throw new Error(
+        "HubSpotSignalStateVerifier needs exactly one of resolveSigner or keys.",
+      );
+    }
+  }
 
   async findViolations(
     request: SignalStateVerificationRequest,
@@ -114,14 +137,19 @@ export class HubSpotSignalStateVerifier implements SignalStateVerifier {
     let deal: HubSpotDeal;
 
     try {
-      const signerPrivateKey = await this.options.keys.getPrivateKey(
-        this.options.signerKeyId,
-      );
+      const signing =
+        this.options.resolveSigner !== undefined
+          ? { signer: await this.options.resolveSigner() }
+          : {
+              signerPrivateKey: await this.options.keys!.getPrivateKey(
+                this.options.signerKeyId,
+              ),
+            };
 
       const fetchResult = await executeHubSpotCapability(
         {
+          ...signing,
           gateway: this.options.gateway,
-          signerPrivateKey,
           signerKeyId: this.options.signerKeyId,
           policyName: this.options.policyName,
           policyVersion: this.options.policyVersion,

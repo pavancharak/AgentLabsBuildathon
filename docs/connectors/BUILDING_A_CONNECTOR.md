@@ -160,9 +160,9 @@ package that implements `Connector` fails Invariant 2 of
       `CompositeSignalStateVerifier([...])` in `packages/api/src/application.ts`. Sign its fetches
       with the key source `KEY_PROVIDER` selects (`SignerBootstrap.create()`, as
       `createExecutionGateway.ts` does), not `new FileKeyProvider()`: a verifier that always signs
-      with the local file key disagrees with a gateway that verifies against KMS. Note that
-      `createHubSpotSignalStateVerifier.ts` still uses `new FileKeyProvider()` today, so do not
-      copy that line.
+      with the local file key disagrees with a gateway that verifies against KMS (G-72 in
+      `docs/VERIFICATION-GAPS.md`). Copy `createHubSpotSignalStateVerifier.ts`: it passes
+      `resolveSigner: lazySignerBootstrap()`, which resolves that `Signer` on first use.
 - [ ] **`.env.example`**: a headed block for every new variable (production credential, test
       credential and its format, `ALLOW_LIVE_<NAME>=1`, `TEST_<NAME>_*` fixtures, the base URL
       seam). For a long lived static token, add a rotation date variable and a startup reminder
