@@ -221,6 +221,9 @@ limit 50;
 
 ## Get notified
 
+The full guide, with receiver code in Node.js and Python, is
+[Approval notifications](/guides/approval-notifications).
+
 Set `APPROVAL_WEBHOOK_URL` and `APPROVAL_WEBHOOK_SECRET`, and Parmana POSTs an event to that URL
 each time a request is refused **only** for want of an approval: the policy declares
 `approvalSignals`, and the same request with those signals true would have been authorized. A
