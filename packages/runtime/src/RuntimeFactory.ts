@@ -34,6 +34,7 @@ import { BusinessTransactionService } from "./services/business-transaction-serv
 import { ExecutionService } from "./services/execution-service.js";
 import { ReceiptService } from "./services/receipt-service.js";
 import { VerificationService } from "./services/verification-service.js";
+import type { ApprovalNeededNotifier } from "./ApprovalNeededNotifier.js";
 
 /**
  * Canonical Runtime Factory.
@@ -54,6 +55,7 @@ export class RuntimeFactory {
     signingReadiness?: SigningReadiness,
     executionIntents?: ExecutionIntentRepository,
     currentPolicyVersions?: CurrentPolicyVersionSource,
+    approvalNeededNotifier?: ApprovalNeededNotifier,
   ): ExecutionTrustApplication {
     //
     // Application Services
@@ -77,6 +79,10 @@ export class RuntimeFactory {
     // Runtime
     //
     const builder = new RuntimeBuilder().withPolicyRepository(policyRepository);
+
+    if (approvalNeededNotifier) {
+      builder.withApprovalNeededNotifier(approvalNeededNotifier);
+    }
 
     if (signalStateVerifier) {
       builder.withSignalStateVerifier(signalStateVerifier);

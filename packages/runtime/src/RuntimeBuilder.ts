@@ -35,6 +35,7 @@ import { BusinessTrustPipeline } from "./BusinessTrustPipeline.js";
 import type { RuntimeComponent } from "./RuntimeComponent.js";
 
 import type { RuntimeHook } from "./hooks/RuntimeHook.js";
+import type { ApprovalNeededNotifier } from "./ApprovalNeededNotifier.js";
 
 /**
  * Canonical Runtime Builder.
@@ -59,6 +60,8 @@ export class RuntimeBuilder {
   private signingReadiness?: SigningReadiness;
 
   private executionIntents?: ExecutionIntentService;
+
+  private approvalNeededNotifier?: ApprovalNeededNotifier;
 
   /**
    * Configure policy directory.
@@ -137,6 +140,14 @@ export class RuntimeBuilder {
    * current behavior unchanged. When set, RuntimeEngine signs and stores an
    * intent BEFORE releasing an action, and fails closed with 503 if it cannot.
    */
+  /**
+   * Tells a person when a refused request is waiting for their approval.
+   */
+  public withApprovalNeededNotifier(notifier: ApprovalNeededNotifier): this {
+    this.approvalNeededNotifier = notifier;
+    return this;
+  }
+
   public withExecutionIntents(executionIntents: ExecutionIntentService): this {
     this.executionIntents = executionIntents;
 
@@ -264,6 +275,7 @@ export class RuntimeBuilder {
       this.policyGovernanceAnchorResolver,
       this.signingReadiness,
       this.executionIntents,
+      this.approvalNeededNotifier,
     );
 
     //

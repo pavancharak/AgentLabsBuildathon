@@ -92,6 +92,7 @@
               "guides/policy-governance-maker-checker",
               "guides/policy-lifecycle-and-approvals",
               "guides/manage-approvers",
+              "guides/approval-notifications",
               "guides/credentials-maker-checker-approver",
               "guides/authorize-and-execute",
               "guides/connect-an-agent",
