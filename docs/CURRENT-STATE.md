@@ -136,8 +136,10 @@ Merged to `main` and deployed to production on 2026-09-27 (PR #46, merge `4eebd5
 - `paytm:refund` is bound to `customer-refund` 1.1.0: automatic up to 10000,
   a verified manager approval above 10000 and up to 100000, refused above.
   **Since 2026-09-28 the binding names 1.2.0** (G-75): every refund needs a
-  verified manager approval, 0 or less and above 100000 are refused. It takes
-  effect in production when 1.2.0 is approved.
+  verified manager approval, 0 or less and above 100000 are refused. **Approved
+  in production on 2026-09-28**, so refunds there run under 1.2.0, as do merges
+  under `github-pr-approval` 1.1.0, reads under `github-pr-read` 1.0.0 and LLM
+  tool calls under `llm-tool-call` 1.1.0.
 - Approvers sign on their own machine with `scripts/sign-approval.ts`, with
   an Ed25519 key from `scripts/generate-approver-key.ts`.
 - **In production:** `customer-refund` 1.1.0 was approved on 2026-09-27
