@@ -12,6 +12,12 @@ import type {
 export const SLACK_ALLOWED_CHANNEL_IDS_ENV = "SLACK_ALLOWED_CHANNEL_IDS";
 
 /**
+ * The slack-post-message signals this verifier checks itself, so the
+ * caller's value is not what counts.
+ */
+export const SLACK_VERIFIED_SIGNAL_KEYS = ["channelAuthorized"] as const;
+
+/**
  * Checks a slack:post-message against a channel allowlist the server
  * holds (G-76), instead of trusting the caller's channelAuthorized.
  *
@@ -50,7 +56,7 @@ export class SlackChannelSignalVerifier implements SignalStateVerifier {
       ? []
       : [
           {
-            signalKey: "channelAuthorized",
+            signalKey: SLACK_VERIFIED_SIGNAL_KEYS[0],
             declaredValue: signals.channelAuthorized,
             actualValue: false,
           },

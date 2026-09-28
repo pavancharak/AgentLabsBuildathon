@@ -57,6 +57,7 @@ export {
 } from "./HubSpotCapabilityExecution.js";
 
 export {
+  HUBSPOT_VERIFIED_SIGNAL_KEYS,
   HubSpotSignalStateVerifier,
   type HubSpotSignalStateVerifierOptions,
 } from "./HubSpotSignalStateVerifier.js";

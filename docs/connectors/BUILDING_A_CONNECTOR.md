@@ -192,6 +192,12 @@ package that implements `Connector` fails Invariant 2 of
       re-fetches the real state through `execute<Name>Capability` (never a direct `fetch()`,
       which Invariant 1 forbids) and returns a violation for each mismatch. A fetch error is a
       violation, never a pass.
+- [ ] **No approve rule of a write capability may rest on caller facts alone** (G-77). An agent
+      can be manipulated into declaring anything, and it can read the policy. Every approve rule
+      must need, on every path, a fact declared in `approvalSignals` or one your verifier checks.
+      Classify the capability as a read or a write in
+      `packages/api/tests/unit/connector-policies-not-self-authorizing.test.ts`, and list the
+      facts your verifier checks there; the test fails until you do.
 
 ## 6. Tests, in this order
 

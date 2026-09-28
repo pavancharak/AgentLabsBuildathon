@@ -1141,6 +1141,27 @@ choosing, the usual way prompt injection leaks data.
 - **To finish in production:** set `SLACK_ALLOWED_CHANNEL_IDS` on Vercel before deploying, if the Slack
   connector is configured there.
 
+**G-77. A refusal reason tells an agent which caller declared fact to flip. FOUND 2026-09-28,
+`pre-production`. CLOSED the same day by making flipping useless, not by hiding reasons.**
+A refusal carries the matched rule's reason (for example "did not pass fraud assessment"), and a goal
+seeking agent that retries can learn from it which fact to change. Hiding reasons was considered and
+rejected: every policy file is in the public repository, and the submitting caller can read its own
+Refusal Record (`GET /refusal/:id`), so a vaguer message would be obscurity, and it would cost people
+reviewing refusals the reason they need.
+
+- **Fix:** after G-73, G-75 and G-76, no approve rule of a connector action that changes something can
+  be satisfied by caller declared facts alone. `packages/api/tests/unit/connector-policies-not-self-authorizing.test.ts`
+  enforces it for every capability in `CANONICAL_CAPABILITY_POLICY_BINDINGS`: each approve rule must
+  need, on every path, a fact declared in `approvalSignals` or a fact a server verifier checks for that
+  capability (`HUBSPOT_VERIFIED_SIGNAL_KEYS`, `SLACK_VERIFIED_SIGNAL_KEYS`, both exported from the
+  verifiers so the test follows them). Bound facts do not count. Reads (`hubspot:deal-fetch`,
+  `github:pr-fetch`) are listed separately, and a new capability fails the test until it is classified.
+  The test also checks it flags `customer-refund` 1.1.0 and `github-pr-approval` 1.0.0.
+- **Scope:** checked for the versions named in the binding table, which production moves to on
+  approval. Until they are approved, production still runs 1.1.0 and 1.0.0 (G-73, G-75). Policies with
+  no connector (`llm-tool-call` and the reference policies) are outside the test; `llm-tool-call` 1.1.0
+  meets the rule (G-74).
+
 ---
 
 ## Remaining gaps, by severity

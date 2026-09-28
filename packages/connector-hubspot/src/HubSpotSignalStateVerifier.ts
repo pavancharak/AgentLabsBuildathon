@@ -76,7 +76,7 @@ export interface HubSpotSignalStateVerifierOptions {
  * independently derived from a real, externally-issued Approval
  * Artifact (TD-23 closure, Phase 3C).
  */
-const VERIFIED_SIGNAL_KEYS = [
+export const HUBSPOT_VERIFIED_SIGNAL_KEYS = [
   "currentDealStage",
   "dealStageChangeRequested",
   "dealStageTransitionAllowed",
@@ -194,7 +194,7 @@ export class HubSpotSignalStateVerifier implements SignalStateVerifier {
 
     const violations: SignalStateViolation[] = [];
 
-    for (const key of VERIFIED_SIGNAL_KEYS) {
+    for (const key of HUBSPOT_VERIFIED_SIGNAL_KEYS) {
       const declaredValue = signals[key];
       const actualValue = verified[key];
 

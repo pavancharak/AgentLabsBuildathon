@@ -1244,7 +1244,9 @@ An AI agent can be manipulated by content it reads (prompt injection) into sendi
 
 **LLM tool calls (`llm-tool-call`, G-74).** `llm-tool-call` 1.1.0 approves only when `humanApproval` is true, declared in `approvalSignals` with `resourceId: "target"` (the tool), so it needs a signed approval for that tool. The tool, resource, environment and risk facts can refuse a call and cannot authorize one on their own.
 
-A test checks the structure, not only examples: in each of these policies every approve rule requires the approval backed fact to be true, and every caller declared fact at its most permissive value, without the approval, is refused. So a refusal reason cannot teach an agent a flag that unlocks the action.
+A test checks the structure, not only examples: in each of these policies every approve rule requires the approval backed fact to be true, and every caller declared fact at its most permissive value, without the approval, is refused.
+
+**Refusal reasons (G-77).** Reasons stay specific; the policy files are public and a caller can read its own Refusal Record, so hiding them would not help. Instead, `connector-policies-not-self-authorizing.test.ts` requires that for every capability bound in `CANONICAL_CAPABILITY_POLICY_BINDINGS` that changes something, every approve rule needs, on every path, a fact declared in `approvalSignals` or a fact a server verifier checks for that capability. So no refusal reason can teach an agent a flag that unlocks a write. A new capability fails the test until it is classified as a read or a write.
 
 Scope, stated plainly:
 
@@ -1261,6 +1263,7 @@ Verification
 - `packages/api/tests/integration/github-pr-merge.integration.test.ts` (8, through `POST /execute` and the production bootstrap): a merge with a signed approval lands once on the mock GitHub server; every caller fact true with no approval, and `mergeApproved: true` with no approval, are refused with zero GitHub calls; an approval for another pull request is refused; an approval is used once.
 - `packages/api/tests/integration/github-caller-scoping.integration.test.ts` (4): a fetch under `github-pr-read`, a merge with an approval.
 - `packages/api/tests/integration/paytm-refund.integration.test.ts` (18, moved to 1.2.0): a small refund with every caller fact true and no approval is refused with zero connector calls, with `managerApproved` false and true; a refund of 0 with an approval is refused; a small refund with an approval executes once; declaring 1.1.0 is refused, naming 1.2.0.
+- `packages/api/tests/unit/connector-policies-not-self-authorizing.test.ts` (6): the four write capabilities pass at the bound versions; the check flags `customer-refund` 1.1.0 and `github-pr-approval` 1.0.0; every bound capability is classified.
 - `packages/api/tests/integration/slack-post-message.integration.test.ts` (4) and `packages/api/tests/unit/bootstrap/create-slack-channel-signal-verifier.test.ts` (7): only a listed channel that is the target receives a post; an unset list refuses every post.
 - Tutorial 96 (`examples/tutorials/96-github-pr-merge-connector`) shows the refusal and the approved merge through the production composition. Tutorials 111 and 119 use 1.2.0. Tutorial 112 refuses a channel off the list.
 
