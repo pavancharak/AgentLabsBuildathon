@@ -1279,7 +1279,9 @@ claims under `customer-refund` 1.1.0. Fixed in the repository on branch `fix/ai-
 by retiring superseded versions. **Update (2026-09-28):** PRs #70 and #71 are merged; #70's bindings are live in production (`GET /policies/in-effect`
 refused `github:pr-fetch` for want of an approved `github-pr-read` before the approvals), and
 `customer-refund` 1.2.0, `github-pr-approval` 1.1.0, `github-pr-read` 1.0.0 and `llm-tool-call` 1.1.0 are
-approved in production, so G-75 is closed there. Slack is not configured in production (checked by
+approved in production, so G-75 is closed there. `GET /policies/in-effect` in production then returned
+`customer-refund` 1.2.0 for `paytm:refund`, `github-pr-approval` 1.1.0 for `github:pr-merge` and
+`github-pr-read` 1.0.0 for `github:pr-fetch` (checked by the operator, 2026-09-28). Slack is not configured in production (checked by
 the operator the same day), so G-76 had no production exposure.
 
 **Addendum (2026-09-28, refund agent):** reading the refund agent against Parmana's release path
