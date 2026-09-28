@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { generateKeyPairSync, randomUUID } from "node:crypto";
 import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
 
@@ -19,6 +19,8 @@ import {
   ParmanaClient,
 } from "@parmana/sdk";
 import type { BusinessTransaction } from "@parmana/sdk";
+import { StaticApprovalIssuerRegistry } from "@parmana/approval";
+import { ApprovalArtifactSigner } from "@parmana/crypto";
 
 import { createApplication } from "../../src/application.js";
 import { createApp } from "../../src/app.js";
@@ -28,6 +30,29 @@ import {
   resolveGitHubLiveGate,
   resolveGitHubTestRepositoryGate,
 } from "../helpers/github-live-availability.js";
+
+//
+// A merge needs a signed approval for the pull request
+// (github-pr-approval 1.1.0, G-73), so this file trusts one approver.
+//
+const approver = vi.hoisted(() => ({
+  approverId: "reviewer-asha",
+  keyId: "reviewer-asha-key-1",
+}));
+
+const approverKeys = generateKeyPairSync("ed25519");
+
+vi.mock("../../src/bootstrap/createApprovalIssuerRegistry.js", () => ({
+  createApprovalIssuerRegistry: () =>
+    new StaticApprovalIssuerRegistry([
+      {
+        approverId: approver.approverId,
+        keyId: approver.keyId,
+        publicKey: approverKeys.publicKey,
+        revoked: false,
+      },
+    ]),
+}));
 
 const gitHubLiveConfigured = resolveGitHubLiveGate("GitHub Live Integration");
 
@@ -212,7 +237,7 @@ describe.skipIf(!gitHubLiveConfigured)(
 
         policy: {
           name: "github-pr-approval",
-          version: "1.0.0",
+          version: "1.1.0",
           schemaVersion: "1.0.0",
         },
 
@@ -223,14 +248,30 @@ describe.skipIf(!gitHubLiveConfigured)(
       };
     }
 
-    function approvedSignals(): BusinessTransaction["signals"] {
+    async function approvedSignals(
+      pullRequest: string,
+    ): Promise<BusinessTransaction["signals"]> {
+      const approval = await new ApprovalArtifactSigner().sign(
+        {
+          approverId: approver.approverId,
+          keyId: approver.keyId,
+          capability: "github:pr-merge",
+          resourceId: pullRequest,
+          scope: { field: "pullRequest", comparator: "eq", value: pullRequest },
+          ttlSeconds: 900,
+        },
+        approverKeys.privateKey,
+      );
+
       return {
+        mergeApproved: true,
         repositoryAuthorized: true,
         requiredReviewsCompleted: true,
         statusChecksPassed: true,
         branchProtected: true,
         riskScore: 5,
-      };
+        approvalArtifact: JSON.parse(JSON.stringify(approval)),
+      } as BusinessTransaction["signals"];
     }
 
     // Fixed, deliberately non-existent pull request number: real enough to
@@ -249,7 +290,9 @@ describe.skipIf(!gitHubLiveConfigured)(
             owner: owner as string,
             repo: repo as string,
             pullNumber: NON_EXISTENT_PULL_NUMBER,
-            signals: approvedSignals(),
+            signals: await approvedSignals(
+              `${owner}/${repo}#${NON_EXISTENT_PULL_NUMBER}`,
+            ),
           });
 
           let caught: unknown;

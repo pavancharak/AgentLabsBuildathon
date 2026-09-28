@@ -1,6 +1,10 @@
+import { generateKeyPairSync } from "node:crypto";
+
 import request from "supertest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { BusinessTransaction } from "@parmana/shared";
+import { StaticApprovalIssuerRegistry } from "@parmana/approval";
+import { ApprovalArtifactSigner } from "@parmana/crypto";
 import { MockGitHubServer } from "@parmana/connector-github";
 
 import { createApplication } from "../../src/application.js";
@@ -10,6 +14,29 @@ import { createExecutionSystem } from "../../src/bootstrap/createExecutionSystem
 import { hashApiKey } from "../../src/auth/hashApiKey.js";
 import { StaticKeyAuthenticator } from "../../src/auth/StaticKeyAuthenticator.js";
 import { InMemoryCallerAuditSink } from "../../src/auth/InMemoryCallerAuditSink.js";
+
+//
+// A merge needs a signed approval for the pull request
+// (github-pr-approval 1.1.0, G-73), so this file trusts one approver.
+//
+const approver = vi.hoisted(() => ({
+  approverId: "reviewer-asha",
+  keyId: "reviewer-asha-key-1",
+}));
+
+const approverKeys = generateKeyPairSync("ed25519");
+
+vi.mock("../../src/bootstrap/createApprovalIssuerRegistry.js", () => ({
+  createApprovalIssuerRegistry: () =>
+    new StaticApprovalIssuerRegistry([
+      {
+        approverId: approver.approverId,
+        keyId: approver.keyId,
+        publicKey: approverKeys.publicKey,
+        revoked: false,
+      },
+    ]),
+}));
 
 /**
  * HTTP-level proof that caller-to-capability scoping (docs/CLAIMS.md §3.16,
@@ -152,11 +179,19 @@ describe("GitHub caller-to-capability scoping (HTTP boundary, caller-auth enable
         createdAt: new Date(),
       },
 
-      policy: {
-        name: "github-pr-approval",
-        version: "1.0.0",
-        schemaVersion: "1.0.0",
-      },
+      // G-73: a read and a merge are governed by different policies.
+      policy:
+        overrides.action === "github:pr-merge"
+          ? {
+              name: "github-pr-approval",
+              version: "1.1.0",
+              schemaVersion: "1.0.0",
+            }
+          : {
+              name: "github-pr-read",
+              version: "1.0.0",
+              schemaVersion: "1.0.0",
+            },
 
       signals: overrides.signals,
 
@@ -320,12 +355,32 @@ describe("GitHub caller-to-capability scoping (HTTP boundary, caller-auth enable
       baseRef: "main",
     });
 
+    const approval = await new ApprovalArtifactSigner().sign(
+      {
+        approverId: approver.approverId,
+        keyId: approver.keyId,
+        capability: "github:pr-merge",
+        resourceId: "acme/widgets#45",
+        scope: {
+          field: "pullRequest",
+          comparator: "eq",
+          value: "acme/widgets#45",
+        },
+        ttlSeconds: 900,
+      },
+      approverKeys.privateKey,
+    );
+
     const transaction = githubTransaction({
       action: "github:pr-merge",
       owner: "acme",
       repo: "widgets",
       pullNumber: 45,
-      signals: APPROVING_SIGNALS,
+      signals: {
+        ...APPROVING_SIGNALS,
+        mergeApproved: true,
+        approvalArtifact: JSON.parse(JSON.stringify(approval)),
+      } as BusinessTransaction["signals"],
     });
 
     const response = await request(app)

@@ -1018,6 +1018,76 @@ checking the connector guide against the code (docs cleanup pass 4).
 
 ---
 
+## Gaps opened in the 2026-09-28 AI attack review
+
+Scope: the user asked whether Parmana can be attacked through AI, validated from the code. Parmana runs
+no model itself, so the threat is an agent that has been manipulated (prompt injection through a
+document, an email, an issue) and then calls the API. The review read the request path end to end:
+`caller-auth.ts`, `execute.ts`, `isPrincipalAllowed.ts`, `isCapabilityAllowed.ts`, `RuntimeEngine`,
+`SignalIntentBinder`, `PolicyEngine`, `OperatorEvaluator`, `CapabilityPolicyBinder`,
+`ApprovalSignalVerifier`, `ExecutionGateway`, `pending-policy-changes.ts`, every policy under
+`policies/`, and the public routes in `app.ts`.
+
+Held against a manipulated agent (no change needed): API key authentication, principal binding,
+capability grants, bound signals against the Intent, capability to policy binding for connector
+actions, the gateway's signature, content hash, policy hash, governance and nonce checks, single use
+signed approvals, maker checker on policy changes, strict typing in the evaluator, and ownership
+scoping on reads.
+
+Found: facts the agent declares and nothing checks can authorize real actions (G-73 to G-76), a
+refusal reason can tell an agent which flag to flip (G-77), and some public routes have no rate
+limit (G-78).
+
+**G-73. An agent could authorize a pull request merge by declaring GitHub facts true. FOUND
+2026-09-28, `blocks-pilot` wherever the GitHub connector is configured (not checked for production).
+FIXED in the repository the same day on branch `fix/ai-attack-hardening`; takes effect in production
+when `github-pr-approval` 1.1.0 and `github-pr-read` 1.0.0 are approved.**
+`github-pr-approval` 1.0.0 approved `github:pr-merge` when `repositoryAuthorized`,
+`requiredReviewsCompleted`, `statusChecksPassed` and `branchProtected` were true and `riskScore` was at
+most 20. All five are caller declared (`unboundSignalReasons`), no `SignalStateVerifier` covers GitHub,
+and 1.0.0 is approved in production (2026-09-16). An agent with the `github:pr-merge` grant could merge
+any pull request the GitHub App installation can reach by sending those values; only GitHub's own branch
+protection stood in the way.
+
+- **Fix:** `github-pr-approval` 1.1.0 approves a merge only with `mergeApproved: true`, declared in
+  `approvalSignals` with `resourceId: "target"`, so it counts only with a signed approval for that pull
+  request (2.42 machinery, no new verifier). The other facts now only refuse. `github:pr-fetch` is bound
+  to a new policy, `github-pr-read` 1.0.0, which approves a read with no caller facts, so reads do not
+  need a merge approval. `createApplication` takes an optional `approvalVerifier` (defaulting to the
+  production one) so tutorials can trust an in memory approver.
+- **Tests:** `packages/policy/tests/unit/ApprovalBackedPolicies.test.ts` (the structural check that
+  every approve rule requires the approval fact; the most permissive caller facts are refused);
+  `packages/api/tests/integration/github-pr-merge.integration.test.ts` (4 new: every caller fact true
+  and no approval, `mergeApproved: true` and no approval, an approval for another pull request, an
+  approval used twice; each makes zero merge calls where refused), `github-caller-scoping` updated.
+  Tutorial 96 shows the refusal and the approved merge.
+- **To finish in production:** propose and approve `github-pr-approval` 1.1.0 and `github-pr-read` 1.0.0
+  through maker checker, and list a reviewer in `TRUSTED_APPROVAL_ISSUERS`. After deploy and before
+  `github-pr-read` is approved, `github:pr-fetch` is refused.
+- **Not checked:** whether production has `GITHUB_APP_ID` and the other GitHub variables set; the gated
+  live suite was updated but not run.
+
+**G-74. `llm-tool-call` approves a tool call when the caller declares `humanApproval: true`. FOUND
+2026-09-28, `pre-production` (no connector runs a tool call, so the hosted API executes nothing).
+FIXED in the repository the same day as `llm-tool-call` 1.1.0; partly open, see below.**
+`llm-tool-call` 1.0.0 (approved in production 2026-09-16) approves when the caller declares
+`humanApproval`, `toolAllowed` and `resourceAuthorized` true, the environment `production` and
+`riskScore` at most 25. `humanApproval` is the caller's own word that a person agreed. The action used
+with it (`ExecuteTool` in `python/examples/10_llm_tool_call.py`) has no connector, so on the hosted API
+the pipeline refuses to release it; the risk is an integration that treats Parmana's decision as
+permission and runs the tool itself.
+
+- **Fix:** `llm-tool-call` 1.1.0 declares `humanApproval` in `approvalSignals` with
+  `resourceId: "target"`, so it needs a signed approval for that tool; the other facts only refuse.
+- **Still open:** the action is not in `CANONICAL_CAPABILITY_POLICY_BINDINGS` (that map is for
+  connector capabilities, and a test pins its exact set), so a caller can still name `llm-tool-call`
+  1.0.0, which stays approved. An integration using the decision alone must require 1.1.0 in the signed
+  authorization. Options: bind an agreed action name such as `llm:tool-call`, or a way to retire an
+  approved version.
+- **Tests:** `packages/policy/tests/unit/ApprovalBackedPolicies.test.ts`.
+
+---
+
 ## Remaining gaps, by severity
 
 **Status note, updated in the adversarial-testing hardening session that added G-24:**
@@ -1864,6 +1934,9 @@ against a signed approval (G-65, `approvalSignals` in the policy, `ApprovalSigna
 `fraudCheckPassed`, and the GitHub and Slack signals, are still caller declared. **Update (2026-09-28):**
 the narrowing is in effect in production since `customer-refund` 1.1.0 was approved there on 2026-09-27;
 before that the defect was live in production (the Paytm connector is configured there).
+**Update (2026-09-28, AI attack review):** narrowed again in the repository: merges (G-73) and LLM tool
+calls (G-74) need a signed approval in new policy versions, pending approval in production. The rest of
+this gap is tracked there and in G-75 and G-76.
 
 **G-52. The connector can be called before the Execution Trust Record can be signed, so a signing
 failure leaves an executed action with no signed trust record.** Found 2026-09-20 in the same live

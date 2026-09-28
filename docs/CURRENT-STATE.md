@@ -193,11 +193,13 @@ approval record are refused until that changes.
 
 ## On disk, but not reachable
 
-14 policy names exist under `policies/` (checked 2026-09-27). 4 are bound to a
+15 policy names exist under `policies/` (checked 2026-09-28). 5 are bound to a
 capability a registered connector can invoke (`CapabilityPolicyBinding.ts`):
-`hubspot-deal-update`, `github-pr-approval`, `customer-refund` (1.0.0 and
-1.1.0 on disk; the version in effect is the one most recently approved, 1.1.0
-in production) and `slack-post-message`. The others
+`hubspot-deal-update`, `github-pr-read` (`github:pr-fetch`, added 2026-09-28),
+`github-pr-approval` (`github:pr-merge`; 1.1.0, which needs a signed approval,
+added 2026-09-28), `customer-refund` (1.0.0 and 1.1.0 on disk; the version in
+effect is the one most recently approved, 1.1.0 in production) and
+`slack-post-message`. The others
 have no connector that can invoke them today. They are reference and example
 content, not live surface.
 

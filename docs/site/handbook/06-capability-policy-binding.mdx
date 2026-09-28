@@ -56,8 +56,8 @@ governance:
 | --------------------- | ----------------------------- |
 | `hubspot:deal-fetch`  | `hubspot-deal-update` @ 1.0.0 |
 | `hubspot:deal-update` | `hubspot-deal-update` @ 1.0.0 |
-| `github:pr-fetch`     | `github-pr-approval` @ 1.0.0  |
-| `github:pr-merge`     | `github-pr-approval` @ 1.0.0  |
+| `github:pr-fetch`     | `github-pr-read` @ 1.0.0      |
+| `github:pr-merge`     | `github-pr-approval` @ 1.1.0  |
 | `paytm:refund`        | `customer-refund` @ 1.1.0     |
 | `slack:post-message`  | `slack-post-message` @ 1.0.0  |
 
@@ -68,6 +68,10 @@ any future capability not yet given a canonical policy, is entirely unaffected b
 `CapabilityPolicyBinder`. The table is additive, not a replacement for `PolicyRouter`/
 `PolicyEngine`; it doesn't change how a selected policy is loaded or evaluated, only whether
 the caller was allowed to select a different one.
+
+Since 2026-09-28 (G-73) a read and a merge on GitHub have separate policies, so a merge can
+need a signed approval for its pull request without every read needing one. In production each
+new version applies once it is approved through policy governance.
 
 ### The request-time check
 
