@@ -38,6 +38,7 @@ import { createPolicyExecutionVerifier } from "./bootstrap/createPolicyExecution
 import { createPolicyGovernanceAnchorResolver } from "./bootstrap/createPolicyGovernanceAnchorResolver.js";
 import { createSigningReadiness } from "./bootstrap/createSigningReadiness.js";
 import { createExecutionIntents } from "./bootstrap/createExecutionIntents.js";
+import { createApprovalNeededNotifier } from "./bootstrap/createApprovalNeededNotifier.js";
 
 const config = loadConfig();
 
@@ -124,5 +125,6 @@ export function createApplication(
     createSigningReadiness(),
     createExecutionIntents(),
     createCurrentPolicyVersionSource(),
+    createApprovalNeededNotifier(),
   );
 }

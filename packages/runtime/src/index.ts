@@ -22,6 +22,7 @@ export * from "./RuntimeEngine.js";
 export * from "./SigningReadiness.js";
 export * from "./BusinessTrustPipeline.js";
 export * from "./RefusalRecordBuilder.js";
+export * from "./ApprovalNeededNotifier.js";
 export * from "./ExecutionIntentBuilder.js";
 export * from "./ExecutionIntentService.js";
 export * from "./ExecutionIntentFinalizer.js";

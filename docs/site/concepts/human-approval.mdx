@@ -13,6 +13,7 @@ refused, and the agent sends a new one with the approval attached.
 | ---------------------------------------------------------------- | ------------------------------------------- |
 | Approve a policy before it can authorize anything                | **[AVAILABLE]**                             |
 | Review refused requests                                          | **[AVAILABLE]**                             |
+| Get notified when a request waits for an approval                | **[AVAILABLE]**, when a webhook is set      |
 | Sign an approval for any action whose policy declares one        | **[AVAILABLE]**, no approver configured yet |
 | Sign an approval for a refund above 10000                        | **[AVAILABLE]**, no approver configured yet |
 | Sign an approval for a HubSpot amount change above the threshold | **[AVAILABLE]**, no approver configured yet |
@@ -218,11 +219,67 @@ limit 50;
   Each miss is logged as `refusal_record_write_failed`.
 </Warning>
 
+## Get notified
+
+Set `APPROVAL_WEBHOOK_URL` and `APPROVAL_WEBHOOK_SECRET`, and Parmana POSTs an event to that URL
+each time a request is refused **only** for want of an approval: the policy declares
+`approvalSignals`, and the same request with those signals true would have been authorized. A
+refund refused for a failed fraud check, or above the maximum, sends nothing.
+
+```json
+{
+  "type": "approval.needed",
+  "occurredAt": "2026-09-29T10:15:02.114Z",
+  "businessTransactionId": "5f0c...",
+  "decisionId": "a91e...",
+  "action": "paytm:refund",
+  "target": "paytm://orders/ORD-1042",
+  "policyId": "customer-refund",
+  "policyVersion": "1.2.0",
+  "reason": "...",
+  "approvals": [
+    { "signal": "managerApproved", "resourceId": "ORD-1042", "value": 75000 }
+  ]
+}
+```
+
+`approvals` is what to sign: `--capability` is `action`, `--resource-id` is `resourceId`, and
+`--max-amount` is `value` when there is one. The event carries nothing else from the request.
+
+Each request has two headers. `parmana-webhook-timestamp` is Unix seconds.
+`parmana-webhook-signature` is `v1=` and the lowercase hex HMAC SHA256, keyed with the secret,
+of the timestamp, a dot, and the exact body. Check it before acting, and refuse an old
+timestamp:
+
+```typescript
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+function isFromParmana(
+  secret: string,
+  timestamp: string,
+  body: string,
+  signature: string,
+) {
+  const expected =
+    "v1=" +
+    createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex");
+  const fresh = Math.abs(Date.now() / 1000 - Number(timestamp)) < 300;
+  return (
+    fresh &&
+    expected.length === signature.length &&
+    timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
+  );
+}
+```
+
+Delivery is best effort: one attempt, at most 3 seconds, no retry. A failed delivery is logged
+as `approval_needed_notification_failed` and changes nothing about the refusal. The refused
+requests query above stays the complete list.
+
 ## Not available
 
 **A refused request cannot be approved afterwards.** A policy decision is approve or refuse.
-Nothing waits for a person, and nothing notifies one. After a manager signs an approval, the
-agent sends a new request.
+Nothing waits for a person. After a manager signs an approval, the agent sends a new request.
 
 **Eligibility and fraud signals are still the caller's word.** `refundEligible` and
 `fraudCheckPassed` are not checked against another system (G-51 in

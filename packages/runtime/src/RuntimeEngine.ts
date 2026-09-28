@@ -26,10 +26,12 @@ import {
   PolicyRouter,
   SignalIntentBinder,
   type CapabilityPolicyBinder,
+  type Policy,
   type PolicyDecision,
   type PolicyExecutionVerifier,
   type PolicyGovernanceAnchor,
   type PolicyGovernanceAnchorResolver,
+  type PolicySignals,
   type SignalIntentBindingViolation,
   type SignalStateVerifier,
   type SignalStateViolation,
@@ -44,6 +46,10 @@ import { ExecutionOutcomeUnknownError } from "./errors/ExecutionOutcomeUnknownEr
 import { RuntimeError } from "./errors/RuntimeError.js";
 import type { SigningReadiness } from "./SigningReadiness.js";
 import type { ExecutionIntentService } from "./ExecutionIntentService.js";
+import {
+  findNeededApprovals,
+  type ApprovalNeededNotifier,
+} from "./ApprovalNeededNotifier.js";
 
 import { RuntimeHookRunner } from "./hooks/RuntimeHookRunner.js";
 
@@ -195,6 +201,12 @@ export class RuntimeEngine {
      * be rebuilt if it cannot be produced inline.
      */
     private readonly executionIntents?: ExecutionIntentService,
+    /**
+     * Tells a person when a refused request is waiting for their
+     * approval (ApprovalNeededNotifier.ts). Optional: without it,
+     * refused requests are found by query, as before.
+     */
+    private readonly approvalNeededNotifier?: ApprovalNeededNotifier,
   ) {
     if (!pipeline) {
       throw new Error("RuntimePipeline is required.");
@@ -510,6 +522,17 @@ export class RuntimeEngine {
     //
     if (decision.outcome !== DecisionOutcome.APPROVED) {
       await this.writeRefusalRecord(transaction, decision, bindingViolations);
+
+      // Only a refusal by the policy's own rules, or by an approval
+      // that did not verify, can be cured by an approval. A binding or
+      // governance violation cannot.
+      if (
+        policyExecutionViolation === undefined &&
+        capabilityBindingViolation === undefined &&
+        bindingViolations.length === 0
+      ) {
+        await this.notifyApprovalNeeded(transaction, decision, policy, signals);
+      }
     }
 
     //
@@ -793,6 +816,62 @@ export class RuntimeEngine {
     } catch (error) {
       console.error({
         event: "refusal_record_write_failed",
+        businessTransactionId: transaction.businessTransactionId,
+        decisionId: decision.decisionId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
+   * Notifies approvalNeededNotifier when the refused request would have
+   * been authorized with its approval signals true. Like
+   * writeRefusalRecord, a failure here is logged and never rethrown,
+   * and the wait is bounded, so the refusal never depends on it.
+   */
+  private async notifyApprovalNeeded(
+    transaction: BusinessTransaction,
+    decision: Decision,
+    policy: Policy,
+    signals: PolicySignals,
+  ): Promise<void> {
+    if (!this.approvalNeededNotifier) {
+      return;
+    }
+
+    try {
+      const approvals = findNeededApprovals(
+        this.policyEngine,
+        policy,
+        signals,
+        {
+          target: transaction.intent.target,
+          parameters: transaction.intent.parameters,
+        },
+      );
+
+      if (approvals === undefined) {
+        return;
+      }
+
+      await this.approvalNeededNotifier.notify({
+        type: "approval.needed",
+        occurredAt: new Date().toISOString(),
+        businessTransactionId: transaction.businessTransactionId,
+        decisionId: decision.decisionId,
+        action: transaction.intent.action,
+        target: transaction.intent.target,
+        policyId: policy.policyId,
+        policyVersion: policy.policyVersion,
+        reason: decision.reason,
+        ...(transaction.metadata?.submittedBy !== undefined
+          ? { submittedBy: transaction.metadata.submittedBy }
+          : {}),
+        approvals,
+      });
+    } catch (error) {
+      console.error({
+        event: "approval_needed_notification_failed",
         businessTransactionId: transaction.businessTransactionId,
         decisionId: decision.decisionId,
         error: error instanceof Error ? error.message : String(error),
