@@ -1132,8 +1132,8 @@ approved a refund of 0 or a negative amount, since nothing set a lower bound.
   server trusts, and adding a demo approver to the trusted list would weaken every deployment.
 
 **G-76. An agent could post any text to any Slack channel the bot is in, by declaring the channel
-authorized. FOUND 2026-09-28, `blocks-pilot` wherever the Slack connector is configured (not checked for
-production). FIXED the same day on branch `fix/ai-attack-hardening`; takes effect on deploy, and needs
+authorized. FOUND 2026-09-28, `blocks-pilot` wherever the Slack connector is configured (not configured
+in production, checked by the operator on 2026-09-28). FIXED the same day on branch `fix/ai-attack-hardening`; takes effect on deploy, and needs
 `SLACK_ALLOWED_CHANNEL_IDS` set or every post is refused.**
 `slack-post-message` 1.0.0 approves when the caller declares `contentApproved` and `channelAuthorized`
 true, and binds only `channelId` to the Intent's `target`. Two holes: nothing checks
@@ -1156,8 +1156,9 @@ choosing, the usual way prompt injection leaks data.
 - **Still open:** `contentApproved` is caller declared. The content of an approved post is whatever the
   agent writes, limited to channels on the list. A per post human approval (`approvalSignals`) would
   close it at the cost of a person per message.
-- **To finish in production:** set `SLACK_ALLOWED_CHANNEL_IDS` on Vercel before deploying, if the Slack
-  connector is configured there.
+- **Production:** the Slack connector is not configured there (the operator checked on 2026-09-28), so
+  this was never exposed in production and nothing needs setting. Set `SLACK_ALLOWED_CHANNEL_IDS` together
+  with `SLACK_BOT_TOKEN` if Slack is added later.
 
 **G-77. A refusal reason tells an agent which caller declared fact to flip. FOUND 2026-09-28,
 `pre-production`. CLOSED the same day by making flipping useless, not by hiding reasons.**
@@ -1278,8 +1279,8 @@ claims under `customer-refund` 1.1.0. Fixed in the repository on branch `fix/ai-
 by retiring superseded versions. **Update (2026-09-28):** PRs #70 and #71 are merged; #70's bindings are live in production (`GET /policies/in-effect`
 refused `github:pr-fetch` for want of an approved `github-pr-read` before the approvals), and
 `customer-refund` 1.2.0, `github-pr-approval` 1.1.0, `github-pr-read` 1.0.0 and `llm-tool-call` 1.1.0 are
-approved in production, so G-75 is closed there. Still open: whether `SLACK_ALLOWED_CHANNEL_IDS` is set
-wherever Slack is configured was not checked.
+approved in production, so G-75 is closed there. Slack is not configured in production (checked by
+the operator the same day), so G-76 had no production exposure.
 
 **Addendum (2026-09-28, refund agent):** reading the refund agent against Parmana's release path
 found **G-70**, `blocks-pilot`: `parmana-paytm-agent`'s `/agent/refunds` called Paytm itself after
