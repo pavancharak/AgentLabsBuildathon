@@ -52,14 +52,15 @@ The offline verifiers make no network call. Get the public key once with `public
 
 ## Policies and governance
 
-| Operation                                              | TypeScript                                            | Python                                                                             |
-| ------------------------------------------------------ | ----------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `POST /policies/validate`                              | `validatePolicy(name, version)`                       | `validate_policy(name, version)`, `policy.validate(...)`                           |
-| `POST /policies/{name}/{version}/pending-changes`      | `proposePolicyChange(name, version, input)` **1.3.0** | `propose_policy_change(name, version, proposed_content=, reason=)` **1.3.0**       |
-| `GET /policies/pending-changes`                        | `policyChanges(status?)` **1.3.0**                    | `policy_changes(status=None)` **1.3.0**, `policy.list_changes(...)`                |
-| `POST /policies/pending-changes/{id}/approve`          | `approvePolicyChange(id, stepUp)` **1.3.0**           | `approve_policy_change(id, step_up)` **1.3.0**, `policy.approve_change(...)`       |
-| `POST /policies/pending-changes/{id}/reject`           | `rejectPolicyChange(id, reason, stepUp)` **1.3.0**    | `reject_policy_change(id, reason, step_up)` **1.3.0**, `policy.reject_change(...)` |
-| Sign a step up authorization on the approver's machine | `signPolicyChangeStepUp({...})` **1.3.0**             | `parmana.crypto.sign_policy_change_step_up(...)` **1.3.0**                         |
+| Operation                                                | TypeScript                                            | Python                                                                             |
+| -------------------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `POST /policies/validate`                                | `validatePolicy(name, version)`                       | `validate_policy(name, version)`, `policy.validate(...)`                           |
+| `POST /policies/{name}/{version}/pending-changes`        | `proposePolicyChange(name, version, input)` **1.3.0** | `propose_policy_change(name, version, proposed_content=, reason=)` **1.3.0**       |
+| `GET /policies/pending-changes`                          | `policyChanges(status?)` **1.3.0**                    | `policy_changes(status=None)` **1.3.0**, `policy.list_changes(...)`                |
+| `POST /policies/pending-changes/{id}/approve`            | `approvePolicyChange(id, stepUp)` **1.3.0**           | `approve_policy_change(id, step_up)` **1.3.0**, `policy.approve_change(...)`       |
+| `POST /policies/pending-changes/{id}/reject`             | `rejectPolicyChange(id, reason, stepUp)` **1.3.0**    | `reject_policy_change(id, reason, step_up)` **1.3.0**, `policy.reject_change(...)` |
+| Sign a step up authorization on the approver's machine   | `signPolicyChangeStepUp({...})` **1.3.0**             | `parmana.crypto.sign_policy_change_step_up(...)` **1.3.0**                         |
+| Sign an approval of one action on the approver's machine | `signApproval({...})` **1.4.0**                       | `parmana.crypto.sign_approval(...)` **1.4.0**                                      |
 
 ## Caller and service
 

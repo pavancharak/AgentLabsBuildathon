@@ -16,6 +16,10 @@ every commit, run `git log` in the repository for the complete record.
 
 - **Approval notifications.** With `APPROVAL_WEBHOOK_URL` and `APPROVAL_WEBHOOK_SECRET` set, a request refused only for want of a signed approval sends a signed `approval.needed` event to that URL, naming what to sign. Other refusals send nothing. Best effort, and a failed delivery never changes the refusal. See [Approval notifications](/guides/approval-notifications).
 
+**SDK 1.4.0, built, not yet published**
+
+- Sign an approval of one action on the approver's own machine, without a clone of the repository: `signApproval()` in TypeScript, `parmana.crypto.sign_approval()` in Python. The result is the same signed approval `scripts/sign-approval.ts` makes, and the server's own verifier accepts it (tested). See [Human approval](/concepts/human-approval).
+
 ## 2026-09-28
 
 **Security**

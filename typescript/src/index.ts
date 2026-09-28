@@ -93,7 +93,7 @@ export { AuditApi } from "./client/AuditApi.js";
 export { CallerApi } from "./client/CallerApi.js";
 
 // -----------------------------------------------------------------------------
-// Offline verification and step up signing
+// Offline verification, step up signing and approval signing
 // -----------------------------------------------------------------------------
 
 export {
@@ -107,5 +107,16 @@ export {
   signPolicyChangeStepUp,
   type SignPolicyChangeStepUpInput,
 } from "./crypto/step-up.js";
+
+export {
+  signApproval,
+  DEFAULT_APPROVAL_TTL_SECONDS,
+  MAX_APPROVAL_TTL_SECONDS,
+  type SignApprovalInput,
+  type SignedApproval,
+  type ApprovalPayload,
+  type ApprovalScope,
+  type ApprovalScopeComparator,
+} from "./crypto/approval.js";
 
 export { canonicalSerialize } from "./crypto/canonical.js";
