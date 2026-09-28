@@ -1,6 +1,6 @@
 # Parmana
 
-> **Proof of Human Authority in AI Systems**
+> **Execution Trust Infrastructure for AI systems**
 
 [![PyPI](https://img.shields.io/pypi/v/parmana)](https://pypi.org/project/parmana/)
 [![Python](https://img.shields.io/pypi/pyversions/parmana)](https://pypi.org/project/parmana/)
@@ -8,7 +8,7 @@
 
 The official Python SDK for **Parmana Execution Trust Infrastructure**.
 
-Parmana enables organizations to confidently deploy AI in high-impact workflows by ensuring that **only authorized actions are executed** and every execution is accompanied by verifiable execution evidence.
+Parmana lets organizations verify what automated systems executed, not simply trust that they executed correctly. An action routed through Parmana runs only when the policy bound to it, approved through policy governance, approves it, and each execution produces a signed Execution Trust Record that anyone with the public key can verify.
 
 ## Why Parmana
 
@@ -25,10 +25,10 @@ However, most AI systems cannot answer critical governance questions:
 - Who authorized this execution?
 - Which policy approved it?
 - Was the execution independently verified?
-- Can the execution be replayed?
+- Has the record changed since it was written?
 - Is there cryptographic evidence of what occurred?
 
-Parmana provides the execution trust layer that answers these questions.
+For actions routed through it, Parmana records the answers in signed evidence. An agent that calls a system with its own credentials, outside Parmana, is outside that record.
 
 ## Installation
 
@@ -39,7 +39,7 @@ pip install parmana
 ### Requirements
 
 - Python 3.10 or later
-- Parmana Runtime
+- A running Parmana API server (for example `http://localhost:3000`) and an API key for it
 
 ## Quick Start
 
@@ -48,9 +48,10 @@ from parmana import ParmanaClient
 
 client = ParmanaClient(
     endpoint="http://localhost:3000",
+    api_key="<your API key>",
 )
 
-print(client.version)
+print(client.version)  # the SDK version
 ```
 
 ## Runtime Health
@@ -64,10 +65,26 @@ print(status)
 ## Execute a Business Transaction
 
 ```python
-from parmana.models import BusinessTransaction
+from parmana import PolicyReference, create_business_transaction
 
-transaction = BusinessTransaction(
-    business_transaction_id="txn-001",
+transaction = create_business_transaction(
+    principal_id="python-sdk",
+    purpose="Quickstart demo",
+    action="test:fixture-execute",
+    target="vendor://payments",
+    parameters={"amount": 1000, "currency": "USD"},
+    policy=PolicyReference(
+        name="vendor-payment", version="2.0.0", schema_version="1.0.0"
+    ),
+    signals={
+        "vendorVerified": True,
+        "invoiceVerified": True,
+        "paymentApproved": True,
+        "sufficientFunds": True,
+        "paymentAmount": 1000,
+        "riskScore": 5,
+        "vendorId": "vendor://payments",
+    },
 )
 
 trust_record = client.execute(transaction)
@@ -75,21 +92,25 @@ trust_record = client.execute(transaction)
 print(trust_record.trust_record_id)
 ```
 
+`test:fixture-execute` is a test only capability that works on a server started with `NODE_ENV=test`; see `examples/quickstart/run.py` for the full, tested example. A refused request raises an error instead of returning a record.
+
 ## Verify an Execution
 
 ```python
-verification = client.verify("txn-001")
+verification = client.verify(transaction.business_transaction_id)
 
 print(verification.status)
 ```
 
-## Replay an Execution
+## Recheck a stored record
 
 ```python
-result = client.replay("txn-001")
+result = client.replay.replay(transaction.business_transaction_id)
 
-print(result.success)
+print(result.verified)
 ```
+
+Through the API, "replay" rechecks the stored Trust Record's hash and signature, the same kind of check as `verify()`. It does not execute anything again. See https://docs.parmanasystems.com/replay/overview.
 
 ## Execution Lifecycle
 
@@ -97,16 +118,19 @@ print(result.success)
 Business Transaction
         |
         v
-Execution
+Policy decision (refused requests get a signed Refusal Record)
         |
         v
-Verification
+Signed authorization
         |
         v
-Receipt
+Execution through the gateway
         |
         v
-Execution Trust Record
+Execution Trust Record (signed)
+        |
+        v
+Verification and Receipt
 ```
 
 ## Python SDK
@@ -116,8 +140,8 @@ Execution Trust Record
 | `health()`                | Runtime health check                                |
 | `execute()`               | Execute a Business Transaction                      |
 | `verify()`                | Verify an execution                                 |
-| `replay()`                | Deterministic replay                                |
-| `receipt()`               | Generate an execution receipt                       |
+| `replay.replay()`         | Recheck a stored Trust Record (hash and signature)  |
+| `receipt.generate()`      | Generate an execution receipt                       |
 | `latest_receipt()`        | Read the latest receipt (1.3.0)                     |
 | `transaction()`           | Retrieve a Business Transaction                     |
 | `trust_record()`          | Retrieve an Execution Trust Record                  |
@@ -151,4 +175,4 @@ Apache License 2.0
 
 **Parmana**
 
-**Proof of Human Authority in AI Systems**
+**Execution Trust Infrastructure for AI systems**
