@@ -1,6 +1,6 @@
 import crypto, { generateKeyPairSync } from "node:crypto";
 
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
   ApprovalIssuerChangeNotFoundError,
@@ -26,8 +26,15 @@ const databaseConfigured = resolveDatabaseGate(
 describe.skipIf(!databaseConfigured)(
   "SupabaseApprovalIssuerRepository (live)",
   () => {
-    const pool = PostgresPoolFactory.create();
-    const repository = new SupabaseApprovalIssuerRepository(pool);
+    // Created in beforeAll, not here: this body also runs when the suite
+    // is skipped, and PostgresPoolFactory needs DATABASE_URL.
+    let pool: ReturnType<typeof PostgresPoolFactory.create>;
+    let repository: SupabaseApprovalIssuerRepository;
+
+    beforeAll(() => {
+      pool = PostgresPoolFactory.create();
+      repository = new SupabaseApprovalIssuerRepository(pool);
+    });
 
     afterAll(async () => {
       await pool.end();

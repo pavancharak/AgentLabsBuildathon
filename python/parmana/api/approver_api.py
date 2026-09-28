@@ -9,6 +9,7 @@ belongs to a verified human.
 
 from __future__ import annotations
 
+import builtins
 from typing import Any, cast
 from urllib.parse import quote
 
@@ -99,7 +100,7 @@ class ApproverApi:
     def list_changes(
         self,
         status: str | None = None,
-    ) -> list[ApprovalIssuerChange]:
+    ) -> builtins.list[ApprovalIssuerChange]:
         """
         List approver changes, newest first.
 
