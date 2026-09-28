@@ -52,6 +52,13 @@ not claim them:
   is no per-key allowlist of endpoints. What is scoped: which `authority.principalId` a
   caller may assert (default: only itself), and which transactions/records a caller may
   read (cross-caller reads 404, not 403).
+- **Two people approve an approver change, not two proven people.** Adding or revoking an
+  approver key needs one human credential to propose and a different one, with its own step up
+  key, to approve. The server cannot tell whether two credentials belong to two people. An
+  operator with database access can also change `approval_issuers` directly, which bypasses
+  this; the change rows record what was done.
+- **Approval notifications are best effort.** One attempt, 3 seconds, no retry. A lost event
+  changes nothing about the refusal, and the Refusal Records stay the complete list.
 - **Mocks are labeled as mocks.** `SapConnector`, `OracleConnector`, `WorkdayConnector`, and
   `SalesforceConnector` are explicit, self-documented reference mocks. None calls a real
   system, and none is wired into the default server.

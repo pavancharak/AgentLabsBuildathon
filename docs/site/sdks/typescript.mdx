@@ -296,6 +296,41 @@ const approval = signApproval({
 The approval is valid for 15 minutes by default (`ttlSeconds`, up to a day) and can be used
 once. See [Human approval](/concepts/human-approval).
 
+### Manage approvers
+
+Add, rotate and revoke the keys trusted to sign approvals, through maker checker, with no
+deploy. Every call needs an API key added as a human.
+
+```typescript
+import { ParmanaClient, signPolicyChangeStepUp } from "@parmana/sdk";
+
+// The proposer
+const change = await proposer.proposeApproverChange({
+  action: "add",
+  approverId: "manager-priya",
+  keyId: "manager-priya-key-1",
+  publicKeyPem, // the approver's .public.pem file
+  reason: "Priya approves refunds for the West region from October.",
+});
+
+// A different person, the checker
+const pending = await checker.approverChanges("PENDING_APPROVAL");
+await checker.approveApproverChange(
+  change.changeId,
+  signPolicyChangeStepUp({
+    pendingPolicyChangeId: change.changeId,
+    action: "approve",
+    privateKeyPem: checkerStepUpKeyPem,
+    keyId: "checker-step-up-1",
+  }),
+);
+
+const approvers = await checker.approvers();
+```
+
+`rejectApproverChange(changeId, reason, stepUp)` rejects one, and `action: "revoke"` proposes a
+revocation. See [Manage approvers](/guides/manage-approvers).
+
 ## New in 1.3.0
 
 <Info>

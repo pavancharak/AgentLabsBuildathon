@@ -516,6 +516,22 @@ Evidence
 
 **Update (2026-09-28, G-73):** `github:pr-fetch` is bound to a new policy name, `github-pr-read`, so reads need no merge approval, and the table names `github-pr-approval` 1.1.0 for `github:pr-merge`. The name change takes effect on deploy; in production a read is then refused until `github-pr-read` 1.0.0 is approved (2.44).
 
+## 2.45 Approver Keys Are Added and Revoked Through Maker Checker, With No Deploy (Scoped, 2026-09-29)
+
+**Claim:** a key trusted to sign approvals can be added or revoked without a code change or deploy, and only when one human credential proposes it and a different human credential approves it with a step up authorization.
+
+**Backed by:** `packages/api/src/routes/approval-issuers.ts` (human callers only, maker is not checker, step up on approve and reject, shared with policy changes in `auth/governanceGuards.ts`); migration `20260929120000_add_approval_issuers.sql` (check constraints: maker is not checker, an add carries a key, a key is revoked only with a change behind it; one open change per key); `SupabaseApprovalIssuerRepository.approveChange` (locks the change, applies it and resolves it in one transaction); `GovernedApprovalIssuerRegistry` (code list first, then the table on every approval, fails closed on a read error). Tests: `approval-issuers-governance.integration.test.ts` (through the HTTP boundary, including a refund authorized with a newly added key and refused after its revocation), `governed-approval-issuer-registry.test.ts`, and `supabase-approval-issuer-repository.integration.test.ts` against real Postgres in the Docker image workflow (including two concurrent approvals of one change).
+
+**Scope:** distinct credentials, not proven distinct people. Keys listed in code still change only by deploy. An operator with database access can bypass the API. Not live until the migration is applied in production.
+
+## 2.46 An Approver Is Notified When a Request Waits Only for Their Approval (Scoped, 2026-09-29)
+
+**Claim:** when `APPROVAL_WEBHOOK_URL` and `APPROVAL_WEBHOOK_SECRET` are set, a request refused only for want of a signed approval sends one HMAC SHA256 signed `approval.needed` event naming what to sign, and a delivery failure never changes the refusal.
+
+**Backed by:** `packages/runtime/src/ApprovalNeededNotifier.ts` (`findNeededApprovals`: the same policy evaluated with the declared approval signals true must approve), `RuntimeEngine.notifyApprovalNeeded` (only after a refusal by rules or by an unverified approval; errors logged, never rethrown), `packages/api/src/bootstrap/createApprovalNeededNotifier.ts` (https outside test and development, no redirects, 3 second limit). Tests: `approval-webhook.integration.test.ts` through `POST /execute` with a real local receiver (event and signature, no event for a fraud refusal, above the maximum, or an authorized request, refusal unchanged when the webhook fails), and unit tests.
+
+**Scope:** best effort, one attempt, no retry. Not configured in production as of 2026-09-29.
+
 ---
 
 ## 2.23 Independently Certified Authorization (Phase 3D)

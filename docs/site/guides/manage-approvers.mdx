@@ -62,7 +62,8 @@ You need three people, or at least three roles:
   [Policy lifecycle and approvals](/guides/policy-lifecycle-and-approvals#2-set-up-the-people-once).
 
 The deployment needs the migration `20260929120000_add_approval_issuers.sql`. Self hosted
-deployments apply it on start. On Supabase, run it once before deploying this version.
+deployments apply it on start. Otherwise run `npm run db:migrate -- apply` before deploying
+this version, as in [Production deployment, step 2](/deployment/production#step-2-create-the-database-schema).
 
 ## Step 1: The approver makes a key pair
 
