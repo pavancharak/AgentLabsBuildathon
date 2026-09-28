@@ -210,10 +210,13 @@ The message says which case applies: the key id is listed in the server code, it
 an active key added through approver changes, or another change for the same key is still
 pending. See [Manage approvers](/guides/manage-approvers#errors).
 
-## No `approval.needed` event arrives
+## No approval email or `approval.needed` event arrives
 
-- Both `APPROVAL_WEBHOOK_URL` and `APPROVAL_WEBHOOK_SECRET` are set, and the server was
-  redeployed after setting them.
+- For email: `APPROVAL_EMAIL_TO` is set, the Resend integration is installed, and the sending
+  domain shows **Verified** in Resend. Until it is, the log has `approval_needed_notification_failed`
+  with Resend's reason. Check the spam folder once, and mark the first email as not spam.
+- For the webhook: both `APPROVAL_WEBHOOK_URL` and `APPROVAL_WEBHOOK_SECRET` are set.
+- The server was redeployed after setting them.
 - The request was refused only for want of an approval. A refusal for any other reason, such as
   a failed fraud check, sends nothing, by design.
 - The server log has `approval_needed_notification_failed` with the reason: your endpoint

@@ -530,7 +530,9 @@ Evidence
 
 **Backed by:** `packages/runtime/src/ApprovalNeededNotifier.ts` (`findNeededApprovals`: the same policy evaluated with the declared approval signals true must approve), `RuntimeEngine.notifyApprovalNeeded` (only after a refusal by rules or by an unverified approval; errors logged, never rethrown), `packages/api/src/bootstrap/createApprovalNeededNotifier.ts` (https outside test and development, no redirects, 3 second limit). Tests: `approval-webhook.integration.test.ts` through `POST /execute` with a real local receiver (event and signature, no event for a fraud refusal, above the maximum, or an authorized request, refusal unchanged when the webhook fails), and unit tests.
 
-**Scope:** best effort, one attempt, no retry. Not configured in production as of 2026-09-29.
+**Update (2026-09-29, email):** `APPROVAL_EMAIL_TO` sends the same event by email through Resend (`createEmailApprovalNeededNotifier.ts`), with one idempotency key per refusal (`approval-needed/<decisionId>`), alongside or instead of the webhook. Tests: `approval-email.integration.test.ts` through `POST /execute` with the Resend SDK replaced, and unit tests.
+
+**Scope:** best effort, one attempt, no retry. Email needs a sending domain verified in Resend.
 
 ---
 
