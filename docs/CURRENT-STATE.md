@@ -143,6 +143,14 @@ Merged to `main` and deployed to production on 2026-09-27 (PR #46, merge `4eebd5
   `manager-charak1987` (added 2026-09-28), so a refund above 10000 needs
   that approver's signature. The maker, checker and approver credentials are
   currently held by one person.
+- **Refund agent (G-70, 2026-09-28):** `parmana-paytm-agent`'s `/agent/refunds`
+  called Paytm itself after Parmana had already released the refund through
+  its connector, so an approved refund could be paid twice; and it declared
+  `customer-refund` 1.0.0, so every refund it sends is refused today. Fixed in
+  that repository's PR #6 (one Paytm call, version read from
+  `GET /policies/in-effect`, signed approvals forwarded), not merged yet.
+  Production `PAYTM_CONNECTOR_URL` was set again to the agent's address on
+  2026-09-28 and takes effect on the next deploy.
 - **Does not exist:** an escalation state that holds a request for a person,
   or any notification. A refused request stays refused; the agent sends a
   new request with the approval.
