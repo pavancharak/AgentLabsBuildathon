@@ -19,7 +19,7 @@ const repoRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 
 const docsToCheck = [
   "docs/architecture/system-architecture.md",
-  "docs/developer/extending-parmana.md",
+  "docs/connectors/BUILDING_A_CONNECTOR.md",
   "docs/architecture/repository-invariants.md",
   "docs/CLAIMS.md",
 ];
@@ -37,7 +37,7 @@ const PATH_PATTERN =
  * Paths that are deliberately hypothetical, not evidence: either a "Regression
  * example" describing a file that must NOT exist (repository-invariants.md),
  * or a worked "how you'd add a new vendor" walkthrough using a not-yet-built
- * Stripe connector as the illustrative example (extending-parmana.md). Real
+ * Stripe connector as the illustrative example (repository-invariants.md). Real
  * evidence citations still get checked; only these named, intentional
  * hypotheticals are excluded.
  */

@@ -1,8 +1,10 @@
 # @parmana/api
 
 The HTTP surface over the canonical Execution Trust runtime (`@parmana/runtime`):
-`POST /execute`, `POST /verify`, `GET /verify/:id`, `POST /receipt`,
-`POST /replay`, and the `/transactions` and `/trust-records` read routes.
+`POST /execute`, verification, receipts, replay, the transaction and trust record
+reads, policy governance (`/policies/.../pending-changes`), public keys and
+more. The full, current list is `openapi/openapi.yaml` at the repository root;
+routes live in `src/routes/`.
 
 ## Running the test suite
 
@@ -63,15 +65,19 @@ variables are absent. See that file and `tests/helpers/hubspot-live-availability
 for the exact gates (`ALLOW_LIVE_HUBSPOT`, `TEST_HUBSPOT_PRIVATE_APP_TOKEN`,
 `TEST_HUBSPOT_DEAL_ID`).
 
-### Known non-hermetic gap: policy directory
+### GitHub live integration test
 
-Independent of Supabase, any test that drives a real execution through this
-package's `application` singleton (`src/application.ts`) needs
-`PARMANA_POLICY_DIR` to point at a directory of policy definitions
-(`@parmana/policy`'s `FilePolicyRepository` resolves against
-`config.policy.directory`, which is `process.env.PARMANA_POLICY_DIR` with no
-repo-relative fallback — see `packages/shared/src/config/Config.ts`). On a
-machine without this env var set, those tests fail with a `TypeError` inside
-`FilePolicyRepository.load()` rather than skipping gracefully. This is a
-production-code config gap, not a test-fixture issue, and is tracked as a
-follow-up rather than fixed by test-side changes.
+`tests/integration/github-pr-merge-live.integration.test.ts` merges a real pull
+request through `POST /execute`. It is skipped unless `ALLOW_LIVE_GITHUB=1` and
+`TEST_GITHUB_APP_ID`, `TEST_GITHUB_INSTALLATION_ID` and
+`TEST_GITHUB_APP_PRIVATE_KEY` are all set; see
+`tests/helpers/github-live-availability.ts`.
+
+### Policy directory
+
+Any test that drives a real execution through this package's `application`
+singleton (`src/application.ts`) needs `PARMANA_POLICY_DIR` pointing at a
+directory of policies (for example `./policies`). Without it the configuration
+refuses to load with "PARMANA_POLICY_DIR is not set" (see
+`packages/shared/src/config/Config.ts`), rather than failing later inside
+`FilePolicyRepository.load()`.

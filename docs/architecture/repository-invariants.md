@@ -24,7 +24,7 @@ All of the above already run automatically in CI on every push and pull request 
 
 **Expected failure mode:** Adding any `fetch(...)` call inside `packages/connector-sdk/src/**` or `packages/connector-hubspot/src/**` (or any future `connector-*` package) fails the corresponding `it.each` test with the exact file path in the failure message.
 
-**Regression example:** A future PR adds a "convenience" method to `RazorpayCapabilities.ts` that calls the Razorpay API directly to pre-validate a key before returning capability constants. This test fails immediately, naming that file.
+**Regression example:** A future PR adds a "convenience" method to `HubSpotCapabilities.ts` that calls the HubSpot API directly to check a token before returning capability constants. This test fails immediately, naming that file.
 
 **Corresponding test:** `tests/architecture/execution-boundary.test.ts` → `describe("connector packages own no production execution")`.
 
@@ -32,7 +32,7 @@ All of the above already run automatically in CI on every push and pull request 
 
 ## Invariant 2 — Only `execution-gateway` may implement `Connector`
 
-**Rationale:** Phase 1C moved every executable vendor adapter (`GatewayRazorpayAdapter`, `GatewayHubSpotAdapter`, `GatewayHttpAdapter`) into `execution-gateway`. A second package implementing the `Connector` interface would be a second, unaudited execution surface.
+**Rationale:** Phase 1C moved every executable vendor adapter (today `GatewayHubSpotAdapter`, `GatewayGitHubAdapter`, `GatewayPaytmAdapter`, `GatewaySlackAdapter` and `GatewayHttpAdapter`) into `execution-gateway`. A second package implementing the `Connector` interface would be a second, unaudited execution surface.
 
 **Enforcement:** `tests/architecture/execution-boundary.test.ts`, describe block `"adapter ownership: only execution-gateway may implement Connector"`. Scans all `packages/*/src` for `implements Connector` and checks the result against a two-entry allowlist: the four gateway-owned classes, plus the one named `MockConnector` test double in `connector-sdk`.
 
@@ -44,21 +44,20 @@ All of the above already run automatically in CI on every push and pull request 
 
 ---
 
-## Invariant 3 — Exactly one production execution pipeline (no direct `connector.execute()`/`adapter.execute()` outside three named sites)
+## Invariant 3 — Exactly one production execution pipeline (no direct `connector.execute()`/`adapter.execute()` outside two named sites)
 
 **Rationale:** Phase 1E's core invariant: `RuntimeEngine → ExecutionGateway.execute() → ExecutionControlService → SecureConnector → SdkConnectorExecutor → Gateway-owned Adapter → Business System` must be the only path a business action can take. A stray direct call to a connector's `.execute()` anywhere else bypasses authorization, signal verification, replay protection, and audit generation entirely.
 
-**Enforcement:** `tests/architecture/execution-boundary.test.ts`, describe block `"no direct connector.execute()/adapter.execute() call outside approved gateway-owned components"`. Scans all `packages/*/src` for the call-site pattern `connector.execute(`/`adapter.execute(` (distinct from method _definitions_) and checks the result against a closed, three-entry, named allowlist:
+**Enforcement:** `tests/architecture/execution-boundary.test.ts`, describe block `"no direct connector.execute()/adapter.execute() call outside approved gateway-owned components"`. Scans all `packages/*/src` for the call-site pattern `connector.execute(`/`adapter.execute(` (distinct from method _definitions_) and checks the result against a closed, two entry, named allowlist:
 
-| File                                                                         | Why it's approved                                                                                                                    |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `packages/execution-control/src/ExecutionControlService.ts`                  | Canonical dispatch stage 1 — resolves a `SecureConnector` and calls its `.execute()`                                                 |
-| `packages/execution-gateway/src/connector-execution/SdkConnectorExecutor.ts` | Canonical dispatch stage 2 — calls the raw vendor `Connector` after all checks pass                                                  |
-| `packages/api/src/webhooks/RazorpaySettlementProcessor.ts`                   | Named worker exception — read-only fetch-verify of webhook-claimed settlement state, not business-action execution (see Invariant 5) |
+| File                                                                         | Why it's approved                                                                    |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `packages/execution-control/src/ExecutionControlService.ts`                  | Canonical dispatch stage 1 — resolves a `SecureConnector` and calls its `.execute()` |
+| `packages/execution-gateway/src/connector-execution/SdkConnectorExecutor.ts` | Canonical dispatch stage 2 — calls the raw vendor `Connector` after all checks pass  |
 
-**Expected failure mode:** A fourth call site anywhere in `packages/*/src` fails the "every call site is on the approved list" assertion, naming the new file.
+**Expected failure mode:** A third call site anywhere in `packages/*/src` fails the "every call site is on the approved list" assertion, naming the new file.
 
-**Regression example:** A future refactor of `RazorpayRefundService`-style code adds a "fast path" that calls `this.connector.execute(...)` directly to skip the authorization ceremony for an internal retry. This fails immediately.
+**Regression example:** A future refactor of a refund service adds a "fast path" that calls `this.connector.execute(...)` directly to skip the authorization ceremony for an internal retry. This fails immediately.
 
 **Corresponding test:** `tests/architecture/execution-boundary.test.ts` → `describe("no direct connector.execute()/adapter.execute() call outside approved gateway-owned components")`.
 
@@ -68,31 +67,30 @@ All of the above already run automatically in CI on every push and pull request 
 
 **Rationale:** These are the two components positioned to reach a connector directly if someone got impatient with the abstraction. Both must depend only on the injected `ExecutionSystem` interface, never on `execution-gateway`, `connector-sdk`, or `connector-hubspot` concretely.
 
-**Enforcement:** `tests/architecture/execution-boundary.test.ts`, describe blocks `"RuntimeEngine cannot bypass ExecutionGateway"` and `"ExecutionTrustApplication cannot bypass ExecutionGateway"`. Each asserts the named file: exists; imports none of `@parmana/execution-gateway`, `@parmana/connector-sdk`, `@parmana/connector-hubspot`; contains no `new (Gateway|Connector|Http|Razorpay|HubSpot)*(` construction; contains no `fetch(` call.
+**Enforcement:** `tests/architecture/execution-boundary.test.ts`, describe blocks `"RuntimeEngine cannot bypass ExecutionGateway"` and `"ExecutionTrustApplication cannot bypass ExecutionGateway"`. Each asserts the named file: exists; imports none of `@parmana/execution-gateway`, `@parmana/connector-sdk`, `@parmana/connector-hubspot`; contains no `new (Gateway|Connector|Http|HubSpot)*(` construction; contains no `fetch(` call.
 
 **Expected failure mode:** Adding any of those imports/constructions to either file fails the corresponding `it()`.
 
-**Regression example:** A "quick fix" imports `GatewayRazorpayAdapter` into `RuntimeEngine.ts` to special-case a Razorpay retry inline. Fails on the import-absence assertion.
+**Regression example:** A "quick fix" imports `GatewayPaytmAdapter` into `RuntimeEngine.ts` to special case a refund retry inline. Fails on the import-absence assertion.
 
 **Corresponding test:** `tests/architecture/execution-boundary.test.ts` → the two `describe` blocks named above.
 
 ---
 
-## Invariant 5 — API routes and bootstrap never execute business actions directly; workers only through the one named exception
+## Invariant 5: API routes and bootstrap never execute business actions directly
 
-**Rationale:** HTTP routes should only ever call `application.execute(...)` (the top-level `ExecutionTrustApplication` entry point); bootstrap composition should only construct objects, never call `.execute(`; and out-of-band workers (currently just the Razorpay settlement poller) may only touch a connector directly through the one documented, read-only, non-authorizing exception.
+**Rationale:** HTTP routes should only ever call `application.execute(...)` (the top-level `ExecutionTrustApplication` entry point), and bootstrap composition should only construct objects, never call `.execute(`.
 
-**Enforcement:** `tests/architecture/execution-boundary.test.ts`, three describe blocks:
+**Enforcement:** `tests/architecture/execution-boundary.test.ts`, two describe blocks:
 
 - `"API routes never execute adapters directly"` — scans `packages/api/src/routes/` generically for adapter imports/construction/`fetch(`.
 - `"bootstrap composes but never executes business actions"` — scans `packages/api/src/bootstrap/` generically for any `.execute(` call.
-- `"workers never execute adapters directly unless named as gateway-owned verification infrastructure"` — scans `packages/api/src/webhooks/` generically for `fetch(`, with `RazorpaySettlementProcessor.ts` as the one named, approved exception (also covered by Invariant 3's allowlist).
 
-**Expected failure mode:** A new route file constructing an adapter, a bootstrap file calling `.execute(`, or a new webhook file calling `fetch()` without being added to the exception set — each fails its respective `it.each`.
+**Expected failure mode:** A new route file constructing an adapter, or a bootstrap file calling `.execute(`, fails its respective `it.each`.
 
-**Regression example:** A new `packages/api/src/routes/admin-replay.ts` route is added that directly constructs `createGatewayRazorpayConnector()` and calls it to "replay" a refund for debugging. Fails the routes-block assertion.
+**Regression example:** A new `packages/api/src/routes/admin-replay.ts` route is added that directly constructs `createGatewayPaytmConnector()` and calls it to "replay" a refund for debugging. Fails the routes-block assertion.
 
-**Corresponding test:** `tests/architecture/execution-boundary.test.ts` → the three describe blocks named above.
+**Corresponding test:** `tests/architecture/execution-boundary.test.ts` → the two describe blocks named above.
 
 ---
 
@@ -120,12 +118,12 @@ All of the above already run automatically in CI on every push and pull request 
 
 ## Invariant 7 — Public API boundary: execution-gateway's implementation classes stay internal
 
-**Rationale:** Phase 1D internalized `GatewayConnectorRegistry`, `GatewayCapabilityConnectorPolicy`, `SdkConnectorExecutor`, `CredentialVaultAdapter`, `GatewayRazorpayAdapter`, `GatewayHubSpotAdapter`, `GatewayHttpAdapter`, and `ConnectorEvidence` behind three stable factory functions (`createGatewayConnectorRegistry`, `createGatewayRazorpayConnector`, `createGatewayHubSpotConnector`). If any of these classes leak back into the public package barrel (`packages/execution-gateway/src/index.ts`), external packages regain the ability to construct raw adapters directly, silently reopening Invariant 2/3's bypass surface.
+**Rationale:** Phase 1D internalized `GatewayConnectorRegistry`, `GatewayCapabilityConnectorPolicy`, `SdkConnectorExecutor`, `CredentialVaultAdapter`, the vendor adapters and `ConnectorEvidence` behind stable factory functions (today `createGatewayConnectorRegistry`, `createGatewayHubSpotConnector`, `createGatewayGitHubConnector`, `createGatewayGitHubCredentialProvider`, `createGatewayPaytmConnector` and `createGatewaySlackConnector`). If any of these classes leak back into the public package barrel (`packages/execution-gateway/src/index.ts`), external packages regain the ability to construct raw adapters directly, silently reopening Invariant 2/3's bypass surface.
 
 **Enforcement — two complementary layers:**
 
 1. `packages/execution-gateway/tests/unit/public-api-boundary.test.ts` (Phase 1D) — imports the package's public entry point (`src/index.ts`, resolved directly by Vitest — not the built `dist/index.js`) at runtime and asserts a named list of 10 internal symbols is absent (`Object.prototype.hasOwnProperty`), and that the 3 factories + `ExecutionGateway` are present.
-2. `tests/architecture/execution-boundary.test.ts`, describe block `"Phase 1D public API boundary stays generically enforced"` (added Phase 1F, closing a gap identified in Task 1's inventory: layer 1's list is hardcoded, so a _new_ internal class added to `connector-execution/` later wouldn't be covered until someone remembered to add its name). This layer derives the "must stay internal" symbol set _from `connector-execution/index.ts` itself_ (every file it re-exports, minus the three factory files) rather than from a hardcoded list, then asserts none of those symbol names appear in the public barrel's source text (comments stripped, to avoid false positives from explanatory prose).
+2. `tests/architecture/execution-boundary.test.ts`, describe block `"Phase 1D public API boundary stays generically enforced"` (added Phase 1F, closing a gap identified in Task 1's inventory: layer 1's list is hardcoded, so a _new_ internal class added to `connector-execution/` later wouldn't be covered until someone remembered to add its name). This layer derives the "must stay internal" symbol set _from `connector-execution/index.ts` itself_ (every file it re-exports, minus the public factory files) rather than from a hardcoded list, then asserts none of those symbol names appear in the public barrel's source text (comments stripped, to avoid false positives from explanatory prose).
 
 **Expected failure mode:** Re-adding `export * from "./connector-execution/index.js"` to `packages/execution-gateway/src/index.ts` (undoing Phase 1D), or individually re-exporting any one internal class, fails both layers — layer 1 immediately for the 10 named classes, layer 2 for any of them _and_ for any new implementation class added later.
 

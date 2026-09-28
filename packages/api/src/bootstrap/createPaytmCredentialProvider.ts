@@ -61,7 +61,7 @@ class PaytmEnvironmentCredentialProvider implements CredentialProvider {
  *
  * Test (NODE_ENV=test): a static shared secret, overridable via
  * TEST_PAYTM_CONNECTOR_SHARED_SECRET — read directly, with no
- * intermediate bridge variable (see CONNECTOR-BUILD-GUIDE.md §10 on why
+ * intermediate bridge variable (see docs/connectors/BUILDING_A_CONNECTOR.md section 4 on why
  * a bridge variable is never introduced here).
  *
  * Production: PAYTM_CONNECTOR_SHARED_SECRET. If unset, this returns

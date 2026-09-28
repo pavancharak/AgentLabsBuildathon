@@ -99,7 +99,7 @@ describe("CI terminology guard (Phase 2C regression coverage)", () => {
       "docs/architecture/system-architecture.md",
       "docs/site/architecture/execution-pipeline.mdx",
       "docs/architecture/repository-invariants.md",
-      "docs/developer/extending-parmana.md",
+      "docs/connectors/BUILDING_A_CONNECTOR.md",
     ];
 
     for (const doc of activeDocs) {

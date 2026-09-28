@@ -8,7 +8,7 @@
 files, exact test counts, exact commands run). This document is the architecture/operator reference;
 CLAIMS.md is the checkable claim.
 
-**Read `docs/CONNECTOR-BUILD-GUIDE.md` and `docs/connectors/BUILDING_A_CONNECTOR.md` first** — this
+**Read `docs/connectors/BUILDING_A_CONNECTOR.md` first** — this
 connector follows that same architecture (HubSpot is still the canonical reference for the
 in-process case). This document only covers what is different about a _remote_ connector, and the
 Paytm-specific configuration/operational details.

@@ -6,7 +6,7 @@ This document describes the system **as implemented**, verified against source a
 
 - [`repository-invariants.md`](./repository-invariants.md) — the Phase 1F canonical list of automatically-enforced architectural invariants, with the exact test that enforces each one.
 
-This document doesn't repeat its content; it's the entry point that ties it together with package responsibilities and the surrounding subsystems (authorization, signal verification, replay, audit) it doesn't cover end to end. For a class-by-class narrated trace of one request, see [The Execution Pipeline](https://docs.parmanasystems.com/architecture/execution-pipeline) on the documentation site. For how to extend the system safely, see [`../developer/extending-parmana.md`](../developer/extending-parmana.md).
+This document doesn't repeat its content; it's the entry point that ties it together with package responsibilities and the surrounding subsystems (authorization, signal verification, replay, audit) it doesn't cover end to end. For a class-by-class narrated trace of one request, see [The Execution Pipeline](https://docs.parmanasystems.com/architecture/execution-pipeline) on the documentation site. For how to extend the system safely, see [`../connectors/BUILDING_A_CONNECTOR.md`](../connectors/BUILDING_A_CONNECTOR.md).
 
 ---
 
@@ -119,4 +119,4 @@ Note the direction: `execution-gateway` depends on `connector-sdk`/`connector-hu
 
 ## 9. Extension model
 
-See [`../developer/extending-parmana.md`](../developer/extending-parmana.md) for the full guide. Summary: new vendor integrations are added _inside_ `execution-gateway` (a new `Gateway*Adapter` implementing `connector-sdk`'s `Connector` interface, registered via `createGatewayConnectorRegistry()`), never inside a connector package directly — that boundary is what Invariants 1 and 2 permanently enforce. New capabilities, signal verifiers, and policies each have a narrower, package-local extension point; components that must never be modified directly (the pipeline's core stages, `ExecutionGateway.execute()`'s verification sequence, the credential-handling seam) are listed explicitly there.
+See [`../connectors/BUILDING_A_CONNECTOR.md`](../connectors/BUILDING_A_CONNECTOR.md) for the full guide. Summary: new vendor integrations are added _inside_ `execution-gateway` (a new `Gateway*Adapter` implementing `connector-sdk`'s `Connector` interface, registered via `createGatewayConnectorRegistry()`), never inside a connector package directly — that boundary is what Invariants 1 and 2 permanently enforce. New capabilities, signal verifiers, and policies each have a narrower, package-local extension point; components that must never be modified directly (the pipeline's core stages, `ExecutionGateway.execute()`'s verification sequence, the credential-handling seam) are listed explicitly there.
