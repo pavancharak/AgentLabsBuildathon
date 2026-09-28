@@ -67,7 +67,9 @@ The flow for a refund of 75000 on order `ORD-1042`:
       --out approval.json
     ```
     The approval is for this order only, for refunds up to 75000, valid for 15 minutes
-    (`--ttl-seconds` changes it, up to a day), and can be used once.
+    (`--ttl-seconds` changes it, up to a day), and can be used once. From SDK 1.4.0 the
+    approver can do the same without a clone: `signApproval()` in TypeScript,
+    `parmana.crypto.sign_approval()` in Python.
   </Step>
   <Step title="The agent sends a new request with the approval">
     A new `businessTransactionId`, the same order and amount, `managerApproved: true`, and the
