@@ -57,7 +57,8 @@ approved, every approval the key ever signed is refused.
 #### list_changes
 
 ```python
-def list_changes(status: str | None = None) -> list[ApprovalIssuerChange]
+def list_changes(
+        status: str | None = None) -> builtins.list[ApprovalIssuerChange]
 ```
 
 List approver changes, newest first.

@@ -60,15 +60,53 @@ The flow for a refund of 75000 on order `ORD-1042`:
     [Review refused requests](#review-refused-requests).
   </Step>
   <Step title="The manager signs an approval, on their own machine">
-    ```bash
+    <CodeGroup>
+
+    ```bash Script
     npx tsx scripts/sign-approval.ts \
       --private-key-file ~/.parmana/manager-priya__manager-priya-key-1.private.pem \
       --approver-id manager-priya --key-id manager-priya-key-1 \
       --capability paytm:refund --resource-id ORD-1042 --max-amount 75000 \
       --out approval.json
     ```
+
+    ```typescript TypeScript (SDK 1.4.0)
+    import { readFileSync, writeFileSync } from "node:fs";
+    import { signApproval } from "@parmana/sdk";
+
+    const approval = signApproval({
+      privateKeyPem: readFileSync("manager-priya__manager-priya-key-1.private.pem", "utf8"),
+      approverId: "manager-priya",
+      keyId: "manager-priya-key-1",
+      capability: "paytm:refund",
+      resourceId: "ORD-1042",
+      maxAmount: 75000,
+    });
+    writeFileSync("approval.json", JSON.stringify(approval));
+    ```
+
+    ```python Python (SDK 1.4.0)
+    import json
+    from pathlib import Path
+    from parmana.crypto import sign_approval
+
+    approval = sign_approval(
+        private_key_pem=Path("manager-priya__manager-priya-key-1.private.pem").read_text(),
+        approver_id="manager-priya",
+        key_id="manager-priya-key-1",
+        capability="paytm:refund",
+        resource_id="ORD-1042",
+        max_amount=75000,
+    )
+    Path("approval.json").write_text(json.dumps(approval))
+    ```
+
+    </CodeGroup>
+
     The approval is for this order only, for refunds up to 75000, valid for 15 minutes
-    (`--ttl-seconds` changes it, up to a day), and can be used once.
+    (`--ttl-seconds` or `ttlSeconds` changes it, up to a day), and can be used once. The SDKs
+    need no clone of the repository; the private key never leaves the process.
+
   </Step>
   <Step title="The agent sends a new request with the approval">
     A new `businessTransactionId`, the same order and amount, `managerApproved: true`, and the

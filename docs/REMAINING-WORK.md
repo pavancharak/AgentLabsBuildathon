@@ -116,7 +116,7 @@ Goal: agents run routine work automatically, and a person approves the actions a
 | The refund agent can send a signed approval                           | G-70      | Deployed 2026-09-28 (agent PR #6, `approvalArtifact`). Not yet tested in production.                                                                                                                                          |
 | Approvers managed without a deploy                                    | none      | **Built 2026-09-29:** maker checker on `/approval-issuers` (table `approval_issuers`), SDK 1.4.0. Needs its migration applied in production before the deploy. Guide: Manage approvers.                                       |
 | Notify a manager when a request waits for approval                    | none      | Open. Today they find it by query.                                                                                                                                                                                            |
-| `signApproval()` in the SDKs                                          | none      | Open.                                                                                                                                                                                                                         |
+| `signApproval()` in the SDKs                                          | none      | **Built 2026-09-29**, SDK 1.4.0, not yet published: `signApproval()`, `parmana.crypto.sign_approval()`. The server verifier accepts it (test).                                                                                |
 
 ## I. AI attack hardening (added 2026-09-28)
 

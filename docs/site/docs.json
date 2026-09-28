@@ -174,6 +174,8 @@
                 "pages": [
                   "sdks/reference/typescript/interfaces/ApprovalIssuer",
                   "sdks/reference/typescript/interfaces/ApprovalIssuerChange",
+                  "sdks/reference/typescript/interfaces/ApprovalPayload",
+                  "sdks/reference/typescript/interfaces/ApprovalScope",
                   "sdks/reference/typescript/interfaces/AuditEvent",
                   "sdks/reference/typescript/interfaces/Authority",
                   "sdks/reference/typescript/interfaces/Authorization",
@@ -212,8 +214,10 @@
                   "sdks/reference/typescript/interfaces/ResolveExecutionIntentInput",
                   "sdks/reference/typescript/interfaces/ResolveExecutionIntentResult",
                   "sdks/reference/typescript/interfaces/RetryPolicy",
+                  "sdks/reference/typescript/interfaces/SignApprovalInput",
                   "sdks/reference/typescript/interfaces/SignPolicyChangeStepUpInput",
                   "sdks/reference/typescript/interfaces/Signature",
+                  "sdks/reference/typescript/interfaces/SignedApproval",
                   "sdks/reference/typescript/interfaces/Transport",
                   "sdks/reference/typescript/interfaces/TransportRequest",
                   "sdks/reference/typescript/interfaces/TransportResponse",
@@ -231,6 +235,7 @@
               {
                 "group": "Type Aliases",
                 "pages": [
+                  "sdks/reference/typescript/type-aliases/ApprovalScopeComparator",
                   "sdks/reference/typescript/type-aliases/BusinessTransactionStatus",
                   "sdks/reference/typescript/type-aliases/DecisionOutcome",
                   "sdks/reference/typescript/type-aliases/ExecutionIntentFinalizationMode",
@@ -253,6 +258,7 @@
                 "pages": [
                   "sdks/reference/typescript/functions/canonicalSerialize",
                   "sdks/reference/typescript/functions/createBusinessTransaction",
+                  "sdks/reference/typescript/functions/signApproval",
                   "sdks/reference/typescript/functions/signPolicyChangeStepUp",
                   "sdks/reference/typescript/functions/verifyExecutionIntentOffline",
                   "sdks/reference/typescript/functions/verifyExecutionTrustRecordOffline"
@@ -260,7 +266,11 @@
               },
               {
                 "group": "Variables",
-                "pages": ["sdks/reference/typescript/variables/VERSION"]
+                "pages": [
+                  "sdks/reference/typescript/variables/DEFAULT_APPROVAL_TTL_SECONDS",
+                  "sdks/reference/typescript/variables/MAX_APPROVAL_TTL_SECONDS",
+                  "sdks/reference/typescript/variables/VERSION"
+                ]
               }
             ]
           }
