@@ -31,7 +31,7 @@ import { InMemoryCallerAuditSink } from "../../src/auth/InMemoryCallerAuditSink.
  * "disabled", which is exactly what buildApp() below does.
  *
  * Entirely hermetic: MockGitHubServer, no live GitHub credentials, no live
- * server, no real PR anywhere. See SCOPED-CREDENTIAL-ARCHITECTURE.md for why
+ * server, no real PR anywhere. See docs/CLAIMS.md 3.16 for why
  * this is the honest, buildable version of the three-scenarios ask --
  * "live curl against parmana-prod" was not attempted (no such server exists
  * in this environment, and packages/connector-github/README.md's own
@@ -81,7 +81,7 @@ describe("GitHub caller-to-capability scoping (HTTP boundary, caller-auth enable
         keyHash: hashApiKey(FETCH_ONLY_KEY),
         allowedPrincipalIds: ["integration-test"],
         // Narrowest real scope: read-only, matching
-        // SCOPED-CREDENTIAL-ARCHITECTURE.md's recommendation.
+        // the recommendation in docs/CLAIMS.md 3.16.
         allowedCapabilities: ["github:pr-fetch"],
       },
       {

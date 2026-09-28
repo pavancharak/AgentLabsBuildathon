@@ -17,7 +17,7 @@ name: Docker image
 # migrations and policy seeding keep what exists, and then runs the offline
 # check: governance approval, an authorized and a refused refund, and the
 # Trust Record verified with only the public keys, all on a network with no
-# internet route (DEPLOYMENT.md, "Self hosted with Docker Compose"). Before
+# internet route (docs/site/self-hosted/offline-verification.mdx). Before
 # that it runs every command of docs/site/self-hosted/quickstart.mdx and fails
 # if any output differs from the page (docker/local/quickstart-check.sh).
 

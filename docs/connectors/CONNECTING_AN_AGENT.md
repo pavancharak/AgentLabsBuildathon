@@ -151,7 +151,7 @@ Generate real UUIDs (any RFC 4122 generator works — the server-side check is r
 accepts version nibbles 1–5, not a v4-only parser):
 
 **This example was missing `metadata` until 2026-09-14** — found while running the full
-end-to-end flow against a real deployment (`END-TO-END-FLOW.md`, repo root). Omitting it
+end-to-end flow against a real deployment (`docs/site/guides/end-to-end-paytm-flow.mdx`). Omitting it
 fails with `{"error":"metadata.businessTransactionId must match businessTransactionId."}`
 (400), before policy is ever evaluated. It's included below.
 
@@ -337,4 +337,4 @@ Full account: `docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md
   Either way Parmana alone releases an approved refund to Paytm, once; the service must not call
   Paytm itself as well (G-70, fixed in `parmana-paytm-agent` PR #6).
 - **Policy authoring** — see `docs/site/guides/write-your-first-policy.mdx` and
-  `LIVE-API-GUIDE.md` (repo root) for the exact condition/operator language.
+  `docs/site/guides/live-api-and-demos.mdx` for the exact condition/operator language.

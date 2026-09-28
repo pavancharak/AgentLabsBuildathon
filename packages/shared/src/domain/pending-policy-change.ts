@@ -4,7 +4,7 @@ import type { JsonValue } from "../types/Json.js";
  * Pending Policy Change (Policy Governance, maker-checker).
  *
  * Parmana previously took no position on who may author or change a
- * policy document -- GOVERNANCE.md, SECURITY.md, and TRUST_MODEL.md
+ * policy document -- the early design documents (removed 2026-09-28)
  * all named policy authoring as external to Parmana's scope. This
  * type is the first artifact of that scope changing: a proposed
  * change to an existing policy's content, held in a durable pending

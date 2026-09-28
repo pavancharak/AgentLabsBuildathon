@@ -5,8 +5,7 @@ description: "Call the real, deployed Parmana API directly: authentication, the 
 
 <Info>
   Every endpoint, error, and worked example below has been run against the live
-  deployment. Base URL: `https://parmana-api-real.vercel.app`. Repo copy of this
-  guide: `LIVE-API-GUIDE.md` (repo root).
+  deployment. Base URL: `https://parmana-api-real.vercel.app`.
 </Info>
 
 ## Goal
@@ -68,7 +67,7 @@ npx tsx scripts/generate-api-key.ts \
 
 This prints the raw key once and a config entry to add to the deployment's caller-key list,
 then requires a redeploy to take effect. See [Authentication](/api-reference/authentication)
-for the full caller-auth model, and `LIVE-API-GUIDE.md` (repo root) for the exact commands.
+for the full caller-auth model, and [Credentials: maker, checker and approver](/guides/credentials-maker-checker-approver) for the exact commands.
 
 **Principal scoping is a separate check from capability scoping**: a key with no explicit
 principal grant may only assert `authority.principalId` equal to its own caller id.
@@ -147,7 +146,7 @@ Hard requirements, all fail-closed with a clear `400`/`403` if wrong:
 | `rag-document-access@1.0.0`   | Enterprise document retrieval                            | None                                                                             |
 | `vendor-payment@2.0.0`        | Vendor payments (real production policy)                 | `paymentAmount`→`parameters.amount`, `vendorId`→`target`                         |
 
-Full signal schemas for every policy: `LIVE-API-GUIDE.md` (repo root).
+Full signal schemas for every policy: each policy file under `policies/<name>/<version>/policy.json` (`signalsSchema`).
 
 ## Writing a new policy
 
@@ -161,10 +160,10 @@ reference must appear in either `boundSignals` or `unboundSignalReasons`**, or t
 fails to load at all, no silent, unacknowledged gaps allowed.
 
 The `expense-reimbursement@1.0.0` policy above is a real, worked example of this, full
-schema, the exact validation rule that would reject a badly-formed policy, and how to
-deploy a new one (`git add` + `vercel deploy --prod`, since policies are baked into the
-build) are all in `LIVE-API-GUIDE.md` (repo root), tested live while writing it: write,
-validate, deploy, call, get a signed decision, independently verify.
+schema, the exact validation rule that would reject a badly-formed policy, and how a new one
+goes live (proposed and approved through policy governance, no deploy) are in
+[Write your first policy](/guides/write-your-first-policy) and
+[Policy lifecycle and approvals](/guides/policy-lifecycle-and-approvals).
 
 ## Endpoints
 
@@ -180,8 +179,7 @@ validate, deploy, call, get a signed decision, independently verify.
 | `GET /.well-known/jwks.json` | none     | Every public key this deployment currently holds                                                  |
 | `GET /trust-records/:id`     | required | The full signed Execution Trust Record (only populated once a real connector is wired, see above) |
 
-Full table, every route, and copy-pasteable `curl` examples: `LIVE-API-GUIDE.md` (repo
-root). Machine-readable spec: `GET /openapi.yaml` or [the REST API
+Machine-readable spec: `GET /openapi.yaml` or [the REST API
 reference](/api-reference/introduction).
 
 ## Verifying a result independently

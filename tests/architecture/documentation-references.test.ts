@@ -146,7 +146,7 @@ describe("documentation file references resolve to real files", () => {
  * Scope is deliberately the living, currently-accurate documentation
  * surface only: docs/CLAIMS.md itself, the customer/investor-facing docs
  * site (docs/site/**\/*.mdx), and the root-level docs that track the same
- * present-tense state (README.md, DEPLOYMENT.md, SECURITY.md). The
+ * present-tense state (README.md, SECURITY.md). The
  * audit-trail (docs/VERIFICATION-GAPS.md, docs/architecture/phase*.md,
  * docs/ROADMAP-v1.md, etc.) is deliberately excluded, for the same reason
  * docsToCheck above never included them: those are dated investigation
@@ -184,7 +184,6 @@ function collectMdxFiles(relDir: string): string[] {
 const CITATION_DOCS = [
   CLAIMS_MD_PATH,
   "README.md",
-  "DEPLOYMENT.md",
   "SECURITY.md",
   ...collectMdxFiles("docs/site"),
 ];

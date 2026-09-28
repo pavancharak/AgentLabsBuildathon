@@ -1,137 +1,40 @@
-\# Contributing to Parmana
-
-Thank you for contributing to Parmana.
-
-Parmana is an Execution Trust Infrastructure platform. The project prioritizes correctness, determinism, immutability, and verifiable execution over implementation convenience.
-
-\## Architecture First
-
-Every significant architectural change should begin with documentation.
-
-Use the following decision process:
-
-1\. Is this a bug fix?
-
-&#x20; \* Implement the fix with tests.
-
-2\. Is this a new feature?
-
-&#x20; \* Create an RFC describing the proposal.
-
-3\. Does the feature change architectural behavior?
-
-&#x20; \* Create or update an Architecture Decision Record (ADR).
-
-4\. Does the change modify a normative platform contract?
-
-&#x20; \* Update the relevant specification in `docs/`.
-
-\## Core Principles
-
-Every contribution should preserve the following principles:
-
-\* Deterministic execution
-
-\* Immutable domain model
-
-\* Independent verification
-
-\* Append-only evidence
-
-\* Cryptographic agility
-
-\* Separation of concerns
-
-\* Execution trust
-
-Changes that violate these principles require an approved ADR.
-
-\## Testing Requirements
-
-All changes should include appropriate automated tests.
-
-At a minimum:
-
-\* Unit tests for new domain behavior.
-
-\* Regression tests for bug fixes.
-
-\* Conformance tests when platform contracts are affected.
-
-The build should pass:
-
-```bash
-
-npm run build
-
-npm run typecheck
-
-npm test
-
-```
-
-\## Coding Standards
-
-\* Use TypeScript strict mode.
-
-\* Prefer immutable objects.
-
-\* Avoid hidden side effects.
-
-\* Keep classes focused on a single responsibility.
-
-\* Document public APIs.
-
-\## Pull Requests
-
-Pull requests should include:
-
-\* A clear description.
-
-\* Linked issue or RFC (if applicable).
-
-\* Updated documentation when required.
-
-\* Passing build and test results.
-
-\## Documentation
-
-Normative specifications are located in:
-
-```
-
-docs/
-
-```
-
-Architecture decisions are located in:
-
-```
-
-docs/adr/
-
-```
-
-Future proposals are located in:
-
-```
-
-docs/rfcs/
-
-```
-
-Implementation guides belong in:
-
-```
-
-docs/guides/
-
-```
-
-Adding a new connector? See \`docs/architecture/CONNECTOR\_ISOLATION.md\` and \`docs/connectors/BUILDING\_A\_CONNECTOR.md\` before opening a PR — every connector must be registered through the standard path so it gets automatic credential isolation; a \`legacyInsecure: true\` registration outside a test is not acceptable.
-
-\## Philosophy
-
-Parmana is designed to establish trust between authority and execution.
-
-Every contribution should strengthen that goal.
+# Contributing to Parmana
+
+Parmana authorizes and evidences what automated systems do, so correctness, determinism and
+verifiable evidence come before convenience.
+
+## How a change is made
+
+1. **Its own branch from `main`**, and a pull request. Nothing is pushed to `main` directly.
+2. **Tests with the change.** A bug fix adds a test that fails without it; new behavior adds
+   tests for it, including the refusal paths.
+3. **The full check passes.** The pre commit hook runs gitleaks, typecheck, lint, format, every
+   test, the build and the runnable examples; CI runs the same. If it reports stale build
+   output, run `npx tsc -b` and commit again.
+4. **The records are updated in the same pull request**:
+   - [docs/CLAIMS.md](docs/CLAIMS.md) when what Parmana can claim changes. A claim is written
+     in the present tense only when code and tests back it.
+   - [docs/VERIFICATION-GAPS.md](docs/VERIFICATION-GAPS.md) when a gap is found or closed.
+   - [docs/REMAINING-WORK.md](docs/REMAINING-WORK.md) when open work changes.
+   - An ADR in [docs/adr/](docs/adr/) when an architectural decision is made or reversed.
+   - The published docs in [docs/site/](docs/site/) when behavior a reader relies on changes,
+     and the changelog (`docs/site/changelog.mdx`).
+
+## Principles a change must keep
+
+- The policy decides; nothing executes without an approved decision.
+- Fail closed: missing configuration, a failed check or an unavailable dependency refuses,
+  never degrades silently.
+- Evidence is signed and append only, and can be verified without trusting Parmana.
+- Policy evaluation is deterministic.
+
+## Connectors
+
+Read [docs/architecture/CONNECTOR_ISOLATION.md](docs/architecture/CONNECTOR_ISOLATION.md) and
+[docs/connectors/BUILDING_A_CONNECTOR.md](docs/connectors/BUILDING_A_CONNECTOR.md) before
+adding one. Every connector is registered through the standard path so it gets credential
+isolation; a `legacyInsecure: true` registration outside a test is not acceptable.
+
+## Security issues
+
+Report them privately, as described in [SECURITY.md](SECURITY.md), not in a public issue.

@@ -36,9 +36,8 @@ distinct closure sessions), this section names the eras and points at where to r
 
 - **The original external audit (dated July 2026 and earlier).** The root-level
   `docs/000-CONSTITUTION.md` through `docs/017-CONFORMANCE.md`, plus `ARCHITECTURE.md`,
-  `SPECIFICATION.md`, `TRUST_MODEL.md`, `GUARANTEES.md`, and `PROOFS.md` date from this
-  period. They are frozen, not deleted, and should not be read as current, per `docs/book/`'s
-  own README.
+  `SPECIFICATION.md`, `TRUST_MODEL.md`, `GUARANTEES.md`, and `PROOFS.md` dated from this
+  period. They were removed from the repository on 2026-09-28 (they remain in git history).
 - **2026-07-17 audit closeout session.** Nine tasks closing findings from a July 16 external
   audit. See `docs/VERIFICATION-GAPS.md`'s "Gaps closed in the 2026-07-17 audit closeout
   session" section.
@@ -152,7 +151,7 @@ short index, not a replacement for reading the original entries.
   approver key has been provisioned. A proposed hardcoded dev key was explicitly rejected
   during review as inconsistent with this codebase's own never-commit-a-private-key
   convention. Status: undecided.
-- **D-5.** Upstream authorization verification (`NF-001-UPSTREAM-AUTHORIZATION-VERIFICATION.md`)
+- **D-5.** Upstream authorization verification (NF-001, a design note removed on 2026-09-28, in git history)
   is explicit future scope: today's authorization boundary is caller identity plus
   principal/capability scoping, not an independent signature on the `Authority`/
   `Authorization` domain objects themselves. This becomes a real gap only for a delegation

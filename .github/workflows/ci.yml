@@ -123,7 +123,7 @@ jobs:
     # needs its own distinct pass/fail status, since this is the specific
     # check meant to become a required status check if/when this repo's
     # plan or visibility ever allows branch protection to be enabled (see
-    # DEPLOYMENT.md's own note on this today being advisory only, not
+    # docs/VERIFICATION-GAPS.md D-6: advisory only today, not
     # enforced).
     #
     # Fail-CLOSED by design, the opposite discipline of

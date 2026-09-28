@@ -2,7 +2,7 @@
 title: "Interface: CallerIdentity"
 ---
 
-Defined in: typescript/src/models/caller.ts:5
+Defined in: [typescript/src/models/caller.ts:5](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/caller.ts#L5)
 
 Who the API key belongs to and what it may do. The response of
 GET /callers/me.
@@ -13,7 +13,7 @@ GET /callers/me.
 
 > `readonly` **callerId**: `string`
 
-Defined in: typescript/src/models/caller.ts:6
+Defined in: [typescript/src/models/caller.ts:6](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/caller.ts#L6)
 
 ---
 
@@ -21,7 +21,7 @@ Defined in: typescript/src/models/caller.ts:6
 
 > `readonly` **allowedPrincipalIds**: readonly `string`[]
 
-Defined in: typescript/src/models/caller.ts:13
+Defined in: [typescript/src/models/caller.ts:13](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/caller.ts#L13)
 
 Principal IDs this key may name in a request's
 `authority.principalId`. Only its own caller ID unless the key lists
@@ -33,7 +33,7 @@ others.
 
 > `readonly` **allowedCapabilities**: readonly `string`[]
 
-Defined in: typescript/src/models/caller.ts:18
+Defined in: [typescript/src/models/caller.ts:18](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/caller.ts#L18)
 
 Capabilities this key may request. Empty means none.
 
@@ -43,6 +43,6 @@ Capabilities this key may request. Empty means none.
 
 > `readonly` **unrestrictedCapabilities**: `boolean`
 
-Defined in: typescript/src/models/caller.ts:23
+Defined in: [typescript/src/models/caller.ts:23](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/caller.ts#L23)
 
 True when `allowedCapabilities` contains `*`.

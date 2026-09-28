@@ -343,7 +343,7 @@ PyPI respectively; the root-cause fix is committed on `main`.
 
 ## INC-11 — `parmana-paytm-agent` production outage: a newly-required env var shipped before it was provisioned (DEPLOYMENT)
 
-**What:** the 2026-09-14 GAP-3 remediation (execution-audit trail, see `REMEDIATION.md`) added
+**What:** the 2026-09-14 GAP-3 remediation (execution-audit trail, `docs/VERIFICATION-GAPS.md` G-42 and G-43) added
 `src/parmana/audit.ts` to `parmana-paytm-agent` (a separate repository) and made `DATABASE_URL`
 a required startup variable — `loadConfig()`'s `required("DATABASE_URL")` throws if it's unset,
 and that throw happens at module load (`export const config = loadConfig();`,
@@ -403,7 +403,7 @@ requirement, for free, since it exercises real `loadConfig()` validation, not ju
 passes cleanly with everything valid. This would have turned this incident into a failed build
 visible in the deploy log, not a live outage.
 
-**Relationship to GAP-2 (see `REMEDIATION.md`, `docs/VERIFICATION-GAPS.md`):** this incident
+**Relationship to GAP-2 (see `docs/VERIFICATION-GAPS.md`):** this incident
 prompted revisiting GAP-2's "should Paytm connector configuration fail closed on full absence"
 question. The two are different variables with different intended postures — `DATABASE_URL` is
 unconditionally required by design (an audit trail with no working store is a fail-closed

@@ -32,7 +32,6 @@ docs/site/*
 !docs/site/parmana-handbook.pdf
 coverage/
 *.md
-!DEPLOYMENT.md
 
 # Test artifacts.
 **/tests

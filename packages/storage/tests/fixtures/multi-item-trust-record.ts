@@ -176,8 +176,8 @@ function buildReceipt(
  * two Overrides already present at signing time (the only two collections
  * that feed VerificationCrypto's canonical hash — see
  * VerificationCrypto.canonicalRecord()). Appending a second Execution or
- * Override to an already-sealed record breaks its hash (see
- * 02-REMAINING.md), so both items must exist before hashing/signing rather
+ * Override to an already-sealed record breaks its hash (it is never
+ * re-sealed), so both items must exist before hashing/signing rather
  * than being appended afterward.
  */
 export async function buildSignedMultiExecutionOverrideRecord(

@@ -14,7 +14,7 @@ id pairs in sync yourself.
   live-server proof).
 - A fresh `business_transaction_id` is generated automatically (`uuid4()`) when you don't
   supply one. This is the exact idempotency-key mistake documented in
-  `END-TO-END-FLOW.md` (repo root, "businessTransactionId is an idempotency key") is
+  `docs/site/guides/end-to-end-paytm-flow.mdx` ("businessTransactionId is an idempotency key") is
   structurally harder to make by accident.
 
 ## Prerequisites
@@ -40,6 +40,6 @@ python python/examples/builder/run.py
 This example targets `test:fixture-execute`, hermetic and requiring no external connector.
 To see the identical builder pattern reach a real Paytm refund, staging environment, real
 signature verification, and a real cross-service audit trail, see
-`docs/site/guides/end-to-end-paytm-flow.mdx` / `END-TO-END-FLOW.md` (repo root), the
+`docs/site/guides/end-to-end-paytm-flow.mdx`, the
 complete, verified-live runbook, including every real error message you might hit along
 the way and why.
