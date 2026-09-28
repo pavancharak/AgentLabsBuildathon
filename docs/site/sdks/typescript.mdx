@@ -262,6 +262,40 @@ doubles as the server's idempotency key. `authorityType` defaults to `"SERVICE"`
 `typescript/test/integration/examples.integration.test.ts` (proves the generated ids round-trip
 correctly through a real running server, not just in isolation).
 
+## New in 1.4.0
+
+<Info>
+  Built, not yet published. Until it is, use `scripts/sign-approval.ts` from a
+  clone.
+</Info>
+
+### Sign an approval on the approver's machine
+
+`signApproval()` makes the signed approval a policy with `approvalSignals` asks for, the same
+one `scripts/sign-approval.ts` makes. The private key never leaves the process.
+
+```typescript
+import { readFileSync } from "node:fs";
+import { signApproval } from "@parmana/sdk";
+
+const approval = signApproval({
+  privateKeyPem: readFileSync(
+    "manager-priya__manager-priya-key-1.private.pem",
+    "utf8",
+  ),
+  approverId: "manager-priya",
+  keyId: "manager-priya-key-1",
+  capability: "paytm:refund",
+  resourceId: "ORD-1042",
+  maxAmount: 75000, // leave out when the policy declares no amount
+});
+
+// The agent sends it in signals.approvalArtifact on a new request.
+```
+
+The approval is valid for 15 minutes by default (`ttlSeconds`, up to a day) and can be used
+once. See [Human approval](/concepts/human-approval).
+
 ## New in 1.3.0
 
 <Info>
