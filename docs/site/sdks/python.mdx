@@ -17,17 +17,19 @@ description: "Generated models, bearer-key authentication, and a typed error tax
   and the `offline_verifier.py` fix. Two quick follow-up releases, v1.1.3 and
   v1.1.4, corrected the published package metadata (repo name, docs domain,
   added a `Website` URL); v1.1.5 and v1.1.6, both published 2026-09-20, follow;
-  v1.3.0, published 2026-09-25, is the current version, confirmed against the
-  live PyPI registry. It adds policy governance, step up signing, `caller()`,
-  `public_key()`, `trust_records.list()` and `latest_receipt()`, and lets the
-  offline verifiers take the SDK's own models: see [New in 1.3.0](#new-in-130).
-  v1.2.0, published 2026-09-21, added the Execution Intent methods and an
-  offline intent verifier. v1.1.6 adds `server_code` to `InternalServerError`.
-  v1.1.5 lets the offline verifier accept records over 4096 bytes that AWS KMS
-  signed as a fixed size commitment, and declares its `cryptography` dependency
-  as the optional `verify` extra (`pip install "parmana[verify]"`). v1.1.4 was
-  published 2026-09-14. See [Changelog](/changelog) and the fix history at the
-  bottom of this page.
+  v1.4.0, published 2026-09-29, is the current version, confirmed against the
+  live PyPI registry. It adds `sign_approval()` and the approver methods: see
+  [New in 1.4.0](#new-in-140). v1.3.0, published 2026-09-25, added policy
+  governance, step up signing, `caller()`, `public_key()`,
+  `trust_records.list()` and `latest_receipt()`, and lets the offline verifiers
+  take the SDK's own models: see [New in 1.3.0](#new-in-130). v1.2.0, published
+  2026-09-21, added the Execution Intent methods and an offline intent verifier.
+  v1.1.6 adds `server_code` to `InternalServerError`. v1.1.5 lets the offline
+  verifier accept records over 4096 bytes that AWS KMS signed as a fixed size
+  commitment, and declares its `cryptography` dependency as the optional
+  `verify` extra (`pip install "parmana[verify]"`). v1.1.4 was published
+  2026-09-14. See [Changelog](/changelog) and the fix history at the bottom of
+  this page.
 </Info>
 
 ## Install
@@ -244,8 +246,8 @@ generated ids round-trip correctly through a real running server, not just in is
 ## New in 1.4.0
 
 <Info>
-  Built, not yet published. Until it is, use `scripts/sign-approval.ts` from a
-  clone.
+  Published to PyPI on 2026-09-29. `pip install "parmana[verify]"` installs it
+  with `sign_approval()`.
 </Info>
 
 ### Sign an approval on the approver's machine

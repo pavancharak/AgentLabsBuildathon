@@ -71,7 +71,7 @@ The flow for a refund of 75000 on order `ORD-1042`:
       --out approval.json
     ```
 
-    ```typescript TypeScript (SDK 1.4.0)
+    ```typescript TypeScript
     import { readFileSync, writeFileSync } from "node:fs";
     import { signApproval } from "@parmana/sdk";
 
@@ -86,7 +86,7 @@ The flow for a refund of 75000 on order `ORD-1042`:
     writeFileSync("approval.json", JSON.stringify(approval));
     ```
 
-    ```python Python (SDK 1.4.0)
+    ```python Python
     import json
     from pathlib import Path
     from parmana.crypto import sign_approval

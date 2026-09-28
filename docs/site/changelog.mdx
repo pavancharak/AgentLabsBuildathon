@@ -16,9 +16,9 @@ every commit, run `git log` in the repository for the complete record.
 
 - **Approval notifications.** With `APPROVAL_WEBHOOK_URL` and `APPROVAL_WEBHOOK_SECRET` set, a request refused only for want of a signed approval sends a signed `approval.needed` event to that URL, naming what to sign. Other refusals send nothing. Best effort, and a failed delivery never changes the refusal. See [Approval notifications](/guides/approval-notifications).
 
-- **Manage approvers without a deploy.** Trust a new approver key, rotate one, or revoke one through the API: one person proposes, a different person approves with a step up signature, and the change applies to the next request. New endpoints under `/approval-issuers`, SDK methods in 1.4.0 (built, not yet published), and the tables `approval_issuers` and `approval_issuer_changes` (migration `20260929120000_add_approval_issuers.sql`, apply before deploying). See [Manage approvers](/guides/manage-approvers).
+- **Manage approvers without a deploy.** Trust a new approver key, rotate one, or revoke one through the API: one person proposes, a different person approves with a step up signature, and the change applies to the next request. New endpoints under `/approval-issuers`, SDK methods in 1.4.0, and the tables `approval_issuers` and `approval_issuer_changes` (migration `20260929120000_add_approval_issuers.sql`, apply before deploying). See [Manage approvers](/guides/manage-approvers).
 
-**SDK 1.4.0, built, not yet published**
+**SDK 1.4.0, published on npm and PyPI**
 
 - Sign an approval of one action on the approver's own machine, without a clone of the repository: `signApproval()` in TypeScript, `parmana.crypto.sign_approval()` in Python. The result is the same signed approval `scripts/sign-approval.ts` makes, and the server's own verifier accepts it (tested). See [Human approval](/concepts/human-approval).
 
