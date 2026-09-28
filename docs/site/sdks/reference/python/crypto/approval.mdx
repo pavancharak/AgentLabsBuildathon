@@ -27,7 +27,7 @@ def sign_approval(
         key_id: str,
         capability: str,
         resource_id: str,
-        max_amount: Optional[float] = None,
+        max_amount: float | None = None,
         ttl_seconds: int = DEFAULT_APPROVAL_TTL_SECONDS) -> dict[str, Any]
 ```
 

@@ -1,3 +1,4 @@
+export * from "./approval-issuer.js";
 export * from "./audit-event.js";
 export * from "./authority.js";
 export * from "./authorization.js";

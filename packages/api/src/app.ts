@@ -13,6 +13,7 @@ import type { Store } from "express-rate-limit";
 
 import policyRoutes from "./routes/policies.js";
 import { createPendingPolicyChangesRouter } from "./routes/pending-policy-changes.js";
+import { createApprovalIssuersRouter } from "./routes/approval-issuers.js";
 import type { ExecutionTrustApplication } from "@parmana/runtime";
 
 import { createExecuteRouter } from "./routes/execute.js";
@@ -387,6 +388,16 @@ export function createApp(
   /**
    * Execution Trust Records
    */
+  app.use(
+    "/approval-issuers",
+    createApprovalIssuersRouter(
+      options.callerAuth !== "disabled"
+        ? options.callerAuth.auditSink
+        : undefined,
+      options.stepUpVerifier,
+    ),
+  );
+
   app.use("/trust-records", createTrustRecordsRouter(application));
 
   /**

@@ -9,15 +9,16 @@ approval is written in the policy, not in code, so adding one to a new action is
 change. Parmana does not hold a request while it waits for a person: a refused request stays
 refused, and the agent sends a new one with the approval attached.
 
-| What a person does                                               | Status                                      |
-| ---------------------------------------------------------------- | ------------------------------------------- |
-| Approve a policy before it can authorize anything                | **[AVAILABLE]**                             |
-| Review refused requests                                          | **[AVAILABLE]**                             |
-| Get notified when a request waits for an approval                | **[AVAILABLE]**, when a webhook is set      |
-| Sign an approval for any action whose policy declares one        | **[AVAILABLE]**, no approver configured yet |
-| Sign an approval for a refund above 10000                        | **[AVAILABLE]**, no approver configured yet |
-| Sign an approval for a HubSpot amount change above the threshold | **[AVAILABLE]**, no approver configured yet |
-| Approve a refused request so that same request runs              | **[NOT AVAILABLE]**                         |
+| What a person does                                               | Status                                 |
+| ---------------------------------------------------------------- | -------------------------------------- |
+| Approve a policy before it can authorize anything                | **[AVAILABLE]**                        |
+| Review refused requests                                          | **[AVAILABLE]**                        |
+| Get notified when a request waits for an approval                | **[AVAILABLE]**, when a webhook is set |
+| Sign an approval for any action whose policy declares one        | **[AVAILABLE]**                        |
+| Sign an approval for a refund                                    | **[AVAILABLE]**                        |
+| Sign an approval for a HubSpot amount change above the threshold | **[AVAILABLE]**                        |
+| Add or revoke an approver without a deploy                       | **[AVAILABLE]**                        |
+| Approve a refused request so that same request runs              | **[NOT AVAILABLE]**                    |
 
 ## Approve policies
 
@@ -144,30 +145,37 @@ changed payload, an unknown or revoked approver, an expired approval, or one alr
 
 ## Set up an approver
 
+An approver is a person with an Ed25519 key pair. The private key stays on their machine; the
+server trusts the public key. Add one through maker checker, with no deploy:
+
 <Steps>
-  <Step title="The manager creates a key pair on their own machine">
-    ```bash
-    npx tsx scripts/generate-approver-key.ts \
-      --approver-id manager-priya --key-id manager-priya-key-1 --out-dir ~/.parmana
-    ```
-    The private key stays on that machine. The manager sends the operator the public key file,
-    `manager-priya__manager-priya-key-1.public.pem`.
+  <Step title="The approver creates a key pair on their own machine">
+    ```bash npx tsx scripts/generate-approver-key.ts \ --approver-id
+    manager-priya --key-id manager-priya-key-1 --out-dir ~/.parmana ``` They
+    send the public key file, `manager-priya__manager-priya-key-1.public.pem`,
+    to a proposer.
   </Step>
-  <Step title="The operator trusts it">
-    Add `{ approverId: "manager-priya", keyId: "manager-priya-key-1", revoked: false,
-    publicKeyPem: "<the contents of the .public.pem file>" }` to `TRUSTED_APPROVAL_ISSUERS` in
-    `packages/api/src/bootstrap/createApprovalIssuerRegistry.ts`, and deploy. Public keys are not
-    secret, so the key can live in the code, which is how it works on Vercel. On a deployment
-    with a key directory you can leave out `publicKeyPem` and copy the file to
-    `$PARMANA_KEY_DIR/approval-issuers/` instead. To revoke the key later, set `revoked: true` and
-    deploy.
+  <Step title="One person proposes trusting it">
+    `POST /approval-issuers/changes` with `action: "add"`, the ids, the public
+    key and a reason.
+  </Step>
+  <Step title="A different person approves it">
+    `POST /approval-issuers/changes/{id}/approve` with a step up authorization.
+    The key is trusted from the next request on.
   </Step>
 </Steps>
 
+The full walkthrough, with rotation, revocation and errors, is
+[Manage approvers](/guides/manage-approvers).
+
+Approvers can also be listed in the server code, `TRUSTED_APPROVAL_ISSUERS` in
+`packages/api/src/bootstrap/createApprovalIssuerRegistry.ts`. Those change only with a pull
+request and a deploy. The code list is checked first.
+
 <Info>
-  The hosted deployment trusts one approver, added on 2026-09-28. An approval
-  from any other key is refused. Approver keys are always Ed25519, whatever
-  signing algorithm the server itself uses.
+  The hosted deployment trusts one approver in code, added on 2026-09-28.
+  Approver keys are always Ed25519, whatever signing algorithm the server itself
+  uses.
 </Info>
 
 ## Add an approval to any action
@@ -191,8 +199,9 @@ npx tsx scripts/sign-approval.ts   --private-key-file ~/.parmana/lead-sam__lead-
 ```
 
 The change goes live like any policy change: a new version, proposed and approved through
-policy governance. It takes effect when it is approved, with no code change and no deploy. Two
-things still need a deploy: a new approver, and binding an action to a different policy name.
+policy governance. It takes effect when it is approved, with no code change and no deploy. One
+thing still needs a deploy: binding an action to a different policy name. Approvers are added
+through [Manage approvers](/guides/manage-approvers).
 
 Rules for a declaration, checked when the policy loads:
 

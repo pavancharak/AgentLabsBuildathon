@@ -35,6 +35,8 @@ psql "$DATABASE_URL"
 | `caller_audit_events`                   | Every caller authentication decision, the highest write volume          | `SupabaseCallerAuditSink`                      |
 | `execution_audit_events`                | Execution lifecycle events, **shared with `parmana-paytm-agent`**       | `SupabaseExecutionAuditSink`                   |
 | `policies`                              | Policy content written on approval (Vercel has a read only filesystem)  | `SupabasePolicyRepository`                     |
+| `approval_issuers`                      | Approver keys added through maker checker                               | `SupabaseApprovalIssuerRepository`             |
+| `approval_issuer_changes`               | Proposals to add or revoke an approver key                              | `SupabaseApprovalIssuerRepository`             |
 | `pending_policy_changes`                | Maker and checker: a proposed change awaiting approval                  | `SupabasePendingPolicyChangeRepository`        |
 | `policy_change_approval_records`        | Maker and checker: signed approval or rejection                         | `SupabasePolicyChangeApprovalRecordRepository` |
 | `consumed_nonces`                       | Replay protection: gateway authorization envelopes                      | `SupabaseNonceStore`                           |
@@ -236,6 +238,33 @@ NULL`, `proposed_by TEXT NOT NULL`, `proposed_at TIMESTAMPTZ NOT NULL`, `status`
 The partial unique index `ux_pending_policy_changes_open` on `(policy_name, policy_version)`
 where `status = 'PENDING_APPROVAL'` enforces at most one open change per policy version in
 the database itself. Indexed on `status`, RLS enabled.
+
+### `approval_issuers` and `approval_issuer_changes`
+
+Approver keys added without a deploy ([Manage approvers](/guides/manage-approvers)). Created by
+`20260929120000_add_approval_issuers.sql`.
+
+`approval_issuer_changes`: `change_id` primary key, `action` (`add` or `revoke`),
+`approver_id`, `key_id`, `public_key_pem` (present exactly when `action = 'add'`), `reason`,
+`proposed_by`, `proposed_at`, `status` (`PENDING_APPROVAL`, `APPROVED`, `REJECTED`),
+`resolved_by` (never equal to `proposed_by`, a check constraint), `resolved_at`,
+`rejection_reason`. The partial unique index `ux_approval_issuer_changes_open` on
+`(approver_id, key_id)` where `status = 'PENDING_APPROVAL'` allows one open change per key.
+
+`approval_issuers`: primary key `(approver_id, key_id)`, `public_key_pem`, `revoked`,
+`added_by_change_id` and `revoked_by_change_id` (restricting foreign keys to
+`approval_issuer_changes`), `added_at`, `revoked_at`. A check constraint keeps `revoked` true
+exactly when `revoked_by_change_id` is set, so a key is never revoked without a change behind
+it. Rows are never deleted. RLS enabled on both.
+
+Who can sign approvals today, and since when:
+
+```sql
+select approver_id, key_id, revoked, added_at, revoked_at, c.proposed_by, c.resolved_by
+from approval_issuers i
+join approval_issuer_changes c on c.change_id = i.added_by_change_id
+order by added_at;
+```
 
 ### `policy_change_approval_records`
 

@@ -5,5 +5,6 @@ export * from "./refusal-record-repository.js";
 export * from "./challenge-record-repository.js";
 export * from "./policy-repository.js";
 export * from "./pending-policy-change-repository.js";
+export * from "./approval-issuer-repository.js";
 export * from "./policy-change-approval-record-repository.js";
 export * from "./handbook-download-lead-repository.js";
