@@ -16,7 +16,7 @@ The key pair was rotated on 2026-07-05.
 
 ---
 
-> Building a new connector? Read [CONNECTOR-BUILD-GUIDE.md](./CONNECTOR-BUILD-GUIDE.md) first — it captures the pattern distilled from the Razorpay and HubSpot connectors (credential guards, bound-signals hardening, test order, non-destructive live tests).
+> Building a new connector? Read [BUILDING_A_CONNECTOR.md](./connectors/BUILDING_A_CONNECTOR.md) first: the files to add, credential guards, bound signals, test order and reversible live tests.
 
 ---
 
@@ -1365,7 +1365,9 @@ A third, narrower point this milestone originally left unresolved: `preAuthorize
 
 **Update (TD-23, Phase 3C, now closed):** `preAuthorizedForAmountChange` is no longer trusted verbatim. `HubSpotSignalStateVerifier` (`packages/connector-hubspot/src/HubSpotSignalStateVerifier.ts`), constructed with a real `ApprovalVerifier` (`@parmana/approval`) unconditionally in `packages/api/src/bootstrap/createHubSpotSignalStateVerifier.ts` (that file's own comment: "approvalVerifier is always supplied here (never omitted) -- the production wiring path is where independent verification... becomes a structural invariant rather than an optional, caller-declared signal"), verifies a caller's `preAuthorizedForAmountChange: true` claim against a real, independently-issued, Ed25519-signed Approval Artifact (`SignedApproval`, the Phase 3A approval artifact design, in git history) carried in `signals.approvalArtifact` -- checking issuer identity against a registry, signature validity, expiry, capability/resource scope match, and single-use nonce consumption (`ApprovalVerifier.verify`, `packages/approval/src/ApprovalVerifier.ts`), all before the declared value is trusted. A missing, expired, wrong-scope, replayed, or unsigned artifact is treated as `preAuthorizedForAmountChange: false` regardless of what the caller declared. This closes the gap the Phase 2L authorization exceptions record (in git history) independently re-confirmed still open as of that phase.
 
-**Operational scope, independently confirmed by Phase 3D:** `createApprovalIssuerRegistry.ts`'s `TRUSTED_APPROVAL_ISSUERS` list ships **empty by default** — no real business-approver key is provisioned in this deployment. This is the correct fail-closed starting state (every `preAuthorizedForAmountChange` claim is rejected, genuine artifact or not, until an operator adds a real entry and deploys), not a gap in the mechanism above, but it means no over-threshold `hubspot:deal-update` amount change can be legitimately approved in the current deployment as configured — only ever denied. The verification mechanism itself is proven correct by unit and integration test against synthetic issuers (below); it has not yet been exercised against a real, operator-provisioned issuer key in production. See §4.2 and §12.3 of the Phase 3D independent authorization certification (in git history).
+**Update (2026-09-28, checked in code):** the list is no longer empty. It holds one entry, `manager-charak1987` (key `manager-charak1987-key-1`), added by commit `8c48ad9` for refund approvals; the paragraph below describes the state before that.
+
+**Operational scope, independently confirmed by Phase 3D:** `createApprovalIssuerRegistry.ts`'s `TRUSTED_APPROVAL_ISSUERS` list shipped **empty by default** — no real business-approver key is provisioned in this deployment. This is the correct fail-closed starting state (every `preAuthorizedForAmountChange` claim is rejected, genuine artifact or not, until an operator adds a real entry and deploys), not a gap in the mechanism above, but it means no over-threshold `hubspot:deal-update` amount change can be legitimately approved in the current deployment as configured — only ever denied. The verification mechanism itself is proven correct by unit and integration test against synthetic issuers (below); it has not yet been exercised against a real, operator-provisioned issuer key in production. See §4.2 and §12.3 of the Phase 3D independent authorization certification (in git history).
 
 **Test posture, in the order specified for this milestone:**
 
@@ -1875,7 +1877,7 @@ Examples include:
 
 - Deterministic signature output for post-quantum (ML-DSA-65) signing. ML-DSA-65 signatures are randomized by design: signing the same message twice with the same key produces two different, independently valid signatures. Only signature verification is deterministic. Determinism-of-output claims (2.8) apply to Ed25519 only.
 
-- That a refused decision escalates to a person who can approve it. A refusal is final and nothing notifies anyone. People can review refusals in the Refusal Records (3.11), and a manager can sign an approval that lets a new request for a large refund run (2.42), but no approver is configured yet (G-65 in `docs/VERIFICATION-GAPS.md`).
+- That a refused decision escalates to a person who can approve it. A refusal is final and nothing notifies anyone. People can review refusals in the Refusal Records (3.11), and a manager can sign an approval that lets a new request for a large refund run (2.42), and one approver key, `manager-charak1987`, is trusted in `TRUSTED_APPROVAL_ISSUERS` (`packages/api/src/bootstrap/createApprovalIssuerRegistry.ts`).
 
 - That rule violations are structurally impossible, as an unscoped claim. The supported version: an action routed through Parmana does not execute unless the policy bound to it (2.22), approved through governance (2.35), approves it. An agent that holds its own credentials to a system is outside that, and a signal nothing verifies is only as true as the caller says (G-51).
 

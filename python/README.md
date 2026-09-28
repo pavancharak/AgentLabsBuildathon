@@ -4,7 +4,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/parmana)](https://pypi.org/project/parmana/)
 [![Python](https://img.shields.io/pypi/pyversions/parmana)](https://pypi.org/project/parmana/)
-[![License](https://img.shields.io/pypi/l/parmana)](https://github.com/pavancharak/parmana/blob/main/LICENSE)
+[![License](https://img.shields.io/pypi/l/parmana)](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/python/LICENSE)
 
 The official Python SDK for **Parmana Execution Trust Infrastructure**.
 
@@ -140,8 +140,8 @@ Each of these is also available under its own namespace (e.g. `client.execution.
 - Website: https://parmanasystems.com/
 - Documentation: https://docs.parmanasystems.com
 - Every operation and its TypeScript equivalent: https://docs.parmanasystems.com/sdks/api-coverage
-- GitHub: https://github.com/pavancharak/parmana
-- Issues: https://github.com/pavancharak/parmana/issues
+- GitHub: https://github.com/pavancharak/AgentLabsBuildathon
+- Issues: https://github.com/pavancharak/AgentLabsBuildathon/issues
 
 ## License
 

@@ -355,7 +355,7 @@ describe("execution boundary — exactly one production execution pipeline", () 
     // to connector-execution/ later wouldn't be covered until someone
     // remembers to add its name to that list. This derives the "must stay
     // internal" set from connector-execution/index.ts itself (minus the
-    // three factory files, which are the intended public surface), so it
+    // public factory files, which are the intended public surface), so it
     // covers symbols that don't exist yet.
     const internalBarrelPath =
       "packages/execution-gateway/src/connector-execution/index.ts";
