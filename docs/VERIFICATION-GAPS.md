@@ -1113,6 +1113,34 @@ approved a refund of 0 or a negative amount, since nothing set a lower bound.
 - **Not changed:** the self hosted quickstart and offline checks (`docker/local`) still adopt 1.1.0 for
   their demo refund, because the image trusts no approver whose key it holds.
 
+**G-76. An agent could post any text to any Slack channel the bot is in, by declaring the channel
+authorized. FOUND 2026-09-28, `blocks-pilot` wherever the Slack connector is configured (not checked for
+production). FIXED the same day on branch `fix/ai-attack-hardening`; takes effect on deploy, and needs
+`SLACK_ALLOWED_CHANNEL_IDS` set or every post is refused.**
+`slack-post-message` 1.0.0 approves when the caller declares `contentApproved` and `channelAuthorized`
+true, and binds only `channelId` to the Intent's `target`. Two holes: nothing checks
+`channelAuthorized`, and `GatewaySlackAdapter` posts to `parameters.channel`, which nothing compared with
+`target`, so even a correct check on the target could be sidestepped by naming an allowed channel there
+and another in `parameters.channel`. A manipulated agent could send data it had read to a channel of its
+choosing, the usual way prompt injection leaks data.
+
+- **Fix, in code (no policy change, so no approval needed):** `SlackChannelSignalVerifier`
+  (`packages/api/src/bootstrap/createSlackChannelSignalVerifier.ts`), in the same composite verifier as
+  HubSpot and approvals, refuses a `slack:post-message` unless `parameters.channel` is a string, equals
+  the target, and is in `SLACK_ALLOWED_CHANNEL_IDS`. It runs before authorization and again at release.
+  Unset or empty refuses every post (fails closed). `GatewaySlackAdapter` also refuses a channel that is
+  not the target, before any network call.
+- **Tests:** `packages/api/tests/unit/bootstrap/create-slack-channel-signal-verifier.test.ts` (7),
+  `packages/api/tests/integration/slack-post-message.integration.test.ts` (4, new: an allowed channel
+  posts once; a channel off the list, an allowed target with another `parameters.channel`, and an unset
+  list are each refused with zero Slack calls), `packages/execution-gateway/tests/unit/slack-connector.test.ts`
+  (1 new). Tutorial 112 has a fourth scenario.
+- **Still open:** `contentApproved` is caller declared. The content of an approved post is whatever the
+  agent writes, limited to channels on the list. A per post human approval (`approvalSignals`) would
+  close it at the cost of a person per message.
+- **To finish in production:** set `SLACK_ALLOWED_CHANNEL_IDS` on Vercel before deploying, if the Slack
+  connector is configured there.
+
 ---
 
 ## Remaining gaps, by severity

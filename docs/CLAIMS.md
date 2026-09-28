@@ -1232,13 +1232,15 @@ Evidence
 
 ---
 
-## 2.44 A Manipulated Agent Cannot Authorize a Refund, a Merge or an LLM Tool Call by Declaring Facts (Scoped, 2026-09-28)
+## 2.44 A Manipulated Agent Cannot Authorize a Refund, a Merge, a Slack Post to Another Channel or an LLM Tool Call by Declaring Facts (Scoped, 2026-09-28)
 
 An AI agent can be manipulated by content it reads (prompt injection) into sending anything Parmana accepts. A fact the agent declares in `signals` and nothing checks is only as true as the agent says (G-51). This section records what stops such an agent, per action, after the 2026-09-28 AI attack review (`docs/VERIFICATION-GAPS.md`, "Gaps opened in the 2026-09-28 AI attack review").
 
 **Pull request merges (`github:pr-merge`, G-73).** `github-pr-approval` 1.1.0 approves a merge only when `mergeApproved` is true, and `mergeApproved` is declared in `approvalSignals` with `resourceId: "target"`, so `ApprovalSignalVerifier` (2.42) counts it as true only with a signed approval from a trusted approver for that exact pull request (`owner/repo#number`), for `github:pr-merge`, not expired, used once. The review, status check, branch protection and risk facts are still caller declared; they can refuse a merge and cannot authorize one on their own. Reading a pull request (`github:pr-fetch`) is now bound to its own policy, `github-pr-read` 1.0.0, which approves a read with no caller declared facts, so reads need no approval.
 
 **Refunds (`paytm:refund`, G-75).** `customer-refund` 1.1.0 authorizes a refund up to 10000 when the caller declares `refundEligible` and `fraudCheckPassed` true, and nothing checks either. 1.2.0 approves a refund only with `managerApproved` true, which needs a signed approval for that order covering that amount (unchanged declaration from 1.1.0), refuses 0 or less (1.1.0 approved a refund of 0 or a negative amount on the same claims), and refuses above 100000. The binding table names 1.2.0.
+
+**Slack posts (`slack:post-message`, G-76).** The caller's `channelAuthorized` is not trusted. `SlackChannelSignalVerifier` refuses a post unless the channel the message goes to (`parameters.channel`) equals the Intent's `target` and is in the server's `SLACK_ALLOWED_CHANNEL_IDS`, before authorization and again at release, and `GatewaySlackAdapter` refuses a channel that is not the target. Unset refuses every post. This is a code change, effective on deploy. `contentApproved` is still caller declared: an approved post carries whatever text the agent writes, but only to a listed channel.
 
 **LLM tool calls (`llm-tool-call`, G-74).** `llm-tool-call` 1.1.0 approves only when `humanApproval` is true, declared in `approvalSignals` with `resourceId: "target"` (the tool), so it needs a signed approval for that tool. The tool, resource, environment and risk facts can refuse a call and cannot authorize one on their own.
 
@@ -1259,13 +1261,15 @@ Verification
 - `packages/api/tests/integration/github-pr-merge.integration.test.ts` (8, through `POST /execute` and the production bootstrap): a merge with a signed approval lands once on the mock GitHub server; every caller fact true with no approval, and `mergeApproved: true` with no approval, are refused with zero GitHub calls; an approval for another pull request is refused; an approval is used once.
 - `packages/api/tests/integration/github-caller-scoping.integration.test.ts` (4): a fetch under `github-pr-read`, a merge with an approval.
 - `packages/api/tests/integration/paytm-refund.integration.test.ts` (18, moved to 1.2.0): a small refund with every caller fact true and no approval is refused with zero connector calls, with `managerApproved` false and true; a refund of 0 with an approval is refused; a small refund with an approval executes once; declaring 1.1.0 is refused, naming 1.2.0.
-- Tutorial 96 (`examples/tutorials/96-github-pr-merge-connector`) shows the refusal and the approved merge through the production composition. Tutorials 111 and 119 use 1.2.0.
+- `packages/api/tests/integration/slack-post-message.integration.test.ts` (4) and `packages/api/tests/unit/bootstrap/create-slack-channel-signal-verifier.test.ts` (7): only a listed channel that is the target receives a post; an unset list refuses every post.
+- Tutorial 96 (`examples/tutorials/96-github-pr-merge-connector`) shows the refusal and the approved merge through the production composition. Tutorials 111 and 119 use 1.2.0. Tutorial 112 refuses a channel off the list.
 
 Evidence
 
 - `policies/github-pr-approval/1.1.0/policy.json`, `policies/github-pr-read/1.0.0/policy.json`, `policies/llm-tool-call/1.1.0/policy.json`, `policies/customer-refund/1.2.0/policy.json`
 - `packages/capability-registry/src/CapabilityPolicyBinding.ts` (`github:pr-fetch` to `github-pr-read`, `github:pr-merge` to `github-pr-approval` 1.1.0)
-- `packages/api/src/application.ts` (`createApplication` takes an optional `approvalVerifier`, defaulting to the production one)
+- `packages/api/src/application.ts` (`createApplication` takes an optional `approvalVerifier`, defaulting to the production one; the composite verifier includes the Slack channel check)
+- `packages/api/src/bootstrap/createSlackChannelSignalVerifier.ts`, `packages/execution-gateway/src/connector-execution/GatewaySlackAdapter.ts`
 
 ---
 

@@ -27,7 +27,8 @@ read directly on 2026-09-27): four connectors, each registered only when its
 configuration is present. HubSpot (`HUBSPOT_PRIVATE_APP_TOKEN`), GitHub
 (`GITHUB_APP_ID`, `GITHUB_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY`), Paytm
 refunds through a separate connector service (`PAYTM_CONNECTOR_URL`,
-`PAYTM_CONNECTOR_SHARED_SECRET`) and Slack (`SLACK_BOT_TOKEN`), plus a
+`PAYTM_CONNECTOR_SHARED_SECRET`) and Slack (`SLACK_BOT_TOKEN`; since 2026-09-28 a post
+also needs its channel in `SLACK_ALLOWED_CHANNEL_IDS`, G-76), plus a
 `test-fixture` connector gated to `NODE_ENV=test`. Six capabilities:
 `hubspot:deal-fetch`, `hubspot:deal-update`, `github:pr-fetch`,
 `github:pr-merge`, `paytm:refund`, `slack:post-message`.

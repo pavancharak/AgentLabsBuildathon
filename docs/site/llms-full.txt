@@ -4229,10 +4229,11 @@ event such as `slack_connector_unavailable` and requests for that connector's ac
 
 ### Slack connector
 
-| Variable          | Required                      | Default       | Values or format                         | What it does                                    |
-| ----------------- | ----------------------------- | ------------- | ---------------------------------------- | ----------------------------------------------- |
-| `SLACK_BOT_TOKEN` | For the connector to register | None          | A Slack bot token, or a secret reference | The credential. See `PARMANA_SECRETS_PROVIDER`. |
-| `SLACK_BASE_URL`  | No                            | The Slack API | A URL                                    | Overrides the API base URL, for testing.        |
+| Variable                    | Required                      | Default                     | Values or format                                               | What it does                                                                                   |
+| --------------------------- | ----------------------------- | --------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `SLACK_BOT_TOKEN`           | For the connector to register | None                        | A Slack bot token, or a secret reference                       | The credential. See `PARMANA_SECRETS_PROVIDER`.                                                |
+| `SLACK_BASE_URL`            | No                            | The Slack API               | A URL                                                          | Overrides the API base URL, for testing.                                                       |
+| `SLACK_ALLOWED_CHANNEL_IDS` | For any post to succeed       | None: every post is refused | Comma separated channel ids, such as `C0123456789,C0987654321` | The only channels a message may go to. The caller's `channelAuthorized` is not trusted (G-76). |
 
 ### GitHub connector
 

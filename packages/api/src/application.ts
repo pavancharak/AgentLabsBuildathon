@@ -32,6 +32,7 @@ import { createApprovalVerifier } from "./bootstrap/createApprovalVerifier.js";
 import { createCurrentPolicyVersionSource } from "./bootstrap/createCurrentPolicyVersionSource.js";
 import { createHubSpotSignalStateVerifier } from "./bootstrap/createHubSpotSignalStateVerifier.js";
 import { createApprovalSignalVerifier } from "./bootstrap/createApprovalSignalVerifier.js";
+import { createSlackChannelSignalVerifier } from "./bootstrap/createSlackChannelSignalVerifier.js";
 import { executionGatewaySignalStateVerifier } from "./bootstrap/executionGatewaySignalStateVerifier.js";
 import { createPolicyExecutionVerifier } from "./bootstrap/createPolicyExecutionVerifier.js";
 import { createPolicyGovernanceAnchorResolver } from "./bootstrap/createPolicyGovernanceAnchorResolver.js";
@@ -98,6 +99,8 @@ export function createApplication(
   const signalStateVerifier = new CompositeSignalStateVerifier([
     createHubSpotSignalStateVerifier(executionSystem, approvalVerifier),
     createApprovalSignalVerifier(approvalVerifier),
+    // G-76: the Slack channel is checked against the server's allowlist.
+    createSlackChannelSignalVerifier(),
   ]);
 
   //

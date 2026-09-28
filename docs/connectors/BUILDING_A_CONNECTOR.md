@@ -312,7 +312,11 @@ suite was not run. This guide itself is never a claim.
   `createSlackCredentialProvider.ts`, policy `slack-post-message@1.0.0` (bound signal
   `channelId == intent.target`, approval needs `contentApproved` and `channelAuthorized`),
   variables `SLACK_BOT_TOKEN`, `SLACK_BASE_URL` (test seam) and `TEST_SLACK_BOT_TOKEN`. It sends
-  only `channel` and `text`, one message per approved transaction, and has no live suite.
+  only `channel` and `text`, one message per approved transaction, and has no live suite. Since
+  G-76 the server checks the channel itself: `SlackChannelSignalVerifier`
+  (`createSlackChannelSignalVerifier.ts`) refuses a post unless `parameters.channel` equals the
+  target and is in `SLACK_ALLOWED_CHANNEL_IDS`, and the adapter refuses a channel that is not the
+  target. This is the pattern for a fact the server can check from its own configuration.
   Tutorials 111 (the caller side) and 112 (the connector end to end).
 - **Paytm** (out of process): `packages/connector-paytm/src/`, `GatewayPaytmAdapter.ts`,
   [PAYTM_CONNECTOR.md](./PAYTM_CONNECTOR.md).

@@ -114,6 +114,24 @@ describe("GatewaySlackAdapter", () => {
     fetchSpy.mockRestore();
   });
 
+  it("G-76: refuses to post to a channel other than the authorized target, before any network call", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+    await expect(
+      connector().execute(
+        {
+          ...postMessageRequest({ channel: "C_OTHER" }),
+          target: "C0123456789",
+        },
+        context(),
+      ),
+    ).rejects.toThrow(/is not the authorized target/);
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(server.calls).toHaveLength(0);
+    fetchSpy.mockRestore();
+  });
+
   it("rejects a credential that is not a resolved Slack bot token", async () => {
     await expect(
       connector().execute(
