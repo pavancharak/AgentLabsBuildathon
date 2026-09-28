@@ -59,7 +59,7 @@ class ReplayApi:
         )
 
     #: Makes `client.replay(business_transaction_id)` work directly
-    #: (the canonical flat capability, docs/sdk/SDK_CONFORMANCE.md #5)
+    #: (the canonical flat capability, docs/site/sdks/api-coverage.mdx, parity rules)
     #: alongside the existing `client.replay.replay(...)`, without
     #: renaming the `ParmanaClient.replay` attribute out from under
     #: existing callers (examples/04_replay.py, examples/11_end_to_end.py).

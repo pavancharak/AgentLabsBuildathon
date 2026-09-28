@@ -3,8 +3,11 @@ import path from "node:path";
 import { marked } from "marked";
 import puppeteer from "puppeteer-core";
 
+import { mdxToMarkdown } from "./handbook/mdxToMarkdown.js";
+
 //
-// Renders every docs/parmana-handbook/*.md chapter into one PDF file,
+// Renders every docs/site/handbook chapter (the site pages are the only
+// copy of the handbook) into one PDF file,
 // for the email-gated download at docs/site/handbook/download.mdx.
 // Uses puppeteer-core (no bundled Chromium) against whichever Chrome
 // or Edge is already installed on the machine building this, rather
@@ -33,7 +36,7 @@ function findBrowser(): string {
   return found;
 }
 
-const sourceDir = path.resolve(process.cwd(), "docs/parmana-handbook");
+const sourceDir = path.resolve(process.cwd(), "docs/site/handbook");
 const outputPath = path.resolve(
   process.cwd(),
   // Mintlify serves static assets from their exact path relative to
@@ -44,14 +47,16 @@ const outputPath = path.resolve(
 );
 
 const chapterFiles = readdirSync(sourceDir)
-  .filter((f) => /^\d{2}-.*\.md$/.test(f))
+  .filter((f) => /^\d{2}-.*\.mdx$/.test(f))
   .sort();
 
-const readmeMd = readFileSync(path.join(sourceDir, "README.md"), "utf8");
+const readmeMd = mdxToMarkdown(
+  readFileSync(path.join(sourceDir, "overview.mdx"), "utf8"),
+);
 
 const chaptersHtml = chapterFiles
   .map((file) => {
-    const md = readFileSync(path.join(sourceDir, file), "utf8");
+    const md = mdxToMarkdown(readFileSync(path.join(sourceDir, file), "utf8"));
     return `<section class="chapter">${marked.parse(md)}</section>`;
   })
   .join("\n");

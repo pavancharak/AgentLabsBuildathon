@@ -35,7 +35,7 @@ class TimeoutError(NetworkError):  # noqa: A001 -- canonical SDK name, see below
 
     Shadows the builtin `TimeoutError` only within this module's/
     package's namespace, exactly as the canonical SDK error model
-    (docs/sdk/SDK_CONFORMANCE.md #7) requires this class be named; the
+    (docs/site/sdks/api-coverage.mdx, parity rules) requires this class be named; the
     builtin remains reachable as `builtins.TimeoutError`.
     """
 

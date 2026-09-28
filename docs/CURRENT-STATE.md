@@ -53,8 +53,7 @@ skipped.)
 ## Self hosted deployment (built 2026-09-25)
 
 Audited and built on 2026-09-25, merged to `main` the same day (`4275365`,
-merge `a14bc5c`). Progress against the plan is tracked in
-`docs/progress/2026-09-25-SELF-HOSTED-AND-ORIENTATION.md`. The operator guide
+merge `a14bc5c`). The operator guide
 is the docs site section `docs/site/self-hosted/`. The claim is
 `docs/CLAIMS.md` 2.40, and the gaps are G-56 to G-63 in
 `docs/VERIFICATION-GAPS.md`.
@@ -156,7 +155,7 @@ Merged to `main` and deployed to production on 2026-09-27 (PR #46, merge `4eebd5
   or any notification. A refused request stays refused; the agent sends a
   new request with the approval.
 - Tests on the branch, 2026-09-27: 2,195 passed, 42 skipped, 0 failed, 253
-  files. Resume point: `docs/progress/2026-09-27-HUMAN-APPROVAL.md`.
+  files. Open items: `docs/REMAINING-WORK.md`, section G.
 
 ## Policy governance (built this session)
 

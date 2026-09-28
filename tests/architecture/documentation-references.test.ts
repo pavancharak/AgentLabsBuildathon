@@ -148,7 +148,7 @@ describe("documentation file references resolve to real files", () => {
  * site (docs/site/**\/*.mdx), and the root-level docs that track the same
  * present-tense state (README.md, SECURITY.md). The
  * audit-trail (docs/VERIFICATION-GAPS.md, docs/architecture/phase*.md,
- * docs/ROADMAP-v1.md, etc.) is deliberately excluded, for the same reason
+ * etc.) is deliberately excluded, for the same reason
  * docsToCheck above never included them: those are dated investigation
  * logs that correctly cite a section number as it existed at the time of
  * writing, not living documentation expected to track the present.

@@ -4,7 +4,7 @@ from __future__ import annotations
 class ParmanaError(Exception):
     """
     Canonical base exception for all Parmana SDK errors (see
-    docs/sdk/SDK_CONFORMANCE.md #7). Every SDK-specific exception
+    docs/site/sdks/api-coverage.mdx, parity rules). Every SDK-specific exception
     inherits from this class, mirroring
     typescript/src/errors/ParmanaError.ts.
     """

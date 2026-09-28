@@ -57,8 +57,8 @@ jobs:
         #     its own retired term and the sweep that replaced it. The
         #     phrase appears quoted, in the past tense, as a historical
         #     fact — never as live vocabulary a reader would adopt.
-        #       - docs/ROADMAP-v1.md, docs/VERIFICATION-GAPS.md: narrate
-        #         the terminology sweep itself.
+        #       - docs/VERIFICATION-GAPS.md: narrates the terminology
+        #         sweep itself.
         #       - docs/architecture/repository-certification.md,
         #         docs/architecture/phase2b-technical-debt-assessment.md,
         #         docs/architecture/phase2c-terminology-guard.md: each
@@ -96,7 +96,6 @@ jobs:
             --exclude-dir=.git \
             --exclude-dir=dist \
             --exclude-dir=coverage \
-            --exclude='ROADMAP-v1.md' \
             --exclude='VERIFICATION-GAPS.md' \
             --exclude='how-parmana-thinks.mdx' \
             --exclude='execution-authorization.mdx' \

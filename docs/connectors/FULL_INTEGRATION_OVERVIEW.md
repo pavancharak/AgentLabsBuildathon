@@ -47,7 +47,7 @@ waste work:
    `BUILDING_A_CONNECTOR.md` and `CONNECTOR_FAQ.md`.
 4. **Add a `SignalStateVerifier` only if you need it** — specifically, if a caller declaring a
    false signal value (`vendorVerified: true` when it isn't) is a real risk for this capability
-   that a policy rule alone can't catch. See `docs/book/03-signal-state-verification.md`. Most
+   that a policy rule alone can't catch. See `docs/site/handbook/05-signal-binding-and-state-verification.mdx`. Most
    capabilities in this codebase don't have one; HubSpot does.
 
 ## Worked example: adding refunds for a new payment provider
@@ -81,7 +81,7 @@ codebase's own history (several the same night, integrating the real Pfinite/Pay
 | Policy + caller key                                                        | Connector                    | `APPROVED`, then `503 CONNECTOR_NOT_REGISTERED` at dispatch. Not a bug — see `CONNECTING_AN_AGENT.md` Part 3.                                                                                                                                                                                                                                                                                                                                                            |
 | Connector + caller key                                                     | Policy                       | `404 PolicyNotFoundError` — the request never reaches your connector at all.                                                                                                                                                                                                                                                                                                                                                                                             |
 | Policy + connector                                                         | Caller key / correct scoping | `401` (no key), or `403 CAPABILITY_NOT_ALLOWED` (key exists but isn't scoped to this capability), or `403` (`principalId` not permitted) — see `CONNECTING_AN_AGENT.md` Part 3's full table.                                                                                                                                                                                                                                                                             |
-| All three                                                                  | `SignalStateVerifier`        | Works, but a caller that lies about a signal (`vendorVerified: true` when it isn't) is trusted at face value — the policy evaluates whatever it's told, nothing independently checks it's true. This is the residual gap `docs/book/03-signal-state-verification.md` names directly; it's a real, accepted scope limit for any capability without a verifier wired up, not a hidden bug.                                                                                 |
+| All three                                                                  | `SignalStateVerifier`        | Works, but a caller that lies about a signal (`vendorVerified: true` when it isn't) is trusted at face value — the policy evaluates whatever it's told, nothing independently checks it's true. This is the residual gap `docs/site/handbook/05-signal-binding-and-state-verification.mdx` names directly; it's a real, accepted scope limit for any capability without a verifier wired up, not a hidden bug.                                                           |
 | Everything, but the deployment's own signing/verification config is broken | —                            | A real, otherwise-correct request fails with an opaque `500` unrelated to anything the caller did — see `docs/operations/2026-09-15-kms-migration-troubleshooting-guide.md` for a full real account of exactly this happening, and `examples/tutorials/114-signing-verification-key-agreement/` to see the failure mode reproduced directly. This is an operator-side deployment problem, not something any of the four pieces above can detect or fix from the outside. |
 
 ## Where to go next
@@ -91,6 +91,6 @@ codebase's own history (several the same night, integrating the real Pfinite/Pay
 - **Building a connector:** `docs/connectors/BUILDING_A_CONNECTOR.md`, `docs/connectors/CONNECTOR_FAQ.md`
 - **The out-of-process connector pattern** (credential never touches Parmana's own process):
   `docs/connectors/PAYTM_CONNECTOR.md`
-- **Independently re-verifying a caller's claimed signals:** `docs/book/03-signal-state-verification.md`
+- **Independently re-verifying a caller's claimed signals:** `docs/site/handbook/05-signal-binding-and-state-verification.mdx`
 - **Credential isolation mechanics** (how a connector gets a credential it never fetches
   itself): `docs/architecture/CONNECTOR_ISOLATION.md`

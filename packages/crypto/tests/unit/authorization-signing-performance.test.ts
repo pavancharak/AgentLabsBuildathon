@@ -19,9 +19,9 @@ import type { ExecutableContent } from "@parmana/shared";
  * benchmark deterministically in CI -- Ed25519 sign/verify throughput,
  * no network, no database, no HTTP layer -- and is explicit about what
  * it does NOT measure: HTTP overhead, database writes, or the full
- * request path a deployed server actually serves. See
- * docs/investigations/2026-08-10-latency-and-voice-ai-readiness.md for
- * that still-open, broader question.
+ * request path a deployed server actually serves. See the
+ * 2026-08-10 latency investigation (in git history) for that still-open,
+ * broader question.
  *
  * The assertion bound is deliberately generous (an order of magnitude
  * above Ed25519's typical sub-millisecond cost) -- this is a smoke

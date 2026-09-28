@@ -8,8 +8,8 @@ const __dirname = path.dirname(__filename);
 const root = path.resolve(__dirname, "..");
 
 /**
- * Guards against the exact failure class behind GAP-AUDIT.md's
- * MUST-FIX-1: workspace packages resolve each other through
+ * Guards against the exact failure class behind the MUST-FIX-1 finding of an
+ * earlier repository gap audit (in git history): workspace packages resolve each other through
  * package.json `exports` -> `dist/`, so a `dist/` compiled before
  * the last `src/` edit silently overrides current source for
  * every cross-package consumer, while a package's own tests
