@@ -189,6 +189,37 @@ curl -s "$PARMANA_API_URL/execution-intents/<businessTransactionId>" \
 
 **Fix:** check the connector for the `businessTransactionId` and `target` before doing anything else. Finalize cannot help, because no result was saved. Once you know what happened, close the intent with `POST /execution-intents/<id>/resolve`, which records what you found and a required note, and takes it out of the list.
 
+## A signed approval is refused, and the approver was added through approver changes
+
+Check, in order:
+
+1. `GET /approval-issuers` lists the approver and key with `revoked: false`. A change that is
+   still `PENDING_APPROVAL` trusts nothing yet.
+2. The approval's `payload.issuer.approverId` and `keyId` match that entry exactly.
+3. The server log has no `approval_issuer_lookup_failed`. If it has, the `approval_issuers`
+   table could not be read: apply the migration `20260929120000_add_approval_issuers.sql` or fix
+   the database connection. Until then those approvers are unknown, so their approvals are refused.
+
+The approval's own checks (expiry, action, resource, amount, used once) are on
+[Human approval](/concepts/human-approval).
+
+## `POST /approval-issuers/changes` returns 409 `CONFLICT`
+
+The message says which case applies: the key id is listed in the server code, it already exists
+(revoked keys included: key ids are used once, so add the next one), the key to revoke is not
+an active key added through approver changes, or another change for the same key is still
+pending. See [Manage approvers](/guides/manage-approvers#errors).
+
+## No `approval.needed` event arrives
+
+- Both `APPROVAL_WEBHOOK_URL` and `APPROVAL_WEBHOOK_SECRET` are set, and the server was
+  redeployed after setting them.
+- The request was refused only for want of an approval. A refusal for any other reason, such as
+  a failed fraud check, sends nothing, by design.
+- The server log has `approval_needed_notification_failed` with the reason: your endpoint
+  answered something other than `2xx`, took longer than 3 seconds, or redirected. There is no
+  retry. See [Approval notifications](/guides/approval-notifications#delivery).
+
 ## `PARMANA_POLICY_DIR` and running from a fresh clone
 
 The server refuses to start when `PARMANA_POLICY_DIR` is not set, with an error naming it
