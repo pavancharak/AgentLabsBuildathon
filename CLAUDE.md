@@ -53,7 +53,7 @@
 - AWS Account: 013659367671 (parmana profile)
 - AWS Region: ap-south-1 (Mumbai)
 - Primary Language: TypeScript/Node.js
-- Deployment Targets: Vercel, Fly.io
+- Deployment Target: Vercel (production is Vercel only)
 
 ## Best Practices for This Project
 

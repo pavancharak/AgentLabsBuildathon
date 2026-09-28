@@ -3,7 +3,7 @@
 **Institutional Authority Infrastructure: protecting who has the authority
 to decide what becomes real-world execution.**
 
-[![CI](https://github.com/pavancharak/parmana/actions/workflows/ci.yml/badge.svg)](https://github.com/pavancharak/parmana/actions/workflows/ci.yml)
+[![CI](https://github.com/pavancharak/AgentLabsBuildathon/actions/workflows/ci.yml/badge.svg)](https://github.com/pavancharak/AgentLabsBuildathon/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-proprietary-lightgrey)](./LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D24-brightgreen)](package.json)
 
@@ -42,11 +42,9 @@ Parmana's own runtime or database.
 
 What's actually been demonstrated, not just built:
 
-- **1,671 automated tests** across the workspace (1,631 passed, 38 skipped, 0 failed; the
-  skips are Supabase/live-credential-gated suites that skip cleanly with no credentials
-  configured; re-verified 2026-09-10 via a JSON-reporter run, not just the summary line, see
-  [docs/VERIFICATION-GAPS.md](docs/VERIFICATION-GAPS.md) G-24 and the 2026-09-10 session's
-  own gap-closure table).
+- **The full test suite runs on every commit and pull request** (typecheck, lint, format,
+  every test, build and the runnable examples; the pre commit hook and CI both run it). Suites
+  that need live credentials or a database skip cleanly when none are configured.
 - A live, reproducible execution-authorization bypass was found and fixed the same session:
   policy-evaluation signals are now bound to the executed Intent before any rule evaluates
   (`Policy.boundSignals` + `SignalIntentBinder`), closing the gap where a caller could declare
@@ -55,7 +53,7 @@ What's actually been demonstrated, not just built:
   the live proof-of-concept figures, and what's deliberately still open.
 - **A real external system, not a mock**: HubSpot deal-stage/amount updates, authorized by policy, executed through the signed gateway pipeline, proven against HubSpot's actual production API, including a real, non-destructive read-nudge-revert mutation on a real account ([CLAIMS.md 3.10](docs/CLAIMS.md)).
 - Assessed at **Technology Readiness Level 6**, system/subsystem model or prototype demonstration in a relevant environment, on the strength of the point above ([CLAIMS.md, Maturity Assessment](docs/CLAIMS.md)). A prior deployment briefly reached TRL 7 on Razorpay evidence before that connector was deliberately removed 2026-08-12 — see CLAIMS.md's Maturity Assessment for the full history.
-- **Independently source-code-validated**, not merely documented: a from-scratch audit checked whether an action can become real-world execution without satisfying institutional authorization, for every capability this system exposes and regardless of what kind of system requests it (AI agent, human, or otherwise) — tracing the actual execution path rather than trusting function names or comments. Verdict: **directly validated**, for the capabilities currently registered in production, with precisely scoped caveats stated alongside the result, not smoothed over ([docs/architecture/strategic-positioning-validation.md](docs/architecture/strategic-positioning-validation.md)).
+- **Independently source-code-validated**, not merely documented: a from-scratch audit checked whether an action can become real-world execution without satisfying institutional authorization, for every capability this system exposes and regardless of what kind of system requests it (AI agent, human, or otherwise) — tracing the actual execution path rather than trusting function names or comments. Verdict: **directly validated**, for the capabilities currently registered in production, with precisely scoped caveats stated alongside the result, not smoothed over ([CLAIMS.md 2.25](docs/CLAIMS.md)).
 
 ## Architecture
 
@@ -123,14 +121,16 @@ authorization, envelope verification, request-bound attestation, session
 credential issuance, connector execution, credential destruction, and the
 signed audit/trust record.
 
-For a real deployment, see [DEPLOYMENT.md](DEPLOYMENT.md). It covers
-required configuration, fail-closed startup validation, and what was
-verified against two real Fly.io deployments (test mode and live mode).
+For a real deployment, see
+[Deploy to production](https://docs.parmanasystems.com/deployment/production)
+(source: `docs/site/deployment/production.mdx`): required configuration,
+fail closed startup validation, and how to confirm a deployment. To run it
+on your own infrastructure with Docker Compose, see
+[Self hosted](https://docs.parmanasystems.com/self-hosted/overview).
 
-To call a live, running instance directly — authentication, the full
-request shape, every deployed policy's signal schema, how to author and
-deploy a new policy, and independent offline verification with zero
-network access — see [LIVE-API-GUIDE.md](LIVE-API-GUIDE.md).
+To call the live hosted instance directly (authentication, the request
+shape, the deployed policies, and offline verification), see
+[Live API and demos](https://docs.parmanasystems.com/guides/live-api-and-demos).
 
 A further tier of integration tests exercises HubSpot's real API and is
 opt-in, skipped by default so `npm test` never needs live credentials.
@@ -167,7 +167,7 @@ you're evaluating Parmana for a role, reach out: **founder@parmanasystems.com**.
 - Email: [founder@parmanasystems.com](mailto:founder@parmanasystems.com)
 - Website: [parmanasystems.com](https://parmanasystems.com/)
 - Documentation: [docs.parmanasystems.com](https://docs.parmanasystems.com)
-- Issues: [github.com/pavancharak/parmana/issues](https://github.com/pavancharak/parmana/issues)
+- Issues: [github.com/pavancharak/AgentLabsBuildathon/issues](https://github.com/pavancharak/AgentLabsBuildathon/issues)
 
 ## License
 
@@ -178,15 +178,13 @@ separate written agreement with Parmana Systems.
 
 ## More documentation
 
-**New here? Start with [The Parmana Handbook](docs/parmana-handbook/README.md)** — every
-capability this codebase has, no matter how small, explained by reading the actual source:
-what it is, why it was built, how it works, how to validate it yourself, and what integrating
-against it requires. 23 chapters. Also published on the
-[docs site](https://docs.parmanasystems.com/handbook/overview) and as a
-[downloadable PDF](https://docs.parmanasystems.com/handbook/download).
+**New here? Start with [The Parmana Handbook](https://docs.parmanasystems.com/handbook/overview)**:
+every capability this codebase has, explained by reading the actual source, in 23 chapters
+(source: `docs/site/handbook/`, also as a
+[downloadable PDF](https://docs.parmanasystems.com/handbook/download)).
 
-[docs/README.md](docs/README.md) indexes the rest: CLAIMS.md, DEPLOYMENT.md,
-SECURITY.md, and package-level documentation, in reading order.
+[docs/README.md](docs/README.md) indexes the rest of the repository documentation: the
+claims register, the gap log, what is left to do, and the architecture decisions.
 
 Connecting an external agent? Start with
 [docs/connectors/CONNECTING_AN_AGENT.md](docs/connectors/CONNECTING_AN_AGENT.md)

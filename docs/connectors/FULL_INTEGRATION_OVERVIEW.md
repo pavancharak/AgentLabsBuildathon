@@ -35,7 +35,7 @@ waste work:
 1. **Write the policy first.** Everything else needs to already know the exact capability
    string and the exact `signalsSchema`/`boundSignals` shape — guessing these before the policy
    exists means redoing Step 2 and Step 3's request/connector shapes once it's written for
-   real. See `docs/site/guides/write-your-first-policy.mdx` and `LIVE-API-GUIDE.md` (repo root).
+   real. See `docs/site/guides/write-your-first-policy.mdx` and `docs/site/guides/live-api-and-demos.mdx`.
 2. **Onboard a caller and test authorization in isolation**, with no connector registered yet.
    `POST /execute` returning a clean `APPROVED`/`REJECTED`/`403 CAPABILITY_NOT_ALLOWED` proves
    your policy and caller scoping are correct _before_ you've written any connector code at all
@@ -86,7 +86,7 @@ codebase's own history (several the same night, integrating the real Pfinite/Pay
 
 ## Where to go next
 
-- **Policy authoring:** `docs/site/guides/write-your-first-policy.mdx`, `LIVE-API-GUIDE.md`
+- **Policy authoring:** `docs/site/guides/write-your-first-policy.mdx`, `docs/site/guides/live-api-and-demos.mdx`
 - **Connecting a caller/agent:** `docs/connectors/CONNECTING_AN_AGENT.md`
 - **Building a connector:** `docs/connectors/BUILDING_A_CONNECTOR.md`, `docs/connectors/CONNECTOR_FAQ.md`
 - **The out-of-process connector pattern** (credential never touches Parmana's own process):

@@ -1,65 +1,48 @@
 # Parmana Documentation
 
-This index covers the documents that matter for evaluating or operating
-Parmana. `docs/` also contains a much larger archive of specifications,
-RFCs, audits, and session notes accumulated during development; those are
-not indexed here and are not required reading.
+Reader documentation (concepts, guides, deployment, the API and the SDKs) is the published
+site at [docs.parmanasystems.com](https://docs.parmanasystems.com). Its source is
+[`site/`](site/). This folder holds only what does not belong on the site: the records the
+project is held to, and the engineering references that code or tests cite.
 
-## Start here
+## The records
 
-1. **[../README.md](../README.md)** — what Parmana is, the authorize to
-   verify to execute to confirm chain, and a 90-second overview.
-2. **[CLAIMS.md](CLAIMS.md)** — the technical claims register. Every claim
-   is scoped to what is actually implemented and tested, with file and
-   test references as evidence. This is the source of truth for what
-   Parmana does and does not do today.
-3. **[../DEPLOYMENT.md](../DEPLOYMENT.md)** — how to run `@parmana/api` as
-   a container, what configuration is required, and what was verified
-   against the two real Fly.io deployments (test mode and live mode).
+- **[CLAIMS.md](CLAIMS.md)**: the technical claims register. Every claim is scoped to what is
+  implemented and tested, with the files and tests that prove it, and a section of claims
+  Parmana does not make. The source of truth for what Parmana does today.
+- **[VERIFICATION-GAPS.md](VERIFICATION-GAPS.md)**: the dated gap log. What was found missing
+  or wrong, how severe, and how and when it was closed.
+- **[REMAINING-WORK.md](REMAINING-WORK.md)**: what is left to do, including what needs the
+  operator, and ideas considered but not built.
+- **[CURRENT-STATE.md](CURRENT-STATE.md)**: a short description of the system as it stands.
+- **[adr/](adr/)**: architecture decision records.
+- **[../04-INCIDENTS-LOG.md](../04-INCIDENTS-LOG.md)**: security and release incidents and
+  their resolutions.
+
+## Engineering references
+
+- **[architecture/system-architecture.md](architecture/system-architecture.md)**: packages,
+  their responsibilities, and how a request flows through them.
+- **[architecture/repository-invariants.md](architecture/repository-invariants.md)**: the
+  architectural rules the build enforces, each with the test that enforces it.
+- **[architecture/CONNECTOR_ISOLATION.md](architecture/CONNECTOR_ISOLATION.md)**: how
+  connector credentials are isolated.
+- **[connectors/BUILDING_A_CONNECTOR.md](connectors/BUILDING_A_CONNECTOR.md)**: how to add a
+  connector.
+- **[connectors/CONNECTING_AN_AGENT.md](connectors/CONNECTING_AN_AGENT.md)**: connecting an
+  external agent or caller, with every response and error cited to source.
+- **[connectors/PAYTM_CONNECTOR.md](connectors/PAYTM_CONNECTOR.md)**: the out of process Paytm
+  refund connector and its wire contract.
 
 ## Package documentation
 
-- **[packages/api/README.md](../packages/api/README.md)** — the REST API
-  surface: routes, authentication, webhooks.
-- **[packages/envelope-verifier/README.md](../packages/envelope-verifier/README.md)**
-  — verifying a Parmana execution authorization independently, without
-  trusting Parmana's runtime or database.
-
-## Connecting an agent
-
-- **[connectors/CONNECTING_AN_AGENT.md](connectors/CONNECTING_AN_AGENT.md)** — the complete guide
-  for a new developer connecting an external AI agent (or any external caller) to Parmana: what's
-  required and why, a step-by-step walkthrough, and an exhaustive response/error reference cited to
-  the actual source. Covers the caller side only — see "Building a connector" below for what happens
-  after `APPROVED`.
-
-## Building a connector
-
-- **[architecture/CONNECTOR_ISOLATION.md](architecture/CONNECTOR_ISOLATION.md)**
-  — how credential isolation actually works: `GatewayConnectorRegistry`
-  wraps every connector in `SessionCredentialSecureConnector` by default,
-  what that wrapper does, and where scope/amount enforcement actually
-  lives (`PolicyEngine`, upstream — not the connector).
-- **[connectors/BUILDING_A_CONNECTOR.md](connectors/BUILDING_A_CONNECTOR.md)**
-  — the concrete steps to add a new connector, using the real HubSpot and
-  GitHub connectors as reference.
-- **[connectors/SLACK_CONNECTOR.md](connectors/SLACK_CONNECTOR.md)** — a from-scratch worked
-  example built exactly following that guide, with a runnable tutorial (112) demonstrating it end
-  to end against a real (non-mock) implementation.
-- **[connectors/CODE_REVIEW_CHECKLIST.md](connectors/CODE_REVIEW_CHECKLIST.md)**
-  and **[connectors/CONNECTOR_FAQ.md](connectors/CONNECTOR_FAQ.md)**.
-
-## Reading order by role
-
-- **Evaluating Parmana**: README.md, then CLAIMS.md.
-- **Deploying it**: DEPLOYMENT.md, then packages/api/README.md.
-- **Integrating a receiving system**: packages/envelope-verifier/README.md.
-- **Connecting an external agent**: connectors/CONNECTING_AN_AGENT.md, then
-  connectors/PAYTM_CONNECTOR.md if you also need the execution side.
-- **Building a connector**: architecture/CONNECTOR_ISOLATION.md, then
-  connectors/BUILDING_A_CONNECTOR.md.
+- [../packages/api/README.md](../packages/api/README.md): the REST API package.
+- [../packages/envelope-verifier/README.md](../packages/envelope-verifier/README.md):
+  verifying a Parmana authorization without trusting Parmana's runtime or database.
+- [../typescript/README.md](../typescript/README.md) and [../python/README.md](../python/README.md):
+  the SDKs.
 
 ## License and security
 
-- [../LICENSE](../LICENSE) — proprietary, source-available for evaluation.
-- [../SECURITY.md](../SECURITY.md) — reporting a vulnerability.
+- [../LICENSE](../LICENSE): proprietary, source available for evaluation.
+- [../SECURITY.md](../SECURITY.md): reporting a vulnerability.

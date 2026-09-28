@@ -60,8 +60,7 @@ export interface CurrentPolicyVersionSource {
  * (via `@parmana/connector-sdk`) both already depend on `@parmana/policy`,
  * so this package deliberately depends on nothing except `@parmana/shared`
  * -- not on either connector package -- to keep it a true leaf. See
- * `docs/VERIFICATION-GAPS.md` G-30 and `G-30-ARCHITECTURE-OPTIONS.md`
- * (repo root) for the full history of why this extraction happened and
+ * `docs/VERIFICATION-GAPS.md` G-30 for the full history of why this extraction happened and
  * what it does and doesn't close.
  */
 export const CANONICAL_CAPABILITY_POLICY_BINDINGS: ReadonlyMap<

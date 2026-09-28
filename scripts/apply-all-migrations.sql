@@ -4,8 +4,8 @@
 --
 -- Concatenates every file in supabase/migrations/ (filename order, which is
 -- also chronological order), unmodified, for one-shot application via the
--- Supabase Dashboard's SQL Editor. See DEPLOYMENT.md's "Applying the schema"
--- section for when and why this is needed.
+-- Supabase Dashboard's SQL Editor. See docs/site/deployment/production.mdx, step 2,
+-- for when and why this is needed.
 --
 -- Safe to run once against an empty project. NOT safe to run again against a
 -- project that already holds data (G-61, docs/VERIFICATION-GAPS.md, found on

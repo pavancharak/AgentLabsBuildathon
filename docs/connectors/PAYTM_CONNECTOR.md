@@ -349,8 +349,7 @@ own `src/parmana/audit.ts` and its test suite.
 deployments and actually firing a real refund end to end -- every environment variable,
 every real error message hit along the way (including the Supabase connection-string trap
 that cost the most time), and how to verify the resulting cross-service audit trail directly
--- see `END-TO-END-FLOW.md` (repo root), kept in sync with
-`docs/site/guides/end-to-end-paytm-flow.mdx` (published docs).
+-- see `docs/site/guides/end-to-end-paytm-flow.mdx` (published docs).
 
 ## Staging -> production setup
 

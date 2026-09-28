@@ -130,7 +130,7 @@ COPY docker/entrypoint.sh ./docker/entrypoint.sh
 # image. An empty directory here satisfies FileKeyProvider's existsSync
 # check structurally; assertSigningKeyMaterialConfigured.ts fails closed
 # at boot if it's still empty and PARMANA_KEY_MATERIAL_JSON is also
-# unset. See DEPLOYMENT.md for the mount-vs-env-var production paths.
+# unset. See docs/site/deployment/production.mdx for the mount-vs-env-var production paths.
 RUN mkdir -p /app/keys \
   && chmod +x ./docker/entrypoint.sh \
   && chown -R node:node /app

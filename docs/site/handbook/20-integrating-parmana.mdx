@@ -21,7 +21,7 @@ equal `authorization.authorizationId`). Getting any of these wrong produces a 40
 `BusinessTransactionValidator`. The SDKs exist specifically to make that class of mistake
 structurally impossible, not merely documented. `typescript/src/builders/createBusinessTransaction.ts`
 says this directly in its own doc comment: this exact mismatch is "the class of mistake that
-produced every 'X must match Y' 400 response documented in `END-TO-END-FLOW.md`."
+produced every 'X must match Y' 400 response documented in the end to end Paytm guide."
 
 ## How it works
 
@@ -110,7 +110,7 @@ code samples were checked against the actual SDK source above, not copied blind.
   `python/parmana/builders.py`, `python/tests/`.
 - `packages/runtime/src/validators/BusinessTransactionValidator.ts` for the exact
   cross-consistency checks a hand built transaction must satisfy.
-- `END-TO-END-FLOW.md` (repo root) for the original incident record of what happens when these
+- [End to end: agent to Parmana to Paytm](/guides/end-to-end-paytm-flow) for the error catalog of what happens when these
   checks fail.
 
 ## Requirements checklist

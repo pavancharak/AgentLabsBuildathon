@@ -14,8 +14,8 @@
 #   api       the same image as the hosted API, in production mode.
 #
 # The API key is in ./parmana-local/api-key.txt after the first start. The
-# full guide, including the offline check, is DEPLOYMENT.md, section
-# "Self hosted with Docker Compose".
+# full guide, including the offline check, is docs/site/self-hosted/
+# (start with quickstart.mdx).
 #
 # Set these in the shell or in a .env file next to this one:
 #   PARMANA_DB_PASSWORD  Postgres password. Change it for anything but a trial.

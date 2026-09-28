@@ -191,10 +191,9 @@ curl -s "$PARMANA_API_URL/execution-intents/<businessTransactionId>" \
 
 ## `PARMANA_POLICY_DIR` and running from a fresh clone
 
-`02-REMAINING.md` (Tier 1) tracks this as an open item: `PARMANA_POLICY_DIR` has no
-repo-relative fallback today, so execution routes can 500 on a bare clone if the env var
-isn't set to an absolute, correct path. Set it explicitly, as shown in
-[Quickstart](/quickstart).
+The server refuses to start when `PARMANA_POLICY_DIR` is not set, with an error naming it
+(`packages/shared/src/config/Config.ts`). There is no default directory, so set it
+explicitly (for example `./policies`), as shown in [Quickstart](/quickstart).
 
 ## A resubmitted, modified transaction under the same ID isn't rejected the way I expected
 

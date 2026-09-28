@@ -12,7 +12,7 @@ import {
  * objects and keeping three id pairs in sync by hand. Compare this
  * file to 02-execute.ts directly -- the difference is the entire
  * point: every "X must match Y" 400 response documented in
- * END-TO-END-FLOW.md (repo root) came from hand-building a request
+ * docs/site/guides/end-to-end-paytm-flow.mdx came from hand-building a request
  * and getting one of those pairs wrong. This function makes that
  * class of mistake structurally impossible.
  *
@@ -22,7 +22,7 @@ import {
  * reach a real business system (Paytm, staging), swap `action`,
  * `target`, `parameters`, and `policy` for the real paytm:refund shape
  * -- see docs/site/guides/end-to-end-paytm-flow.mdx /
- * END-TO-END-FLOW.md (repo root) for the complete, verified-live
+ * docs/site/guides/end-to-end-paytm-flow.mdx for the complete, verified-live
  * version of exactly that, including every real error message you'd
  * hit along the way and why.
  */

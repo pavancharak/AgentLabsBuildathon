@@ -163,6 +163,8 @@ The expected answers are:
 | `GET /ready`                | `200` with `"status":"READY"` and `"authDisabled":false`. It runs `SELECT 1` against the database, and checks that the `execution_intents` table exists. |
 | `POST /execute` with no key | `401` with a `WWW-Authenticate` header. This proves caller authentication is on.                                                                         |
 
+Then read the startup log. The line `runtime_engine_constructed` must show `policyExecutionVerifierConfigured`, `signingReadinessConfigured` and `executionIntentsConfigured` all `true`: those are the policy approval check, the signing check before release, and the signed intent stored before release. They are on by default in production and cannot be switched off there.
+
 If `/ready` returns `503` with `NOT_READY`, read the `reason`. Either the database is unreachable (check `DATABASE_URL` and the network path), or the `execution_intents` table does not exist (apply `supabase/migrations/20260921120000_add_execution_intents.sql` from step 2). If `authDisabled` is `true`, remove `PARMANA_AUTH_DISABLED` and redeploy at once.
 
 ## Step 7: Load and approve your policies
@@ -193,7 +195,10 @@ The full procedure, and how to do it step by step by hand, is in [Policy governa
   `scripts/backfill-legacy-policy-approvals.ts` can create approvals for every
   policy in one run under a fixed system identity. Those approvals are labeled
   as system approvals and do not record a human decision. Use it only if you
-  accept that, and run it first without `--apply` to see what it would do.
+  accept that, and run it first without `--apply` to see what it would do. Never
+  insert rows into `policy_change_approval_records` by hand: the table is the
+  evidence of who approved what, and a hand written row cannot be told apart
+  from a real approval afterwards.
 </Warning>
 
 **Check:**

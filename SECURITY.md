@@ -20,14 +20,14 @@ reasonable window to fix and deploy before any public disclosure.
 ## Scope
 
 In scope: the runtime, policy engine, execution gateway, cryptographic
-signing and verification, the connector SDK and its HubSpot connector,
-the REST API and its authentication/webhook handling, and the envelope
-verifier. See [docs/CLAIMS.md](docs/CLAIMS.md) for exactly what each of
+signing and verification, the connector SDK and the HubSpot, GitHub,
+Slack and Paytm connectors, the REST API and its authentication, and the
+envelope verifier. See [docs/CLAIMS.md](docs/CLAIMS.md) for exactly what each of
 these claims to do today.
 
 Out of scope: findings that require a compromised signing key or
-compromised infrastructure to demonstrate (see
-[docs/SECURITY.md](docs/SECURITY.md)'s Security Assumptions section),
+compromised infrastructure to demonstrate (see the
+[security limitations](https://docs.parmanasystems.com/security/limitations) page),
 denial-of-service against the demo deployments, and social engineering.
 
 ## Acknowledged reports

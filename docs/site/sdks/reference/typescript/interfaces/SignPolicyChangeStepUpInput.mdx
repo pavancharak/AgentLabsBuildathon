@@ -2,7 +2,7 @@
 title: "Interface: SignPolicyChangeStepUpInput"
 ---
 
-Defined in: typescript/src/crypto/step-up.ts:21
+Defined in: [typescript/src/crypto/step-up.ts:21](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/crypto/step-up.ts#L21)
 
 ## Properties
 
@@ -10,7 +10,7 @@ Defined in: typescript/src/crypto/step-up.ts:21
 
 > `readonly` **pendingPolicyChangeId**: `string`
 
-Defined in: typescript/src/crypto/step-up.ts:25
+Defined in: [typescript/src/crypto/step-up.ts:25](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/crypto/step-up.ts#L25)
 
 The change to approve or reject.
 
@@ -20,7 +20,7 @@ The change to approve or reject.
 
 > `readonly` **action**: `"approve"` \| `"reject"`
 
-Defined in: typescript/src/crypto/step-up.ts:27
+Defined in: [typescript/src/crypto/step-up.ts:27](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/crypto/step-up.ts#L27)
 
 ---
 
@@ -28,7 +28,7 @@ Defined in: typescript/src/crypto/step-up.ts:27
 
 > `readonly` **privateKeyPem**: `string`
 
-Defined in: typescript/src/crypto/step-up.ts:33
+Defined in: [typescript/src/crypto/step-up.ts:33](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/crypto/step-up.ts#L33)
 
 The approver's Ed25519 step up private key, PEM (PKCS #8), as made by
 `openssl genpkey -algorithm ed25519`.
@@ -39,7 +39,7 @@ The approver's Ed25519 step up private key, PEM (PKCS #8), as made by
 
 > `readonly` **keyId**: `string`
 
-Defined in: typescript/src/crypto/step-up.ts:40
+Defined in: [typescript/src/crypto/step-up.ts:40](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/crypto/step-up.ts#L40)
 
 A label for the key. It is recorded with the authorization; the server
 verifies with the public key registered on the approver's API key, not
@@ -51,6 +51,6 @@ by this label.
 
 > `readonly` `optional` **ttlSeconds?**: `number`
 
-Defined in: typescript/src/crypto/step-up.ts:45
+Defined in: [typescript/src/crypto/step-up.ts:45](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/crypto/step-up.ts#L45)
 
 How long the authorization stays valid. Default 120.

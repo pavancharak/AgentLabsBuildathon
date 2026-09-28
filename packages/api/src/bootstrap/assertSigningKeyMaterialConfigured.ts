@@ -24,7 +24,7 @@ import { DEFAULT_KEY_ID, SignerBootstrap } from "@parmana/crypto";
  * already exist there, so a pre-mounted volume or platform secret file
  * always wins and is never overwritten. This is the "load from env"
  * path for platforms with no persistent-volume or secret-file
- * primitive (see DEPLOYMENT.md); a platform that does offer one should
+ * primitive (see docs/site/deployment/production.mdx); a platform that does offer one should
  * mount `keys/default.{private,public}.pem` directly and leave this
  * env var unset entirely.
  */
