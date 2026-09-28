@@ -44,7 +44,7 @@ export function createRateLimitStore(prefix: string): Store | undefined {
     console.warn({
       event: "rate_limit_store_not_durable",
       reason:
-        "DATABASE_URL is not configured -- POST /execute and GET /health,/ready rate " +
+        "DATABASE_URL is not configured -- POST /execute, GET /health,/ready and public route rate " +
         "limits are enforced per-process only. Fine for a single instance " +
         "(this deployment's current shape), but the effective fleet-wide ceiling " +
         "becomes limitPerMinute * machineCount the moment a second machine is added. " +

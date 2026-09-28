@@ -25,6 +25,7 @@ describe("Rate limiting (HTTP boundary)", () => {
   function buildApp(rateLimit: {
     executePerMinute: number;
     healthPerMinute: number;
+    publicPerMinute?: number;
   }) {
     const { executionSystem, auditSink: executionAuditSink } =
       createInspectableExecutionSystem();
@@ -188,6 +189,59 @@ describe("Rate limiting (HTTP boundary)", () => {
       const readyAfterHealthExhausted = await request(app).get("/ready");
 
       expect(readyAfterHealthExhausted.status).toBe(429);
+    });
+  });
+
+  describe("unauthenticated verify routes and /handbook, keyed by IP (G-78)", () => {
+    it("traffic over the limit gets a clean 429, before the route does any work", async () => {
+      const { app } = buildApp({
+        executePerMinute: 30,
+        healthPerMinute: 300,
+        publicPerMinute: 2,
+      });
+
+      // The bodies are empty: under the limit they are refused by the
+      // route itself (4xx), over it by the limiter (429).
+      const first = await request(app).post("/audit/verify").send({});
+      const second = await request(app).post("/audit/verify").send({});
+      const limited = await request(app).post("/audit/verify").send({});
+
+      expect(first.status).not.toBe(429);
+      expect(second.status).not.toBe(429);
+      expect(limited.status).toBe(429);
+      expect(limited.body.code).toBe("RATE_LIMITED");
+      expect(limited.headers["retry-after"]).toBeDefined();
+    });
+
+    it("one limiter covers every public route that does work", async () => {
+      const { app } = buildApp({
+        executePerMinute: 30,
+        healthPerMinute: 300,
+        publicPerMinute: 3,
+      });
+
+      await request(app).post("/refusal/verify").send({});
+      await request(app).post("/execution-intents/verify").send({});
+      await request(app).post("/audit/verify").send({});
+
+      const handbook = await request(app)
+        .post("/handbook/download-leads")
+        .send({ email: "not-an-email" });
+
+      expect(handbook.status).toBe(429);
+    });
+
+    it("does not count against /health", async () => {
+      const { app } = buildApp({
+        executePerMinute: 30,
+        healthPerMinute: 300,
+        publicPerMinute: 1,
+      });
+
+      await request(app).post("/audit/verify").send({});
+      await request(app).post("/audit/verify").send({});
+
+      expect((await request(app).get("/health")).status).toBe(200);
     });
   });
 

@@ -127,6 +127,16 @@ export class GatewaySlackAdapter implements Connector {
       request.parameters.channel,
       "parameters.channel",
     );
+
+    // G-76: the policy binds channelId to the target, so the channel the
+    // message goes to must be that target. Otherwise a caller could name
+    // an allowed channel in the target and post somewhere else.
+    if (channel !== request.target) {
+      throw new Error(
+        `SlackConnector "${this.connectorId}" refuses to post: parameters.channel ` +
+          `"${channel}" is not the authorized target "${request.target}".`,
+      );
+    }
     const text = requireString(request.parameters.text, "parameters.text");
     const bearerRedacted = redactSlackToken(botToken);
 

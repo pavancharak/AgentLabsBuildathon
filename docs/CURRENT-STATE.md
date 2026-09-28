@@ -27,7 +27,8 @@ read directly on 2026-09-27): four connectors, each registered only when its
 configuration is present. HubSpot (`HUBSPOT_PRIVATE_APP_TOKEN`), GitHub
 (`GITHUB_APP_ID`, `GITHUB_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY`), Paytm
 refunds through a separate connector service (`PAYTM_CONNECTOR_URL`,
-`PAYTM_CONNECTOR_SHARED_SECRET`) and Slack (`SLACK_BOT_TOKEN`), plus a
+`PAYTM_CONNECTOR_SHARED_SECRET`) and Slack (`SLACK_BOT_TOKEN`; since 2026-09-28 a post
+also needs its channel in `SLACK_ALLOWED_CHANNEL_IDS`, G-76), plus a
 `test-fixture` connector gated to `NODE_ENV=test`. Six capabilities:
 `hubspot:deal-fetch`, `hubspot:deal-update`, `github:pr-fetch`,
 `github:pr-merge`, `paytm:refund`, `slack:post-message`.
@@ -134,6 +135,9 @@ Merged to `main` and deployed to production on 2026-09-27 (PR #46, merge `4eebd5
   approval once. HubSpot amount changes keep their own check.
 - `paytm:refund` is bound to `customer-refund` 1.1.0: automatic up to 10000,
   a verified manager approval above 10000 and up to 100000, refused above.
+  **Since 2026-09-28 the binding names 1.2.0** (G-75): every refund needs a
+  verified manager approval, 0 or less and above 100000 are refused. It takes
+  effect in production when 1.2.0 is approved.
 - Approvers sign on their own machine with `scripts/sign-approval.ts`, with
   an Ed25519 key from `scripts/generate-approver-key.ts`.
 - **In production:** `customer-refund` 1.1.0 was approved on 2026-09-27
@@ -193,11 +197,13 @@ approval record are refused until that changes.
 
 ## On disk, but not reachable
 
-14 policy names exist under `policies/` (checked 2026-09-27). 4 are bound to a
+15 policy names exist under `policies/` (checked 2026-09-28). 5 are bound to a
 capability a registered connector can invoke (`CapabilityPolicyBinding.ts`):
-`hubspot-deal-update`, `github-pr-approval`, `customer-refund` (1.0.0 and
-1.1.0 on disk; the version in effect is the one most recently approved, 1.1.0
-in production) and `slack-post-message`. The others
+`hubspot-deal-update`, `github-pr-read` (`github:pr-fetch`, added 2026-09-28),
+`github-pr-approval` (`github:pr-merge`; 1.1.0, which needs a signed approval,
+added 2026-09-28), `customer-refund` (1.0.0 and 1.1.0 on disk; the version in
+effect is the one most recently approved, 1.1.0 in production) and
+`slack-post-message`. The others
 have no connector that can invoke them today. They are reference and example
 content, not live surface.
 

@@ -7,6 +7,7 @@ import { createCallerAuthMiddleware } from "./middleware/caller-auth.js";
 import {
   createExecuteRateLimiter,
   createHealthReadyRateLimiter,
+  createPublicRateLimiter,
 } from "./middleware/rate-limit.js";
 import type { Store } from "express-rate-limit";
 
@@ -95,10 +96,20 @@ export interface RateLimitOption {
   readonly executeStore?: Store;
 
   readonly healthStore?: Store;
+
+  /**
+   * The unauthenticated verify routes and /handbook, keyed by IP (G-78).
+   * Optional, defaulting to DEFAULT_PUBLIC_PER_MINUTE, so existing call
+   * sites need no change.
+   */
+  readonly publicPerMinute?: number;
+
+  readonly publicStore?: Store;
 }
 
 const DEFAULT_EXECUTE_PER_MINUTE = 30;
 const DEFAULT_HEALTH_PER_MINUTE = 300;
+const DEFAULT_PUBLIC_PER_MINUTE = 60;
 
 export interface CreateAppOptions {
   readonly callerAuth: CallerAuthOption;
@@ -157,6 +168,8 @@ export function createApp(
     options.rateLimit?.executePerMinute ?? DEFAULT_EXECUTE_PER_MINUTE;
   const healthPerMinute =
     options.rateLimit?.healthPerMinute ?? DEFAULT_HEALTH_PER_MINUTE;
+  const publicPerMinute =
+    options.rateLimit?.publicPerMinute ?? DEFAULT_PUBLIC_PER_MINUTE;
 
   app.use(express.json());
 
@@ -197,7 +210,16 @@ export function createApp(
    * ownership-scoped counterpart, GET /refusal/:businessTransactionId,
    * is mounted below the middleware with everything else.
    */
-  app.use("/refusal/verify", createRefusalVerifyRouter(application));
+  const publicRateLimiter = createPublicRateLimiter(
+    publicPerMinute,
+    options.rateLimit?.publicStore,
+  );
+
+  app.use(
+    "/refusal/verify",
+    publicRateLimiter,
+    createRefusalVerifyRouter(application),
+  );
 
   /**
    * ADR-0012: the same unauthenticated, third-party signature verification
@@ -206,6 +228,7 @@ export function createApp(
    */
   app.use(
     "/execution-intents/verify",
+    publicRateLimiter,
     createExecutionIntentVerifyRouter(application),
   );
 
@@ -217,7 +240,7 @@ export function createApp(
    * here is pure signature-over-bytes, with no database lookup
    * involved.
    */
-  app.use("/audit/verify", createAuditVerifyRouter());
+  app.use("/audit/verify", publicRateLimiter, createAuditVerifyRouter());
 
   /**
    * PQC audit RED-2 (docs/VERIFICATION-GAPS.md): public-key discovery,
@@ -237,7 +260,7 @@ export function createApp(
    * so this is exempt from caller-auth for the same reason every
    * other route in this block is.
    */
-  app.use("/handbook", createHandbookRouter());
+  app.use("/handbook", publicRateLimiter, createHandbookRouter());
 
   if (options.callerAuth !== "disabled") {
     app.use(

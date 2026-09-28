@@ -24,22 +24,34 @@ In production, a policy authorizes nothing until one person proposes it and a se
 approves it with a signed step up authorization. The same person cannot do both. The whole
 process, with commands, is in [Policy lifecycle and approvals](/guides/policy-lifecycle-and-approvals).
 
-## Approve a large refund
+## Approve a refund
 
-The `customer-refund` 1.1.0 policy authorizes an eligible refund that passed the fraud check:
+The `customer-refund` 1.2.0 policy authorizes a refund only with a signed approval from a
+manager:
 
-| Refund amount             | What it needs                     |
-| ------------------------- | --------------------------------- |
-| Up to 10000               | Nothing more. Authorized at once. |
-| Above 10000, up to 100000 | A signed approval from a manager  |
-| Above 100000              | Refused, even with an approval    |
+| Refund amount     | What it needs                    |
+| ----------------- | -------------------------------- |
+| 0 or less         | Refused                          |
+| Above 0 to 100000 | A signed approval from a manager |
+| Above 100000      | Refused, even with an approval   |
+
+Why every refund: the agent declares `refundEligible` and `fraudCheckPassed` itself, and
+nothing checks them. In 1.1.0 a refund up to 10000 was authorized on those two claims alone, so
+an agent manipulated by prompt injection could approve its own refunds (G-75). In 1.2.0 they can
+only refuse a refund.
+
+<Note>
+  Production runs the version most recently approved through policy governance.
+  Until 1.2.0 is approved there, it runs 1.1.0: up to 10000 authorized at once,
+  above 10000 and up to 100000 with a signed approval, above 100000 refused.
+</Note>
 
 The flow for a refund of 75000 on order `ORD-1042`:
 
 <Steps>
   <Step title="The agent's request is refused">
     The agent sends the refund with `managerApproved: false`. Parmana refuses it with `403
-    POLICY_DENIED`: "amounts above 10000 require a signed manager approval". Nothing is
+    POLICY_DENIED`: the refund needs a signed manager approval. Nothing is
     executed, and a signed [Refusal Record](/concepts/refusal-records) is stored.
   </Step>
   <Step title="A manager reviews it">

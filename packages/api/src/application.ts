@@ -26,10 +26,13 @@ import {
   refusalRecordRepository,
 } from "./repositories.js";
 
+import type { ApprovalVerifier } from "@parmana/approval";
+
 import { createApprovalVerifier } from "./bootstrap/createApprovalVerifier.js";
 import { createCurrentPolicyVersionSource } from "./bootstrap/createCurrentPolicyVersionSource.js";
 import { createHubSpotSignalStateVerifier } from "./bootstrap/createHubSpotSignalStateVerifier.js";
 import { createApprovalSignalVerifier } from "./bootstrap/createApprovalSignalVerifier.js";
+import { createSlackChannelSignalVerifier } from "./bootstrap/createSlackChannelSignalVerifier.js";
 import { executionGatewaySignalStateVerifier } from "./bootstrap/executionGatewaySignalStateVerifier.js";
 import { createPolicyExecutionVerifier } from "./bootstrap/createPolicyExecutionVerifier.js";
 import { createPolicyGovernanceAnchorResolver } from "./bootstrap/createPolicyGovernanceAnchorResolver.js";
@@ -82,16 +85,22 @@ export const policyRepository: PolicyRepository = new Proxy(
   },
 );
 
-export function createApplication(executionSystem: ExecutionSystem) {
-  //
-  // One ApprovalVerifier for every capability, so an Approval Artifact
-  // is single use across all of them (createApprovalVerifier.ts).
-  //
-  const approvalVerifier = createApprovalVerifier();
-
+/**
+ * One ApprovalVerifier for every capability, so an Approval Artifact is
+ * single use across all of them (createApprovalVerifier.ts). It defaults
+ * to the production one, which trusts only the approvers listed in
+ * createApprovalIssuerRegistry.ts. Tutorials pass their own so an
+ * approver key made in memory can sign approvals.
+ */
+export function createApplication(
+  executionSystem: ExecutionSystem,
+  approvalVerifier: ApprovalVerifier = createApprovalVerifier(),
+) {
   const signalStateVerifier = new CompositeSignalStateVerifier([
     createHubSpotSignalStateVerifier(executionSystem, approvalVerifier),
     createApprovalSignalVerifier(approvalVerifier),
+    // G-76: the Slack channel is checked against the server's allowlist.
+    createSlackChannelSignalVerifier(),
   ]);
 
   //

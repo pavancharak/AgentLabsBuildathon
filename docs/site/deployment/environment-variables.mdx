@@ -139,10 +139,11 @@ Both write into `PARMANA_KEY_DIR`, or `./keys` if it is unset, and refuse to ove
 
 ## Rate limits
 
-| Variable                        | Required | Default | Values or format | What it does                                                                                                                       |
-| ------------------------------- | -------- | ------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `RATE_LIMIT_EXECUTE_PER_MINUTE` | No       | `30`    | Integer          | Requests per minute per authenticated caller on `POST /execute`. Over the limit the API returns `429` with a `Retry-After` header. |
-| `RATE_LIMIT_HEALTH_PER_MINUTE`  | No       | `300`   | Integer          | Requests per minute per IP address on `GET /health` and `GET /ready`.                                                              |
+| Variable                        | Required | Default | Values or format | What it does                                                                                                                                                                                                             |
+| ------------------------------- | -------- | ------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `RATE_LIMIT_EXECUTE_PER_MINUTE` | No       | `30`    | Integer          | Requests per minute per authenticated caller on `POST /execute`. Over the limit the API returns `429` with a `Retry-After` header.                                                                                       |
+| `RATE_LIMIT_HEALTH_PER_MINUTE`  | No       | `300`   | Integer          | Requests per minute per IP address on `GET /health` and `GET /ready`.                                                                                                                                                    |
+| `RATE_LIMIT_PUBLIC_PER_MINUTE`  | No       | `60`    | Integer          | Requests per minute per IP address, shared across `POST /refusal/verify`, `POST /execution-intents/verify`, `POST /audit/verify` and `/handbook`, the unauthenticated routes that check signatures or write data (G-78). |
 
 With `DATABASE_URL` set, the counters are shared across instances. Without it they are per process, so the effective limit
 is the value multiplied by the number of instances, and the server logs `rate_limit_store_not_durable`.
@@ -176,10 +177,11 @@ event such as `slack_connector_unavailable` and requests for that connector's ac
 
 ### Slack connector
 
-| Variable          | Required                      | Default       | Values or format                         | What it does                                    |
-| ----------------- | ----------------------------- | ------------- | ---------------------------------------- | ----------------------------------------------- |
-| `SLACK_BOT_TOKEN` | For the connector to register | None          | A Slack bot token, or a secret reference | The credential. See `PARMANA_SECRETS_PROVIDER`. |
-| `SLACK_BASE_URL`  | No                            | The Slack API | A URL                                    | Overrides the API base URL, for testing.        |
+| Variable                    | Required                      | Default                     | Values or format                                               | What it does                                                                                   |
+| --------------------------- | ----------------------------- | --------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `SLACK_BOT_TOKEN`           | For the connector to register | None                        | A Slack bot token, or a secret reference                       | The credential. See `PARMANA_SECRETS_PROVIDER`.                                                |
+| `SLACK_BASE_URL`            | No                            | The Slack API               | A URL                                                          | Overrides the API base URL, for testing.                                                       |
+| `SLACK_ALLOWED_CHANNEL_IDS` | For any post to succeed       | None: every post is refused | Comma separated channel ids, such as `C0123456789,C0987654321` | The only channels a message may go to. The caller's `channelAuthorized` is not trusted (G-76). |
 
 ### GitHub connector
 

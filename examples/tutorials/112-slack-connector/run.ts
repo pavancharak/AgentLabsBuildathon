@@ -33,6 +33,10 @@ await mockSlack.listen();
 process.env.SLACK_BASE_URL = mockSlack.baseUrl;
 process.env.TEST_SLACK_BOT_TOKEN = TOKEN;
 
+// G-76: the server posts only to channels on its own allowlist. The
+// caller's channelAuthorized is not trusted.
+process.env.SLACK_ALLOWED_CHANNEL_IDS = "C0123456789";
+
 const { createExecutionSystem } =
   await import("../../../packages/api/src/bootstrap/createExecutionSystem.js");
 const { createApplication } =
@@ -197,6 +201,34 @@ try {
   );
   console.log();
 
+  console.log(
+    "Scenario 4: agent declares channelAuthorized for a channel not on the server's allowlist -- REJECTED (G-76)",
+  );
+  console.log("--------------------------------------------------");
+
+  let notAllowedReason = "";
+  try {
+    await application.execute(
+      postMessageTransaction({
+        channel: "C_NOT_ON_ALLOWLIST",
+        text: "Here is the customer list...",
+        signals: {
+          contentApproved: true,
+          channelAuthorized: true,
+          channelId: "C_NOT_ON_ALLOWLIST",
+        },
+      }),
+    );
+  } catch (error) {
+    notAllowedReason = error instanceof Error ? error.message : String(error);
+  }
+
+  console.log(`Rejected : ${notAllowedReason}`);
+  console.log(
+    `Slack mock server total calls (unchanged) : ${mockSlack.calls.length}`,
+  );
+  console.log();
+
   console.log("==================================================");
   console.log("Summary");
   console.log("==================================================");
@@ -207,7 +239,8 @@ try {
     mockSlack.calls.length === 1 &&
     mockSlack.calls[0]?.channel === "C0123456789" &&
     deniedOutcome === "REJECTED" &&
-    mismatchReason.length > 0;
+    mismatchReason.length > 0 &&
+    notAllowedReason.includes("channelAuthorized");
 
   if (allPassed) {
     console.log(
@@ -222,10 +255,14 @@ try {
     console.log(
       "  even ran -- the same protections HubSpot/Paytm's own connectors get for free.",
     );
+    console.log(
+      "  A channel off the server's allowlist was refused whatever the agent declared.",
+    );
   } else {
     console.log(
       "✗ Expected every scenario above to match the documented connector contract.",
     );
+    process.exitCode = 1;
   }
 
   console.log();

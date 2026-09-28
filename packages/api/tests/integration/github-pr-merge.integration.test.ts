@@ -1,6 +1,10 @@
+import { generateKeyPairSync } from "node:crypto";
+
 import request from "supertest";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { BusinessTransaction } from "@parmana/shared";
+import type { BusinessTransaction, SignedApproval } from "@parmana/shared";
+import { StaticApprovalIssuerRegistry } from "@parmana/approval";
+import { ApprovalArtifactSigner } from "@parmana/crypto";
 import {
   GITHUB_TEST_MODE_PLACEHOLDER_TOKEN,
   MockGitHubServer,
@@ -9,6 +13,31 @@ import {
 import { createApplication } from "../../src/application.js";
 import { createApp } from "../../src/app.js";
 import { createExecutionSystem } from "../../src/bootstrap/createExecutionSystem.js";
+
+//
+// One trusted approver for this file only, the same way
+// paytm-refund.integration.test.ts does it: github-pr-approval 1.1.0
+// (G-73) authorizes a merge only with a signed approval for that pull
+// request.
+//
+const approver = vi.hoisted(() => ({
+  approverId: "reviewer-asha",
+  keyId: "reviewer-asha-key-1",
+}));
+
+const approverKeys = generateKeyPairSync("ed25519");
+
+vi.mock("../../src/bootstrap/createApprovalIssuerRegistry.js", () => ({
+  createApprovalIssuerRegistry: () =>
+    new StaticApprovalIssuerRegistry([
+      {
+        approverId: approver.approverId,
+        keyId: approver.keyId,
+        publicKey: approverKeys.publicKey,
+        revoked: false,
+      },
+    ]),
+}));
 
 /**
  * HTTP-level proof that the GitHub PR-merge connector is reachable
@@ -122,7 +151,7 @@ describe("GitHub PR merge (HTTP boundary)", () => {
 
       policy: {
         name: "github-pr-approval",
-        version: "1.0.0",
+        version: "1.1.0",
         schemaVersion: "1.0.0",
       },
 
@@ -132,6 +161,40 @@ describe("GitHub PR merge (HTTP boundary)", () => {
       status: "APPROVED",
       createdAt: new Date(),
     } as unknown as BusinessTransaction;
+  }
+
+  async function signMergeApproval(
+    pullRequest: string,
+  ): Promise<SignedApproval> {
+    return new ApprovalArtifactSigner().sign(
+      {
+        approverId: approver.approverId,
+        keyId: approver.keyId,
+        capability: "github:pr-merge",
+        resourceId: pullRequest,
+        scope: { field: "pullRequest", comparator: "eq", value: pullRequest },
+        ttlSeconds: 900,
+      },
+      approverKeys.privateKey,
+    );
+  }
+
+  function mergeSignals(
+    overrides: Record<string, unknown>,
+    approval?: SignedApproval,
+  ): BusinessTransaction["signals"] {
+    return {
+      mergeApproved: true,
+      repositoryAuthorized: true,
+      requiredReviewsCompleted: true,
+      statusChecksPassed: true,
+      branchProtected: true,
+      riskScore: 5,
+      ...overrides,
+      ...(approval !== undefined
+        ? { approvalArtifact: JSON.parse(JSON.stringify(approval)) }
+        : {}),
+    } as BusinessTransaction["signals"];
   }
 
   it("authorizes and executes a real PR merge through POST /execute, landing on the mock GitHub server", async () => {
@@ -149,13 +212,7 @@ describe("GitHub PR merge (HTTP boundary)", () => {
       owner: "acme",
       repo: "widgets",
       pullNumber: 42,
-      signals: {
-        repositoryAuthorized: true,
-        requiredReviewsCompleted: true,
-        statusChecksPassed: true,
-        branchProtected: true,
-        riskScore: 5,
-      },
+      signals: mergeSignals({}, await signMergeApproval("acme/widgets#42")),
     });
 
     const response = await request(app).post("/execute").send(transaction);
@@ -188,13 +245,10 @@ describe("GitHub PR merge (HTTP boundary)", () => {
       owner: "acme",
       repo: "widgets",
       pullNumber: 43,
-      signals: {
-        repositoryAuthorized: true,
-        requiredReviewsCompleted: true,
-        statusChecksPassed: false,
-        branchProtected: true,
-        riskScore: 5,
-      },
+      signals: mergeSignals(
+        { statusChecksPassed: false },
+        await signMergeApproval("acme/widgets#43"),
+      ),
     });
 
     const response = await request(app).post("/execute").send(transaction);
@@ -241,13 +295,10 @@ describe("GitHub PR merge (HTTP boundary)", () => {
       owner: "acme",
       repo: "widgets",
       pullNumber: 44,
-      signals: {
-        repositoryAuthorized: true,
-        requiredReviewsCompleted: true,
-        statusChecksPassed: true,
-        branchProtected: true,
-        riskScore: 85,
-      },
+      signals: mergeSignals(
+        { riskScore: 85 },
+        await signMergeApproval("acme/widgets#44"),
+      ),
     });
 
     const response = await request(app).post("/execute").send(transaction);
@@ -267,6 +318,121 @@ describe("GitHub PR merge (HTTP boundary)", () => {
     fetchSpy.mockRestore();
   });
 
+  describe("a merge needs a signed approval (G-73)", () => {
+    it.each([
+      [
+        "every caller declared fact true, mergeApproved false",
+        { mergeApproved: false },
+      ],
+      ["mergeApproved true with no approval attached", {}],
+    ])("rejects %s and never calls GitHub", async (_name, overrides) => {
+      const { app, server: mockServer } = await buildApp();
+
+      mockServer.setPullRequest("acme", "widgets", {
+        number: 46,
+        mergeable: true,
+        mergedAt: null,
+        headSha: "mno345",
+        baseRef: "main",
+      });
+
+      const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+      const response = await request(app)
+        .post("/execute")
+        .send(
+          prApprovalTransaction({
+            owner: "acme",
+            repo: "widgets",
+            pullNumber: 46,
+            signals: mergeSignals(overrides),
+          }),
+        );
+
+      expect(response.status).toBe(403);
+      expect(response.body.code).toBe("POLICY_DENIED");
+      expect(mockServer.mergeCalls).toBe(0);
+      expect(
+        fetchSpy.mock.calls.filter((call) =>
+          String(call[0]).startsWith(mockServer.baseUrl),
+        ),
+      ).toHaveLength(0);
+
+      fetchSpy.mockRestore();
+    });
+
+    it("rejects an approval signed for a different pull request", async () => {
+      const { app, server: mockServer } = await buildApp();
+
+      mockServer.setPullRequest("acme", "widgets", {
+        number: 47,
+        mergeable: true,
+        mergedAt: null,
+        headSha: "pqr678",
+        baseRef: "main",
+      });
+
+      const response = await request(app)
+        .post("/execute")
+        .send(
+          prApprovalTransaction({
+            owner: "acme",
+            repo: "widgets",
+            pullNumber: 47,
+            signals: mergeSignals(
+              {},
+              await signMergeApproval("acme/widgets#99"),
+            ),
+          }),
+        );
+
+      expect(response.status).toBe(403);
+      expect(response.body.code).toBe("POLICY_DENIED");
+      expect(mockServer.mergeCalls).toBe(0);
+    });
+
+    it("accepts an approval once: the same approval on a new request is rejected", async () => {
+      const { app, server: mockServer } = await buildApp();
+
+      mockServer.setPullRequest("acme", "widgets", {
+        number: 48,
+        mergeable: true,
+        mergedAt: null,
+        headSha: "stu901",
+        baseRef: "main",
+      });
+
+      const approval = await signMergeApproval("acme/widgets#48");
+
+      const first = await request(app)
+        .post("/execute")
+        .send(
+          prApprovalTransaction({
+            owner: "acme",
+            repo: "widgets",
+            pullNumber: 48,
+            signals: mergeSignals({}, approval),
+          }),
+        );
+
+      expect(first.status).toBe(200);
+
+      const second = await request(app)
+        .post("/execute")
+        .send(
+          prApprovalTransaction({
+            owner: "acme",
+            repo: "widgets",
+            pullNumber: 48,
+            signals: mergeSignals({}, approval),
+          }),
+        );
+
+      expect(second.status).toBe(403);
+      expect(mockServer.mergeCalls).toBe(1);
+    });
+  });
+
   it("never places the installation token or the App private key in the /execute response, only a one-way fingerprint", async () => {
     const { app, server: mockServer } = await buildApp();
 
@@ -282,13 +448,7 @@ describe("GitHub PR merge (HTTP boundary)", () => {
       owner: "acme",
       repo: "widgets",
       pullNumber: 45,
-      signals: {
-        repositoryAuthorized: true,
-        requiredReviewsCompleted: true,
-        statusChecksPassed: true,
-        branchProtected: true,
-        riskScore: 5,
-      },
+      signals: mergeSignals({}, await signMergeApproval("acme/widgets#45")),
     });
 
     const response = await request(app).post("/execute").send(transaction);

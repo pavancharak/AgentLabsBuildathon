@@ -44,7 +44,7 @@ vi.mock("../../src/bootstrap/createApprovalIssuerRegistry.js", () => ({
 /**
  * HTTP-level proof of the full governed Paytm refund path:
  *
- *   AI Agent -> POST /execute -> customer-refund@1.1.0 policy -> decision
+ *   AI Agent -> POST /execute -> customer-refund@1.2.0 policy -> decision
  *     -> (APPROVED) -> Execution Gateway -> RemotePaytmConnector
  *     -> POST /connector/paytm-refund (a hermetic MockPaytmConnectorServer
  *        standing in for the trusted, out-of-process parmana-paytm-agent
@@ -56,12 +56,13 @@ vi.mock("../../src/bootstrap/createApprovalIssuerRegistry.js", () => ({
  * the PAYTM_CONNECTOR_URL test seam (see createPaytmConnector.ts) instead
  * of a hand-rolled recomposition -- this proves the actual production
  * wiring, not a look-alike of it. Every scenario uses the policy bound to
- * paytm:refund (customer-refund/1.1.0) unless it tests the binding itself;
+ * paytm:refund (customer-refund/1.2.0) unless it tests the binding itself;
  * the different outcome comes entirely from the payload/signals.
  *
- * Manager approval (G-65): refunds above 10000 run only with a signed
- * Approval Artifact from a trusted approver, verified by
- * customer-refund 1.1.0's approvalSignals, enforced by ApprovalSignalVerifier before authorization
+ * Manager approval (G-65, G-75): since customer-refund 1.2.0 every
+ * refund runs only with a signed Approval Artifact from a trusted
+ * approver, declared in the policy's approvalSignals and enforced by
+ * ApprovalSignalVerifier before authorization and again in the
  * Execution Gateway at release.
  */
 describe("Paytm refund (HTTP boundary)", () => {
@@ -167,7 +168,7 @@ describe("Paytm refund (HTTP boundary)", () => {
 
       policy: overrides.policy ?? {
         name: "customer-refund",
-        version: "1.1.0",
+        version: "1.2.0",
         schemaVersion: "1.0.0",
       },
 
@@ -225,19 +226,17 @@ describe("Paytm refund (HTTP boundary)", () => {
     expect(mockServer.paytmInvocationCount).toBe(0);
   }
 
-  it("Scenario B: authorizes and executes a refund within the automatic limit through POST /execute, landing on the mock Paytm connector service exactly once", async () => {
+  it("Scenario B: authorizes and executes a small refund with a signed manager approval through POST /execute, landing on the mock Paytm connector service exactly once", async () => {
     const { app, server: mockServer } = await buildApp();
 
     const transaction = refundTransaction({
       orderId: "order-approved-1",
       transactionId: "txn-approved-1",
       amount: 500,
-      signals: {
-        refundEligible: true,
-        managerApproved: false,
-        fraudCheckPassed: true,
-        refundAmount: 500,
-      },
+      signals: approvedSignals(
+        500,
+        await signApproval({ orderId: "order-approved-1", maxAmount: 500 }),
+      ),
     });
 
     const response = await request(app).post("/execute").send(transaction);
@@ -247,14 +246,59 @@ describe("Paytm refund (HTTP boundary)", () => {
     expect(mockServer.paytmInvocationCount).toBe(1);
   });
 
+  it("G-75: rejects a small refund when the caller declares every fact true but attaches no approval, and never calls the Paytm connector", async () => {
+    const { app, server: mockServer } = await buildApp();
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+    for (const managerApproved of [false, true]) {
+      const response = await request(app)
+        .post("/execute")
+        .send(
+          refundTransaction({
+            orderId: "order-self-declared-1",
+            transactionId: "txn-self-declared-1",
+            amount: 500,
+            signals: {
+              refundEligible: true,
+              managerApproved,
+              fraudCheckPassed: true,
+              refundAmount: 500,
+            },
+          }),
+        );
+
+      expect(response.status).toBe(403);
+      expect(response.body.code).toBe("POLICY_DENIED");
+    }
+
+    expectNoPaytmCall(mockServer, fetchSpy);
+  });
+
+  it("G-75: rejects a refund of 0 even with a manager approval, and never calls the Paytm connector", async () => {
+    const { app, server: mockServer } = await buildApp();
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+    const response = await request(app)
+      .post("/execute")
+      .send(
+        refundTransaction({
+          orderId: "order-zero-1",
+          transactionId: "txn-zero-1",
+          amount: 0,
+          signals: approvedSignals(
+            0,
+            await signApproval({ orderId: "order-zero-1", maxAmount: 100 }),
+          ),
+        }),
+      );
+
+    expect(response.status).toBe(403);
+    expect(response.body.error).toContain("must be greater than 0");
+    expectNoPaytmCall(mockServer, fetchSpy);
+  });
+
   it("G-71: two refunds of one Paytm transaction with different refundReference values reach the connector with different refIds, and the reason is sent", async () => {
     const { app, server: mockServer } = await buildApp();
-    const signals = {
-      refundEligible: true,
-      managerApproved: false,
-      fraudCheckPassed: true,
-      refundAmount: 200,
-    };
 
     for (const refundReference of ["REF-PART-1", "REF-PART-2"]) {
       const response = await request(app)
@@ -264,7 +308,14 @@ describe("Paytm refund (HTTP boundary)", () => {
             orderId: "order-partial-1",
             transactionId: "txn-partial-1",
             amount: 200,
-            signals,
+            // One approval per refund: each is used once.
+            signals: approvedSignals(
+              200,
+              await signApproval({
+                orderId: "order-partial-1",
+                maxAmount: 200,
+              }),
+            ),
             extraParameters: {
               refundReference,
               refundReason: "Partial return",
@@ -292,7 +343,7 @@ describe("Paytm refund (HTTP boundary)", () => {
     expect(mockServer.calls[0]?.parameters.reason).toBe("Partial return");
   });
 
-  it("Scenario A: rejects by policy through POST /execute and never calls the Paytm connector when a refund above the automatic limit has no manager approval", async () => {
+  it("Scenario A: rejects by policy through POST /execute and never calls the Paytm connector when a refund has no manager approval", async () => {
     const { app, server: mockServer } = await buildApp();
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
@@ -312,7 +363,7 @@ describe("Paytm refund (HTTP boundary)", () => {
 
     expect(response.status).toBe(403);
     expect(response.body.code).toBe("POLICY_DENIED");
-    expect(response.body.error).toContain("require a signed manager approval");
+    expect(response.body.error).toContain("needs a signed manager approval");
     expectNoPaytmCall(mockServer, fetchSpy);
   });
 
@@ -401,7 +452,7 @@ describe("Paytm refund (HTTP boundary)", () => {
     expectNoPaytmCall(mockServer, fetchSpy);
   });
 
-  it("capability/policy binding: rejects the previous customer-refund version 1.0.0 now that paytm:refund is bound to 1.1.0", async () => {
+  it("capability/policy binding: rejects the previous customer-refund version 1.1.0 now that paytm:refund is bound to 1.2.0", async () => {
     const { app, server: mockServer } = await buildApp();
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
@@ -417,7 +468,7 @@ describe("Paytm refund (HTTP boundary)", () => {
       },
       policy: {
         name: "customer-refund",
-        version: "1.0.0",
+        version: "1.1.0",
         schemaVersion: "1.0.0",
       },
     });
@@ -426,7 +477,7 @@ describe("Paytm refund (HTTP boundary)", () => {
 
     expect(response.status).toBe(403);
     expect(response.body.code).toBe("POLICY_DENIED");
-    expect(response.body.error).toContain("1.1.0");
+    expect(response.body.error).toContain("1.2.0");
     expectNoPaytmCall(mockServer, fetchSpy);
   });
 
@@ -454,7 +505,7 @@ describe("Paytm refund (HTTP boundary)", () => {
   });
 
   describe("manager approval (G-65)", () => {
-    it("executes a refund above the automatic limit exactly once when it carries a valid signed manager approval, passing both the authorization check and the gateway's check at release", async () => {
+    it("executes a refund above 10000 exactly once when it carries a valid signed manager approval, passing both the authorization check and the gateway's check at release", async () => {
       const { app, server: mockServer } = await buildApp();
 
       const transaction = refundTransaction({
@@ -474,7 +525,7 @@ describe("Paytm refund (HTTP boundary)", () => {
       expect(mockServer.paytmInvocationCount).toBe(1);
     });
 
-    it("rejects managerApproved: true with no approval attached, even within the automatic limit, and never calls the Paytm connector", async () => {
+    it("rejects managerApproved: true with no approval attached, even for a small refund, and never calls the Paytm connector", async () => {
       const { app, server: mockServer } = await buildApp();
       const fetchSpy = vi.spyOn(globalThis, "fetch");
 

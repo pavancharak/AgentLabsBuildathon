@@ -26,10 +26,11 @@ import type { SignedApproval } from "@parmana/shared";
 //
 // Human approval for one action: a person signs off on a single refund.
 //
-// The real policy policies/customer-refund/1.1.0/policy.json says:
-//   * up to 10000, a refund is approved automatically;
-//   * above 10000 and up to 100000, it also needs managerApproved;
-//   * above 100000, it is refused, approval or not.
+// The real policy policies/customer-refund/1.2.0/policy.json says:
+//   * above 0 and up to 100000, a refund needs managerApproved;
+//   * 0 or less, or above 100000, it is refused, approval or not.
+// (1.1.0 approved a refund up to 10000 on the agent's word alone that it
+// was eligible and passed the fraud check; 1.2.0 closes that, G-75.)
 //
 // managerApproved is declared in the policy's approvalSignals, so an
 // agent cannot just send `managerApproved: true`. The signal counts
@@ -55,7 +56,7 @@ const repoRoot = dirname(
 
 const policy = JSON.parse(
   readFileSync(
-    join(repoRoot, "policies", "customer-refund", "1.1.0", "policy.json"),
+    join(repoRoot, "policies", "customer-refund", "1.2.0", "policy.json"),
     "utf8",
   ),
 ) as Policy;
@@ -180,9 +181,9 @@ console.log("Tutorial 119: human approval for one action");
 console.log();
 
 await step(
-  "1. A refund of 5000: within the automatic limit, no person needed",
+  "1. A refund of 5000 with no manager: refused, every refund needs one (the agent's own eligibility and fraud claims are not enough)",
   { orderId: "ORD-1001", amount: 5000, managerApproved: false },
-  true,
+  false,
 );
 
 await step(

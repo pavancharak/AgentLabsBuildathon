@@ -140,8 +140,11 @@ Hard requirements, all fail-closed with a clear `400`/`403` if wrong:
 | `database-change@3.0.0`       | Production DB changes                                    | None                                                                             |
 | `expense-reimbursement@1.0.0` | Employee expense reimbursement, the worked example below | `expenseAmount`→`parameters.amount`                                              |
 | `github-pr-approval@1.0.0`    | PR approval via reviews/status checks                    | None                                                                             |
+| `github-pr-approval@1.1.0`    | PR merge with a signed approval for that pull request    | `mergeApproved` needs a signed approval for `target`                             |
+| `github-pr-read@1.0.0`        | Reading a pull request's state                           | None                                                                             |
 | `hubspot-deal-update@1.0.0`   | HubSpot deal stage/amount updates                        | `proposedDealStage`→`parameters.dealstage`, `proposedAmount`→`parameters.amount` |
 | `llm-tool-call@1.0.0`         | AI-initiated tool execution                              | None                                                                             |
+| `llm-tool-call@1.1.0`         | A tool call with a signed human approval for that tool   | `humanApproval` needs a signed approval for `target`                             |
 | `production-deployment@1.0.0` | Production deployments                                   | None                                                                             |
 | `rag-document-access@1.0.0`   | Enterprise document retrieval                            | None                                                                             |
 | `vendor-payment@2.0.0`        | Vendor payments (real production policy)                 | `paymentAmount`→`parameters.amount`, `vendorId`→`target`                         |

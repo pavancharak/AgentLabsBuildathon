@@ -514,6 +514,8 @@ Evidence
 
 **Update (2026-09-27, G-66, merged to `main` and deployed to production on 2026-09-27 (PR #46, merge `4eebd5f`)):** the binding pins the policy **name**; where policy governance is enforced, the **version** is the one most recently approved for that name, not the one written in the table. See 2.43.
 
+**Update (2026-09-28, G-73):** `github:pr-fetch` is bound to a new policy name, `github-pr-read`, so reads need no merge approval, and the table names `github-pr-approval` 1.1.0 for `github:pr-merge`. The name change takes effect on deploy; in production a read is then refused until `github-pr-read` 1.0.0 is approved (2.44).
+
 ---
 
 ## 2.23 Independently Certified Authorization (Phase 3D)
@@ -995,7 +997,7 @@ What changed on 2026-09-20 (`packages/execution-gateway/src/ExecutionGateway.ts`
 Scope, stated plainly:
 
 - This binds execution to the policy a human checker approved. It does not prove the policy is correct or wise, and it does not model per policy or per role approver authority. Any provisioned human checker with a step up key can approve any policy (see G-50 in `docs/VERIFICATION-GAPS.md`).
-- Signals such as `fraudCheckPassed` are caller declared unless a `SignalStateVerifier` covers that capability. The HubSpot verifier and, for any signal a policy declares in `approvalSignals` (such as `managerApproved` on refunds), `ApprovalSignalVerifier` (2.42) are wired; other signals are only as true as the caller says (G-51).
+- Signals such as `fraudCheckPassed` are caller declared unless a `SignalStateVerifier` covers that capability. The HubSpot verifier and, for any signal a policy declares in `approvalSignals` (such as `managerApproved` on refunds), `ApprovalSignalVerifier` (2.42) are wired; other signals are only as true as the caller says (G-51). Since 2026-09-28 the policies for merges and LLM tool calls need a signed approval, so their caller declared facts cannot authorize on their own (2.44).
 - The claim holds for execution routed through the gateway. A request that never reaches the gateway is not covered (see 3.1).
 - Direct edits to the policy store outside the API are prevented from executing (hash mismatch against the approval record) but are still only detected, not blocked, at the storage layer.
 
@@ -1183,7 +1185,7 @@ Scope, stated plainly:
 - **Approved in production, 2026-09-27 18:53:40 UTC** (pending change `008f504d-0efd-4bec-b33a-2991bb84099f`), so refunds in production run under 1.1.0. With no approver configured, every production refund above 10000 is refused. The approval was made with two distinct credentials held by one person, not by two people (2.43).
 - A refused request is not held for a person, and nobody is notified. The agent sends a new request with the approval.
 - **The refund agent** (`parmana-paytm-agent`) forwards a signed approval (`approvalArtifact` in its `/agent/refunds` body) since its PR #6, deployed 2026-09-28; before that it had no way to send one. A signed approval through the agent has not been tested in production yet.
-- `refundEligible` and `fraudCheckPassed` are still caller declared (G-51).
+- `refundEligible` and `fraudCheckPassed` are still caller declared (G-51). **Update (2026-09-28, G-75):** under 1.1.0 they alone authorize a refund up to 10000. `customer-refund` 1.2.0, now named in the binding, needs a signed approval for every refund, so they can only refuse; production moves to it when it is approved (2.44).
 - Holds for refunds routed through Parmana (3.1).
 
 Verification
@@ -1227,6 +1229,50 @@ Evidence
 - `packages/runtime/src/RuntimeBuilder.ts` (`withCurrentPolicyVersions`), `RuntimeFactory.ts`, `RuntimeEngine.ts`
 - `packages/shared/src/repositories/policy-change-approval-record-repository.ts` (`findMostRecentForName`), `packages/storage/src/memory/` and `supabase/` implementations
 - `docs/VERIFICATION-GAPS.md` G-66
+
+---
+
+## 2.44 A Manipulated Agent Cannot Authorize a Refund, a Merge, a Slack Post to Another Channel or an LLM Tool Call by Declaring Facts (Scoped, 2026-09-28)
+
+An AI agent can be manipulated by content it reads (prompt injection) into sending anything Parmana accepts. A fact the agent declares in `signals` and nothing checks is only as true as the agent says (G-51). This section records what stops such an agent, per action, after the 2026-09-28 AI attack review (`docs/VERIFICATION-GAPS.md`, "Gaps opened in the 2026-09-28 AI attack review").
+
+**Pull request merges (`github:pr-merge`, G-73).** `github-pr-approval` 1.1.0 approves a merge only when `mergeApproved` is true, and `mergeApproved` is declared in `approvalSignals` with `resourceId: "target"`, so `ApprovalSignalVerifier` (2.42) counts it as true only with a signed approval from a trusted approver for that exact pull request (`owner/repo#number`), for `github:pr-merge`, not expired, used once. The review, status check, branch protection and risk facts are still caller declared; they can refuse a merge and cannot authorize one on their own. Reading a pull request (`github:pr-fetch`) is now bound to its own policy, `github-pr-read` 1.0.0, which approves a read with no caller declared facts, so reads need no approval.
+
+**Refunds (`paytm:refund`, G-75).** `customer-refund` 1.1.0 authorizes a refund up to 10000 when the caller declares `refundEligible` and `fraudCheckPassed` true, and nothing checks either. 1.2.0 approves a refund only with `managerApproved` true, which needs a signed approval for that order covering that amount (unchanged declaration from 1.1.0), refuses 0 or less (1.1.0 approved a refund of 0 or a negative amount on the same claims), and refuses above 100000. The binding table names 1.2.0.
+
+**Slack posts (`slack:post-message`, G-76).** The caller's `channelAuthorized` is not trusted. `SlackChannelSignalVerifier` refuses a post unless the channel the message goes to (`parameters.channel`) equals the Intent's `target` and is in the server's `SLACK_ALLOWED_CHANNEL_IDS`, before authorization and again at release, and `GatewaySlackAdapter` refuses a channel that is not the target. Unset refuses every post. This is a code change, effective on deploy. `contentApproved` is still caller declared: an approved post carries whatever text the agent writes, but only to a listed channel.
+
+**LLM tool calls (`llm-tool-call`, G-74).** `llm-tool-call` 1.1.0 approves only when `humanApproval` is true, declared in `approvalSignals` with `resourceId: "target"` (the tool), so it needs a signed approval for that tool. The tool, resource, environment and risk facts can refuse a call and cannot authorize one on their own.
+
+A test checks the structure, not only examples: in each of these policies every approve rule requires the approval backed fact to be true, and every caller declared fact at its most permissive value, without the approval, is refused.
+
+**Refusal reasons (G-77).** Reasons stay specific; the policy files are public and a caller can read its own Refusal Record, so hiding them would not help. Instead, `connector-policies-not-self-authorizing.test.ts` requires that for every capability bound in `CANONICAL_CAPABILITY_POLICY_BINDINGS` that changes something, every approve rule needs, on every path, a fact declared in `approvalSignals` or a fact a server verifier checks for that capability. So no refusal reason can teach an agent a flag that unlocks a write. A new capability fails the test until it is classified as a read or a write.
+
+Scope, stated plainly:
+
+- **Takes effect in production only when approved.** The policy files are in the repository. Production runs the version most recently approved through maker checker (2.43), which for `github-pr-approval` is 1.0.0 until 1.1.0 is approved, and for `customer-refund` 1.1.0 until 1.2.0 is approved. Since the Paytm connector is configured in production, the refund exposure is live there until then.
+- **Every refund needs a person.** This is a product change: refunds up to 10000 no longer run without a manager. Automatic refunds come back only with an independent eligibility and fraud check the server itself reads (a `SignalStateVerifier`), which does not exist yet. The self hosted quickstart (`docker/local`) still adopts 1.1.0 for its demo refund, since its image trusts no approver whose key it holds. `github-pr-read` 1.0.0 must be approved before `github:pr-fetch` works again in production after this change is deployed: with no approved version, reads are refused (fails closed).
+- **Whether the GitHub connector is configured in production was not checked** on 2026-09-28 (the available Vercel token could not read the project's variables).
+- **`llm-tool-call` is not bound to an action.** No connector runs an LLM tool call, so on the hosted API an approved `llm-tool-call` decision executes nothing. An integration that treats a Parmana decision as permission to run a tool itself must declare `llm-tool-call` 1.1.0 and check the policy version in the signed authorization, because 1.0.0 stays approved and a caller can still name it.
+- GitHub's own branch protection remains a separate control. Parmana does not read review or check state from GitHub.
+- Approvers are the ones listed in `TRUSTED_APPROVAL_ISSUERS`; today that is one approver held by the operator (2.42).
+
+Verification
+
+- `packages/policy/tests/unit/ApprovalBackedPolicies.test.ts` (19, including `customer-refund` 1.2.0) and `CustomerRefundPolicy120.test.ts` (11): validity, the approval declaration, every approve rule requires the approval fact, the most permissive caller facts are refused without it, approved with it, a failing caller fact still refuses; `github-pr-read` approves a read.
+- `packages/api/tests/integration/github-pr-merge.integration.test.ts` (8, through `POST /execute` and the production bootstrap): a merge with a signed approval lands once on the mock GitHub server; every caller fact true with no approval, and `mergeApproved: true` with no approval, are refused with zero GitHub calls; an approval for another pull request is refused; an approval is used once.
+- `packages/api/tests/integration/github-caller-scoping.integration.test.ts` (4): a fetch under `github-pr-read`, a merge with an approval.
+- `packages/api/tests/integration/paytm-refund.integration.test.ts` (18, moved to 1.2.0): a small refund with every caller fact true and no approval is refused with zero connector calls, with `managerApproved` false and true; a refund of 0 with an approval is refused; a small refund with an approval executes once; declaring 1.1.0 is refused, naming 1.2.0.
+- `packages/api/tests/unit/connector-policies-not-self-authorizing.test.ts` (6): the four write capabilities pass at the bound versions; the check flags `customer-refund` 1.1.0 and `github-pr-approval` 1.0.0; every bound capability is classified.
+- `packages/api/tests/integration/slack-post-message.integration.test.ts` (4) and `packages/api/tests/unit/bootstrap/create-slack-channel-signal-verifier.test.ts` (7): only a listed channel that is the target receives a post; an unset list refuses every post.
+- Tutorial 96 (`examples/tutorials/96-github-pr-merge-connector`) shows the refusal and the approved merge through the production composition. Tutorials 111 and 119 use 1.2.0. Tutorial 112 refuses a channel off the list.
+
+Evidence
+
+- `policies/github-pr-approval/1.1.0/policy.json`, `policies/github-pr-read/1.0.0/policy.json`, `policies/llm-tool-call/1.1.0/policy.json`, `policies/customer-refund/1.2.0/policy.json`
+- `packages/capability-registry/src/CapabilityPolicyBinding.ts` (`github:pr-fetch` to `github-pr-read`, `github:pr-merge` to `github-pr-approval` 1.1.0)
+- `packages/api/src/application.ts` (`createApplication` takes an optional `approvalVerifier`, defaulting to the production one; the composite verifier includes the Slack channel check)
+- `packages/api/src/bootstrap/createSlackChannelSignalVerifier.ts`, `packages/execution-gateway/src/connector-execution/GatewaySlackAdapter.ts`
 
 ---
 
@@ -1541,6 +1587,7 @@ Evidence (update)
 - `packages/storage/src/postgres/PostgresRateLimitStore.ts`, `packages/api/src/bootstrap/createRateLimitStore.ts`
 - `packages/storage/tests/unit/postgres-rate-limit-store.test.ts` (7 cases), `packages/api/tests/unit/bootstrap/create-rate-limit-store.test.ts` (3 cases: test / production-without-DATABASE_URL / production-with-DATABASE_URL)
 
+**Update (2026-09-28, G-78):** a third limiter, keyed by IP address, covers the unauthenticated routes that do work: `POST /refusal/verify`, `POST /execution-intents/verify` and `POST /audit/verify` (signature checks) and `/handbook` (a database write), one shared counter, `RATE_LIMIT_PUBLIC_PER_MINUTE`, default 60, with its own `public:` Postgres store when `DATABASE_URL` is set. Static documentation and key discovery (`/keys`, `/.well-known/jwks.json`) are not limited. Evidence: `createPublicRateLimiter` in `packages/api/src/middleware/rate-limit.ts`, `packages/api/tests/integration/rate-limit.integration.test.ts` (3 new: over the limit is `429` before the route runs; one counter across the four routes; it does not count against `/health`). The effective limit behind Vercel depends on how the platform reports client addresses (`trust proxy` is one hop), which was not checked live.
 ---
 
 ## 3.15 SDK Dogfooding: Documented Quickstarts Now Proven to Actually Run (Scoped)
@@ -1601,7 +1648,7 @@ Evidence
 
 `MockGitHubServer` (`packages/connector-github/src/MockGitHubServer.ts`) is a hermetic, in-memory stand-in for the three GitHub REST endpoints this connector uses (`POST /app/installations/:id/access_tokens`, `GET`/`PUT /repos/:owner/:repo/pulls/:number[/merge]`), used by every default test run; it never makes or receives real network traffic beyond localhost. It does not verify the App JWT's signature (only that a non-empty Bearer token was presented) — signature correctness is covered separately, in isolation from any network call, by `GitHubAppJwt.test.ts`.
 
-**Policy** (`policies/github-pr-approval/1.0.0/policy.json`, evaluated by the same unmodified `PolicyEngine`): approves when `repositoryAuthorized`, `requiredReviewsCompleted`, `statusChecksPassed`, and `branchProtected` are all true and `riskScore` is at or below 20; denies otherwise, with dedicated rules for a too-high risk score, failed status checks, and an unprotected branch, falling through to a generic deny-by-default rule. Reused across both `github:pr-fetch` and `github:pr-merge` the same way `hubspot-deal-update/1.0.0` is reused for both HubSpot capabilities in that connector's own integration tests (3.10) — policy content and capability identity are independent concepts in this architecture (`packages/api/tests/fixtures/business-transaction.ts`'s own comment).
+**Policy** (`policies/github-pr-approval/1.0.0/policy.json`, evaluated by the same unmodified `PolicyEngine`): approves when `repositoryAuthorized`, `requiredReviewsCompleted`, `statusChecksPassed`, and `branchProtected` are all true and `riskScore` is at or below 20; denies otherwise, with dedicated rules for a too high risk score, failed status checks, and an unprotected branch, falling through to a generic deny by default rule. Reused across both `github:pr-fetch` and `github:pr-merge` the same way `hubspot-deal-update/1.0.0` is reused for both HubSpot capabilities in that connector's own integration tests (3.10): policy content and capability identity are independent concepts in this architecture (`packages/api/tests/fixtures/business-transaction.ts`'s own comment). **Update (2026-09-28, G-73):** `github:pr-merge` is bound to `github-pr-approval` 1.1.0, which authorizes a merge only with a signed approval for that pull request, and `github:pr-fetch` to its own `github-pr-read` 1.0.0. The facts above are caller declared and can only refuse a merge now (2.44).
 
 **Wiring gap this milestone closed, not anticipated by the original scaffolding commit:** `createGatewayGitHubConnector` and the GitHub credential-provider factory existed only in `execution-gateway`'s internal `connector-execution/index.ts` barrel after the initial scaffolding commit — never re-exported from the package's public `index.ts` the way `createGatewayHubSpotConnector` already was, so `packages/api` had no legal way to reach them. `createGatewayGitHubCredentialProvider.ts` (new) mirrors `createGatewayGitHubConnector.ts`'s existing factory-wrapper shape; both are now exported from `packages/execution-gateway/src/index.ts` and added to `tests/architecture/execution-boundary.test.ts`'s own generically-enforced allowlist of legitimate public factory files (the same test that would have caught a genuine implementation-class leak). `packages/api/src/bootstrap/createGitHubConnector.ts`/`createGitHubCredentialProvider.ts` mirror `createHubSpotConnector.ts`/`createHubSpotCredentialProvider.ts` exactly, registered into `createConnectorRegistry.ts` conditionally on all three of `GITHUB_APP_ID`/`GITHUB_INSTALLATION_ID`/`GITHUB_APP_PRIVATE_KEY` being set (fails closed to "connector not registered," never a partially-configured provider or a startup crash, matching 3.10's own HubSpot precedent). `github`'s SPIFFE identity was also added to `createConnectorAuthenticator.ts`'s trusted-connector-identity list — required, not optional: omitting it surfaces as `DefaultConnectorPolicy`'s own `"Connector identity is not trusted."` rejection at execution time, not a wiring-time error.
 

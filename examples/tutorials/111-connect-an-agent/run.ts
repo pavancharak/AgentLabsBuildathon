@@ -1,5 +1,14 @@
 import crypto from "node:crypto";
 
+import {
+  ApprovalVerifier,
+  StaticApprovalIssuerRegistry,
+} from "@parmana/approval";
+import {
+  APPROVAL_ARTIFACT_CRYPTO_PROVIDER,
+  ApprovalArtifactSigner,
+} from "@parmana/crypto";
+import { MemoryNonceStore } from "@parmana/envelope-verifier";
 import type { BusinessTransaction } from "@parmana/shared";
 
 //
@@ -8,11 +17,15 @@ import type { BusinessTransaction } from "@parmana/shared";
 // Demonstrates the exact contract documented in
 // docs/connectors/CONNECTING_AN_AGENT.md, end to end, through the real
 // Express app (a real listening HTTP server, not a hand-rolled stand-in)
-// and the real customer-refund@1.1.0 policy + paytm:refund capability +
+// and the real customer-refund@1.2.0 policy + paytm:refund capability +
 // connector-paytm -- the same pipeline the real parmana-phinite-agent
 // integration uses. The Paytm connector is registered for real, pointed
 // at a hermetic MockPaytmConnectorServer, so an APPROVED scenario below
 // really dispatches, not just authorizes.
+//
+// Since customer-refund 1.2.0 (G-75) every refund needs a signed manager
+// approval for the order and amount. The manager key is made here, in
+// memory, and trusted through createApplication's approvalVerifier.
 //
 process.env.NODE_ENV = "test";
 
@@ -111,7 +124,7 @@ function refundTransaction(overrides: {
     },
     policy: {
       name: "customer-refund",
-      version: "1.1.0",
+      version: "1.2.0",
       schemaVersion: "1.0.0",
     },
     signals: overrides.signals ?? {
@@ -137,8 +150,31 @@ console.log("goes through. Scenario 1's connector dispatch is also real: it");
 console.log("reaches a hermetic mock Paytm connector service, not a stub.");
 console.log();
 
+const manager = crypto.generateKeyPairSync("ed25519");
+const MANAGER = { approverId: "manager-priya", keyId: "manager-priya-key-1" };
+
+const approvalVerifier = new ApprovalVerifier({
+  crypto: APPROVAL_ARTIFACT_CRYPTO_PROVIDER,
+  issuerRegistry: new StaticApprovalIssuerRegistry([
+    { ...MANAGER, publicKey: manager.publicKey, revoked: false },
+  ]),
+  nonceStore: new MemoryNonceStore(),
+});
+
 const executionSystem = await createExecutionSystem();
-const application = createApplication(executionSystem);
+const application = createApplication(executionSystem, approvalVerifier);
+
+// The manager signs an approval for ORD-DEMO-001, up to 500.
+const approval = await new ApprovalArtifactSigner().sign(
+  {
+    ...MANAGER,
+    capability: "paytm:refund",
+    resourceId: "ORD-DEMO-001",
+    scope: { field: "value", comparator: "lte", value: 500 },
+    ttlSeconds: 900,
+  },
+  manager.privateKey,
+);
 const auditSink = new InMemoryCallerAuditSink();
 const app = createApp(application, {
   callerAuth: { authenticator: AUTHENTICATOR, auditSink },
@@ -160,7 +196,17 @@ try {
       "Content-Type": "application/json",
       Authorization: `Bearer ${AGENT_API_KEY}`,
     },
-    body: JSON.stringify(refundTransaction({})),
+    body: JSON.stringify(
+      refundTransaction({
+        signals: {
+          refundEligible: true,
+          managerApproved: true,
+          fraudCheckPassed: true,
+          refundAmount: 500,
+          approvalArtifact: JSON.parse(JSON.stringify(approval)),
+        },
+      }),
+    ),
   });
   const approvedBody = (await approved.json()) as {
     executions?: Array<{ decision?: { outcome?: string; reason?: string } }>;
@@ -193,7 +239,7 @@ try {
   console.log();
 
   console.log(
-    "Scenario 3: Correct capability, policy denies (50000 is above the automatic limit and has no manager approval) -- a real, correct decision, not a bug",
+    "Scenario 3: Correct capability, policy denies (no manager approval) -- a real, correct decision, not a bug",
   );
   console.log("--------------------------------------------------");
   const denied = await fetch(`${baseUrl}/execute`, {

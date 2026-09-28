@@ -113,3 +113,23 @@ export function createHealthReadyRateLimiter(
     ...(store !== undefined ? { store } : {}),
   });
 }
+
+/**
+ * Rate limiter for the unauthenticated routes that do real work (G-78):
+ * POST /refusal/verify, POST /execution-intents/verify and POST
+ * /audit/verify check signatures, and /handbook writes a row to the
+ * database. With no caller identity to key off, this uses the default
+ * IP-based keying, like createHealthReadyRateLimiter, with its own
+ * limit and its own Store (express-rate-limit refuses one Store behind
+ * two limiters).
+ */
+export function createPublicRateLimiter(limitPerMinute: number, store?: Store) {
+  return rateLimit({
+    windowMs: WINDOW_MS,
+    limit: limitPerMinute,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: rateLimitHandler,
+    ...(store !== undefined ? { store } : {}),
+  });
+}

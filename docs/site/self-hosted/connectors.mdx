@@ -38,12 +38,12 @@ Keep `PAYTM_CONNECTOR_SHARED_SECRET` set, or in `.env`, for every later `docker 
 
 ## Connector variables
 
-| Connector | Variables                                                                                       | Calls                         |
-| --------- | ----------------------------------------------------------------------------------------------- | ----------------------------- |
-| Paytm     | `PAYTM_CONNECTOR_URL`, `PAYTM_CONNECTOR_SHARED_SECRET`, optional `PAYTM_CONNECTOR_TIMEOUT_MS`   | Your `parmana-paytm-agent`    |
-| HubSpot   | `HUBSPOT_PRIVATE_APP_TOKEN`, optional `HUBSPOT_BASE_URL`                                        | HubSpot's API on the internet |
-| Slack     | `SLACK_BOT_TOKEN`, optional `SLACK_BASE_URL`                                                    | Slack's API on the internet   |
-| GitHub    | `GITHUB_APP_ID`, `GITHUB_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY`, optional `GITHUB_BASE_URL` | GitHub's API on the internet  |
+| Connector | Variables                                                                                               | Calls                         |
+| --------- | ------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| Paytm     | `PAYTM_CONNECTOR_URL`, `PAYTM_CONNECTOR_SHARED_SECRET`, optional `PAYTM_CONNECTOR_TIMEOUT_MS`           | Your `parmana-paytm-agent`    |
+| HubSpot   | `HUBSPOT_PRIVATE_APP_TOKEN`, optional `HUBSPOT_BASE_URL`                                                | HubSpot's API on the internet |
+| Slack     | `SLACK_BOT_TOKEN`, `SLACK_ALLOWED_CHANNEL_IDS` (no post succeeds without it), optional `SLACK_BASE_URL` | Slack's API on the internet   |
+| GitHub    | `GITHUB_APP_ID`, `GITHUB_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY`, optional `GITHUB_BASE_URL`         | GitHub's API on the internet  |
 
 What each variable accepts: [Environment variable reference, Connectors](/deployment/environment-variables#connectors).
 

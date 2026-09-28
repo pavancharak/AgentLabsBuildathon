@@ -75,17 +75,22 @@ export const CANONICAL_CAPABILITY_POLICY_BINDINGS: ReadonlyMap<
     "hubspot:deal-update",
     { name: "hubspot-deal-update", version: "1.0.0", schemaVersion: "1.0.0" },
   ],
+  //
+  // G-73: a read has its own policy, so a merge can need a signed
+  // approval (github-pr-approval 1.1.0) without every read needing one.
+  //
   [
     "github:pr-fetch",
-    { name: "github-pr-approval", version: "1.0.0", schemaVersion: "1.0.0" },
+    { name: "github-pr-read", version: "1.0.0", schemaVersion: "1.0.0" },
   ],
   [
     "github:pr-merge",
-    { name: "github-pr-approval", version: "1.0.0", schemaVersion: "1.0.0" },
+    { name: "github-pr-approval", version: "1.1.0", schemaVersion: "1.0.0" },
   ],
   [
     "paytm:refund",
-    { name: "customer-refund", version: "1.1.0", schemaVersion: "1.0.0" },
+    // G-75: 1.2.0 needs a signed manager approval for every refund.
+    { name: "customer-refund", version: "1.2.0", schemaVersion: "1.0.0" },
   ],
   [
     "slack:post-message",

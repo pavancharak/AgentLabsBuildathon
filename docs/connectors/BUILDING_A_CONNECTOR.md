@@ -192,6 +192,12 @@ package that implements `Connector` fails Invariant 2 of
       re-fetches the real state through `execute<Name>Capability` (never a direct `fetch()`,
       which Invariant 1 forbids) and returns a violation for each mismatch. A fetch error is a
       violation, never a pass.
+- [ ] **No approve rule of a write capability may rest on caller facts alone** (G-77). An agent
+      can be manipulated into declaring anything, and it can read the policy. Every approve rule
+      must need, on every path, a fact declared in `approvalSignals` or one your verifier checks.
+      Classify the capability as a read or a write in
+      `packages/api/tests/unit/connector-policies-not-self-authorizing.test.ts`, and list the
+      facts your verifier checks there; the test fails until you do.
 
 ## 6. Tests, in this order
 
@@ -312,7 +318,11 @@ suite was not run. This guide itself is never a claim.
   `createSlackCredentialProvider.ts`, policy `slack-post-message@1.0.0` (bound signal
   `channelId == intent.target`, approval needs `contentApproved` and `channelAuthorized`),
   variables `SLACK_BOT_TOKEN`, `SLACK_BASE_URL` (test seam) and `TEST_SLACK_BOT_TOKEN`. It sends
-  only `channel` and `text`, one message per approved transaction, and has no live suite.
+  only `channel` and `text`, one message per approved transaction, and has no live suite. Since
+  G-76 the server checks the channel itself: `SlackChannelSignalVerifier`
+  (`createSlackChannelSignalVerifier.ts`) refuses a post unless `parameters.channel` equals the
+  target and is in `SLACK_ALLOWED_CHANNEL_IDS`, and the adapter refuses a channel that is not the
+  target. This is the pattern for a fact the server can check from its own configuration.
   Tutorials 111 (the caller side) and 112 (the connector end to end).
 - **Paytm** (out of process): `packages/connector-paytm/src/`, `GatewayPaytmAdapter.ts`,
   [PAYTM_CONNECTOR.md](./PAYTM_CONNECTOR.md).

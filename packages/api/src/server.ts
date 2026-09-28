@@ -57,6 +57,8 @@ const executeRateLimitStore = createRateLimitStore("execute:");
 
 const healthRateLimitStore = createRateLimitStore("health:");
 
+const publicRateLimitStore = createRateLimitStore("public:");
+
 const app = createApp(application, {
   callerAuth: callerAuth.disabled
     ? "disabled"
@@ -68,6 +70,7 @@ const app = createApp(application, {
     ...loadConfig().rateLimit,
     ...(executeRateLimitStore ? { executeStore: executeRateLimitStore } : {}),
     ...(healthRateLimitStore ? { healthStore: healthRateLimitStore } : {}),
+    ...(publicRateLimitStore ? { publicStore: publicRateLimitStore } : {}),
   },
   ...(callerAuth.disabled
     ? {}

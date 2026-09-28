@@ -1,5 +1,14 @@
 import crypto from "node:crypto";
 
+import {
+  ApprovalVerifier,
+  StaticApprovalIssuerRegistry,
+} from "@parmana/approval";
+import {
+  APPROVAL_ARTIFACT_CRYPTO_PROVIDER,
+  ApprovalArtifactSigner,
+} from "@parmana/crypto";
+import { MemoryNonceStore } from "@parmana/envelope-verifier";
 import type { BusinessTransaction } from "@parmana/shared";
 import { MockGitHubServer } from "@parmana/connector-github";
 
@@ -8,6 +17,13 @@ import { MockGitHubServer } from "@parmana/connector-github";
 // through the same production composition (createExecutionSystem +
 // createApplication), pointed at a hermetic MockGitHubServer via the
 // GITHUB_BASE_URL test seam instead of GitHub's live API.
+//
+// github-pr-approval 1.1.0 (G-73) authorizes a merge only with a signed
+// approval from a trusted person for that exact pull request. The
+// review, check, branch and risk signals come from the caller, so they
+// can refuse a merge but never authorize one. Step 1 shows an agent that
+// declares every one of them true, with no approval: refused. Step 2
+// shows the same merge with a signed approval: merged.
 //
 process.env.NODE_ENV = "test";
 
@@ -79,7 +95,7 @@ function prMergeTransaction(overrides: {
     },
     policy: {
       name: "github-pr-approval",
-      version: "1.0.0",
+      version: "1.1.0",
       schemaVersion: "1.0.0",
     },
     signals: overrides.signals,
@@ -103,26 +119,94 @@ try {
     baseRef: "main",
   });
 
-  const executionSystem = await createExecutionSystem();
-  const application = createApplication(executionSystem);
+  // The reviewer's key pair, made here. Only the public half is trusted.
+  // In production the reviewer runs scripts/generate-approver-key.ts on
+  // their own machine and the operator lists the public key in
+  // TRUSTED_APPROVAL_ISSUERS (createApprovalIssuerRegistry.ts).
+  const reviewer = crypto.generateKeyPairSync("ed25519");
+  const REVIEWER = {
+    approverId: "reviewer-asha",
+    keyId: "reviewer-asha-key-1",
+  };
 
-  const transaction = prMergeTransaction({
-    owner: "acme",
-    repo: "widgets",
-    pullNumber: 42,
-    signals: {
-      repositoryAuthorized: true,
-      requiredReviewsCompleted: true,
-      statusChecksPassed: true,
-      branchProtected: true,
-      riskScore: 5,
-    },
+  const approvalVerifier = new ApprovalVerifier({
+    crypto: APPROVAL_ARTIFACT_CRYPTO_PROVIDER,
+    issuerRegistry: new StaticApprovalIssuerRegistry([
+      { ...REVIEWER, publicKey: reviewer.publicKey, revoked: false },
+    ]),
+    nonceStore: new MemoryNonceStore(),
   });
 
-  const trustRecord = await application.execute(transaction);
+  const executionSystem = await createExecutionSystem();
+  const application = createApplication(executionSystem, approvalVerifier);
+
+  const callerDeclaredFacts = {
+    repositoryAuthorized: true,
+    requiredReviewsCompleted: true,
+    statusChecksPassed: true,
+    branchProtected: true,
+    riskScore: 5,
+  };
+
+  //
+  // Step 1: the agent declares every fact true and mergeApproved true,
+  // with no approval attached.
+  //
+  console.log("Step 1: every caller declared fact true, no approval");
+  console.log("--------------------------------------------------");
+
+  try {
+    await application.execute(
+      prMergeTransaction({
+        owner: "acme",
+        repo: "widgets",
+        pullNumber: 42,
+        signals: { ...callerDeclaredFacts, mergeApproved: true },
+      }),
+    );
+    console.log("✗ Expected a refusal.");
+  } catch (error) {
+    console.log(
+      `Refused : ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  console.log(`Merge calls : ${mockServer.mergeCalls}`);
+  console.log();
+
+  //
+  // Step 2: the reviewer signs an approval for acme/widgets#42, and the
+  // agent sends a new request with it.
+  //
+  const approval = await new ApprovalArtifactSigner().sign(
+    {
+      ...REVIEWER,
+      capability: "github:pr-merge",
+      resourceId: "acme/widgets#42",
+      scope: {
+        field: "pullRequest",
+        comparator: "eq",
+        value: "acme/widgets#42",
+      },
+      ttlSeconds: 900,
+    },
+    reviewer.privateKey,
+  );
+
+  const trustRecord = await application.execute(
+    prMergeTransaction({
+      owner: "acme",
+      repo: "widgets",
+      pullNumber: 42,
+      signals: {
+        ...callerDeclaredFacts,
+        mergeApproved: true,
+        approvalArtifact: JSON.parse(JSON.stringify(approval)),
+      },
+    }),
+  );
   const decision = trustRecord.executions.at(-1)?.decision;
 
-  console.log("Decision");
+  console.log("Step 2: the same merge with a signed approval");
   console.log("--------------------------------------------------");
   console.log(`Outcome : ${decision?.outcome}`);
   console.log(`Reason  : ${decision?.reason}`);
@@ -138,12 +222,17 @@ try {
   console.log(`Merge calls     : ${mockServer.mergeCalls}`);
   console.log();
 
-  if (decision?.outcome === "APPROVED" && pr?.mergedAt !== null) {
+  if (
+    decision?.outcome === "APPROVED" &&
+    pr?.mergedAt !== null &&
+    mockServer.mergeCalls === 1
+  ) {
     console.log(
-      "✓ PR merge authorized and executed against the real connector.",
+      "✓ Refused without an approval; merged once with a signed approval.",
     );
   } else {
-    console.log("✗ Expected an approved decision with the PR merged.");
+    console.log("✗ Expected one refusal, then one approved merge.");
+    process.exitCode = 1;
   }
 
   console.log();

@@ -1018,6 +1018,167 @@ checking the connector guide against the code (docs cleanup pass 4).
 
 ---
 
+## Gaps opened in the 2026-09-28 AI attack review
+
+Scope: the user asked whether Parmana can be attacked through AI, validated from the code. Parmana runs
+no model itself, so the threat is an agent that has been manipulated (prompt injection through a
+document, an email, an issue) and then calls the API. The review read the request path end to end:
+`caller-auth.ts`, `execute.ts`, `isPrincipalAllowed.ts`, `isCapabilityAllowed.ts`, `RuntimeEngine`,
+`SignalIntentBinder`, `PolicyEngine`, `OperatorEvaluator`, `CapabilityPolicyBinder`,
+`ApprovalSignalVerifier`, `ExecutionGateway`, `pending-policy-changes.ts`, every policy under
+`policies/`, and the public routes in `app.ts`.
+
+Held against a manipulated agent (no change needed): API key authentication, principal binding,
+capability grants, bound signals against the Intent, capability to policy binding for connector
+actions, the gateway's signature, content hash, policy hash, governance and nonce checks, single use
+signed approvals, maker checker on policy changes, strict typing in the evaluator, and ownership
+scoping on reads.
+
+Found: facts the agent declares and nothing checks can authorize real actions (G-73 to G-76), a
+refusal reason can tell an agent which flag to flip (G-77), and some public routes have no rate
+limit (G-78).
+
+**G-73. An agent could authorize a pull request merge by declaring GitHub facts true. FOUND
+2026-09-28, `blocks-pilot` wherever the GitHub connector is configured (not checked for production).
+FIXED in the repository the same day on branch `fix/ai-attack-hardening`; takes effect in production
+when `github-pr-approval` 1.1.0 and `github-pr-read` 1.0.0 are approved.**
+`github-pr-approval` 1.0.0 approved `github:pr-merge` when `repositoryAuthorized`,
+`requiredReviewsCompleted`, `statusChecksPassed` and `branchProtected` were true and `riskScore` was at
+most 20. All five are caller declared (`unboundSignalReasons`), no `SignalStateVerifier` covers GitHub,
+and 1.0.0 is approved in production (2026-09-16). An agent with the `github:pr-merge` grant could merge
+any pull request the GitHub App installation can reach by sending those values; only GitHub's own branch
+protection stood in the way.
+
+- **Fix:** `github-pr-approval` 1.1.0 approves a merge only with `mergeApproved: true`, declared in
+  `approvalSignals` with `resourceId: "target"`, so it counts only with a signed approval for that pull
+  request (2.42 machinery, no new verifier). The other facts now only refuse. `github:pr-fetch` is bound
+  to a new policy, `github-pr-read` 1.0.0, which approves a read with no caller facts, so reads do not
+  need a merge approval. `createApplication` takes an optional `approvalVerifier` (defaulting to the
+  production one) so tutorials can trust an in memory approver.
+- **Tests:** `packages/policy/tests/unit/ApprovalBackedPolicies.test.ts` (the structural check that
+  every approve rule requires the approval fact; the most permissive caller facts are refused);
+  `packages/api/tests/integration/github-pr-merge.integration.test.ts` (4 new: every caller fact true
+  and no approval, `mergeApproved: true` and no approval, an approval for another pull request, an
+  approval used twice; each makes zero merge calls where refused), `github-caller-scoping` updated.
+  Tutorial 96 shows the refusal and the approved merge.
+- **To finish in production:** propose and approve `github-pr-approval` 1.1.0 and `github-pr-read` 1.0.0
+  through maker checker, and list a reviewer in `TRUSTED_APPROVAL_ISSUERS`. After deploy and before
+  `github-pr-read` is approved, `github:pr-fetch` is refused.
+- **Not checked:** whether production has `GITHUB_APP_ID` and the other GitHub variables set; the gated
+  live suite was updated but not run.
+
+**G-74. `llm-tool-call` approves a tool call when the caller declares `humanApproval: true`. FOUND
+2026-09-28, `pre-production` (no connector runs a tool call, so the hosted API executes nothing).
+FIXED in the repository the same day as `llm-tool-call` 1.1.0; partly open, see below.**
+`llm-tool-call` 1.0.0 (approved in production 2026-09-16) approves when the caller declares
+`humanApproval`, `toolAllowed` and `resourceAuthorized` true, the environment `production` and
+`riskScore` at most 25. `humanApproval` is the caller's own word that a person agreed. The action used
+with it (`ExecuteTool` in `python/examples/10_llm_tool_call.py`) has no connector, so on the hosted API
+the pipeline refuses to release it; the risk is an integration that treats Parmana's decision as
+permission and runs the tool itself.
+
+- **Fix:** `llm-tool-call` 1.1.0 declares `humanApproval` in `approvalSignals` with
+  `resourceId: "target"`, so it needs a signed approval for that tool; the other facts only refuse.
+- **Still open:** the action is not in `CANONICAL_CAPABILITY_POLICY_BINDINGS` (that map is for
+  connector capabilities, and a test pins its exact set), so a caller can still name `llm-tool-call`
+  1.0.0, which stays approved. An integration using the decision alone must require 1.1.0 in the signed
+  authorization. Options: bind an agreed action name such as `llm:tool-call`, or a way to retire an
+  approved version.
+- **Tests:** `packages/policy/tests/unit/ApprovalBackedPolicies.test.ts`.
+
+**G-75. An agent could authorize a refund up to 10000 by declaring the order eligible and the fraud
+check passed. FOUND 2026-09-28, `blocks-pilot`, live in production (the Paytm connector is configured
+there and `customer-refund` 1.1.0 is in effect). FIXED in the repository the same day as
+`customer-refund` 1.2.0; takes effect in production when 1.2.0 is approved.**
+`customer-refund` 1.1.0's `approve-refund-automatic` rule approves when `refundEligible` and
+`fraudCheckPassed` are true and `refundAmount` is at most 10000. Both facts are caller declared
+(`unboundSignalReasons`), and no verifier covers them (G-51). An agent with the `paytm:refund` grant
+could refund any order it can name, up to 10000 per request, by sending both as true. The same rule
+approved a refund of 0 or a negative amount, since nothing set a lower bound.
+
+- **Fix:** `customer-refund` 1.2.0 approves only with `managerApproved` true, which is approval backed
+  (the same `approvalSignals` declaration as 1.1.0: order and amount from the Intent), refuses 0 or
+  less, and refuses above 100000. The eligibility and fraud facts only refuse. The binding table names
+  1.2.0, so test and development use it, and the in effect version in production follows governance.
+- **Tests:** `packages/policy/tests/unit/CustomerRefundPolicy120.test.ts` (11) and the refund case in
+  `ApprovalBackedPolicies.test.ts`; `packages/api/tests/integration/paytm-refund.integration.test.ts`
+  moved to 1.2.0 with 2 new cases (every caller fact true and no approval, with `managerApproved` false
+  and true; a refund of 0), 18 in all. Tutorials 111 and 119 moved to 1.2.0.
+- **Product change:** every refund now needs a manager. Automatic small refunds need an eligibility and
+  fraud check the server reads itself (a `SignalStateVerifier` against the order and a fraud service),
+  which does not exist.
+- **To finish in production:** propose and approve `customer-refund` 1.2.0; the refund agent reads the
+  version from `GET /policies/in-effect` and already forwards `approvalArtifact` (G-70), so it needs no
+  change, but every refund it sends will need a signed approval.
+- **Not changed:** the self hosted quickstart and offline checks (`docker/local`) still adopt 1.1.0 for
+  their demo refund, because the image trusts no approver whose key it holds.
+
+**G-76. An agent could post any text to any Slack channel the bot is in, by declaring the channel
+authorized. FOUND 2026-09-28, `blocks-pilot` wherever the Slack connector is configured (not checked for
+production). FIXED the same day on branch `fix/ai-attack-hardening`; takes effect on deploy, and needs
+`SLACK_ALLOWED_CHANNEL_IDS` set or every post is refused.**
+`slack-post-message` 1.0.0 approves when the caller declares `contentApproved` and `channelAuthorized`
+true, and binds only `channelId` to the Intent's `target`. Two holes: nothing checks
+`channelAuthorized`, and `GatewaySlackAdapter` posts to `parameters.channel`, which nothing compared with
+`target`, so even a correct check on the target could be sidestepped by naming an allowed channel there
+and another in `parameters.channel`. A manipulated agent could send data it had read to a channel of its
+choosing, the usual way prompt injection leaks data.
+
+- **Fix, in code (no policy change, so no approval needed):** `SlackChannelSignalVerifier`
+  (`packages/api/src/bootstrap/createSlackChannelSignalVerifier.ts`), in the same composite verifier as
+  HubSpot and approvals, refuses a `slack:post-message` unless `parameters.channel` is a string, equals
+  the target, and is in `SLACK_ALLOWED_CHANNEL_IDS`. It runs before authorization and again at release.
+  Unset or empty refuses every post (fails closed). `GatewaySlackAdapter` also refuses a channel that is
+  not the target, before any network call.
+- **Tests:** `packages/api/tests/unit/bootstrap/create-slack-channel-signal-verifier.test.ts` (7),
+  `packages/api/tests/integration/slack-post-message.integration.test.ts` (4, new: an allowed channel
+  posts once; a channel off the list, an allowed target with another `parameters.channel`, and an unset
+  list are each refused with zero Slack calls), `packages/execution-gateway/tests/unit/slack-connector.test.ts`
+  (1 new). Tutorial 112 has a fourth scenario.
+- **Still open:** `contentApproved` is caller declared. The content of an approved post is whatever the
+  agent writes, limited to channels on the list. A per post human approval (`approvalSignals`) would
+  close it at the cost of a person per message.
+- **To finish in production:** set `SLACK_ALLOWED_CHANNEL_IDS` on Vercel before deploying, if the Slack
+  connector is configured there.
+
+**G-77. A refusal reason tells an agent which caller declared fact to flip. FOUND 2026-09-28,
+`pre-production`. CLOSED the same day by making flipping useless, not by hiding reasons.**
+A refusal carries the matched rule's reason (for example "did not pass fraud assessment"), and a goal
+seeking agent that retries can learn from it which fact to change. Hiding reasons was considered and
+rejected: every policy file is in the public repository, and the submitting caller can read its own
+Refusal Record (`GET /refusal/:id`), so a vaguer message would be obscurity, and it would cost people
+reviewing refusals the reason they need.
+
+- **Fix:** after G-73, G-75 and G-76, no approve rule of a connector action that changes something can
+  be satisfied by caller declared facts alone. `packages/api/tests/unit/connector-policies-not-self-authorizing.test.ts`
+  enforces it for every capability in `CANONICAL_CAPABILITY_POLICY_BINDINGS`: each approve rule must
+  need, on every path, a fact declared in `approvalSignals` or a fact a server verifier checks for that
+  capability (`HUBSPOT_VERIFIED_SIGNAL_KEYS`, `SLACK_VERIFIED_SIGNAL_KEYS`, both exported from the
+  verifiers so the test follows them). Bound facts do not count. Reads (`hubspot:deal-fetch`,
+  `github:pr-fetch`) are listed separately, and a new capability fails the test until it is classified.
+  The test also checks it flags `customer-refund` 1.1.0 and `github-pr-approval` 1.0.0.
+- **Scope:** checked for the versions named in the binding table, which production moves to on
+  approval. Until they are approved, production still runs 1.1.0 and 1.0.0 (G-73, G-75). Policies with
+  no connector (`llm-tool-call` and the reference policies) are outside the test; `llm-tool-call` 1.1.0
+  meets the rule (G-74).
+
+**G-78. The unauthenticated routes that check signatures or write data had no rate limit. FOUND
+2026-09-28, `pre-production`. FIXED the same day; takes effect on deploy.**
+`POST /refusal/verify`, `POST /execution-intents/verify` and `POST /audit/verify` verify signatures
+(including ML-DSA-65 where configured) for anyone, and `/handbook/download-leads` inserts a row for any
+well formed email. Only `/health` and `/ready` had an IP limit. Anyone, an agent included, could spend
+server CPU or fill the leads table.
+
+- **Fix:** `createPublicRateLimiter` (`packages/api/src/middleware/rate-limit.ts`), keyed by IP, one
+  counter shared by the four routes, `RATE_LIMIT_PUBLIC_PER_MINUTE` (default 60), its own `public:`
+  store (Postgres when `DATABASE_URL` is set) in `server.ts` and `api/index.ts`. The OpenAPI spec declares
+  `429` on those routes.
+- **Tests:** `packages/api/tests/integration/rate-limit.integration.test.ts` (3 new).
+- **Not checked:** behind Vercel the key is `req.ip` with `trust proxy` set to one hop; whether that is
+  the real client address there was not checked live. The leads table has no size cap beyond this.
+
+---
+
 ## Remaining gaps, by severity
 
 **Status note, updated in the adversarial-testing hardening session that added G-24:**
@@ -1089,6 +1250,14 @@ production. It is closed there: every production API key was rotated on 2026-09-
 the server cannot tell apart from two people. `refundEligible` and `fraudCheckPassed` are still caller
 declared. **Update (2026-09-28):** one approver, `manager-charak1987`, held by the operator, is now listed
 in `TRUSTED_APPROVAL_ISSUERS`; refunds above 10000 need that approver's signature.
+
+**Addendum (2026-09-28, AI attack review):** a review of what a manipulated agent can do found G-73
+to G-78 (section "Gaps opened in the 2026-09-28 AI attack review" above). **One live security defect in
+production:** G-75, a `paytm:refund` up to 10000 authorized on the agent's own eligibility and fraud
+claims under `customer-refund` 1.1.0. Fixed in the repository on branch `fix/ai-attack-hardening`
+(`customer-refund` 1.2.0); it stays open in production until 1.2.0 is approved. G-73 (GitHub merges) is
+fixed the same way and needs approval; G-76 (Slack channels) and G-78 (public rate limits) take effect
+on deploy; G-77 is closed by a test; G-74 (`llm-tool-call`) is partly open.
 
 **Addendum (2026-09-28, refund agent):** reading the refund agent against Parmana's release path
 found **G-70**, `blocks-pilot`: `parmana-paytm-agent`'s `/agent/refunds` called Paytm itself after
@@ -1864,6 +2033,9 @@ against a signed approval (G-65, `approvalSignals` in the policy, `ApprovalSigna
 `fraudCheckPassed`, and the GitHub and Slack signals, are still caller declared. **Update (2026-09-28):**
 the narrowing is in effect in production since `customer-refund` 1.1.0 was approved there on 2026-09-27;
 before that the defect was live in production (the Paytm connector is configured there).
+**Update (2026-09-28, AI attack review):** narrowed again in the repository: merges (G-73) and LLM tool
+calls (G-74) need a signed approval in new policy versions, pending approval in production. The rest of
+this gap is tracked there and in G-75 and G-76.
 
 **G-52. The connector can be called before the Execution Trust Record can be signed, so a signing
 failure leaves an executed action with no signed trust record.** Found 2026-09-20 in the same live
