@@ -12,6 +12,14 @@ description: "Every chapter in one PDF file. Just an email address, no verificat
 <form
   action="https://parmana-api-real.vercel.app/handbook/download-leads"
   method="get"
+  onSubmit={(event) => {
+    event.preventDefault();
+    const email = new FormData(event.currentTarget).get("email");
+    window.location.assign(
+      "https://parmana-api-real.vercel.app/handbook/download-leads?email=" +
+        encodeURIComponent(String(email ?? "")),
+    );
+  }}
 >
   <input
     type="email"
@@ -56,5 +64,5 @@ is not a separately-maintained document that can drift from what's published her
 
 If the download doesn't start after submitting the form above, the direct link is
 [parmana-api-real.vercel.app/parmana-handbook.pdf](https://parmana-api-real.vercel.app/parmana-handbook.pdf)
-(served by the API directly, not this docs site — PDF file serving on Mintlify requires an
-Enterprise plan).
+(served by the API directly, not by this docs site, because PDF file serving on Mintlify
+requires an Enterprise plan).
