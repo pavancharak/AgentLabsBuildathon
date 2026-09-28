@@ -22,13 +22,11 @@ import { PolicyChangeCrypto } from "@parmana/crypto";
  * exactly the same as finding a real unapproved file. There is no
  * "couldn't check, let it through" path here.
  *
- * See scripts/README (or DEPLOYMENT.md's pre-deploy step) for how
- * this is invoked in practice: a list of changed files for PR-time CI,
- * or --full-scan for the manual pre-deploy backstop. --full-scan will
- * report every policy version that predates Policy Governance (never
- * approved through the API at all) as unapproved -- expected, not a
- * false positive, and the reason --full-scan is a manual, human-read
- * step rather than something wired into routine CI.
+ * Invoked with a list of changed files, or with --full-scan to check
+ * every policy file in the tree. CI's verify-policy-approvals job runs
+ * --full-scan on every push and pull request (G-79): every policy
+ * version in the tree has been approved through the API since the
+ * 2026-09-16 backfill, so any file reported here is a real finding.
  */
 
 const VALID_NAME_OR_VERSION = /^[A-Za-z0-9._-]+$/;

@@ -156,7 +156,8 @@ short index, not a replacement for reading the original entries.
   `Authorization` domain objects themselves. This becomes a real gap only for a delegation
   scenario (multi-party approval, an external OAuth/SAML/risk-service authorization source),
   and work has deliberately not started pending a real trigger.
-- **D-6.** The CI job that would prevent an unapproved policy file from merging
+- **D-6, resolved 2026-09-28.** The repository is public now, and the check is a required status
+  check on `main`, run on every policy file. Before that: the CI job that would prevent an unapproved policy file from merging
   (`scripts/verify-policy-changes-approved.ts`, run by `.github/workflows/ci.yml`'s
   `verify-policy-approvals` job) is real and fail-closed, but is not configured as a
   _required_ GitHub branch-protection check. Attempting to enable it during a real session

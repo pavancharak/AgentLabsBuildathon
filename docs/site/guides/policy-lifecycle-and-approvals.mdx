@@ -170,7 +170,7 @@ These checks are on whenever `NODE_ENV` is anything other than `test` or `develo
 npx tsx scripts/verify-policy-changes-approved.ts --full-scan
 ```
 
-The CI job `verify-policy-approvals` runs the same check for policy files changed in a push or pull request. A rejection writes no approval record: the change's `rejectionReason` is the record it leaves.
+The CI job `verify-policy-approvals` runs the same full scan on every push and pull request, and is a required check on `main`, so a pull request that adds a policy version merges only after that version is approved in production. A rejection writes no approval record: the change's `rejectionReason` is the record it leaves.
 
 ### Sign and submit in one step
 

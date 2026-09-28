@@ -214,7 +214,8 @@ to `policies/{name}/{version}/policy.json` that skips the pending-change API ent
   approval record, a content-hash mismatch, and any failure to complete the check at all
   (Supabase unreachable, a malformed response) are all treated identically as a failure :
   there is no "couldn't check, let it through" path. `.github/workflows/ci.yml`'s
-  `verify-policy-approvals` job runs it on every push and pull request.
+  `verify-policy-approvals` job runs it with `--full-scan` on every push and pull request, and it is a
+  required status check on `main` (since 2026-09-28).
 
 ## How it enables things, with concrete examples
 
