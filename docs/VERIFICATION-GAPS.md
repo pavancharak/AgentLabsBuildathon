@@ -1043,8 +1043,8 @@ limit (G-78).
 FIXED in the repository the same day on branch `fix/ai-attack-hardening`; takes effect in production
 when `github-pr-approval` 1.1.0 and `github-pr-read` 1.0.0 are approved. APPROVED in production
 2026-09-28: 1.1.0 at 17:30:00 UTC (change `39bfa083-7850-4cdc-bfd0-67738fc61432`), `github-pr-read`
-1.0.0 at 17:30:18 UTC (change `af938bab-f205-4e02-8adf-e602edcd7695`) (proposed by `charak1987` at 17:16 UTC, approved by `reviewer-charak1987`, two credentials held by one person). No
-reviewer is in `TRUSTED_APPROVAL_ISSUERS` yet, so every merge through Parmana is refused.**
+1.0.0 at 17:30:18 UTC (change `af938bab-f205-4e02-8adf-e602edcd7695`) (proposed by `charak1987` at 17:16 UTC, approved by `reviewer-charak1987`, two credentials held by one person). Trusted approvers are not limited to
+an action (G-50), so `manager-charak1987`, the one listed approver, can sign merge approvals.**
 `github-pr-approval` 1.0.0 approved `github:pr-merge` when `repositoryAuthorized`,
 `requiredReviewsCompleted`, `statusChecksPassed` and `branchProtected` were true and `riskScore` was at
 most 20. All five are caller declared (`unboundSignalReasons`), no `SignalStateVerifier` covers GitHub,
