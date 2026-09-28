@@ -17,12 +17,15 @@ background to interpret. If your situation is not covered, **stop and ask the op
 
 ## Inputs you need before you start
 
-| Input                              | Where it comes from                                                         | How to check it                                                                               |
-| ---------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `PARMANA_URL`                      | The operator. The base URL of the Parmana server, without a trailing slash. | It must start with `https://`, except for a local server, which uses `http://localhost:3000`. |
-| `PARMANA_API_KEY`                  | The operator. A secret string issued for you.                               | It is non empty. Never print it, log it or put it in a URL.                                   |
-| `POLICY_NAME` and `POLICY_VERSION` | The operator. The policy that governs the action.                           | Step 3 checks it exists.                                                                      |
-| `ACTION`                           | The operator. The capability name, for example `paytm:refund`.              | Step 2 checks your key may use it.                                                            |
+| Input              | Where it comes from                                                                                                     | How to check it                                                                               |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `PARMANA_URL`      | The operator. The base URL of the Parmana server, without a trailing slash.                                             | It must start with `https://`, except for a local server, which uses `http://localhost:3000`. |
+| `PARMANA_API_KEY`  | The operator. A secret string issued for you.                                                                           | It is non empty. Never print it, log it or put it in a URL.                                   |
+| `APPROVAL_SIGNALS` | The operator. The signals that need a person's signed approval for this action, for example `managerApproved`, or none. | Ask. If the operator says none, the action never needs one.                                   |
+| `ACTION`           | The operator. The capability name, for example `paytm:refund`.                                                          | Step 2 checks your key may use it.                                                            |
+
+Do not ask for a policy version. Step 3 reads the version in effect from the server, because an approved new version
+replaces the old one at once and a request naming an old version is refused.
 
 Every request below carries this header: `Authorization: Bearer <PARMANA_API_KEY>`.
 
@@ -67,47 +70,58 @@ Keep `callerId`. Your `authority.principalId` in step 4 must be one of `allowedP
    operator to grant the capability.
 3. `ACTION` is not in `allowedCapabilities`: stop. Ask the operator to grant it. Do not use a different action.
 
-## Step 3: check the policy exists
+## Step 3: find the policy in effect
 
-**Do:** send `POST {PARMANA_URL}/policies/validate` with the header, `Content-Type: application/json`, and this body:
+**Do:** send `GET {PARMANA_URL}/policies/in-effect?capability=<ACTION>` with the header.
+
+**Expect:** HTTP `200` and a body like:
 
 ```json
-{ "policyId": "<POLICY_NAME>", "policyVersion": "<POLICY_VERSION>" }
+{
+  "capability": "paytm:refund",
+  "policy": {
+    "name": "customer-refund",
+    "version": "1.2.0",
+    "schemaVersion": "1.0.0"
+  }
+}
 ```
 
-**Expect:** HTTP `200` and `{"valid":true,"errors":[]}`.
+Use this `policy` object, exactly as returned, in step 4. Look it up again before every request: it changes when a new
+version is approved, with no notice to you.
 
-**If not:** HTTP `404` with `"valid":false` means the policy does not exist at that name and version. Stop. Ask the
-operator for the correct name and version. Do not try other versions.
+**If not:** HTTP `403` with code `CAPABILITY_NOT_ALLOWED` means your key may not use this action: stop and ask the
+operator. HTTP `404` with code `CAPABILITY_NOT_BOUND` means no policy governs this action on this server: stop and ask
+the operator. Do not guess a policy.
 
 ## Step 4: build the Business Transaction
 
 A Business Transaction is one JSON object. Every field below is required unless it says otherwise.
 
-| Field                                             | Type and rule                                                                             | Who sets it |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------- | ----------- |
-| `businessTransactionId`                           | A new UUID, generated by you, **different for every request**. It is the idempotency key. | You         |
-| `metadata.businessTransactionId`                  | The same UUID as above.                                                                   | You         |
-| `metadata.correlationId`, `metadata.sourceSystem` | Optional strings for your own tracing.                                                    | You         |
-| `metadata.submittedBy`                            | Ignored if you send it. The server sets it from your key.                                 | The server  |
-| `authority.authorityId`                           | A new UUID.                                                                               | You         |
-| `authority.authorityType`                         | Exactly one of `USER`, `ROLE`, `SERVICE`, `ORGANIZATION`. Use `SERVICE` for an agent.     | You         |
-| `authority.principalId`                           | Must be your `callerId`, or another value in `allowedPrincipalIds`.                       | You         |
-| `authority.issuedAt`                              | The current time as an ISO 8601 date time, for example `2026-09-20T10:00:00.000Z`.        | You         |
-| `authorization.authorizationId`                   | A new UUID.                                                                               | You         |
-| `authorization.authorityId`                       | **Equal to** `authority.authorityId`.                                                     | You         |
-| `authorization.purpose`                           | A short sentence stating why the action is being requested.                               | You         |
-| `authorization.issuedAt`                          | The current time, ISO 8601.                                                               | You         |
-| `intent.intentId`                                 | A new UUID.                                                                               | You         |
-| `intent.authorizationId`                          | **Equal to** `authorization.authorizationId`.                                             | You         |
-| `intent.action`                                   | Your `ACTION`, exactly as in step 2.                                                      | You         |
-| `intent.target`                                   | The thing the action applies to, for example an order id.                                 | You         |
-| `intent.parameters`                               | An object with the action's parameters, for example `{"amount": 5}`.                      | You         |
-| `intent.createdAt`                                | The current time, ISO 8601.                                                               | You         |
-| `policy.name`, `policy.version`                   | Your `POLICY_NAME` and `POLICY_VERSION`.                                                  | You         |
-| `policy.schemaVersion`                            | The policy's schema version, normally `1.0.0`.                                            | You         |
-| `signals`                                         | An object with one entry for every fact the policy's rules read.                          | You         |
-| `status`, `createdAt`                             | Ignored if you send them.                                                                 | The server  |
+| Field                                             | Type and rule                                                                              | Who sets it |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------ | ----------- |
+| `businessTransactionId`                           | A new UUID, generated by you, **different for every request**. It is the idempotency key.  | You         |
+| `metadata.businessTransactionId`                  | The same UUID as above.                                                                    | You         |
+| `metadata.correlationId`, `metadata.sourceSystem` | Optional strings for your own tracing.                                                     | You         |
+| `metadata.submittedBy`                            | Ignored if you send it. The server sets it from your key.                                  | The server  |
+| `authority.authorityId`                           | A new UUID.                                                                                | You         |
+| `authority.authorityType`                         | Exactly one of `USER`, `ROLE`, `SERVICE`, `ORGANIZATION`. Use `SERVICE` for an agent.      | You         |
+| `authority.principalId`                           | Must be your `callerId`, or another value in `allowedPrincipalIds`.                        | You         |
+| `authority.issuedAt`                              | The current time as an ISO 8601 date time, for example `2026-09-20T10:00:00.000Z`.         | You         |
+| `authorization.authorizationId`                   | A new UUID.                                                                                | You         |
+| `authorization.authorityId`                       | **Equal to** `authority.authorityId`.                                                      | You         |
+| `authorization.purpose`                           | A short sentence stating why the action is being requested.                                | You         |
+| `authorization.issuedAt`                          | The current time, ISO 8601.                                                                | You         |
+| `intent.intentId`                                 | A new UUID.                                                                                | You         |
+| `intent.authorizationId`                          | **Equal to** `authorization.authorizationId`.                                              | You         |
+| `intent.action`                                   | Your `ACTION`, exactly as in step 2.                                                       | You         |
+| `intent.target`                                   | The thing the action applies to, for example an order id.                                  | You         |
+| `intent.parameters`                               | An object with the action's parameters, for example `{"amount": 5}`.                       | You         |
+| `intent.createdAt`                                | The current time, ISO 8601.                                                                | You         |
+| `policy.name`, `policy.version`                   | The `policy` object from step 3, exactly as returned (`name`, `version`, `schemaVersion`). | You         |
+| `policy.schemaVersion`                            | From step 3, with the name and version.                                                    | You         |
+| `signals`                                         | An object with one entry for every fact the policy's rules read.                           | You         |
+| `status`, `createdAt`                             | Ignored if you send them.                                                                  | The server  |
 
 ### The consistency rules
 
@@ -159,7 +173,7 @@ with the current time.
   },
   "policy": {
     "name": "customer-refund",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "schemaVersion": "1.0.0"
   },
   "signals": {
@@ -174,6 +188,23 @@ with the current time.
 **Never set a signal to `true` unless you have checked it is true.** A policy trusts the signals you send for some
 facts, so a false `true` produces an authorization that should not exist.
 
+**Approval signals are different.** For each signal in `APPROVAL_SIGNALS`, send `false` unless you hold a signed
+approval for this exact action. The server does not believe `true` on its own: it checks the signed approval, and
+refuses the request without one. Step 6 says how to get one.
+
+With a signed approval, send the signal as `true` and put the approval, exactly as you received it, in
+`signals.approvalArtifact`:
+
+```json
+"signals": {
+  "refundEligible": true,
+  "fraudCheckPassed": true,
+  "refundAmount": 5,
+  "managerApproved": true,
+  "approvalArtifact": { "payload": { "...": "..." }, "signature": { "...": "..." } }
+}
+```
+
 ## Step 5: send it
 
 **Do:** send `POST {PARMANA_URL}/execute` with the header, `Content-Type: application/json`, and the object from step 4.
@@ -187,21 +218,42 @@ call to the connector. The Paytm connector, for example, is allowed up to 10 sec
 
 Apply the **first** row that matches. Every error body is `{"error": "<message>"}`, with a `code` when there is one.
 
-| You receive                                                                                   | Meaning                                                                                | Do                                                                                                                                                                                                  |
-| --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| HTTP `200`, and `executions[0].decision.outcome` is `APPROVED`                                | Approved and released. You have a signed Execution Trust Record.                       | Go to step 7, then proceed.                                                                                                                                                                         |
-| HTTP `403`, code `POLICY_DENIED`                                                              | A policy rule refused. Final.                                                          | Do not proceed. Do not retry. Report the message to the operator.                                                                                                                                   |
-| HTTP `403`, code `CAPABILITY_NOT_ALLOWED`                                                     | Your key may not invoke this action.                                                   | Stop. Ask the operator to grant it.                                                                                                                                                                 |
-| HTTP `403`, no code                                                                           | Your key may not assert that `principalId`.                                            | Use your `callerId`, or stop and ask.                                                                                                                                                               |
-| HTTP `401`                                                                                    | Key missing or wrong.                                                                  | Stop. Ask for a valid key.                                                                                                                                                                          |
-| HTTP `400`                                                                                    | The request is malformed. The message names the problem.                               | Fix the request. Use a **new** `businessTransactionId`.                                                                                                                                             |
-| HTTP `404`                                                                                    | The policy was not found.                                                              | Stop. Go back to step 3.                                                                                                                                                                            |
-| HTTP `409`                                                                                    | That `businessTransactionId` was already used.                                         | Do not resend. Go to step 7 to look up what happened.                                                                                                                                               |
-| HTTP `429`                                                                                    | Rate limited. Nothing was recorded.                                                    | Wait the seconds in the `Retry-After` header, then send again with a **new** `businessTransactionId`.                                                                                               |
-| HTTP `503`, code `SIGNING_UNAVAILABLE`, `EXECUTION_INTENT_UNAVAILABLE` or `AUDIT_UNAVAILABLE` | Refused before release. **Nothing was executed.**                                      | Wait, then retry with a **new** `businessTransactionId`. If it keeps happening, tell the operator.                                                                                                  |
-| HTTP `500`, code `EXECUTION_RECORD_INCOMPLETE`                                                | The action **was** released, but its record could not be produced.                     | **Do not resend under any id.** Go to step 7. Tell the operator now. The operator can rebuild the signed record without repeating the action, see [Execution Intents](/concepts/execution-intents). |
-| HTTP `502`, code `EXECUTION_OUTCOME_UNKNOWN`                                                  | The action was released and the connector call failed. It **may** have been performed. | **Do not resend under any id.** Tell the operator, who checks the target system and closes the Execution Intent.                                                                                    |
-| Any other `5xx`, a timeout, or no response                                                    | Unknown.                                                                               | Do not proceed. Go to step 7.                                                                                                                                                                       |
+| You receive                                                                                                       | Meaning                                                                                | Do                                                                                                                                                                                                  |
+| ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HTTP `200`, and `executions[0].decision.outcome` is `APPROVED`                                                    | Approved and released. You have a signed Execution Trust Record.                       | Go to step 7, then proceed.                                                                                                                                                                         |
+| HTTP `403`, code `POLICY_DENIED`, and the message says the version was superseded                                 | A newer policy version took effect after step 3.                                       | Go back to step 3, then send again with a **new** `businessTransactionId`.                                                                                                                          |
+| HTTP `403`, code `POLICY_DENIED`, you sent an approval signal as `false`, and every other signal you sent is true | The action needs a person's signed approval. Nothing was executed.                     | Go to [If the action needs a person's approval](#if-the-action-needs-a-persons-approval).                                                                                                           |
+| HTTP `403`, code `POLICY_DENIED`                                                                                  | A policy rule refused. Final.                                                          | Do not proceed. Do not retry. Report the message to the operator.                                                                                                                                   |
+| HTTP `403`, code `CAPABILITY_NOT_ALLOWED`                                                                         | Your key may not invoke this action.                                                   | Stop. Ask the operator to grant it.                                                                                                                                                                 |
+| HTTP `403`, no code                                                                                               | Your key may not assert that `principalId`.                                            | Use your `callerId`, or stop and ask.                                                                                                                                                               |
+| HTTP `401`                                                                                                        | Key missing or wrong.                                                                  | Stop. Ask for a valid key.                                                                                                                                                                          |
+| HTTP `400`                                                                                                        | The request is malformed. The message names the problem.                               | Fix the request. Use a **new** `businessTransactionId`.                                                                                                                                             |
+| HTTP `404`                                                                                                        | The policy was not found.                                                              | Stop. Go back to step 3.                                                                                                                                                                            |
+| HTTP `409`                                                                                                        | That `businessTransactionId` was already used.                                         | Do not resend. Go to step 7 to look up what happened.                                                                                                                                               |
+| HTTP `429`                                                                                                        | Rate limited. Nothing was recorded.                                                    | Wait the seconds in the `Retry-After` header, then send again with a **new** `businessTransactionId`.                                                                                               |
+| HTTP `503`, code `SIGNING_UNAVAILABLE`, `EXECUTION_INTENT_UNAVAILABLE` or `AUDIT_UNAVAILABLE`                     | Refused before release. **Nothing was executed.**                                      | Wait, then retry with a **new** `businessTransactionId`. If it keeps happening, tell the operator.                                                                                                  |
+| HTTP `500`, code `EXECUTION_RECORD_INCOMPLETE`                                                                    | The action **was** released, but its record could not be produced.                     | **Do not resend under any id.** Go to step 7. Tell the operator now. The operator can rebuild the signed record without repeating the action, see [Execution Intents](/concepts/execution-intents). |
+| HTTP `502`, code `EXECUTION_OUTCOME_UNKNOWN`                                                                      | The action was released and the connector call failed. It **may** have been performed. | **Do not resend under any id.** Tell the operator, who checks the target system and closes the Execution Intent.                                                                                    |
+| Any other `5xx`, a timeout, or no response                                                                        | Unknown.                                                                               | Do not proceed. Go to step 7.                                                                                                                                                                       |
+
+## If the action needs a person's approval
+
+A refusal for want of an approval is not a failure. Parmana does not hold the request open; you send a new one once a
+person has approved.
+
+1. **Tell the operator** what needs approving: the `ACTION`, the resource (for a refund, the order id), the amount if
+   there is one, and your refused `businessTransactionId`. If the deployment has approval notifications turned on, the
+   approver was already notified with the same details.
+2. **Wait for a signed approval.** It is a JSON object with `payload` and `signature`, made by the approver on their
+   own machine. You cannot make one, and you must never ask for or hold an approver's private key.
+3. **Check it matches before sending.** `payload.capability` equals `ACTION`, `payload.resourceId` equals the resource,
+   and `payload.expiresAt` is in the future. An approval is usually valid for 15 minutes and works once.
+4. **Send a new request** (step 3 again, then step 4) with a **new** `businessTransactionId`, the same action and amount,
+   the approval signal `true`, and the approval in `signals.approvalArtifact`. Do not change anything else.
+5. If it is refused again, do not retry with the same approval: it may be expired, used, for a different resource or
+   amount, or from an approver the server does not trust. Report the message to the operator.
+
+For people: [Human approval](/concepts/human-approval) and [Approval notifications](/guides/approval-notifications).
 
 ## Step 7: confirm and keep the record
 
@@ -229,6 +281,7 @@ If any is missing, treat the action as **not confirmed** and tell the operator. 
 2. Never resend after `EXECUTION_RECORD_INCOMPLETE` or `EXECUTION_OUTCOME_UNKNOWN`, or after a timeout you have not resolved with step 7.
 3. Never treat "I could not reach Parmana" as "allowed".
 4. Never work around a `POLICY_DENIED` by changing the request until it passes. A denial is a decision. Tell the operator.
+   The two exceptions are in step 6: a superseded version, and a missing approval, which a person resolves, not you.
 5. Never send a signal you have not verified.
 6. Never log the API key.
 
