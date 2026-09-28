@@ -43,10 +43,18 @@ export interface ResolvedApprovalIssuer {
  * independent authority's.
  */
 export interface ApprovalIssuerRegistry {
+  /**
+   * May answer asynchronously, as a registry backed by a database
+   * does. Must answer undefined, never throw, when it cannot tell: an
+   * issuer it cannot confirm is unknown, and the approval is refused.
+   */
   resolve(
     approverId: string,
     keyId: string,
-  ): ResolvedApprovalIssuer | undefined;
+  ):
+    | ResolvedApprovalIssuer
+    | undefined
+    | Promise<ResolvedApprovalIssuer | undefined>;
 }
 
 /**
@@ -84,6 +92,13 @@ export class StaticApprovalIssuerRegistry implements ApprovalIssuerRegistry {
     }
 
     return { publicKey: issuer.publicKey, revoked: issuer.revoked };
+  }
+
+  /**
+   * Every registered issuer, revoked ones included.
+   */
+  list(): readonly TrustedApprovalIssuer[] {
+    return [...this.issuers.values()];
   }
 
   private static key(approverId: string, keyId: string): string {

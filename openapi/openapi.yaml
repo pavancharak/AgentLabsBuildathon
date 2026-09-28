@@ -67,6 +67,9 @@ tags:
   - name: Policy Governance
     description: Maker-checker proposal, listing, approval, and rejection of policy changes
 
+  - name: Approvers
+    description: Maker-checker for the keys trusted to sign approvals, without a deploy
+
   - name: Refusal Records
     description: Durable, signed evidence that a policy decision rejected a transaction (RFC-0021)
 
@@ -3514,6 +3517,401 @@ paths:
                 $ref: "../schemas/common/error.schema.json"
         "404":
           description: No Pending Policy Change exists for this id.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+
+  /approval-issuers:
+    get:
+      tags:
+        - Approvers
+      summary: List approver keys
+      operationId: listApprovalIssuers
+      description: >
+        Every approver key the server trusts, or trusted, to sign approvals
+        for policies that declare approvalSignals. Keys listed in the server
+        code come first (source code), then keys added through approver
+        changes (source governed). Revoked keys are included and marked, so
+        the list explains every approval ever verified. Requires a human
+        credential (credentialHolderType USER).
+      responses:
+        "200":
+          description: The approver keys.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/approval-issuers-list-response.schema.json"
+              examples:
+                codeAndGoverned:
+                  summary: Real captured response
+                  value:
+                    {
+                      "issuers":
+                        [
+                          {
+                            "approverId": "manager-charak1987",
+                            "keyId": "manager-charak1987-key-1",
+                            "revoked": false,
+                            "source": "code",
+                            "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAVMs/E6N2XEQfEEWlwMg0wRS0L4svbZ0W785aAxUP78M=\n-----END PUBLIC KEY-----\n",
+                          },
+                          {
+                            "approverId": "manager-priya",
+                            "keyId": "manager-priya-key-1",
+                            "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAEDuWHf+bbRY7J/Mr0RVmAKYHH5CDijTWhdnISXWLD6Y=\n-----END PUBLIC KEY-----\n",
+                            "revoked": false,
+                            "addedByChangeId": "ba7c5827-5844-4069-94fc-9b438ef08f78",
+                            "addedAt": "2026-09-28T19:05:59.738Z",
+                            "source": "governed",
+                          },
+                        ],
+                    }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: The caller is not a human credential (NON_HUMAN_CALLER_DENIED).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+
+  /approval-issuers/changes:
+    post:
+      tags:
+        - Approvers
+      summary: Propose adding or revoking an approver key
+      operationId: proposeApprovalIssuerChange
+      description: >
+        Proposes adding an approver key (action add, with the approver
+        Ed25519 public key) or revoking a key added this way (action
+        revoke). Nothing changes until a different person approves the
+        proposal. Requires a human credential. A key listed in the server
+        code is refused (409): change those with a pull request. A key id
+        that already exists, revoked or not, cannot be added again: rotate
+        by adding a new key id, then revoking the old one.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/requests/propose-approval-issuer-change-request.schema.json"
+      responses:
+        "201":
+          description: Proposed, PENDING_APPROVAL.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/approval-issuer-change-response.schema.json"
+              examples:
+                add:
+                  summary: Real captured response
+                  value:
+                    {
+                      "changeId": "ba7c5827-5844-4069-94fc-9b438ef08f78",
+                      "action": "add",
+                      "approverId": "manager-priya",
+                      "keyId": "manager-priya-key-1",
+                      "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAEDuWHf+bbRY7J/Mr0RVmAKYHH5CDijTWhdnISXWLD6Y=\n-----END PUBLIC KEY-----\n",
+                      "reason": "Priya approves refunds for the West region from October.",
+                      "proposedBy": "human-maker",
+                      "proposedAt": "2026-09-28T19:05:59.726Z",
+                      "status": "PENDING_APPROVAL",
+                    }
+                revoke:
+                  summary: Real captured response
+                  value:
+                    {
+                      "changeId": "348e9b4c-61dc-4bef-8815-6d4488750111",
+                      "action": "revoke",
+                      "approverId": "manager-priya",
+                      "keyId": "manager-priya-key-1",
+                      "reason": "Priya moved to another team.",
+                      "proposedBy": "human-maker",
+                      "proposedAt": "2026-09-28T19:05:59.750Z",
+                      "status": "PENDING_APPROVAL",
+                    }
+        "400":
+          description: action is not add or revoke; approverId or keyId does not match ^[A-Za-z0-9._-]{{1,128}}$; reason is missing or longer than 2000 characters; publicKeyPem is not an Ed25519 public key (add) or is present (revoke).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                badKey:
+                  summary: Real captured response
+                  value:
+                    {
+                      "error": "publicKeyPem must be an Ed25519 public key in PEM, as made by scripts/generate-approver-key.ts.",
+                    }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: The caller is not a human credential (NON_HUMAN_CALLER_DENIED).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+        "409":
+          description: CONFLICT. The key is listed in code, the key to add already exists, the key to revoke is not an active governed key, or another change for this approver and key is pending.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                alreadyExists:
+                  summary: Real captured response
+                  value:
+                    {
+                      "error": "Approver 'manager-priya' key 'manager-priya-key-1' already exists. Use a new key id to add a new key.",
+                      "code": "CONFLICT",
+                    }
+
+    get:
+      tags:
+        - Approvers
+      summary: List approver changes
+      operationId: listApprovalIssuerChanges
+      description: >
+        Approver changes, newest first, optionally filtered by status. A
+        checker uses status=PENDING_APPROVAL to find what waits for review.
+        Requires a human credential.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [PENDING_APPROVAL, APPROVED, REJECTED]
+      responses:
+        "200":
+          description: The changes.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/approval-issuer-changes-list-response.schema.json"
+              examples:
+                pending:
+                  summary: Real captured response
+                  value:
+                    {
+                      "changes":
+                        [
+                          {
+                            "changeId": "ba7c5827-5844-4069-94fc-9b438ef08f78",
+                            "action": "add",
+                            "approverId": "manager-priya",
+                            "keyId": "manager-priya-key-1",
+                            "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAEDuWHf+bbRY7J/Mr0RVmAKYHH5CDijTWhdnISXWLD6Y=\n-----END PUBLIC KEY-----\n",
+                            "reason": "Priya approves refunds for the West region from October.",
+                            "proposedBy": "human-maker",
+                            "proposedAt": "2026-09-28T19:05:59.726Z",
+                            "status": "PENDING_APPROVAL",
+                          },
+                        ],
+                    }
+        "400":
+          description: status is not PENDING_APPROVAL, APPROVED or REJECTED.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: The caller is not a human credential (NON_HUMAN_CALLER_DENIED).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+
+  /approval-issuers/changes/{id}/approve:
+    post:
+      tags:
+        - Approvers
+      summary: Approve an approver change
+      operationId: approveApprovalIssuerChange
+      description: >
+        Approves an approver change and applies it in one step: add trusts
+        the key from the next approval checked, revoke refuses every
+        approval the key ever signed from the next request on. Requires, in
+        order: a human credential, not the proposer (403
+        SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE), and a step up authorization
+        signed with the checker step up key for this change id and action
+        approve, used once (403 STEP_UP_AUTHORIZATION_INVALID). It is the
+        same step up authorization policy changes use, with the change id
+        in payload.pendingPolicyChangeId.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The changeId.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/requests/approve-policy-change-request.schema.json"
+            examples:
+              stepUp:
+                summary: Real captured request
+                value:
+                  {
+                    "stepUpAuthorization":
+                      {
+                        "payload":
+                          {
+                            "version": 1,
+                            "nonce": "0b6081da-cd57-4519-ae36-71eb1bb62432",
+                            "pendingPolicyChangeId": "ba7c5827-5844-4069-94fc-9b438ef08f78",
+                            "action": "approve",
+                            "authorizedAt": "2026-09-28T19:05:59.733Z",
+                            "expiresAt": "2026-09-28T19:07:59.733Z",
+                          },
+                        "signature": "Nv94Q62/g4IQ0zFxDqF621Stz+JBy/4KOvLJ9+RfJO8xMw6hw06X4gzdDNEh2DxJt9xmL7VTF9TxDd9s9qmkCg==",
+                        "keyId": "human-checker-step-up-key",
+                        "algorithm": "ed25519",
+                      },
+                  }
+      responses:
+        "200":
+          description: Approved and applied.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/approval-issuer-change-response.schema.json"
+              examples:
+                approved:
+                  summary: Real captured response
+                  value:
+                    {
+                      "changeId": "ba7c5827-5844-4069-94fc-9b438ef08f78",
+                      "action": "add",
+                      "approverId": "manager-priya",
+                      "keyId": "manager-priya-key-1",
+                      "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAEDuWHf+bbRY7J/Mr0RVmAKYHH5CDijTWhdnISXWLD6Y=\n-----END PUBLIC KEY-----\n",
+                      "reason": "Priya approves refunds for the West region from October.",
+                      "proposedBy": "human-maker",
+                      "proposedAt": "2026-09-28T19:05:59.726Z",
+                      "status": "APPROVED",
+                      "resolvedBy": "human-checker",
+                      "resolvedAt": "2026-09-28T19:05:59.738Z",
+                    }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: NON_HUMAN_CALLER_DENIED, SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE, or STEP_UP_AUTHORIZATION_INVALID.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                sameActor:
+                  summary: Real captured response
+                  value:
+                    {
+                      "error": "Approver change 'ba7c5827-5844-4069-94fc-9b438ef08f78' was proposed by this same caller — the proposer (maker) may not also approve or reject it (checker).",
+                      "code": "SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE",
+                    }
+                stepUpReused:
+                  summary: Real captured response, the same step up sent twice
+                  value:
+                    {
+                      "error": "The step-up authorization envelope is missing, invalid, expired, replayed, or does not match this request.",
+                      "code": "STEP_UP_AUTHORIZATION_INVALID",
+                    }
+        "404":
+          description: No approver change has this id (APPROVAL_ISSUER_CHANGE_NOT_FOUND).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                notFound:
+                  summary: Real captured response
+                  value:
+                    {
+                      "error": "Approver change '00000000-0000-0000-0000-000000000000' not found.",
+                      "code": "APPROVAL_ISSUER_CHANGE_NOT_FOUND",
+                    }
+        "409":
+          description: CONFLICT. The change is already resolved, the key to add now exists, or the key to revoke is no longer active. Nothing was written.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+
+  /approval-issuers/changes/{id}/reject:
+    post:
+      tags:
+        - Approvers
+      summary: Reject an approver change
+      operationId: rejectApprovalIssuerChange
+      description: >
+        Rejects an approver change. No approver key changes. The same
+        checks as approve, with a step up authorization for action reject,
+        and a rejectionReason.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The changeId.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/requests/reject-policy-change-request.schema.json"
+      responses:
+        "200":
+          description: Rejected.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/approval-issuer-change-response.schema.json"
+              examples:
+                rejected:
+                  summary: Real captured response
+                  value:
+                    {
+                      "changeId": "348e9b4c-61dc-4bef-8815-6d4488750111",
+                      "action": "revoke",
+                      "approverId": "manager-priya",
+                      "keyId": "manager-priya-key-1",
+                      "reason": "Priya moved to another team.",
+                      "proposedBy": "human-maker",
+                      "proposedAt": "2026-09-28T19:05:59.750Z",
+                      "status": "REJECTED",
+                      "resolvedBy": "human-checker",
+                      "resolvedAt": "2026-09-28T19:05:59.753Z",
+                      "rejectionReason": "Priya stays on refunds until 31 October.",
+                    }
+        "400":
+          description: rejectionReason is missing, empty, or longer than 2000 characters.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: NON_HUMAN_CALLER_DENIED, SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE, or STEP_UP_AUTHORIZATION_INVALID.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+        "404":
+          description: No approver change has this id (APPROVAL_ISSUER_CHANGE_NOT_FOUND).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+        "409":
+          description: CONFLICT. The change is already resolved.
           content:
             application/json:
               schema:

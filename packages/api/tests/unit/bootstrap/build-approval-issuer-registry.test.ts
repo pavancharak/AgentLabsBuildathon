@@ -7,7 +7,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import {
   buildApprovalIssuerRegistry,
-  createApprovalIssuerRegistry,
+  createCodeApprovalIssuerRegistry,
 } from "../../../src/bootstrap/createApprovalIssuerRegistry.js";
 
 function ed25519Pem(): string {
@@ -136,10 +136,10 @@ describe("buildApprovalIssuerRegistry", () => {
   });
 });
 
-describe("createApprovalIssuerRegistry (the list deployed to production)", () => {
+describe("createCodeApprovalIssuerRegistry (the list deployed to production)", () => {
   // Every configured entry carries its key inline, so building the real
   // list reads no key directory and cannot fail at startup on Vercel.
-  const registry = createApprovalIssuerRegistry();
+  const registry = createCodeApprovalIssuerRegistry();
 
   it("trusts the refund manager's Ed25519 key, not revoked", () => {
     const manager = registry.resolve(

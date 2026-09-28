@@ -115,7 +115,7 @@ export class ApprovalVerifier {
     // 2. Every remaining check runs unconditionally, in this fixed
     // order, with no early return between them.
     //
-    const resolvedIssuer = this.options.issuerRegistry.resolve(
+    const resolvedIssuer = await this.options.issuerRegistry.resolve(
       artifact.payload.issuer.approverId,
       artifact.payload.issuer.keyId,
     );

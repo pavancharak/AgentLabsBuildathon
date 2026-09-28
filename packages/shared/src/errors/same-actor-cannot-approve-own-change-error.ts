@@ -8,10 +8,13 @@ import { ParmanaError } from "./parmana-error.js";
  * identity. See PendingPolicyChange.resolvedBy's own doc comment.
  */
 export class SameActorCannotApproveOwnChangeError extends ParmanaError {
-  constructor(pendingPolicyChangeId: string) {
+  constructor(
+    pendingPolicyChangeId: string,
+    subject: string = "Pending Policy Change",
+  ) {
     super(
       "SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE",
-      `Pending Policy Change '${pendingPolicyChangeId}' was proposed by this same caller — ` +
+      `${subject} '${pendingPolicyChangeId}' was proposed by this same caller — ` +
         "the proposer (maker) may not also approve or reject it (checker).",
       403,
     );

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from parmana.api.approver_api import ApproverApi
 from parmana.api.audit_api import AuditApi
 from parmana.api.caller_api import CallerApi
 from parmana.api.execution_api import ExecutionApi
@@ -24,6 +25,10 @@ from parmana.transport.http_transport import HttpTransport
 from parmana.version import __version__
 
 if TYPE_CHECKING:
+    from parmana.models.approval_issuer import (
+        ApprovalIssuer,
+        ApprovalIssuerChange,
+    )
     from parmana.models.business_transaction import BusinessTransaction
     from parmana.models.caller import CallerIdentity, PublicKeyInfo
     from parmana.models.execution_intent import (
@@ -181,6 +186,10 @@ class ParmanaClient:
         )
 
         self.callers = CallerApi(
+            self._transport,
+        )
+
+        self.approvers = ApproverApi(
             self._transport,
         )
 
@@ -417,4 +426,43 @@ class ParmanaClient:
 
         return self.policy.reject_change(
             pending_policy_change_id, rejection_reason, step_up_authorization
+        )
+
+    def list_approvers(self) -> list[ApprovalIssuer]:
+        """
+        Every approver key the server trusts or trusted. See ApproverApi.list.
+        """
+
+        return self.approvers.list()
+
+    def approver_changes(self, status: str | None = None) -> list[ApprovalIssuerChange]:
+        """
+        List approver changes. See ApproverApi.list_changes.
+        """
+
+        return self.approvers.list_changes(status)
+
+    def approve_approver_change(
+        self,
+        change_id: str,
+        step_up_authorization: dict[str, Any],
+    ) -> ApprovalIssuerChange:
+        """
+        Approve and apply an approver change. See ApproverApi.approve_change.
+        """
+
+        return self.approvers.approve_change(change_id, step_up_authorization)
+
+    def reject_approver_change(
+        self,
+        change_id: str,
+        rejection_reason: str,
+        step_up_authorization: dict[str, Any],
+    ) -> ApprovalIssuerChange:
+        """
+        Reject an approver change. See ApproverApi.reject_change.
+        """
+
+        return self.approvers.reject_change(
+            change_id, rejection_reason, step_up_authorization
         )

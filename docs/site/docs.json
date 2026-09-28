@@ -91,6 +91,7 @@
               "guides/write-your-first-policy",
               "guides/policy-governance-maker-checker",
               "guides/policy-lifecycle-and-approvals",
+              "guides/manage-approvers",
               "guides/credentials-maker-checker-approver",
               "guides/authorize-and-execute",
               "guides/connect-an-agent",
@@ -137,6 +138,7 @@
               {
                 "group": "Classes",
                 "pages": [
+                  "sdks/reference/typescript/classes/ApproverApi",
                   "sdks/reference/typescript/classes/AuditApi",
                   "sdks/reference/typescript/classes/AuthenticationError",
                   "sdks/reference/typescript/classes/AuthorizationError",
@@ -170,6 +172,8 @@
               {
                 "group": "Interfaces",
                 "pages": [
+                  "sdks/reference/typescript/interfaces/ApprovalIssuer",
+                  "sdks/reference/typescript/interfaces/ApprovalIssuerChange",
                   "sdks/reference/typescript/interfaces/ApprovalPayload",
                   "sdks/reference/typescript/interfaces/ApprovalScope",
                   "sdks/reference/typescript/interfaces/AuditEvent",
@@ -242,6 +246,7 @@
                   "sdks/reference/typescript/type-aliases/FinalizeExecutionIntentOutcome",
                   "sdks/reference/typescript/type-aliases/PendingPolicyChangeStatus",
                   "sdks/reference/typescript/type-aliases/PolicyGovernanceAnchorStatus",
+                  "sdks/reference/typescript/type-aliases/ProposeApproverChangeInput",
                   "sdks/reference/typescript/type-aliases/PublicKeys",
                   "sdks/reference/typescript/type-aliases/ResolveExecutionIntentOutcome",
                   "sdks/reference/typescript/type-aliases/SignatureAlgorithm",
@@ -293,6 +298,7 @@
           {
             "group": "API reference",
             "pages": [
+              "sdks/reference/python/api/approver_api",
               "sdks/reference/python/api/audit_api",
               "sdks/reference/python/api/caller_api",
               "sdks/reference/python/api/execution_api",
@@ -318,6 +324,7 @@
               "sdks/reference/python/errors/network_error",
               "sdks/reference/python/errors/replay_error",
               "sdks/reference/python/errors/verification_error",
+              "sdks/reference/python/models/approval_issuer",
               "sdks/reference/python/models/caller",
               "sdks/reference/python/models/execution_intent_results",
               "sdks/reference/python/models/policy_change_results",
@@ -421,6 +428,16 @@
               "api-reference/endpoints/list-pending-policy-changes",
               "api-reference/endpoints/approve-policy-change",
               "api-reference/endpoints/reject-policy-change"
+            ]
+          },
+          {
+            "group": "Approvers",
+            "pages": [
+              "api-reference/endpoints/list-approval-issuers",
+              "api-reference/endpoints/list-approval-issuer-changes",
+              "api-reference/endpoints/propose-approval-issuer-change",
+              "api-reference/endpoints/approve-approval-issuer-change",
+              "api-reference/endpoints/reject-approval-issuer-change"
             ]
           },
           {

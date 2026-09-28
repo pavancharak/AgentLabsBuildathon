@@ -700,6 +700,168 @@
       ]
     },
     {
+      "name": "Approvers",
+      "description": "Maker-checker for the keys trusted to sign approvals, without a deploy",
+      "item": [
+        {
+          "name": "List approver keys",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/approval-issuers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "approval-issuers"
+              ]
+            },
+            "description": "operationId: listApprovalIssuers\n\nEvery approver key the server trusts, or trusted, to sign approvals for policies that declare approvalSignals. Keys listed in the server code come first (source code), then keys added through approver changes (source governed). Revoked keys are included and marked, so the list explains every approval ever verified. Requires a human credential (credentialHolderType USER)."
+          }
+        },
+        {
+          "name": "List approver changes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/approval-issuers/changes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "approval-issuers",
+                "changes"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "operationId: listApprovalIssuerChanges\n\nApprover changes, newest first, optionally filtered by status. A checker uses status=PENDING_APPROVAL to find what waits for review. Requires a human credential."
+          }
+        },
+        {
+          "name": "Propose adding or revoking an approver key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"add\",\n  \"approverId\": \"manager-priya\",\n  \"keyId\": \"manager-priya-key-1\",\n  \"publicKeyPem\": \"-----BEGIN PUBLIC KEY-----\\nMCowBQYDK2VwAyEAEDuWHf+bbRY7J/Mr0RVmAKYHH5CDijTWhdnISXWLD6Y=\\n-----END PUBLIC KEY-----\\n\",\n  \"reason\": \"Priya approves refunds for the West region from October.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/approval-issuers/changes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "approval-issuers",
+                "changes"
+              ]
+            },
+            "description": "operationId: proposeApprovalIssuerChange\n\nProposes adding an approver key (action add, with the approver Ed25519 public key) or revoking a key added this way (action revoke). Nothing changes until a different person approves the proposal. Requires a human credential. A key listed in the server code is refused (409): change those with a pull request. A key id that already exists, revoked or not, cannot be added again: rotate by adding a new key id, then revoking the old one."
+          }
+        },
+        {
+          "name": "Approve an approver change",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stepUpAuthorization\": {\n    \"payload\": {\n      \"version\": 1,\n      \"nonce\": \"0b6081da-cd57-4519-ae36-71eb1bb62432\",\n      \"pendingPolicyChangeId\": \"ba7c5827-5844-4069-94fc-9b438ef08f78\",\n      \"action\": \"approve\",\n      \"authorizedAt\": \"2026-09-28T19:05:59.733Z\",\n      \"expiresAt\": \"2026-09-28T19:07:59.733Z\"\n    },\n    \"signature\": \"Nv94Q62/g4IQ0zFxDqF621Stz+JBy/4KOvLJ9+RfJO8xMw6hw06X4gzdDNEh2DxJt9xmL7VTF9TxDd9s9qmkCg==\",\n    \"keyId\": \"human-checker-step-up-key\",\n    \"algorithm\": \"ed25519\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/approval-issuers/changes/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "approval-issuers",
+                "changes",
+                ":id",
+                "approve"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "The changeId."
+                }
+              ]
+            },
+            "description": "Real captured request\n\noperationId: approveApprovalIssuerChange\n\nApproves an approver change and applies it in one step: add trusts the key from the next approval checked, revoke refuses every approval the key ever signed from the next request on. Requires, in order: a human credential, not the proposer (403 SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE), and a step up authorization signed with the checker step up key for this change id and action approve, used once (403 STEP_UP_AUTHORIZATION_INVALID). It is the same step up authorization policy changes use, with the change id in payload.pendingPolicyChangeId."
+          }
+        },
+        {
+          "name": "Reject an approver change",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rejectionReason\": \"Does not meet the bar for this fixture\",\n  \"stepUpAuthorization\": {\n    \"payload\": {\n      \"version\": 1,\n      \"nonce\": \"4807fe45-0379-415b-9455-b8cb84eb5554\",\n      \"pendingPolicyChangeId\": \"5617ba3c-fb07-437d-9131-232b84bbb863\",\n      \"action\": \"reject\",\n      \"authorizedAt\": \"2026-09-15T03:48:16.755Z\",\n      \"expiresAt\": \"2026-09-15T03:50:16.755Z\"\n    },\n    \"signature\": \"Wu5/oibGCjvkTklGQPiDMDemqxCVbSyuoVT7WHW63rGq8Av5KFTW6vMkUCP03pANv8bDu60bZVuVcTDVmLXpDA==\",\n    \"keyId\": \"human-checker-step-up-key\",\n    \"algorithm\": \"ed25519\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/approval-issuers/changes/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "approval-issuers",
+                "changes",
+                ":id",
+                "reject"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "The changeId."
+                }
+              ]
+            },
+            "description": "operationId: rejectApprovalIssuerChange\n\nRejects an approver change. No approver key changes. The same checks as approve, with a step up authorization for action reject, and a rejectionReason."
+          }
+        }
+      ]
+    },
+    {
       "name": "Refusal Records",
       "description": "Durable, signed evidence that a policy decision rejected a transaction (RFC-0021)",
       "item": [
