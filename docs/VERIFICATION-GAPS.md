@@ -1296,7 +1296,9 @@ approved on facts the agent declares or on nothing:
     Adding one would be a change to this rule, not a fix.
 
 **G-81. A registered external connector receives no release, and its policy is not bound yet. FOUND
-2026-09-30, `pre-production` (open by design until ADR-0013 step 4; nothing executes).**
+2026-09-30, `pre-production` (open by design until ADR-0013 step 4; nothing executes). FIXED in the
+repository 2026-10-01 by ADR-0013 step 4 (see the update at the end of this entry); in effect once
+deployed. Not yet checked against a live endpoint (step 6).**
 Registrations through `/external-connectors` are live in production (2.49), but:
 
 - **No connector is built for a registered capability.** `createConnectorRegistry.ts` lists only the
@@ -1313,6 +1315,23 @@ Registrations through `/external-connectors` are live in production (2.49), but:
 - **To close (ADR-0013 step 4):** resolve a registered capability to the adapter at request time,
   bind its policy with the version in effect from policy governance, refuse when that policy has no
   approved version, and answer `GET /policies/in-effect` for it; then the live check (step 6).
+- **Update (2026-10-01, step 4):** `ExternalConnectorAwareRegistry` serves a capability no built in
+  connector serves from its active registration, read at every request, and builds
+  `GatewayExternalAdapter` behind the same secure connector, session credential, policy and audit
+  path as a built in connector (`createConnectorRegistry.ts`); `resolveCapability` may now be
+  asynchronous. `CapabilityPolicyBinder` binds a registered capability to its registration's policy
+  at the version policy governance approved, and refuses when none is approved, when governance
+  does not decide versions (test and development), or when the registration cannot be read; the
+  canonical table still wins for built in capabilities. `GET /policies/in-effect` answers for it.
+  The connector authenticator trusts the external identity form `ext-<capability>` only.
+  Tests: `external-connector-release.integration.test.ts` (through `createExecutionControl`, to an
+  endpoint that checks the release with the TypeScript SDK's `verifyParmanaRelease`; revoked and
+  unregistered refused; a new registration followed to its new endpoint; storage errors fail
+  closed), `policy-in-effect-external.integration.test.ts`, `ExternalPolicyBinding.test.ts`,
+  `external-connector-identity.test.ts`. Still true: the policy name is checked for form only at
+  registration, so a registration naming a policy with no approved version is accepted and every
+  request for it is refused (`409 NO_APPROVED_POLICY_VERSION` from `GET /policies/in-effect`). The
+  agent's key must still be granted the capability (`allowedCapabilities`).
 
 **G-82. What an external endpoint answers is its claim, not proof. FOUND 2026-09-30, `pre-production`
 (a property of the design, ADR-0013 Security; recorded so no claim overstates it).**

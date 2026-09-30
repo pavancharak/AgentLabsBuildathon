@@ -1,6 +1,7 @@
 import type { SigningReadiness } from "./SigningReadiness.js";
 import type {
   CurrentPolicyVersionSource,
+  ExternalPolicyBindingSource,
   PolicyExecutionVerifier,
   PolicyGovernanceAnchorResolver,
   PolicyRepository,
@@ -56,6 +57,7 @@ export class RuntimeFactory {
     executionIntents?: ExecutionIntentRepository,
     currentPolicyVersions?: CurrentPolicyVersionSource,
     approvalNeededNotifier?: ApprovalNeededNotifier,
+    externalPolicyBindings?: ExternalPolicyBindingSource,
   ): ExecutionTrustApplication {
     //
     // Application Services
@@ -94,6 +96,10 @@ export class RuntimeFactory {
 
     if (currentPolicyVersions) {
       builder.withCurrentPolicyVersions(currentPolicyVersions);
+    }
+
+    if (externalPolicyBindings) {
+      builder.withExternalPolicyBindings(externalPolicyBindings);
     }
 
     if (policyGovernanceAnchorResolver) {

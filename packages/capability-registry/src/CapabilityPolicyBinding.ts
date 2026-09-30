@@ -29,6 +29,22 @@ export interface CurrentPolicyVersionSource {
 }
 
 /**
+ * Capabilities bound to a policy by an external connector registration
+ * (ADR-0013) instead of by CANONICAL_CAPABILITY_POLICY_BINDINGS: the
+ * policy name the active registration for a capability names, or
+ * undefined when the capability has none. Throws when it cannot tell.
+ */
+export interface ExternalPolicyBindingSource {
+  policyFor(capability: string): Promise<string | undefined>;
+}
+
+/**
+ * The policy schema version every policy in this repository declares.
+ * A registration names only the policy; this completes the reference.
+ */
+const EXTERNAL_BINDING_SCHEMA_VERSION = "1.0.0";
+
+/**
  * The single authoritative mapping from a production capability
  * (`Intent.action`) to the one policy that governs it.
  *
@@ -132,7 +148,16 @@ export class CapabilityPolicyBinder {
    * any request when none is approved or the lookup fails. Without it,
    * the declared version must equal the version in the binding above.
    */
-  constructor(private readonly currentVersions?: CurrentPolicyVersionSource) {}
+  constructor(
+    private readonly currentVersions?: CurrentPolicyVersionSource,
+    /**
+     * Capabilities registered as external connectors (ADR-0013). Checked
+     * only for a capability with no canonical entry. Their version in
+     * effect is always decided by policy governance: without
+     * currentVersions, every request for one is refused.
+     */
+    private readonly externalBindings?: ExternalPolicyBindingSource,
+  ) {}
 
   /**
    * Returns the binding violation for this action/declared-policy pair,
@@ -175,20 +200,74 @@ export class CapabilityPolicyBinder {
   public async policyInEffect(
     action: string,
   ): Promise<PolicyInEffect | undefined> {
-    const bound = CANONICAL_CAPABILITY_POLICY_BINDINGS.get(action);
+    const canonical = CANONICAL_CAPABILITY_POLICY_BINDINGS.get(action);
 
-    if (bound === undefined) {
-      return undefined;
+    if (canonical === undefined) {
+      return this.externalPolicyInEffect(action);
     }
 
     if (this.currentVersions === undefined) {
-      return { kind: "in-effect", policy: bound };
+      return { kind: "in-effect", policy: canonical };
     }
 
+    return this.governedVersion(action, canonical, this.currentVersions);
+  }
+
+  private async externalPolicyInEffect(
+    action: string,
+  ): Promise<PolicyInEffect | undefined> {
+    if (this.externalBindings === undefined) {
+      return undefined;
+    }
+
+    let policyName: string | undefined;
+
+    try {
+      policyName = await this.externalBindings.policyFor(action);
+    } catch (error) {
+      return {
+        kind: "unavailable",
+        bound: { name: "", version: "", schemaVersion: "" },
+        noApprovedVersion: false,
+        reason:
+          `whether capability "${action}" is registered as an external connector ` +
+          `could not be looked up: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+
+    if (policyName === undefined) {
+      return undefined;
+    }
+
+    const bound: PolicyReference = {
+      name: policyName,
+      version: "",
+      schemaVersion: EXTERNAL_BINDING_SCHEMA_VERSION,
+    };
+
+    if (this.currentVersions === undefined) {
+      return {
+        kind: "unavailable",
+        bound,
+        noApprovedVersion: false,
+        reason:
+          `capability "${action}" is an external connector, whose policy version is decided ` +
+          "only by policy governance, which is not enabled here",
+      };
+    }
+
+    return this.governedVersion(action, bound, this.currentVersions);
+  }
+
+  private async governedVersion(
+    action: string,
+    bound: PolicyReference,
+    currentVersions: CurrentPolicyVersionSource,
+  ): Promise<PolicyInEffect> {
     let currentVersion: string | undefined;
 
     try {
-      currentVersion = await this.currentVersions.currentVersion(bound.name);
+      currentVersion = await currentVersions.currentVersion(bound.name);
     } catch (error) {
       return {
         kind: "unavailable",

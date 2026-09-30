@@ -15,6 +15,7 @@ import {
 
 import type {
   CurrentPolicyVersionSource,
+  ExternalPolicyBindingSource,
   PolicyExecutionVerifier,
   PolicyGovernanceAnchorResolver,
   PolicyRepository,
@@ -54,6 +55,8 @@ export class RuntimeBuilder {
   private policyExecutionVerifier?: PolicyExecutionVerifier;
 
   private currentPolicyVersions?: CurrentPolicyVersionSource;
+
+  private externalPolicyBindings?: ExternalPolicyBindingSource;
 
   private policyGovernanceAnchorResolver?: PolicyGovernanceAnchorResolver;
 
@@ -102,6 +105,15 @@ export class RuntimeBuilder {
    * withPolicyExecutionVerifier is configured: both mean policy
    * governance decides.
    */
+  /**
+   * Capabilities bound to a policy by an external connector
+   * registration (ADR-0013), checked after the canonical bindings.
+   */
+  public withExternalPolicyBindings(source: ExternalPolicyBindingSource): this {
+    this.externalPolicyBindings = source;
+    return this;
+  }
+
   public withCurrentPolicyVersions(source: CurrentPolicyVersionSource): this {
     this.currentPolicyVersions = source;
 
@@ -231,6 +243,7 @@ export class RuntimeBuilder {
 
     const capabilityPolicyBinder = new CapabilityPolicyBinder(
       this.currentPolicyVersions,
+      this.externalPolicyBindings,
     );
 
     //

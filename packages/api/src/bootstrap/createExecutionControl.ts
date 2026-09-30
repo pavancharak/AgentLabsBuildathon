@@ -22,7 +22,16 @@ import { createExecutionAuditSink } from "./createExecutionAuditSink.js";
  * SessionCredentialExecutionControl so no GatewaySession can be created
  * without first passing a request-bound Gateway attestation check.
  */
-export function createExecutionControl(): ExecutionControl {
+export function createExecutionControl(
+  /**
+   * Tests only: the external connector registrations to read and how
+   * the adapter reaches an endpoint (createConnectorRegistry).
+   */
+  external: {
+    readonly connectors?: Parameters<typeof createConnectorRegistry>[4];
+    readonly adapter?: Parameters<typeof createConnectorRegistry>[5];
+  } = {},
+): ExecutionControl {
   const gatewayIdentity = createGatewayIdentity();
 
   const authenticator = createConnectorAuthenticator();
@@ -55,6 +64,8 @@ export function createExecutionControl(): ExecutionControl {
     sessions,
     audit,
     registrationAttestation,
+    external.connectors,
+    external.adapter,
   );
 
   const inner = new ExecutionControlService({

@@ -5,6 +5,7 @@ import {
   verifyGatewayAttestationSignature,
   type GatewayAttestation,
 } from "./GatewayAttestation.js";
+import { isExternalConnectorIdentity } from "./externalConnectorIdentity.js";
 
 import type {
   ConnectorAuthenticator,
@@ -36,6 +37,13 @@ export class SignedTokenConnectorAuthenticator implements RequestBoundConnectorA
     private readonly gateway: GatewayIdentity,
     private readonly gatewayPublicKey: KeyObject,
     private readonly connectorIdentities: readonly ConnectorIdentity[],
+    /**
+     * Also trust the identity form external connectors are built with
+     * (externalConnectorIdentity). They are built by the server itself
+     * for an approved registration (ADR-0013), so their set is not known
+     * at startup.
+     */
+    private readonly trustExternalConnectors = false,
   ) {}
 
   authenticateGateway(
@@ -58,6 +66,10 @@ export class SignedTokenConnectorAuthenticator implements RequestBoundConnectorA
   }
 
   authenticateConnector(identity: ConnectorIdentity): boolean {
+    if (this.trustExternalConnectors && isExternalConnectorIdentity(identity)) {
+      return true;
+    }
+
     return this.connectorIdentities.some(
       (trusted) =>
         trusted.connectorId === identity.connectorId &&

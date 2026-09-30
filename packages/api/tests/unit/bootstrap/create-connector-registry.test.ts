@@ -5,6 +5,8 @@ import {
   MemoryExecutionAuditSink,
 } from "@parmana/execution-control";
 
+import { MemoryExternalConnectorRepository } from "@parmana/storage";
+
 import { createConnectorRegistry } from "../../../src/bootstrap/createConnectorRegistry.js";
 import { createConnectorAuthenticator } from "../../../src/bootstrap/createConnectorAuthenticator.js";
 
@@ -19,6 +21,7 @@ function buildRegistry() {
     sessions,
     audit,
     Object.freeze({ token: "test" }),
+    new MemoryExternalConnectorRepository(),
   );
 }
 
@@ -37,50 +40,54 @@ describe("createConnectorRegistry — hubspot capability availability", () => {
     }
   });
 
-  it("registers the hubspot connector and resolves both capabilities when NODE_ENV=test", () => {
+  it("registers the hubspot connector and resolves both capabilities when NODE_ENV=test", async () => {
     process.env.NODE_ENV = "test";
 
     const registry = buildRegistry();
 
-    expect(registry.resolveCapability("hubspot:deal-update").connectorId).toBe(
-      "hubspot",
-    );
-    expect(registry.resolveCapability("hubspot:deal-fetch").connectorId).toBe(
-      "hubspot",
-    );
+    expect(
+      (await registry.resolveCapability("hubspot:deal-update")).connectorId,
+    ).toBe("hubspot");
+    expect(
+      (await registry.resolveCapability("hubspot:deal-fetch")).connectorId,
+    ).toBe("hubspot");
   });
 
-  it("(fail-closed) does not register hubspot, and resolveCapability throws, when credentials are unconfigured outside test mode", () => {
+  it("(fail-closed) does not register hubspot, and resolveCapability throws, when credentials are unconfigured outside test mode", async () => {
     process.env.NODE_ENV = "production";
     delete process.env.HUBSPOT_PRIVATE_APP_TOKEN;
 
     const registry = buildRegistry();
 
-    expect(() => registry.resolveCapability("hubspot:deal-update")).toThrow(
+    await expect(
+      (async () => registry.resolveCapability("hubspot:deal-update"))(),
+    ).rejects.toThrow(
       /No connector is registered for capability 'hubspot:deal-update'/,
     );
   });
 
-  it("payments:execute has no connector to resolve to in any environment — vendor-payment was removed, not merely gated", () => {
+  it("payments:execute has no connector to resolve to in any environment — vendor-payment was removed, not merely gated", async () => {
     for (const nodeEnv of ["test", "production", "development"] as const) {
       process.env.NODE_ENV = nodeEnv;
 
       const registry = buildRegistry();
 
-      expect(() => registry.resolveCapability("payments:execute")).toThrow(
+      await expect(
+        (async () => registry.resolveCapability("payments:execute"))(),
+      ).rejects.toThrow(
         /No connector is registered for capability 'payments:execute'/,
       );
     }
   });
 
-  it("registers hubspot when credentials are fully configured outside test mode", () => {
+  it("registers hubspot when credentials are fully configured outside test mode", async () => {
     process.env.NODE_ENV = "production";
     process.env.HUBSPOT_PRIVATE_APP_TOKEN = "hubspot-test-token";
 
     const registry = buildRegistry();
 
-    expect(registry.resolveCapability("hubspot:deal-update").connectorId).toBe(
-      "hubspot",
-    );
+    expect(
+      (await registry.resolveCapability("hubspot:deal-update")).connectorId,
+    ).toBe("hubspot");
   });
 });

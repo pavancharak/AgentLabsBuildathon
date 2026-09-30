@@ -606,8 +606,7 @@ Evidence
 
 Scope, stated plainly:
 
-- **A registration causes no release yet.** Nothing in bootstrap builds a connector for a registered capability, and `GET /policies/in-effect` does not answer for one (ADR-0013 step 4, `docs/VERIFICATION-GAPS.md` G-81). A request for a registered capability is refused with `503 CONNECTOR_NOT_REGISTERED`. This claim is about governing registrations, not about releasing actions to them.
-- **Built and tested, not in effect:** `GatewayExternalAdapter` (the signed release, the address check at every release, the answer checks) and the SDK helpers `verifyParmanaRelease` and `verify_parmana_release` are merged and deployed but not used, and the helpers are not published. No claim is made about them until the live check of ADR-0013 step 6.
+- **This claim is about governing registrations, not about releasing actions to them.** Since ADR-0013 step 4 (2026-10-01, `docs/VERIFICATION-GAPS.md` G-81) an approved request for a registered capability is released to its endpoint as a signed release, its policy bound from the registration, and `GET /policies/in-effect` answers for it; that is built and tested, not yet checked against a live endpoint, and is claimed only after the live check of ADR-0013 step 6. The SDK helpers `verifyParmanaRelease` and `verify_parmana_release` are not published yet.
 - **Distinct credentials, not proven distinct people**, as in 2.45. An operator with database access can bypass the API.
 - **Built in namespaces stay code.** A capability in the namespace of a built in connector (paytm, hubspot, github, slack, test) is refused.
 - **The policy name is checked for form only** at registration, not that the policy exists or has an approved version (G-81).

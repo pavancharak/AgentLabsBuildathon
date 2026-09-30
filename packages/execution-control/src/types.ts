@@ -83,7 +83,14 @@ export interface SecureConnector {
 export interface ConnectorRegistry {
   get(name: string): SecureConnector;
 
-  resolveCapability(capability: string): SecureConnector;
+  /**
+   * The connector for a capability. May look it up asynchronously: an
+   * external connector (ADR-0013) is found in storage at request time.
+   * Throws ConnectorNotRegisteredError when none serves it.
+   */
+  resolveCapability(
+    capability: string,
+  ): SecureConnector | Promise<SecureConnector>;
 }
 
 export interface ConnectorAuthenticator {
