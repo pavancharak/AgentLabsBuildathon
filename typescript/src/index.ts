@@ -121,3 +121,11 @@ export {
 } from "./crypto/approval.js";
 
 export { canonicalSerialize } from "./crypto/canonical.js";
+
+export {
+  verifyParmanaRelease,
+  DEFAULT_RELEASE_CLOCK_SKEW_SECONDS,
+  type ParmanaRelease,
+  type ParmanaReleaseVerification,
+  type VerifyParmanaReleaseOptions,
+} from "./crypto/release.js";
