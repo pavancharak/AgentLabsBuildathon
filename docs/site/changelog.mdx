@@ -12,6 +12,26 @@ every commit, run `git log` in the repository for the complete record.
 
 ## 2026-09-30
 
+**Added: external connectors, first step (ADR-0013)**
+
+The goal: connect a new external system to Parmana with no change to Parmana's code. An operator
+registers a capability to an HTTPS endpoint they run, and Parmana releases each approved request
+there as a signed release. Built in steps; only the first is live.
+
+- **Live in production: registering an external connector** through maker checker, like approver
+  keys. One human caller proposes at `POST /external-connectors/changes` (a capability, the
+  endpoint, the policy that governs it, the parameters Parmana may forward, a timeout); a
+  different human caller approves with a step up signature. `GET /external-connectors` lists
+  every registration. Refused: a capability in a built in connector's namespace, and an endpoint
+  that is not https, names an IP address or localhost, or resolves to an address that is not
+  public (checked when proposed and again when approved). See the
+  [API reference](/api-reference/endpoints/propose-external-connector-change).
+- **Not yet in effect: a registered connector receives no release yet.** The adapter that sends
+  the signed release, and the SDK helpers an endpoint uses to check it
+  (`verifyParmanaRelease`, `verify_parmana_release`), are in review, and connecting a
+  registration to them is the next step. A guide to connecting any external system follows when
+  the whole path works.
+
 **Added: the server says what a request must carry**
 
 - **`GET /policies/in-effect` now also returns `description` and `signals`**: every fact the policy's rules read

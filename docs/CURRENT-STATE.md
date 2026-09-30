@@ -211,6 +211,23 @@ system's own API are `PENDING_APPROVAL`, proposed by the same account. None
 have been approved by a distinct human reviewer. Because enforcement is now on in production, executions under a policy with no
 approval record are refused until that changes.
 
+## External connectors (ADR-0013, started 2026-09-30)
+
+Goal: connect a new external system with no change to Parmana's code. Verified against source and
+production on 2026-09-30.
+
+**Live: registrations through maker checker** (PR #92, `packages/api/src/routes/external-connectors.ts`,
+migration `20260930120000_add_external_connectors.sql`, applied in production 2026-09-30, 33 applied,
+0 pending). `GET /external-connectors` with the maker key returned `{"connectors":[]}` in production.
+Same rules as approver changes: human callers only, maker is not checker, step up on approve and
+reject. Built in namespaces (paytm, hubspot, github, slack, test) refused. The endpoint's address
+is checked when proposed and when approved (`packages/shared/src/network/externalEndpointAddress.ts`).
+
+**Not reachable yet: a registration causes no release.** `GatewayExternalAdapter` (PR #93) and the
+SDK helpers `verifyParmanaRelease` and `verify_parmana_release` (PR #94) are in review. Nothing in
+bootstrap builds the adapter for a registered capability, and `GET /policies/in-effect` does not
+answer for one (step 4). No claim is made in `docs/CLAIMS.md` until the live check (step 6).
+
 ## On disk, but not reachable
 
 15 policy names exist under `policies/` (checked 2026-09-28). 5 are bound to a

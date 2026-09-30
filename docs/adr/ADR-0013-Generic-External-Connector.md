@@ -1,6 +1,6 @@
 # ADR-0013: Generic External Connector
 
-**Status:** Accepted by the operator on 2026-09-30, with the proposed answers to the three open questions. Not built yet.
+**Status:** Accepted by the operator on 2026-09-30, with the proposed answers to the three open questions. Being built in the order below. Step 1 (registrations through maker checker, PR #92) is merged, its migration applied in production and live since 2026-09-30. Step 2 (the signed release adapter, PR #93) and step 3 (the SDK helpers, PR #94) are in review. Steps 4 to 6 are not started; until step 4, a registered connector receives no release.
 
 **Date:** Proposed and accepted 2026-09-30.
 
