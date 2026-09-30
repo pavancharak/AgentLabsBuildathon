@@ -28,7 +28,7 @@ import { createBusinessTransaction } from "../fixtures/business-transaction.js";
  */
 describe("Authorization is authority-type-agnostic (AI/human/application/third-party neutrality)", () => {
   it("produces an identical APPROVE decision regardless of authority.authorityType, including a value outside the AuthorityType enum entirely", async () => {
-    const base = createBusinessTransaction();
+    const base = await createBusinessTransaction();
 
     const asUser = {
       ...base,
@@ -42,6 +42,8 @@ describe("Authorization is authority-type-agnostic (AI/human/application/third-p
 
     const asNovelCallerKind = {
       ...base,
+      // Its own signed approval: an approval is single use.
+      signals: (await createBusinessTransaction()).signals,
       businessTransactionId: crypto.randomUUID(),
       // Deliberately not a member of AuthorityType at all -- stands in
       // for "any future system, whatever it calls itself" (an AI agent,
@@ -78,7 +80,7 @@ describe("Authorization is authority-type-agnostic (AI/human/application/third-p
   });
 
   it("produces an identical REJECT decision (same matchedRuleId, same reason shape) regardless of authority.authorityType", async () => {
-    const base = createBusinessTransaction();
+    const base = await createBusinessTransaction();
 
     // Flip one signal so the policy rejects, independent of authority --
     // proves authorityType has no bearing on the REJECT path either, not

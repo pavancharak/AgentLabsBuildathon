@@ -28,6 +28,10 @@ import {
 import { GovernedPolicyVersionSource } from "../../src/governance/GovernedPolicyVersionSource.js";
 import { PolicyChangeApprovalService } from "../../src/governance/PolicyChangeApprovalService.js";
 import { PolicyGovernanceExecutionVerifier } from "../../src/governance/PolicyGovernanceExecutionVerifier.js";
+import {
+  testApprovalSignalVerifier,
+  withTestApproval,
+} from "../../../../test-support/approvals.js";
 
 /**
  * G-66, end to end through RuntimeBuilder with policy governance
@@ -65,6 +69,7 @@ describe("policy version taken from policy governance (G-66)", () => {
       ),
     )
     .withCurrentPolicyVersions(new GovernedPolicyVersionSource(approvalRecords))
+    .withSignalStateVerifier(testApprovalSignalVerifier())
     .build(new MemoryExecutionTrustRecordRepository());
 
   function refundPolicy(version: string): Policy {
@@ -72,10 +77,13 @@ describe("policy version taken from policy governance (G-66)", () => {
       policyId: "customer-refund",
       policyVersion: version,
       schemaVersion: "1.0.0",
+      approvalSignals: {
+        managerApproved: { resourceId: "parameters.orderId" },
+      },
       rules: [
         {
           id: "approve",
-          condition: { always: true },
+          condition: { fact: "managerApproved", operator: "is_true" },
           outcome: {
             action: PolicyAction.APPROVE,
             reason: `approved under ${version}`,
@@ -105,32 +113,35 @@ describe("policy version taken from policy governance (G-66)", () => {
     await approvalService.approve(change, "checker");
   }
 
-  function refund(version: string): BusinessTransaction {
+  function refund(version: string): Promise<BusinessTransaction> {
     const id = crypto.randomUUID();
 
-    return {
-      businessTransactionId: id,
-      metadata: { executionMode: "SYNC" } as unknown as TransactionMetadata,
-      authority: {} as Authority,
-      authorization: {} as Authorization,
-      intent: {
-        intentId: `${id}-intent`,
-        authorizationId: `${id}-authorization`,
-        action: "paytm:refund",
-        target: "paytm://orders/order-1",
-        parameters: { orderId: "order-1", amount: 500 },
+    return withTestApproval(
+      {
+        businessTransactionId: id,
+        metadata: { executionMode: "SYNC" } as unknown as TransactionMetadata,
+        authority: {} as Authority,
+        authorization: {} as Authorization,
+        intent: {
+          intentId: `${id}-intent`,
+          authorizationId: `${id}-authorization`,
+          action: "paytm:refund",
+          target: "paytm://orders/order-1",
+          parameters: { orderId: "order-1", amount: 500 },
+          createdAt: new Date(),
+        },
+        policy: { name: "customer-refund", version, schemaVersion: "1.0.0" },
+        signals: {},
+        status: BusinessTransactionStatus.RECEIVED,
         createdAt: new Date(),
       },
-      policy: { name: "customer-refund", version, schemaVersion: "1.0.0" },
-      signals: {},
-      status: BusinessTransactionStatus.RECEIVED,
-      createdAt: new Date(),
-    };
+      refundPolicy(version),
+    );
   }
 
   async function outcome(version: string): Promise<string> {
     try {
-      const result = await runtime.execute(refund(version));
+      const result = await runtime.execute(await refund(version));
       return String(result.trustRecord.executions[0]?.decision.outcome);
     } catch (error) {
       return error instanceof Error ? error.message : String(error);
@@ -189,7 +200,7 @@ describe("policy version taken from policy governance (G-66)", () => {
       })
       .build(new MemoryExecutionTrustRecordRepository());
 
-    await expect(broken.execute(refund("1.0.0"))).rejects.toThrow(
+    await expect(broken.execute(await refund("1.0.0"))).rejects.toThrow(
       "approval records unreachable",
     );
   });

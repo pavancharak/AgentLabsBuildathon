@@ -8,6 +8,6 @@ const client = new ParmanaClient({
   }),
 });
 
-const result = await client.validatePolicy("vendor-payment", "2.0.0");
+const result = await client.validatePolicy("vendor-payment", "2.1.0");
 
 console.log(JSON.stringify(result, null, 2));

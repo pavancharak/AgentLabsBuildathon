@@ -96,7 +96,12 @@ handing it back. Two validator calls happen on every load:
    `boundSignals` nor `unboundSignalReasons` (`findUncoveredFacts`, called internally at
    `PolicyValidator.ts:229`). An uncovered fact is a hard failure, not a warning: every signal a
    rule can reference must be either bound to the Intent or explicitly acknowledged as
-   independently verified.
+   independently verified. **Since 2026-09-30** it also refuses any policy with an approve rule
+   that does not require a fact from `approvalSignals` with `is_true`, as its whole condition or
+   directly inside its top level `all` (`validateEveryApprovalNeedsSignedApproval`): no AI agent
+   action is authorized without a signed human approval, reads included
+   ([Human approval](/concepts/human-approval)). The same check runs on every proposed policy
+   change, so such a policy cannot be approved through governance either.
 2. `validator.findRuleConflicts(policy)` (`PolicyRouter.ts:30`), **advisory only**. Detects
    rule pairs whose conditions can both be true, which (under first-match-wins) means the
    earlier rule silently shadows the later one. Logged via `console.warn` with event

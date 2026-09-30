@@ -84,7 +84,7 @@ describe("Caller capability scoping (HTTP boundary)", () => {
       const response = await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${SCOPED_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(response.status).toBe(200);
     });
@@ -95,7 +95,7 @@ describe("Caller capability scoping (HTTP boundary)", () => {
       const response = await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${UNSCOPED_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(response.status).toBe(403);
       expect(response.body.code).toBe("CAPABILITY_NOT_ALLOWED");
@@ -111,7 +111,7 @@ describe("Caller capability scoping (HTTP boundary)", () => {
       const response = await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${NO_CAPABILITIES_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(response.status).toBe(403);
       expect(response.body.code).toBe("CAPABILITY_NOT_ALLOWED");
@@ -123,7 +123,7 @@ describe("Caller capability scoping (HTTP boundary)", () => {
       const response = await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${WILDCARD_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(response.status).toBe(200);
     });
@@ -131,7 +131,7 @@ describe("Caller capability scoping (HTTP boundary)", () => {
     it("still denies a genuinely-scoped caller even when the transaction would otherwise fail policy too", async () => {
       const { app } = buildApp();
 
-      const transaction = createBusinessTransaction();
+      const transaction = await createBusinessTransaction();
       // @ts-expect-error -- test fixture's signals are typed loosely
       // enough upstream that this direct mutation is the simplest way
       // to force the real policy engine to reject, if it were ever
@@ -155,7 +155,7 @@ describe("Caller capability scoping (HTTP boundary)", () => {
       await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${UNSCOPED_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       const denied = callerAuditSink.events.find(
         (event) => event.type === "caller.capability_denied",
@@ -178,7 +178,7 @@ describe("Caller capability scoping (HTTP boundary)", () => {
       await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${SCOPED_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(
         callerAuditSink.events.some(
@@ -195,7 +195,7 @@ describe("Caller capability scoping (HTTP boundary)", () => {
       const response = await request(app)
         .post("/transactions")
         .set("Authorization", `Bearer ${SCOPED_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(response.status).toBe(201);
     });
@@ -206,7 +206,7 @@ describe("Caller capability scoping (HTTP boundary)", () => {
       const response = await request(app)
         .post("/transactions")
         .set("Authorization", `Bearer ${UNSCOPED_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(response.status).toBe(403);
       expect(response.body.code).toBe("CAPABILITY_NOT_ALLOWED");

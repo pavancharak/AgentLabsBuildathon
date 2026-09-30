@@ -32,6 +32,11 @@ import type { SigningReadiness } from "../../src/SigningReadiness.js";
 import { ExecutionRecordIncompleteError } from "../../src/errors/ExecutionRecordIncompleteError.js";
 import { SigningUnavailableError } from "../../src/errors/SigningUnavailableError.js";
 
+import {
+  testApprovalSignalVerifier,
+  withTestApproval,
+} from "../../../../test-support/approvals.js";
+
 /**
  * G-52 (docs/VERIFICATION-GAPS.md): an action must not be released when the
  * evidence signing path is down, and a failure to produce the record AFTER
@@ -41,8 +46,8 @@ const policyRepository = new FilePolicyRepository(
   path.resolve(import.meta.dirname, "../../../../policies"),
 );
 
-function transaction(): BusinessTransaction {
-  return {
+function transaction(): Promise<BusinessTransaction> {
+  return withTestApproval({
     businessTransactionId: "tx-g52",
     metadata: { executionMode: "SYNC" } as unknown as TransactionMetadata,
     authority: {} as Authority,
@@ -57,7 +62,7 @@ function transaction(): BusinessTransaction {
     },
     policy: {
       name: "vendor-payment",
-      version: "2.0.0",
+      version: "2.1.0",
       schemaVersion: "1.0.0",
     },
     signals: {
@@ -71,7 +76,7 @@ function transaction(): BusinessTransaction {
     },
     status: BusinessTransactionStatus.RECEIVED,
     createdAt: new Date(),
-  };
+  });
 }
 
 /**
@@ -106,7 +111,7 @@ function engineWith(
     undefined,
     undefined,
     undefined,
-    undefined,
+    testApprovalSignalVerifier(),
     undefined,
     undefined,
     undefined,
@@ -132,7 +137,9 @@ describe("G-52: signing readiness before release", () => {
       },
     });
 
-    const error = await engine.execute(transaction()).catch((e: unknown) => e);
+    const error = await engine
+      .execute(await transaction())
+      .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(SigningUnavailableError);
     expect((error as SigningUnavailableError).status).toBe(503);
@@ -146,7 +153,7 @@ describe("G-52: signing readiness before release", () => {
       assertReady,
     });
 
-    const result = await engine.execute(transaction());
+    const result = await engine.execute(await transaction());
 
     expect(assertReady).toHaveBeenCalledTimes(1);
     expect(release.calls).toBe(1);
@@ -157,7 +164,7 @@ describe("G-52: signing readiness before release", () => {
     const release = new ReleaseCounter();
     const engine = engineWith(release, new BusinessTrustPipeline());
 
-    const result = await engine.execute(transaction());
+    const result = await engine.execute(await transaction());
 
     expect(release.calls).toBe(1);
     expect(result.trustRecord).toBeDefined();
@@ -185,7 +192,9 @@ describe("G-52: failure after the action was released", () => {
     } as unknown as BusinessTrustPipeline;
     const engine = engineWith(release, failingTrustPipeline);
 
-    const error = await engine.execute(transaction()).catch((e: unknown) => e);
+    const error = await engine
+      .execute(await transaction())
+      .catch((e: unknown) => e);
 
     expect(release.calls).toBe(1);
     expect(error).toBeInstanceOf(ExecutionRecordIncompleteError);
@@ -222,7 +231,9 @@ describe("G-52: failure after the action was released", () => {
 
     const runtime = new Runtime(engine, failingRepository);
 
-    const error = await runtime.execute(transaction()).catch((e: unknown) => e);
+    const error = await runtime
+      .execute(await transaction())
+      .catch((e: unknown) => e);
 
     expect(release.calls).toBe(1);
     expect(error).toBeInstanceOf(ExecutionRecordIncompleteError);
@@ -240,8 +251,8 @@ describe("G-52: failure after the action was released", () => {
     const engine = engineWith(release, new BusinessTrustPipeline());
 
     const rejected: BusinessTransaction = {
-      ...transaction(),
-      signals: { ...transaction().signals, paymentApproved: false },
+      ...(await transaction()),
+      signals: { ...(await transaction()).signals, paymentApproved: false },
     };
 
     const error = await engine.execute(rejected).catch((e: unknown) => e);

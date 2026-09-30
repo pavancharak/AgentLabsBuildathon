@@ -26,6 +26,11 @@ import { RuntimePipeline } from "../../src/RuntimePipeline.js";
 import { BusinessTrustPipeline } from "../../src/BusinessTrustPipeline.js";
 import { RuntimeAuthorizationSigner } from "../../src/RuntimeAuthorizationSigner.js";
 
+import {
+  testApprovalSignalVerifier,
+  withTestApproval,
+} from "../../../../test-support/approvals.js";
+
 /**
  * RuntimeEngine End-to-End tests.
  */
@@ -75,7 +80,7 @@ describe("RuntimeEngine E2E", () => {
 
       policy: {
         name: "vendor-payment",
-        version: "2.0.0",
+        version: "2.1.0",
         schemaVersion: "1.0.0",
       },
 
@@ -86,7 +91,7 @@ describe("RuntimeEngine E2E", () => {
         sufficientFunds: true,
         paymentAmount: 100,
         riskScore: 10,
-        // Must match intent.target exactly: vendor-payment/2.0.0 now
+        // Must match intent.target exactly: vendor-payment/2.1.0 now
         // declares boundSignals requiring vendorId === intent.target.
         vendorId: "vendor://payments",
       },
@@ -107,9 +112,13 @@ describe("RuntimeEngine E2E", () => {
       trustPipeline,
       authorizationSigner,
       120,
+      [],
+      undefined,
+      undefined,
+      testApprovalSignalVerifier(),
     );
 
-    const result = await runtime.execute(transaction);
+    const result = await runtime.execute(await withTestApproval(transaction));
 
     expect(result.transaction).toBeDefined();
     expect(result.context).toBeDefined();
@@ -132,6 +141,10 @@ describe("RuntimeEngine E2E", () => {
       trustPipeline,
       authorizationSigner,
       120,
+      [],
+      undefined,
+      undefined,
+      testApprovalSignalVerifier(),
     );
 
     const transaction: BusinessTransaction = {
@@ -160,7 +173,7 @@ describe("RuntimeEngine E2E", () => {
       // proof it's computed server-side, not merely passed through.
       policy: {
         name: "vendor-payment",
-        version: "2.0.0",
+        version: "2.1.0",
         schemaVersion: "1.0.0",
       },
 
@@ -179,9 +192,9 @@ describe("RuntimeEngine E2E", () => {
       createdAt: new Date(),
     };
 
-    const result = await runtime.execute(transaction);
+    const result = await runtime.execute(await withTestApproval(transaction));
 
-    const loadedPolicy = await policyRepository.load("vendor-payment", "2.0.0");
+    const loadedPolicy = await policyRepository.load("vendor-payment", "2.1.0");
 
     const expectedContentHash = await new TrustRecordHasher(
       CryptoBootstrap.create(),
@@ -213,6 +226,10 @@ describe("RuntimeEngine E2E", () => {
       trustPipeline,
       authorizationSigner,
       120,
+      [],
+      undefined,
+      undefined,
+      testApprovalSignalVerifier(),
     );
 
     const exploitTransaction: BusinessTransaction = {
@@ -241,7 +258,7 @@ describe("RuntimeEngine E2E", () => {
 
       policy: {
         name: "vendor-payment",
-        version: "2.0.0",
+        version: "2.1.0",
         schemaVersion: "1.0.0",
       },
 
@@ -262,9 +279,9 @@ describe("RuntimeEngine E2E", () => {
       createdAt: new Date(),
     };
 
-    await expect(runtime.execute(exploitTransaction)).rejects.toThrow(
-      "do not match the executed intent",
-    );
+    await expect(
+      runtime.execute(await withTestApproval(exploitTransaction)),
+    ).rejects.toThrow("do not match the executed intent");
   });
 
   it("refuses execution when the configured PolicyExecutionVerifier finds a violation (2026-09-07 hardening pass), before PolicyEngine ever evaluates a rule", async () => {
@@ -288,7 +305,7 @@ describe("RuntimeEngine E2E", () => {
       [],
       undefined,
       undefined,
-      undefined,
+      testApprovalSignalVerifier(),
       undefined,
       policyExecutionVerifier,
     );
@@ -319,7 +336,7 @@ describe("RuntimeEngine E2E", () => {
 
       policy: {
         name: "vendor-payment",
-        version: "2.0.0",
+        version: "2.1.0",
         schemaVersion: "1.0.0",
       },
 
@@ -338,9 +355,9 @@ describe("RuntimeEngine E2E", () => {
       createdAt: new Date(),
     };
 
-    await expect(runtime.execute(transaction)).rejects.toThrow(
-      "has no PolicyChangeApprovalRecord -- test double",
-    );
+    await expect(
+      runtime.execute(await withTestApproval(transaction)),
+    ).rejects.toThrow("has no PolicyChangeApprovalRecord -- test double");
   });
 
   it("leaves execution unaffected when the configured PolicyExecutionVerifier finds no violation", async () => {
@@ -362,7 +379,7 @@ describe("RuntimeEngine E2E", () => {
       [],
       undefined,
       undefined,
-      undefined,
+      testApprovalSignalVerifier(),
       undefined,
       policyExecutionVerifier,
     );
@@ -391,7 +408,7 @@ describe("RuntimeEngine E2E", () => {
 
       policy: {
         name: "vendor-payment",
-        version: "2.0.0",
+        version: "2.1.0",
         schemaVersion: "1.0.0",
       },
 
@@ -410,7 +427,7 @@ describe("RuntimeEngine E2E", () => {
       createdAt: new Date(),
     };
 
-    const result = await runtime.execute(transaction);
+    const result = await runtime.execute(await withTestApproval(transaction));
 
     expect(result.trustRecord).toBeDefined();
     expect(result.trustRecord.businessTransactionId).toBe(
@@ -447,7 +464,7 @@ describe("RuntimeEngine E2E", () => {
       [],
       undefined,
       undefined,
-      undefined,
+      testApprovalSignalVerifier(),
       undefined,
       undefined,
       policyGovernanceAnchorResolver,
@@ -477,7 +494,7 @@ describe("RuntimeEngine E2E", () => {
 
       policy: {
         name: "vendor-payment",
-        version: "2.0.0",
+        version: "2.1.0",
         schemaVersion: "1.0.0",
       },
 
@@ -496,14 +513,14 @@ describe("RuntimeEngine E2E", () => {
       createdAt: new Date(),
     };
 
-    const result = await runtime.execute(transaction);
+    const result = await runtime.execute(await withTestApproval(transaction));
 
     // Real APPROVE outcome, unaffected by the resolver -- this is
     // evidence, not enforcement.
     expect(result.trustRecord.executions[0]?.decision.outcome).toBe("APPROVED");
 
     expect(resolveCalledWith?.[0]).toBe("vendor-payment");
-    expect(resolveCalledWith?.[1]).toBe("2.0.0");
+    expect(resolveCalledWith?.[1]).toBe("2.1.0");
     // Resolved with the same content hash G-24 stamps alongside it.
     expect(resolveCalledWith?.[2]).toBe(
       result.trustRecord.transaction.policy.contentHash,
@@ -535,7 +552,7 @@ describe("RuntimeEngine E2E", () => {
       [],
       undefined,
       undefined,
-      undefined,
+      testApprovalSignalVerifier(),
       undefined,
       undefined,
       policyGovernanceAnchorResolver,
@@ -565,7 +582,7 @@ describe("RuntimeEngine E2E", () => {
 
       policy: {
         name: "vendor-payment",
-        version: "2.0.0",
+        version: "2.1.0",
         schemaVersion: "1.0.0",
       },
 
@@ -584,7 +601,7 @@ describe("RuntimeEngine E2E", () => {
       createdAt: new Date(),
     };
 
-    const result = await runtime.execute(transaction);
+    const result = await runtime.execute(await withTestApproval(transaction));
 
     expect(result.trustRecord.executions[0]?.decision.outcome).toBe("APPROVED");
     expect(
@@ -604,6 +621,10 @@ describe("RuntimeEngine E2E", () => {
       trustPipeline,
       authorizationSigner,
       120,
+      [],
+      undefined,
+      undefined,
+      testApprovalSignalVerifier(),
     );
     await expect(runtime.execute({} as BusinessTransaction)).rejects.toThrow();
   });

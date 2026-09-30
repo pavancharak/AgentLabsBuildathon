@@ -48,6 +48,11 @@ import { ExecutionIntentResolutionInvalidError } from "../../src/errors/Executio
 import { ExecutionIntentUnavailableError } from "../../src/errors/ExecutionIntentUnavailableError.js";
 import { ExecutionRecordIncompleteError } from "../../src/errors/ExecutionRecordIncompleteError.js";
 
+import {
+  testApprovalSignalVerifier,
+  withTestApproval,
+} from "../../../../test-support/approvals.js";
+
 /**
  * ADR-0012 (docs/VERIFICATION-GAPS.md G-52 and G-53): a signed Execution Intent
  * is stored BEFORE an action is released, so an action that was released always
@@ -60,8 +65,8 @@ const policyRepository = new FilePolicyRepository(
 
 const TX = "tx-adr0012";
 
-function transaction(): BusinessTransaction {
-  return {
+function transaction(): Promise<BusinessTransaction> {
+  return withTestApproval({
     businessTransactionId: TX,
     metadata: { executionMode: "SYNC" } as unknown as TransactionMetadata,
     authority: {} as Authority,
@@ -77,7 +82,7 @@ function transaction(): BusinessTransaction {
     },
     policy: {
       name: "vendor-payment",
-      version: "2.0.0",
+      version: "2.1.0",
       schemaVersion: "1.0.0",
     },
     signals: {
@@ -91,7 +96,7 @@ function transaction(): BusinessTransaction {
     },
     status: BusinessTransactionStatus.RECEIVED,
     createdAt: new Date(),
-  };
+  });
 }
 
 /**
@@ -165,7 +170,7 @@ function setup(
     undefined,
     undefined,
     undefined,
-    undefined,
+    testApprovalSignalVerifier(),
     undefined,
     undefined,
     undefined,
@@ -196,7 +201,7 @@ describe("ADR-0012: the intent is signed and stored before release", () => {
   it("has a signed intent stored at the moment the connector is called", async () => {
     const { runtime, release } = setup();
 
-    await runtime.execute(transaction());
+    await runtime.execute(await transaction());
 
     const seen = release.intentAtRelease;
 
@@ -211,7 +216,7 @@ describe("ADR-0012: the intent is signed and stored before release", () => {
   it("binds the intent to the signed authorization and the policy in force", async () => {
     const { runtime, repository, trustRecords } = setup();
 
-    await runtime.execute(transaction());
+    await runtime.execute(await transaction());
 
     const stored = await repository.findByTransactionId(TX);
     const record = await trustRecords.findByTransactionId(TX);
@@ -233,7 +238,7 @@ describe("ADR-0012: the intent is signed and stored before release", () => {
   it("never puts the raw parameters or any execution result in the intent", async () => {
     const { runtime, repository } = setup();
 
-    await runtime.execute(transaction());
+    await runtime.execute(await transaction());
 
     const serialized = JSON.stringify(
       (await repository.findByTransactionId(TX))!.intent,
@@ -251,7 +256,9 @@ describe("ADR-0012: the intent is signed and stored before release", () => {
       new Error("database unavailable"),
     );
 
-    const error = await runtime.execute(transaction()).catch((e: unknown) => e);
+    const error = await runtime
+      .execute(await transaction())
+      .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ExecutionIntentUnavailableError);
     expect((error as ExecutionIntentUnavailableError).status).toBe(503);
@@ -275,7 +282,9 @@ describe("ADR-0012: the intent is signed and stored before release", () => {
         new ExecutionIntentService(repository, failingBuilder),
     });
 
-    const error = await runtime.execute(transaction()).catch((e: unknown) => e);
+    const error = await runtime
+      .execute(await transaction())
+      .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ExecutionIntentUnavailableError);
     expect(release.calls).toBe(0);
@@ -295,10 +304,14 @@ describe("ADR-0012: the intent is signed and stored before release", () => {
       new BusinessTrustPipeline(),
       new RuntimeAuthorizationSigner(),
       120,
+      [],
+      undefined,
+      undefined,
+      testApprovalSignalVerifier(),
     );
 
     const result = await new Runtime(engine, trustRecords).execute(
-      transaction(),
+      await transaction(),
     );
 
     expect(release.calls).toBe(1);
@@ -320,7 +333,7 @@ describe("ADR-0012: intent status through the lifecycle", () => {
   it("ends FINALIZED, marked INLINE, with the trust record id, on the normal path", async () => {
     const { runtime, repository } = setup();
 
-    const result = await runtime.execute(transaction());
+    const result = await runtime.execute(await transaction());
 
     const stored = await repository.findByTransactionId(TX);
 
@@ -335,7 +348,9 @@ describe("ADR-0012: intent status through the lifecycle", () => {
       releaseFailsWith: new Error("connector timed out"),
     });
 
-    const error = await runtime.execute(transaction()).catch((e: unknown) => e);
+    const error = await runtime
+      .execute(await transaction())
+      .catch((e: unknown) => e);
 
     // G-63: the caller is told what the intent records: outcome unknown.
     expect(error).toBeInstanceOf(ExecutionOutcomeUnknownError);
@@ -361,7 +376,9 @@ describe("ADR-0012: intent status through the lifecycle", () => {
     const typed = new ConnectorNotRegisteredError("paytm:refund");
     const { runtime, repository } = setup({ releaseFailsWith: typed });
 
-    const error = await runtime.execute(transaction()).catch((e: unknown) => e);
+    const error = await runtime
+      .execute(await transaction())
+      .catch((e: unknown) => e);
 
     expect(error).toBe(typed);
 
@@ -379,7 +396,7 @@ describe("ADR-0012: intent status through the lifecycle", () => {
       new Error("status write failed"),
     );
 
-    const result = await runtime.execute(transaction());
+    const result = await runtime.execute(await transaction());
 
     expect(result.trustRecord.businessTransactionId).toBe(TX);
 
@@ -412,7 +429,7 @@ describe("ADR-0012: repairing a missing Trust Record (G-53)", () => {
     harness.trustRecords.failCreate = true;
 
     const error = await harness.runtime
-      .execute(transaction())
+      .execute(await transaction())
       .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ExecutionRecordIncompleteError);
@@ -482,7 +499,7 @@ describe("ADR-0012: repairing a missing Trust Record (G-53)", () => {
       new Error("status write failed"),
     );
 
-    const result = await runtime.execute(transaction());
+    const result = await runtime.execute(await transaction());
 
     expect((await repository.findByTransactionId(TX))!.status.state).toBe(
       "RELEASED",
@@ -533,7 +550,7 @@ describe("ADR-0012: repairing a missing Trust Record (G-53)", () => {
 
     trustRecords.failCreate = true;
 
-    await runtime.execute(transaction()).catch(() => undefined);
+    await runtime.execute(await transaction()).catch(() => undefined);
 
     trustRecords.failCreate = false;
 
@@ -577,7 +594,7 @@ describe("ADR-0012: intent verification", () => {
   async function storedIntent(): Promise<ExecutionIntent> {
     const { runtime, repository } = setup();
 
-    await runtime.execute(transaction());
+    await runtime.execute(await transaction());
 
     return (await repository.findByTransactionId(TX))!.intent;
   }
@@ -641,7 +658,7 @@ describe("G-54: closing an intent that was reconciled by hand", () => {
       releaseFailsWith: new Error("connector timed out"),
     });
 
-    await harness.runtime.execute(transaction()).catch(() => undefined);
+    await harness.runtime.execute(await transaction()).catch(() => undefined);
 
     return harness;
   }
@@ -654,7 +671,7 @@ describe("G-54: closing an intent that was reconciled by hand", () => {
     );
     harness.trustRecords.failCreate = true;
 
-    await harness.runtime.execute(transaction()).catch(() => undefined);
+    await harness.runtime.execute(await transaction()).catch(() => undefined);
 
     harness.trustRecords.failCreate = false;
 
@@ -748,7 +765,7 @@ describe("G-54: closing an intent that was reconciled by hand", () => {
     const harness = setup();
 
     harness.trustRecords.failCreate = true;
-    await harness.runtime.execute(transaction()).catch(() => undefined);
+    await harness.runtime.execute(await transaction()).catch(() => undefined);
 
     const error = await harness.service
       .resolve(TX, found)
@@ -768,7 +785,7 @@ describe("G-54: closing an intent that was reconciled by hand", () => {
   it("refuses a FINALIZED intent", async () => {
     const { runtime, service } = setup();
 
-    await runtime.execute(transaction());
+    await runtime.execute(await transaction());
 
     const error = await service.resolve(TX, found).catch((e: unknown) => e);
 

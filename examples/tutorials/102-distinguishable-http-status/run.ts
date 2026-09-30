@@ -11,6 +11,11 @@ import {
   type ExecutionResult,
   type BusinessTransaction,
 } from "@parmana/shared";
+import {
+  demoApprovalSignalVerifier,
+  demoApprovalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 //
 // docs/CLAIMS.md 2.21: a policy REJECTED decision surfaces as HTTP 403
@@ -62,7 +67,7 @@ function rejectingTransaction(): BusinessTransaction {
     },
     policy: {
       name: "vendor-payment",
-      version: "2.0.0",
+      version: "2.1.0",
       schemaVersion: "1.0.0",
     },
     signals: {
@@ -117,7 +122,7 @@ const { createApplication } =
 const { createApp } = await import("../../../packages/api/src/app.js");
 
 const executionSystem = await createExecutionSystem();
-const application = createApplication(executionSystem);
+const application = createApplication(executionSystem, demoApprovalVerifier());
 const app = createApp(application, { callerAuth: "disabled" });
 
 const server = await new Promise<import("node:http").Server>((resolve) => {
@@ -150,12 +155,13 @@ console.log(
 console.log("--------------------------------------------------");
 
 const runtime = new RuntimeBuilder()
+  .withSignalStateVerifier(demoApprovalSignalVerifier())
   .withPolicyRepository(new FilePolicyRepository("policies"))
   .build(new MemoryExecutionTrustRecordRepository());
 
 const approvedTransaction = {
   businessTransactionId: "22222222-2222-4222-8222-222222222299",
-  policy: { name: "vendor-payment", version: "2.0.0" },
+  policy: { name: "vendor-payment", version: "2.1.0" },
   intent: {
     action: "release-payment",
     target: "vendor",
@@ -172,7 +178,9 @@ const approvedTransaction = {
   },
 };
 
-const { context } = await runtime.execute(approvedTransaction as never);
+const { context } = await runtime.execute(
+  await withDemoApproval(approvedTransaction as never),
+);
 if (!context.authorization)
   throw new Error("Execution Authorization was not generated.");
 

@@ -2,7 +2,7 @@
   "businessTransactionId": "44444444-4444-4444-8444-444444444444",
   "policy": {
     "name": "vendor-payment",
-    "version": "2.0.0"
+    "version": "2.1.0"
   },
   "intent": {
     "action": "release-payment",

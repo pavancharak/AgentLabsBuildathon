@@ -1056,7 +1056,8 @@ protection stood in the way.
   `approvalSignals` with `resourceId: "target"`, so it counts only with a signed approval for that pull
   request (2.42 machinery, no new verifier). The other facts now only refuse. `github:pr-fetch` is bound
   to a new policy, `github-pr-read` 1.0.0, which approves a read with no caller facts, so reads do not
-  need a merge approval. `createApplication` takes an optional `approvalVerifier` (defaulting to the
+  need a merge approval. **Update (2026-09-30, G-80):** every read now needs its own signed approval,
+  under `github-pr-read` 1.1.0. `createApplication` takes an optional `approvalVerifier` (defaulting to the
   production one) so tutorials can trust an in memory approver.
 - **Tests:** `packages/policy/tests/unit/ApprovalBackedPolicies.test.ts` (the structural check that
   every approve rule requires the approval fact; the most permissive caller facts are refused);
@@ -1215,6 +1216,81 @@ teaches people to merge past it, which is how this job's purpose (D-6) is lost.
 - **Consequence:** a pull request that adds a policy version passes only once that version is approved
   in production, so propose and approve from the branch before merging. Pull requests from forks get
   no secrets and fail the check.
+
+---
+
+## Gaps opened in the 2026-09-30 approval everywhere review
+
+Scope: the operator stated the rule "no AI agent can do anything without approval ever", reads
+included, and asked for it to be validated from the code and, if needed, enforced. The review read
+every policy under `policies/`, `CANONICAL_CAPABILITY_POLICY_BINDINGS`, `PolicyValidator`,
+`PolicyRouter`, `RuntimeEngine`, `ApprovalSignalVerifier`, `HubSpotSignalStateVerifier`,
+`createApplication` and `pending-policy-changes.ts`.
+
+**G-80. Most actions were authorized with no human approval at all. FOUND 2026-09-30, `blocks-pilot`
+against the stated rule. FIXED in the working tree the same day on branch
+`feat/approval-required-everywhere`, not committed; takes effect in production when the change is
+deployed and the new policy versions are approved.**
+Human approval was a property of each policy, not of the product. Only three policies required it:
+`customer-refund` 1.2.0, `github-pr-approval` 1.1.0 and `llm-tool-call` 1.1.0. Every other policy
+approved on facts the agent declares or on nothing:
+
+- `github-pr-read` 1.0.0 (`github:pr-fetch`): `always: true`, no fact at all.
+- `hubspot-deal-update` 1.0.0 (`hubspot:deal-fetch` and `hubspot:deal-update`): any update within the
+  amount threshold, and every read, with no person. Only an amount change above the threshold needed
+  a signed approval.
+- `slack-post-message` 1.0.0 (`slack:post-message`): caller declared `contentApproved` plus the channel
+  allowlist (G-76), no person.
+- The reference policies with no connector (`vendor-payment` 2.0.0, `access-control`,
+  `agent-vendor-payment`, `api-key-issuance`, `connector-capability`, `database-change` 3.0.0,
+  `expense-reimbursement`, `production-deployment`, `rag-document-access`): caller declared facts only.
+  A caller can name any of them for an action with no binding and receive a signed authorization.
+- Nothing stopped a new policy, or a proposed change, from approving without a person: the rule
+  existed only as a convention, checked for the four bound write capabilities by
+  `connector-policies-not-self-authorizing.test.ts` (G-77), which accepts a server verified fact in
+  place of an approval.
+- `RuntimeEngine` treats the signal state verifier as optional. A runtime built without one would
+  accept `managerApproved: true` with no signed approval behind it. The production `createApplication`
+  always wires one, so this was not reachable through the hosted API.
+
+- **Fix:**
+  - `PolicyValidator.validateEveryApprovalNeedsSignedApproval` refuses any policy with an approve rule
+    that does not require a fact declared in `approvalSignals` with `is_true`, as its whole condition
+    or directly inside its top level `all` (an `any`, a nested `all` or `eq true` does not count).
+    `PolicyRouter` runs it on every load and `pending-policy-changes.ts` on every proposal, so no such
+    policy can run or be proposed.
+  - `RuntimeEngine` refuses an approve decision when no signal state verifier is configured
+    (`approval-verifier-not-configured`).
+  - New versions that need a signed approval: `github-pr-read` 1.1.0 (`readApproved`, the pull
+    request), `hubspot-deal-read` 1.0.0 (new policy for `hubspot:deal-fetch`, `readApproved`, the
+    deal), `hubspot-deal-update` 1.1.0 (`dealUpdateApproved`, the deal, every update), `slack-post-message`
+    1.1.0 (`postApproved`, the channel), and `humanApproved` for the Intent's `target` in
+    `vendor-payment` 2.1.0, `access-control` 1.1.0, `agent-vendor-payment` 1.1.0, `api-key-issuance`
+    1.1.0, `connector-capability` 1.1.0, `database-change` 3.1.0, `expense-reimbursement` 1.1.0,
+    `production-deployment` 1.1.0 and `rag-document-access` 1.1.0 (with the amount in the three
+    payment and expense policies). The binding table names the new connector versions.
+  - `HubSpotSignalStateVerifier` skips its own pre authorization check when the policy declares
+    `approvalSignals`, so the one approval for a deal update is not spent twice.
+  - Tests, the SDK examples and the tutorials sign approvals with a hermetic approver
+    (`test-support/approvals.ts`, `examples/shared/helpers/demo-approval.ts`).
+- **Tests:** full suite 2506 passed, 0 failed. New and changed coverage is listed in `docs/CLAIMS.md`
+  2.47. Every tutorial under `examples/tutorials/` was run. The Docker offline check
+  (`docker/local/offline-check/run.sh`) now adds a refund manager through maker checker and
+  sends a refund with that manager's signed approval: 14 of 14 passed on 2026-09-30. The Python SDK
+  suite (135 tests, including three that start a real server) passed.
+- **Not done, stated plainly:**
+  - **Production.** Until the new versions are approved through maker checker, the versions in effect
+    for GitHub reads, HubSpot and Slack fail to load, so those actions are refused (fails closed). CI's
+    `verify-policy-approvals` job fails until every new policy file has an approval record (G-79).
+  - **An approval covers the action and the resource, not every parameter.** A Slack approval does not
+    fix the text; a HubSpot approval does not fix the new stage or amount. Binding those would need the
+    approval scope to carry them.
+  - **One person approves everything.** One approver is trusted today, held by the operator (G-50,
+    2.42). Every agent action now waits for that person.
+  - **Superseded versions stay in `policies/`** as history; each is refused at load. The approval
+    records for them in production are unchanged.
+  - **No automatic path by design.** An action cannot be authorized by a server side check alone.
+    Adding one would be a change to this rule, not a fix.
 
 ---
 

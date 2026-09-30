@@ -7,6 +7,7 @@ import { RuntimeBuilder } from "@parmana/runtime";
 import { PaymentService } from "./PaymentService.js";
 
 import transaction from "./transaction.json" with { type: "json" };
+import { demoApprovalSignalVerifier } from "../../shared/helpers/demo-approval.js";
 
 async function main(): Promise<void> {
   console.log();
@@ -28,6 +29,7 @@ async function main(): Promise<void> {
   //
 
   const runtime = new RuntimeBuilder()
+    .withSignalStateVerifier(demoApprovalSignalVerifier())
     .withPolicyRepository(policyRepository)
     .build(trustRecords);
 

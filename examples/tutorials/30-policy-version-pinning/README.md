@@ -194,7 +194,7 @@ Enterprise Policy Check
 
 Expected Policy : vendor-payment@2.1.0
 
-Authorization   : vendor-payment@2.0.0
+Authorization   : vendor-payment@2.1.0
 
 
 

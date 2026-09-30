@@ -15,7 +15,11 @@ that check; see the README for why and what would be required.
 
 from __future__ import annotations
 
+import json
+import os
 from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 from parmana import (
@@ -28,6 +32,20 @@ from parmana import (
     ParmanaClient,
     PolicyReference,
 )
+
+
+def _approval_from_env() -> dict[str, Any] | None:
+    """
+    The signed approval, as JSON, from the file PARMANA_APPROVAL_FILE names.
+
+    No agent action is authorized without a signed human approval. A
+    trusted approver signs one for this target and amount (for example
+    with scripts/sign-approval.ts, or parmana.crypto.sign_approval) and
+    the agent attaches it. Without it the server refuses the transaction.
+    """
+
+    path = os.environ.get("PARMANA_APPROVAL_FILE")
+    return None if path is None else json.loads(Path(path).read_text())
 
 
 def _build_transaction(
@@ -71,10 +89,12 @@ def _build_transaction(
         ),
         policy=PolicyReference(
             name="vendor-payment",
-            version="2.0.0",
+            version="2.1.0",
             schema_version="1.0.0",
         ),
         signals={
+            "humanApproved": True,
+            "approvalArtifact": _approval_from_env(),
             "vendorVerified": True,
             "invoiceVerified": True,
             "paymentApproved": True,

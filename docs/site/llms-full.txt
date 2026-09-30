@@ -36,6 +36,10 @@ time-bounded authorization. Your own systems, through a Connector, are what actu
 it. Parmana never touches your systems directly, the same way a card network never touches
 the goods on the shelf.
 
+**No AI agent action is authorized without a signed human approval, reads included.** A policy
+can only approve when a trusted person has signed an approval for that action on that resource,
+and the approval is checked, not taken on the agent's word. See [Human approval](/concepts/human-approval).
+
 ## The trust chain, at a glance
 
 ```
@@ -736,6 +740,15 @@ Source: https://docs.parmanasystems.com/quickstart
   TypeScript. Pick whichever matches your client.
 </Note>
 
+<Warning>
+  No AI agent action is authorized without a signed human approval, reads
+  included ([Human approval](/concepts/human-approval)). So this quickstart has
+  you play the approver too: you make an approver key, the local server trusts
+  it, and you sign an approval before the agent's request. On a real deployment
+  the approver is a different person, added through [Manage
+  approvers](/guides/manage-approvers).
+</Warning>
+
 <Steps>
   <Step title="Install dependencies">
     ```bash
@@ -758,6 +771,18 @@ Source: https://docs.parmanasystems.com/quickstart
 
   </Step>
 
+  <Step title="Make a local approver key">
+    ```bash
+    npx tsx scripts/generate-approver-key.ts \
+      --approver-id local-test-approver --key-id local-test-approver-key-1 \
+      --out-dir ~/.parmana
+    ```
+
+    This writes `~/.parmana/local-test-approver__local-test-approver-key-1.private.pem` (keep it)
+    and `.public.pem` (the server trusts it in the next step).
+
+  </Step>
+
   <Step title="Start the Runtime locally">
     The committed `.env` defaults to Supabase-backed storage. To run fully locally with no
     external dependency, override storage to `memory` **and** set `NODE_ENV=test`. Both are
@@ -765,14 +790,19 @@ Source: https://docs.parmanasystems.com/quickstart
     Records are stored, two other components, the Execution Gateway's replay-nonce store and the
     caller-authentication audit trail, independently default to Supabase outside `NODE_ENV=test`.
     With `NODE_ENV=test`, a generic, test-only connector (`test-fixture`) registers
-    automatically, no credential environment variable required:
+    automatically, no credential environment variable required, and the server trusts
+    `local-test-approver` with the key in `PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE`:
 
     ```bash
     NODE_ENV=test \
       PARMANA_STORAGE=memory \
       PARMANA_POLICY_DIR=/absolute/path/to/policies \
+      PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE=~/.parmana/local-test-approver__local-test-approver-key-1.public.pem \
       npm run dev
     ```
+
+    `PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE` is honored only when `NODE_ENV` is `test`. With any
+    other `NODE_ENV` the server refuses to start while it is set.
 
     Confirm it's up:
 
@@ -855,15 +885,32 @@ Source: https://docs.parmanasystems.com/quickstart
 
   </Step>
 
-  <Step title="Execute a Business Transaction">
-    The `createBusinessTransaction` helper derives every id pair the server checks for
-    consistency, so there's nothing to hand-assemble and get wrong:
+  <Step title="Sign an approval, then execute a Business Transaction">
+    First the approver signs an approval for this action, this target, up to this amount. Then
+    the agent sends the transaction with the approval attached. The `createBusinessTransaction`
+    helper derives every id pair the server checks for consistency, so there's nothing to
+    hand-assemble and get wrong:
 
     <CodeGroup>
       ```python Python
+      from pathlib import Path
+
       from parmana import ParmanaClient, PolicyReference, create_business_transaction
+      from parmana.crypto import sign_approval
 
       client = ParmanaClient(endpoint="http://localhost:3000", api_key="my-secret-api-key")
+
+      # The approver's step, on the approver's machine.
+      approval = sign_approval(
+          private_key_pem=Path.home().joinpath(
+              ".parmana/local-test-approver__local-test-approver-key-1.private.pem"
+          ).read_text(),
+          approver_id="local-test-approver",
+          key_id="local-test-approver-key-1",
+          capability="test:fixture-execute",
+          resource_id="vendor://payments",
+          max_amount=1000,
+      )
 
       transaction = create_business_transaction(
           principal_id="python-sdk",
@@ -871,8 +918,10 @@ Source: https://docs.parmanasystems.com/quickstart
           action="test:fixture-execute",
           target="vendor://payments",
           parameters={"amount": 1000, "currency": "USD"},
-          policy=PolicyReference(name="vendor-payment", version="2.0.0", schema_version="1.0.0"),
+          policy=PolicyReference(name="vendor-payment", version="2.1.0", schema_version="1.0.0"),
           signals={
+              "humanApproved": True,
+              "approvalArtifact": approval,
               "vendorVerified": True,
               "invoiceVerified": True,
               "paymentApproved": True,
@@ -888,10 +937,15 @@ Source: https://docs.parmanasystems.com/quickstart
       ```
 
       ```typescript TypeScript
+      import { readFileSync } from "node:fs";
+      import { homedir } from "node:os";
+      import { join } from "node:path";
+
       import {
         ParmanaClient,
         HttpTransport,
         createBusinessTransaction,
+        signApproval,
         ExecutionRejectedError,
       } from "@parmana/sdk";
 
@@ -904,14 +958,29 @@ Source: https://docs.parmanasystems.com/quickstart
         transport: new HttpTransport({ endpoint, apiKey }),
       });
 
+      // The approver's step, on the approver's machine.
+      const approval = signApproval({
+        privateKeyPem: readFileSync(
+          join(homedir(), ".parmana/local-test-approver__local-test-approver-key-1.private.pem"),
+          "utf8",
+        ),
+        approverId: "local-test-approver",
+        keyId: "local-test-approver-key-1",
+        capability: "test:fixture-execute",
+        resourceId: "vendor://payments",
+        maxAmount: 1000,
+      });
+
       const transaction = createBusinessTransaction({
         principalId: "typescript-sdk-quickstart",
         purpose: "Quickstart demo",
         action: "test:fixture-execute",
         target: "vendor://payments",
         parameters: { amount: 1000, currency: "USD" },
-        policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+        policy: { name: "vendor-payment", version: "2.1.0", schemaVersion: "1.0.0" },
         signals: {
+          humanApproved: true,
+          approvalArtifact: approval,
           vendorVerified: true,
           invoiceVerified: true,
           paymentApproved: true,
@@ -940,9 +1009,13 @@ Source: https://docs.parmanasystems.com/quickstart
       ```
     </CodeGroup>
 
+    Without `humanApproved` and a valid `approvalArtifact`, the server refuses this transaction
+    with `403 POLICY_DENIED`, whatever else the signals say.
+
     Full runnable versions: `python/examples/quickstart/run.py` and
     `typescript/examples/06-create-business-transaction.ts`, these are exactly the
-    transactions shown above. `python/tests/test_quickstart_example.py` and
+    transactions shown above; each takes the signed approval as an argument, or from the file
+    `PARMANA_APPROVAL_FILE` names when run as a script. `python/tests/test_quickstart_example.py` and
     `typescript/test/integration/examples.integration.test.ts` run them against a real,
     freshly-spawned server on every test run, so both examples are verified to work, not just
     syntax-checked.
@@ -1123,7 +1196,7 @@ Payload Version  : 1
 Authorization ID : d93745e1-33ee-4cc4-9e1e-37731188eaa1
 Decision ID      : 44ebebd0-415d-41cd-9079-349eb6c30d4f
 Transaction ID   : txn-000001
-Policy           : vendor-payment@2.0.0
+Policy           : vendor-payment@2.1.0
 Algorithm        : ed25519
 Key ID           : default
 Authorized At    : 2026-07-12T08:21:04.036Z
@@ -1976,14 +2049,23 @@ const client = new ParmanaClient({
   transport: new HttpTransport({ endpoint }),
 });
 
+// The approver's signed approval for this action and resource, made with
+// signApproval() on the approver's machine and passed to the agent.
+const approval = pendingApprovals.get("vendor/vendor-123");
+
 const transaction = createBusinessTransaction({
   principalId: "alice@example.com", // must match your key's allowedPrincipalIds
   purpose: "Vendor payment approval",
   action: "vendor-payment",
   target: "vendor/vendor-123",
   parameters: { amount: 100, currency: "USD" },
-  policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+  policy: { name: "vendor-payment", version: "2.1.0", schemaVersion: "1.0.0" },
   signals: {
+    // No agent action is authorized without a signed human approval: a trusted
+    // approver signs one for this target up to this amount (signApproval), and
+    // the agent attaches it. Without it the request is refused.
+    humanApproved: true,
+    approvalArtifact: approval,
     vendorVerified: true,
     invoiceVerified: true,
     paymentApproved: true,
@@ -2469,12 +2551,24 @@ Source: https://docs.parmanasystems.com/guides/typescript-sdk-quickstart
     npm run generate:gateway-keys
     ```
 
-    Start the server fully locally, no external database:
+    No AI agent action is authorized without a signed human approval, reads included
+    ([Human approval](/concepts/human-approval)), so you also play the approver. Make an
+    approver key:
+
+    ```bash
+    npx tsx scripts/generate-approver-key.ts \
+      --approver-id local-test-approver --key-id local-test-approver-key-1 \
+      --out-dir ~/.parmana
+    ```
+
+    Start the server fully locally, no external database, trusting that key (honored only with
+    `NODE_ENV=test`):
 
     ```bash
     NODE_ENV=test \
       PARMANA_STORAGE=memory \
       PARMANA_POLICY_DIR=/absolute/path/to/policies \
+      PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE=~/.parmana/local-test-approver__local-test-approver-key-1.public.pem \
       npm run dev
     ```
 
@@ -2512,14 +2606,20 @@ Source: https://docs.parmanasystems.com/guides/typescript-sdk-quickstart
 
   </Step>
 
-  <Step title="Build and execute a Business Transaction">
-    Create `quickstart.ts`:
+  <Step title="Sign an approval, then build and execute a Business Transaction">
+    Create `quickstart.ts`. The approver signs first (on the approver's machine in real use),
+    then the agent sends the transaction with the approval attached:
 
     ```typescript
+    import { readFileSync } from "node:fs";
+    import { homedir } from "node:os";
+    import { join } from "node:path";
+
     import {
       ParmanaClient,
       HttpTransport,
       createBusinessTransaction,
+      signApproval,
       ExecutionRejectedError,
     } from "@parmana/sdk";
 
@@ -2532,14 +2632,28 @@ Source: https://docs.parmanasystems.com/guides/typescript-sdk-quickstart
       transport: new HttpTransport({ endpoint, apiKey }),
     });
 
+    const approval = signApproval({
+      privateKeyPem: readFileSync(
+        join(homedir(), ".parmana/local-test-approver__local-test-approver-key-1.private.pem"),
+        "utf8",
+      ),
+      approverId: "local-test-approver",
+      keyId: "local-test-approver-key-1",
+      capability: "test:fixture-execute",
+      resourceId: "vendor://payments",
+      maxAmount: 1000,
+    });
+
     const transaction = createBusinessTransaction({
       principalId: "typescript-sdk-quickstart",
       purpose: "Quickstart demo",
       action: "test:fixture-execute",
       target: "vendor://payments",
       parameters: { amount: 1000, currency: "USD" },
-      policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+      policy: { name: "vendor-payment", version: "2.1.0", schemaVersion: "1.0.0" },
       signals: {
+        humanApproved: true, // counts only with the signed approval below
+        approvalArtifact: approval,
         vendorVerified: true,
         invoiceVerified: true,
         paymentApproved: true,
@@ -2633,8 +2747,10 @@ doesn't have `PARMANA_AUTH_DISABLED=true` set, or the key is wrong. The demo key
 
 **`ExecutionRejectedError: Execution rejected: ...`**: the policy evaluated your signals
 and declined. The message names which rule failed; check
-[Write your first policy](/guides/write-your-first-policy) for how `vendor-payment@2.0.0`
-reads its signals, or loosen the signals in your own test transaction to see it pass.
+[Write your first policy](/guides/write-your-first-policy) for how `vendor-payment@2.1.0`
+reads its signals. A message naming `humanApproved` means the approval is missing, expired,
+already used, for another target, below the amount, or from a key the server does not trust:
+sign a fresh one.
 
 **A `400` about a mismatched id**: you built the `BusinessTransaction` object by hand
 instead of through `createBusinessTransaction()`. See [`createBusinessTransaction()`, no
@@ -3305,14 +3421,34 @@ Source: https://docs.parmanasystems.com/guides/python-sdk-quickstart
 - **Node.js** (to run the Parmana server locally, `node --version`)
 - A local clone of the Parmana repo, with `npm install` already run in it
 
+<Note>
+  No AI agent action is authorized without a signed human approval, reads
+  included ([Human approval](/concepts/human-approval)). In this walkthrough you
+  also play the approver: you make an approver key, the local server trusts it,
+  and you sign an approval before the agent's request.
+</Note>
+
 <Steps>
+  <Step title="Make a local approver key">
+    From the repo root:
+
+    ```bash
+    npx tsx scripts/generate-approver-key.ts \
+      --approver-id local-test-approver --key-id local-test-approver-key-1 \
+      --out-dir ~/.parmana
+    ```
+
+  </Step>
+
   <Step title="Start the Runtime locally">
-    From the repo root, override storage to run with no external dependency:
+    From the repo root, override storage to run with no external dependency, and trust the
+    approver key (honored only with `NODE_ENV=test`):
 
     ```bash
     NODE_ENV=test \
       PARMANA_STORAGE=memory \
       PARMANA_POLICY_DIR=/absolute/path/to/policies \
+      PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE=~/.parmana/local-test-approver__local-test-approver-key-1.public.pem \
       npm run dev
     ```
 
@@ -3353,6 +3489,31 @@ Source: https://docs.parmanasystems.com/guides/python-sdk-quickstart
 
   </Step>
 
+  <Step title="Sign the approval">
+    The approver's step, on the approver's machine. It approves this action, this target, up to
+    this amount, for 15 minutes, once:
+
+    ```python
+    from pathlib import Path
+
+    from parmana.crypto import sign_approval
+
+    approval = sign_approval(
+        private_key_pem=Path.home().joinpath(
+            ".parmana/local-test-approver__local-test-approver-key-1.private.pem"
+        ).read_text(),
+        approver_id="local-test-approver",
+        key_id="local-test-approver-key-1",
+        capability="test:fixture-execute",
+        resource_id="vendor://payments",
+        max_amount=1000,
+    )
+    ```
+
+    `parmana.crypto` needs `pip install "parmana[verify]"`.
+
+  </Step>
+
   <Step title="Build a Business Transaction">
     `create_business_transaction()` derives every id pair the server checks for internal consistency
     (see [why that matters](/sdks/python#create_business_transaction-no-more-hand-synced-ids)), so
@@ -3367,15 +3528,18 @@ Source: https://docs.parmanasystems.com/guides/python-sdk-quickstart
         action="test:fixture-execute",
         target="vendor://payments",
         parameters={"amount": 1000, "currency": "USD"},
-        policy=PolicyReference(name="vendor-payment", version="2.0.0", schema_version="1.0.0"),
+        policy=PolicyReference(name="vendor-payment", version="2.1.0", schema_version="1.0.0"),
         signals={
+            # The signed approval. Without it the request is refused.
+            "humanApproved": True,
+            "approvalArtifact": approval,
             "vendorVerified": True,
             "invoiceVerified": True,
             "paymentApproved": True,
             "sufficientFunds": True,
             "paymentAmount": 1000,
             "riskScore": 5,
-            # vendor-payment@2.0.0 declares boundSignals: { "vendorId": "target" }.
+            # vendor-payment@2.1.0 declares boundSignals: { "vendorId": "target" }.
             # This must exactly equal `target` above, checked before policy evaluation
             # ever runs, or the request is rejected as a binding-tamper attempt.
             "vendorId": "vendor://payments",
@@ -3434,14 +3598,28 @@ Source: https://docs.parmanasystems.com/guides/python-sdk-quickstart
 ## Full script
 
 ```python
+from pathlib import Path
+
 from parmana import (
     ExecutionRejectedError,
     ParmanaClient,
     PolicyReference,
     create_business_transaction,
 )
+from parmana.crypto import sign_approval
 
 client = ParmanaClient(endpoint="http://localhost:3000", api_key="my-secret-api-key")
+
+approval = sign_approval(
+    private_key_pem=Path.home().joinpath(
+        ".parmana/local-test-approver__local-test-approver-key-1.private.pem"
+    ).read_text(),
+    approver_id="local-test-approver",
+    key_id="local-test-approver-key-1",
+    capability="test:fixture-execute",
+    resource_id="vendor://payments",
+    max_amount=1000,
+)
 
 transaction = create_business_transaction(
     principal_id="python-sdk-quickstart",
@@ -3449,8 +3627,10 @@ transaction = create_business_transaction(
     action="test:fixture-execute",
     target="vendor://payments",
     parameters={"amount": 1000, "currency": "USD"},
-    policy=PolicyReference(name="vendor-payment", version="2.0.0", schema_version="1.0.0"),
+    policy=PolicyReference(name="vendor-payment", version="2.1.0", schema_version="1.0.0"),
     signals={
+        "humanApproved": True,
+        "approvalArtifact": approval,
         "vendorVerified": True,
         "invoiceVerified": True,
         "paymentApproved": True,
@@ -3478,6 +3658,11 @@ test run, so it's verified to work, not just syntax-checked.
 **`ConnectionError` / connection refused on `localhost:3000`**
 The server isn't running, or isn't listening on the port you're pointing at. Confirm with
 `curl http://localhost:3000/health`.
+
+**`ExecutionRejectedError` naming `humanApproved`**
+The approval is missing, expired, already used, for another target, below the amount, or signed
+by a key the server does not trust. Sign a fresh one, and check the server was started with
+`PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE` pointing at the matching public key.
 
 **`AuthenticationError` (401)**
 Either no `api_key` was passed against a server that requires one, or the key is wrong. Confirm
@@ -4417,6 +4602,14 @@ is the value multiplied by the number of instances, and the server logs `rate_li
 | ------------------------- | --------------------------- | --------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `APPROVAL_WEBHOOK_URL`    | With the next one           | None: nothing is sent | An https URL (http only in `test` or `development`) | Where to POST an `approval.needed` event when a refused request would have been authorized with a signed approval. See [Human approval](/concepts/human-approval#get-notified). |
 | `APPROVAL_WEBHOOK_SECRET` | With `APPROVAL_WEBHOOK_URL` | None                  | A random string, or a secret reference              | Signs each event (HMAC SHA256). See `PARMANA_SECRETS_PROVIDER`. Setting only one of the two stops the server at startup.                                                        |
+
+## Local test approver
+
+No agent action is authorized without a signed human approval, so a local test server needs an approver it trusts.
+
+| Variable                                | Required            | Default           | Values or format                         | What it does                                                                                                                                                                                                                                                                                                     |
+| --------------------------------------- | ------------------- | ----------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE` | Never in production | None: not trusted | A path to an Ed25519 public key PEM file | Trusts the approver `local-test-approver`, key `local-test-approver-key-1`, with this key, for the [Quickstart](/quickstart). Honored only when `NODE_ENV` is `test`. Set with any other `NODE_ENV`, the server refuses to start. Real approvers are added through [Manage approvers](/guides/manage-approvers). |
 
 ## Secrets
 

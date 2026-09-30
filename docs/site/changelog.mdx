@@ -10,6 +10,38 @@ product version). The SDKs are versioned independently on their own registries, 
 and per-version notes. This page covers changes that affect what you can build against, not
 every commit, run `git log` in the repository for the complete record.
 
+## 2026-09-30 (not yet released)
+
+**Security: no AI agent action without a signed human approval, reads included**
+
+On branch `feat/approval-required-everywhere`, not yet merged or deployed. See
+`docs/VERIFICATION-GAPS.md` G-80 and [Human approval](/concepts/human-approval).
+
+- **Every policy must require a signed approval.** A policy with an approve rule that does not
+  require an `approvalSignals` fact with `is_true` (as its whole condition or directly inside its
+  top level `all`) no longer loads, and cannot be proposed through policy governance. Requests
+  under it are refused with `400`.
+- **A runtime without an approval verifier refuses every approval** instead of trusting the
+  caller's approval signal.
+- **Reads need an approval too.** `github:pr-fetch` is bound to `github-pr-read` 1.1.0
+  (`readApproved`, the pull request). `hubspot:deal-fetch` has its own policy,
+  `hubspot-deal-read` 1.0.0 (`readApproved`, the deal).
+- **Every HubSpot update needs an approval** for the deal (`hubspot-deal-update` 1.1.0,
+  `dealUpdateApproved`), whatever the amount. The separate pre authorization for large amount
+  changes is no longer used.
+- **Every Slack post needs an approval** for the channel (`slack-post-message` 1.1.0,
+  `postApproved`), in addition to the channel allowlist.
+- **Reference policies** have approval backed versions: `vendor-payment` 2.1.0,
+  `access-control` 1.1.0, `agent-vendor-payment` 1.1.0, `api-key-issuance` 1.1.0,
+  `connector-capability` 1.1.0, `database-change` 3.1.0, `expense-reimbursement` 1.1.0,
+  `production-deployment` 1.1.0, `rag-document-access` 1.1.0. Older versions stay as history and
+  are refused at load.
+- **Local test approver.** `PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE` makes a `NODE_ENV=test` server
+  trust `local-test-approver`, so the [Quickstart](/quickstart) can sign its approval. Set with
+  any other `NODE_ENV`, the server refuses to start.
+- **In production**, GitHub reads, HubSpot and Slack are refused after deploy until the new
+  versions are approved through policy governance.
+
 ## 2026-09-29
 
 **Added**

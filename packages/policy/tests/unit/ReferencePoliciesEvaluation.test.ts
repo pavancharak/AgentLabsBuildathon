@@ -25,8 +25,9 @@ describe("Reference Policy Evaluation", () => {
   const cases: TestCase[] = [
     {
       name: "access-control",
-      file: "access-control/1.0.0/policy.json",
+      file: "access-control/1.1.0/policy.json",
       signals: {
+        humanApproved: true,
         userAuthenticated: true,
         userAuthorized: true,
         mfaVerified: true,
@@ -36,28 +37,19 @@ describe("Reference Policy Evaluation", () => {
     },
     {
       name: "customer-refund",
-      file: "customer-refund/1.0.0/policy.json",
+      file: "customer-refund/1.2.0/policy.json",
       signals: {
-        refundEligible: true,
         managerApproved: true,
-        fraudCheckPassed: true,
-        refundAmount: 5000,
-      },
-    },
-    {
-      name: "customer-refund 1.1.0",
-      file: "customer-refund/1.1.0/policy.json",
-      signals: {
         refundEligible: true,
-        managerApproved: false,
         fraudCheckPassed: true,
         refundAmount: 5000,
       },
     },
     {
       name: "database-change",
-      file: "database-change/3.0.0/policy.json",
+      file: "database-change/3.1.0/policy.json",
       signals: {
+        humanApproved: true,
         changeApproved: true,
         migrationValidated: true,
         backupAvailable: true,
@@ -67,8 +59,9 @@ describe("Reference Policy Evaluation", () => {
     },
     {
       name: "github-pr-approval",
-      file: "github-pr-approval/1.0.0/policy.json",
+      file: "github-pr-approval/1.1.0/policy.json",
       signals: {
+        mergeApproved: true,
         repositoryAuthorized: true,
         requiredReviewsCompleted: true,
         statusChecksPassed: true,
@@ -78,19 +71,20 @@ describe("Reference Policy Evaluation", () => {
     },
     {
       name: "llm-tool-call",
-      file: "llm-tool-call/1.0.0/policy.json",
+      file: "llm-tool-call/1.1.0/policy.json",
       signals: {
+        humanApproval: true,
         toolAllowed: true,
         resourceAuthorized: true,
-        humanApproval: true,
         executionEnvironment: "production",
         riskScore: 10,
       },
     },
     {
       name: "production-deployment",
-      file: "production-deployment/1.0.0/policy.json",
+      file: "production-deployment/1.1.0/policy.json",
       signals: {
+        humanApproved: true,
         deploymentApproved: true,
         changeVerified: true,
         rollbackReady: true,
@@ -100,8 +94,9 @@ describe("Reference Policy Evaluation", () => {
     },
     {
       name: "rag-document-access",
-      file: "rag-document-access/1.0.0/policy.json",
+      file: "rag-document-access/1.1.0/policy.json",
       signals: {
+        humanApproved: true,
         requesterAuthenticated: true,
         requesterAuthorized: true,
         documentAccessible: true,
@@ -111,8 +106,9 @@ describe("Reference Policy Evaluation", () => {
     },
     {
       name: "vendor-payment",
-      file: "vendor-payment/2.0.0/policy.json",
+      file: "vendor-payment/2.1.0/policy.json",
       signals: {
+        humanApproved: true,
         vendorVerified: true,
         invoiceVerified: true,
         paymentApproved: true,
@@ -149,6 +145,27 @@ describe("Reference Policy Evaluation", () => {
       expect(decision.reason).not.toBe("");
 
       expect(decision.evaluatedRules).toBeGreaterThan(0);
+    });
+
+    it(`${testCase.name} refuses without its signed human approval`, () => {
+      const policy = JSON.parse(
+        readFileSync(
+          path.resolve(
+            import.meta.dirname,
+            "../../../../policies",
+            testCase.file,
+          ),
+          "utf8",
+        ),
+      ) as Policy;
+
+      const withoutApproval: PolicySignals = { ...testCase.signals };
+
+      for (const signalKey of Object.keys(policy.approvalSignals ?? {})) {
+        withoutApproval[signalKey] = false;
+      }
+
+      expect(engine.evaluate(policy, withoutApproval).outcome).toBe("REJECT");
     });
   }
 });

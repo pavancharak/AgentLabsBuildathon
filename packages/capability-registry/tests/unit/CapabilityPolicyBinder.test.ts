@@ -44,7 +44,7 @@ describe("CapabilityPolicyBinder", () => {
 
     const violation = await binder.findViolation("hubspot:deal-update", {
       name: "hubspot-deal-update",
-      version: "1.0.0",
+      version: "1.1.0",
       schemaVersion: "1.0.0",
     });
 
@@ -56,7 +56,7 @@ describe("CapabilityPolicyBinder", () => {
 
     // The exact attack found during verification: hubspot:deal-update
     // (a data-mutating capability whose stage/amount protections are
-    // scoped to hubspot-deal-update/1.0.0's own boundSignals) paired
+    // scoped to hubspot-deal-update's own boundSignals) paired
     // with vendor-payment/2.0.0, a real, loadable policy that declares
     // no boundSignals for it.
     const declared: PolicyReference = {
@@ -74,7 +74,7 @@ describe("CapabilityPolicyBinder", () => {
       action: "hubspot:deal-update",
       expected: {
         name: "hubspot-deal-update",
-        version: "1.0.0",
+        version: "1.1.0",
         schemaVersion: "1.0.0",
       },
       declared,
@@ -91,7 +91,7 @@ describe("CapabilityPolicyBinder", () => {
     });
 
     expect(violation?.expected).toEqual({
-      name: "hubspot-deal-update",
+      name: "hubspot-deal-read",
       version: "1.0.0",
       schemaVersion: "1.0.0",
     });

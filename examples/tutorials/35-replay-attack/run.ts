@@ -9,6 +9,10 @@ import { RuntimeBuilder } from "@parmana/runtime";
 import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
 import transaction from "./transaction.json" with { type: "json" };
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 async function main(): Promise<void> {
   console.log();
@@ -21,12 +25,15 @@ async function main(): Promise<void> {
   // Build Runtime
   //
   const runtime = new RuntimeBuilder()
+    .withSignalStateVerifier(demoApprovalSignalVerifier())
     .withPolicyRepository(new FilePolicyRepository("policies"))
     .build(new MemoryExecutionTrustRecordRepository());
 
   console.log("Generating Execution Authorization...");
 
-  const { context } = await runtime.execute(transaction);
+  const { context } = await runtime.execute(
+    await withDemoApproval(transaction),
+  );
 
   if (!context.authorization) {
     throw new Error("Execution Authorization was not generated.");

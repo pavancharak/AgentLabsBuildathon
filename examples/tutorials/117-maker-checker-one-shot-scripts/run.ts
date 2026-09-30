@@ -62,10 +62,13 @@ function policyBody(policyId: string, description: string) {
     policyVersion: "1.0.0",
     schemaVersion: "1.0.0",
     description,
+    // Governance refuses a policy that approves without a signed human
+    // approval, so the fixture's one approve rule requires one.
+    approvalSignals: { humanApproved: { resourceId: "target" } },
     rules: [
       {
-        id: "always-approve",
-        condition: { always: true },
+        id: "approve-with-approval",
+        condition: { fact: "humanApproved", operator: "is_true" },
         outcome: { action: "approve", reason: "tutorial fixture" },
       },
     ],

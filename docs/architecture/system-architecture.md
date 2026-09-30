@@ -12,7 +12,7 @@ This document doesn't repeat its content; it's the entry point that ties it toge
 
 ## 1. Repository overview
 
-Parmana is an authorization layer for AI-initiated execution: it sits between an AI system's _decision_ to take an action (a payment, a CRM update, an API call) and the _business system_ that actually performs it, and it guarantees that action only happens if it was policy-approved, signed, verified, and auditable — never on the AI's say-so alone.
+Parmana is an authorization layer for AI-initiated execution: it sits between an AI system's _decision_ to take an action (a payment, a CRM update, an API call) and the _business system_ that actually performs it, and it guarantees that action only happens if it was policy-approved, signed, verified, and auditable — never on the AI's say-so alone. Every action, reads included, also needs a signed approval from a trusted person for that action and its resource (`docs/architecture/repository-invariants.md` Invariant 8).
 
 The repository is an npm-workspaces monorepo (`packages/*`, plus `examples/` and `typescript/`). Each package under `packages/` is independently built (`tsc -b` via TypeScript project references) and independently tested (`vitest`).
 

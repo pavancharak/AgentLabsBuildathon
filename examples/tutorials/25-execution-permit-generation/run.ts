@@ -5,6 +5,10 @@ import { FilePolicyRepository } from "@parmana/policy";
 import { RuntimeBuilder } from "@parmana/runtime";
 
 import transaction from "./transaction.json" with { type: "json" };
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 async function main(): Promise<void> {
   console.log();
@@ -24,13 +28,16 @@ async function main(): Promise<void> {
   //
 
   const runtime = new RuntimeBuilder()
+    .withSignalStateVerifier(demoApprovalSignalVerifier())
     .withPolicyRepository(new FilePolicyRepository("policies"))
     .build(repository);
 
   console.log("Executing transaction...");
   console.log();
 
-  const { context } = await runtime.execute(transaction);
+  const { context } = await runtime.execute(
+    await withDemoApproval(transaction),
+  );
 
   console.log("✓ Policy approved.");
 

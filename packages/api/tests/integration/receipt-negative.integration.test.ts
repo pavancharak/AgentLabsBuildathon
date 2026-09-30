@@ -32,7 +32,7 @@ describe.skipIf(!databaseConfigured)("Receipt Negative Integration", () => {
     // reproduces "not yet verified" without touching storage
     // internals directly.
     //
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     const execute = await request(app).post("/execute").send(transaction);
 

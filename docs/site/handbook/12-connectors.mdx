@@ -53,19 +53,21 @@ capabilities file says so explicitly in its own header comment (e.g.
 
 ## The four real, live connectors
 
-| Connector | Capability string(s)                        | Governing policy                                                                            | Status             |
-| --------- | ------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------ |
-| HubSpot   | `hubspot:deal-fetch`, `hubspot:deal-update` | `hubspot-deal-update@1.0.0`                                                                 | Live               |
-| GitHub    | `github:pr-fetch`, `github:pr-merge`        | `github-pr-read@1.0.0` (fetch), `github-pr-approval@1.1.0` (merge, needs a signed approval) | Live               |
-| Paytm     | `paytm:refund`                              | `customer-refund@1.1.0`                                                                     | Live               |
-| Slack     | `slack:post-message`                        | `slack-post-message@1.0.0`                                                                  | Live               |
-| Razorpay  | (historical)                                | (historical)                                                                                | Removed 2026-08-12 |
+| Connector | Capability string(s)                        | Governing policy                                                        | Status             |
+| --------- | ------------------------------------------- | ----------------------------------------------------------------------- | ------------------ |
+| HubSpot   | `hubspot:deal-fetch`, `hubspot:deal-update` | `hubspot-deal-read@1.0.0` (fetch), `hubspot-deal-update@1.1.0` (update) | Live               |
+| GitHub    | `github:pr-fetch`, `github:pr-merge`        | `github-pr-read@1.1.0` (fetch), `github-pr-approval@1.1.0` (merge)      | Live               |
+| Paytm     | `paytm:refund`                              | `customer-refund@1.2.0`                                                 | Live               |
+| Slack     | `slack:post-message`                        | `slack-post-message@1.1.0`                                              | Live               |
+| Razorpay  | (historical)                                | (historical)                                                            | Removed 2026-08-12 |
 
 This table's policy column is read directly from
 `packages/capability-registry/src/CapabilityPolicyBinding.ts:43-71`,
 `CANONICAL_CAPABILITY_POLICY_BINDINGS`, the same table Chapter 6 covers in depth. A request
-declaring `hubspot:deal-fetch` (or `-update`) must be evaluated against exactly
-`hubspot-deal-update@1.0.0`, or it is rejected before any policy file is even loaded.
+declaring `hubspot:deal-update` must be evaluated against exactly `hubspot-deal-update@1.1.0`
+(or the version most recently approved through governance), or it is rejected before any policy
+file is even loaded. Every policy in this table needs a signed human approval for the action and
+its resource, reads included ([Human approval](/concepts/human-approval)).
 
 **HubSpot** (`packages/connector-hubspot/src/`): two capabilities, fetch and update a deal.
 `HubSpotSignalStateVerifier` (a separate file in the same package) independently confirms a

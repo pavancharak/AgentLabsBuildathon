@@ -95,21 +95,25 @@ with the `demo` key.
   "intent": {
     "intentId": "intent-demo",
     "authorizationId": "auth-demo",
-    "action": "customer-refund",
-    "target": "order-123",
-    "parameters": { "amount": 50 },
+    "action": "paytm:refund",
+    "target": "paytm://orders/order-123",
+    "parameters": { "orderId": "order-123", "amount": 50 },
     "createdAt": "2026-01-01T00:00:00Z"
   },
   "policy": {
     "name": "customer-refund",
-    "version": "1.0.0",
+    "version": "1.2.0",
     "schemaVersion": "1.0.0"
   },
   "signals": {
     "refundEligible": true,
     "managerApproved": true,
     "fraudCheckPassed": true,
-    "refundAmount": 50
+    "refundAmount": 50,
+    "approvalArtifact": {
+      "payload": { "...": "..." },
+      "signature": { "...": "..." }
+    }
   },
   "status": "RECEIVED",
   "createdAt": "2026-01-01T00:00:00Z"
@@ -118,6 +122,10 @@ with the `demo` key.
 
 Hard requirements, all fail-closed with a clear `400`/`403` if wrong:
 
+- **Every request needs a signed human approval** in `signals.approvalArtifact`, for this
+  action and resource (and amount, where the policy names one), with the policy's approval
+  signal set `true`. `managerApproved: true` without it is refused. See
+  [Human approval](/concepts/human-approval).
 - `businessTransactionId` **must be a real UUID**, not a slug.
 - `authority.authorityType` must be one of `USER`, `ROLE`, `SERVICE`, `ORGANIZATION`. An
   autonomous agent maps to `SERVICE` (`"AGENT"` is not a valid value, a real mistake made
@@ -130,24 +138,30 @@ Hard requirements, all fail-closed with a clear `400`/`403` if wrong:
 
 ## Available policies
 
-| Policy                        | What it authorizes                                       | Bound to `intent`                                                                |
-| ----------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `access-control@1.0.0`        | Access via auth/MFA/device-trust/session-risk            | None                                                                             |
-| `agent-vendor-payment@1.0.0`  | An autonomous agent paying a vendor, within limits       | `paymentAmount`→`parameters.amount`, `vendorId`→`target`                         |
-| `api-key-issuance@1.0.0`      | Issuing a new API key                                    | `keyLifetimeDays`→`parameters.lifetimeDays`                                      |
-| `connector-capability@1.0.0`  | Capability-based connector authorization (reference)     | `paymentAmount`→`parameters.amount`                                              |
-| `customer-refund@1.0.0`       | Customer refunds, bounded by eligibility/amount          | `refundAmount`→`parameters.amount`                                               |
-| `database-change@3.0.0`       | Production DB changes                                    | None                                                                             |
-| `expense-reimbursement@1.0.0` | Employee expense reimbursement, the worked example below | `expenseAmount`→`parameters.amount`                                              |
-| `github-pr-approval@1.0.0`    | PR approval via reviews/status checks                    | None                                                                             |
-| `github-pr-approval@1.1.0`    | PR merge with a signed approval for that pull request    | `mergeApproved` needs a signed approval for `target`                             |
-| `github-pr-read@1.0.0`        | Reading a pull request's state                           | None                                                                             |
-| `hubspot-deal-update@1.0.0`   | HubSpot deal stage/amount updates                        | `proposedDealStage`→`parameters.dealstage`, `proposedAmount`→`parameters.amount` |
-| `llm-tool-call@1.0.0`         | AI-initiated tool execution                              | None                                                                             |
-| `llm-tool-call@1.1.0`         | A tool call with a signed human approval for that tool   | `humanApproval` needs a signed approval for `target`                             |
-| `production-deployment@1.0.0` | Production deployments                                   | None                                                                             |
-| `rag-document-access@1.0.0`   | Enterprise document retrieval                            | None                                                                             |
-| `vendor-payment@2.0.0`        | Vendor payments (real production policy)                 | `paymentAmount`→`parameters.amount`, `vendorId`→`target`                         |
+No AI agent action is authorized without a signed human approval, reads included. Every current
+policy needs one; the column on the right names the signal and what the approval must cover.
+Older versions that approved without a person (such as `vendor-payment@2.0.0` or
+`github-pr-read@1.0.0`) stay in the repository as history and are refused when they load. See
+[Human approval](/concepts/human-approval).
+
+| Policy                        | What it authorizes                                       | Signed approval needed                                   |
+| ----------------------------- | -------------------------------------------------------- | -------------------------------------------------------- |
+| `access-control@1.1.0`        | Access via auth, MFA, device trust and session risk      | `humanApproved`, for `target`                            |
+| `agent-vendor-payment@1.1.0`  | An autonomous agent paying a vendor, within limits       | `humanApproved`, for `target`, up to `parameters.amount` |
+| `api-key-issuance@1.1.0`      | Issuing a new API key                                    | `humanApproved`, for `target`                            |
+| `connector-capability@1.1.0`  | Capability based connector authorization (reference)     | `humanApproved`, for `target`                            |
+| `customer-refund@1.2.0`       | Customer refunds (`paytm:refund`)                        | `managerApproved`, for the order, up to the amount       |
+| `database-change@3.1.0`       | Production DB changes                                    | `humanApproved`, for `target`                            |
+| `expense-reimbursement@1.1.0` | Employee expense reimbursement, the worked example below | `humanApproved`, for `target`, up to `parameters.amount` |
+| `github-pr-approval@1.1.0`    | A pull request merge (`github:pr-merge`)                 | `mergeApproved`, for the pull request                    |
+| `github-pr-read@1.1.0`        | Reading a pull request's state (`github:pr-fetch`)       | `readApproved`, for the pull request                     |
+| `hubspot-deal-read@1.0.0`     | Reading a HubSpot deal (`hubspot:deal-fetch`)            | `readApproved`, for the deal                             |
+| `hubspot-deal-update@1.1.0`   | HubSpot deal stage and amount updates                    | `dealUpdateApproved`, for the deal                       |
+| `llm-tool-call@1.1.0`         | A tool call an AI makes                                  | `humanApproval`, for the tool                            |
+| `production-deployment@1.1.0` | Production deployments                                   | `humanApproved`, for `target`                            |
+| `rag-document-access@1.1.0`   | Enterprise document retrieval                            | `humanApproved`, for `target`                            |
+| `slack-post-message@1.1.0`    | Posting a Slack message (`slack:post-message`)           | `postApproved`, for the channel                          |
+| `vendor-payment@2.1.0`        | Vendor payments                                          | `humanApproved`, for `target`, up to `parameters.amount` |
 
 Full signal schemas for every policy: each policy file under `policies/<name>/<version>/policy.json` (`signalsSchema`).
 
@@ -162,7 +176,7 @@ shapes (leaf comparison, `all`, `any`, `always`), a fixed operator set (`eq`, `n
 reference must appear in either `boundSignals` or `unboundSignalReasons`**, or the policy
 fails to load at all, no silent, unacknowledged gaps allowed.
 
-The `expense-reimbursement@1.0.0` policy above is a real, worked example of this, full
+The `expense-reimbursement@1.1.0` policy above is a real, worked example of this, full
 schema, the exact validation rule that would reject a badly-formed policy, and how a new one
 goes live (proposed and approved through policy governance, no deploy) are in
 [Write your first policy](/guides/write-your-first-policy) and

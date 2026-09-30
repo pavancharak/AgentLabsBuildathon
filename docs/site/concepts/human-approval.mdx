@@ -1,24 +1,66 @@
 ---
 title: "Human approval"
-description: "Where people approve what agents do: policies, and any action a policy says needs a signed approval, such as large refunds. How to add an approval to an action, and how to review refused requests."
+description: "No agent action is authorized without a signed human approval, reads included. How the rule is enforced, how to sign an approval, how to add one to a new action, and how to review refused requests."
 ---
 
-People approve policies before those policies can authorize anything, sign approvals for any
-action a policy says needs one, and review every refused request. Which actions need an
-approval is written in the policy, not in code, so adding one to a new action is a policy
-change. Parmana does not hold a request while it waits for a person: a refused request stays
-refused, and the agent sends a new one with the approval attached.
+**No AI agent action is authorized without a signed human approval. Reads included.** A
+refund, a merge, a Slack post, a HubSpot update, reading a pull request or a deal: each runs
+only when a trusted person has signed an approval for that action, on that resource, and the
+approval has not expired or been used.
 
-| What a person does                                               | Status                                 |
-| ---------------------------------------------------------------- | -------------------------------------- |
-| Approve a policy before it can authorize anything                | **[AVAILABLE]**                        |
-| Review refused requests                                          | **[AVAILABLE]**                        |
-| Get notified when a request waits for an approval                | **[AVAILABLE]**, when a webhook is set |
-| Sign an approval for any action whose policy declares one        | **[AVAILABLE]**                        |
-| Sign an approval for a refund                                    | **[AVAILABLE]**                        |
-| Sign an approval for a HubSpot amount change above the threshold | **[AVAILABLE]**                        |
-| Add or revoke an approver without a deploy                       | **[AVAILABLE]**                        |
-| Approve a refused request so that same request runs              | **[NOT AVAILABLE]**                    |
+People also approve policies before those policies can authorize anything, and review every
+refused request. Parmana does not hold a request while it waits for a person: a refused request
+stays refused, and the agent sends a new one with the approval attached.
+
+| What a person does                                  | Status                                 |
+| --------------------------------------------------- | -------------------------------------- |
+| Sign an approval for every agent action, reads too  | **[REQUIRED]**                         |
+| Approve a policy before it can authorize anything   | **[AVAILABLE]**                        |
+| Review refused requests                             | **[AVAILABLE]**                        |
+| Get notified when a request waits for an approval   | **[AVAILABLE]**, when a webhook is set |
+| Add or revoke an approver without a deploy          | **[AVAILABLE]**                        |
+| Approve a refused request so that same request runs | **[NOT AVAILABLE]**                    |
+
+## Every action needs a signed approval
+
+Two checks enforce this in code, for every policy and every action:
+
+- **When a policy loads.** Every rule that approves must require one of the policy's
+  `approvalSignals` with `is_true`, either as its whole condition or directly inside its top
+  level `all`. A policy with any other approve rule fails to load, so every request under it is
+  refused with `400` and `approves without a signed human approval`. A proposed policy change of
+  that shape is refused the same way, so it cannot get through policy governance either.
+- **When a request is decided.** A signal in `approvalSignals` counts as true only with a valid
+  signed approval in the request: from a trusted, unrevoked approver, for this action and this
+  resource (and amount, where the policy names one), not expired, used once. A runtime with no
+  approval verifier configured refuses every approval instead of trusting the signal.
+
+An agent that sets the approval signal to `true` without a signed approval is refused, whatever
+else it declares. Tutorials 119 to 122 in `examples/tutorials/` show it step by step, for a
+refund, the rule itself, a read, a Slack post and a HubSpot update.
+
+| Action                | Policy in the binding       | The approval covers         |
+| --------------------- | --------------------------- | --------------------------- |
+| `paytm:refund`        | `customer-refund` 1.2.0     | the order, up to the amount |
+| `github:pr-merge`     | `github-pr-approval` 1.1.0  | the pull request            |
+| `github:pr-fetch`     | `github-pr-read` 1.1.0      | the pull request            |
+| `hubspot:deal-update` | `hubspot-deal-update` 1.1.0 | the deal                    |
+| `hubspot:deal-fetch`  | `hubspot-deal-read` 1.0.0   | the deal                    |
+| `slack:post-message`  | `slack-post-message` 1.1.0  | the channel                 |
+
+The reference policies with no connector need one too, for the Intent's `target`:
+`vendor-payment` 2.1.0, `access-control` 1.1.0, `agent-vendor-payment` 1.1.0,
+`api-key-issuance` 1.1.0, `connector-capability` 1.1.0, `database-change` 3.1.0,
+`expense-reimbursement` 1.1.0, `production-deployment` 1.1.0, `rag-document-access` 1.1.0 and
+`llm-tool-call` 1.1.0. The payment and expense policies also cover the amount. Older versions
+that approved without a person stay in the repository as history and are refused when they load.
+
+<Warning>
+  Production runs the version most recently approved through policy governance.
+  Until the versions above are approved there, the older versions in effect for
+  GitHub reads, HubSpot and Slack fail to load, so those actions are refused.
+  Nothing runs without a person in the meantime; it just does not run.
+</Warning>
 
 ## Approve policies
 
@@ -212,14 +254,20 @@ Rules for a declaration, checked when the policy loads:
 - With more than one approval signal, give each its own `artifact`, the signal that carries its
   approval. The default is `approvalArtifact`.
 
-## Approve a HubSpot amount change
+## Approve a HubSpot update or read
 
-For `hubspot:deal-update`, an amount change above the configured threshold runs only with
-`preAuthorizedForAmountChange: true` and a signed approval in `signals.approvalArtifact`. Sign
-it the same way, with `--capability hubspot:deal-update`, the deal id as `--resource-id`, and
-the largest amount change allowed as `--max-amount`. HubSpot keeps its own check, because its
-limit applies to an amount change worked out from a live read of the deal, not to a value in the
-request.
+`hubspot-deal-update` 1.1.0 authorizes every deal update only with `dealUpdateApproved: true`
+and a signed approval for that deal in `signals.approvalArtifact`, whatever the amount. Sign it
+with `--capability hubspot:deal-update` and the deal id as `--resource-id`, without
+`--max-amount`. The dealstage transition is still checked against the real deal, and a
+transition that is not allowed is refused even with an approval.
+
+Reading a deal (`hubspot:deal-fetch`) has its own policy, `hubspot-deal-read` 1.0.0. It needs
+`readApproved: true` with an approval for that deal, signed with `--capability
+hubspot:deal-fetch`.
+
+Under 1.0.0 an update within the amount threshold needed no person, and only a larger amount
+change needed `preAuthorizedForAmountChange` with an approval. 1.0.0 now fails to load.
 
 ## Review refused requests
 
@@ -333,7 +381,16 @@ Nothing waits for a person. After a manager signs an approval, the agent sends a
 
 **Eligibility and fraud signals are still the caller's word.** `refundEligible` and
 `fraudCheckPassed` are not checked against another system (G-51 in
-`docs/VERIFICATION-GAPS.md`).
+`docs/VERIFICATION-GAPS.md`). They can only refuse; the signed approval authorizes.
+
+**An approval covers the action and the resource, not every parameter.** An approval for a
+Slack channel does not fix the message text, and an approval for a HubSpot deal does not fix the
+new amount or stage. The approver trusts the agent with those details for that one use. An
+approval for a payment, an expense or a refund does cover the amount.
+
+**There is no automatic path.** No action is authorized without a person, by design. Adding one
+would need a server side check that reads the facts itself, and a change to this rule
+(G-80 in `docs/VERIFICATION-GAPS.md`).
 
 ## Why each action is bound to one policy
 
@@ -343,7 +400,11 @@ limit. So each live action is bound to one policy name:
 
 ```text
 paytm:refund         ->  customer-refund
+github:pr-merge      ->  github-pr-approval
+github:pr-fetch      ->  github-pr-read
 hubspot:deal-update  ->  hubspot-deal-update
+hubspot:deal-fetch   ->  hubspot-deal-read
+slack:post-message   ->  slack-post-message
 ```
 
 The name is fixed in code. The version is not: in production it is the version most recently

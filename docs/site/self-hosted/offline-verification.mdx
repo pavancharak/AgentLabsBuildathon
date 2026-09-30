@@ -12,10 +12,17 @@ bash docker/local/offline-check/run.sh
 It takes about two minutes after the image is built. It ends with:
 
 ```text
-12 of 12 checks passed
+14 of 14 checks passed
 ```
 
-and exits with code `0`. Any failed check makes it exit with `1` and print the API log.
+and exits with code `0`.
+
+<Note>
+  The check grew from 12 to 14 steps on 2026-09-30, when it started adding a
+  refund manager through maker checker (every refund needs a signed approval).
+  Run the same day: 14 of 14 passed.
+</Note>
+Any failed check makes it exit with `1` and print the API log.
 
 ## What it does
 
@@ -27,22 +34,28 @@ and exits with code `0`. Any failed check makes it exit with `1` and print the A
 
 The copy signs with your deployment's own keys from `./parmana-local/keys`, so the record it produces is signed exactly as your deployment would sign it.
 
-## The 12 checks
+## The 14 checks
 
-| #   | Check                                                             | What passing proves                                                                                                      |
-| --- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| 1   | no internet route from this network                               | `https://1.1.1.1` and `https://registry.npmjs.org` cannot be reached from the network the server runs on.                |
-| 2   | API reports READY                                                 | The server started and its database is reachable, with no internet.                                                      |
-| 3   | policy change proposed by a verified human                        | Policy governance accepts a proposal (`201`).                                                                            |
-| 4   | the proposer cannot approve their own change                      | One person cannot make a policy take effect (`403 SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE`).                                |
-| 5   | a different human approves it with a signed step up authorization | A second person's signed approval makes the policy take effect (`200`).                                                  |
-| 6   | authorized refund executes                                        | A refund of 500 that meets every rule is authorized and released (`200`).                                                |
-| 7   | authorized refund reached the downstream system once              | The downstream system received it exactly once, and verified the Execution Gateway's signature with only the public key. |
-| 8   | refused refund is rejected by the policy's rules                  | A refund of 50,000 is refused with `403 POLICY_DENIED`, for the policy's own reason about the amount limit.              |
-| 9   | refused refund never reached the downstream system                | A refused action is never released.                                                                                      |
-| 10  | Trust Record stored                                               | The authorized refund has a Trust Record.                                                                                |
-| 11  | Trust Record verifies with only the public keys                   | The record's hash and signature are valid, checked with the two public keys and nothing else.                            |
-| 12  | a changed Trust Record fails verification                         | Changing the amount in the record makes verification fail, so check 11 is not vacuous.                                   |
+| #   | Check                                                                          | What passing proves                                                                                                      |
+| --- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| 1   | no internet route from this network                                            | `https://1.1.1.1` and `https://registry.npmjs.org` cannot be reached from the network the server runs on.                |
+| 2   | API reports READY                                                              | The server started and its database is reachable, with no internet.                                                      |
+| 3   | policy change proposed by a verified human                                     | Policy governance accepts a proposal (`201`).                                                                            |
+| 4   | the proposer cannot approve their own change                                   | One person cannot make a policy take effect (`403 SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE`).                                |
+| 5   | a different human approves it with a signed step up authorization              | A second person's signed approval makes the policy (`customer-refund` 1.2.0) take effect (`200`).                        |
+| 6   | adding a refund manager key proposed by a verified human                       | Approver governance accepts a proposal to trust a manager's Ed25519 key (`201`).                                         |
+| 7   | a different human approves the manager key with a signed step up authorization | The manager's key is trusted from the next request on (`200`), with no deploy.                                           |
+| 8   | authorized refund executes                                                     | A refund of 500 with the manager's signed approval for that order and amount is authorized and released (`200`).         |
+| 9   | authorized refund reached the downstream system once                           | The downstream system received it exactly once, and verified the Execution Gateway's signature with only the public key. |
+| 10  | refused refund is rejected by the policy's rules                               | A refund of 50,000 with no manager approval is refused with `403 POLICY_DENIED`, for the policy's own reason.            |
+| 11  | refused refund never reached the downstream system                             | A refused action is never released.                                                                                      |
+| 12  | Trust Record stored                                                            | The authorized refund has a Trust Record.                                                                                |
+| 13  | Trust Record verifies with only the public keys                                | The record's hash and signature are valid, checked with the two public keys and nothing else.                            |
+| 14  | a changed Trust Record fails verification                                      | Changing the amount in the record makes verification fail, so check 13 is not vacuous.                                   |
+
+No agent action is authorized without a signed human approval ([Human approval](/concepts/human-approval)), so the
+check adds a refund manager through maker checker, the same way an operator would, with a key it makes inside the
+isolated network. The image itself trusts no approver.
 
 ## The stand in for your downstream system
 

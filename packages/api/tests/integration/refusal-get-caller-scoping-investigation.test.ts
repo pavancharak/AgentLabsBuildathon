@@ -54,7 +54,7 @@ describe("Caller scoping (HTTP boundary): GET /refusal/:id", () => {
    * violation: vendorId no longer matches intent.target), so a real
    * RefusalRecord gets written for it. */
   async function rejectAsCallerA(app: import("express").Express) {
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     const rejected = {
       ...transaction,

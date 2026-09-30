@@ -23,7 +23,7 @@ describe("GET /trust-records (bulk export)", () => {
   });
 
   it("returns the full signed Trust Record for each executed transaction on the page", async () => {
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     const executeResponse = await request(app)
       .post("/execute")
@@ -50,7 +50,7 @@ describe("GET /trust-records (bulk export)", () => {
   });
 
   it("filters by since/until against transaction.createdAt", async () => {
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
     await request(app).post("/execute").send(transaction);
 
     const farFuture = await request(app).get(

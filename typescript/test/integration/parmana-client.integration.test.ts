@@ -43,6 +43,7 @@ import { ValidationError } from "../../src/errors/ValidationError.js";
 import { ExecutionRejectedError } from "../../src/errors/ExecutionRejectedError.js";
 import { NotFoundError } from "../../src/errors/NotFoundError.js";
 import { ConflictError } from "../../src/errors/ConflictError.js";
+import { withTestApproval } from "../../../test-support/approvals.js";
 
 const RAW_API_KEY = "ts-sdk-integration-test-key";
 
@@ -57,7 +58,7 @@ function buildTransaction(
     target?: string;
     principalId?: string;
   } = {},
-): BusinessTransaction {
+): Promise<BusinessTransaction> {
   const businessTransactionId =
     overrides.businessTransactionId ?? crypto.randomUUID();
   const authorityId = crypto.randomUUID();
@@ -67,7 +68,9 @@ function buildTransaction(
   const target = overrides.target ?? "vendor/V-ts-sdk";
   const paymentAmount = overrides.paymentAmount ?? 4500;
 
-  return {
+  // Signed by the hermetic test approver: no agent action is authorized
+  // without a signed human approval.
+  return withTestApproval({
     businessTransactionId,
 
     metadata: {
@@ -100,7 +103,7 @@ function buildTransaction(
       // test:fixture-execute (not payments:execute/vendor-payment, removed
       // per docs/VERIFICATION-GAPS.md G-27) -- registered only when
       // NODE_ENV=test (createTestFixtureConnector.ts). Still governed by
-      // the unchanged vendor-payment/2.0.0 policy below.
+      // the unchanged vendor-payment/2.1.0 policy below.
       action: "test:fixture-execute",
       target,
       parameters: { amount: paymentAmount, currency: "USD" },
@@ -109,7 +112,7 @@ function buildTransaction(
 
     policy: {
       name: "vendor-payment",
-      version: "2.0.0",
+      version: "2.1.0",
       schemaVersion: "1.0.0",
     },
 
@@ -120,13 +123,13 @@ function buildTransaction(
       sufficientFunds: true,
       paymentAmount,
       riskScore: overrides.riskScore ?? 10,
-      // vendor-payment@2.0.0 declares boundSignals: vendorId -> target.
+      // vendor-payment@2.1.0 declares boundSignals: vendorId -> target.
       vendorId: target,
     },
 
     status: "RECEIVED",
     createdAt: now,
-  };
+  } as BusinessTransaction);
 }
 
 beforeAll(async () => {
@@ -222,7 +225,7 @@ describe("ParmanaClient against a real local @parmana/api instance", () => {
     });
 
     it("an authenticated request succeeds", async () => {
-      const transaction = buildTransaction();
+      const transaction = await buildTransaction();
       const trustRecord = await authenticatedClient().execute(transaction);
 
       expect(trustRecord.businessTransactionId).toBe(
@@ -233,7 +236,7 @@ describe("ParmanaClient against a real local @parmana/api instance", () => {
     });
 
     it("a caller asserting a principalId it is not allowed to assert gets a real 403, thrown as AuthorizationError", async () => {
-      const transaction = buildTransaction({
+      const transaction = await buildTransaction({
         principalId: "someone-else-entirely",
       });
 
@@ -253,7 +256,7 @@ describe("ParmanaClient against a real local @parmana/api instance", () => {
     it("an unauthenticated request against a route that requires auth gets a real 401, thrown as AuthenticationError", async () => {
       let caught: unknown;
       try {
-        await unauthenticatedClient().execute(buildTransaction());
+        await unauthenticatedClient().execute(await buildTransaction());
       } catch (error) {
         caught = error;
       }
@@ -267,7 +270,7 @@ describe("ParmanaClient against a real local @parmana/api instance", () => {
 
   describe("gap 2: real errors map to the correct typed error", () => {
     it("a real validation error (malformed businessTransactionId) throws ValidationError with the server's exact message", async () => {
-      const transaction = buildTransaction();
+      const transaction = await buildTransaction();
       const malformed = {
         ...transaction,
         businessTransactionId: "not-a-uuid",
@@ -287,7 +290,7 @@ describe("ParmanaClient against a real local @parmana/api instance", () => {
     });
 
     it("a real policy rejection (riskScore over threshold) throws ExecutionRejectedError with the policy's real reason", async () => {
-      const transaction = buildTransaction({ riskScore: 999 });
+      const transaction = await buildTransaction({ riskScore: 999 });
 
       let caught: unknown;
       try {
@@ -317,7 +320,7 @@ describe("ParmanaClient against a real local @parmana/api instance", () => {
     });
 
     it("a real duplicate businessTransactionId throws ConflictError", async () => {
-      const transaction = buildTransaction();
+      const transaction = await buildTransaction();
       const client = authenticatedClient();
 
       await client.execute(transaction);
@@ -343,7 +346,7 @@ describe("ParmanaClient against a real local @parmana/api instance", () => {
     });
 
     it("verify() runs a fresh POST /verify and appends a new Verification", async () => {
-      const transaction = buildTransaction();
+      const transaction = await buildTransaction();
       const client = authenticatedClient();
 
       const trustRecord = await client.execute(transaction);
@@ -365,7 +368,7 @@ describe("ParmanaClient against a real local @parmana/api instance", () => {
     });
 
     it("createTransaction() executes via POST /transactions with a 201, identical pipeline to execute()", async () => {
-      const transaction = buildTransaction();
+      const transaction = await buildTransaction();
 
       const trustRecord =
         await authenticatedClient().createTransaction(transaction);
@@ -383,7 +386,7 @@ describe("ParmanaClient against a real local @parmana/api instance", () => {
 
   describe("gap closed this audit: Refusal Record and audit-event verification coverage (RFC-0021)", () => {
     it("a real policy-rejected transaction produces a Refusal Record, readable and independently verifiable", async () => {
-      const transaction = buildTransaction({ riskScore: 999 });
+      const transaction = await buildTransaction({ riskScore: 999 });
       const client = authenticatedClient();
 
       let caught: unknown;
@@ -406,7 +409,7 @@ describe("ParmanaClient against a real local @parmana/api instance", () => {
     });
 
     it("an unauthenticated caller can still verify a Refusal Record -- POST /refusal/verify is exempt from caller-auth by design", async () => {
-      const transaction = buildTransaction({ riskScore: 999 });
+      const transaction = await buildTransaction({ riskScore: 999 });
       const client = authenticatedClient();
 
       try {
@@ -428,7 +431,7 @@ describe("ParmanaClient against a real local @parmana/api instance", () => {
     });
 
     it("a tampered Refusal Record fails verification against the real server", async () => {
-      const transaction = buildTransaction({ riskScore: 999 });
+      const transaction = await buildTransaction({ riskScore: 999 });
       const client = authenticatedClient();
 
       try {

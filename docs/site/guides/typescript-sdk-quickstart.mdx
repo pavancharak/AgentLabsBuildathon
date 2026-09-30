@@ -34,12 +34,24 @@ description: "Install to your first authorized execution with the TypeScript SDK
     npm run generate:gateway-keys
     ```
 
-    Start the server fully locally, no external database:
+    No AI agent action is authorized without a signed human approval, reads included
+    ([Human approval](/concepts/human-approval)), so you also play the approver. Make an
+    approver key:
+
+    ```bash
+    npx tsx scripts/generate-approver-key.ts \
+      --approver-id local-test-approver --key-id local-test-approver-key-1 \
+      --out-dir ~/.parmana
+    ```
+
+    Start the server fully locally, no external database, trusting that key (honored only with
+    `NODE_ENV=test`):
 
     ```bash
     NODE_ENV=test \
       PARMANA_STORAGE=memory \
       PARMANA_POLICY_DIR=/absolute/path/to/policies \
+      PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE=~/.parmana/local-test-approver__local-test-approver-key-1.public.pem \
       npm run dev
     ```
 
@@ -77,14 +89,20 @@ description: "Install to your first authorized execution with the TypeScript SDK
 
   </Step>
 
-  <Step title="Build and execute a Business Transaction">
-    Create `quickstart.ts`:
+  <Step title="Sign an approval, then build and execute a Business Transaction">
+    Create `quickstart.ts`. The approver signs first (on the approver's machine in real use),
+    then the agent sends the transaction with the approval attached:
 
     ```typescript
+    import { readFileSync } from "node:fs";
+    import { homedir } from "node:os";
+    import { join } from "node:path";
+
     import {
       ParmanaClient,
       HttpTransport,
       createBusinessTransaction,
+      signApproval,
       ExecutionRejectedError,
     } from "@parmana/sdk";
 
@@ -97,14 +115,28 @@ description: "Install to your first authorized execution with the TypeScript SDK
       transport: new HttpTransport({ endpoint, apiKey }),
     });
 
+    const approval = signApproval({
+      privateKeyPem: readFileSync(
+        join(homedir(), ".parmana/local-test-approver__local-test-approver-key-1.private.pem"),
+        "utf8",
+      ),
+      approverId: "local-test-approver",
+      keyId: "local-test-approver-key-1",
+      capability: "test:fixture-execute",
+      resourceId: "vendor://payments",
+      maxAmount: 1000,
+    });
+
     const transaction = createBusinessTransaction({
       principalId: "typescript-sdk-quickstart",
       purpose: "Quickstart demo",
       action: "test:fixture-execute",
       target: "vendor://payments",
       parameters: { amount: 1000, currency: "USD" },
-      policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+      policy: { name: "vendor-payment", version: "2.1.0", schemaVersion: "1.0.0" },
       signals: {
+        humanApproved: true, // counts only with the signed approval below
+        approvalArtifact: approval,
         vendorVerified: true,
         invoiceVerified: true,
         paymentApproved: true,
@@ -198,8 +230,10 @@ doesn't have `PARMANA_AUTH_DISABLED=true` set, or the key is wrong. The demo key
 
 **`ExecutionRejectedError: Execution rejected: ...`**: the policy evaluated your signals
 and declined. The message names which rule failed; check
-[Write your first policy](/guides/write-your-first-policy) for how `vendor-payment@2.0.0`
-reads its signals, or loosen the signals in your own test transaction to see it pass.
+[Write your first policy](/guides/write-your-first-policy) for how `vendor-payment@2.1.0`
+reads its signals. A message naming `humanApproved` means the approval is missing, expired,
+already used, for another target, below the amount, or from a key the server does not trust:
+sign a fresh one.
 
 **A `400` about a mismatched id**: you built the `BusinessTransaction` object by hand
 instead of through `createBusinessTransaction()`. See [`createBusinessTransaction()`, no

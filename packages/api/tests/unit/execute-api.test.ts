@@ -31,7 +31,7 @@ describe("POST /execute", () => {
   });
 
   it("returns 404 when the referenced policy does not exist (PolicyNotFoundError)", async () => {
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     const response = await request(app)
       .post("/execute")
@@ -50,7 +50,7 @@ describe("POST /execute", () => {
   });
 
   it("returns 409 when the same businessTransactionId is submitted twice (DuplicateBusinessTransactionError)", async () => {
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     const first = await request(app).post("/execute").send(transaction);
     expect(first.status).toBe(200);

@@ -12,7 +12,7 @@ This is not a hypothetical concern. It closes a real, previously live gap: a cal
 
 \## The Policy Declaration
 
-`policies/vendor-payment/2.0.0/policy.json` declares:
+`policies/vendor-payment/2.1.0/policy.json` declares:
 
 ```json
 
@@ -32,7 +32,7 @@ This means: whatever `signals.vendorId` a caller declares must exactly equal `in
 
 \## Scenario 1: A Missing Signal
 
-`transaction-mismatched-signal.json` declares every other signal `vendor-payment@2.0.0`'s approve rule needs — but never declares `vendorId` at all.
+`transaction-mismatched-signal.json` declares every other signal `vendor-payment@2.1.0`'s approve rule needs — but never declares `vendorId` at all.
 
 ```ts
 
@@ -90,7 +90,7 @@ that happens to look correct in isolation.
 
 
 
-vendor-payment@2.0.0 declares: boundSignals.vendorId = "target".
+vendor-payment@2.1.0 declares: boundSignals.vendorId = "target".
 
 Every transaction below shares the same intent.target, "sap.payment.release".
 

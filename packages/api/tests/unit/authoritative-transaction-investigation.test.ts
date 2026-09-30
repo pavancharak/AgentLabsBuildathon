@@ -13,7 +13,7 @@ import { createBusinessTransaction } from "../fixtures/business-transaction.js";
  */
 describe("Authoritative BusinessTransaction investigation", () => {
   it("rejects a same-id, different-fields resubmission as a duplicate BEFORE execution, never runs the caller-supplied override", async () => {
-    const original = createBusinessTransaction();
+    const original = await createBusinessTransaction();
 
     const first = await request(app).post("/execute").send(original);
     expect(first.status).toBe(200);
@@ -59,7 +59,7 @@ describe("Authoritative BusinessTransaction investigation", () => {
   });
 
   it("a never-before-used businessTransactionId is NOT rejected as unknown -- it is the normal, expected path (no authoritative-record lookup exists to fail against)", async () => {
-    const fresh = createBusinessTransaction();
+    const fresh = await createBusinessTransaction();
 
     const response = await request(app).post("/execute").send(fresh);
 
@@ -73,7 +73,7 @@ describe("Authoritative BusinessTransaction investigation", () => {
   });
 
   it("POST /transactions has the identical create-and-execute-from-request-body contract as POST /execute, not a separate lookup-by-id path", async () => {
-    const original = createBusinessTransaction();
+    const original = await createBusinessTransaction();
 
     const first = await request(app).post("/transactions").send(original);
     expect(first.status).toBe(201);

@@ -66,8 +66,8 @@ describe("Caller principal scoping (HTTP boundary)", () => {
     return { app, callerAuditSink };
   }
 
-  function withPrincipal(principalId: string) {
-    const transaction = createBusinessTransaction();
+  async function withPrincipal(principalId: string) {
+    const transaction = await createBusinessTransaction();
     return {
       ...transaction,
       authority: { ...transaction.authority, principalId },
@@ -81,7 +81,7 @@ describe("Caller principal scoping (HTTP boundary)", () => {
       const response = await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${SCOPED_KEY}`)
-        .send(withPrincipal("scoped-caller"));
+        .send(await withPrincipal("scoped-caller"));
 
       expect(response.status).toBe(200);
     });
@@ -92,7 +92,7 @@ describe("Caller principal scoping (HTTP boundary)", () => {
       const response = await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${UNSCOPED_KEY}`)
-        .send(withPrincipal("unscoped-caller"));
+        .send(await withPrincipal("unscoped-caller"));
 
       expect(response.status).toBe(403);
       expect(response.body.error).toBe(
@@ -106,7 +106,7 @@ describe("Caller principal scoping (HTTP boundary)", () => {
       await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${UNSCOPED_KEY}`)
-        .send(withPrincipal("unscoped-caller"));
+        .send(await withPrincipal("unscoped-caller"));
 
       const denied = callerAuditSink.events.find(
         (event) => event.type === "caller.principal_denied",
@@ -129,7 +129,7 @@ describe("Caller principal scoping (HTTP boundary)", () => {
       await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${SCOPED_KEY}`)
-        .send(withPrincipal("scoped-caller"));
+        .send(await withPrincipal("scoped-caller"));
 
       expect(
         callerAuditSink.events.some(
@@ -146,7 +146,7 @@ describe("Caller principal scoping (HTTP boundary)", () => {
       const response = await request(app)
         .post("/transactions")
         .set("Authorization", `Bearer ${SCOPED_KEY}`)
-        .send(withPrincipal("scoped-caller"));
+        .send(await withPrincipal("scoped-caller"));
 
       expect(response.status).toBe(201);
     });
@@ -157,7 +157,7 @@ describe("Caller principal scoping (HTTP boundary)", () => {
       const response = await request(app)
         .post("/transactions")
         .set("Authorization", `Bearer ${UNSCOPED_KEY}`)
-        .send(withPrincipal("unscoped-caller"));
+        .send(await withPrincipal("unscoped-caller"));
 
       expect(response.status).toBe(403);
 

@@ -40,8 +40,10 @@ describe("customer-refund 1.1.0", () => {
     };
   }
 
-  it("is a valid policy", () => {
-    expect(() => new PolicyValidator().validate(policy)).not.toThrow();
+  it("is refused at load, since its automatic refunds need no signed human approval", () => {
+    expect(() => new PolicyValidator().validate(policy)).toThrow(
+      /'approve-refund-automatic' approves without a signed human approval/,
+    );
     expect(policy.policyVersion).toBe("1.1.0");
   });
 

@@ -13,6 +13,10 @@ import {
 } from "@parmana/storage";
 
 import type { BusinessTransaction } from "@parmana/shared";
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 const root = path.resolve(import.meta.dirname);
 
@@ -37,13 +41,25 @@ const application = RuntimeFactory.create(
   trustRecords,
   policyRepository,
   executionSystem,
+  undefined,
+  demoApprovalSignalVerifier(),
 );
 
 //
 // Execute the Business Transaction using the
 // custom High Value Payment policy.
 //
-const trustRecord = await application.execute(transaction);
+// The Finance Director signs an approval for this vendor and amount; the
+// policy's approvalSignals entry says what the approval must cover.
+const trustRecord = await application.execute(
+  await withDemoApproval(
+    transaction,
+    await policyRepository.load(
+      transaction.policy.name,
+      transaction.policy.version,
+    ),
+  ),
+);
 
 const verification = trustRecord.verifications.at(-1);
 

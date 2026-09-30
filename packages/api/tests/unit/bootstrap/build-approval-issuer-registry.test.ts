@@ -166,3 +166,74 @@ describe("createCodeApprovalIssuerRegistry (the list deployed to production)", (
     ).toBeUndefined();
   });
 });
+
+describe("createCodeApprovalIssuerRegistry: the local test approver", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "parmana-test-approver-"));
+  const file = path.join(dir, "local-test-approver.public.pem");
+  writeFileSync(file, ed25519Pem());
+
+  const saved = {
+    file: process.env.PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE,
+    nodeEnv: process.env.NODE_ENV,
+  };
+
+  afterAll(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  function restore(): void {
+    if (saved.file === undefined) {
+      delete process.env.PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE;
+    } else {
+      process.env.PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE = saved.file;
+    }
+    process.env.NODE_ENV = saved.nodeEnv;
+  }
+
+  it("is not trusted when the variable is unset", () => {
+    delete process.env.PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE;
+
+    try {
+      expect(
+        createCodeApprovalIssuerRegistry().resolve(
+          "local-test-approver",
+          "local-test-approver-key-1",
+        ),
+      ).toBeUndefined();
+    } finally {
+      restore();
+    }
+  });
+
+  it("is trusted on a test server", () => {
+    process.env.PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE = file;
+    process.env.NODE_ENV = "test";
+
+    try {
+      expect(
+        createCodeApprovalIssuerRegistry().resolve(
+          "local-test-approver",
+          "local-test-approver-key-1",
+        )?.revoked,
+      ).toBe(false);
+    } finally {
+      restore();
+    }
+  });
+
+  it.each(["production", "development"])(
+    "stops the server when set with NODE_ENV %s",
+    (nodeEnv) => {
+      process.env.PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE = file;
+      process.env.NODE_ENV = nodeEnv;
+
+      try {
+        expect(() => createCodeApprovalIssuerRegistry()).toThrow(
+          /NODE_ENV is not test/,
+        );
+      } finally {
+        restore();
+      }
+    },
+  );
+});

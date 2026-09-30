@@ -20,7 +20,7 @@ const policy = JSON.parse(
   readFileSync(
     path.resolve(
       import.meta.dirname,
-      "../../../../policies/connector-capability/1.0.0/policy.json",
+      "../../../../policies/connector-capability/1.1.0/policy.json",
     ),
     "utf8",
   ),
@@ -36,6 +36,7 @@ describe("connector-capability reference policy", () => {
 
   it("ALLOWs crm:read", () => {
     const decision = engine.evaluate(policy, {
+      humanApproved: true,
       capability: "crm:read",
       paymentAmount: 0,
     });
@@ -45,6 +46,7 @@ describe("connector-capability reference policy", () => {
 
   it("BLOCKs crm:delete", () => {
     const decision = engine.evaluate(policy, {
+      humanApproved: true,
       capability: "crm:delete",
       paymentAmount: 0,
     });
@@ -54,6 +56,7 @@ describe("connector-capability reference policy", () => {
 
   it("ALLOWs payments:refund within the configured threshold", () => {
     const decision = engine.evaluate(policy, {
+      humanApproved: true,
       capability: "payments:refund",
       paymentAmount: 5000,
     });
@@ -65,6 +68,7 @@ describe("connector-capability reference policy", () => {
 
   it("BLOCKs payments:refund above the configured threshold", () => {
     const decision = engine.evaluate(policy, {
+      humanApproved: true,
       capability: "payments:refund",
       paymentAmount: 5001,
     });
@@ -74,8 +78,18 @@ describe("connector-capability reference policy", () => {
     );
   });
 
+  it("BLOCKs crm:read without a signed human approval", () => {
+    const decision = engine.evaluate(policy, {
+      humanApproved: false,
+      capability: "crm:read",
+      paymentAmount: 0,
+    });
+    expect(decision.outcome).toBe(PolicyOutcome.REJECT);
+  });
+
   it("BLOCKs by default any capability not explicitly authorized", () => {
     const decision = engine.evaluate(policy, {
+      humanApproved: true,
       capability: "sap:write",
       paymentAmount: 0,
     });

@@ -33,7 +33,7 @@ describe("Refusal Record (RFC-0021, HTTP boundary)", () => {
   it("blocks the exact G-24 exploit shape and produces a verifiable Refusal Record with the mismatched fields", async () => {
     const app = buildApp();
 
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     // What is declared to the policy engine: a small, fully-verified
     // payment to a known vendor (same signals createBusinessTransaction
@@ -99,7 +99,7 @@ describe("Refusal Record (RFC-0021, HTTP boundary)", () => {
   it("produces a verifiable Refusal Record with no bindingViolations for an ordinary policy REJECT", async () => {
     const app = buildApp();
 
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     // Signals stay consistent with intent (no binding violation) but
     // fail the policy's own risk-score rule (requires <= 20) -- an
@@ -139,7 +139,7 @@ describe("Refusal Record (RFC-0021, HTTP boundary)", () => {
   it("reports a tampered Refusal Record as invalid, not as a crash", async () => {
     const app = buildApp();
 
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
     transaction.signals = { ...transaction.signals, riskScore: 999 };
 
     await request(app).post("/execute").send(transaction);
@@ -218,7 +218,7 @@ describe("Refusal Record ownership scoping (RFC-0021, IDOR regression)", () => {
   it("blocks caller-b from reading caller-a's Refusal Record (GET /refusal/:id), but caller-a can read their own", async () => {
     const app = buildScopedApp();
 
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
     transaction.signals = { ...transaction.signals, riskScore: 999 };
 
     const executeResponse = await request(app)
@@ -247,7 +247,7 @@ describe("Refusal Record ownership scoping (RFC-0021, IDOR regression)", () => {
   it("POST /refusal/verify requires no caller authentication at all, even when caller-auth is enabled for every other route", async () => {
     const app = buildScopedApp();
 
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
     transaction.signals = { ...transaction.signals, riskScore: 999 };
 
     await request(app)

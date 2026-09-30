@@ -12,6 +12,10 @@ import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 import type { BusinessTransaction } from "@parmana/shared";
 
 import { LoggingRuntimeComponent } from "./LoggingRuntimeComponent.js";
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 const root = path.resolve(import.meta.dirname);
 
@@ -31,6 +35,7 @@ const executionSystem = new DefaultExecutionSystem();
 // Build a custom runtime.
 //
 const runtime = new RuntimeBuilder()
+  .withSignalStateVerifier(demoApprovalSignalVerifier())
   .withPolicyRepository(policyRepository)
   .addStage(new LoggingRuntimeComponent())
   .build(trustRecords, executionSystem);
@@ -38,7 +43,7 @@ const runtime = new RuntimeBuilder()
 //
 // Execute.
 //
-const result = await runtime.execute(transaction);
+const result = await runtime.execute(await withDemoApproval(transaction));
 
 const trustRecord = result.trustRecord;
 

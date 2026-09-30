@@ -26,7 +26,7 @@ Parmana never talks to Paytm directly, at all.
 
 AI Agent
   -> Parmana POST /execute
-  -> customer-refund@1.0.0 policy
+  -> customer-refund@1.2.0 policy (a manager's signed approval required)
   -> APPROVED
   -> Parmana Execution Gateway
   -> GatewayPaytmAdapter (this codebase)
@@ -49,7 +49,7 @@ two-layer design left a real gap — see the correction below the table.
 
 | Layer                                          | What it proves                                                                                                                                                                             | Where it lives                                                                                                                                                                                                                                                                                                                                                                                                                         | What it is NOT                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Parmana authorization**                      | This specific refund (this amount, this order, this transaction) was actually approved by policy, for a reason Parmana can show.                                                           | `customer-refund@1.0.0` policy, `SignalIntentBinder`, `CapabilityPolicyBinder`, `SignedTokenConnectorAuthenticator`, `ExecutionControlService` — all pre-existing, all unmodified by this connector.                                                                                                                                                                                                                                   | Not something Paytm's API has any concept of.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Parmana authorization**                      | This specific refund (this amount, this order, this transaction) was actually approved by policy and signed off by a trusted manager, for a reason Parmana can show.                       | `customer-refund@1.2.0` policy, `ApprovalSignalVerifier`, `SignalIntentBinder`, `CapabilityPolicyBinder`, `SignedTokenConnectorAuthenticator`, `ExecutionControlService` — all pre-existing, all unmodified by this connector.                                                                                                                                                                                                         | Not something Paytm's API has any concept of.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | **Authorization signature** _(added Phase 2B)_ | This exact `businessTransactionId`/`orderId`/`txnId`/`amount` combination is the one Parmana's policy engine actually approved — not merely that _some_ refund was approved at some point. | `GatewayPaytmAdapter` signs `canonicalPaytmAuthorizationString(...)` (`packages/connector-paytm/src/PaytmTypes.ts`) with the gateway's own key (`SignerBootstrap`/`DEFAULT_KEY_ID`) and attaches `signature`/`keyId`/`expiresAt` (60s TTL, `PAYTM_AUTHORIZATION_SIGNATURE_TTL_MS`) to the outbound `authorization` object. `parmana-paytm-agent` fetches the matching public key via `GET /keys/:keyId` and verifies before executing. | **Update (2026-09-16): now backed by AWS KMS in production** (`KEY_PROVIDER=aws-kms`, `docs/adr/ADR-0009-KMS-Secrets-And-Connector-Signature-Hardening.md`, `docs/site/deployment/aws-kms-signing.mdx`). Verified live against the real, deployed `parmana-paytm-agent` service: its own audit trail recorded `authorization.verified` for a real signed request, confirming the KMS-signed signature verifies correctly on the receiving side. Getting there required fixing a real bug where the gateway's signing and per-authorization verification paths had silently diverged (`docs/VERIFICATION-GAPS.md` G-48) — see `examples/tutorials/114-signing-verification-key-agreement/` for a reproduction. |
 | **Connector transport authentication**         | This HTTPS request actually came from Parmana's gateway, not an arbitrary caller.                                                                                                          | `PAYTM_CONNECTOR_SHARED_SECRET`, sent as a Bearer token on the one call `GatewayPaytmAdapter` makes.                                                                                                                                                                                                                                                                                                                                   | Not Paytm's merchant key/checksum. On its own (before Phase 2B), this was the _only_ thing standing between an arbitrary caller and a real refund — see below.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | **Paytm's own authentication/checksum**        | Paytm's API believes the connector service is a legitimate Paytm merchant integration.                                                                                                     | Entirely inside `parmana-paytm-agent`. This codebase never sees it, never holds `PAYTM_MERCHANT_KEY`, and never constructs a Paytm checksum.                                                                                                                                                                                                                                                                                           | Not a substitute for Parmana authorization.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
@@ -75,18 +75,23 @@ without Parmana's private key, regardless of how the shared secret was obtained.
 1. AI Agent calls Parmana POST /execute with:
      intent.action = "paytm:refund"
      intent.parameters = { orderId, transactionId, amount, refundReason?, refundReference? }
-     policy = { name: "customer-refund", version: "1.0.0", schemaVersion: "1.0.0" }
-     signals = { refundEligible, managerApproved, fraudCheckPassed, refundAmount }
+     policy = { name: "customer-refund", version: "1.2.0", schemaVersion: "1.0.0" }
+     signals = { refundEligible, managerApproved, fraudCheckPassed, refundAmount,
+                 approvalArtifact }   (the manager's signed approval)
 
 2. CapabilityPolicyBinder confirms paytm:refund is paired with exactly the
-   canonical policy bound to it (customer-refund@1.0.0) -- not a caller-substituted one.
+   canonical policy bound to it (customer-refund@1.2.0, or the version most recently
+   approved through policy governance) -- not a caller-substituted one.
 
 3. SignalIntentBinder confirms signals.refundAmount === intent.parameters.amount
    (policy.json's boundSignals) -- the declared "authorized amount" and the
    amount that will actually execute cannot diverge.
 
-4. PolicyEngine.evaluate runs customer-refund/1.0.0's rules against the
-   signals. All four conditions true and refundAmount <= 10000 -> APPROVE.
+4. PolicyEngine.evaluate runs customer-refund/1.2.0's rules against the
+   signals. All four conditions true and 0 < refundAmount <= 100000 -> APPROVE,
+   then ApprovalSignalVerifier confirms managerApproved is backed by a signed
+   approval for this order, covering this amount, used once. Without it the
+   refund is refused. No agent action runs without a signed human approval.
 
 5. Execution Gateway signs the authorization and dispatches to the
    registered "paytm" connector (GatewayPaytmAdapter).
@@ -178,12 +183,12 @@ that literally zero requests reached the connector service.
 connector**, not just an ordinary policy rule:
 
 1. **`CapabilityPolicyBinder`** — the caller declared a `policy` reference other than the canonical
-   one bound to `paytm:refund` (`customer-refund@1.0.0`). Closes the "pair a real capability with an
+   one bound to `paytm:refund` (`customer-refund@1.2.0`). Closes the "pair a real capability with an
    unrelated, unprotected policy" exploit class.
 2. **`SignalIntentBinder`** — a `boundSignals`-declared signal (`refundAmount`) does not equal the
    value at its bound Intent path (`parameters.amount`). This is what catches "authorized amount 500,
    actual execution amount 50000": the two can never diverge and still reach `PolicyEngine.evaluate`.
-3. **`PolicyEngine.evaluate`** against `customer-refund/1.0.0`'s own rules — the ordinary case
+3. **`PolicyEngine.evaluate`** against `customer-refund/1.2.0`'s own rules — the ordinary case
    (excessive amount, failed fraud check, not manager-approved, or the unconditional
    `reject-default` fallback).
 
@@ -192,8 +197,9 @@ connector**, not just an ordinary policy rule:
 Exactly one capability is registered: `paytm:refund` (`PAYTM_REFUND_CAPABILITY`,
 `packages/connector-paytm/src/PaytmCapabilities.ts`). It is bound, in
 `packages/capability-registry/src/CapabilityPolicyBinding.ts`'s
-`CANONICAL_CAPABILITY_POLICY_BINDINGS`, to `customer-refund@1.0.0` — a pre-existing policy this
-connector did not need to create or modify. It is **not** listed in
+`CANONICAL_CAPABILITY_POLICY_BINDINGS`, to `customer-refund@1.2.0` (originally 1.0.0, a pre-existing
+policy this connector did not need to create or modify; 1.0.0 and 1.1.0 now fail to load, since
+they authorized refunds without a person). It is **not** listed in
 `packages/api/src/bootstrap/intentionallyUnboundCapabilities.ts`, so
 `assertConnectorCapabilitiesBound.ts`'s fail-closed startup guardrail actively protects it: if this
 binding were ever removed while the connector stayed registered, the process refuses to start.

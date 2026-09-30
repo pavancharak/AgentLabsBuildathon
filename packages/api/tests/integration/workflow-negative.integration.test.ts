@@ -26,7 +26,7 @@ describe.skipIf(!databaseConfigured)("Negative Workflow Integration", () => {
     //
     // Execute a Business Transaction.
     //
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     const execute = await request(app).post("/execute").send(transaction);
 

@@ -15,7 +15,7 @@ const databaseConfigured = resolveDatabaseGate(
 
 describe.skipIf(!databaseConfigured)("Execution Trust Record Lifecycle", () => {
   it("maintains the complete trust lifecycle", async () => {
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     //
     // Execute
