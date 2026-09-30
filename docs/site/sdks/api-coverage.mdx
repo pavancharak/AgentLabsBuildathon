@@ -55,6 +55,7 @@ The offline verifiers make no network call. Get the public key once with `public
 
 | Operation                                                | TypeScript                                            | Python                                                                             |
 | -------------------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `GET /policies/in-effect?capability=`                    | `policyInEffect(capability)` **next release**         | `policy_in_effect(capability)` **next release**, `policy.in_effect(...)`           |
 | `POST /policies/validate`                                | `validatePolicy(name, version)`                       | `validate_policy(name, version)`, `policy.validate(...)`                           |
 | `POST /policies/{name}/{version}/pending-changes`        | `proposePolicyChange(name, version, input)` **1.3.0** | `propose_policy_change(name, version, proposed_content=, reason=)` **1.3.0**       |
 | `GET /policies/pending-changes`                          | `policyChanges(status?)` **1.3.0**                    | `policy_changes(status=None)` **1.3.0**, `policy.list_changes(...)`                |

@@ -12,6 +12,16 @@ every commit, run `git log` in the repository for the complete record.
 
 ## 2026-09-30
 
+**Added: the server says what a request must carry**
+
+- **`GET /policies/in-effect` now also returns `description` and `signals`**: every fact the policy's rules read
+  (`facts`), their types (`schema`), the signals that must equal a value of the Intent (`bound`), and the signals that
+  need a signed approval with where its resource and amount are in the request (`approval`). The rule conditions
+  are never returned; `description` is the policy author's text for people. An agent no longer needs a copy of the policy, or the operator, to build a request. See
+  [Integrate Parmana: specification for AI agents](/agents/integrate), step 3.
+- **SDK methods, in the next SDK release**: `policyInEffect(capability)` in TypeScript, `policy_in_effect(capability)`
+  in Python. Not yet published; 1.4.0 does not have them.
+
 **Security: no AI agent action without a signed human approval, reads included**
 
 Merged (PR #87) and deployed to production on 2026-09-30. All 13 new policy versions below were

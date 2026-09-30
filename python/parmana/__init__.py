@@ -25,6 +25,7 @@ from .models.policy_change_results import (
     PolicyChangeForReview,
     ProposedPolicyChange,
 )
+from .models.policy_in_effect import PolicyInEffect, PolicySignalRequirements
 from .version import __version__
 
 __all__ = [
@@ -38,6 +39,8 @@ __all__ = [
     "UnfinalizedExecutionIntents",
     "CallerIdentity",
     "PublicKeyInfo",
+    "PolicyInEffect",
+    "PolicySignalRequirements",
     "PolicyChangeDiff",
     "PolicyChangeForReview",
     "ProposedPolicyChange",

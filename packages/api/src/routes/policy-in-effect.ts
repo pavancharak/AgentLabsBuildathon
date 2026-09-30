@@ -1,12 +1,17 @@
 import { Router } from "express";
 import type { NextFunction, Request, Response } from "express";
 
-import { CapabilityPolicyBinder } from "@parmana/policy";
+import {
+  CapabilityPolicyBinder,
+  describePolicySignalRequirements,
+} from "@parmana/policy";
+import type { Policy } from "@parmana/policy";
 
 import type { CallerAuditSink } from "../auth/CallerAuditSink.js";
 import { isCapabilityAllowed } from "../auth/isCapabilityAllowed.js";
 import { isHumanCaller } from "../auth/isHumanCaller.js";
 import { recordCallerAuditEvent } from "../auth/recordCallerAuditEvent.js";
+import { policyRepository } from "../application.js";
 import { createCurrentPolicyVersionSource } from "../bootstrap/createCurrentPolicyVersionSource.js";
 
 /**
@@ -21,9 +26,18 @@ import { createCurrentPolicyVersionSource } from "../bootstrap/createCurrentPoli
  * disagree with enforcement; the agent still declares the version in
  * its request, and the request is still checked.
  *
+ * The answer also says what a request must carry, without the rules:
+ * the policy's description, and its signal requirements (every fact the
+ * rules read, their declared types, the facts that must equal a value of
+ * the Intent, and the facts that need a signed approval with what that
+ * approval names). An agent builds its request from these instead of
+ * from a copy of the policy. Rule conditions are not returned; the
+ * description is the policy author's own text.
+ *
  * Who may ask: a caller whose key may invoke the capability, or a human
  * caller. Responses:
- * - 200 { capability, policy: { name, version, schemaVersion } }
+ * - 200 { capability, policy: { name, version, schemaVersion },
+ *   description, signals: { facts, schema, bound, approval } }
  * - 400 capability missing
  * - 403 CAPABILITY_NOT_ALLOWED
  * - 404 CAPABILITY_NOT_BOUND: no policy is bound to it
@@ -37,6 +51,10 @@ export function createPolicyInEffectRouter(
   binder: CapabilityPolicyBinder = new CapabilityPolicyBinder(
     createCurrentPolicyVersionSource(),
   ),
+  loadPolicy: (name: string, version: string) => Promise<Policy> = (
+    name,
+    version,
+  ) => policyRepository.load(name, version),
 ): Router {
   const router = Router();
 
@@ -104,7 +122,34 @@ export function createPolicyInEffectRouter(
           return;
         }
 
-        res.status(200).json({ capability, policy: inEffect.policy });
+        let policy: Policy;
+
+        try {
+          policy = await loadPolicy(
+            inEffect.policy.name,
+            inEffect.policy.version,
+          );
+        } catch (error) {
+          console.error({
+            event: "policy_in_effect_load_failed",
+            capability,
+            policy: inEffect.policy,
+            error: error instanceof Error ? error.message : String(error),
+          });
+
+          res.status(503).json({
+            error: `The policy in effect for "${capability}" could not be read.`,
+            code: "POLICY_VERSION_UNAVAILABLE",
+          });
+          return;
+        }
+
+        res.status(200).json({
+          capability,
+          policy: inEffect.policy,
+          description: policy.description ?? null,
+          signals: describePolicySignalRequirements(policy),
+        });
         return;
       } catch (error) {
         next(error);

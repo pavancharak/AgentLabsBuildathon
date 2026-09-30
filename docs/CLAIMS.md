@@ -575,6 +575,29 @@ Evidence
 
 ---
 
+## 2.48 The Server Tells an Agent What a Request Must Carry (Scoped, 2026-09-30)
+
+**Claim:** `GET /policies/in-effect?capability=...` returns, with the policy to declare, what a request under it must carry: every fact the policy's rules read, their declared types, the signals that must equal a value of the Intent, and the signals that need a signed approval with where the approval's resource and amount are in the request. An agent can build a request from the server's answer, without a copy of the policy and without asking the operator.
+
+Scope, stated plainly:
+
+- **Rule conditions are not returned.** The answer carries the policy's `description`, the author's own text, which may mention a limit; the server decides with the rules.
+- **Same authorization as before.** Only a caller whose key may invoke the capability, or a human caller.
+- **Fails closed.** If the policy in effect cannot be read, the answer is `503 POLICY_VERSION_UNAVAILABLE`, never a partial answer.
+- **SDKs:** `policyInEffect()` in TypeScript and `policy_in_effect()` in Python are in the repository, not yet published (1.4.0 on the registries does not have them).
+- **Not deployed** until this change is merged and deployed.
+
+Verification
+
+- `packages/api/tests/integration/policy-in-effect.integration.test.ts`: the refund answer equals the facts, schema, bound and approval declarations of `customer-refund`; no rule condition in `signals`; a read (`github:pr-fetch`) names `readApproved` for the target; `503` with no `signals` when the policy cannot be read.
+- `packages/policy/tests/unit/policySignalRequirements.test.ts`: facts collected from nested `all` and `any`, sorted, once; empty objects when a policy declares none.
+- `typescript/test/Alignment.test.ts`, `python/tests/test_sdk_alignment.py`: the SDK methods call the endpoint and return the answer; Python keeps signal names unconverted.
+
+Evidence
+
+- `packages/api/src/routes/policy-in-effect.ts`; `packages/policy/src/policySignalRequirements.ts` (also used by `PolicyValidator`)
+- `openapi/openapi.yaml` (`getPolicyInEffect`); `docs/site/agents/integrate.mdx` step 3
+
 ## 2.23 Independently Certified Authorization (Phase 3D)
 
 _"Even if AI has valid credentials, it still cannot execute anything your business hasn't authorized. No exceptions"_ — the specific claim tracked and re-verified across the Phase 2K capability policy binding record (in git history), the Phase 2L authorization exceptions record (in git history) (which found it **not fully supported**, naming two exceptions: Razorpay's caller-declared daily cumulative total, and HubSpot's caller-declared `preAuthorizedForAmountChange`) — was independently re-certified from current repository state in the Phase 3D independent authorization certification (in git history), treating every prior phase's conclusion as a claim to re-verify, not inherit.
@@ -1240,7 +1263,7 @@ A `paytm:refund` above 10000 executes only with a signed approval from a trusted
 
 Scope, stated plainly:
 
-- **One approver is configured.** `TRUSTED_APPROVAL_ISSUERS` lists one approver, `manager-charak1987` (added 2026-09-28, held by the operator, who also holds the maker and checker credentials); an approval from anyone else is refused. It takes effect in production when its change is deployed. The success path is proven in tests with a test approver; an approval signed by `manager-charak1987` being accepted in production has not been checked yet.
+- **One approver is configured.** `TRUSTED_APPROVAL_ISSUERS` lists one approver, `manager-charak1987` (added 2026-09-28, held by the operator, who also holds the maker and checker credentials); an approval from anyone else is refused. It takes effect in production when its change is deployed. The success path is proven in tests with a test approver; an approval signed by `manager-charak1987` being accepted in production has not been checked yet. **Update (2026-09-30):** key `manager-charak1987-key-1` is revoked in code; the manager now signs with `manager-charak1987-key-2`, added through maker checker (`/approval-issuers/changes`) during the credential rotation.
 - **Approved in production, 2026-09-27 18:53:40 UTC** (pending change `008f504d-0efd-4bec-b33a-2991bb84099f`), so refunds in production run under 1.1.0. With no approver configured, every production refund above 10000 is refused. The approval was made with two distinct credentials held by one person, not by two people (2.43).
 - A refused request is not held for a person, and nobody is notified. The agent sends a new request with the approval.
 - **The refund agent** (`parmana-paytm-agent`) forwards a signed approval (`approvalArtifact` in its `/agent/refunds` body) since its PR #6, deployed 2026-09-28; before that it had no way to send one. A signed approval through the agent has not been tested in production yet.

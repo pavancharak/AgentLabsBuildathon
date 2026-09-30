@@ -16,6 +16,7 @@ from parmana.models.policy_change_results import (
     PolicyChangeForReview,
     ProposedPolicyChange,
 )
+from parmana.models.policy_in_effect import PolicyInEffect
 from parmana.serialization import decode
 
 
@@ -31,6 +32,8 @@ class PolicyApi:
 
     Responsibilities
     ----------------
+    - Read the policy in effect for a capability, and what a request must
+      carry
     - Confirm a policy (name + version) is loadable by the Runtime
     - Propose a policy change, list changes for review, approve or reject one
 
@@ -50,6 +53,30 @@ class PolicyApi:
         transport: Transport,
     ) -> None:
         self._transport = transport
+
+    def in_effect(self, capability: str) -> PolicyInEffect:
+        """
+        The policy a request for `capability` must declare right now, and
+        what the request must carry.
+
+        Maps to GET /policies/in-effect. Returns every fact the policy's
+        rules read, their types, the signals bound to the Intent, and the
+        signals that need a signed approval. Call it before every request:
+        an approved new version replaces the old one at once.
+
+        Raises AuthorizationError (403, code CAPABILITY_NOT_ALLOWED) when
+        the key may not invoke the capability, NotFoundError (404,
+        CAPABILITY_NOT_BOUND) when no policy governs it, and ConflictError
+        (409, NO_APPROVED_POLICY_VERSION) or InternalServerError (503,
+        POLICY_VERSION_UNAVAILABLE) when every request for it is refused
+        right now. Do not send a request in any of those cases.
+        """
+
+        return self._transport.send(
+            method="GET",
+            path=f"/policies/in-effect?capability={quote(capability, safe='')}",
+            response_model=PolicyInEffect,
+        )
 
     def validate(
         self,

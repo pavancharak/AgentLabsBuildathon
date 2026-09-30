@@ -3019,8 +3019,13 @@ paths:
         no deploy. An agent reads it before sending instead of writing a
         version into its code. It is the same rule POST /execute enforces,
         so a request declaring this policy passes that check; the request is
-        still checked. Allowed for a caller whose key may invoke the
-        capability, and for human callers. See
+        still checked. The answer also says what a request must carry,
+        without the rules: the policy's description and its signal
+        requirements (every fact the rules read, their declared types, the
+        facts that must equal a value of the Intent, and the facts that need
+        a signed approval with what that approval names). Rule conditions
+        are not returned; the description is the policy author's text. Allowed for a caller whose key may
+        invoke the capability, and for human callers. See
         packages/api/src/routes/policy-in-effect.ts.
       parameters:
         - name: capability
@@ -3040,6 +3045,8 @@ paths:
                 required:
                   - capability
                   - policy
+                  - description
+                  - signals
                 properties:
                   capability:
                     type: string
@@ -3056,15 +3063,82 @@ paths:
                         type: string
                       schemaVersion:
                         type: string
+                  description:
+                    type:
+                      - string
+                      - "null"
+                    description: The policy author's description for people, or null.
+                  signals:
+                    type: object
+                    description: What a request under this policy must carry.
+                    required:
+                      - facts
+                      - schema
+                      - bound
+                      - approval
+                    properties:
+                      facts:
+                        type: array
+                        items:
+                          type: string
+                        description: Every fact the policy's rules read, sorted. Send each in the request's signals.
+                      schema:
+                        type: object
+                        additionalProperties:
+                          type: string
+                        description: The declared type of each signal (boolean, number, string).
+                      bound:
+                        type: object
+                        additionalProperties:
+                          type: string
+                        description: >
+                          Signals that must equal a value of the Intent, as signal name to path
+                          (for example refundAmount to parameters.amount). A mismatch is refused.
+                      approval:
+                        type: object
+                        additionalProperties:
+                          type: object
+                          required:
+                            - resourceId
+                          properties:
+                            resourceId:
+                              type: string
+                              description: Where the resource the approval names is in the request, target or a parameters path.
+                            value:
+                              type: string
+                              description: Where the amount the approval must cover is, when there is one.
+                        description: >
+                          Signals that count as true only with a signed approval in
+                          signals.approvalArtifact, and what that approval must name.
               examples:
                 refund:
-                  summary: The refund capability after customer-refund 1.1.0 was approved
+                  summary: The refund capability under customer-refund 1.2.0
                   value:
                     capability: "paytm:refund"
                     policy:
                       name: customer-refund
-                      version: "1.1.0"
+                      version: "1.2.0"
                       schemaVersion: "1.0.0"
+                    description: "Authorizes customer refunds. Every refund above 0 and up to 100000 needs a signed manager approval for that order, covering that amount."
+                    signals:
+                      facts:
+                        [
+                          fraudCheckPassed,
+                          managerApproved,
+                          refundAmount,
+                          refundEligible,
+                        ]
+                      schema:
+                        refundEligible: boolean
+                        managerApproved: boolean
+                        fraudCheckPassed: boolean
+                        refundAmount: number
+                      bound:
+                        refundAmount: parameters.amount
+                      approval:
+                        managerApproved:
+                          resourceId: parameters.orderId
+                          value: parameters.amount
         "400":
           description: The capability query parameter is missing.
           content:
@@ -3092,7 +3166,7 @@ paths:
               schema:
                 $ref: "../schemas/common/error.schema.json"
         "503":
-          description: The version in effect could not be looked up, so every request for the capability is refused meanwhile (code POLICY_VERSION_UNAVAILABLE).
+          description: The version in effect, or the policy itself, could not be read, so every request for the capability is refused meanwhile (code POLICY_VERSION_UNAVAILABLE).
           content:
             application/json:
               schema:

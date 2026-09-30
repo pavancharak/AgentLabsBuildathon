@@ -5,6 +5,7 @@ import type {
 } from "./types/Policy.js";
 
 import { PolicyValidationError } from "./errors/PolicyValidationError.js";
+import { collectReferencedFacts } from "./policySignalRequirements.js";
 
 /**
  * The signal that carries an approval when an approvalSignals entry
@@ -437,30 +438,7 @@ export class PolicyValidator {
    * Every fact any rule condition references.
    */
   private referencedFacts(policy: Policy): Set<string> {
-    const referenced = new Set<string>();
-
-    const walk = (condition: PolicyCondition): void => {
-      if ("fact" in condition) {
-        referenced.add(condition.fact);
-        return;
-      }
-
-      if ("all" in condition) {
-        condition.all.forEach(walk);
-        return;
-      }
-
-      if ("any" in condition) {
-        condition.any.forEach(walk);
-        return;
-      }
-    };
-
-    for (const rule of policy.rules) {
-      walk(rule.condition);
-    }
-
-    return referenced;
+    return new Set(collectReferencedFacts(policy));
   }
 
   /**

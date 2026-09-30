@@ -6,6 +6,8 @@
  * Provides access to policy-related Runtime APIs.
  *
  * Responsibilities:
+ * - Read the policy in effect for a capability, and what a request must
+ *   carry.
  * - Validate policies.
  * - Policy governance: propose a change, list changes, approve or reject
  *   one with a signed step up authorization.
@@ -27,6 +29,7 @@ import type {
   ProposePolicyChangeInput,
   ProposedPolicyChange,
 } from "../models/policy-change.js";
+import type { PolicyInEffect } from "../models/policy-in-effect.js";
 
 /**
  * Canonical policy validation result.
@@ -48,6 +51,29 @@ export interface PolicyValidationResult {
  */
 export class PolicyApi {
   constructor(private readonly transport: Transport) {}
+
+  /**
+   * The policy a request for `capability` must declare right now, and what
+   * the request must carry: every fact the rules read, their types, the
+   * signals bound to the Intent, and the signals that need a signed
+   * approval. Maps to GET /policies/in-effect. Call it before every
+   * request: an approved new version replaces the old one at once.
+   *
+   * Throws AuthorizationError (403, code CAPABILITY_NOT_ALLOWED) when the
+   * key may not invoke the capability, NotFoundError (404, code
+   * CAPABILITY_NOT_BOUND) when no policy governs it, and ConflictError
+   * (409, NO_APPROVED_POLICY_VERSION) or InternalServerError (503,
+   * POLICY_VERSION_UNAVAILABLE) when every request for it is refused right
+   * now. Do not send a request in any of those cases.
+   */
+  public async inEffect(capability: string): Promise<PolicyInEffect> {
+    const response = await this.transport.send<PolicyInEffect>({
+      method: "GET",
+      path: `/policies/in-effect?capability=${encodeURIComponent(capability)}`,
+    });
+
+    return response.body;
+  }
 
   /**
    * Confirms that a policy (name + version) is loadable by the Runtime.

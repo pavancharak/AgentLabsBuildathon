@@ -272,6 +272,33 @@ doubles as the server's idempotency key. `authorityType` defaults to `"SERVICE"`
 `typescript/test/integration/examples.integration.test.ts` (proves the generated ids round-trip
 correctly through a real running server, not just in isolation).
 
+## Next release (not yet published)
+
+<Info>
+  In this repository, not yet on npm. `npm install @parmana/sdk` still installs
+  1.4.0, which does not have this method.
+</Info>
+
+### What a request must carry, from the server
+
+`policyInEffect(capability)` calls `GET /policies/in-effect` and returns the policy to declare and what the request
+must carry: every fact the policy's rules read (`signals.facts`), their types (`signals.schema`), the signals that must
+equal a value of the Intent (`signals.bound`), and the signals that need a signed approval, with where the approval's
+resource and amount are in the request (`signals.approval`). It never returns the rules.
+
+```typescript
+const inEffect = await client.policyInEffect("paytm:refund");
+
+inEffect.policy; // { name: "customer-refund", version: "1.2.0", schemaVersion: "1.0.0" }
+inEffect.signals.facts; // ["fraudCheckPassed", "managerApproved", "refundAmount", "refundEligible"]
+inEffect.signals.approval; // { managerApproved: { resourceId: "parameters.orderId", value: "parameters.amount" } }
+```
+
+Call it before every request and send `policy` exactly as returned. It throws `AuthorizationError` (403,
+`CAPABILITY_NOT_ALLOWED`), `NotFoundError` (404, `CAPABILITY_NOT_BOUND`), `ConflictError` (409,
+`NO_APPROVED_POLICY_VERSION`) or `InternalServerError` (503, `POLICY_VERSION_UNAVAILABLE`); in each case send nothing.
+The step by step use is in [Integrate Parmana: specification for AI agents](/agents/integrate), step 3.
+
 ## New in 1.4.0
 
 <Info>

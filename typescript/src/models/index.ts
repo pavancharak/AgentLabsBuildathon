@@ -10,6 +10,7 @@ export * from "./intent.js";
 export * from "./override.js";
 export * from "./policy.js";
 export * from "./policy-change.js";
+export * from "./policy-in-effect.js";
 export * from "./receipt.js";
 export * from "./refusal-record.js";
 export * from "./replay-result.js";

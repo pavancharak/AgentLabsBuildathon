@@ -56,15 +56,18 @@ export interface ConfiguredApprovalIssuer {
  * request, deploy. To revoke one here: revoked: true.
  *
  * Entries:
- * - manager-charak1987 (added 2026-09-28): the refund manager for
- *   customer-refund 1.1.0 approvals above 10000. Held by the operator,
- *   who also holds the maker and checker credentials for now.
+ * - manager-charak1987 key 1 (added 2026-09-28, revoked 2026-09-30):
+ *   the refund manager's first key. Replaced during the 2026-09-30
+ *   credential rotation by manager-charak1987-key-2, which was added
+ *   through maker checker and lives in the approval_issuers table.
+ *   Kept here, revoked, so approvals it signed can still be traced
+ *   to a known key and the key id cannot be added again.
  */
 const TRUSTED_APPROVAL_ISSUERS: readonly ConfiguredApprovalIssuer[] = [
   {
     approverId: "manager-charak1987",
     keyId: "manager-charak1987-key-1",
-    revoked: false,
+    revoked: true,
     publicKeyPem:
       "-----BEGIN PUBLIC KEY-----\n" +
       "MCowBQYDK2VwAyEAVMs/E6N2XEQfEEWlwMg0wRS0L4svbZ0W785aAxUP78M=\n" +
