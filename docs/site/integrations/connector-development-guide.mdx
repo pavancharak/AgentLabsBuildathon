@@ -7,7 +7,10 @@ description: "How to implement a Connector against @parmana/connector-sdk, every
   **[AVAILABLE] as a library**, `packages/connector-sdk`, **[AVAILABLE] wired
   into the default server** for HubSpot, GitHub, Paytm, and Slack, each
   registering only when its own credentials are configured. Adding another
-  connector is a code change today, see the warning below.
+  connector in code is a code change, see the warning below. To connect a system
+  you run an HTTPS endpoint for, with no code change, register an external
+  connector instead: [Connect any external
+  system](/guides/connect-any-external-system).
 </Info>
 
 <Note>

@@ -96,6 +96,7 @@
               "guides/credentials-maker-checker-approver",
               "guides/authorize-and-execute",
               "guides/connect-an-agent",
+              "guides/connect-any-external-system",
               "guides/session-credentials",
               "guides/choose-a-signature-provider"
             ]
