@@ -1295,6 +1295,44 @@ approved on facts the agent declares or on nothing:
   - **No automatic path by design.** An action cannot be authorized by a server side check alone.
     Adding one would be a change to this rule, not a fix.
 
+**G-81. A registered external connector receives no release, and its policy is not bound yet. FOUND
+2026-09-30, `pre-production` (open by design until ADR-0013 step 4; nothing executes).**
+Registrations through `/external-connectors` are live in production (2.49), but:
+
+- **No connector is built for a registered capability.** `createConnectorRegistry.ts` lists only the
+  built in connectors, and `ConnectorRegistry.resolveCapability` is synchronous and in memory, so a
+  request for a registered capability is refused with `503 CONNECTOR_NOT_REGISTERED`.
+  `GatewayExternalAdapter` is merged and deployed but nothing constructs it.
+- **The registration's policy is not enforced as the binding.** `CapabilityPolicyBinder` binds only the
+  capabilities in `CANONICAL_CAPABILITY_POLICY_BINDINGS`; for any other capability the caller's
+  declared policy is used. Every policy needs a signed approval (G-80), and no connector runs, so no
+  action follows, but the binding ADR-0013 requires does not exist yet.
+- **`GET /policies/in-effect` does not answer for a registered capability** (`404 CAPABILITY_NOT_BOUND`).
+- **The policy name is checked for form only** when a registration is proposed, not that the policy
+  exists or has an approved version.
+- **To close (ADR-0013 step 4):** resolve a registered capability to the adapter at request time,
+  bind its policy with the version in effect from policy governance, refuse when that policy has no
+  approved version, and answer `GET /policies/in-effect` for it; then the live check (step 6).
+
+**G-82. What an external endpoint answers is its claim, not proof. FOUND 2026-09-30, `pre-production`
+(a property of the design, ADR-0013 Security; recorded so no claim overstates it).**
+`GatewayExternalAdapter` accepts an answer that echoes the release's `businessTransactionId` and
+`capability`, with a boolean `success` and a `result` object of at most 16 KB. A compromised or wrong
+endpoint can still report a false `success` or `result`; it cannot widen what Parmana approved,
+because the release names one capability, target and parameter set. An endpoint's own signature on
+its answer is recorded as sent and not verified (ADR-0013 open question 3: optional in version 1).
+`approvedBy` in the release lists the signed approvals only when the Gateway checked the request's
+signals against the authorization's signed `signalsHash` (production has a signal state verifier);
+otherwise it is empty. An endpoint must not treat an empty list as "no approval was needed": every
+policy requires one (G-80).
+
+**G-83. The release transport connects to the first checked address only. FOUND 2026-09-30,
+`cosmetic` (availability, not security).**
+`createPinnedHttpsTransport` resolves the endpoint's host, refuses if any address is not public,
+and connects to the first address, never resolving the host again. If that address is down and
+another would answer, the release fails (and is recorded as an unknown outcome) instead of trying
+the next address. Trying further checked addresses would keep the same SSRF guarantee.
+
 ---
 
 ## Remaining gaps, by severity

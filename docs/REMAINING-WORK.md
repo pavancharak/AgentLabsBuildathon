@@ -138,7 +138,7 @@ Goal: an agent that has been manipulated (prompt injection) cannot authorize a r
 
 ## J. External connectors (added 2026-09-30)
 
-Goal: connect any external system with no change to Parmana's code (ADR-0013). Built in the ADR's order, each step its own pull request.
+Goal: connect any external system with no change to Parmana's code (ADR-0013). Built in the ADR's order, each step its own pull request. Claimed so far: `docs/CLAIMS.md` 2.49 (registrations only). Open: `docs/VERIFICATION-GAPS.md` G-81 (step 4), G-82 (an endpoint's answer is its claim), G-83 (first address only).
 
 | Step | What                                                                                                        | State                                                                         |
 | ---- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |

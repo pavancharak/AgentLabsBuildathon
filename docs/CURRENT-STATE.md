@@ -227,7 +227,8 @@ is checked when proposed and when approved (`packages/shared/src/network/externa
 SDK helpers `verifyParmanaRelease` and `verify_parmana_release` (PR #94) are merged and were deployed
 with `7608be6` on 2026-09-30, but nothing in bootstrap builds the adapter for a registered
 capability, and `GET /policies/in-effect` does not answer for one (step 4). The SDK helpers are not
-published yet. No claim is made in `docs/CLAIMS.md` until the live check (step 6).
+published yet. `docs/CLAIMS.md` 2.49 claims the registration governance only; releasing to an
+endpoint is claimed after the live check (step 6). Open: `docs/VERIFICATION-GAPS.md` G-81 to G-83.
 
 ## On disk, but not reachable
 

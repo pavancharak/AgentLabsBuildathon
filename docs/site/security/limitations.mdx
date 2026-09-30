@@ -70,6 +70,11 @@ not claim them:
   key, to approve. The server cannot tell whether two credentials belong to two people. An
   operator with database access can also change `approval_issuers` directly, which bypasses
   this; the change rows record what was done.
+- **An external connector registration governs registration only, for now.** Registering a
+  capability to your own HTTPS endpoint needs two human credentials, as for approver changes, and
+  the endpoint must resolve only to public addresses. A registered endpoint receives no release
+  yet, and its policy is not yet enforced as the binding: that is the next step of ADR-0013. When
+  it does, what the endpoint answers is recorded as its claim, not as proof that it acted.
 - **Approval notifications are best effort.** One attempt, 3 seconds, no retry. A lost event
   changes nothing about the refusal, and the Refusal Records stay the complete list.
 - **Mocks are labeled as mocks.** `SapConnector`, `OracleConnector`, `WorkdayConnector`, and
