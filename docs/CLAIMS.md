@@ -549,12 +549,11 @@ Evidence
 
 Scope, stated plainly:
 
-- **Not merged or deployed.** The change is in the working tree of branch `feat/approval-required-everywhere`, not committed, on 2026-09-30.
-- **Production needs policy approvals.** Production runs the version most recently approved for each name (2.43). After a deploy, and until `github-pr-read` 1.1.0, `hubspot-deal-read` 1.0.0, `hubspot-deal-update` 1.1.0 and `slack-post-message` 1.1.0 are approved through maker checker, the versions in effect fail to load, so GitHub reads, HubSpot reads and updates and Slack posts are refused. Nothing runs without a person in the meantime. CI's `verify-policy-approvals` job also fails until every new policy file has an approval record.
+- **In production since 2026-09-30.** Merged (PR #87, `e18ddae`) and deployed on 2026-09-30, after all 13 new policy versions were approved through maker checker (proposed by `charak1987`, approved by `reviewer-charak1987`, two credentials held by one person). Checked after the deploy: `hubspot:deal-fetch` reports `hubspot-deal-read` 1.0.0 in effect, `/ready` is READY, `/execute` without a key returns `401`. Production runs the version most recently approved for each name (2.43).
 - **An approval covers the action and the resource, not every parameter.** A Slack approval does not fix the message text; a HubSpot approval does not fix the new stage or amount. Payment, expense and refund approvals do cover the amount.
 - **Superseded versions stay in `policies/` as history** (for example `github-pr-read` 1.0.0, `hubspot-deal-update` 1.0.0, `slack-post-message` 1.0.0, `customer-refund` 1.0.0 and 1.1.0, `vendor-payment` 2.0.0). Each fails to load.
 - **No automatic path.** An action cannot be authorized by server checks alone. That is the rule, not a missing feature (G-80).
-- **Who approves is still limited to the trusted approver list** (2.42, 2.45). Today that is one approver held by the operator, so in practice one person approves every agent action.
+- **Who approves is still limited to the trusted approver list** (2.42, 2.45). Today that is one approver, `manager-charak1987`, held by the operator (key `manager-charak1987-key-2` since 2026-09-30, added through maker checker), so in practice one person approves every agent action.
 - Holds for actions routed through Parmana (3.1).
 
 Verification

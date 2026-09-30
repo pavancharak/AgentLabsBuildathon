@@ -10,11 +10,12 @@ product version). The SDKs are versioned independently on their own registries, 
 and per-version notes. This page covers changes that affect what you can build against, not
 every commit, run `git log` in the repository for the complete record.
 
-## 2026-09-30 (not yet released)
+## 2026-09-30
 
 **Security: no AI agent action without a signed human approval, reads included**
 
-On branch `feat/approval-required-everywhere`, not yet merged or deployed. See
+Merged (PR #87) and deployed to production on 2026-09-30. All 13 new policy versions below were
+approved in production through maker checker the same day, so they are in effect. See
 `docs/VERIFICATION-GAPS.md` G-80 and [Human approval](/concepts/human-approval).
 
 - **Every policy must require a signed approval.** A policy with an approve rule that does not
@@ -39,8 +40,15 @@ On branch `feat/approval-required-everywhere`, not yet merged or deployed. See
 - **Local test approver.** `PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE` makes a `NODE_ENV=test` server
   trust `local-test-approver`, so the [Quickstart](/quickstart) can sign its approval. Set with
   any other `NODE_ENV`, the server refuses to start.
-- **In production**, GitHub reads, HubSpot and Slack are refused after deploy until the new
-  versions are approved through policy governance.
+- **What an integrating agent must do now:** attach a signed approval to every GitHub read,
+  HubSpot read or update, and Slack post, exactly as for refunds and merges. A request without one
+  is refused with `403 POLICY_DENIED`. See [Human approval](/concepts/human-approval).
+- **Documentation fix.** The PowerShell proposal commands in
+  [Policy lifecycle and approvals](/guides/policy-lifecycle-and-approvals) and
+  [Credentials](/guides/credentials-maker-checker-approver) now read `policy.json` as UTF-8.
+  Windows PowerShell 5.1 `Get-Content -Raw` reads a file without a byte order mark in the local
+  codepage, so a policy with a character such as an em dash was proposed, and approved, with
+  different text than the file, and CI `verify-policy-approvals` then failed.
 
 ## 2026-09-29
 
@@ -62,10 +70,10 @@ On branch `feat/approval-required-everywhere`, not yet merged or deployed. See
 
 An AI attack review (an agent manipulated by prompt injection calling the API) found facts that an agent declares, and nothing checks, could authorize real actions. See `docs/VERIFICATION-GAPS.md` G-73 to G-78.
 
-- **A pull request merge needs a signed approval** for that pull request (`github-pr-approval` 1.1.0, G-73). The review, check, branch and risk signals come from the caller and can only refuse a merge now. Reading a pull request (`github:pr-fetch`) has its own policy, `github-pr-read` 1.0.0. Both apply in production once approved through policy governance; until `github-pr-read` is approved, reads are refused.
+- **A pull request merge needs a signed approval** for that pull request (`github-pr-approval` 1.1.0, G-73). The review, check, branch and risk signals come from the caller and can only refuse a merge now. Reading a pull request (`github:pr-fetch`) has its own policy, `github-pr-read` 1.0.0 (superseded on 2026-09-30 by 1.1.0, which needs an approval). Both were approved in production the same day.
 - **An older approved policy version is refused once a newer one is approved** (G-74), for every policy, not only connector actions. Send the version in effect; approving an older version again rolls back.
 - **Self hosted quickstart uses `customer-refund` 1.2.0**: its demo refund is refused without a manager approval. The offline check keeps 1.1.0 to prove the authorized path end to end.
-- **Every refund needs a signed manager approval** (`customer-refund` 1.2.0, G-75). Under 1.1.0 a refund up to 10000 was authorized on the agent's own claim that the order was eligible and passed the fraud check. 1.2.0 also refuses a refund of 0 or less. In production it applies once 1.2.0 is approved; until then refunds run under 1.1.0. Read the version with `GET /policies/in-effect?capability=paytm:refund`.
+- **Every refund needs a signed manager approval** (`customer-refund` 1.2.0, G-75). Under 1.1.0 a refund up to 10000 was authorized on the agent's own claim that the order was eligible and passed the fraud check. 1.2.0 also refuses a refund of 0 or less. Approved in production the same day, so it is in effect. Read the version with `GET /policies/in-effect?capability=paytm:refund`.
 - **Slack posts go only to channels on the server's allowlist** (G-76). Set `SLACK_ALLOWED_CHANNEL_IDS` (comma separated channel ids); unset refuses every post. The caller's `channelAuthorized` is no longer trusted, and `parameters.channel` must equal the Intent's `target`. Applies on deploy.
 - **A connector policy cannot let caller facts alone authorize a write** (G-77). A test requires every approve rule of a bound write capability to need a signed approval or a fact the server checks. If you add a connector, classify its capabilities in `connector-policies-not-self-authorizing.test.ts`.
 - **Rate limit on the public routes that do work** (G-78): `POST /refusal/verify`, `POST /execution-intents/verify`, `POST /audit/verify` and `/handbook` share a per IP limit, `RATE_LIMIT_PUBLIC_PER_MINUTE` (default 60). Over it they return `429` with `Retry-After`.
