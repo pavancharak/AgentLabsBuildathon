@@ -1,8 +1,8 @@
 # ADR-0013: Generic External Connector
 
-**Status:** Proposed on 2026-09-30. Not decided, not built.
+**Status:** Accepted by the operator on 2026-09-30, with the proposed answers to the three open questions. Not built yet.
 
-**Date:** Proposed 2026-09-30.
+**Date:** Proposed and accepted 2026-09-30.
 
 **Relates to:** ADR-0009 (the signed authorization the Paytm connector service verifies, which this generalizes), ADR-0012 (Execution Intents, unchanged by this), `docs/CLAIMS.md` 2.45 (approver keys through maker checker, the governance pattern reused here), 2.47 (every action needs a signed approval), 2.48 (the server tells an agent what a request must carry).
 
@@ -12,7 +12,7 @@ An agent that wants Parmana to govern an action on a new external system cannot 
 
 One connector already works differently. `paytm:refund` is released to a separate service over HTTPS (`GatewayPaytmAdapter`). Parmana signs what it approved with its own key, with an expiry, and sends it with a shared secret. The service verifies the signature against Parmana's public key before it touches Paytm, and Parmana accepts the result only when the response echoes the request. Parmana never holds Paytm's merchant key. That pattern is sound, in production, and specific to Paytm: its canonical string, its parameters and its path are fixed in code.
 
-## Decision (proposed)
+## Decision
 
 Make that pattern general. An operator registers an **external connector**: a capability name bound to an HTTPS endpoint the operator runs, and to the policy that governs it. Registration goes through maker checker, like approver keys, and takes effect with no deploy. When a request for that capability is approved, Parmana releases it to the endpoint as a **signed release**. The endpoint verifies the release with a helper from either SDK, performs the action in its own system with its own credentials, and answers with a result Parmana checks and records.
 
@@ -119,11 +119,11 @@ A new docs page, "Connect any external system", with the complete order: write t
 2. **Keep a shared secret per connector, as Paytm does.** Parmana would have to store customer secrets. The signature with an audience gives the same authentication without one.
 3. **Let the agent call the external system itself after an approval.** Then Parmana would not control release, and a manipulated agent could act without it. Rejected: Parmana must release the action.
 
-## Open questions for the operator
+## Open questions, decided 2026-09-30
 
-1. May a registration override a built in capability namespace? Proposed: no.
-2. Should a registration carry a per endpoint rate limit? Proposed: not in the first version.
-3. Should the endpoint sign its answer, so the result is attributable to it? Proposed: optional in version 1, recorded when present.
+1. May a registration override a built in capability namespace? **No.**
+2. Should a registration carry a per endpoint rate limit? **Not in version 1.**
+3. Should the endpoint sign its answer, so the result is attributable to it? **Optional in version 1, recorded when present.**
 
 ## Order of work if accepted
 
