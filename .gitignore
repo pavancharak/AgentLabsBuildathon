@@ -82,3 +82,8 @@ ALL-FIXES-COMPLETE.md
 # Self hosted deployment state made by docker-compose.yml: signing keys,
 # the API key and offline check output. Never commit it.
 parmana-local/
+
+# Agent skills installed locally by vercel integration add (Resend).
+.agents/
+.claude/skills/
+skills-lock.json

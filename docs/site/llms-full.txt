@@ -3321,8 +3321,15 @@ Source: https://docs.parmanasystems.com/guides/approval-notifications
 
 When an agent sends a request that a policy authorizes only with a signed approval, such as a
 refund that needs a manager, Parmana refuses it and the agent must send a new request with the
-approval attached. Approval notifications tell the approver right away. Parmana sends a signed
-`approval.needed` event to a URL you choose, with exactly what the approver needs to sign.
+approval attached. Approval notifications tell the approver right away, with exactly what they
+need to sign, in one or both of two ways:
+
+| Channel | You set                                           | Best for                                                                   |
+| ------- | ------------------------------------------------- | -------------------------------------------------------------------------- |
+| Email   | `APPROVAL_EMAIL_TO`, and the Resend integration   | A person's inbox, with nothing to host. [Set up email](#email).            |
+| Webhook | `APPROVAL_WEBHOOK_URL`, `APPROVAL_WEBHOOK_SECRET` | Your own system: Slack, a ticket, a queue. [Set up the webhook](#webhook). |
+
+Both carry the same facts and are sent under the same rule, below.
 
 ```mermaid
 sequenceDiagram
@@ -3357,7 +3364,72 @@ refused for a failed fraud check, or above the policy's maximum, sends nothing, 
 manager's signature would not change the outcome. Requests refused before the policy runs, such
 as a bad API key or a request whose signals do not match its own parameters, send nothing.
 
-## Set it up
+## Email
+
+Parmana emails each event through [Resend](https://resend.com), from a domain you own.
+
+<Steps>
+  <Step title="Add Resend to the Vercel project">
+    From the repository, linked to the project with `npx vercel link`:
+
+    ```bash
+    npx vercel integration add resend/resend-email --environment production \
+      -m domain=notify.example.com -m region=us-east-1
+    ```
+
+    Accept Resend's terms in the browser when asked. This sets `RESEND_API_KEY` and
+    `RESEND_EMAIL_DOMAIN` on the project. Use a subdomain, such as `notify.example.com`, so its
+    records cannot affect other mail on your domain.
+
+  </Step>
+  <Step title="Verify the domain">
+    Resend lists three DNS records for the domain: a DKIM `TXT` record at
+    `resend._domainkey.notify`, and an `MX` and a `TXT` (SPF) record at `send.notify`. Add them
+    at your DNS provider. Emails are refused until the domain shows **Verified** in Resend.
+  </Step>
+  <Step title="Name the recipients">
+    ```bash
+    npx vercel env add APPROVAL_EMAIL_TO production
+    ```
+    One address, or several separated by commas. Then redeploy.
+  </Step>
+</Steps>
+
+Emails come from `Parmana approvals <approvals@<RESEND_EMAIL_DOMAIN>>`, or from
+`APPROVAL_EMAIL_FROM` if you set it. A missing Resend key, a missing sender, or an address that
+is not valid stops the server at startup, so a broken setup cannot fail silently.
+
+A notification email looks like this:
+
+```text
+Subject: Approval needed: paytm:refund ORD-1042 up to 75000
+
+A request was refused because it needs a signed approval.
+
+Action:       paytm:refund
+Target:       paytm://orders/ORD-1042
+Policy:       customer-refund 1.2.0
+Transaction:  5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90
+Refused at:   2026-09-29T10:15:02.114Z
+Sent by:      refund-agent
+
+To approve, sign on your own machine:
+  capability  paytm:refund
+  resourceId  ORD-1042
+  maxAmount   75000
+  signal      managerApproved
+
+Then send the approval to the agent, which resends the request with it.
+If you do not approve, do nothing: the request stays refused.
+```
+
+Each refusal sends at most one email: the send carries the idempotency key
+`approval-needed/<decisionId>`, so a retried send is not delivered twice. Delivery follows the
+same rules as the webhook: one attempt, a failure is logged and never changes the refusal.
+
+## Webhook
+
+### Set it up
 
 <Steps>
   <Step title="Create an endpoint">
@@ -6397,7 +6469,7 @@ Do not set `PARMANA_AUTH_DISABLED`. Do not set `NODE_ENV` to `test` or `developm
 
 **Check:** the list of variables on your host includes all six from the table, and none of the two forbidden ones.
 
-Optional: to notify approvers when a request waits for their approval, also set `APPROVAL_WEBHOOK_URL` (https) and `APPROVAL_WEBHOOK_SECRET`, both or neither. See [Approval notifications](/guides/approval-notifications).
+Optional: to notify approvers when a request waits for their approval, set `APPROVAL_EMAIL_TO` with the Resend integration, or `APPROVAL_WEBHOOK_URL` (https) and `APPROVAL_WEBHOOK_SECRET`, or both. See [Approval notifications](/guides/approval-notifications).
 
 ## Step 6: Deploy and confirm it started
 
@@ -7042,10 +7114,14 @@ is the value multiplied by the number of instances, and the server logs `rate_li
 
 ## Approval notifications
 
-| Variable                  | Required                    | Default               | Values or format                                    | What it does                                                                                                                                                                    |
-| ------------------------- | --------------------------- | --------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `APPROVAL_WEBHOOK_URL`    | With the next one           | None: nothing is sent | An https URL (http only in `test` or `development`) | Where to POST an `approval.needed` event when a refused request would have been authorized with a signed approval. See [Human approval](/concepts/human-approval#get-notified). |
-| `APPROVAL_WEBHOOK_SECRET` | With `APPROVAL_WEBHOOK_URL` | None                  | A random string, or a secret reference              | Signs each event (HMAC SHA256). See `PARMANA_SECRETS_PROVIDER`. Setting only one of the two stops the server at startup.                                                        |
+| Variable                  | Required                                                      | Default                                             | Values or format                                    | What it does                                                                                                                                                                    |
+| ------------------------- | ------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `APPROVAL_WEBHOOK_URL`    | With the next one                                             | None: nothing is sent                               | An https URL (http only in `test` or `development`) | Where to POST an `approval.needed` event when a refused request would have been authorized with a signed approval. See [Human approval](/concepts/human-approval#get-notified). |
+| `APPROVAL_EMAIL_TO`       | For email notifications                                       | None: no email                                      | Email addresses, separated by commas                | Who is emailed each `approval.needed` event, through Resend. Needs `RESEND_API_KEY` and a sender, or the server stops at startup.                                               |
+| `APPROVAL_EMAIL_FROM`     | No                                                            | `Parmana approvals <approvals@RESEND_EMAIL_DOMAIN>` | A sender, such as `Ops <ops@notify.example.com>`    | The sender. Its domain must be verified in Resend.                                                                                                                              |
+| `RESEND_API_KEY`          | With `APPROVAL_EMAIL_TO`                                      | None                                                | Set by the Resend integration                       | The Resend API key.                                                                                                                                                             |
+| `RESEND_EMAIL_DOMAIN`     | With `APPROVAL_EMAIL_TO`, unless `APPROVAL_EMAIL_FROM` is set | None                                                | Set by the Resend integration                       | The verified sending domain.                                                                                                                                                    |
+| `APPROVAL_WEBHOOK_SECRET` | With `APPROVAL_WEBHOOK_URL`                                   | None                                                | A random string, or a secret reference              | Signs each event (HMAC SHA256). See `PARMANA_SECRETS_PROVIDER`. Setting only one of the two stops the server at startup.                                                        |
 
 ## Local test approver
 
@@ -7504,10 +7580,13 @@ The message says which case applies: the key id is listed in the server code, it
 an active key added through approver changes, or another change for the same key is still
 pending. See [Manage approvers](/guides/manage-approvers#errors).
 
-## No `approval.needed` event arrives
+## No approval email or `approval.needed` event arrives
 
-- Both `APPROVAL_WEBHOOK_URL` and `APPROVAL_WEBHOOK_SECRET` are set, and the server was
-  redeployed after setting them.
+- For email: `APPROVAL_EMAIL_TO` is set, the Resend integration is installed, and the sending
+  domain shows **Verified** in Resend. Until it is, the log has `approval_needed_notification_failed`
+  with Resend's reason. Check the spam folder once, and mark the first email as not spam.
+- For the webhook: both `APPROVAL_WEBHOOK_URL` and `APPROVAL_WEBHOOK_SECRET` are set.
+- The server was redeployed after setting them.
 - The request was refused only for want of an approval. A refusal for any other reason, such as
   a failed fraud check, sends nothing, by design.
 - The server log has `approval_needed_notification_failed` with the reason: your endpoint

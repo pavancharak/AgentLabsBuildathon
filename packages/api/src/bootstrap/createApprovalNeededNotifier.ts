@@ -6,6 +6,7 @@ import type {
 } from "@parmana/runtime";
 
 import { SecretsProviderBootstrap } from "./secrets/SecretsProviderBootstrap.js";
+import { createEmailApprovalNeededNotifier } from "./createEmailApprovalNeededNotifier.js";
 
 export const APPROVAL_WEBHOOK_URL_ENV = "APPROVAL_WEBHOOK_URL";
 export const APPROVAL_WEBHOOK_SECRET_ENV = "APPROVAL_WEBHOOK_SECRET";
@@ -102,7 +103,7 @@ export class WebhookApprovalNeededNotifier implements ApprovalNeededNotifier {
  * development, a URL that is not https: approval events name real
  * transactions and must not travel in the clear.
  */
-export function createApprovalNeededNotifier(
+export function createWebhookApprovalNeededNotifier(
   env: NodeJS.ProcessEnv = process.env,
 ): ApprovalNeededNotifier | undefined {
   const url = env[APPROVAL_WEBHOOK_URL_ENV]?.trim() || undefined;
@@ -133,4 +134,59 @@ export function createApprovalNeededNotifier(
   }
 
   return new WebhookApprovalNeededNotifier(parsed.toString(), secret);
+}
+
+/**
+ * Sends each approval.needed event to every configured channel: the
+ * webhook (APPROVAL_WEBHOOK_URL) and email (APPROVAL_EMAIL_TO). All are
+ * attempted; if any fails, the failure is reported, and the others are
+ * still sent.
+ */
+export class CompositeApprovalNeededNotifier implements ApprovalNeededNotifier {
+  constructor(private readonly notifiers: readonly ApprovalNeededNotifier[]) {}
+
+  async notify(event: ApprovalNeededEvent): Promise<void> {
+    const results = await Promise.allSettled(
+      this.notifiers.map((notifier) => notifier.notify(event)),
+    );
+
+    const failures = results
+      .filter(
+        (result): result is PromiseRejectedResult =>
+          result.status === "rejected",
+      )
+      .map((result) =>
+        result.reason instanceof Error
+          ? result.reason.message
+          : String(result.reason),
+      );
+
+    if (failures.length > 0) {
+      throw new Error(failures.join(" "));
+    }
+  }
+}
+
+/**
+ * The approval notifier this deployment is configured with: webhook,
+ * email, both, or none (undefined). Each channel fails at startup on a
+ * bad configuration.
+ */
+export function createApprovalNeededNotifier(
+  env: NodeJS.ProcessEnv = process.env,
+): ApprovalNeededNotifier | undefined {
+  const notifiers = [
+    createWebhookApprovalNeededNotifier(env),
+    createEmailApprovalNeededNotifier(env),
+  ].filter(
+    (notifier): notifier is ApprovalNeededNotifier => notifier !== undefined,
+  );
+
+  if (notifiers.length === 0) {
+    return undefined;
+  }
+
+  return notifiers.length === 1
+    ? notifiers[0]
+    : new CompositeApprovalNeededNotifier(notifiers);
 }
