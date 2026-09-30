@@ -43,6 +43,13 @@ export class InMemorySecureConnector implements SecureConnector {
     const credential = await this.options.credentialVault.getCredential(
       this.connectorId,
     );
-    return this.options.executor.execute(request.executableContent, credential);
+    return this.options.executor.execute(
+      request.executableContent,
+      credential,
+      {
+        authorization: request.authorization,
+        approvals: request.approvals ?? [],
+      },
+    );
   }
 }

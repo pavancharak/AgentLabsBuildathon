@@ -86,6 +86,37 @@ export interface ConnectorExecutionContext {
   readonly credential: CredentialHandle;
   readonly timeoutMs: number;
   readonly requestedAt: Date;
+
+  /**
+   * What was approved, beyond the request itself. Set by the Execution
+   * Gateway on every governed release; a connector that forwards the
+   * action outside Parmana (ADR-0013) signs it into its release, and
+   * every other connector may ignore it.
+   */
+  readonly release?: ConnectorReleaseContext;
+}
+
+/**
+ * The signed authorization's identity and policy, and the signed human
+ * approvals behind a release.
+ */
+export interface ConnectorReleaseContext {
+  readonly authorizationId: string;
+  readonly policy: {
+    readonly name: string;
+    readonly version: string;
+    readonly contentHash?: string;
+  };
+
+  /**
+   * Listed only when the Gateway checked the request's signals against
+   * the authorization's signed signalsHash; empty otherwise.
+   */
+  readonly approvals: readonly {
+    readonly approverId: string;
+    readonly keyId: string;
+    readonly approvalId: string;
+  }[];
 }
 
 /**

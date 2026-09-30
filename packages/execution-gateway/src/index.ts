@@ -43,3 +43,21 @@ export { createGatewayGitHubConnector } from "./connector-execution/createGatewa
 export { createGatewayGitHubCredentialProvider } from "./connector-execution/createGatewayGitHubCredentialProvider.js";
 export { createGatewayPaytmConnector } from "./connector-execution/createGatewayPaytmConnector.js";
 export { createGatewaySlackConnector } from "./connector-execution/createGatewaySlackConnector.js";
+
+/**
+ * External connectors (ADR-0013): the adapter that releases an approved
+ * request to an operator's registered HTTPS endpoint as a signed
+ * release. Bootstrap builds one per active registration.
+ */
+export {
+  EXTERNAL_ANSWER_MAX_BYTES,
+  EXTERNAL_RELEASE_TTL_MS,
+  EXTERNAL_RESULT_MAX_BYTES,
+  GatewayExternalAdapter,
+  createPinnedHttpsTransport,
+  type ExternalConnectorTarget,
+  type ExternalRelease,
+  type GatewayExternalAdapterOptions,
+  type ReleaseTransport,
+  type SignedExternalRelease,
+} from "./connector-execution/GatewayExternalAdapter.js";

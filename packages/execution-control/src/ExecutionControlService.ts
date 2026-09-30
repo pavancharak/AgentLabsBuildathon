@@ -91,6 +91,9 @@ export class ExecutionControlService implements ExecutionControl {
       executionTimestamp: release.executionTimestamp,
       gatewayIdentity: this.options.gatewayIdentity,
       gatewaySession: session,
+      ...(release.approvals !== undefined
+        ? { approvals: release.approvals }
+        : {}),
     });
 
     try {

@@ -1,6 +1,7 @@
 import type {
   ExecutableContent,
   ExecutionResult,
+  ReleaseApproval,
   SignedExecutionAuthorization,
 } from "@parmana/shared";
 
@@ -36,6 +37,12 @@ export interface GatewayExecutionRequest {
   readonly executionTimestamp: string;
   readonly gatewayIdentity: GatewayIdentity;
   readonly gatewaySession: GatewaySession;
+
+  /**
+   * The signed approvals behind this release, as the Gateway verified
+   * them (ExecutionRelease.approvals).
+   */
+  readonly approvals?: readonly ReleaseApproval[];
 }
 
 export interface ExecutionCredential {
@@ -47,10 +54,22 @@ export interface CredentialVault {
   getCredential(connectorId: string): Promise<ExecutionCredential>;
 }
 
+/**
+ * What was approved, beyond the content itself: the signed
+ * authorization and the approvals behind it. A connector that forwards
+ * the action to a system outside Parmana (ADR-0013) signs these into its
+ * release; every other connector ignores them.
+ */
+export interface ConnectorReleaseInput {
+  readonly authorization: SignedExecutionAuthorization;
+  readonly approvals: readonly ReleaseApproval[];
+}
+
 export interface ConnectorExecutor {
   execute(
     content: Readonly<ExecutableContent>,
     credential: ExecutionCredential,
+    release?: ConnectorReleaseInput,
   ): Promise<ExecutionResult>;
 }
 
@@ -99,6 +118,13 @@ export interface ExecutionRelease {
   readonly executableContent: Readonly<ExecutableContent>;
   readonly verifiedTransaction: VerifiedTransaction;
   readonly executionTimestamp: string;
+
+  /**
+   * The signed approvals found in the request's signals, listed only
+   * when the Gateway checked those signals against the authorization's
+   * signed signalsHash. Absent or empty otherwise.
+   */
+  readonly approvals?: readonly ReleaseApproval[];
 }
 export interface ExecutionControl {
   execute(

@@ -95,6 +95,10 @@ export class SessionCredentialSecureConnector implements SecureConnector {
         result = await this.options.executor.execute(
           request.executableContent,
           credential,
+          {
+            authorization: request.authorization,
+            approvals: request.approvals ?? [],
+          },
         );
       } finally {
         await this.options.sessionCredentials.revoke(sessionCredentialId);

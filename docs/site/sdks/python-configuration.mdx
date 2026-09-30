@@ -136,7 +136,7 @@ The full signature of every method is in the [API reference](/sdks/reference/pyt
 
 ## Optional extra for offline verification
 
-`parmana.crypto` (the offline Trust Record verifier) needs the `cryptography` package. Install it with `pip install "parmana[verify]"`. A plain `pip install parmana` does not include it, and `import parmana` does not need it.
+`parmana.crypto` (the offline Trust Record verifier, and in the next release `verify_parmana_release(body, *, public_keys, audience, is_already_executed, now=None, clock_skew_seconds=30)` for an external connector endpoint to check a release from Parmana before it acts) needs the `cryptography` package. Install it with `pip install "parmana[verify]"`. A plain `pip install parmana` does not include it, and `import parmana` does not need it.
 
 ## Where to go next
 
