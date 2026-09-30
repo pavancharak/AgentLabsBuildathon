@@ -130,17 +130,16 @@ deployment. The route by route mapping is `docs/site/sdks/api-coverage.mdx`.
 
 Merged to `main` and deployed to production on 2026-09-27 (PR #46, merge `4eebd5f`).
 
-**Every action needs a signed human approval, reads included (2026-09-30, not
-committed, branch `feat/approval-required-everywhere`, `docs/CLAIMS.md` 2.47,
-G-80).** `PolicyValidator` refuses any policy whose approve rule does not
+**Every action needs a signed human approval, reads included (2026-09-30,
+merged in PR #87 and deployed, `docs/CLAIMS.md` 2.47, G-80).** `PolicyValidator` refuses any policy whose approve rule does not
 require an `approvalSignals` fact with `is_true` at its top level, on load and
 on proposal, and `RuntimeEngine` refuses an approval with no approval verifier
 configured. New versions: `github-pr-read` 1.1.0, `hubspot-deal-read` 1.0.0
 (new, for `hubspot:deal-fetch`), `hubspot-deal-update` 1.1.0,
 `slack-post-message` 1.1.0, and approval backed versions of every reference
-policy. In production, GitHub reads, HubSpot and Slack are refused until those
-versions are approved through maker checker. The rest of this section
-describes the state before that change.
+policy. All of them were approved in production through maker checker on
+2026-09-30 and are in effect. The rest of this section describes the state
+before that change.
 
 - A policy declares in `approvalSignals` which of its signals need a
   person's signed approval, and where the resource (a `parameters` path or

@@ -82,7 +82,8 @@ curl -s -X POST $PARMANA_URL/policies/customer-refund/1.2.0/pending-changes \
 ```powershell PowerShell
 $url = "https://your-parmana-host"
 $key = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((Read-Host "Proposer API key" -AsSecureString)))
-$policy = Get-Content policies/customer-refund/1.2.0/policy.json -Raw
+# Read as UTF-8: Windows PowerShell 5.1 Get-Content uses the local codepage and changes characters such as an em dash.
+$policy = [System.IO.File]::ReadAllText("$PWD\policies\customer-refund\1.2.0\policy.json", [System.Text.Encoding]::UTF8)
 $body = '{"reason":"Why this should take effect.","proposedContent":' + $policy + '}'
 $r = Invoke-RestMethod -Method Post -Uri "$url/policies/customer-refund/1.2.0/pending-changes" `
   -Headers @{ Authorization = "Bearer $key" } -ContentType "application/json" `
@@ -93,6 +94,8 @@ $r.pendingPolicyChangeId
 </CodeGroup>
 
 The response is `201` with a `pendingPolicyChangeId` and status `PENDING_APPROVAL`. Only one open proposal per policy version is allowed; a second gets `409 CONFLICT`. Send the id to the approver.
+
+Send the file's content unchanged. The approval stores a hash of the approved policy content (`hashPolicyContent`), and CI's `verify-policy-approvals` job (`scripts/verify-policy-changes-approved.ts`) compares it with the hash of the file in git; the server makes the same comparison at startup (`verifyPolicyGovernanceIntegrityAtStartup.ts`). If any value differs, even one character inside a description, the check fails. A version that is already approved can be proposed and approved again; the most recent approval is the one that counts, both for CI and for the server.
 
 ### 4. Review
 

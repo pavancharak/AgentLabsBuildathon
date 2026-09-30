@@ -231,8 +231,8 @@ every real attempt.**
   [Human approval](/concepts/human-approval).
 - 0 or less, or above 100000, refused.
 - Production runs the version most recently approved; ask `GET /policies/in-effect?capability=paytm:refund`.
-  Under 1.1.0 (in production until 1.2.0 is approved) a refund up to 10000 needs no approval:
-  send `managerApproved: false` for these.
+  1.2.0 has been in effect in production since 2026-09-28: there is no amount that runs without
+  a signed manager approval. `managerApproved: false` is always refused.
 - `boundSignals` binds `signals.refundAmount` to `intent.parameters.amount` — they must
   match, or `SignalIntentBinder` rejects it as a binding-tamper attempt before policy
   evaluation runs at all. Always set both to the same value.

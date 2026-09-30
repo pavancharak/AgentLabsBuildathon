@@ -1228,9 +1228,11 @@ every policy under `policies/`, `CANONICAL_CAPABILITY_POLICY_BINDINGS`, `PolicyV
 `createApplication` and `pending-policy-changes.ts`.
 
 **G-80. Most actions were authorized with no human approval at all. FOUND 2026-09-30, `blocks-pilot`
-against the stated rule. FIXED in the working tree the same day on branch
-`feat/approval-required-everywhere`, not committed; takes effect in production when the change is
-deployed and the new policy versions are approved.**
+against the stated rule. FIXED the same day (PR #87, merge `e18ddae`). CLOSED in production
+2026-09-30: all 13 new policy versions approved through maker checker (proposed by `charak1987`,
+approved by `reviewer-charak1987`, two credentials held by one person), then merged and deployed.
+After the deploy `hubspot:deal-fetch` reported `hubspot-deal-read` 1.0.0 in effect, `/ready` was
+READY and `/execute` without a key returned `401`.**
 Human approval was a property of each policy, not of the product. Only three policies required it:
 `customer-refund` 1.2.0, `github-pr-approval` 1.1.0 and `llm-tool-call` 1.1.0. Every other policy
 approved on facts the agent declares or on nothing:
@@ -1279,9 +1281,10 @@ approved on facts the agent declares or on nothing:
   sends a refund with that manager's signed approval: 14 of 14 passed on 2026-09-30. The Python SDK
   suite (135 tests, including three that start a real server) passed.
 - **Not done, stated plainly:**
-  - **Production.** Until the new versions are approved through maker checker, the versions in effect
-    for GitHub reads, HubSpot and Slack fail to load, so those actions are refused (fails closed). CI's
-    `verify-policy-approvals` job fails until every new policy file has an approval record (G-79).
+  - **Production: done 2026-09-30.** The 13 versions are approved and deployed. `connector-capability`
+    1.1.0 was approved twice: the first proposal, read with Windows PowerShell 5.1 `Get-Content -Raw`,
+    changed an em dash in the description, so CI `verify-policy-approvals` (G-79) found the approved
+    hash different from the file and refused the merge until the file's exact content was approved.
   - **An approval covers the action and the resource, not every parameter.** A Slack approval does not
     fix the text; a HubSpot approval does not fix the new stage or amount. Binding those would need the
     approval scope to carry them.

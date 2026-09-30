@@ -55,12 +55,12 @@ The reference policies with no connector need one too, for the Intent's `target`
 `llm-tool-call` 1.1.0. The payment and expense policies also cover the amount. Older versions
 that approved without a person stay in the repository as history and are refused when they load.
 
-<Warning>
+<Note>
   Production runs the version most recently approved through policy governance.
-  Until the versions above are approved there, the older versions in effect for
-  GitHub reads, HubSpot and Slack fail to load, so those actions are refused.
-  Nothing runs without a person in the meantime; it just does not run.
-</Warning>
+  Every version in the table and list above was approved in production on
+  2026-09-30 and is in effect. Ask the server which version applies to an action
+  with `GET /policies/in-effect?capability=<capability>`, and send that version.
+</Note>
 
 ## Approve policies
 
@@ -85,9 +85,9 @@ an agent manipulated by prompt injection could approve its own refunds (G-75). I
 only refuse a refund.
 
 <Note>
-  Production runs the version most recently approved through policy governance.
-  Until 1.2.0 is approved there, it runs 1.1.0: up to 10000 authorized at once,
-  above 10000 and up to 100000 with a signed approval, above 100000 refused.
+  `customer-refund` 1.2.0 has been in effect in production since 2026-09-28. A
+  refund of any amount without a signed manager approval is refused with `403
+  POLICY_DENIED`. There is no amount below which a refund runs on its own.
 </Note>
 
 The flow for a refund of 75000 on order `ORD-1042`:
