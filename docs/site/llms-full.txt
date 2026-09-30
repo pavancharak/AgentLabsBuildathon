@@ -4988,7 +4988,7 @@ On 1.1.2 and earlier `serverCode` is not on `InternalServerError`, so read the c
 | `publicKey(keyId = "default")` (1.3.0)                                                | `GET /keys/{keyId}`                               | A `PublicKeyInfo` with the PEM, for the offline verifiers. No credential needed.                                                  |
 | `endpoint()`                                                                          | None                                              | The configured endpoint, as a string.                                                                                             |
 
-Functions exported next to the client, 1.3.0: `verifyExecutionTrustRecordOffline(record, publicKeys)`, `verifyExecutionIntentOffline(intent, publicKeys)` and `signPolicyChangeStepUp({ pendingPolicyChangeId, action, privateKeyPem, keyId, ttlSeconds? })`. They make no request. See [SDK coverage of the API](/sdks/api-coverage).
+Functions exported next to the client, 1.3.0: `verifyExecutionTrustRecordOffline(record, publicKeys)`, `verifyExecutionIntentOffline(intent, publicKeys)` and `signPolicyChangeStepUp({ pendingPolicyChangeId, action, privateKeyPem, keyId, ttlSeconds? })`. In the next release, `verifyParmanaRelease(body, { publicKeys, audience, isAlreadyExecuted, now?, clockSkewSeconds? })`, for an external connector endpoint to check a release from Parmana before it acts. They make no request. See [SDK coverage of the API](/sdks/api-coverage).
 
 The full signature of every method is in the [API reference](/sdks/reference/typescript/classes/ParmanaClient).
 
@@ -5909,7 +5909,7 @@ The full signature of every method is in the [API reference](/sdks/reference/pyt
 
 ## Optional extra for offline verification
 
-`parmana.crypto` (the offline Trust Record verifier) needs the `cryptography` package. Install it with `pip install "parmana[verify]"`. A plain `pip install parmana` does not include it, and `import parmana` does not need it.
+`parmana.crypto` (the offline Trust Record verifier, and in the next release `verify_parmana_release(body, *, public_keys, audience, is_already_executed, now=None, clock_skew_seconds=30)` for an external connector endpoint to check a release from Parmana before it acts) needs the `cryptography` package. Install it with `pip install "parmana[verify]"`. A plain `pip install parmana` does not include it, and `import parmana` does not need it.
 
 ## Where to go next
 
