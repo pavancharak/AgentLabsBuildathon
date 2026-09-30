@@ -13,3 +13,9 @@ export * from "./types/Json.js";
 export * from "./logging/Logger.js";
 
 export { normalizePolicy } from "./utils/normalize-policy.js";
+
+/**
+ * External connector endpoint address checks (ADR-0013): used when an
+ * endpoint is registered and again at every release.
+ */
+export * from "./network/externalEndpointAddress.js";

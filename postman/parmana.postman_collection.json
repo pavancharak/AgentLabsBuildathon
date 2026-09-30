@@ -862,6 +862,200 @@
       ]
     },
     {
+      "name": "External Connectors",
+      "description": "Maker-checker for binding a capability to an operator's HTTPS endpoint and its policy, without a deploy (ADR-0013)",
+      "item": [
+        {
+          "name": "List external connectors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/external-connectors",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external-connectors"
+              ]
+            },
+            "description": "operationId: listExternalConnectors\n\nEvery external connector registration (ADR-0013), active and revoked: the capability, the HTTPS endpoint Parmana releases it to, the policy that governs it, and the parameters Parmana forwards. Revoked registrations stay listed, so every release ever made can be explained. Requires a human credential (credentialHolderType USER)."
+          }
+        },
+        {
+          "name": "List external connector changes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/external-connectors/changes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external-connectors",
+                "changes"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "operationId: listExternalConnectorChanges\n\nExternal connector changes, newest first, optionally filtered by status. A checker uses status=PENDING_APPROVAL to find what waits for review. Requires a human credential."
+          }
+        },
+        {
+          "name": "Propose registering or revoking an external connector (register)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"register\",\n  \"capability\": \"erp:create-invoice\",\n  \"endpointUrl\": \"https://erp.example.com/parmana/release\",\n  \"policy\": \"erp-invoice\",\n  \"allowedParameters\": [\n    \"amount\",\n    \"currency\",\n    \"customerId\"\n  ],\n  \"timeoutMs\": 10000,\n  \"reason\": \"Finance creates invoices in the ERP through Parmana from October.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external-connectors/changes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external-connectors",
+                "changes"
+              ]
+            },
+            "description": "Real captured request\n\noperationId: proposeExternalConnectorChange\n\nProposes registering an external connector (action register: a capability, the HTTPS endpoint to release it to, the policy that governs it, the parameters to forward, and optionally a timeout) or revoking the active one for a capability (action revoke). Nothing changes until a different person approves the proposal. Requires a human credential. A capability in a built in connector's namespace (paytm, hubspot, github, slack, test) is refused. The endpoint must be https, name a host with a domain (not an IP address, not localhost), carry no user name, password or fragment, and resolve only to public addresses; the address is checked again when the change is approved. To move a capability to a new endpoint, revoke the registration, then register the new one."
+          }
+        },
+        {
+          "name": "Propose registering or revoking an external connector (revoke)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"revoke\",\n  \"capability\": \"erp:create-invoice\",\n  \"reason\": \"The ERP endpoint moves to a new host.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external-connectors/changes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external-connectors",
+                "changes"
+              ]
+            },
+            "description": "Real captured request\n\noperationId: proposeExternalConnectorChange\n\nProposes registering an external connector (action register: a capability, the HTTPS endpoint to release it to, the policy that governs it, the parameters to forward, and optionally a timeout) or revoking the active one for a capability (action revoke). Nothing changes until a different person approves the proposal. Requires a human credential. A capability in a built in connector's namespace (paytm, hubspot, github, slack, test) is refused. The endpoint must be https, name a host with a domain (not an IP address, not localhost), carry no user name, password or fragment, and resolve only to public addresses; the address is checked again when the change is approved. To move a capability to a new endpoint, revoke the registration, then register the new one."
+          }
+        },
+        {
+          "name": "Approve an external connector change",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stepUpAuthorization\": {\n    \"payload\": {\n      \"version\": 1,\n      \"nonce\": \"a11a41c1-651e-431e-82ef-5199791a6428\",\n      \"pendingPolicyChangeId\": \"1aa68ad8-ab5c-4beb-9ff3-7a6b1fc1ff37\",\n      \"action\": \"approve\",\n      \"authorizedAt\": \"2026-09-30T17:25:46.377Z\",\n      \"expiresAt\": \"2026-09-30T17:27:46.377Z\"\n    },\n    \"signature\": \"f7L+V1mwISUMWPZ85KqGJ2s1TaPfBiPHhwfsWjwhu2/1cSCJjP06MvgJ6eM6F01uR1T6/qT2FcHPpD/ETa+bDA==\",\n    \"keyId\": \"human-checker-step-up-key\",\n    \"algorithm\": \"ed25519\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external-connectors/changes/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external-connectors",
+                "changes",
+                ":id",
+                "approve"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "The changeId."
+                }
+              ]
+            },
+            "description": "Real captured request\n\noperationId: approveExternalConnectorChange\n\nApproves an external connector change and applies it in one step: register makes the registration active, revoke ends it. For a register, the endpoint's address is checked again first, so a DNS change since the proposal cannot point it at a private address. Requires, in order: a human credential, not the proposer (403 SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE), and a step up authorization signed with the checker step up key for this change id and action approve, used once (403 STEP_UP_AUTHORIZATION_INVALID). It is the same step up authorization policy changes use, with the change id in payload.pendingPolicyChangeId."
+          }
+        },
+        {
+          "name": "Reject an external connector change",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rejectionReason\": \"Does not meet the bar for this fixture\",\n  \"stepUpAuthorization\": {\n    \"payload\": {\n      \"version\": 1,\n      \"nonce\": \"4807fe45-0379-415b-9455-b8cb84eb5554\",\n      \"pendingPolicyChangeId\": \"5617ba3c-fb07-437d-9131-232b84bbb863\",\n      \"action\": \"reject\",\n      \"authorizedAt\": \"2026-09-15T03:48:16.755Z\",\n      \"expiresAt\": \"2026-09-15T03:50:16.755Z\"\n    },\n    \"signature\": \"Wu5/oibGCjvkTklGQPiDMDemqxCVbSyuoVT7WHW63rGq8Av5KFTW6vMkUCP03pANv8bDu60bZVuVcTDVmLXpDA==\",\n    \"keyId\": \"human-checker-step-up-key\",\n    \"algorithm\": \"ed25519\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external-connectors/changes/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external-connectors",
+                "changes",
+                ":id",
+                "reject"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "",
+                  "description": "The changeId."
+                }
+              ]
+            },
+            "description": "operationId: rejectExternalConnectorChange\n\nRejects an external connector change. No registration changes. The same checks as approve, with a step up authorization for action reject, and a rejectionReason."
+          }
+        }
+      ]
+    },
+    {
       "name": "Refusal Records",
       "description": "Durable, signed evidence that a policy decision rejected a transaction (RFC-0021)",
       "item": [

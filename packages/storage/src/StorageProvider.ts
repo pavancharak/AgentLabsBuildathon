@@ -1,5 +1,6 @@
 import type {
   ApprovalIssuerRepository,
+  ExternalConnectorRepository,
   BusinessTransactionRepository,
   ExecutionIntentRepository,
   ExecutionTrustRecordRepository,
@@ -54,4 +55,9 @@ export interface StorageProvider {
   readonly handbookDownloadLeads: HandbookDownloadLeadRepository;
 
   readonly approvalIssuers: ApprovalIssuerRepository;
+
+  /**
+   * External connectors registered through maker checker (ADR-0013).
+   */
+  readonly externalConnectors: ExternalConnectorRepository;
 }

@@ -1,5 +1,6 @@
 import type {
   ApprovalIssuerRepository,
+  ExternalConnectorRepository,
   BusinessTransactionRepository,
   ExecutionIntentRepository,
   ExecutionTrustRecordRepository,
@@ -27,6 +28,7 @@ import { SupabasePolicyChangeApprovalRecordRepository } from "./SupabasePolicyCh
 import { SupabaseHandbookDownloadLeadRepository } from "./SupabaseHandbookDownloadLeadRepository.js";
 
 import { SupabaseApprovalIssuerRepository } from "./SupabaseApprovalIssuerRepository.js";
+import { SupabaseExternalConnectorRepository } from "./SupabaseExternalConnectorRepository.js";
 
 /**
  * Supabase Storage Provider.
@@ -48,6 +50,7 @@ export class SupabaseStorageProvider implements StorageProvider {
   readonly policyChangeApprovalRecords: PolicyChangeApprovalRecordRepository;
   readonly handbookDownloadLeads: HandbookDownloadLeadRepository;
   readonly approvalIssuers: ApprovalIssuerRepository;
+  readonly externalConnectors: ExternalConnectorRepository;
 
   constructor() {
     const pool = PostgresPoolFactory.create();
@@ -70,6 +73,8 @@ export class SupabaseStorageProvider implements StorageProvider {
     );
 
     this.approvalIssuers = new SupabaseApprovalIssuerRepository(pool);
+
+    this.externalConnectors = new SupabaseExternalConnectorRepository(pool);
 
     Object.freeze(this);
   }

@@ -70,6 +70,9 @@ tags:
   - name: Approvers
     description: Maker-checker for the keys trusted to sign approvals, without a deploy
 
+  - name: External Connectors
+    description: Maker-checker for binding a capability to an operator's HTTPS endpoint and its policy, without a deploy (ADR-0013)
+
   - name: Refusal Records
     description: Durable, signed evidence that a policy decision rejected a transaction (RFC-0021)
 
@@ -3906,6 +3909,434 @@ paths:
                 $ref: "../schemas/common/error.schema.json"
         "404":
           description: No approver change has this id (APPROVAL_ISSUER_CHANGE_NOT_FOUND).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+        "409":
+          description: CONFLICT. The change is already resolved.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+
+  /external-connectors:
+    get:
+      tags:
+        - External Connectors
+      summary: List external connectors
+      operationId: listExternalConnectors
+      description: >
+        Every external connector registration (ADR-0013), active and
+        revoked: the capability, the HTTPS endpoint Parmana releases it to,
+        the policy that governs it, and the parameters Parmana forwards.
+        Revoked registrations stay listed, so every release ever made can be
+        explained. Requires a human credential (credentialHolderType USER).
+      responses:
+        "200":
+          description: The registrations.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/external-connectors-list-response.schema.json"
+              examples:
+                active:
+                  summary: Real captured response
+                  value:
+                    {
+                      "connectors":
+                        [
+                          {
+                            "registrationId": "1aa68ad8-ab5c-4beb-9ff3-7a6b1fc1ff37",
+                            "capability": "erp:create-invoice",
+                            "endpointUrl": "https://erp.example.com/parmana/release",
+                            "policy": "erp-invoice",
+                            "allowedParameters":
+                              ["amount", "currency", "customerId"],
+                            "timeoutMs": 10000,
+                            "status": "active",
+                            "registeredAt": "2026-09-30T17:25:46.385Z",
+                          },
+                        ],
+                    }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: The caller is not a human credential (NON_HUMAN_CALLER_DENIED).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+
+  /external-connectors/changes:
+    post:
+      tags:
+        - External Connectors
+      summary: Propose registering or revoking an external connector
+      operationId: proposeExternalConnectorChange
+      description: >
+        Proposes registering an external connector (action register: a
+        capability, the HTTPS endpoint to release it to, the policy that
+        governs it, the parameters to forward, and optionally a timeout) or
+        revoking the active one for a capability (action revoke). Nothing
+        changes until a different person approves the proposal. Requires a
+        human credential. A capability in a built in connector's namespace
+        (paytm, hubspot, github, slack, test) is refused. The endpoint must
+        be https, name a host with a domain (not an IP address, not
+        localhost), carry no user name, password or fragment, and resolve
+        only to public addresses; the address is checked again when the
+        change is approved. To move a capability to a new endpoint, revoke
+        the registration, then register the new one.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/requests/propose-external-connector-change-request.schema.json"
+            examples:
+              register:
+                summary: Real captured request
+                value:
+                  {
+                    "action": "register",
+                    "capability": "erp:create-invoice",
+                    "endpointUrl": "https://erp.example.com/parmana/release",
+                    "policy": "erp-invoice",
+                    "allowedParameters": ["amount", "currency", "customerId"],
+                    "timeoutMs": 10000,
+                    "reason": "Finance creates invoices in the ERP through Parmana from October.",
+                  }
+              revoke:
+                summary: Real captured request
+                value:
+                  {
+                    "action": "revoke",
+                    "capability": "erp:create-invoice",
+                    "reason": "The ERP endpoint moves to a new host.",
+                  }
+      responses:
+        "201":
+          description: Proposed, PENDING_APPROVAL.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/external-connector-change-response.schema.json"
+              examples:
+                register:
+                  summary: Real captured response
+                  value:
+                    {
+                      "changeId": "1aa68ad8-ab5c-4beb-9ff3-7a6b1fc1ff37",
+                      "action": "register",
+                      "capability": "erp:create-invoice",
+                      "endpointUrl": "https://erp.example.com/parmana/release",
+                      "policy": "erp-invoice",
+                      "allowedParameters": ["amount", "currency", "customerId"],
+                      "timeoutMs": 10000,
+                      "reason": "Finance creates invoices in the ERP through Parmana from October.",
+                      "proposedBy": "human-maker",
+                      "proposedAt": "2026-09-30T17:25:46.316Z",
+                      "status": "PENDING_APPROVAL",
+                    }
+                revoke:
+                  summary: Real captured response
+                  value:
+                    {
+                      "changeId": "5bdbfd6a-babf-4977-b090-d561ddcee0d7",
+                      "action": "revoke",
+                      "capability": "erp:create-invoice",
+                      "reason": "The ERP endpoint moves to a new host.",
+                      "proposedBy": "human-maker",
+                      "proposedAt": "2026-09-30T17:25:46.418Z",
+                      "status": "PENDING_APPROVAL",
+                    }
+        "400":
+          description: INVALID_EXTERNAL_CONNECTOR (a field is missing or malformed, the namespace belongs to a built in connector, or a revoke carries registration fields) or EXTERNAL_ENDPOINT_ADDRESS_REFUSED (the endpoint is not https, names an IP address or localhost, or resolves to an address that is not public, or does not resolve).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                builtInNamespace:
+                  summary: Real captured response
+                  value:
+                    {
+                      "error": "The namespace 'paytm' belongs to a built in connector. Use another namespace.",
+                      "code": "INVALID_EXTERNAL_CONNECTOR",
+                    }
+                privateAddress:
+                  summary: Real captured response
+                  value:
+                    {
+                      "error": "The endpoint host 'erp-internal.example.com' resolves to an address that is not public (10.0.0.7).",
+                      "code": "EXTERNAL_ENDPOINT_ADDRESS_REFUSED",
+                    }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: The caller is not a human credential (NON_HUMAN_CALLER_DENIED).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+        "409":
+          description: CONFLICT. The capability to register already has an active registration, the capability to revoke has none, or another change for this capability is pending.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                pending:
+                  summary: Real captured response
+                  value:
+                    {
+                      "error": "A change for capability 'erp:create-invoice' is already pending. It must be approved or rejected first.",
+                      "code": "CONFLICT",
+                    }
+
+    get:
+      tags:
+        - External Connectors
+      summary: List external connector changes
+      operationId: listExternalConnectorChanges
+      description: >
+        External connector changes, newest first, optionally filtered by
+        status. A checker uses status=PENDING_APPROVAL to find what waits
+        for review. Requires a human credential.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [PENDING_APPROVAL, APPROVED, REJECTED]
+      responses:
+        "200":
+          description: The changes.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/external-connector-changes-list-response.schema.json"
+              examples:
+                pending:
+                  summary: Real captured response
+                  value:
+                    {
+                      "changes":
+                        [
+                          {
+                            "changeId": "1aa68ad8-ab5c-4beb-9ff3-7a6b1fc1ff37",
+                            "action": "register",
+                            "capability": "erp:create-invoice",
+                            "endpointUrl": "https://erp.example.com/parmana/release",
+                            "policy": "erp-invoice",
+                            "allowedParameters":
+                              ["amount", "currency", "customerId"],
+                            "timeoutMs": 10000,
+                            "reason": "Finance creates invoices in the ERP through Parmana from October.",
+                            "proposedBy": "human-maker",
+                            "proposedAt": "2026-09-30T17:25:46.316Z",
+                            "status": "PENDING_APPROVAL",
+                          },
+                        ],
+                    }
+        "400":
+          description: status is not PENDING_APPROVAL, APPROVED or REJECTED.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: The caller is not a human credential (NON_HUMAN_CALLER_DENIED).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+
+  /external-connectors/changes/{id}/approve:
+    post:
+      tags:
+        - External Connectors
+      summary: Approve an external connector change
+      operationId: approveExternalConnectorChange
+      description: >
+        Approves an external connector change and applies it in one step:
+        register makes the registration active, revoke ends it. For a
+        register, the endpoint's address is checked again first, so a DNS
+        change since the proposal cannot point it at a private address.
+        Requires, in order: a human credential, not the proposer (403
+        SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE), and a step up authorization
+        signed with the checker step up key for this change id and action
+        approve, used once (403 STEP_UP_AUTHORIZATION_INVALID). It is the
+        same step up authorization policy changes use, with the change id
+        in payload.pendingPolicyChangeId.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The changeId.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/requests/approve-policy-change-request.schema.json"
+            examples:
+              stepUp:
+                summary: Real captured request
+                value:
+                  {
+                    "stepUpAuthorization":
+                      {
+                        "payload":
+                          {
+                            "version": 1,
+                            "nonce": "a11a41c1-651e-431e-82ef-5199791a6428",
+                            "pendingPolicyChangeId": "1aa68ad8-ab5c-4beb-9ff3-7a6b1fc1ff37",
+                            "action": "approve",
+                            "authorizedAt": "2026-09-30T17:25:46.377Z",
+                            "expiresAt": "2026-09-30T17:27:46.377Z",
+                          },
+                        "signature": "f7L+V1mwISUMWPZ85KqGJ2s1TaPfBiPHhwfsWjwhu2/1cSCJjP06MvgJ6eM6F01uR1T6/qT2FcHPpD/ETa+bDA==",
+                        "keyId": "human-checker-step-up-key",
+                        "algorithm": "ed25519",
+                      },
+                  }
+      responses:
+        "200":
+          description: Approved and applied.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/external-connector-change-response.schema.json"
+              examples:
+                approved:
+                  summary: Real captured response
+                  value:
+                    {
+                      "changeId": "1aa68ad8-ab5c-4beb-9ff3-7a6b1fc1ff37",
+                      "action": "register",
+                      "capability": "erp:create-invoice",
+                      "endpointUrl": "https://erp.example.com/parmana/release",
+                      "policy": "erp-invoice",
+                      "allowedParameters": ["amount", "currency", "customerId"],
+                      "timeoutMs": 10000,
+                      "reason": "Finance creates invoices in the ERP through Parmana from October.",
+                      "proposedBy": "human-maker",
+                      "proposedAt": "2026-09-30T17:25:46.316Z",
+                      "status": "APPROVED",
+                      "resolvedBy": "human-checker",
+                      "resolvedAt": "2026-09-30T17:25:46.385Z",
+                    }
+        "400":
+          description: EXTERNAL_ENDPOINT_ADDRESS_REFUSED. The endpoint now resolves to an address that is not public, or does not resolve. The change stays pending; reject it or fix the DNS and approve again with a new step up authorization.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: NON_HUMAN_CALLER_DENIED, SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE, or STEP_UP_AUTHORIZATION_INVALID.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                sameActor:
+                  summary: Real captured response
+                  value:
+                    {
+                      "error": "External connector change '1aa68ad8-ab5c-4beb-9ff3-7a6b1fc1ff37' was proposed by this same caller — the proposer (maker) may not also approve or reject it (checker).",
+                      "code": "SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE",
+                    }
+        "404":
+          description: No external connector change has this id (EXTERNAL_CONNECTOR_CHANGE_NOT_FOUND).
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                notFound:
+                  summary: Real captured response
+                  value:
+                    {
+                      "error": "External connector change '00000000-0000-0000-0000-000000000000' not found.",
+                      "code": "EXTERNAL_CONNECTOR_CHANGE_NOT_FOUND",
+                    }
+        "409":
+          description: CONFLICT. The change is already resolved, the capability to register now has an active registration, or the capability to revoke no longer has one. Nothing was written.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+
+  /external-connectors/changes/{id}/reject:
+    post:
+      tags:
+        - External Connectors
+      summary: Reject an external connector change
+      operationId: rejectExternalConnectorChange
+      description: >
+        Rejects an external connector change. No registration changes. The
+        same checks as approve, with a step up authorization for action
+        reject, and a rejectionReason.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The changeId.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/requests/reject-policy-change-request.schema.json"
+      responses:
+        "200":
+          description: Rejected.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/responses/external-connector-change-response.schema.json"
+              examples:
+                rejected:
+                  summary: Real captured response
+                  value:
+                    {
+                      "changeId": "5bdbfd6a-babf-4977-b090-d561ddcee0d7",
+                      "action": "revoke",
+                      "capability": "erp:create-invoice",
+                      "reason": "The ERP endpoint moves to a new host.",
+                      "proposedBy": "human-maker",
+                      "proposedAt": "2026-09-30T17:25:46.418Z",
+                      "status": "REJECTED",
+                      "resolvedBy": "human-checker",
+                      "resolvedAt": "2026-09-30T17:25:46.439Z",
+                      "rejectionReason": "Keep the current endpoint until the new host is live.",
+                    }
+        "400":
+          description: rejectionReason is missing, empty, or longer than 2000 characters.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: NON_HUMAN_CALLER_DENIED, SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE, or STEP_UP_AUTHORIZATION_INVALID.
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+        "404":
+          description: No external connector change has this id (EXTERNAL_CONNECTOR_CHANGE_NOT_FOUND).
           content:
             application/json:
               schema:
