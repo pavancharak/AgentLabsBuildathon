@@ -31,6 +31,7 @@ from parmana.crypto import canonical_serialize, sign_policy_change_step_up
 from parmana.models.caller import CallerIdentity, PublicKeyInfo
 from parmana.models.policy_change import PendingPolicyChange, PendingPolicyChangeStatus
 from parmana.models.policy_change_results import PolicyChangeForReview
+from parmana.models.policy_in_effect import PolicyInEffect
 from parmana.serialization import decode
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -347,3 +348,42 @@ def test_offline_verifier_accepts_the_sdk_model_as_well_as_raw_json():
 
     assert verify_execution_intent_offline(fixture, {"default": server_key}).valid
     assert verify_execution_intent_offline(model, {"default": server_key}).valid
+
+
+def test_policy_in_effect():
+    body = {
+        "capability": "paytm:refund",
+        "policy": {
+            "name": "customer-refund",
+            "version": "1.2.0",
+            "schemaVersion": "1.0.0",
+        },
+        "description": "Every refund needs a signed manager approval.",
+        "signals": {
+            "facts": ["managerApproved", "refundAmount"],
+            "schema": {"managerApproved": "boolean", "refundAmount": "number"},
+            "bound": {"refundAmount": "parameters.amount"},
+            "approval": {
+                "managerApproved": {
+                    "resourceId": "parameters.orderId",
+                    "value": "parameters.amount",
+                }
+            },
+        },
+    }
+    client, transport = client_with(body)
+
+    result = client.policy_in_effect("paytm:refund")
+
+    assert transport.calls[0]["method"] == "GET"
+    assert transport.calls[0]["path"] == "/policies/in-effect?capability=paytm%3Arefund"
+    assert isinstance(result, PolicyInEffect)
+    assert result.policy.version == "1.2.0"
+    assert result.policy.schema_version == "1.0.0"
+    assert result.description == "Every refund needs a signed manager approval."
+    # Signal names keep the policy's own spelling, never snake_case.
+    assert result.signals.facts == ["managerApproved", "refundAmount"]
+    assert result.signals.bound == {"refundAmount": "parameters.amount"}
+    assert result.signals.approval["managerApproved"]["resourceId"] == (
+        "parameters.orderId"
+    )

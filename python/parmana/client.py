@@ -46,6 +46,7 @@ if TYPE_CHECKING:
         PolicyChangeForReview,
         ProposedPolicyChange,
     )
+    from parmana.models.policy_in_effect import PolicyInEffect
     from parmana.models.receipt import Receipt
     from parmana.models.refusal_record import RefusalRecord
     from parmana.models.signature import Signature
@@ -268,6 +269,14 @@ class ParmanaClient:
         Retrieves an Execution Trust Record.
         """
         return self.trust_records.get(business_transaction_id)
+
+    def policy_in_effect(self, capability: str) -> PolicyInEffect:
+        """
+        The policy a request for `capability` must declare right now, and
+        what the request must carry (GET /policies/in-effect). Call it
+        before every request and declare `policy` exactly as returned.
+        """
+        return self.policy.in_effect(capability)
 
     def validate_policy(self, policy_id: str, policy_version: str) -> dict[str, Any]:
         """

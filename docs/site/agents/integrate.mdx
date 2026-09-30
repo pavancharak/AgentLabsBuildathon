@@ -17,12 +17,12 @@ background to interpret. If your situation is not covered, **stop and ask the op
 
 ## Inputs you need before you start
 
-| Input              | Where it comes from                                                                                                                  | How to check it                                                                                                                       |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `PARMANA_URL`      | The operator. The base URL of the Parmana server, without a trailing slash.                                                          | It must start with `https://`, except for a local server, which uses `http://localhost:3000`.                                         |
-| `PARMANA_API_KEY`  | The operator. A secret string issued for you.                                                                                        | It is non empty. Never print it, log it or put it in a URL.                                                                           |
-| `APPROVAL_SIGNALS` | The table in [Every action needs a signed approval](#every-action-needs-a-signed-approval), or the operator for an action not in it. | It is never empty. Every action needs one, reads included. If the operator says none, stop: that is not possible on a current server. |
-| `ACTION`           | The operator. The capability name, for example `paytm:refund`.                                                                       | Step 2 checks your key may use it.                                                                                                    |
+| Input              | Where it comes from                                                                                                                                                                             | How to check it                                                                                                                       |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `PARMANA_URL`      | The operator. The base URL of the Parmana server, without a trailing slash.                                                                                                                     | It must start with `https://`, except for a local server, which uses `http://localhost:3000`.                                         |
+| `PARMANA_API_KEY`  | The operator. A secret string issued for you.                                                                                                                                                   | It is non empty. Never print it, log it or put it in a URL.                                                                           |
+| `APPROVAL_SIGNALS` | Step 3: the keys of `signals.approval` in the server's answer. The table in [Every action needs a signed approval](#every-action-needs-a-signed-approval) shows them for the connector actions. | It is never empty. Every action needs one, reads included. If the operator says none, stop: that is not possible on a current server. |
+| `ACTION`           | The operator. The capability name, for example `paytm:refund`.                                                                                                                                  | Step 2 checks your key may use it.                                                                                                    |
 
 Do not ask for a policy version. Step 3 reads the version in effect from the server, because an approved new version
 replaces the old one at once and a request naming an old version is refused.
@@ -45,9 +45,9 @@ For the actions with a connector, the approval signal and the resource it names 
 | `hubspot:deal-fetch`  | `hubspot-deal-read` 1.0.0          | `readApproved`       | `intent.parameters.dealId`                                    | none                                                                                                                                                                     |
 | `slack:post-message`  | `slack-post-message` 1.1.0         | `postApproved`       | `intent.target` (the channel id)                              | `channelAuthorized`, `contentApproved`; `channelId` equal to `intent.target`                                                                                             |
 
-For any other action, the operator gives you the policy's `approvalSignals` entry: the signal name, and the request path
-of the resource (and of the amount, if there is one). The source is `policies/<name>/<version>/policy.json` on that
-server. The server does not publish it through the API today.
+For any action, including one not in this table, step 3 returns the same information from the server:
+`signals.approval` names the approval signal and where its resource (and amount) are in the request. Use the server's
+answer over this table if they ever differ.
 
 An approval covers the action and the resource, and the amount where the table names one. It does not fix other
 parameters: a Slack approval does not fix the message text, and a HubSpot approval does not fix the new stage.
@@ -108,16 +108,53 @@ Keep `callerId`. Your `authority.principalId` in step 4 must be one of `allowedP
     "name": "customer-refund",
     "version": "1.2.0",
     "schemaVersion": "1.0.0"
+  },
+  "description": "Authorizes customer refunds. Every refund above 0 and up to 100000 needs a signed manager approval for that order, covering that amount. ...",
+  "signals": {
+    "facts": [
+      "fraudCheckPassed",
+      "managerApproved",
+      "refundAmount",
+      "refundEligible"
+    ],
+    "schema": {
+      "refundEligible": "boolean",
+      "managerApproved": "boolean",
+      "fraudCheckPassed": "boolean",
+      "refundAmount": "number"
+    },
+    "bound": { "refundAmount": "parameters.amount" },
+    "approval": {
+      "managerApproved": {
+        "resourceId": "parameters.orderId",
+        "value": "parameters.amount"
+      }
+    }
   }
 }
 ```
 
-Use this `policy` object, exactly as returned, in step 4. Look it up again before every request: it changes when a new
-version is approved, with no notice to you.
+Use it like this in step 4:
+
+| Field in the answer | What you do with it                                                                                                                                                                                                                                                                                                                                   |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `policy`            | Send it, exactly as returned, as the request's `policy`.                                                                                                                                                                                                                                                                                              |
+| `signals.facts`     | Send one entry in `signals` for **every** name in this list, with the type `signals.schema` gives it. A condition on a missing fact is always false, so leaving one out never helps.                                                                                                                                                                  |
+| `signals.bound`     | For each entry, the signal must equal the value at that path of your `intent` (for example `signals.refundAmount` equal to `intent.parameters.amount`). Set both from the same variable.                                                                                                                                                              |
+| `signals.approval`  | Each key is an approval signal. Send it `false` until you hold a signed approval; with one, send it `true` and put the approval in `signals.approvalArtifact`. `resourceId` (and `value`) say where in your request the resource (and amount) the approval must name are: `target` means `intent.target`, `parameters.x` means `intent.parameters.x`. |
+| `description`       | For people. Do not parse it.                                                                                                                                                                                                                                                                                                                          |
+
+The answer never contains the policy's rule conditions. The `description` is the author's text for people and may mention a limit; the server decides with the rules, not the text. Look it up again before every request: it changes when a
+new version is approved, with no notice to you.
 
 **If not:** HTTP `403` with code `CAPABILITY_NOT_ALLOWED` means your key may not use this action: stop and ask the
 operator. HTTP `404` with code `CAPABILITY_NOT_BOUND` means no policy governs this action on this server: stop and ask
-the operator. Do not guess a policy.
+the operator. HTTP `409` with code `NO_APPROVED_POLICY_VERSION` or `503` with code `POLICY_VERSION_UNAVAILABLE` means every
+request for this action is refused right now: stop and tell the operator. Do not guess a policy.
+
+With an SDK: `client.policyInEffect(ACTION)` in TypeScript, `client.policy_in_effect(ACTION)` in Python. Both return
+this answer; the Python fields are `policy.schema_version` and `signals.facts`, and signal names keep their exact
+spelling.
 
 ## Step 4: build the Business Transaction
 
@@ -145,7 +182,7 @@ A Business Transaction is one JSON object. Every field below is required unless 
 | `intent.createdAt`                                | The current time, ISO 8601.                                                                | You         |
 | `policy.name`, `policy.version`                   | The `policy` object from step 3, exactly as returned (`name`, `version`, `schemaVersion`). | You         |
 | `policy.schemaVersion`                            | From step 3, with the name and version.                                                    | You         |
-| `signals`                                         | An object with one entry for every fact the policy's rules read.                           | You         |
+| `signals`                                         | An object with one entry for every name in step 3's `signals.facts`.                       | You         |
 | `status`, `createdAt`                             | Ignored if you send them.                                                                  | The server  |
 
 ### The consistency rules

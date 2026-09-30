@@ -38,6 +38,7 @@ import type {
 
 import type { ReplayResult } from "../models/replay-result.js";
 import type { CallerIdentity, PublicKeyInfo } from "../models/caller.js";
+import type { PolicyInEffect } from "../models/policy-in-effect.js";
 import type {
   ApprovalIssuer,
   ApprovalIssuerChange,
@@ -329,6 +330,15 @@ export class ParmanaClient {
    */
   public publicKey(keyId = "default"): Promise<PublicKeyInfo> {
     return this.callerApi.publicKey(keyId);
+  }
+
+  /**
+   * The policy a request for `capability` must declare right now, and what
+   * the request must carry (GET /policies/in-effect). Call it before every
+   * request and declare `policy` exactly as returned.
+   */
+  public policyInEffect(capability: string): Promise<PolicyInEffect> {
+    return this.policyApi.inEffect(capability);
   }
 
   /**

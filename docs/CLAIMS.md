@@ -575,6 +575,29 @@ Evidence
 
 ---
 
+## 2.48 The Server Tells an Agent What a Request Must Carry (Scoped, 2026-09-30)
+
+**Claim:** `GET /policies/in-effect?capability=...` returns, with the policy to declare, what a request under it must carry: every fact the policy's rules read, their declared types, the signals that must equal a value of the Intent, and the signals that need a signed approval with where the approval's resource and amount are in the request. An agent can build a request from the server's answer, without a copy of the policy and without asking the operator.
+
+Scope, stated plainly:
+
+- **Rule conditions are not returned.** The answer carries the policy's `description`, the author's own text, which may mention a limit; the server decides with the rules.
+- **Same authorization as before.** Only a caller whose key may invoke the capability, or a human caller.
+- **Fails closed.** If the policy in effect cannot be read, the answer is `503 POLICY_VERSION_UNAVAILABLE`, never a partial answer.
+- **SDKs:** `policyInEffect()` in TypeScript and `policy_in_effect()` in Python are in the repository, not yet published (1.4.0 on the registries does not have them).
+- **Not deployed** until this change is merged and deployed.
+
+Verification
+
+- `packages/api/tests/integration/policy-in-effect.integration.test.ts`: the refund answer equals the facts, schema, bound and approval declarations of `customer-refund`; no rule condition in `signals`; a read (`github:pr-fetch`) names `readApproved` for the target; `503` with no `signals` when the policy cannot be read.
+- `packages/policy/tests/unit/policySignalRequirements.test.ts`: facts collected from nested `all` and `any`, sorted, once; empty objects when a policy declares none.
+- `typescript/test/Alignment.test.ts`, `python/tests/test_sdk_alignment.py`: the SDK methods call the endpoint and return the answer; Python keeps signal names unconverted.
+
+Evidence
+
+- `packages/api/src/routes/policy-in-effect.ts`; `packages/policy/src/policySignalRequirements.ts` (also used by `PolicyValidator`)
+- `openapi/openapi.yaml` (`getPolicyInEffect`); `docs/site/agents/integrate.mdx` step 3
+
 ## 2.23 Independently Certified Authorization (Phase 3D)
 
 _"Even if AI has valid credentials, it still cannot execute anything your business hasn't authorized. No exceptions"_ — the specific claim tracked and re-verified across the Phase 2K capability policy binding record (in git history), the Phase 2L authorization exceptions record (in git history) (which found it **not fully supported**, naming two exceptions: Razorpay's caller-declared daily cumulative total, and HubSpot's caller-declared `preAuthorizedForAmountChange`) — was independently re-certified from current repository state in the Phase 3D independent authorization certification (in git history), treating every prior phase's conclusion as a claim to re-verify, not inherit.

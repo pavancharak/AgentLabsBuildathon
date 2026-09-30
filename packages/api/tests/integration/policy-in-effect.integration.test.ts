@@ -72,6 +72,60 @@ describe("GET /policies/in-effect", () => {
       // Under NODE_ENV test governance does not decide the version, so it
       // is the binding in code; production answers with the approved one.
       policy: CANONICAL_CAPABILITY_POLICY_BINDINGS.get("paytm:refund"),
+      description: expect.stringContaining("signed manager approval"),
+      signals: {
+        facts: [
+          "fraudCheckPassed",
+          "managerApproved",
+          "refundAmount",
+          "refundEligible",
+        ],
+        schema: {
+          refundEligible: "boolean",
+          managerApproved: "boolean",
+          fraudCheckPassed: "boolean",
+          refundAmount: "number",
+        },
+        bound: { refundAmount: "parameters.amount" },
+        approval: {
+          managerApproved: {
+            resourceId: "parameters.orderId",
+            value: "parameters.amount",
+          },
+        },
+      },
+    });
+  });
+
+  it("returns what a request must carry, never the rules", async () => {
+    const { app } = buildApp();
+
+    const response = await request(app)
+      .get("/policies/in-effect")
+      .query({ capability: "paytm:refund" })
+      .set("Authorization", `Bearer ${AGENT_KEY}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.rules).toBeUndefined();
+    // No rule condition leaves the server; the description is the
+    // policy author's own text for people and may mention limits.
+    expect(JSON.stringify(response.body.signals)).not.toMatch(
+      /"(condition|operator|outcome|rules)"/,
+    );
+  });
+
+  it("names the approval signal for a read, whose approval covers the pull request", async () => {
+    const { app } = buildApp();
+
+    const response = await request(app)
+      .get("/policies/in-effect")
+      .query({ capability: "github:pr-fetch" })
+      .set("Authorization", `Bearer ${HUMAN_KEY}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.signals.facts).toEqual(["readApproved"]);
+    expect(response.body.signals.approval).toEqual({
+      readApproved: { resourceId: "target" },
     });
   });
 
@@ -165,6 +219,32 @@ describe("GET /policies/in-effect", () => {
         version: "1.2.0",
         schemaVersion: "1.0.0",
       });
+    });
+
+    it("returns 503, not a partial answer, when the policy in effect cannot be read", async () => {
+      const app = express();
+      app.use(
+        "/policies",
+        createPolicyInEffectRouter(
+          undefined,
+          new CapabilityPolicyBinder({
+            async currentVersion() {
+              return "1.2.0";
+            },
+          }),
+          async () => {
+            throw new Error("storage unreachable");
+          },
+        ),
+      );
+
+      const response = await request(app)
+        .get("/policies/in-effect")
+        .query({ capability: "paytm:refund" });
+
+      expect(response.status).toBe(503);
+      expect(response.body.code).toBe("POLICY_VERSION_UNAVAILABLE");
+      expect(response.body.signals).toBeUndefined();
     });
 
     it("returns 409 when no version was ever approved", async () => {
