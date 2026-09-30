@@ -1,6 +1,7 @@
 import type { CryptoProvider } from "@parmana/crypto";
 import type {
   ConnectorExecutor,
+  ConnectorReleaseInput,
   ExecutionCredential,
 } from "@parmana/execution-control";
 import type { ExecutableContent, ExecutionResult } from "@parmana/shared";
@@ -54,6 +55,7 @@ export class SdkConnectorExecutor implements ConnectorExecutor {
   async execute(
     content: Readonly<ExecutableContent>,
     credential: ExecutionCredential,
+    release?: ConnectorReleaseInput,
   ): Promise<ExecutionResult> {
     const { connector, metadata } = this.options;
 
@@ -101,6 +103,29 @@ export class SdkConnectorExecutor implements ConnectorExecutor {
       credential: credential.value,
       timeoutMs: this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
       requestedAt: startedAt,
+      ...(release !== undefined
+        ? {
+            release: Object.freeze({
+              authorizationId: release.authorization.payload.authorizationId,
+              policy: Object.freeze({
+                name: release.authorization.payload.policyName,
+                version: release.authorization.payload.policyVersion,
+                ...(release.authorization.payload.policyContentHash !==
+                undefined
+                  ? {
+                      contentHash:
+                        release.authorization.payload.policyContentHash,
+                    }
+                  : {}),
+              }),
+              approvals: Object.freeze(
+                release.approvals.map((approval) =>
+                  Object.freeze({ ...approval }),
+                ),
+              ),
+            }),
+          }
+        : {}),
     });
 
     const response = await connector.execute(request, context);

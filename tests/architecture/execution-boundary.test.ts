@@ -109,6 +109,11 @@ describe("execution boundary — exactly one production execution pipeline", () 
       // identifiers/DTOs live in @parmana/connector-slack, only the
       // executable class lives here.
       "packages/execution-gateway/src/connector-execution/GatewaySlackAdapter.ts",
+      // External connector (ADR-0013): releases an approved request to an
+      // operator's registered HTTPS endpoint as a signed release, the
+      // remote pattern Paytm uses, made general. It lives here with the
+      // other adapters and runs only through the Gateway pipeline.
+      "packages/execution-gateway/src/connector-execution/GatewayExternalAdapter.ts",
       // Explicit, intentional test double — never executes a real vendor
       // call. Constructed by production bootstrap (createVendorPaymentConnector.ts,
       // via createConnectorRegistry.ts) ONLY when NODE_ENV=test; outside test

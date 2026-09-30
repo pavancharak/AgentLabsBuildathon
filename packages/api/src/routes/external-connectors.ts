@@ -45,7 +45,14 @@ import { externalConnectorRepository } from "../repositories.js";
  * stay code.
  */
 
-const CAPABILITY = /^[a-z][a-z0-9-]{0,62}:[a-z][a-z0-9-]{0,62}$/;
+/**
+ * The connector SDK's capability form (isNamespacedCapability), so every
+ * registration can be served by a connector, at most 128 characters.
+ */
+const CAPABILITY_PATTERN =
+  "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*:[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$";
+const CAPABILITY = new RegExp(CAPABILITY_PATTERN);
+const MAX_CAPABILITY_LENGTH = 128;
 const POLICY_NAME = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const PARAMETER_NAME = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/;
 const MAX_ALLOWED_PARAMETERS = 64;
@@ -244,9 +251,13 @@ export function createExternalConnectorsRouter(
           );
         }
 
-        if (typeof capability !== "string" || !CAPABILITY.test(capability)) {
+        if (
+          typeof capability !== "string" ||
+          capability.length > MAX_CAPABILITY_LENGTH ||
+          !CAPABILITY.test(capability)
+        ) {
           throw new InvalidRegistrationError(
-            "capability must be namespace:verb, matching ^[a-z][a-z0-9-]{0,62}:[a-z][a-z0-9-]{0,62}$.",
+            `capability must be namespace:verb, at most ${MAX_CAPABILITY_LENGTH} characters, matching ${CAPABILITY_PATTERN}.`,
           );
         }
 

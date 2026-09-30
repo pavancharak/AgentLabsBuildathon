@@ -30,6 +30,7 @@ import {
   NonceAlreadyConsumedError,
   type ExecutableContent,
   type ExecutionResult,
+  type ReleaseApproval,
 } from "@parmana/shared";
 
 import type { Connector } from "./Connector.js";
@@ -544,6 +545,10 @@ export class ExecutionGateway implements ExecutionSystem {
               replayCheckPassed: true,
             },
             executionTimestamp: new Date().toISOString(),
+            approvals:
+              result.checks.signalsStillCurrent === true
+                ? releaseApprovals(request.signals)
+                : [],
           },
           gatewayAuthentication,
         );
@@ -639,4 +644,46 @@ export class ExecutionGateway implements ExecutionSystem {
       `[${failedChecks.join(", ")}].${hashDetail}${policyDetail}${governanceDetail}${signalsHashDetail}${signalDivergenceDetail}`
     );
   }
+}
+
+/**
+ * The signed approvals among a request's signals: every signal value
+ * shaped as a signed approval (payload.approvalId and payload.issuer
+ * with approverId and keyId). Called only after the signals were checked
+ * against the authorization's signed signalsHash, so these are the
+ * approvals the decision verified, not values sent after it.
+ */
+function releaseApprovals(
+  signals: Readonly<Record<string, unknown>> | undefined,
+): readonly ReleaseApproval[] {
+  if (signals === undefined) {
+    return [];
+  }
+
+  const approvals: ReleaseApproval[] = [];
+
+  for (const value of Object.values(signals)) {
+    const payload = asRecord(asRecord(value)?.payload);
+    const issuer = asRecord(payload?.issuer);
+
+    if (
+      typeof payload?.approvalId === "string" &&
+      typeof issuer?.approverId === "string" &&
+      typeof issuer.keyId === "string"
+    ) {
+      approvals.push({
+        approverId: issuer.approverId,
+        keyId: issuer.keyId,
+        approvalId: payload.approvalId,
+      });
+    }
+  }
+
+  return approvals;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
 }
