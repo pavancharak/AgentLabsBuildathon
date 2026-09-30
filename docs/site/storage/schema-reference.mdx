@@ -37,6 +37,8 @@ psql "$DATABASE_URL"
 | `policies`                              | Policy content written on approval (Vercel has a read only filesystem)  | `SupabasePolicyRepository`                     |
 | `approval_issuers`                      | Approver keys added through maker checker                               | `SupabaseApprovalIssuerRepository`             |
 | `approval_issuer_changes`               | Proposals to add or revoke an approver key                              | `SupabaseApprovalIssuerRepository`             |
+| `external_connectors`                   | External connectors registered through maker checker (ADR-0013)         | `SupabaseExternalConnectorRepository`          |
+| `external_connector_changes`            | Proposals to register or revoke an external connector                   | `SupabaseExternalConnectorRepository`          |
 | `pending_policy_changes`                | Maker and checker: a proposed change awaiting approval                  | `SupabasePendingPolicyChangeRepository`        |
 | `policy_change_approval_records`        | Maker and checker: signed approval or rejection                         | `SupabasePolicyChangeApprovalRecordRepository` |
 | `consumed_nonces`                       | Replay protection: gateway authorization envelopes                      | `SupabaseNonceStore`                           |
@@ -264,6 +266,37 @@ select approver_id, key_id, revoked, added_at, revoked_at, c.proposed_by, c.reso
 from approval_issuers i
 join approval_issuer_changes c on c.change_id = i.added_by_change_id
 order by added_at;
+```
+
+### `external_connectors` and `external_connector_changes`
+
+External connectors registered without a deploy (ADR-0013): a capability bound to an operator's
+HTTPS endpoint and to the policy that governs it, through `/external-connectors`. Created by
+`20260930120000_add_external_connectors.sql`.
+
+`external_connector_changes`: `change_id` primary key, `action` (`register` or `revoke`),
+`capability`, and for a register only `endpoint_url`, `policy_name`, `allowed_parameters`
+(`TEXT[]`) and `timeout_ms` (1000 to 30000); a check constraint requires all four on a register
+and none on a revoke. Then `reason`, `proposed_by`, `proposed_at`, `status` (`PENDING_APPROVAL`,
+`APPROVED`, `REJECTED`), `resolved_by` (never equal to `proposed_by`, a check constraint),
+`resolved_at`, `rejection_reason`. The partial unique index `ux_external_connector_changes_open`
+on `capability` where `status = 'PENDING_APPROVAL'` allows one open change per capability.
+
+`external_connectors`: `registration_id` primary key, which is the approved register change's
+`change_id` (a restricting foreign key), `capability`, `endpoint_url`, `policy_name`,
+`allowed_parameters`, `timeout_ms`, `status` (`active` or `revoked`), `registered_at`,
+`revoked_by_change_id` (a restricting foreign key) and `revoked_at`. A check constraint keeps
+`status` revoked exactly when `revoked_by_change_id` is set. The partial unique index
+`ux_external_connectors_active` on `capability` where `status = 'active'` allows one active
+registration per capability. Rows are never deleted. RLS enabled on both.
+
+Which endpoints are registered, and who asked and approved:
+
+```sql
+select x.capability, x.endpoint_url, x.status, x.registered_at, c.proposed_by, c.resolved_by
+from external_connectors x
+join external_connector_changes c on c.change_id = x.registration_id
+order by registered_at;
 ```
 
 ### `policy_change_approval_records`

@@ -6404,7 +6404,7 @@ This records every migration up to and including that file as applied, without r
   pasted into the Supabase SQL Editor.
 </Warning>
 
-**Check:** `npm run db:migrate -- status` ends with `0 pending`, and in the SQL Editor `select to_regclass('consumed_nonces'), to_regclass('execution_audit_events'), to_regclass('policies'), to_regclass('execution_intents'), to_regclass('approval_issuers');` returns five names and no empty value.
+**Check:** `npm run db:migrate -- status` ends with `0 pending`, and in the SQL Editor `select to_regclass('consumed_nonces'), to_regclass('execution_audit_events'), to_regclass('policies'), to_regclass('execution_intents'), to_regclass('approval_issuers'), to_regclass('external_connectors');` returns six names and no empty value.
 
 <Warning>
   **Upgrading a deployment that already exists.** Apply new migrations
