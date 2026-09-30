@@ -72,3 +72,7 @@ export const handbookDownloadLeadRepository = lazyRepository(
 export const approvalIssuerRepository = lazyRepository(
   (provider) => provider.approvalIssuers,
 );
+
+export const externalConnectorRepository = lazyRepository(
+  (provider) => provider.externalConnectors,
+);

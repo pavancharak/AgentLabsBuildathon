@@ -442,6 +442,16 @@
             ]
           },
           {
+            "group": "External Connectors",
+            "pages": [
+              "api-reference/endpoints/list-external-connectors",
+              "api-reference/endpoints/list-external-connector-changes",
+              "api-reference/endpoints/propose-external-connector-change",
+              "api-reference/endpoints/approve-external-connector-change",
+              "api-reference/endpoints/reject-external-connector-change"
+            ]
+          },
+          {
             "group": "Refusal Records",
             "pages": [
               "api-reference/endpoints/verify-refusal-record",

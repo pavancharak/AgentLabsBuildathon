@@ -133,7 +133,7 @@ jobs:
         run: |
           npm ci
           npm run build
-          npx vitest run packages/storage/tests/integration/supabase-approval-issuer-repository.integration.test.ts
+          npx vitest run packages/storage/tests/integration/supabase-approval-issuer-repository.integration.test.ts packages/storage/tests/integration/supabase-external-connector-repository.integration.test.ts
 
       - name: Start the container in production mode
         run: |

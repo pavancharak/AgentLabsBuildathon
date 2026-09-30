@@ -155,6 +155,13 @@ This file is generated from the documentation navigation. Do not edit it by hand
 * [Propose adding or revoking an approver key](https://docs.parmanasystems.com/api-reference/endpoints/propose-approval-issuer-change): Proposes adding an approver key (action add, with the approver Ed25519 public key) or revoking a key added this way (action revoke).
 * [Approve an approver change](https://docs.parmanasystems.com/api-reference/endpoints/approve-approval-issuer-change): Approves an approver change and applies it in one step: add trusts the key from the next approval checked, revoke refuses every approval the key ever signed from the next request on.
 * [Reject an approver change](https://docs.parmanasystems.com/api-reference/endpoints/reject-approval-issuer-change): Rejects an approver change.
+## REST API: External Connectors
+
+* [List external connectors](https://docs.parmanasystems.com/api-reference/endpoints/list-external-connectors): Every external connector registration (ADR-0013), active and revoked: the capability, the HTTPS endpoint Parmana releases it to, the policy that governs it, and the parameters Parmana forwards.
+* [List external connector changes](https://docs.parmanasystems.com/api-reference/endpoints/list-external-connector-changes): External connector changes, newest first, optionally filtered by status.
+* [Propose registering or revoking an external connector](https://docs.parmanasystems.com/api-reference/endpoints/propose-external-connector-change): Proposes registering an external connector (action register: a capability, the HTTPS endpoint to release it to, the policy that governs it, the parameters to forward, and optionally a timeout) or revoking the active one for a capability ...
+* [Approve an external connector change](https://docs.parmanasystems.com/api-reference/endpoints/approve-external-connector-change): Approves an external connector change and applies it in one step: register makes the registration active, revoke ends it.
+* [Reject an external connector change](https://docs.parmanasystems.com/api-reference/endpoints/reject-external-connector-change): Rejects an external connector change.
 ## REST API: Refusal Records
 
 * [Verify a Refusal Record's signature](https://docs.parmanasystems.com/api-reference/endpoints/verify-refusal-record): Verifies a Refusal Record's signature (RFC-0021).

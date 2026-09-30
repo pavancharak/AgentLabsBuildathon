@@ -14,6 +14,8 @@ import type { Store } from "express-rate-limit";
 import policyRoutes from "./routes/policies.js";
 import { createPendingPolicyChangesRouter } from "./routes/pending-policy-changes.js";
 import { createApprovalIssuersRouter } from "./routes/approval-issuers.js";
+import { createExternalConnectorsRouter } from "./routes/external-connectors.js";
+import type { EndpointAddressLookup } from "@parmana/shared";
 import type { ExecutionTrustApplication } from "@parmana/runtime";
 
 import { createExecuteRouter } from "./routes/execute.js";
@@ -147,6 +149,13 @@ export interface CreateAppOptions {
    * change with no corresponding live effect.
    */
   readonly policyChangeApprovalService?: PolicyChangeApprovalService;
+
+  /**
+   * How /external-connectors resolves an endpoint's host to check its
+   * address (ADR-0013). Defaults to the system resolver; tests pass
+   * their own so they need no network.
+   */
+  readonly externalEndpointLookup?: EndpointAddressLookup;
 }
 
 export function createApp(
@@ -395,6 +404,21 @@ export function createApp(
         ? options.callerAuth.auditSink
         : undefined,
       options.stepUpVerifier,
+    ),
+  );
+
+  /**
+   * External connectors (ADR-0013), maker checker.
+   */
+  app.use(
+    "/external-connectors",
+    createExternalConnectorsRouter(
+      options.callerAuth !== "disabled"
+        ? options.callerAuth.auditSink
+        : undefined,
+      options.stepUpVerifier,
+      undefined,
+      options.externalEndpointLookup,
     ),
   );
 
