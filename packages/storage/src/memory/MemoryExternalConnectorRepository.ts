@@ -61,7 +61,8 @@ export class MemoryExternalConnectorRepository implements ExternalConnectorRepos
   async listChanges(
     status?: ExternalConnectorChange["status"],
   ): Promise<readonly ExternalConnectorChange[]> {
-    const all = [...this.changes.values()];
+    // Newest first, as the Postgres repository orders them.
+    const all = [...this.changes.values()].reverse();
 
     return status === undefined
       ? all

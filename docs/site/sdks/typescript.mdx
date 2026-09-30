@@ -423,6 +423,37 @@ verifyExecutionIntentOffline(view.intent, { default: pem });
 
 No network call and no database: only the record and the public key. The result has the same fields as the Python SDK's, in camelCase. A record that also carries a hybrid ML-DSA-65 `signatures` array is reported as not valid, with an error that says why, because the SDKs do not verify ML-DSA-65.
 
+### Check a release at an external connector endpoint (next release)
+
+An endpoint registered as an external connector receives each approved request as a signed release.
+It checks the release before it acts:
+
+```typescript
+import { verifyParmanaRelease } from "@parmana/sdk";
+
+const result = await verifyParmanaRelease(body, {
+  publicKeys: { default: pem }, // client.publicKey("default")
+  audience: "https://erp.example.com/parmana/release", // this endpoint, as registered
+  isAlreadyExecuted: (businessTransactionId) =>
+    answers.has(businessTransactionId),
+});
+
+if (!result.valid) {
+  // Act on nothing. result.errors says why.
+} else if (result.alreadyExecuted) {
+  // Answer with the first result again; do not act twice.
+} else {
+  // Act on result.release.capability, target and parameters only, then answer
+  // { businessTransactionId, capability, success, result, executedAt }.
+}
+```
+
+It checks, in order, the body's shape, the signature over the canonical release (including the
+commitment a KMS signed release over 4096 bytes uses), that the release was made for this endpoint,
+and that it has not expired (30 seconds of clock skew by default). A whole endpoint built on it is
+`typescript/examples/07-external-connector-endpoint.ts`; Tutorial 123
+(`examples/tutorials/123-external-connector/run.ts`) registers it and releases to it.
+
 ### Approve a policy change
 
 The approver signs on their own machine; the private key never leaves it.

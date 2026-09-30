@@ -256,4 +256,29 @@ describe("verifyParmanaRelease", () => {
       ],
     });
   });
+
+  it("refuses another release version and missing fields, naming each", async () => {
+    const result = await verifyParmanaRelease(
+      withRelease({ version: 2, target: undefined, approvedBy: {} }),
+      options(),
+    );
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        "release.version is not 1",
+        "release.target is not a string",
+        "release.approvedBy is not an array",
+      ]),
+    );
+  });
+
+  it("refuses an expiry that is not a date", async () => {
+    const result = await verifyParmanaRelease(
+      withRelease({ expiresAt: "soon" }),
+      options(),
+    );
+
+    expect(result.errors).toContain("release.expiresAt is not a date");
+  });
 });

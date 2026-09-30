@@ -417,4 +417,124 @@ describe("External connector changes (HTTP boundary)", () => {
       ).toContain(id);
     });
   });
+
+  describe("more edges", () => {
+    it("accepts the timeout limits and an empty parameter list, and refuses just outside them", async () => {
+      const app = governanceApp();
+
+      for (const timeoutMs of [1000, 30000]) {
+        const response = await propose(app, {
+          ...registration(uniqueCapability()),
+          timeoutMs,
+        });
+        expect(response.status).toBe(201);
+        expect(response.body.timeoutMs).toBe(timeoutMs);
+      }
+
+      for (const timeoutMs of [999, 30001, "10000"]) {
+        expect(
+          (
+            await propose(app, {
+              ...registration(uniqueCapability()),
+              timeoutMs,
+            })
+          ).status,
+        ).toBe(400);
+      }
+
+      const none = await propose(app, {
+        ...registration(uniqueCapability()),
+        allowedParameters: [],
+      });
+      expect(none.status).toBe(201);
+      expect(none.body.allowedParameters).toEqual([]);
+
+      const tooMany = await propose(app, {
+        ...registration(uniqueCapability()),
+        allowedParameters: Array.from({ length: 65 }, (_, i) => `p${i}`),
+      });
+      expect(tooMany.status).toBe(400);
+    });
+
+    it("refuses a second revoke of the same registration", async () => {
+      const app = governanceApp();
+      const capability = uniqueCapability();
+
+      const registered = await propose(app, registration(capability));
+      await approve(app, registered.body.changeId);
+
+      const revoke = await propose(app, { action: "revoke", capability });
+      expect((await approve(app, revoke.body.changeId)).status).toBe(200);
+
+      expect(
+        (await propose(app, { action: "revoke", capability })).status,
+      ).toBe(409);
+    });
+
+    it("lists changes newest first, and filters by status", async () => {
+      const app = governanceApp();
+      const older = await propose(app, registration(uniqueCapability()));
+      const newer = await propose(app, registration(uniqueCapability()));
+      await approve(app, older.body.changeId);
+
+      const pending = await request(app)
+        .get("/external-connectors/changes?status=PENDING_APPROVAL")
+        .set("Authorization", `Bearer ${CHECKER_KEY}`);
+      const pendingIds = pending.body.changes.map(
+        (c: { changeId: string }) => c.changeId,
+      );
+      expect(pendingIds).toContain(newer.body.changeId);
+      expect(pendingIds).not.toContain(older.body.changeId);
+
+      const all = await request(app)
+        .get("/external-connectors/changes")
+        .set("Authorization", `Bearer ${CHECKER_KEY}`);
+      const allIds: string[] = all.body.changes.map(
+        (c: { changeId: string }) => c.changeId,
+      );
+      expect(allIds.indexOf(newer.body.changeId)).toBeLessThan(
+        allIds.indexOf(older.body.changeId),
+      );
+
+      expect(
+        (
+          await request(app)
+            .get("/external-connectors/changes?status=DONE")
+            .set("Authorization", `Bearer ${CHECKER_KEY}`)
+        ).status,
+      ).toBe(400);
+    });
+
+    it("answers 404 for an unknown change, on approve and on reject", async () => {
+      const app = governanceApp();
+      const id = "00000000-0000-0000-0000-000000000000";
+
+      const approved = await approve(app, id);
+      expect(approved.status).toBe(404);
+      expect(approved.body.code).toBe("EXTERNAL_CONNECTOR_CHANGE_NOT_FOUND");
+
+      const rejected = await request(app)
+        .post(`/external-connectors/changes/${id}/reject`)
+        .set("Authorization", `Bearer ${CHECKER_KEY}`)
+        .send({
+          rejectionReason: "No.",
+          stepUpAuthorization: await signStepUp(id, "reject"),
+        });
+      expect(rejected.status).toBe(404);
+    });
+
+    it("normalizes the endpoint's host and default port before storing it, so the audience is stable", async () => {
+      const app = governanceApp();
+
+      const response = await propose(app, {
+        ...registration(uniqueCapability()),
+        endpointUrl: "https://ERP.Example.COM:443/parmana/release",
+      });
+
+      expect(response.status).toBe(201);
+      expect(response.body.endpointUrl).toBe(
+        "https://erp.example.com/parmana/release",
+      );
+    });
+  });
 });
