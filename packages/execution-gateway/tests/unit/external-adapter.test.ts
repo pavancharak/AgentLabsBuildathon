@@ -359,6 +359,60 @@ describe("GatewayExternalAdapter: the endpoint's answer", () => {
   });
 });
 
+describe("GatewayExternalAdapter: more edges", () => {
+  it("forwards no parameter at all when the registration allows none", async () => {
+    const transport = recordingTransport();
+
+    await expect(
+      adapter(transport, {
+        target: {
+          capability: "erp:create-invoice",
+          endpointUrl: ENDPOINT,
+          allowedParameters: [],
+          timeoutMs: 10_000,
+        },
+      }).execute(request, context),
+    ).rejects.toThrow(/allows only none/);
+    expect(transport.calls).toHaveLength(0);
+
+    await expect(
+      adapter(recordingTransport(), {
+        target: {
+          capability: "erp:create-invoice",
+          endpointUrl: ENDPOINT,
+          allowedParameters: [],
+          timeoutMs: 10_000,
+        },
+      }).execute({ ...request, parameters: {} }, context),
+    ).resolves.toMatchObject({ success: true });
+  });
+
+  it("records only the known fields of an answer, whatever else the endpoint adds", async () => {
+    const response = await adapter(
+      recordingTransport(200, answer({ debug: { token: "x" }, note: "hi" })),
+    ).execute(request, context);
+
+    expect(Object.keys(response.metadata ?? {}).sort()).toEqual(
+      ["endpointUrl", "executedAt", "releaseIssuedAt", "result"].sort(),
+    );
+  });
+
+  it("uses the registration's timeout when it is shorter than the executor's", async () => {
+    const transport = recordingTransport();
+
+    await adapter(transport, {
+      target: {
+        capability: "erp:create-invoice",
+        endpointUrl: ENDPOINT,
+        allowedParameters: ["amount", "currency"],
+        timeoutMs: 2_000,
+      },
+    }).execute(request, context);
+
+    expect(transport.calls[0]?.timeoutMs).toBe(2_000);
+  });
+});
+
 describe("createPinnedHttpsTransport", () => {
   let server: http.Server | undefined;
 

@@ -4033,6 +4033,27 @@ paths:
                           },
                         ],
                     }
+                withRevoked:
+                  summary: "Real captured response, after a revoke: the registration stays listed"
+                  value:
+                    {
+                      "connectors":
+                        [
+                          {
+                            "registrationId": "f3774dad-3182-4206-9aaf-49aefe76b557",
+                            "capability": "erp:create-invoice",
+                            "endpointUrl": "https://erp.example.com/parmana/release",
+                            "policy": "erp-invoice",
+                            "allowedParameters":
+                              ["amount", "currency", "customerId"],
+                            "timeoutMs": 10000,
+                            "status": "revoked",
+                            "registeredAt": "2026-09-30T19:03:21.535Z",
+                            "revokedByChangeId": "d1164799-36e9-4281-878a-93d666befd42",
+                            "revokedAt": "2026-09-30T19:03:21.554Z",
+                          },
+                        ],
+                    }
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -4041,6 +4062,14 @@ paths:
             application/json:
               schema:
                 $ref: "../schemas/common/error.schema.json"
+              examples:
+                service:
+                  summary: "Real captured response, a service credential"
+                  value:
+                    {
+                      "error": "This action requires a caller credential provisioned as a verified human (credentialHolderType: USER).",
+                      "code": "NON_HUMAN_CALLER_DENIED",
+                    }
 
   /external-connectors/changes:
     post:
@@ -4145,6 +4174,41 @@ paths:
                       "error": "The endpoint host 'erp-internal.example.com' resolves to an address that is not public (10.0.0.7).",
                       "code": "EXTERNAL_ENDPOINT_ADDRESS_REFUSED",
                     }
+                badCapability:
+                  summary: "Real captured response"
+                  value:
+                    {
+                      "error": "capability must be namespace:verb, at most 128 characters, matching ^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*:[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$.",
+                      "code": "INVALID_EXTERNAL_CONNECTOR",
+                    }
+                badTimeout:
+                  summary: "Real captured response"
+                  value:
+                    {
+                      "error": "timeoutMs must be an integer from 1000 to 30000; it defaults to 10000.",
+                      "code": "INVALID_EXTERNAL_CONNECTOR",
+                    }
+                duplicateParameter:
+                  summary: "Real captured response"
+                  value:
+                    {
+                      "error": "allowedParameters must be an array of at most 64 distinct names, each matching ^[A-Za-z_][A-Za-z0-9_]{0,63}$.",
+                      "code": "INVALID_EXTERNAL_CONNECTOR",
+                    }
+                revokeWithRegistrationFields:
+                  summary: "Real captured response"
+                  value:
+                    {
+                      "error": "A revoke takes only action, capability and reason.",
+                      "code": "INVALID_EXTERNAL_CONNECTOR",
+                    }
+                plainHttp:
+                  summary: "Real captured response"
+                  value:
+                    {
+                      "error": "endpointUrl must use https.",
+                      "code": "EXTERNAL_ENDPOINT_ADDRESS_REFUSED",
+                    }
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -4153,6 +4217,14 @@ paths:
             application/json:
               schema:
                 $ref: "../schemas/common/error.schema.json"
+              examples:
+                service:
+                  summary: "Real captured response, a service credential"
+                  value:
+                    {
+                      "error": "This action requires a caller credential provisioned as a verified human (credentialHolderType: USER).",
+                      "code": "NON_HUMAN_CALLER_DENIED",
+                    }
         "409":
           description: CONFLICT. The capability to register already has an active registration, the capability to revoke has none, or another change for this capability is pending.
           content:
@@ -4165,6 +4237,20 @@ paths:
                   value:
                     {
                       "error": "A change for capability 'erp:create-invoice' is already pending. It must be approved or rejected first.",
+                      "code": "CONFLICT",
+                    }
+                alreadyActive:
+                  summary: "Real captured response"
+                  value:
+                    {
+                      "error": "Capability 'erp:create-invoice' already has an active external connector. Revoke it first.",
+                      "code": "CONFLICT",
+                    }
+                revokeUnregistered:
+                  summary: "Real captured response"
+                  value:
+                    {
+                      "error": "Capability 'erp:create-invoice' has no active external connector.",
                       "code": "CONFLICT",
                     }
 
@@ -4214,12 +4300,54 @@ paths:
                           },
                         ],
                     }
+                approved:
+                  summary: "Real captured response, status=APPROVED: a register and the revoke that ended it"
+                  value:
+                    {
+                      "changes":
+                        [
+                          {
+                            "changeId": "d1164799-36e9-4281-878a-93d666befd42",
+                            "action": "revoke",
+                            "capability": "erp:create-invoice",
+                            "reason": "The ERP endpoint moves to a new host.",
+                            "proposedBy": "human-maker",
+                            "proposedAt": "2026-09-30T19:03:21.551Z",
+                            "status": "APPROVED",
+                            "resolvedBy": "human-checker",
+                            "resolvedAt": "2026-09-30T19:03:21.554Z",
+                          },
+                          {
+                            "changeId": "f3774dad-3182-4206-9aaf-49aefe76b557",
+                            "action": "register",
+                            "capability": "erp:create-invoice",
+                            "endpointUrl": "https://erp.example.com/parmana/release",
+                            "policy": "erp-invoice",
+                            "allowedParameters":
+                              ["amount", "currency", "customerId"],
+                            "timeoutMs": 10000,
+                            "reason": "Finance creates invoices in the ERP through Parmana from October.",
+                            "proposedBy": "human-maker",
+                            "proposedAt": "2026-09-30T19:03:21.530Z",
+                            "status": "APPROVED",
+                            "resolvedBy": "human-checker",
+                            "resolvedAt": "2026-09-30T19:03:21.535Z",
+                          },
+                        ],
+                    }
         "400":
           description: status is not PENDING_APPROVAL, APPROVED or REJECTED.
           content:
             application/json:
               schema:
                 $ref: "../schemas/common/error.schema.json"
+              examples:
+                badStatus:
+                  summary: "Real captured response"
+                  value:
+                    {
+                      "error": "status must be one of PENDING_APPROVAL, APPROVED, REJECTED.",
+                    }
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -4306,12 +4434,34 @@ paths:
                       "resolvedBy": "human-checker",
                       "resolvedAt": "2026-09-30T17:25:46.385Z",
                     }
+                revokeApproved:
+                  summary: "Real captured response, a revoke"
+                  value:
+                    {
+                      "changeId": "d1164799-36e9-4281-878a-93d666befd42",
+                      "action": "revoke",
+                      "capability": "erp:create-invoice",
+                      "reason": "The ERP endpoint moves to a new host.",
+                      "proposedBy": "human-maker",
+                      "proposedAt": "2026-09-30T19:03:21.551Z",
+                      "status": "APPROVED",
+                      "resolvedBy": "human-checker",
+                      "resolvedAt": "2026-09-30T19:03:21.554Z",
+                    }
         "400":
           description: EXTERNAL_ENDPOINT_ADDRESS_REFUSED. The endpoint now resolves to an address that is not public, or does not resolve. The change stays pending; reject it or fix the DNS and approve again with a new step up authorization.
           content:
             application/json:
               schema:
                 $ref: "../schemas/common/error.schema.json"
+              examples:
+                addressChanged:
+                  summary: "Real captured response, the host moved to a private address after the proposal"
+                  value:
+                    {
+                      "error": "The endpoint host 'crm.example.com' resolves to an address that is not public (10.0.0.7).",
+                      "code": "EXTERNAL_ENDPOINT_ADDRESS_REFUSED",
+                    }
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -4348,6 +4498,14 @@ paths:
             application/json:
               schema:
                 $ref: "../schemas/common/error.schema.json"
+              examples:
+                alreadyResolved:
+                  summary: "Real captured response, the same change approved twice"
+                  value:
+                    {
+                      "error": "External connector change 'd1164799-36e9-4281-878a-93d666befd42' is already APPROVED.",
+                      "code": "CONFLICT",
+                    }
 
   /external-connectors/changes/{id}/reject:
     post:
@@ -4394,6 +4552,25 @@ paths:
                       "resolvedBy": "human-checker",
                       "resolvedAt": "2026-09-30T17:25:46.439Z",
                       "rejectionReason": "Keep the current endpoint until the new host is live.",
+                    }
+                rejectedRegister:
+                  summary: "Real captured response, a register"
+                  value:
+                    {
+                      "changeId": "1b618590-af7a-4196-8f8b-a4344873e2d6",
+                      "action": "register",
+                      "capability": "crm:create-lead",
+                      "endpointUrl": "https://crm.example.com/parmana/release",
+                      "policy": "crm-lead",
+                      "allowedParameters": ["email", "company"],
+                      "timeoutMs": 10000,
+                      "reason": "Sales creates leads in the CRM through Parmana.",
+                      "proposedBy": "human-maker",
+                      "proposedAt": "2026-09-30T19:03:21.542Z",
+                      "status": "REJECTED",
+                      "resolvedBy": "human-checker",
+                      "resolvedAt": "2026-09-30T19:03:21.549Z",
+                      "rejectionReason": "The CRM host moved inside the office network.",
                     }
         "400":
           description: rejectionReason is missing, empty, or longer than 2000 characters.

@@ -23,6 +23,11 @@ every commit, run `git log` in the repository for the complete record.
   Every request is refused while no version of that policy is approved.
 - Not yet checked against a live endpoint, and the SDK helpers `verifyParmanaRelease` and
   `verify_parmana_release` are not published yet. A guide to connecting any external system follows.
+- **Examples:** an endpoint in TypeScript (`typescript/examples/07-external-connector-endpoint.ts`)
+  and in Python (`python/examples/13_external_connector_endpoint.py`), each checking releases with
+  its SDK helper, and Tutorial 123, which registers the TypeScript one through maker checker and
+  releases to it. The API reference shows real responses for every refusal of the
+  `/external-connectors` routes.
 
 ## 2026-09-30
 

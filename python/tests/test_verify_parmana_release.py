@@ -217,3 +217,29 @@ def test_lists_every_failed_check_in_order(fixture):
         f'is not this endpoint ({fixture["audience"]})',
         "the release expired at 2026-10-01T10:01:00.000Z",
     ]
+
+
+def test_refuses_another_release_version_and_missing_fields_naming_each(fixture):
+    changed = copy.deepcopy(fixture["release"])
+    changed["release"]["version"] = 2
+    del changed["release"]["target"]
+    changed["release"]["approvedBy"] = {}
+
+    result = _verify(fixture, changed)
+
+    assert result.valid is False
+    for error in (
+        "release.version is not 1",
+        "release.target is not a string",
+        "release.approvedBy is not an array",
+    ):
+        assert error in result.errors
+
+
+def test_refuses_an_expiry_that_is_not_a_date(fixture):
+    changed = copy.deepcopy(fixture["release"])
+    changed["release"]["expiresAt"] = "soon"
+
+    result = _verify(fixture, changed)
+
+    assert "release.expiresAt is not a date" in result.errors

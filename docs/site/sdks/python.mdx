@@ -385,6 +385,33 @@ verify_execution_intent_offline(view.intent, {"default": pem})
 
 From 1.3.0 the verifiers accept the SDK's own models, as above, as well as the raw JSON dict of a response or a file. Needs `pip install "parmana[verify]"`.
 
+### Check a release at an external connector endpoint (next release)
+
+An endpoint registered as an external connector receives each approved request as a signed release.
+It checks the release before it acts. Needs `pip install "parmana[verify]"`.
+
+```python
+from parmana.crypto import verify_parmana_release
+
+result = verify_parmana_release(
+    body,
+    public_keys={"default": pem},  # client.public_key("default").pem
+    audience="https://erp.example.com/parmana/release",  # this endpoint, as registered
+    is_already_executed=lambda business_transaction_id: business_transaction_id in answers,
+)
+
+if not result.valid:
+    ...  # Act on nothing. result.errors says why.
+elif result.already_executed:
+    ...  # Answer with the first result again; do not act twice.
+else:
+    ...  # Act on result.release["capability"], ["target"] and ["parameters"] only.
+```
+
+The same checks, in the same order and with the same error texts, as the TypeScript SDK's
+`verifyParmanaRelease`. A whole endpoint built on it is
+`python/examples/13_external_connector_endpoint.py`.
+
 ### Approve a policy change
 
 The approver signs on their own machine; the private key never leaves it. Needs `pip install "parmana[verify]"`.

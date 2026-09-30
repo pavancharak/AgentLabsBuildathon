@@ -134,6 +134,7 @@ const examples = [
   "examples/tutorials/120-no-action-without-approval/run.ts",
   "examples/tutorials/121-approval-for-a-read/run.ts",
   "examples/tutorials/122-approval-for-a-post-and-an-update/run.ts",
+  "examples/tutorials/123-external-connector/run.ts",
   "examples/scenarios/expense-approval/run.ts",
   "examples/scenarios/purchase-order/run.ts",
 ];
