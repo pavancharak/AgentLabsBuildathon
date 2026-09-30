@@ -224,9 +224,10 @@ reject. Built in namespaces (paytm, hubspot, github, slack, test) refused. The e
 is checked when proposed and when approved (`packages/shared/src/network/externalEndpointAddress.ts`).
 
 **Not reachable yet: a registration causes no release.** `GatewayExternalAdapter` (PR #93) and the
-SDK helpers `verifyParmanaRelease` and `verify_parmana_release` (PR #94) are in review. Nothing in
-bootstrap builds the adapter for a registered capability, and `GET /policies/in-effect` does not
-answer for one (step 4). No claim is made in `docs/CLAIMS.md` until the live check (step 6).
+SDK helpers `verifyParmanaRelease` and `verify_parmana_release` (PR #94) are merged and were deployed
+with `7608be6` on 2026-09-30, but nothing in bootstrap builds the adapter for a registered
+capability, and `GET /policies/in-effect` does not answer for one (step 4). The SDK helpers are not
+published yet. No claim is made in `docs/CLAIMS.md` until the live check (step 6).
 
 ## On disk, but not reachable
 

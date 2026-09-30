@@ -140,14 +140,14 @@ Goal: an agent that has been manipulated (prompt injection) cannot authorize a r
 
 Goal: connect any external system with no change to Parmana's code (ADR-0013). Built in the ADR's order, each step its own pull request.
 
-| Step | What                                                                                                        | State                                                                   |
-| ---- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| 1    | Registrations and their changes, `/external-connectors` with maker checker                                  | **Live** (PR #92, migration applied 2026-09-30).                        |
-| 2    | `GatewayExternalAdapter`: signed release, address checks at release, answer validation                      | In review, PR #93. Needs no migration.                                  |
-| 3    | SDK helpers `verifyParmanaRelease` and `verify_parmana_release`                                             | In review, PR #94 (on top of #93). Published with the next SDK release. |
-| 4    | Build the adapter for each active registration, and answer `GET /policies/in-effect` for it                 | Not started. Until then a registration causes no release.               |
-| 5    | Docs page "Connect any external system", example endpoints in TypeScript and Python, tutorial, CLAIMS entry | Not started.                                                            |
-| 6    | A live check against a deployed example endpoint before the claim                                           | Not started.                                                            |
+| Step | What                                                                                                        | State                                                                         |
+| ---- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| 1    | Registrations and their changes, `/external-connectors` with maker checker                                  | **Live** (PR #92, migration applied 2026-09-30).                              |
+| 2    | `GatewayExternalAdapter`: signed release, address checks at release, answer validation                      | Merged (PR #93) and deployed with `7608be6`; not used until step 4.           |
+| 3    | SDK helpers `verifyParmanaRelease` and `verify_parmana_release`                                             | Merged (PR #94) and deployed; not published, comes with the next SDK release. |
+| 4    | Build the adapter for each active registration, and answer `GET /policies/in-effect` for it                 | Not started. Until then a registration causes no release.                     |
+| 5    | Docs page "Connect any external system", example endpoints in TypeScript and Python, tutorial, CLAIMS entry | Not started.                                                                  |
+| 6    | A live check against a deployed example endpoint before the claim                                           | Not started.                                                                  |
 
 ## H. Considered, not built (moved here from the old root `ROADMAP.md`, 2026-09-28)
 
