@@ -141,14 +141,14 @@ describe("createCodeApprovalIssuerRegistry (the list deployed to production)", (
   // list reads no key directory and cannot fail at startup on Vercel.
   const registry = createCodeApprovalIssuerRegistry();
 
-  it("trusts the refund manager's Ed25519 key, not revoked", () => {
+  it("lists the refund manager's first Ed25519 key as revoked", () => {
     const manager = registry.resolve(
       "manager-charak1987",
       "manager-charak1987-key-1",
     );
 
     expect(manager).toBeDefined();
-    expect(manager?.revoked).toBe(false);
+    expect(manager?.revoked).toBe(true);
     expect(manager?.publicKey.asymmetricKeyType).toBe("ed25519");
     expect(
       manager?.publicKey
