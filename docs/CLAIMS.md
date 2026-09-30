@@ -600,6 +600,31 @@ Evidence
 - `packages/api/src/routes/policy-in-effect.ts`; `packages/policy/src/policySignalRequirements.ts` (also used by `PolicyValidator`)
 - `openapi/openapi.yaml` (`getPolicyInEffect`); `docs/site/agents/integrate.mdx` step 3
 
+## 2.49 External Connectors Are Registered Through Maker Checker, With No Deploy (Scoped, 2026-09-30)
+
+**Claim:** an operator can bind a capability to an HTTPS endpoint they run, and to the policy that governs it, without a code change or deploy, and only when one human credential proposes it and a different human credential approves it with a step up authorization. Parmana refuses to register an endpoint that is not https, names an IP address or localhost, or resolves to an address that is not public, and checks the address again when the registration is approved. This is step 1 of ADR-0013.
+
+Scope, stated plainly:
+
+- **A registration causes no release yet.** Nothing in bootstrap builds a connector for a registered capability, and `GET /policies/in-effect` does not answer for one (ADR-0013 step 4, `docs/VERIFICATION-GAPS.md` G-81). A request for a registered capability is refused with `503 CONNECTOR_NOT_REGISTERED`. This claim is about governing registrations, not about releasing actions to them.
+- **Built and tested, not in effect:** `GatewayExternalAdapter` (the signed release, the address check at every release, the answer checks) and the SDK helpers `verifyParmanaRelease` and `verify_parmana_release` are merged and deployed but not used, and the helpers are not published. No claim is made about them until the live check of ADR-0013 step 6.
+- **Distinct credentials, not proven distinct people**, as in 2.45. An operator with database access can bypass the API.
+- **Built in namespaces stay code.** A capability in the namespace of a built in connector (paytm, hubspot, github, slack, test) is refused.
+- **The policy name is checked for form only** at registration, not that the policy exists or has an approved version (G-81).
+
+Verification
+
+- `packages/api/tests/integration/external-connectors-governance.integration.test.ts` (through the HTTP boundary, DNS stubbed): no credential `401`, a service credential `403`, the proposer as checker `403`, approval without a step up or with one for the other action `403`; malformed fields and every built in namespace `400`; an endpoint over http, an IP literal, localhost, a private address, any private address among public ones, and a host that does not resolve `400`; a second pending change and revoking an unregistered capability `409`; register, list, one active per capability, revoke without deleting, register again; the address checked again on approval after a DNS change to `169.254.169.254`; reject with a reason.
+- `packages/shared/tests/unit/external-endpoint-address.test.ts`: the URL rules, and the private, loopback, link local, shared, multicast, reserved and documentation ranges in IPv4 and IPv6, including IPv4 mapped IPv6.
+- `packages/storage/tests/integration/supabase-external-connector-repository.integration.test.ts` against real Postgres with every migration applied, in the Docker image workflow (5 tests passed on PR #92): approval applies and resolves in one transaction, one pending change and one active registration per capability, only one of two concurrent approvals applies, maker as checker refused by the database.
+
+Evidence
+
+- `packages/api/src/routes/external-connectors.ts`; `packages/shared/src/network/externalEndpointAddress.ts`; `packages/storage/src/supabase/SupabaseExternalConnectorRepository.ts`
+- Migration `supabase/migrations/20260930120000_add_external_connectors.sql`, applied in production on 2026-09-30 (`npm run db:migrate -- status`: 33 applied, 0 pending); PR #92 deployed; `GET /external-connectors` with the maker key returned `{"connectors":[]}` in production.
+- Not checked in production: a full propose and approve cycle.
+- `openapi/openapi.yaml` (`listExternalConnectors`, `proposeExternalConnectorChange`, `listExternalConnectorChanges`, `approveExternalConnectorChange`, `rejectExternalConnectorChange`); `docs/adr/ADR-0013-Generic-External-Connector.md`
+
 ## 2.23 Independently Certified Authorization (Phase 3D)
 
 _"Even if AI has valid credentials, it still cannot execute anything your business hasn't authorized. No exceptions"_ — the specific claim tracked and re-verified across the Phase 2K capability policy binding record (in git history), the Phase 2L authorization exceptions record (in git history) (which found it **not fully supported**, naming two exceptions: Razorpay's caller-declared daily cumulative total, and HubSpot's caller-declared `preAuthorizedForAmountChange`) — was independently re-certified from current repository state in the Phase 3D independent authorization certification (in git history), treating every prior phase's conclusion as a claim to re-verify, not inherit.
