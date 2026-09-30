@@ -23,6 +23,7 @@ import pytest
 import requests
 
 from examples.builder.run import run_builder_example
+from tests.local_approver import local_approver_env, sign_local_approval
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -56,6 +57,8 @@ def builder_example_server() -> str:
         env = {
             **os.environ,
             "NODE_ENV": "test",
+            # Trusts the local test approver (tests/local_approver.py).
+            **local_approver_env(),
             "PARMANA_STORAGE": "memory",
             "PARMANA_POLICY_DIR": str(REPO_ROOT / "policies"),
             "PARMANA_KEY_DIR": key_dir,
@@ -109,7 +112,14 @@ def builder_example_server() -> str:
 
 
 def test_builder_example_runs_end_to_end_against_a_real_server(builder_example_server):
-    trust_record = run_builder_example(endpoint=builder_example_server)
+    approval = sign_local_approval(
+        capability="test:fixture-execute",
+        resource_id="vendor://payments",
+        max_amount=1000,
+    )
+    trust_record = run_builder_example(
+        endpoint=builder_example_server, approval=approval
+    )
 
     assert trust_record.trust_record_id
     assert len(trust_record.executions) == 1

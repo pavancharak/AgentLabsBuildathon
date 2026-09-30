@@ -24,7 +24,7 @@ describe.skipIf(!databaseConfigured)("Supabase Workflow Integration", () => {
     //
     // Create Transaction
     //
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     //
     // Execute
@@ -69,7 +69,7 @@ describe.skipIf(!databaseConfigured)("Supabase Workflow Integration", () => {
   it("round-trips an override through the Supabase repository and still verifies", async () => {
     const storage = new SupabaseStorageProvider();
 
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     await storage.businessTransactions.create(transaction);
 

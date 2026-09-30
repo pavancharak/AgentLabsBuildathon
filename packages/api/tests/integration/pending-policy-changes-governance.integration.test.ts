@@ -175,10 +175,11 @@ describe("Policy Governance: isHumanCaller, maker != checker, step-up (HTTP boun
       policyId,
       policyVersion: "1.0.0",
       schemaVersion: "1.0.0",
+      approvalSignals: { humanApproved: { resourceId: "target" } },
       rules: [
         {
-          id: "always-approve",
-          condition: { always: true },
+          id: "approve-with-approval",
+          condition: { fact: "humanApproved", operator: "is_true" },
           outcome: { action: "approve", reason: "test fixture" },
         },
       ],
@@ -196,6 +197,35 @@ describe("Policy Governance: isHumanCaller, maker != checker, step-up (HTTP boun
         .send({ proposedContent: policyBody(name), reason: "test proposal" });
 
       expect(response.status).toBe(201);
+    });
+
+    it("refuses to propose a policy that approves without a signed human approval", async () => {
+      const { app } = buildApp();
+      const name = "governance-propose-no-approval";
+
+      const response = await request(app)
+        .post(`/policies/${name}/1.0.0/pending-changes`)
+        .set("Authorization", `Bearer ${HUMAN_MAKER_KEY}`)
+        .send({
+          proposedContent: {
+            policyId: name,
+            policyVersion: "1.0.0",
+            schemaVersion: "1.0.0",
+            rules: [
+              {
+                id: "always-approve",
+                condition: { always: true },
+                outcome: { action: "approve", reason: "no human" },
+              },
+            ],
+          },
+          reason: "test proposal",
+        });
+
+      expect(response.status).toBe(400);
+      expect(JSON.stringify(response.body)).toContain(
+        "approves without a signed human approval",
+      );
     });
 
     it("denies a SERVICE-credentialed caller with 403 NON_HUMAN_CALLER_DENIED", async () => {
@@ -567,8 +597,10 @@ describe("Policy Governance: isHumanCaller, maker != checker, step-up (HTTP boun
         .set("Authorization", `Bearer ${HUMAN_CHECKER_KEY}`)
         .send({ stepUpAuthorization: firstStepUp });
 
+      // Only rejects, so it declares no approval signal.
+      const { approvalSignals: _unused, ...rejectOnly } = policyBody(name);
       const patchedContent = {
-        ...policyBody(name),
+        ...rejectOnly,
         rules: [
           {
             id: "always-reject",

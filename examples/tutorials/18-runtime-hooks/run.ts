@@ -8,6 +8,10 @@ import { LoggingHook } from "./LoggingHook.js";
 import { MetricsHook } from "./MetricsHook.js";
 
 import transaction from "./transaction.json" with { type: "json" };
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 async function main(): Promise<void> {
   console.log();
@@ -27,6 +31,7 @@ async function main(): Promise<void> {
   //
 
   const runtime = new RuntimeBuilder()
+    .withSignalStateVerifier(demoApprovalSignalVerifier())
     .withPolicyRepository(new FilePolicyRepository("policies"))
     .addHook(new LoggingHook())
     .addHook(new MetricsHook())
@@ -36,7 +41,9 @@ async function main(): Promise<void> {
   // Execute
   //
 
-  const { trustRecord } = await runtime.execute(transaction);
+  const { trustRecord } = await runtime.execute(
+    await withDemoApproval(transaction),
+  );
 
   console.log();
   console.log("==================================================");

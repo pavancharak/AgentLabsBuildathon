@@ -231,14 +231,23 @@ const client = new ParmanaClient({
   transport: new HttpTransport({ endpoint }),
 });
 
+// The approver's signed approval for this action and resource, made with
+// signApproval() on the approver's machine and passed to the agent.
+const approval = pendingApprovals.get("vendor/vendor-123");
+
 const transaction = createBusinessTransaction({
   principalId: "alice@example.com", // must match your key's allowedPrincipalIds
   purpose: "Vendor payment approval",
   action: "vendor-payment",
   target: "vendor/vendor-123",
   parameters: { amount: 100, currency: "USD" },
-  policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+  policy: { name: "vendor-payment", version: "2.1.0", schemaVersion: "1.0.0" },
   signals: {
+    // No agent action is authorized without a signed human approval: a trusted
+    // approver signs one for this target up to this amount (signApproval), and
+    // the agent attaches it. Without it the request is refused.
+    humanApproved: true,
+    approvalArtifact: approval,
     vendorVerified: true,
     invoiceVerified: true,
     paymentApproved: true,

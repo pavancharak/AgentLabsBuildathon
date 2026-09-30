@@ -21,6 +21,10 @@ import type { ExecutionRequest } from "@parmana/execution-system";
 import { toExecutableContent, type ExecutionResult } from "@parmana/shared";
 
 import transaction from "./transaction.json" with { type: "json" };
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 //
 // A trivial Connector: this tutorial cares about whether the Execution
@@ -94,12 +98,16 @@ async function main(): Promise<void> {
   // tutorial does -- this is real production code, not a stand-in.
   //
   const runtime = new RuntimeBuilder()
+    .withSignalStateVerifier(demoApprovalSignalVerifier())
     .withPolicyRepository(new FilePolicyRepository("policies"))
     .build(new MemoryExecutionTrustRecordRepository());
 
   console.log("Authorizing payment...");
 
-  const { context } = await runtime.execute(transaction);
+  // A person signs an approval for this payment; the agent attaches it.
+  const approved = await withDemoApproval(transaction);
+
+  const { context } = await runtime.execute(approved);
 
   if (!context.authorization) {
     throw new Error("Execution Authorization was not generated.");
@@ -134,7 +142,7 @@ async function main(): Promise<void> {
       target: transaction.intent.target,
       parameters: transaction.intent.parameters,
     }),
-    signals: transaction.signals,
+    signals: approved.signals,
     authorization,
   };
 

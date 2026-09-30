@@ -4,7 +4,6 @@ import request from "supertest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { BusinessTransaction } from "@parmana/shared";
 import { StaticApprovalIssuerRegistry } from "@parmana/approval";
-import { ApprovalArtifactSigner } from "@parmana/crypto";
 import {
   MockHubSpotServer,
   HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN,
@@ -13,6 +12,7 @@ import {
 import { createApplication } from "../../src/application.js";
 import { createApp } from "../../src/app.js";
 import { createExecutionSystem } from "../../src/bootstrap/createExecutionSystem.js";
+import { withTestApproval } from "../../../../test-support/approvals.js";
 
 //
 // One trusted approver for this file only, so the success path of an
@@ -116,18 +116,24 @@ describe("HubSpot deal update (HTTP boundary)", () => {
     return { app, server: mockServer };
   }
 
-  function dealUpdateTransaction(overrides: {
+  /**
+   * hubspot-deal-update 1.1.0: every update needs a signed approval for
+   * the deal from a trusted person. Signed by this file's trusted
+   * approver unless a test sets approved: false.
+   */
+  async function dealUpdateTransaction(overrides: {
     dealId: string;
     dealstage?: string;
     amount?: number;
     signals: BusinessTransaction["signals"];
-  }): BusinessTransaction {
+    approved?: boolean;
+  }): Promise<BusinessTransaction> {
     const businessTransactionId = crypto.randomUUID();
     const authorityId = crypto.randomUUID();
     const authorizationId = crypto.randomUUID();
     const intentId = crypto.randomUUID();
 
-    return {
+    const transaction = {
       businessTransactionId,
 
       metadata: {
@@ -171,7 +177,7 @@ describe("HubSpot deal update (HTTP boundary)", () => {
 
       policy: {
         name: "hubspot-deal-update",
-        version: "1.0.0",
+        version: "1.1.0",
         schemaVersion: "1.0.0",
       },
 
@@ -181,6 +187,15 @@ describe("HubSpot deal update (HTTP boundary)", () => {
       status: "APPROVED",
       createdAt: new Date(),
     } as unknown as BusinessTransaction;
+
+    if (overrides.approved === false) {
+      return transaction;
+    }
+
+    return withTestApproval(transaction, undefined, {
+      ...approver,
+      privateKey: approverKeys.privateKey,
+    });
   }
 
   it("authorizes and executes a real dealstage update through POST /execute, landing on the mock HubSpot server", async () => {
@@ -195,7 +210,7 @@ describe("HubSpot deal update (HTTP boundary)", () => {
       },
     });
 
-    const transaction = dealUpdateTransaction({
+    const transaction = await dealUpdateTransaction({
       dealId: "9001",
       dealstage: "qualifiedtobuy",
       signals: {
@@ -206,7 +221,6 @@ describe("HubSpot deal update (HTTP boundary)", () => {
         amountChangeRequested: false,
         amountDeltaAbs: 0,
         amountChangeExceedsThreshold: false,
-        preAuthorizedForAmountChange: false,
       },
     });
 
@@ -236,7 +250,7 @@ describe("HubSpot deal update (HTTP boundary)", () => {
 
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
-    const transaction = dealUpdateTransaction({
+    const transaction = await dealUpdateTransaction({
       dealId: "9002",
       // closedlost is terminal: never an allowed transition out of it.
       dealstage: "qualifiedtobuy",
@@ -248,7 +262,6 @@ describe("HubSpot deal update (HTTP boundary)", () => {
         amountChangeRequested: false,
         amountDeltaAbs: 0,
         amountChangeExceedsThreshold: false,
-        preAuthorizedForAmountChange: false,
       },
     });
 
@@ -275,7 +288,7 @@ describe("HubSpot deal update (HTTP boundary)", () => {
     fetchSpy.mockRestore();
   });
 
-  it("rejects by policy through POST /execute and never calls HubSpot when an amount change exceeds the threshold without pre-authorization", async () => {
+  it("rejects by policy through POST /execute and never changes the deal when an update has no signed approval", async () => {
     const { app, server: mockServer } = await buildApp();
 
     mockServer.setDeal({
@@ -289,25 +302,21 @@ describe("HubSpot deal update (HTTP boundary)", () => {
 
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
-    const transaction = dealUpdateTransaction({
+    // Every fact is true of the real deal and the agent declares the
+    // approval signal true, but no signed approval backs it.
+    const transaction = await dealUpdateTransaction({
       dealId: "9003",
-      amount: 50_000,
+      dealstage: "qualifiedtobuy",
+      approved: false,
       signals: {
+        dealUpdateApproved: true,
         currentDealStage: "appointmentscheduled",
-        // No dealstage in this request's parameters: proposedDealStage is
-        // intentionally omitted here too, matching boundSignals'
-        // requirement that a declared signal equal the value at its
-        // Intent dot-path — parameters.dealstage is absent, so
-        // proposedDealStage must be absent as well, not defaulted.
-        // proposedAmount, by contrast, IS bound (parameters.amount is
-        // set to 50000 below) and must match exactly.
-        proposedAmount: 50_000,
-        dealStageChangeRequested: false,
+        proposedDealStage: "qualifiedtobuy",
+        dealStageChangeRequested: true,
         dealStageTransitionAllowed: true,
-        amountChangeRequested: true,
-        amountDeltaAbs: 45_000,
-        amountChangeExceedsThreshold: true,
-        preAuthorizedForAmountChange: false,
+        amountChangeRequested: false,
+        amountDeltaAbs: 0,
+        amountChangeExceedsThreshold: false,
       },
     });
 
@@ -315,14 +324,18 @@ describe("HubSpot deal update (HTTP boundary)", () => {
 
     expect(response.status).toBe(403);
     expect(response.body.code).toBe("POLICY_DENIED");
-    expect(response.body.error).toContain("threshold");
+    expect(response.body.error).toContain("dealUpdateApproved");
 
-    expect(mockServer.getDeal("9003")?.properties.amount).toBe("5000");
-
-    const hubspotCalls = fetchSpy.mock.calls.filter((call) =>
-      String(call[0]).startsWith(mockServer.baseUrl),
+    expect(mockServer.getDeal("9003")?.properties.dealstage).toBe(
+      "appointmentscheduled",
     );
-    expect(hubspotCalls).toHaveLength(0);
+
+    const hubspotPatchCalls = fetchSpy.mock.calls.filter(
+      (call) =>
+        String(call[0]).startsWith(mockServer.baseUrl) &&
+        (call[1] as RequestInit | undefined)?.method === "PATCH",
+    );
+    expect(hubspotPatchCalls).toHaveLength(0);
 
     fetchSpy.mockRestore();
   });
@@ -343,7 +356,7 @@ describe("HubSpot deal update (HTTP boundary)", () => {
     // Caller-declared signals falsely claim the deal is still at an early, non-terminal
     // stage, so the proposed forward transition appears allowed -- untrue against the
     // real deal.
-    const transaction = dealUpdateTransaction({
+    const transaction = await dealUpdateTransaction({
       dealId: "9004",
       dealstage: "qualifiedtobuy",
       signals: {
@@ -354,7 +367,6 @@ describe("HubSpot deal update (HTTP boundary)", () => {
         amountChangeRequested: false,
         amountDeltaAbs: 0,
         amountChangeExceedsThreshold: false,
-        preAuthorizedForAmountChange: false,
       },
     });
 
@@ -384,7 +396,7 @@ describe("HubSpot deal update (HTTP boundary)", () => {
 
     // The same live-shaped exploit as razorpay-refund.integration.test.ts's
     // TD-22 case, for the other fund/record-mutating capability:
-    // hubspot:deal-update paired with customer-refund/1.0.0, a real,
+    // hubspot:deal-update paired with customer-refund/1.2.0, a real,
     // production-loadable policy with no boundSignals for dealstage/amount
     // at all. Its own approve rule is trivially satisfiable by
     // caller-declared signals alone, entirely decoupled from the real
@@ -392,7 +404,7 @@ describe("HubSpot deal update (HTTP boundary)", () => {
     // here, moving a deal out of a terminal closedlost stage, which the
     // real hubspot-deal-update policy would never allow.
     const transaction = {
-      ...dealUpdateTransaction({
+      ...(await dealUpdateTransaction({
         dealId: "9005",
         dealstage: "qualifiedtobuy",
         amount: 999_999,
@@ -402,10 +414,10 @@ describe("HubSpot deal update (HTTP boundary)", () => {
           fraudCheckPassed: true,
           refundAmount: 1,
         },
-      }),
+      })),
       policy: {
         name: "customer-refund",
-        version: "1.0.0",
+        version: "1.2.0",
         schemaVersion: "1.0.0",
       },
     };
@@ -429,7 +441,7 @@ describe("HubSpot deal update (HTTP boundary)", () => {
     fetchSpy.mockRestore();
   });
 
-  it("(TD-23) rejects by policy through POST /execute when a declared pre-authorization is not backed by a trusted Approval Artifact", async () => {
+  it("(TD-23) rejects by policy through POST /execute when the approval is signed by an approver that is not trusted", async () => {
     const { app, server: mockServer } = await buildApp();
 
     mockServer.setDeal({
@@ -448,14 +460,15 @@ describe("HubSpot deal update (HTTP boundary)", () => {
     // configured (see its own comment), so no Approval Artifact --
     // however well-formed -- can ever verify through the real API
     // until an operator provisions a real approver key. A caller
-    // declaring preAuthorizedForAmountChange: true and presenting a
+    // declaring dealUpdateApproved: true and presenting a
     // well-formed (but necessarily untrusted) artifact must still be
     // rejected, exactly like declaring it with no artifact at all
-    // (see the "without pre-authorization" case above) -- the
+    // (see the "no signed approval" case above) -- the
     // declared claim is no longer trusted verbatim.
-    const transaction = dealUpdateTransaction({
+    const transaction = await dealUpdateTransaction({
       dealId: "9006",
       amount: 50_000,
+      approved: false,
       signals: {
         currentDealStage: "appointmentscheduled",
         proposedAmount: 50_000,
@@ -464,7 +477,7 @@ describe("HubSpot deal update (HTTP boundary)", () => {
         amountChangeRequested: true,
         amountDeltaAbs: 45_000,
         amountChangeExceedsThreshold: true,
-        preAuthorizedForAmountChange: true,
+        dealUpdateApproved: true,
         approvalArtifact: {
           payload: {
             version: 1,
@@ -474,11 +487,7 @@ describe("HubSpot deal update (HTTP boundary)", () => {
             expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
             capability: "hubspot:deal-update",
             resourceId: "9006",
-            scope: {
-              field: "amountDeltaAbs",
-              comparator: "lte",
-              value: 50_000,
-            },
+            scope: { field: "resourceId", comparator: "eq", value: "9006" },
             nonce: "integration-test-nonce-1",
           },
           signature: {
@@ -495,10 +504,10 @@ describe("HubSpot deal update (HTTP boundary)", () => {
 
     expect(response.status).toBe(403);
     expect(response.body.code).toBe("POLICY_DENIED");
-    expect(response.body.error).toContain("preAuthorizedForAmountChange");
+    expect(response.body.error).toContain("dealUpdateApproved");
 
     // The deal is untouched -- the provisional decision was APPROVE
-    // (the caller's declared preAuthorizedForAmountChange: true
+    // (the caller's declared dealUpdateApproved: true
     // satisfies the policy on its face), so HubSpotSignalStateVerifier
     // does perform its usual real, read-only deal-fetch to
     // independently verify state (one GET call below) -- but that
@@ -516,7 +525,7 @@ describe("HubSpot deal update (HTTP boundary)", () => {
 
     fetchSpy.mockRestore();
   });
-  it("executes an over threshold amount change exactly once when it carries a valid Approval Artifact from a trusted approver, passing both the authorization check and the gateway's check at release", async () => {
+  it("executes an over threshold amount change exactly once with a signed approval for the deal from a trusted approver, passing both the authorization check and the gateway's check at release", async () => {
     const { app, server: mockServer } = await buildApp();
 
     mockServer.setDeal({
@@ -528,19 +537,7 @@ describe("HubSpot deal update (HTTP boundary)", () => {
       },
     });
 
-    const approval = await new ApprovalArtifactSigner().sign(
-      {
-        approverId: approver.approverId,
-        keyId: approver.keyId,
-        capability: "hubspot:deal-update",
-        resourceId: "9007",
-        scope: { field: "amountDeltaAbs", comparator: "lte", value: 45_000 },
-        ttlSeconds: 900,
-      },
-      approverKeys.privateKey,
-    );
-
-    const transaction = dealUpdateTransaction({
+    const transaction = await dealUpdateTransaction({
       dealId: "9007",
       amount: 50_000,
       signals: {
@@ -551,8 +548,6 @@ describe("HubSpot deal update (HTTP boundary)", () => {
         amountChangeRequested: true,
         amountDeltaAbs: 45_000,
         amountChangeExceedsThreshold: true,
-        preAuthorizedForAmountChange: true,
-        approvalArtifact: JSON.parse(JSON.stringify(approval)),
       },
     });
 

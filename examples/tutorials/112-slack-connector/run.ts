@@ -5,6 +5,10 @@ import {
   MockSlackServer,
   SLACK_TEST_MODE_PLACEHOLDER_TOKEN,
 } from "@parmana/connector-slack";
+import {
+  demoApprovalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 //
 // Tutorial 112 - Slack Connector
@@ -46,14 +50,17 @@ function postMessageTransaction(overrides: {
   channel: string;
   text?: string;
   signals: Record<string, unknown>;
-}): BusinessTransaction {
+}): Promise<BusinessTransaction> {
   const businessTransactionId = crypto.randomUUID();
   const authorityId = crypto.randomUUID();
   const authorizationId = crypto.randomUUID();
   const intentId = crypto.randomUUID();
   const now = new Date();
 
-  return {
+  // A person approved posting to this channel (a demo approver, see
+  // examples/shared/helpers/demo-approval.ts). No agent action runs
+  // without a signed human approval.
+  return withDemoApproval({
     businessTransactionId,
     metadata: {
       businessTransactionId,
@@ -87,13 +94,13 @@ function postMessageTransaction(overrides: {
     },
     policy: {
       name: "slack-post-message",
-      version: "1.0.0",
+      version: "1.1.0",
       schemaVersion: "1.0.0",
     },
     signals: overrides.signals,
     status: "RECEIVED",
     createdAt: now,
-  } as unknown as BusinessTransaction;
+  } as unknown as BusinessTransaction);
 }
 
 console.log();
@@ -103,7 +110,7 @@ console.log("==================================================");
 console.log();
 
 const executionSystem = await createExecutionSystem();
-const application = createApplication(executionSystem);
+const application = createApplication(executionSystem, demoApprovalVerifier());
 
 try {
   console.log(
@@ -111,7 +118,7 @@ try {
   );
   console.log("--------------------------------------------------");
 
-  const approvedTransaction = postMessageTransaction({
+  const approvedTransaction = await postMessageTransaction({
     channel: "C0123456789",
     text: "Deployment succeeded.",
     signals: {
@@ -145,7 +152,7 @@ try {
   );
   console.log("--------------------------------------------------");
 
-  const deniedTransaction = postMessageTransaction({
+  const deniedTransaction = await postMessageTransaction({
     channel: "C0123456789",
     signals: {
       contentApproved: false,
@@ -179,7 +186,7 @@ try {
   );
   console.log("--------------------------------------------------");
 
-  const mismatchedTransaction = postMessageTransaction({
+  const mismatchedTransaction = await postMessageTransaction({
     channel: "C0123456789",
     signals: {
       contentApproved: true,
@@ -209,7 +216,7 @@ try {
   let notAllowedReason = "";
   try {
     await application.execute(
-      postMessageTransaction({
+      await postMessageTransaction({
         channel: "C_NOT_ON_ALLOWLIST",
         text: "Here is the customer list...",
         signals: {

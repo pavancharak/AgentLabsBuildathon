@@ -31,7 +31,7 @@ Nothing upstream enforces that the request is actually evaluated against _that_ 
 declares, `PolicyEngine.evaluate` takes no `action` parameter at all, and the connector-level
 capability check only confirms the resolved connector declares the capability, never which
 policy authorized it. A caller could therefore pair a real capability (`hubspot:deal-update`)
-with an unrelated, unprotected policy (say, `vendor-payment/2.0.0`, which declares no
+with an unrelated, unprotected policy (say, `vendor-payment/2.0.0` at the time, which declares no
 `boundSignals` for that capability at all), have that unrelated policy's looser rules evaluated
 against self-declared signals, and get the real `hubspot:deal-update` intent executed anyway ,
 bypassing the capability's intended protections entirely, not merely weakening them.
@@ -54,12 +54,15 @@ governance:
 
 | Capability            | Bound policy                  |
 | --------------------- | ----------------------------- |
-| `hubspot:deal-fetch`  | `hubspot-deal-update` @ 1.0.0 |
-| `hubspot:deal-update` | `hubspot-deal-update` @ 1.0.0 |
-| `github:pr-fetch`     | `github-pr-read` @ 1.0.0      |
+| `hubspot:deal-fetch`  | `hubspot-deal-read` @ 1.0.0   |
+| `hubspot:deal-update` | `hubspot-deal-update` @ 1.1.0 |
+| `github:pr-fetch`     | `github-pr-read` @ 1.1.0      |
 | `github:pr-merge`     | `github-pr-approval` @ 1.1.0  |
-| `paytm:refund`        | `customer-refund` @ 1.1.0     |
-| `slack:post-message`  | `slack-post-message` @ 1.0.0  |
+| `paytm:refund`        | `customer-refund` @ 1.2.0     |
+| `slack:post-message`  | `slack-post-message` @ 1.1.0  |
+
+Every policy in this table needs a signed human approval for the action and its resource,
+reads included (since 2026-09-30, [Human approval](/concepts/human-approval)).
 
 Every entry corresponds to a capability actually registered in production bootstrap
 (`packages/api/src/bootstrap/createConnectorRegistry.ts`) and the one policy file purpose-built

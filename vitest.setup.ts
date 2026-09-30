@@ -6,7 +6,43 @@ import { fileURLToPath } from "node:url";
 
 import dotenv from "dotenv";
 
-import { afterAll } from "vitest";
+import { afterAll, vi } from "vitest";
+
+/**
+ * The hermetic test approver (test-support/approvals.ts) is trusted by
+ * the API's approval issuer registry in every test file, ahead of the
+ * real registry. No agent action is authorized without a signed human
+ * approval, so a test that expects an approved action signs one with
+ * withTestApproval(). A test file that mocks this module itself keeps
+ * its own mock.
+ */
+vi.mock(
+  "./packages/api/src/bootstrap/createApprovalIssuerRegistry.js",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("./packages/api/src/bootstrap/createApprovalIssuerRegistry.js")
+      >();
+    const { testApprovalIssuerRegistry } =
+      await import("./test-support/approvals.js");
+
+    return {
+      ...actual,
+      createApprovalIssuerRegistry: (
+        ...args: Parameters<typeof actual.createApprovalIssuerRegistry>
+      ) => {
+        const real = actual.createApprovalIssuerRegistry(...args);
+        const test = testApprovalIssuerRegistry();
+
+        return Object.assign(Object.create(real), {
+          resolve: async (approverId: string, keyId: string) =>
+            test.resolve(approverId, keyId) ??
+            (await real.resolve(approverId, keyId)),
+        });
+      },
+    };
+  },
+);
 
 /**
  * Deterministic, once-per-worker .env load (G-14).

@@ -64,12 +64,12 @@ describe("Rate limiting (HTTP boundary)", () => {
       const first = await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${CALLER_A_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       const second = await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${CALLER_A_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(first.status).toBe(200);
       expect(second.status).toBe(200);
@@ -84,7 +84,7 @@ describe("Rate limiting (HTTP boundary)", () => {
       const first = await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${CALLER_A_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
       expect(first.status).toBe(200);
 
       // Baseline, not a hardcoded assumption about how many execution-audit
@@ -97,7 +97,7 @@ describe("Rate limiting (HTTP boundary)", () => {
       const second = await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${CALLER_A_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
       expect(second.status).toBe(200);
 
       const eventsAfterTwoSuccesses = executionAuditSink.events.length;
@@ -109,7 +109,7 @@ describe("Rate limiting (HTTP boundary)", () => {
       const third = await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${CALLER_A_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(third.status).toBe(429);
       expect(third.body).toEqual({
@@ -131,17 +131,17 @@ describe("Rate limiting (HTTP boundary)", () => {
       const callerAFirst = await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${CALLER_A_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       const callerASecond = await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${CALLER_A_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       const callerBFirst = await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${CALLER_B_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(callerAFirst.status).toBe(200);
       expect(callerASecond.status).toBe(429);
@@ -257,10 +257,10 @@ describe("Rate limiting (HTTP boundary)", () => {
 
       const first = await request(app)
         .post("/execute")
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
       const second = await request(app)
         .post("/execute")
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(first.status).toBe(200);
       expect(second.status).toBe(200);

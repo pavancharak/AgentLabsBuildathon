@@ -131,6 +131,9 @@ const examples = [
   "examples/tutorials/117-maker-checker-one-shot-scripts/run.ts",
   "examples/tutorials/118-hubspot-verifier-signer/run.ts",
   "examples/tutorials/119-human-approval-for-one-action/run.ts",
+  "examples/tutorials/120-no-action-without-approval/run.ts",
+  "examples/tutorials/121-approval-for-a-read/run.ts",
+  "examples/tutorials/122-approval-for-a-post-and-an-update/run.ts",
   "examples/scenarios/expense-approval/run.ts",
   "examples/scenarios/purchase-order/run.ts",
 ];

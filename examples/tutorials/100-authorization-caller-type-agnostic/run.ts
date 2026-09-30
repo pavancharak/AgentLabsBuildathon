@@ -4,6 +4,10 @@ import { FilePolicyRepository } from "@parmana/policy";
 import { RuntimeBuilder } from "@parmana/runtime";
 import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 import type { BusinessTransaction } from "@parmana/shared";
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 //
 // Strategic-positioning claim (docs/CLAIMS.md 2.24): the authorization
@@ -21,16 +25,16 @@ import type { BusinessTransaction } from "@parmana/shared";
 // is byte-for-byte identical to a conventional "USER" transaction.
 //
 
-function buildTransaction(
+async function buildTransaction(
   authorityType: string,
   overrideSignals?: Record<string, unknown>,
-): BusinessTransaction {
+): Promise<BusinessTransaction> {
   const businessTransactionId = crypto.randomUUID();
   const authorityId = crypto.randomUUID();
   const authorizationId = crypto.randomUUID();
   const fixedDate = new Date("2026-01-01T00:00:00Z");
 
-  return {
+  return withDemoApproval({
     businessTransactionId,
     metadata: { businessTransactionId },
     authority: {
@@ -55,7 +59,7 @@ function buildTransaction(
     },
     policy: {
       name: "vendor-payment",
-      version: "2.0.0",
+      version: "2.1.0",
       schemaVersion: "1.0.0",
     },
     signals: {
@@ -70,11 +74,12 @@ function buildTransaction(
     },
     status: "RECEIVED" as never,
     createdAt: fixedDate,
-  };
+  });
 }
 
 function buildRuntime() {
   return new RuntimeBuilder()
+    .withSignalStateVerifier(demoApprovalSignalVerifier())
     .withPolicyRepository(new FilePolicyRepository("policies"))
     .build(new MemoryExecutionTrustRecordRepository());
 }
@@ -90,9 +95,11 @@ console.log(
 );
 console.log("--------------------------------------------------");
 
-const userApprove = await buildRuntime().execute(buildTransaction("USER"));
+const userApprove = await buildRuntime().execute(
+  await buildTransaction("USER"),
+);
 const novelApprove = await buildRuntime().execute(
-  buildTransaction("FULLY_AUTONOMOUS_AI_AGENT_NEVER_SEEN_BEFORE"),
+  await buildTransaction("FULLY_AUTONOMOUS_AI_AGENT_NEVER_SEEN_BEFORE"),
 );
 
 const userApproveDecision = userApprove.trustRecord.executions[0]!.decision;
@@ -117,7 +124,9 @@ let userRejectReason: string | undefined;
 let userRejectStatus: number | undefined;
 let userRejectCode: string | undefined;
 try {
-  await buildRuntime().execute(buildTransaction("USER", rejectingSignals));
+  await buildRuntime().execute(
+    await buildTransaction("USER", rejectingSignals),
+  );
 } catch (error) {
   userRejectReason = (error as { message?: string }).message;
   userRejectStatus = (error as { status?: number }).status;
@@ -129,7 +138,7 @@ let novelRejectStatus: number | undefined;
 let novelRejectCode: string | undefined;
 try {
   await buildRuntime().execute(
-    buildTransaction(
+    await buildTransaction(
       "FULLY_AUTONOMOUS_AI_AGENT_NEVER_SEEN_BEFORE",
       rejectingSignals,
     ),

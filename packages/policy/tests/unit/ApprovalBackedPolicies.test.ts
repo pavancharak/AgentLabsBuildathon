@@ -66,8 +66,11 @@ interface Case {
   readonly resourceId: string;
   /** Every caller declared fact at its most permissive value. */
   readonly permissive: PolicySignals;
-  /** One caller declared fact that must refuse even with an approval. */
-  readonly failing: PolicySignals;
+  /**
+   * One caller declared fact that must refuse even with an approval.
+   * Absent for a read, whose only condition is the approval.
+   */
+  readonly failing?: PolicySignals;
 }
 
 const CASES: readonly Case[] = [
@@ -109,6 +112,157 @@ const CASES: readonly Case[] = [
       refundAmount: 1,
     },
     failing: { fraudCheckPassed: false },
+  },
+  {
+    name: "github-pr-read",
+    version: "1.1.0",
+    approvalFact: "readApproved",
+    resourceId: "target",
+    permissive: {},
+  },
+  {
+    name: "hubspot-deal-read",
+    version: "1.0.0",
+    approvalFact: "readApproved",
+    resourceId: "parameters.dealId",
+    permissive: {},
+  },
+  {
+    name: "hubspot-deal-update",
+    version: "1.1.0",
+    approvalFact: "dealUpdateApproved",
+    resourceId: "parameters.dealId",
+    permissive: {
+      dealStageChangeRequested: true,
+      dealStageTransitionAllowed: true,
+    },
+    failing: { dealStageTransitionAllowed: false },
+  },
+  {
+    name: "slack-post-message",
+    version: "1.1.0",
+    approvalFact: "postApproved",
+    resourceId: "target",
+    permissive: { contentApproved: true, channelAuthorized: true },
+    failing: { contentApproved: false },
+  },
+  {
+    name: "access-control",
+    version: "1.1.0",
+    approvalFact: "humanApproved",
+    resourceId: "target",
+    permissive: {
+      userAuthenticated: true,
+      userAuthorized: true,
+      mfaVerified: true,
+      deviceTrusted: true,
+      sessionRiskScore: 0,
+    },
+    failing: { mfaVerified: false },
+  },
+  {
+    name: "agent-vendor-payment",
+    version: "1.1.0",
+    approvalFact: "humanApproved",
+    resourceId: "target",
+    permissive: {
+      vendorAllowed: true,
+      withinCredentialLimit: true,
+      withinVelocityLimit: true,
+      paymentAmount: 100,
+    },
+    failing: { vendorAllowed: false },
+  },
+  {
+    name: "api-key-issuance",
+    version: "1.1.0",
+    approvalFact: "humanApproved",
+    resourceId: "target",
+    permissive: {
+      requesterVerified: true,
+      scopeAuthorized: true,
+      keyLifetimeDays: 30,
+      riskScore: 0,
+    },
+    failing: { riskScore: 99 },
+  },
+  {
+    name: "connector-capability",
+    version: "1.1.0",
+    approvalFact: "humanApproved",
+    resourceId: "target",
+    permissive: { capability: "crm:read" },
+    failing: { capability: "payments:refund", paymentAmount: 999_999 },
+  },
+  {
+    name: "database-change",
+    version: "3.1.0",
+    approvalFact: "humanApproved",
+    resourceId: "target",
+    permissive: {
+      changeApproved: true,
+      migrationValidated: true,
+      backupAvailable: true,
+      maintenanceWindow: true,
+      riskScore: 0,
+    },
+    failing: { riskScore: 99 },
+  },
+  {
+    name: "expense-reimbursement",
+    version: "1.1.0",
+    approvalFact: "humanApproved",
+    resourceId: "target",
+    permissive: {
+      employeeVerified: true,
+      receiptAttached: true,
+      categoryApproved: true,
+      expenseAmount: 100,
+    },
+    failing: { expenseAmount: 999_999 },
+  },
+  {
+    name: "production-deployment",
+    version: "1.1.0",
+    approvalFact: "humanApproved",
+    resourceId: "target",
+    permissive: {
+      deploymentApproved: true,
+      changeVerified: true,
+      rollbackReady: true,
+      maintenanceWindow: true,
+      riskScore: 0,
+    },
+    failing: { riskScore: 99 },
+  },
+  {
+    name: "rag-document-access",
+    version: "1.1.0",
+    approvalFact: "humanApproved",
+    resourceId: "target",
+    permissive: {
+      requesterAuthenticated: true,
+      requesterAuthorized: true,
+      documentAccessible: true,
+      classificationPermitted: true,
+      riskScore: 0,
+    },
+    failing: { riskScore: 99 },
+  },
+  {
+    name: "vendor-payment",
+    version: "2.1.0",
+    approvalFact: "humanApproved",
+    resourceId: "target",
+    permissive: {
+      vendorVerified: true,
+      invoiceVerified: true,
+      paymentApproved: true,
+      sufficientFunds: true,
+      paymentAmount: 100,
+      riskScore: 0,
+    },
+    failing: { riskScore: 99 },
   },
 ];
 
@@ -158,25 +312,47 @@ describe.each(CASES)(
       ).toBe(PolicyOutcome.APPROVE);
     });
 
-    it("still refuses on a failing caller declared fact, even with an approval", () => {
-      expect(
-        engine.evaluate(policy, {
-          ...permissive,
-          [approvalFact]: true,
-          ...failing,
-        }).outcome,
-      ).toBe(PolicyOutcome.REJECT);
-    });
+    it.skipIf(failing === undefined)(
+      "still refuses on a failing caller declared fact, even with an approval",
+      () => {
+        expect(
+          engine.evaluate(policy, {
+            ...permissive,
+            [approvalFact]: true,
+            ...failing,
+          }).outcome,
+        ).toBe(PolicyOutcome.REJECT);
+      },
+    );
   },
 );
 
-describe("github-pr-read 1.0.0", () => {
-  const policy = loadPolicy("github-pr-read", "1.0.0");
-
-  it("is a valid policy that approves a read with no caller declared facts", () => {
-    expect(() => new PolicyValidator().validate(policy)).not.toThrow();
-    expect(new PolicyEngine().evaluate(policy, {}).outcome).toBe(
-      PolicyOutcome.APPROVE,
-    );
+//
+// No agent action is ever authorized without a signed human approval.
+// These older versions approve without one, so they are kept only as
+// history: each is refused when it loads.
+//
+describe.each([
+  ["access-control", "1.0.0"],
+  ["agent-vendor-payment", "1.0.0"],
+  ["api-key-issuance", "1.0.0"],
+  ["connector-capability", "1.0.0"],
+  ["customer-refund", "1.0.0"],
+  ["customer-refund", "1.1.0"],
+  ["database-change", "3.0.0"],
+  ["expense-reimbursement", "1.0.0"],
+  ["github-pr-approval", "1.0.0"],
+  ["github-pr-read", "1.0.0"],
+  ["hubspot-deal-update", "1.0.0"],
+  ["llm-tool-call", "1.0.0"],
+  ["production-deployment", "1.0.0"],
+  ["rag-document-access", "1.0.0"],
+  ["slack-post-message", "1.0.0"],
+  ["vendor-payment", "2.0.0"],
+])("%s %s", (name, version) => {
+  it("is refused because it approves without a signed human approval", () => {
+    expect(() =>
+      new PolicyValidator().validate(loadPolicy(name, version)),
+    ).toThrow(/approves without a signed human approval/);
   });
 });

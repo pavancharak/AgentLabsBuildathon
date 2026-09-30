@@ -229,6 +229,8 @@ export class PolicyValidator {
 
     this.validateApprovalSignals(policy);
 
+    this.validateEveryApprovalNeedsSignedApproval(policy);
+
     //
     // Fail-closed boundSignals coverage: every rule-referenced fact
     // must be either bound (boundSignals) or explicitly acknowledged
@@ -560,6 +562,51 @@ export class PolicyValidator {
       }
 
       artifacts.add(artifact);
+    }
+  }
+
+  /**
+   * No agent action is ever authorized without a signed human approval.
+   *
+   * Every "approve" rule must require one of the policy's approvalSignals
+   * with is_true, either as its whole condition or as a direct child of
+   * its top level "all". ApprovalSignalVerifier refuses any request that
+   * sets such a signal true without a valid, unexpired, single use
+   * Approval Artifact for this capability and resource, so a rule of this
+   * shape can only match when a trusted approver signed for this action.
+   *
+   * A nested "any" or "all" does not count: an "any" could match through
+   * another branch, and requiring only the top level keeps the check
+   * simple enough to trust. A policy with an approve rule of any other
+   * shape fails to load, so every request under it is refused.
+   */
+  private validateEveryApprovalNeedsSignedApproval(policy: Policy): void {
+    const approvalFacts = new Set(Object.keys(policy.approvalSignals ?? {}));
+
+    const isApprovalLeaf = (condition: PolicyCondition): boolean =>
+      "fact" in condition &&
+      condition.operator === "is_true" &&
+      approvalFacts.has(condition.fact);
+
+    for (const rule of policy.rules) {
+      if (rule.outcome.action !== "approve") {
+        continue;
+      }
+
+      const condition = rule.condition;
+
+      const gated =
+        isApprovalLeaf(condition) ||
+        ("all" in condition && condition.all.some(isApprovalLeaf));
+
+      if (!gated) {
+        throw new PolicyValidationError(
+          `Policy rule '${rule.id}' approves without a signed human approval. ` +
+            "Every approve rule must require an approvalSignals fact with " +
+            "is_true, as its whole condition or directly inside its top " +
+            "level 'all'.",
+        );
+      }
     }
   }
 

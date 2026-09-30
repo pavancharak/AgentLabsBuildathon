@@ -33,7 +33,7 @@ describe("Credential Isolation (HTTP boundary)", () => {
     const application = createApplication(executionSystem);
     const app = createApp(application, { callerAuth: "disabled" });
 
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     const response = await request(app).post("/execute").send(transaction);
 
@@ -85,7 +85,7 @@ describe("Credential Isolation (HTTP boundary)", () => {
     const application = createApplication(executionSystem);
     const app = createApp(application, { callerAuth: "disabled" });
 
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     const response = await request(app).post("/execute").send(transaction);
 
@@ -127,7 +127,7 @@ describe("Credential Isolation (HTTP boundary)", () => {
     const application = createApplication(executionSystem);
     const app = createApp(application, { callerAuth: "disabled" });
 
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     const response = await request(app).post("/execute").send(transaction);
 

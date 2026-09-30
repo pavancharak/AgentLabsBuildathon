@@ -80,7 +80,10 @@ knows how to check.
 `HubSpotSignalStateVerifier` (from `@parmana/connector-hubspot`) wired with the real signing key
 (`FileKeyProvider`, `DEFAULT_KEY_ID`), the real execution gateway, and an `ApprovalVerifier` for
 independently checking `preAuthorizedForAmountChange`, a signal that, without this, would be
-nothing but a caller's unverified claim. Its own doc comment notes `approvalVerifier` is always
+nothing but a caller's unverified claim. Since 2026-09-30 `hubspot-deal-update` 1.1.0 needs one
+signed approval for every update (`dealUpdateApproved`), checked by `ApprovalSignalVerifier`, and
+the HubSpot verifier skips its own pre authorization check whenever the policy declares
+`approvalSignals`, so one approval is not spent twice. Its own doc comment notes `approvalVerifier` is always
 supplied in production, never omitted; only direct unit tests construct the verifier without
 it.
 

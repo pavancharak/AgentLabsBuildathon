@@ -2,6 +2,10 @@ import { generateKeyPairSync } from "node:crypto";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 //
 // docs/VERIFICATION-GAPS.md G-32 / docs/CLAIMS.md 2.28: RuntimeAuthorizationSigner
@@ -52,11 +56,15 @@ const policyRepository = new FilePolicyRepository(
 const trustRecords = new MemoryExecutionTrustRecordRepository();
 
 const runtime = new RuntimeBuilder()
+  .withSignalStateVerifier(demoApprovalSignalVerifier())
   .withPolicyRepository(policyRepository)
   .build(trustRecords);
 
-function transactionFor(businessTransactionId: string, tenantId?: string) {
-  return {
+async function transactionFor(
+  businessTransactionId: string,
+  tenantId?: string,
+) {
+  return withDemoApproval({
     businessTransactionId,
 
     metadata: {
@@ -94,7 +102,7 @@ function transactionFor(businessTransactionId: string, tenantId?: string) {
 
     policy: {
       name: "vendor-payment",
-      version: "2.0.0",
+      version: "2.1.0",
       schemaVersion: "1.0.0",
     },
 
@@ -111,7 +119,7 @@ function transactionFor(businessTransactionId: string, tenantId?: string) {
     status: "RECEIVED",
 
     createdAt: new Date(),
-  } as unknown as Parameters<typeof runtime.execute>[0];
+  } as unknown as Parameters<typeof runtime.execute>[0]);
 }
 
 console.log();
@@ -126,7 +134,7 @@ try {
   );
   console.log("--------------------------------------------------");
   const { context: acmeContext } = await runtime.execute(
-    transactionFor("tx-105-acme", "acme-corp"),
+    await transactionFor("tx-105-acme", "acme-corp"),
   );
   const acmeAuthorization = acmeContext.authorization!;
   console.log(`Signed under keyId : ${acmeAuthorization.keyId}`);
@@ -137,7 +145,7 @@ try {
   );
   console.log("--------------------------------------------------");
   const { context: globexContext } = await runtime.execute(
-    transactionFor("tx-105-globex", "globex-corp"),
+    await transactionFor("tx-105-globex", "globex-corp"),
   );
   const globexAuthorization = globexContext.authorization!;
   console.log(
@@ -150,7 +158,7 @@ try {
   );
   console.log("--------------------------------------------------");
   const { context: noTenantContext } = await runtime.execute(
-    transactionFor("tx-105-no-tenant"),
+    await transactionFor("tx-105-no-tenant"),
   );
   const noTenantAuthorization = noTenantContext.authorization!;
   console.log(

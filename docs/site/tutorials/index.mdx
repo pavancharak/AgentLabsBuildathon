@@ -4,7 +4,7 @@ description: "Numbered examples in examples/tutorials/, grouped by what they dem
 ---
 
 <Info>
-  **[AVAILABLE]**, 93 run unattended in CI via `npm run examples`
+  **[AVAILABLE]**, 113 run unattended via `npm run examples`
   (`scripts/run-examples.ts`), confirmed passing this pass; one (09, noted
   below) needs a live server and runs individually. Numbering has a few
   intentional gaps (61, 63-68, 85), retired when the Razorpay connector was
@@ -15,6 +15,11 @@ description: "Numbered examples in examples/tutorials/, grouped by what they dem
 </Info>
 
 Run any of them directly: `node_modules/.bin/tsx examples/tutorials/<NN-name>/run.ts`.
+
+No AI agent action is authorized without a signed human approval, so every tutorial that shows
+an approved action has a demo approver sign one first (`examples/shared/helpers/demo-approval.ts`:
+a key made in memory, trusted only by that tutorial's own runtime). On a real deployment the
+approver is a person added through [Manage approvers](/guides/manage-approvers).
 
 <AccordionGroup>
 <Accordion title="Fundamentals (01-24)">
@@ -230,7 +235,7 @@ no tenantId is unaffected. Newly added to `scripts/run-examples.ts`'s list: it e
 worked standalone since its own commit, but `npm run examples` never exercised it until now.
 
 **106: API Key Issuance (Writing a New Policy).** A brand-new `policies/api-key-issuance/1.0.0`
-policy and worked example showing how to author a policy correctly under the fail-closed
+policy (now `1.1.0`, which also needs a signed human approval) and worked example showing how to author a policy correctly under the fail-closed
 `boundSignals` discipline and zero-conflict shape from the start, rather than retrofitting it
 afterward the way all 10 pre-existing policies needed. Also in `scripts/run-examples.ts`'s
 list from its first commit.
@@ -253,6 +258,20 @@ prior "rotation" was overwriting the key file in place).
 closing the gap where a hybrid-signed record's ML-DSA-65 signature could be silently stripped
 with no cryptographic trace, while leaving every already-issued record (default policy,
 unaffected) exactly as verifiable as before.
+
+</Accordion>
+
+<Accordion title="Human approval for every action (119-122)">
+
+No AI agent action is authorized without a signed human approval, reads included. See
+[Human approval](/concepts/human-approval).
+
+| #   | Name                                 | Demonstrates                                                                                                                                                                                                                  |
+| --- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 119 | Human approval for one action        | A refund under `customer-refund` 1.2.0 runs only with a manager's signed approval for that order and amount, used once; the gateway checks it again at release                                                                |
+| 120 | No action without approval           | `PolicyValidator` refuses every approve rule not gated by a signed approval (`always`, caller facts, an `any` branch, an undeclared signal); every policy in `policies/` checked; a runtime with no approval verifier refuses |
+| 121 | An approval for a read               | `github-pr-read` 1.1.0: a pull request read needs an approval for that pull request and that action; a reused approval, one for another pull request, and one for a merge are refused                                         |
+| 122 | An approval for a post and an update | `slack-post-message` 1.1.0 and `hubspot-deal-update` 1.1.0: an approval covers one channel or one deal; the content review and stage rules still refuse; an update approval is not a read approval (`hubspot-deal-read`)      |
 
 </Accordion>
 </AccordionGroup>

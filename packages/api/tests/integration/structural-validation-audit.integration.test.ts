@@ -63,7 +63,7 @@ describe("Structural validation audit trail (G-29, HTTP boundary)", () => {
     it("POST /execute: rejects with 400 and audits the invalid value, with the authenticated callerId", async () => {
       const { app, callerAuditSink } = buildApp();
 
-      const transaction = createBusinessTransaction();
+      const transaction = await createBusinessTransaction();
 
       const response = await request(app)
         .post("/execute")
@@ -87,7 +87,7 @@ describe("Structural validation audit trail (G-29, HTTP boundary)", () => {
     it("POST /transactions: rejects with 400 and audits the same way", async () => {
       const { app, callerAuditSink } = buildApp();
 
-      const transaction = createBusinessTransaction();
+      const transaction = await createBusinessTransaction();
 
       const response = await request(app)
         .post("/transactions")
@@ -107,7 +107,7 @@ describe("Structural validation audit trail (G-29, HTTP boundary)", () => {
     it("does not record businessTransactionId on the event when the field wasn't even a string", async () => {
       const { app, callerAuditSink } = buildApp();
 
-      const transaction = createBusinessTransaction();
+      const transaction = await createBusinessTransaction();
 
       await request(app)
         .post("/execute")
@@ -124,7 +124,7 @@ describe("Structural validation audit trail (G-29, HTTP boundary)", () => {
       const response = await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${VALID_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(response.status).toBe(200);
       expect(structuralEvents(callerAuditSink)).toHaveLength(0);
@@ -135,7 +135,7 @@ describe("Structural validation audit trail (G-29, HTTP boundary)", () => {
     it("POST /execute: a mismatched metadata.businessTransactionId is rejected 400 and audited with the reason and the declared id", async () => {
       const { app, callerAuditSink } = buildApp();
 
-      const transaction = createBusinessTransaction();
+      const transaction = await createBusinessTransaction();
       const mismatched = {
         ...transaction,
         metadata: {
@@ -169,7 +169,7 @@ describe("Structural validation audit trail (G-29, HTTP boundary)", () => {
     it("POST /execute: the second submission is rejected 409 and audited; the first, accepted submission is not", async () => {
       const { app, callerAuditSink } = buildApp();
 
-      const transaction = createBusinessTransaction();
+      const transaction = await createBusinessTransaction();
 
       const first = await request(app)
         .post("/execute")
@@ -222,7 +222,7 @@ describe("Structural validation audit trail (G-29, HTTP boundary)", () => {
       const { app, callerAuditSink } = buildApp();
 
       const oversized = JSON.stringify({
-        ...createBusinessTransaction(),
+        ...(await createBusinessTransaction()),
         padding: "x".repeat(200 * 1024),
       });
 

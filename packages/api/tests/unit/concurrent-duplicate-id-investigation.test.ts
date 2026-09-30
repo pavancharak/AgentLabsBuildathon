@@ -13,7 +13,7 @@ import { createBusinessTransaction } from "../fixtures/business-transaction.js";
  */
 describe("Concurrent same-id resubmission investigation", () => {
   it("of two concurrent POST /execute requests for the same brand-new id with different content, exactly one succeeds and one is rejected as a duplicate -- never both", async () => {
-    const base = createBusinessTransaction();
+    const base = await createBusinessTransaction();
 
     const variantA = base;
     const variantB = {

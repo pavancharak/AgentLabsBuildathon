@@ -155,6 +155,14 @@ is the value multiplied by the number of instances, and the server logs `rate_li
 | `APPROVAL_WEBHOOK_URL`    | With the next one           | None: nothing is sent | An https URL (http only in `test` or `development`) | Where to POST an `approval.needed` event when a refused request would have been authorized with a signed approval. See [Human approval](/concepts/human-approval#get-notified). |
 | `APPROVAL_WEBHOOK_SECRET` | With `APPROVAL_WEBHOOK_URL` | None                  | A random string, or a secret reference              | Signs each event (HMAC SHA256). See `PARMANA_SECRETS_PROVIDER`. Setting only one of the two stops the server at startup.                                                        |
 
+## Local test approver
+
+No agent action is authorized without a signed human approval, so a local test server needs an approver it trusts.
+
+| Variable                                | Required            | Default           | Values or format                         | What it does                                                                                                                                                                                                                                                                                                     |
+| --------------------------------------- | ------------------- | ----------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE` | Never in production | None: not trusted | A path to an Ed25519 public key PEM file | Trusts the approver `local-test-approver`, key `local-test-approver-key-1`, with this key, for the [Quickstart](/quickstart). Honored only when `NODE_ENV` is `test`. Set with any other `NODE_ENV`, the server refuses to start. Real approvers are added through [Manage approvers](/guides/manage-approvers). |
+
 ## Secrets
 
 | Variable                   | Required | Default | Values or format             | What it does                                                                                                                                                                                                                                                                                                                               |

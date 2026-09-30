@@ -14,6 +14,7 @@ import { createExecutionSystem } from "../../src/bootstrap/createExecutionSystem
 import { hashApiKey } from "../../src/auth/hashApiKey.js";
 import { StaticKeyAuthenticator } from "../../src/auth/StaticKeyAuthenticator.js";
 import { InMemoryCallerAuditSink } from "../../src/auth/InMemoryCallerAuditSink.js";
+import { withTestApproval } from "../../../../test-support/approvals.js";
 
 //
 // A merge needs a signed approval for the pull request
@@ -189,7 +190,7 @@ describe("GitHub caller-to-capability scoping (HTTP boundary, caller-auth enable
             }
           : {
               name: "github-pr-read",
-              version: "1.0.0",
+              version: "1.1.0",
               schemaVersion: "1.0.0",
             },
 
@@ -231,7 +232,12 @@ describe("GitHub caller-to-capability scoping (HTTP boundary, caller-auth enable
     const response = await request(app)
       .post("/execute")
       .set("Authorization", `Bearer ${FETCH_ONLY_KEY}`)
-      .send(transaction);
+      .send(
+        await withTestApproval(transaction, undefined, {
+          ...approver,
+          privateKey: approverKeys.privateKey,
+        }),
+      );
 
     expect(response.status).toBe(200);
   });

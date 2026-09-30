@@ -182,7 +182,7 @@ Authorization
 
 Authorization ID : ...
 
-Policy           : vendor-payment@2.0.0
+Policy           : vendor-payment@2.1.0
 
 Decision         : ...
 

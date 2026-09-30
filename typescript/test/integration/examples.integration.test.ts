@@ -21,6 +21,24 @@ import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
 import { fileURLToPath } from "node:url";
 
+import { signTestApproval } from "../../../test-support/approvals.js";
+
+/**
+ * What a trusted approver signs for both examples: this capability,
+ * this target, up to this amount. Signed by the hermetic test approver.
+ */
+async function exampleApproval(): Promise<unknown> {
+  return JSON.parse(
+    JSON.stringify(
+      await signTestApproval({
+        capability: "test:fixture-execute",
+        resourceId: "vendor/vendor-123",
+        value: 100,
+      }),
+    ),
+  );
+}
+
 let server: Server;
 let endpoint: string;
 
@@ -67,7 +85,10 @@ describe("typescript/examples/02-execute.ts against a real local @parmana/api in
   it("runs end to end and returns a real, signed, APPROVED Execution Trust Record", async () => {
     const { runExecuteExample } = await import("../../examples/02-execute.js");
 
-    const trustRecord = await runExecuteExample(endpoint);
+    const trustRecord = await runExecuteExample(
+      endpoint,
+      await exampleApproval(),
+    );
 
     expect(trustRecord.trustRecordId).toBeTruthy();
     expect(trustRecord.executions).toHaveLength(1);
@@ -76,12 +97,23 @@ describe("typescript/examples/02-execute.ts against a real local @parmana/api in
   });
 });
 
+describe("typescript/examples/02-execute.ts without a signed human approval", () => {
+  it("is refused", async () => {
+    const { runExecuteExample } = await import("../../examples/02-execute.js");
+
+    await expect(runExecuteExample(endpoint, undefined)).rejects.toThrow();
+  });
+});
+
 describe("typescript/examples/06-create-business-transaction.ts against a real local @parmana/api instance", () => {
   it("runs end to end via createBusinessTransaction() and returns a real, signed, APPROVED Execution Trust Record", async () => {
     const { runCreateBusinessTransactionExample } =
       await import("../../examples/06-create-business-transaction.js");
 
-    const trustRecord = await runCreateBusinessTransactionExample(endpoint);
+    const trustRecord = await runCreateBusinessTransactionExample(
+      endpoint,
+      await exampleApproval(),
+    );
 
     expect(trustRecord.trustRecordId).toBeTruthy();
     expect(trustRecord.executions).toHaveLength(1);

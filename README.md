@@ -17,7 +17,9 @@ no longer whether the agent can act, it's what it's actually allowed to
 do, and whether what it did can be proven afterward rather than assumed.
 Parmana sits between an AI agent and the systems it calls: every
 requested action is checked against an explicit policy before it runs, so
-an agent can only do what it was approved to do. Every approved action
+an agent can only do what it was approved to do. No agent action, reads
+included, is authorized without a signed approval from a trusted person
+([CLAIMS.md 2.47](docs/CLAIMS.md)). Every approved action
 also produces a signed, tamper-evident record, so what happened can be
 proven afterward, not just trusted. Parmana does not decide what the
 agent should do. It decides, and proves, whether the agent was allowed to

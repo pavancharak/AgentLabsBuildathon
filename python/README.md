@@ -8,7 +8,7 @@
 
 The official Python SDK for **Parmana Execution Trust Infrastructure**.
 
-Parmana lets organizations verify what automated systems executed, not simply trust that they executed correctly. An action routed through Parmana runs only when the policy bound to it, approved through policy governance, approves it, and each execution produces a signed Execution Trust Record that anyone with the public key can verify.
+Parmana lets organizations verify what automated systems executed, not simply trust that they executed correctly. An action routed through Parmana runs only when the policy bound to it, approved through policy governance, approves it, and a trusted person has signed an approval for that action (every action needs one, reads included; `parmana.crypto.sign_approval`), and each execution produces a signed Execution Trust Record that anyone with the public key can verify.
 
 ## Why Parmana
 

@@ -29,7 +29,7 @@ describe("GET /receipt/latest/:id", () => {
   });
 
   it("returns the latest Receipt after a successful execution (200 path, previously untested)", async () => {
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     const execute = await request(app).post("/execute").send(transaction);
     expect(execute.status).toBe(200);

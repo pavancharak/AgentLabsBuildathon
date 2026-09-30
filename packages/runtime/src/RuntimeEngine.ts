@@ -472,26 +472,46 @@ export class RuntimeEngine {
           )
         : [];
 
+    //
+    // No approval without a verifier. PolicyValidator makes every
+    // approve rule require a signed approval signal, but only the
+    // signalStateVerifier checks that the approval behind it is real.
+    // Without one, a caller could set that signal true on its own, so
+    // an approve decision is refused instead of trusted.
+    //
+
     const policyDecision: PolicyDecision =
-      stateViolations.length > 0
+      provisionalDecision.outcome === PolicyOutcome.APPROVE &&
+      this.signalStateVerifier === undefined
         ? {
             policyId: policy.policyId,
             policyVersion: policy.policyVersion,
             outcome: PolicyOutcome.REJECT,
             reason:
-              "Rejected: declared signal(s) do not match independently verified state (" +
-              stateViolations
-                .map(
-                  (violation) =>
-                    `${violation.signalKey}=${JSON.stringify(violation.declaredValue)} != verified ${violation.signalKey}=${JSON.stringify(violation.actualValue)}`,
-                )
-                .join(", ") +
-              ").",
-            matchedRuleId: "signal-state-verification-violation",
+              "Rejected: no approval verifier is configured, so the signed human approval this action needs cannot be checked.",
+            matchedRuleId: "approval-verifier-not-configured",
             evaluatedRules: 0,
             matchedPath: [],
           }
-        : provisionalDecision;
+        : stateViolations.length > 0
+          ? {
+              policyId: policy.policyId,
+              policyVersion: policy.policyVersion,
+              outcome: PolicyOutcome.REJECT,
+              reason:
+                "Rejected: declared signal(s) do not match independently verified state (" +
+                stateViolations
+                  .map(
+                    (violation) =>
+                      `${violation.signalKey}=${JSON.stringify(violation.declaredValue)} != verified ${violation.signalKey}=${JSON.stringify(violation.actualValue)}`,
+                  )
+                  .join(", ") +
+                ").",
+              matchedRuleId: "signal-state-verification-violation",
+              evaluatedRules: 0,
+              matchedPath: [],
+            }
+          : provisionalDecision;
 
     await this.hookRunner.afterPolicyEvaluation(
       transaction,

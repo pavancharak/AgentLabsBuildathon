@@ -5,7 +5,7 @@
 // rule-conflict checker (G-39) -- rather than a policy that needed
 // retrofitting, like the 10 pre-existing ones did.
 //
-// policies/api-key-issuance/1.0.0/policy.json:
+// policies/api-key-issuance/1.1.0/policy.json:
 //   - keyLifetimeDays has a genuine Intent-side equivalent (an amount-like
 //     field) and is bound via boundSignals -> parameters.lifetimeDays, so
 //     SignalIntentBinder catches a caller declaring one lifetime while the
@@ -27,6 +27,10 @@ import { FilePolicyRepository, PolicyValidator } from "@parmana/policy";
 import { RuntimeBuilder } from "@parmana/runtime";
 import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 import type { BusinessTransaction } from "@parmana/shared";
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 const root = path.resolve(import.meta.dirname);
 
@@ -37,10 +41,11 @@ const policyRepository = new FilePolicyRepository(
 const trustRecords = new MemoryExecutionTrustRecordRepository();
 
 const runtime = new RuntimeBuilder()
+  .withSignalStateVerifier(demoApprovalSignalVerifier())
   .withPolicyRepository(policyRepository)
   .build(trustRecords);
 
-function transactionFor(
+async function transactionFor(
   businessTransactionId: string,
   overrides: {
     readonly requesterVerified?: boolean;
@@ -49,7 +54,7 @@ function transactionFor(
     readonly intentLifetimeDays?: number;
     readonly riskScore?: number;
   } = {},
-): BusinessTransaction {
+): Promise<BusinessTransaction> {
   const {
     requesterVerified = true,
     scopeAuthorized = true,
@@ -58,7 +63,7 @@ function transactionFor(
     riskScore = 10,
   } = overrides;
 
-  return {
+  return withDemoApproval({
     businessTransactionId,
 
     metadata: { businessTransactionId },
@@ -91,7 +96,7 @@ function transactionFor(
 
     policy: {
       name: "api-key-issuance",
-      version: "1.0.0",
+      version: "1.1.0",
       schemaVersion: "1.0.0",
     },
 
@@ -105,7 +110,7 @@ function transactionFor(
     status: "RECEIVED",
 
     createdAt: new Date(),
-  } as unknown as BusinessTransaction;
+  } as unknown as BusinessTransaction);
 }
 
 console.log();
@@ -119,7 +124,7 @@ console.log(
 );
 console.log("--------------------------------------------------");
 const { trustRecord: approved } = await runtime.execute(
-  transactionFor("tx-106-approve"),
+  await transactionFor("tx-106-approve"),
 );
 console.log(`Decision outcome : ${approved.executions[0]?.decision.outcome}`);
 console.log(`Reason           : ${approved.executions[0]?.decision.reason}`);
@@ -132,7 +137,7 @@ console.log("--------------------------------------------------");
 let scenario2Reason = "";
 try {
   await runtime.execute(
-    transactionFor("tx-106-mismatch", {
+    await transactionFor("tx-106-mismatch", {
       signaledLifetimeDays: 30,
       intentLifetimeDays: 400,
     }),
@@ -156,7 +161,7 @@ console.log("--------------------------------------------------");
 let scenario3Reason = "";
 try {
   await runtime.execute(
-    transactionFor("tx-106-unverified", { requesterVerified: false }),
+    await transactionFor("tx-106-unverified", { requesterVerified: false }),
   );
 } catch (error) {
   scenario3Reason = error instanceof Error ? error.message : String(error);
@@ -168,7 +173,7 @@ console.log(
   "Scenario 4: this policy has zero rule conflicts (the shape every policy in this repo now targets)",
 );
 console.log("--------------------------------------------------");
-const policy = await policyRepository.load("api-key-issuance", "1.0.0");
+const policy = await policyRepository.load("api-key-issuance", "1.1.0");
 const validator = new PolicyValidator();
 const conflicts = validator.findRuleConflicts(policy);
 console.log(`Rule-conflict warnings : ${conflicts.length}`);

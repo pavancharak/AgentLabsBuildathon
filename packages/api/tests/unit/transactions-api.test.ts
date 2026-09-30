@@ -49,7 +49,7 @@ describe("POST /transactions", () => {
   it.skipIf(!databaseConfigured)(
     "creates a Business Transaction with a server-set status, ignoring any client-supplied status",
     async () => {
-      const transaction = createBusinessTransaction();
+      const transaction = await createBusinessTransaction();
 
       const response = await request(app)
         .post("/transactions")
@@ -75,7 +75,7 @@ describe("POST /transactions", () => {
   it.skipIf(!databaseConfigured)(
     "drops unrecognized top-level fields instead of persisting them",
     async () => {
-      const transaction = createBusinessTransaction();
+      const transaction = await createBusinessTransaction();
 
       const response = await request(app)
         .post("/transactions")
@@ -101,7 +101,7 @@ describe("POST /transactions", () => {
   it.skipIf(!databaseConfigured)(
     "fails with the shared 400 envelope when a trust-chain invariant is violated",
     async () => {
-      const transaction = createBusinessTransaction();
+      const transaction = await createBusinessTransaction();
 
       const response = await request(app)
         .post("/transactions")

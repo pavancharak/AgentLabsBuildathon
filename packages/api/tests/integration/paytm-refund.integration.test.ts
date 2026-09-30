@@ -438,7 +438,7 @@ describe("Paytm refund (HTTP boundary)", () => {
       },
       policy: {
         name: "hubspot-deal-update",
-        version: "1.0.0",
+        version: "1.1.0",
         schemaVersion: "1.0.0",
       },
     });
@@ -452,7 +452,7 @@ describe("Paytm refund (HTTP boundary)", () => {
     expectNoPaytmCall(mockServer, fetchSpy);
   });
 
-  it("capability/policy binding: rejects the previous customer-refund version 1.1.0 now that paytm:refund is bound to 1.2.0", async () => {
+  it("refuses the previous customer-refund version 1.1.0 at load, since its automatic refunds need no signed human approval", async () => {
     const { app, server: mockServer } = await buildApp();
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
@@ -475,9 +475,10 @@ describe("Paytm refund (HTTP boundary)", () => {
 
     const response = await request(app).post("/execute").send(transaction);
 
-    expect(response.status).toBe(403);
-    expect(response.body.code).toBe("POLICY_DENIED");
-    expect(response.body.error).toContain("1.2.0");
+    expect(response.status).toBe(400);
+    expect(response.body.error).toContain(
+      "approves without a signed human approval",
+    );
     expectNoPaytmCall(mockServer, fetchSpy);
   });
 

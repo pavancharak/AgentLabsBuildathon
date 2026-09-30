@@ -22,6 +22,11 @@ import {
 import { DefaultExecutionSystem } from "@parmana/execution-system";
 
 import { RuntimeBuilder } from "../../src/RuntimeBuilder.js";
+
+import {
+  testApprovalSignalVerifier,
+  withTestApproval,
+} from "../../../../test-support/approvals.js";
 import { ExecutionRequestBuilder } from "../../src/ExecutionRequestBuilder.js";
 import { ExecutionEvidenceBuilder } from "../../src/ExecutionEvidenceBuilder.js";
 import { ExecutionService } from "../../src/services/execution-service.js";
@@ -108,52 +113,58 @@ const APPROVE_POLICY: Policy = {
   policyId: "payment-approval",
   policyVersion: "1.0.0",
   schemaVersion: "1.0.0",
+  approvalSignals: { humanApproved: { resourceId: "target" } },
   rules: [
     {
-      id: "approve-all",
-      condition: { always: true },
+      id: "approve-with-approval",
+      condition: { fact: "humanApproved", operator: "is_true" },
       outcome: { action: PolicyAction.APPROVE, reason: "approved for test" },
     },
   ],
 };
 
-function createTransaction(businessTransactionId: string): BusinessTransaction {
+function createTransaction(
+  businessTransactionId: string,
+): Promise<BusinessTransaction> {
   const authorityId = "authority-1";
   const authorizationId = "authorization-1";
   const fixedDate = new Date("2026-01-01T00:00:00Z");
 
-  return {
-    businessTransactionId,
-    metadata: { businessTransactionId },
-    authority: {
-      authorityId,
-      authorityType: AuthorityType.SERVICE,
-      principalId: "svc-1",
-      issuedAt: fixedDate,
-    },
-    authorization: {
-      authorizationId,
-      authorityId,
-      purpose: "test",
-      issuedAt: fixedDate,
-    },
-    intent: {
-      intentId: "intent-1",
-      authorizationId,
-      action: "PAY",
-      target: "vendor/1",
-      parameters: { amount: 100 },
+  return withTestApproval(
+    {
+      businessTransactionId,
+      metadata: { businessTransactionId },
+      authority: {
+        authorityId,
+        authorityType: AuthorityType.SERVICE,
+        principalId: "svc-1",
+        issuedAt: fixedDate,
+      },
+      authorization: {
+        authorizationId,
+        authorityId,
+        purpose: "test",
+        issuedAt: fixedDate,
+      },
+      intent: {
+        intentId: "intent-1",
+        authorizationId,
+        action: "PAY",
+        target: "vendor/1",
+        parameters: { amount: 100 },
+        createdAt: fixedDate,
+      },
+      policy: {
+        name: "payment-approval",
+        version: "1.0.0",
+        schemaVersion: "1.0.0",
+      },
+      signals: { amount: 100 },
+      status: BusinessTransactionStatus.RECEIVED,
       createdAt: fixedDate,
     },
-    policy: {
-      name: "payment-approval",
-      version: "1.0.0",
-      schemaVersion: "1.0.0",
-    },
-    signals: { amount: 100 },
-    status: BusinessTransactionStatus.RECEIVED,
-    createdAt: fixedDate,
-  };
+    APPROVE_POLICY,
+  );
 }
 
 describe("RuntimeEngine pipeline latency (in-process, no HTTP/network/database)", () => {
@@ -163,6 +174,7 @@ describe("RuntimeEngine pipeline latency (in-process, no HTTP/network/database)"
 
     const runtime = new RuntimeBuilder()
       .withPolicyRepository(new FixedPolicyRepository(APPROVE_POLICY))
+      .withSignalStateVerifier(testApprovalSignalVerifier())
       .addStage(new TrustChainValidationComponent())
       .addStage(
         new ExecutionComponent(
@@ -178,7 +190,7 @@ describe("RuntimeEngine pipeline latency (in-process, no HTTP/network/database)"
     const durationsMs: number[] = [];
 
     for (let i = 0; i < iterations; i++) {
-      const transaction = createTransaction(`txn-perf-${i}`);
+      const transaction = await createTransaction(`txn-perf-${i}`);
       await transactions.create(transaction);
 
       const start = performance.now();

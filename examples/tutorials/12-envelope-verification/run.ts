@@ -12,6 +12,10 @@ import { FileKeyProvider } from "@parmana/crypto";
 import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 
 import type { BusinessTransaction } from "@parmana/shared";
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 const root = path.resolve(import.meta.dirname);
 
@@ -29,6 +33,7 @@ const policyRepository = new FilePolicyRepository(
 const trustRecords = new MemoryExecutionTrustRecordRepository();
 
 const runtime = new RuntimeBuilder()
+  .withSignalStateVerifier(demoApprovalSignalVerifier())
   .withPolicyRepository(policyRepository)
   .build(trustRecords);
 
@@ -36,7 +41,7 @@ const runtime = new RuntimeBuilder()
 // EXECUTE
 // --------------------------------------------------
 
-const result = await runtime.execute(transaction);
+const result = await runtime.execute(await withDemoApproval(transaction));
 
 const authorization = result.context.authorization;
 

@@ -62,17 +62,23 @@ you from:
 ```python
 from parmana import PolicyReference, create_business_transaction
 
+# The manager's signed approval for this order and amount (every refund
+# needs one; see Human approval). It arrives from your approval flow,
+# for example the approval email.
+approval = pending_approvals["ORD-1042"]
 transaction = create_business_transaction(
     principal_id="ai-customer-service-001",  # must match your API key's allowed_principal_ids
     purpose="Customer-requested refund",
     action="paytm:refund",
-    target="payment/pay_LiZx3eWa",
-    parameters={"amount": 50000, "currency": "INR"},
-    policy=PolicyReference(name="customer-refund", version="1.1.0", schema_version="1.0.0"),
+    target="paytm://orders/ORD-1042",
+    parameters={"orderId": "ORD-1042", "amount": 50000},
+    policy=PolicyReference(name="customer-refund", version="1.2.0", schema_version="1.0.0"),
     signals={
-        "fraudScore": 0.05,
-        "customerTenureDays": 180,
-        "paymentVerified": True,
+        "refundEligible": True,
+        "fraudCheckPassed": True,
+        "refundAmount": 50000,
+        "managerApproved": True,
+        "approvalArtifact": approval,
     },
 )
 ```
@@ -171,17 +177,23 @@ from parmana import ExecutionRejectedError, ParmanaClient, PolicyReference, crea
 
 client = ParmanaClient(endpoint="http://localhost:3000", api_key="my-secret-api-key")
 
+# The manager's signed approval for this order and amount (every refund
+# needs one; see Human approval). It arrives from your approval flow,
+# for example the approval email.
+approval = pending_approvals["ORD-1042"]
 transaction = create_business_transaction(
     principal_id="ai-customer-service",
     purpose="Customer requested a refund after a duplicate charge",
     action="paytm:refund",
-    target="payment/pay_LiZx3eWa",
-    parameters={"amount": 50000, "currency": "INR"},
-    policy=PolicyReference(name="customer-refund", version="1.1.0", schema_version="1.0.0"),
+    target="paytm://orders/ORD-1042",
+    parameters={"orderId": "ORD-1042", "amount": 50000},
+    policy=PolicyReference(name="customer-refund", version="1.2.0", schema_version="1.0.0"),
     signals={
-        "fraudScore": 0.05,
-        "customerTenureDays": 180,
-        "paymentVerified": True,
+        "refundEligible": True,
+        "fraudCheckPassed": True,
+        "refundAmount": 50000,
+        "managerApproved": True,
+        "approvalArtifact": approval,
     },
 )
 

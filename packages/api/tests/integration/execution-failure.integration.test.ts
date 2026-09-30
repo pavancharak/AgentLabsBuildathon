@@ -60,7 +60,7 @@ describe("Execution Failure", () => {
     const application = createApplication(executionSystem);
     const app = createApp(application, { callerAuth: "disabled" });
 
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     const response = await request(app).post("/execute").send(transaction);
 
@@ -156,7 +156,7 @@ describe("Execution Failure", () => {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const response = await request(app)
         .post("/execute")
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(response.status).toBe(502);
       expect(response.body.code).toBe("EXECUTION_OUTCOME_UNKNOWN");

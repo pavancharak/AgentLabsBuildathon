@@ -23,7 +23,7 @@ describe.skipIf(!databaseConfigured)(
       // genuinely hashed and signed Execution Trust Record is
       // persisted in storage.
       //
-      const transaction = createBusinessTransaction();
+      const transaction = await createBusinessTransaction();
 
       const execute = await request(app).post("/execute").send(transaction);
 

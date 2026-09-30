@@ -133,6 +133,20 @@ All of the above already run automatically in CI on every push and pull request 
 
 ---
 
+## Invariant 8: No AI agent action is authorized without a signed human approval
+
+**Rationale:** the product rule, stated by the operator on 2026-09-30: no agent can do anything, reads included, without a person's approval. Before it was enforced, human approval was a property of a few policies, and most actions (GitHub reads, HubSpot reads and updates, Slack posts, every reference policy) were authorized on facts the agent declared or on nothing (`docs/VERIFICATION-GAPS.md` G-80).
+
+**Enforcement:** `PolicyValidator.validateEveryApprovalNeedsSignedApproval` (`packages/policy/src/PolicyValidator.ts`) refuses any policy with an approve rule that does not require a fact declared in `approvalSignals` with `is_true`, as the rule's whole condition or directly inside its top level `all`. `PolicyRouter` runs it on every load and `pending-policy-changes.ts` on every proposal. `ApprovalSignalVerifier` counts that fact as true only with a valid signed approval, and `RuntimeEngine` refuses an approve decision when no signal state verifier is configured.
+
+**Expected failure mode:** a new or changed policy file whose approve rule skips the approval fails `packages/policy/tests/unit/ReferencePolicies.test.ts` (the newest version of every policy must load), and the policy is refused at load (`400`) and on proposal.
+
+**Regression example:** a PR adds `policies/github-pr-read/1.2.0` with `{ "always": true }` to make reads frictionless. `ReferencePolicies.test.ts` fails naming the file, and a server loading it refuses every read.
+
+**Corresponding tests:** `packages/policy/tests/unit/PolicyValidator.test.ts` ("no approval without a signed human approval"), `ApprovalBackedPolicies.test.ts`, `ReferencePolicies.test.ts`, `packages/runtime/tests/unit/runtime.test.ts`.
+
+---
+
 ## CI enforcement
 
 CI exists: `.github/workflows/ci.yml`, triggered on every push to `main` and every pull request. Its steps: checkout → `npm ci` → `npm run build` → `npm run lint` → `npm run typecheck` → a retired-terminology grep guard → `npm test`.

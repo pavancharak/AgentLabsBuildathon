@@ -16,6 +16,10 @@ import {
 } from "@parmana/storage";
 
 import type { BusinessTransaction } from "@parmana/shared";
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 //
 // Historical note: this tutorial was originally "Execution Permit",
@@ -90,6 +94,8 @@ const application = RuntimeFactory.create(
   trustRecords,
   policyRepository,
   executionSystem,
+  undefined,
+  demoApprovalSignalVerifier(),
 );
 
 // --------------------------------------------------
@@ -101,7 +107,9 @@ const application = RuntimeFactory.create(
 // additionally calls VerificationCrypto.signHybrid().
 // --------------------------------------------------
 
-const trustRecord = await application.execute(transaction);
+const trustRecord = await application.execute(
+  await withDemoApproval(transaction),
+);
 
 // --------------------------------------------------
 // OUTPUT

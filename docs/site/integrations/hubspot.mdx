@@ -50,36 +50,36 @@ that quietly did less than requested, refusing outright is the safer failure mod
 
 ## The policy model
 
-`policies/hubspot-deal-update/1.0.0/policy.json` rejects a proposed `dealstage` transition
-unless it moves strictly forward through a fixed default stage order
-(`appointmentscheduled` → `qualifiedtobuy` → `presentationscheduled` →
-`decisionmakerboughtin` → `contractsent` → `closedwon`), with one explicit exception: moving
-to `closedlost` is allowed from any non-terminal stage. Any move backward, any move out of a
-terminal stage (`closedwon` or `closedlost`), and any move to or from a stage id the order
-doesn't recognize, are all rejected. Separately, an `amount` change is rejected if its
-absolute delta from the deal's current amount exceeds a configured threshold (10,000, in the
-deal's own currency units) unless the caller declares `preAuthorizedForAmountChange: true`.
+**Every deal update and every deal read needs a signed human approval** (since 2026-09-30).
+No AI agent action is authorized without one ([Human approval](/concepts/human-approval)).
 
-<Warning>
-  **`preAuthorizedForAmountChange` is independently verified, not taken on faith
-  — but nothing can pass that check in this deployment as configured, only fail
-  it.** `HubSpotSignalStateVerifier`
-  (`packages/connector-hubspot/src/HubSpotSignalStateVerifier.ts`), constructed
-  with a real `ApprovalVerifier` unconditionally in
-  `packages/api/src/bootstrap/createHubSpotSignalStateVerifier.ts`
-  ("`approvalVerifier` is always supplied here, never omitted"), checks a
-  caller's declared `true` against a real, independently-issued, Ed25519-signed
-  Approval Artifact carried in `signals.approvalArtifact` — issuer identity,
-  signature validity, expiry, capability/resource scope, and single-use nonce
-  consumption, all verified before the claim is trusted. A missing, expired,
-  wrong-scope, replayed, or unsigned artifact is treated as `false` regardless
-  of what the caller declared, the same fail-closed default as before. **The gap
-  that remains:** `createApprovalIssuerRegistry.ts`'s trusted-issuer list ships
-  **empty by default**, no real business-approver key is provisioned in this
-  deployment, so every `preAuthorizedForAmountChange` claim is rejected today,
-  genuine artifact or not, until an operator adds one. The mechanism is real,
-  tested, and unconditionally wired in; it just has nothing to trust yet.
-</Warning>
+- `hubspot:deal-update` is bound to `policies/hubspot-deal-update/1.1.0/policy.json`. It
+  authorizes an update only with `dealUpdateApproved: true` and a signed approval for that deal
+  (`parameters.dealId`) in `signals.approvalArtifact`, whatever the amount. It still rejects a
+  proposed `dealstage` transition unless it moves strictly forward through a fixed default stage
+  order (`appointmentscheduled` → `qualifiedtobuy` → `presentationscheduled` →
+  `decisionmakerboughtin` → `contractsent` → `closedwon`), with one explicit exception: moving
+  to `closedlost` is allowed from any non-terminal stage. Any move backward, any move out of a
+  terminal stage (`closedwon` or `closedlost`), and any move to or from a stage id the order
+  doesn't recognize, are all rejected, even with an approval.
+- `hubspot:deal-fetch` is bound to its own policy, `policies/hubspot-deal-read/1.0.0/policy.json`,
+  which authorizes a read only with `readApproved: true` and a signed approval for that deal.
+
+`HubSpotSignalStateVerifier` (`packages/connector-hubspot/src/HubSpotSignalStateVerifier.ts`)
+still fetches the real deal and refuses an update whose declared stage and amount facts do not
+match it. The approval itself is checked by `ApprovalSignalVerifier`, like every other action:
+trusted and unrevoked approver, signature, expiry, action, deal, single use.
+
+<Note>
+  **Before 1.1.0.** `hubspot-deal-update` 1.0.0 authorized an update within the
+  amount threshold (10,000) with no person, and an amount change above it only
+  with `preAuthorizedForAmountChange: true` backed by a signed approval, which
+  `HubSpotSignalStateVerifier` checked itself. It also governed reads. 1.0.0 now
+  fails to load. Under 1.1.0 the verifier skips that pre authorization check,
+  because the policy declares `approvalSignals` and the one approval covers the
+  whole update. The approval covers the deal, not the new stage or amount: the
+  approver trusts the agent with those for that one use.
+</Note>
 
 `boundSignals` is present from this policy's first version, not added after a live
 demonstration of a signal/intent mismatch the way `razorpay-refund/1.0.0` was, on the
@@ -87,7 +87,7 @@ now-removed Razorpay connector (see [Policies and the
 decision](/concepts/policies-and-the-decision) for that history):
 
 ```json
-// policies/hubspot-deal-update/1.0.0/policy.json (excerpt, real source)
+// policies/hubspot-deal-update/1.1.0/policy.json (excerpt, real source)
 "boundSignals": {
   "proposedDealStage": "parameters.dealstage",
   "proposedAmount": "parameters.amount"
@@ -117,7 +117,7 @@ from an actual local run, 2026-07-31:
   },
   "policy": {
     "name": "hubspot-deal-update",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "schemaVersion": "1.0.0"
   },
   "signals": {
@@ -128,7 +128,11 @@ from an actual local run, 2026-07-31:
     "amountChangeRequested": false,
     "amountDeltaAbs": 0,
     "amountChangeExceedsThreshold": false,
-    "preAuthorizedForAmountChange": false
+    "dealUpdateApproved": true,
+    "approvalArtifact": {
+      "payload": { "...": "..." },
+      "signature": { "...": "..." }
+    }
   }
 }
 ```
@@ -189,7 +193,7 @@ response:
   },
   "policy": {
     "name": "hubspot-deal-update",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "schemaVersion": "1.0.0"
   },
   "signals": {
@@ -200,7 +204,11 @@ response:
     "amountChangeRequested": false,
     "amountDeltaAbs": 0,
     "amountChangeExceedsThreshold": false,
-    "preAuthorizedForAmountChange": false
+    "dealUpdateApproved": true,
+    "approvalArtifact": {
+      "payload": { "...": "..." },
+      "signature": { "...": "..." }
+    }
   }
 }
 ```
@@ -317,10 +325,10 @@ This is the part worth reading in full before deciding how much to trust this co
 - **Per-pipeline stage-transition rules.** The forward-only stage order above is one global
   order, not keyed by a deal's own `pipeline` property. `isHubSpotStageTransitionAllowed`
   accepts a `stageOrder` override, nothing wires it to a pipeline yet.
-- **A provisioned, real approval issuer.** Independent verification of
-  `preAuthorizedForAmountChange` is built, tested, and unconditionally wired in (see the
-  warning above), but the trusted-issuer registry ships empty — no business can actually
-  produce an artifact this deployment accepts until an operator provisions one.
+- **An approval bound to the new stage or amount.** The signed approval every update needs
+  names the deal, not the values written. Approvers are added through
+  [Manage approvers](/guides/manage-approvers); with none trusted, every HubSpot read and
+  update is refused.
 
 ## Next
 

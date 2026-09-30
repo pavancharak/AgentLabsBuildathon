@@ -23,6 +23,21 @@ function findPolicyFiles(directory: string): string[] {
   return files.sort();
 }
 
+function compareVersions(a: string, b: string): number {
+  const left = a.split(".").map(Number);
+  const right = b.split(".").map(Number);
+
+  for (let index = 0; index < Math.max(left.length, right.length); index++) {
+    const difference = (left[index] ?? 0) - (right[index] ?? 0);
+
+    if (difference !== 0) {
+      return difference;
+    }
+  }
+
+  return 0;
+}
+
 describe("Reference Policy Library", () => {
   const validator = new PolicyValidator();
 
@@ -34,6 +49,23 @@ describe("Reference Policy Library", () => {
   const policyFiles = findPolicyFiles(policiesRoot);
 
   expect(policyFiles.length).toBeGreaterThan(0);
+
+  //
+  // The newest version of every policy must load. An older version is
+  // kept as history; it either loads or is refused only because it
+  // approves without a signed human approval, which no agent action
+  // may ever do.
+  //
+  const latestVersion = new Map<string, string>();
+
+  for (const file of policyFiles) {
+    const [name, version] = path.relative(policiesRoot, file).split(path.sep);
+    const current = latestVersion.get(name!);
+
+    if (current === undefined || compareVersions(version!, current) > 0) {
+      latestVersion.set(name!, version!);
+    }
+  }
 
   for (const file of policyFiles) {
     const relativePath = path.relative(policiesRoot, file);
@@ -55,7 +87,20 @@ describe("Reference Policy Library", () => {
         });
       }
 
-      expect(() => validator.validate(policy)).not.toThrow();
+      const [name, version] = relativePath.split(path.sep);
+
+      if (latestVersion.get(name!) === version) {
+        expect(() => validator.validate(policy)).not.toThrow();
+        return;
+      }
+
+      try {
+        validator.validate(policy);
+      } catch (error) {
+        expect((error as Error).message).toMatch(
+          /approves without a signed human approval/,
+        );
+      }
     });
   }
 });

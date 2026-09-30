@@ -73,10 +73,57 @@ const TRUSTED_APPROVAL_ISSUERS: readonly ConfiguredApprovalIssuer[] = [
 ];
 
 /**
- * The approvers listed in code above, alone.
+ * The approver a local test server trusts, so a quickstart can sign
+ * the approval every agent action needs (docs/CLAIMS.md 2.47).
+ */
+export const LOCAL_TEST_APPROVER = {
+  approverId: "local-test-approver",
+  keyId: "local-test-approver-key-1",
+} as const;
+
+/**
+ * LOCAL_TEST_APPROVER, trusted with the Ed25519 public key in the file
+ * PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE names. Only when NODE_ENV is
+ * test, the same gate as the test fixture connector
+ * (createTestFixtureConnector.ts). Set anywhere else, the server
+ * refuses to start rather than trust a key from the environment.
+ */
+function localTestApproverEntries(): ConfiguredApprovalIssuer[] {
+  const file = process.env.PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE;
+
+  if (file === undefined || file === "") {
+    return [];
+  }
+
+  if (process.env.NODE_ENV !== "test") {
+    throw new Error(
+      "PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE is set, but NODE_ENV is not test. " +
+        "A test approver is trusted only on a local test server; unset it, or add " +
+        "the approver through maker checker (docs/site/guides/manage-approvers.mdx).",
+    );
+  }
+
+  if (!existsSync(file)) {
+    throw new Error(`Test approver public key not found: ${file}.`);
+  }
+
+  return [
+    {
+      ...LOCAL_TEST_APPROVER,
+      revoked: false,
+      publicKeyPem: readFileSync(file, "utf8"),
+    },
+  ];
+}
+
+/**
+ * The approvers listed in code above, plus the local test approver on
+ * a test server.
  */
 export function createCodeApprovalIssuerRegistry(): StaticApprovalIssuerRegistry {
-  return buildApprovalIssuerRegistry(TRUSTED_APPROVAL_ISSUERS, () => {
+  const entries = [...TRUSTED_APPROVAL_ISSUERS, ...localTestApproverEntries()];
+
+  return buildApprovalIssuerRegistry(entries, () => {
     const config = loadConfig();
 
     if (!config.keys.keyDirectory) {

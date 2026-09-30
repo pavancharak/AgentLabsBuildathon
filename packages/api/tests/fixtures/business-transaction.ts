@@ -1,13 +1,21 @@
 import type { BusinessTransaction } from "@parmana/shared";
+
+import { withTestApproval } from "../../../../test-support/approvals.js";
+
 import { TEST_POLICY } from "./policies.js";
-export function createBusinessTransaction(): BusinessTransaction {
+
+/**
+ * A transaction its policy approves, with a signed test approval for
+ * its target and amount: no agent action is authorized without one.
+ */
+export function createBusinessTransaction(): Promise<BusinessTransaction> {
   const businessTransactionId = crypto.randomUUID();
 
   const authorityId = crypto.randomUUID();
   const authorizationId = crypto.randomUUID();
   const intentId = crypto.randomUUID();
 
-  return {
+  return withTestApproval({
     businessTransactionId,
 
     metadata: {
@@ -41,7 +49,7 @@ export function createBusinessTransaction(): BusinessTransaction {
       // capability with no production implication, unbound in
       // CANONICAL_CAPABILITY_POLICY_BINDINGS, existing solely so this
       // shared fixture has a real connector to execute against. Still
-      // governed by the vendor-payment/2.0.0 policy below, kept unchanged
+      // governed by the vendor-payment/2.1.0 policy below, kept unchanged
       // and unbound from any capability -- policy content and capability
       // identity are independent concepts in this architecture.
       action: "test:fixture-execute",
@@ -63,7 +71,7 @@ export function createBusinessTransaction(): BusinessTransaction {
       sufficientFunds: true,
       paymentAmount: 1000,
       riskScore: 10,
-      // Must match intent.target exactly: vendor-payment/2.0.0 declares
+      // Must match intent.target exactly: vendor-payment/2.1.0 declares
       // boundSignals requiring vendorId === intent.target.
       vendorId: "vendor://payments",
     },
@@ -75,5 +83,5 @@ export function createBusinessTransaction(): BusinessTransaction {
     status: "APPROVED",
 
     createdAt: new Date(),
-  };
+  });
 }

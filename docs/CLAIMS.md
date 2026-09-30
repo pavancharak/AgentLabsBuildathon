@@ -34,6 +34,8 @@ Trust in what an AI agent did should not have to rest on hoping it behaved. It s
 
 Parmana enables organizations to verify what automated systems executed, not simply trust that they executed correctly.
 
+No AI agent action is authorized without a signed approval from a trusted person, reads included (2.47).
+
 ---
 
 # Purpose
@@ -531,6 +533,46 @@ Evidence
 **Backed by:** `packages/runtime/src/ApprovalNeededNotifier.ts` (`findNeededApprovals`: the same policy evaluated with the declared approval signals true must approve), `RuntimeEngine.notifyApprovalNeeded` (only after a refusal by rules or by an unverified approval; errors logged, never rethrown), `packages/api/src/bootstrap/createApprovalNeededNotifier.ts` (https outside test and development, no redirects, 3 second limit). Tests: `approval-webhook.integration.test.ts` through `POST /execute` with a real local receiver (event and signature, no event for a fraud refusal, above the maximum, or an authorized request, refusal unchanged when the webhook fails), and unit tests.
 
 **Scope:** best effort, one attempt, no retry. Not configured in production as of 2026-09-29.
+
+## 2.47 No AI Agent Action Is Authorized Without a Signed Human Approval, Reads Included (Scoped, 2026-09-30)
+
+**Claim:** Parmana authorizes no action, of any kind, without a signed approval from a trusted person for that action and that resource. This holds for every policy, not only connector actions, and for reads as well as writes.
+
+**How it is enforced:**
+
+- **At policy load.** `PolicyValidator.validateEveryApprovalNeedsSignedApproval` refuses any policy with an approve rule that does not require a fact declared in `approvalSignals` with `is_true`, as the rule's whole condition or directly inside its top level `all`. An `any`, a nested `all`, or `eq true` does not count. `PolicyRouter` validates every policy it loads, so such a policy refuses every request (`400`), and `POST /policies/:name/:version/pending-changes` validates every proposal, so such a policy cannot be proposed through maker checker.
+- **At decision.** `ApprovalSignalVerifier` (2.42) counts an approval signal as true only with a valid signed approval: trusted and unrevoked approver, Ed25519 signature, action, resource, amount where declared, expiry, single use; again at release in the Execution Gateway. `RuntimeEngine` refuses an approve decision when no signal state verifier is configured (`approval-verifier-not-configured`), so a runtime built without one cannot trust a caller's `true`.
+
+**Policies in the binding table (`CANONICAL_CAPABILITY_POLICY_BINDINGS`):** `paytm:refund` to `customer-refund` 1.2.0 (unchanged), `github:pr-merge` to `github-pr-approval` 1.1.0 (unchanged), `github:pr-fetch` to `github-pr-read` 1.1.0 (new, `readApproved` for the pull request), `hubspot:deal-fetch` to `hubspot-deal-read` 1.0.0 (new policy, `readApproved` for the deal), `hubspot:deal-update` to `hubspot-deal-update` 1.1.0 (new, `dealUpdateApproved` for the deal, every update whatever the amount), `slack:post-message` to `slack-post-message` 1.1.0 (new, `postApproved` for the channel). The reference policies with no connector have new versions that need `humanApproved` for the Intent's `target`, and for the amount in `vendor-payment` 2.1.0, `agent-vendor-payment` 1.1.0 and `expense-reimbursement` 1.1.0.
+
+**HubSpot:** under 1.1.0 the one approval for the deal is checked by `ApprovalSignalVerifier`. `HubSpotSignalStateVerifier` still checks the deal's real stage and amount facts, and skips its own pre authorization check when the policy declares `approvalSignals`, so one approval is not spent twice.
+
+Scope, stated plainly:
+
+- **Not merged or deployed.** The change is in the working tree of branch `feat/approval-required-everywhere`, not committed, on 2026-09-30.
+- **Production needs policy approvals.** Production runs the version most recently approved for each name (2.43). After a deploy, and until `github-pr-read` 1.1.0, `hubspot-deal-read` 1.0.0, `hubspot-deal-update` 1.1.0 and `slack-post-message` 1.1.0 are approved through maker checker, the versions in effect fail to load, so GitHub reads, HubSpot reads and updates and Slack posts are refused. Nothing runs without a person in the meantime. CI's `verify-policy-approvals` job also fails until every new policy file has an approval record.
+- **An approval covers the action and the resource, not every parameter.** A Slack approval does not fix the message text; a HubSpot approval does not fix the new stage or amount. Payment, expense and refund approvals do cover the amount.
+- **Superseded versions stay in `policies/` as history** (for example `github-pr-read` 1.0.0, `hubspot-deal-update` 1.0.0, `slack-post-message` 1.0.0, `customer-refund` 1.0.0 and 1.1.0, `vendor-payment` 2.0.0). Each fails to load.
+- **No automatic path.** An action cannot be authorized by server checks alone. That is the rule, not a missing feature (G-80).
+- **Who approves is still limited to the trusted approver list** (2.42, 2.45). Today that is one approver held by the operator, so in practice one person approves every agent action.
+- Holds for actions routed through Parmana (3.1).
+
+Verification
+
+- `packages/policy/tests/unit/PolicyValidator.test.ts`: the rule accepts an approval signal as the whole condition or in the top level `all`, and refuses `always`, a caller fact, an approval signal only inside an `any`, only inside a nested `all`, compared with `eq`, or not declared in `approvalSignals`; a policy that only rejects loads.
+- `packages/policy/tests/unit/ApprovalBackedPolicies.test.ts` (110): for all 16 current approval backed versions, the policy loads, every approve rule requires the approval fact, the most permissive caller facts are refused without it, approved with it, and a failing caller fact still refuses; the 16 superseded versions are each refused at load.
+- `packages/policy/tests/unit/ReferencePolicies.test.ts`: the newest version of every policy in `policies/` loads; every older version loads or is refused only for approving without a person.
+- `packages/runtime/tests/unit/runtime.test.ts`: a runtime with no approval verifier refuses an approval; the approval signal set true with no signed approval is refused.
+- Through `POST /execute` with the production bootstrap: `slack-post-message.integration.test.ts` (6: a post with an approval lands once; no approval, and an approval for another channel, are refused with zero Slack calls), `hubspot-deal-update.integration.test.ts` (7: an update with an approval lands; no approval, and an untrusted approver, are refused with no PATCH), `github-caller-scoping.integration.test.ts` (a read with an approval), `paytm-refund.integration.test.ts` (`customer-refund` 1.1.0 is refused at load), `pending-policy-changes-governance.integration.test.ts` (a policy that approves without a person cannot be proposed).
+- Tutorials 120 (the load time rule, every policy in `policies/`, a runtime with no approval verifier), 121 (an approval for a pull request read) and 122 (a Slack post and a HubSpot update and read), each through the real `RuntimeEngine`; all 113 tutorials in `npm run examples` pass.
+- Every other test that expects an approved action now carries a signed approval from a hermetic test approver (`test-support/approvals.ts`, trusted through `vitest.setup.ts`). Full suite: 2512 passed, 0 failed. Python SDK: 135 passed. Docker offline check with no internet route: 14 of 14, including a manager added through maker checker and a refund with that manager's signed approval.
+
+Evidence
+
+- `packages/policy/src/PolicyValidator.ts` (`validateEveryApprovalNeedsSignedApproval`); `packages/runtime/src/RuntimeEngine.ts` (`approval-verifier-not-configured`)
+- `packages/capability-registry/src/CapabilityPolicyBinding.ts`; `packages/connector-hubspot/src/HubSpotSignalStateVerifier.ts`
+- `policies/github-pr-read/1.1.0`, `policies/hubspot-deal-read/1.0.0`, `policies/hubspot-deal-update/1.1.0`, `policies/slack-post-message/1.1.0`, and the new reference versions
+- `docs/site/concepts/human-approval.mdx`; `docs/VERIFICATION-GAPS.md` G-80
 
 ---
 
@@ -1143,7 +1185,7 @@ Verification
 
 - Clean start on 2026-09-25: every service completed or became healthy. `GET /ready` returned `{"status":"READY","authDisabled":false}`. `POST /execute` returned `401` with no key and `400` with the generated key and an empty body.
 - Second start: both key files and `api-keys.json` unchanged (SHA-256 compared), `migrate` reported `0 applied, 31 already applied`, `seed` reported `0 added, 14 already present and kept`, and the caller audit rows written before the restart were still there.
-- Offline check, `bash docker/local/offline-check/run.sh`, on a Docker network created with `internal: true`: 12 of 12 checks on each clean run (G-60 lists them). They include: no internet route; a policy approved by a second human with a signed step up authorization after the proposer was refused as approver; an authorized refund executed and reaching the downstream stand in, which verified the gateway's signature with only the public key; a refund over the policy threshold refused with `403 POLICY_DENIED` and never reaching it; the Trust Record verified with only the public keys; and a changed copy failing.
+- Offline check, `bash docker/local/offline-check/run.sh`, on a Docker network created with `internal: true`: 12 of 12 checks on each clean run (G-60 lists them). **Update (2026-09-30, 2.47):** the check now adds a refund manager through maker checker and signs the refund's approval, 14 checks. Run on 2026-09-30 with Docker: 14 of 14 passed, including the manager key added by one human and approved by another, and the refund with that manager's signed approval executed once. They include: no internet route; a policy approved by a second human with a signed step up authorization after the proposer was refused as approver; an authorized refund executed and reaching the downstream stand in, which verified the gateway's signature with only the public key; a refund over the policy threshold refused with `403 POLICY_DENIED` and never reaching it; the Trust Record verified with only the public keys; and a changed copy failing.
 - The Trust Record saved by that run was verified again on the host, outside Docker, with `scripts/verify-trust-record.ts`: `valid: true`.
 - Unit tests for the `postgres` storage name: 57 of 57 in the four affected files.
 
@@ -1254,11 +1296,11 @@ Evidence
 
 An AI agent can be manipulated by content it reads (prompt injection) into sending anything Parmana accepts. A fact the agent declares in `signals` and nothing checks is only as true as the agent says (G-51). This section records what stops such an agent, per action, after the 2026-09-28 AI attack review (`docs/VERIFICATION-GAPS.md`, "Gaps opened in the 2026-09-28 AI attack review").
 
-**Pull request merges (`github:pr-merge`, G-73).** `github-pr-approval` 1.1.0 approves a merge only when `mergeApproved` is true, and `mergeApproved` is declared in `approvalSignals` with `resourceId: "target"`, so `ApprovalSignalVerifier` (2.42) counts it as true only with a signed approval from a trusted approver for that exact pull request (`owner/repo#number`), for `github:pr-merge`, not expired, used once. The review, status check, branch protection and risk facts are still caller declared; they can refuse a merge and cannot authorize one on their own. Reading a pull request (`github:pr-fetch`) is now bound to its own policy, `github-pr-read` 1.0.0, which approves a read with no caller declared facts, so reads need no approval.
+**Pull request merges (`github:pr-merge`, G-73).** `github-pr-approval` 1.1.0 approves a merge only when `mergeApproved` is true, and `mergeApproved` is declared in `approvalSignals` with `resourceId: "target"`, so `ApprovalSignalVerifier` (2.42) counts it as true only with a signed approval from a trusted approver for that exact pull request (`owner/repo#number`), for `github:pr-merge`, not expired, used once. The review, status check, branch protection and risk facts are still caller declared; they can refuse a merge and cannot authorize one on their own. Reading a pull request (`github:pr-fetch`) is now bound to its own policy, `github-pr-read` 1.0.0, which approves a read with no caller declared facts, so reads need no approval. **Update (2026-09-30, 2.47):** reads need a signed approval too; `github:pr-fetch` is bound to `github-pr-read` 1.1.0.
 
 **Refunds (`paytm:refund`, G-75).** `customer-refund` 1.1.0 authorizes a refund up to 10000 when the caller declares `refundEligible` and `fraudCheckPassed` true, and nothing checks either. 1.2.0 approves a refund only with `managerApproved` true, which needs a signed approval for that order covering that amount (unchanged declaration from 1.1.0), refuses 0 or less (1.1.0 approved a refund of 0 or a negative amount on the same claims), and refuses above 100000. The binding table names 1.2.0.
 
-**Slack posts (`slack:post-message`, G-76).** The caller's `channelAuthorized` is not trusted. `SlackChannelSignalVerifier` refuses a post unless the channel the message goes to (`parameters.channel`) equals the Intent's `target` and is in the server's `SLACK_ALLOWED_CHANNEL_IDS`, before authorization and again at release, and `GatewaySlackAdapter` refuses a channel that is not the target. Unset refuses every post. This is a code change, effective on deploy. `contentApproved` is still caller declared: an approved post carries whatever text the agent writes, but only to a listed channel.
+**Slack posts (`slack:post-message`, G-76).** **Update (2026-09-30, 2.47):** `slack-post-message` 1.1.0 also needs a signed approval for the channel. The caller's `channelAuthorized` is not trusted. `SlackChannelSignalVerifier` refuses a post unless the channel the message goes to (`parameters.channel`) equals the Intent's `target` and is in the server's `SLACK_ALLOWED_CHANNEL_IDS`, before authorization and again at release, and `GatewaySlackAdapter` refuses a channel that is not the target. Unset refuses every post. This is a code change, effective on deploy. `contentApproved` is still caller declared: an approved post carries whatever text the agent writes, but only to a listed channel.
 
 **LLM tool calls (`llm-tool-call`, G-74).** `llm-tool-call` 1.1.0 approves only when `humanApproval` is true, declared in `approvalSignals` with `resourceId: "target"` (the tool), so it needs a signed approval for that tool. The tool, resource, environment and risk facts can refuse a call and cannot authorize one on their own.
 

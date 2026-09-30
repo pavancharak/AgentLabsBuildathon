@@ -56,7 +56,7 @@ describe("Caller scoping (HTTP boundary, IDOR regression)", () => {
   }
 
   async function executeAsCallerA(app: import("express").Express) {
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     const response = await request(app)
       .post("/execute")
