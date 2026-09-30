@@ -68,16 +68,23 @@ def refund_payment(payment_id: str, amount: int, reason: str) -> str:
     Returns:
         A confirmation message, or the policy's denial reason.
     """
+    # The manager's signed approval for this order and amount (every refund
+    # needs one; see Human approval). It arrives from your approval flow,
+    # for example the approval email.
+    approval = pending_approvals[payment_id]
     transaction = create_business_transaction(
         principal_id="langchain-agent",
         purpose=reason,
         action="paytm:refund",
-        target=f"payment/{payment_id}",
-        parameters={"amount": amount, "currency": "INR"},
-        policy=PolicyReference(name="customer-refund", version="1.1.0", schema_version="1.0.0"),
+        target=f"paytm://orders/{payment_id}",
+        parameters={"orderId": payment_id, "amount": amount},
+        policy=PolicyReference(name="customer-refund", version="1.2.0", schema_version="1.0.0"),
         signals={
-            "fraudScore": 0.05,  # replace with a real risk signal from your own pipeline
-            "paymentVerified": True,
+            "refundEligible": True,
+            "fraudCheckPassed": True,
+            "refundAmount": amount,
+            "managerApproved": True,
+            "approvalArtifact": approval,
         },
     )
 
@@ -113,14 +120,24 @@ client = ParmanaClient(endpoint="http://localhost:3000", api_key="your-api-key")
 
 
 def authorize_and_execute_refund(payment_id: str, amount: int, reason: str) -> str:
+    # The manager's signed approval for this order and amount (every refund
+    # needs one; see Human approval). It arrives from your approval flow,
+    # for example the approval email.
+    approval = pending_approvals[payment_id]
     transaction = create_business_transaction(
         principal_id="crewai-customer-service",
         purpose=reason,
         action="paytm:refund",
-        target=f"payment/{payment_id}",
-        parameters={"amount": amount, "currency": "INR"},
-        policy=PolicyReference(name="customer-refund", version="1.1.0", schema_version="1.0.0"),
-        signals={"fraudScore": 0.05, "paymentVerified": True},
+        target=f"paytm://orders/{payment_id}",
+        parameters={"orderId": payment_id, "amount": amount},
+        policy=PolicyReference(name="customer-refund", version="1.2.0", schema_version="1.0.0"),
+        signals={
+            "refundEligible": True,
+            "fraudCheckPassed": True,
+            "refundAmount": amount,
+            "managerApproved": True,
+            "approvalArtifact": approval,
+        },
     )
 
     try:
@@ -176,14 +193,24 @@ class RefundRequest(BaseModel):
 
 @app.post("/refund")
 async def refund_endpoint(request: RefundRequest):
+    # The manager's signed approval for this order and amount (every refund
+    # needs one; see Human approval). It arrives from your approval flow,
+    # for example the approval email.
+    approval = pending_approvals[payment_id]
     transaction = create_business_transaction(
         principal_id="ai-agent",
         purpose=request.reason,
         action="paytm:refund",
         target=f"payment/{request.payment_id}",
         parameters={"amount": request.amount, "currency": "INR"},
-        policy=PolicyReference(name="customer-refund", version="1.1.0", schema_version="1.0.0"),
-        signals={"fraudScore": 0.05, "paymentVerified": True},
+        policy=PolicyReference(name="customer-refund", version="1.2.0", schema_version="1.0.0"),
+        signals={
+            "refundEligible": True,
+            "fraudCheckPassed": True,
+            "refundAmount": amount,
+            "managerApproved": True,
+            "approvalArtifact": approval,
+        },
     )
 
     try:
@@ -219,14 +246,24 @@ client = ParmanaClient(endpoint="http://localhost:3000", api_key="your-api-key")
 
 
 async def refund_payment_async(payment_id: str, amount: int, reason: str) -> dict:
+    # The manager's signed approval for this order and amount (every refund
+    # needs one; see Human approval). It arrives from your approval flow,
+    # for example the approval email.
+    approval = pending_approvals[payment_id]
     transaction = create_business_transaction(
         principal_id="async-agent",
         purpose=reason,
         action="paytm:refund",
-        target=f"payment/{payment_id}",
-        parameters={"amount": amount, "currency": "INR"},
-        policy=PolicyReference(name="customer-refund", version="1.1.0", schema_version="1.0.0"),
-        signals={"fraudScore": 0.05, "paymentVerified": True},
+        target=f"paytm://orders/{payment_id}",
+        parameters={"orderId": payment_id, "amount": amount},
+        policy=PolicyReference(name="customer-refund", version="1.2.0", schema_version="1.0.0"),
+        signals={
+            "refundEligible": True,
+            "fraudCheckPassed": True,
+            "refundAmount": amount,
+            "managerApproved": True,
+            "approvalArtifact": approval,
+        },
     )
 
     try:
@@ -264,14 +301,24 @@ class CustomerServiceAgent:
         self.client = ParmanaClient(endpoint=endpoint, api_key=api_key)
 
     def refund_payment(self, payment_id: str, amount: int, reason: str) -> dict | None:
+        # The manager's signed approval for this order and amount (every refund
+        # needs one; see Human approval). It arrives from your approval flow,
+        # for example the approval email.
+        approval = pending_approvals[payment_id]
         transaction = create_business_transaction(
             principal_id=self.agent_id,
             purpose=reason,
             action="paytm:refund",
-            target=f"payment/{payment_id}",
-            parameters={"amount": amount, "currency": "INR"},
-            policy=PolicyReference(name="customer-refund", version="1.1.0", schema_version="1.0.0"),
-            signals={"fraudScore": 0.05, "paymentVerified": True},
+            target=f"paytm://orders/{payment_id}",
+            parameters={"orderId": payment_id, "amount": amount},
+            policy=PolicyReference(name="customer-refund", version="1.2.0", schema_version="1.0.0"),
+            signals={
+                "refundEligible": True,
+                "fraudCheckPassed": True,
+                "refundAmount": amount,
+                "managerApproved": True,
+                "approvalArtifact": approval,
+            },
         )
 
         try:

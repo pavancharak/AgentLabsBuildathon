@@ -8,6 +8,10 @@ import { MemoryExecutionTrustRecordRepository } from "@parmana/storage";
 import { RuntimeBuilder } from "@parmana/runtime";
 
 import type { BusinessTransaction } from "@parmana/shared";
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 const root = path.resolve(import.meta.dirname);
 
@@ -25,10 +29,13 @@ const policyRepository = new FilePolicyRepository(
 const trustRecords = new MemoryExecutionTrustRecordRepository();
 
 const runtime = new RuntimeBuilder()
+  .withSignalStateVerifier(demoApprovalSignalVerifier())
   .withPolicyRepository(policyRepository)
   .build(trustRecords);
 
-const { trustRecord } = await runtime.execute(transaction);
+const { trustRecord } = await runtime.execute(
+  await withDemoApproval(transaction),
+);
 
 console.log("========================================");
 console.log(" Parmana Tutorial 03 - Runtime Execution");

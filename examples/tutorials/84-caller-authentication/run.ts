@@ -1,6 +1,10 @@
 import crypto from "node:crypto";
 
 import type { BusinessTransaction } from "@parmana/shared";
+import {
+  demoApprovalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 //
 // Caller authentication is the layer in front of nearly every route,
@@ -31,14 +35,15 @@ const CALLER_B_KEY = "tutorial-84-caller-b-key";
 const CALLER_C_KEY = "tutorial-84-caller-c-key";
 const CALLER_D_KEY = "tutorial-84-caller-d-key";
 
-function vendorPaymentTransaction(): BusinessTransaction {
+async function vendorPaymentTransaction(): Promise<BusinessTransaction> {
   const businessTransactionId = crypto.randomUUID();
   const authorityId = crypto.randomUUID();
   const authorizationId = crypto.randomUUID();
   const intentId = crypto.randomUUID();
   const now = new Date();
 
-  return {
+  // A person approved this payment (a demo approver).
+  return withDemoApproval({
     businessTransactionId,
     metadata: {
       businessTransactionId,
@@ -73,7 +78,7 @@ function vendorPaymentTransaction(): BusinessTransaction {
     },
     policy: {
       name: "vendor-payment",
-      version: "2.0.0",
+      version: "2.1.0",
       schemaVersion: "1.0.0",
     },
     signals: {
@@ -87,7 +92,7 @@ function vendorPaymentTransaction(): BusinessTransaction {
     },
     status: "RECEIVED",
     createdAt: now,
-  } as unknown as BusinessTransaction;
+  } as unknown as BusinessTransaction);
 }
 
 async function startServer(
@@ -95,7 +100,10 @@ async function startServer(
   auditSink: InstanceType<typeof InMemoryCallerAuditSink>,
 ) {
   const executionSystem = await createExecutionSystem();
-  const application = createApplication(executionSystem);
+  const application = createApplication(
+    executionSystem,
+    demoApprovalVerifier(),
+  );
   const app = createApp(application, {
     callerAuth: { authenticator, auditSink },
   });
@@ -166,7 +174,7 @@ try {
       "Content-Type": "application/json",
       Authorization: `Bearer ${CALLER_A_KEY}`,
     },
-    body: JSON.stringify(vendorPaymentTransaction()),
+    body: JSON.stringify(await vendorPaymentTransaction()),
   });
   console.log(`Status : ${valid.status}`);
   console.log();
@@ -178,7 +186,7 @@ try {
   const missing = await fetch(`${baseUrl}/execute`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(vendorPaymentTransaction()),
+    body: JSON.stringify(await vendorPaymentTransaction()),
   });
   console.log(`Status : ${missing.status}`);
   console.log();
@@ -191,7 +199,7 @@ try {
       "Content-Type": "application/json",
       Authorization: "Bearer not-a-real-key",
     },
-    body: JSON.stringify(vendorPaymentTransaction()),
+    body: JSON.stringify(await vendorPaymentTransaction()),
   });
   console.log(`Status : ${invalid.status}`);
   console.log();
@@ -237,7 +245,7 @@ try {
       "Content-Type": "application/json",
       Authorization: `Bearer ${oldKey}`,
     },
-    body: JSON.stringify(vendorPaymentTransaction()),
+    body: JSON.stringify(await vendorPaymentTransaction()),
   });
   console.log(`Old key during rotation -> ${stillWorks.status}`);
   await rotationServer.close();
@@ -260,7 +268,7 @@ try {
       "Content-Type": "application/json",
       Authorization: `Bearer ${oldKey}`,
     },
-    body: JSON.stringify(vendorPaymentTransaction()),
+    body: JSON.stringify(await vendorPaymentTransaction()),
   });
   const newKeyWorks = await fetch(`${revokedServer.baseUrl}/execute`, {
     method: "POST",
@@ -268,7 +276,7 @@ try {
       "Content-Type": "application/json",
       Authorization: `Bearer ${newKey}`,
     },
-    body: JSON.stringify(vendorPaymentTransaction()),
+    body: JSON.stringify(await vendorPaymentTransaction()),
   });
   console.log(`Old key after revocation -> ${revokedRejected.status}`);
   console.log(`New key after rotation   -> ${newKeyWorks.status}`);
@@ -285,7 +293,7 @@ try {
       "Content-Type": "application/json",
       Authorization: `Bearer ${CALLER_C_KEY}`,
     },
-    body: JSON.stringify(vendorPaymentTransaction()),
+    body: JSON.stringify(await vendorPaymentTransaction()),
   });
   console.log(`Status : ${capabilityDenied.status}`);
   console.log();
@@ -300,7 +308,7 @@ try {
       "Content-Type": "application/json",
       Authorization: `Bearer ${CALLER_D_KEY}`,
     },
-    body: JSON.stringify(vendorPaymentTransaction()),
+    body: JSON.stringify(await vendorPaymentTransaction()),
   });
   console.log(`Status : ${principalDenied.status}`);
   console.log();

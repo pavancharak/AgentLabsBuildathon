@@ -3,8 +3,10 @@ title: "Manage approvers"
 description: "Add, rotate and revoke the people whose signed approvals a policy accepts, through maker checker, with no code change and no deploy."
 ---
 
-A policy with `approvalSignals` accepts an action only with a signed approval from a trusted
-approver key, such as a manager approving a refund. This guide shows how to trust a new
+Every agent action needs a signed approval from a trusted approver key, reads included, such as
+a manager approving a refund or a reviewer approving a pull request read
+([Human approval](/concepts/human-approval)). With no trusted approver, nothing an agent asks
+for runs. This guide shows how to trust a new
 approver key, rotate one, and revoke one, through the API. Each change is proposed by one
 person and approved by a different person with a step up signature, and it takes effect on
 the next request. Nothing is deployed.

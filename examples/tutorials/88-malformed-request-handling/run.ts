@@ -1,3 +1,4 @@
+import { demoApprovalVerifier } from "../../shared/helpers/demo-approval.js";
 //
 // Found by adversarial testing: malformed JSON and oversized request
 // bodies both fell through express.json()'s error into the generic
@@ -22,7 +23,7 @@ console.log("==================================================");
 console.log();
 
 const executionSystem = await createExecutionSystem();
-const application = createApplication(executionSystem);
+const application = createApplication(executionSystem, demoApprovalVerifier());
 const app = createApp(application, { callerAuth: "disabled" });
 
 const server = app.listen(0);
@@ -100,7 +101,7 @@ try {
     },
     policy: {
       name: "vendor-payment",
-      version: "2.0.0",
+      version: "2.1.0",
       schemaVersion: "1.0.0",
     },
     signals: {

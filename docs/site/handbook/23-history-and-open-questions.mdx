@@ -149,7 +149,9 @@ short index, not a replacement for reading the original entries.
   meaning every `preAuthorizedForAmountChange` claim currently fails closed since no real
   approver key has been provisioned. A proposed hardcoded dev key was explicitly rejected
   during review as inconsistent with this codebase's own never-commit-a-private-key
-  convention. Status: undecided.
+  convention. Status: undecided. **Update (2026-09-30):** approvers are added through maker
+  checker (Manage approvers), and every HubSpot update now needs a signed approval
+  (`hubspot-deal-update` 1.1.0), so the pre authorization claim is no longer used.
 - **D-5.** Upstream authorization verification (NF-001, a design note removed on 2026-09-28, in git history)
   is explicit future scope: today's authorization boundary is caller identity plus
   principal/capability scoping, not an independent signature on the `Authority`/

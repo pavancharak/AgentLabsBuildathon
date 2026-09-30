@@ -5,6 +5,10 @@ import { FilePolicyRepository } from "@parmana/policy";
 import { RuntimeBuilder } from "@parmana/runtime";
 
 import transaction from "./transaction.json" with { type: "json" };
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 async function main(): Promise<void> {
   console.log();
@@ -32,6 +36,7 @@ async function main(): Promise<void> {
   //
 
   const runtime = new RuntimeBuilder()
+    .withSignalStateVerifier(demoApprovalSignalVerifier())
     .withPolicyRepository(policyRepository)
     .build(trustRecords);
 
@@ -45,7 +50,9 @@ async function main(): Promise<void> {
 
   console.log("Executing transaction...");
 
-  const { context, trustRecord } = await runtime.execute(transaction);
+  const { context, trustRecord } = await runtime.execute(
+    await withDemoApproval(transaction),
+  );
 
   console.log(`✓ ${context.decision.outcome}`);
 

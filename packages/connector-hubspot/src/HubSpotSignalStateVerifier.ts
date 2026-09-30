@@ -216,11 +216,16 @@ export class HubSpotSignalStateVerifier implements SignalStateVerifier {
     // preAuthorizedForAmountChange has no bearing on the policy's
     // outcome (see policies/hubspot-deal-update/1.0.0/policy.json),
     // so no real approval could ever have been required for it, and
-    // none should be consumed.
+    // none should be consumed. Also skipped when the policy declares
+    // approvalSignals (hubspot-deal-update 1.1.0 and later): there
+    // ApprovalSignalVerifier checks the one approval every update
+    // needs, and checking the same artifact here too would spend its
+    // single use nonce twice.
     //
     if (
       violations.length === 0 &&
       this.options.approvalVerifier !== undefined &&
+      request.policy?.approvalSignals === undefined &&
       verified.amountChangeExceedsThreshold
     ) {
       const preAuthorizationViolation = await this.verifyPreAuthorization(

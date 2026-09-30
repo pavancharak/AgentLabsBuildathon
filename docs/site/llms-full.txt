@@ -36,6 +36,10 @@ time-bounded authorization. Your own systems, through a Connector, are what actu
 it. Parmana never touches your systems directly, the same way a card network never touches
 the goods on the shelf.
 
+**No AI agent action is authorized without a signed human approval, reads included.** A policy
+can only approve when a trusted person has signed an approval for that action on that resource,
+and the approval is checked, not taken on the agent's word. See [Human approval](/concepts/human-approval).
+
 ## The trust chain, at a glance
 
 ```
@@ -224,15 +228,40 @@ background to interpret. If your situation is not covered, **stop and ask the op
 
 ## Inputs you need before you start
 
-| Input              | Where it comes from                                                                                                     | How to check it                                                                               |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `PARMANA_URL`      | The operator. The base URL of the Parmana server, without a trailing slash.                                             | It must start with `https://`, except for a local server, which uses `http://localhost:3000`. |
-| `PARMANA_API_KEY`  | The operator. A secret string issued for you.                                                                           | It is non empty. Never print it, log it or put it in a URL.                                   |
-| `APPROVAL_SIGNALS` | The operator. The signals that need a person's signed approval for this action, for example `managerApproved`, or none. | Ask. If the operator says none, the action never needs one.                                   |
-| `ACTION`           | The operator. The capability name, for example `paytm:refund`.                                                          | Step 2 checks your key may use it.                                                            |
+| Input              | Where it comes from                                                                                                                                                                             | How to check it                                                                                                                       |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `PARMANA_URL`      | The operator. The base URL of the Parmana server, without a trailing slash.                                                                                                                     | It must start with `https://`, except for a local server, which uses `http://localhost:3000`.                                         |
+| `PARMANA_API_KEY`  | The operator. A secret string issued for you.                                                                                                                                                   | It is non empty. Never print it, log it or put it in a URL.                                                                           |
+| `APPROVAL_SIGNALS` | Step 3: the keys of `signals.approval` in the server's answer. The table in [Every action needs a signed approval](#every-action-needs-a-signed-approval) shows them for the connector actions. | It is never empty. Every action needs one, reads included. If the operator says none, stop: that is not possible on a current server. |
+| `ACTION`           | The operator. The capability name, for example `paytm:refund`.                                                                                                                                  | Step 2 checks your key may use it.                                                                                                    |
 
 Do not ask for a policy version. Step 3 reads the version in effect from the server, because an approved new version
 replaces the old one at once and a request naming an old version is refused.
+
+## Every action needs a signed approval
+
+No action is authorized without a signed approval from a trusted person, for that action and that resource. This holds
+for reads as well as writes, and for every policy: a server refuses to load a policy that could approve without one.
+So plan for it from the start: **your first request for an action on a new resource will be refused** until a person
+signs an approval for it.
+
+For the actions with a connector, the approval signal and the resource it names are:
+
+| `ACTION`              | Policy in effect (step 3 confirms) | Approval signal      | Resource the approval names                                   | Other signals the policy reads                                                                                                                                           |
+| --------------------- | ---------------------------------- | -------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `paytm:refund`        | `customer-refund` 1.2.0            | `managerApproved`    | `intent.parameters.orderId`, up to `intent.parameters.amount` | `refundEligible`, `fraudCheckPassed`, `refundAmount` (equal to `intent.parameters.amount`)                                                                               |
+| `github:pr-merge`     | `github-pr-approval` 1.1.0         | `mergeApproved`      | `intent.target`                                               | `branchProtected`, `repositoryAuthorized`, `requiredReviewsCompleted`, `riskScore`, `statusChecksPassed`                                                                 |
+| `github:pr-fetch`     | `github-pr-read` 1.1.0             | `readApproved`       | `intent.target`                                               | none                                                                                                                                                                     |
+| `hubspot:deal-update` | `hubspot-deal-update` 1.1.0        | `dealUpdateApproved` | `intent.parameters.dealId`                                    | `dealStageChangeRequested`, `dealStageTransitionAllowed`; `proposedDealStage` and `proposedAmount` equal to `intent.parameters.dealstage` and `intent.parameters.amount` |
+| `hubspot:deal-fetch`  | `hubspot-deal-read` 1.0.0          | `readApproved`       | `intent.parameters.dealId`                                    | none                                                                                                                                                                     |
+| `slack:post-message`  | `slack-post-message` 1.1.0         | `postApproved`       | `intent.target` (the channel id)                              | `channelAuthorized`, `contentApproved`; `channelId` equal to `intent.target`                                                                                             |
+
+For any action, including one not in this table, step 3 returns the same information from the server:
+`signals.approval` names the approval signal and where its resource (and amount) are in the request. Use the server's
+answer over this table if they ever differ.
+
+An approval covers the action and the resource, and the amount where the table names one. It does not fix other
+parameters: a Slack approval does not fix the message text, and a HubSpot approval does not fix the new stage.
 
 Every request below carries this header: `Authorization: Bearer <PARMANA_API_KEY>`.
 
@@ -290,16 +319,53 @@ Keep `callerId`. Your `authority.principalId` in step 4 must be one of `allowedP
     "name": "customer-refund",
     "version": "1.2.0",
     "schemaVersion": "1.0.0"
+  },
+  "description": "Authorizes customer refunds. Every refund above 0 and up to 100000 needs a signed manager approval for that order, covering that amount. ...",
+  "signals": {
+    "facts": [
+      "fraudCheckPassed",
+      "managerApproved",
+      "refundAmount",
+      "refundEligible"
+    ],
+    "schema": {
+      "refundEligible": "boolean",
+      "managerApproved": "boolean",
+      "fraudCheckPassed": "boolean",
+      "refundAmount": "number"
+    },
+    "bound": { "refundAmount": "parameters.amount" },
+    "approval": {
+      "managerApproved": {
+        "resourceId": "parameters.orderId",
+        "value": "parameters.amount"
+      }
+    }
   }
 }
 ```
 
-Use this `policy` object, exactly as returned, in step 4. Look it up again before every request: it changes when a new
-version is approved, with no notice to you.
+Use it like this in step 4:
+
+| Field in the answer | What you do with it                                                                                                                                                                                                                                                                                                                                   |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `policy`            | Send it, exactly as returned, as the request's `policy`.                                                                                                                                                                                                                                                                                              |
+| `signals.facts`     | Send one entry in `signals` for **every** name in this list, with the type `signals.schema` gives it. A condition on a missing fact is always false, so leaving one out never helps.                                                                                                                                                                  |
+| `signals.bound`     | For each entry, the signal must equal the value at that path of your `intent` (for example `signals.refundAmount` equal to `intent.parameters.amount`). Set both from the same variable.                                                                                                                                                              |
+| `signals.approval`  | Each key is an approval signal. Send it `false` until you hold a signed approval; with one, send it `true` and put the approval in `signals.approvalArtifact`. `resourceId` (and `value`) say where in your request the resource (and amount) the approval must name are: `target` means `intent.target`, `parameters.x` means `intent.parameters.x`. |
+| `description`       | For people. Do not parse it.                                                                                                                                                                                                                                                                                                                          |
+
+The answer never contains the policy's rule conditions. The `description` is the author's text for people and may mention a limit; the server decides with the rules, not the text. Look it up again before every request: it changes when a
+new version is approved, with no notice to you.
 
 **If not:** HTTP `403` with code `CAPABILITY_NOT_ALLOWED` means your key may not use this action: stop and ask the
 operator. HTTP `404` with code `CAPABILITY_NOT_BOUND` means no policy governs this action on this server: stop and ask
-the operator. Do not guess a policy.
+the operator. HTTP `409` with code `NO_APPROVED_POLICY_VERSION` or `503` with code `POLICY_VERSION_UNAVAILABLE` means every
+request for this action is refused right now: stop and tell the operator. Do not guess a policy.
+
+With an SDK: `client.policyInEffect(ACTION)` in TypeScript, `client.policy_in_effect(ACTION)` in Python. Both return
+this answer; the Python fields are `policy.schema_version` and `signals.facts`, and signal names keep their exact
+spelling.
 
 ## Step 4: build the Business Transaction
 
@@ -327,7 +393,7 @@ A Business Transaction is one JSON object. Every field below is required unless 
 | `intent.createdAt`                                | The current time, ISO 8601.                                                                | You         |
 | `policy.name`, `policy.version`                   | The `policy` object from step 3, exactly as returned (`name`, `version`, `schemaVersion`). | You         |
 | `policy.schemaVersion`                            | From step 3, with the name and version.                                                    | You         |
-| `signals`                                         | An object with one entry for every fact the policy's rules read.                           | You         |
+| `signals`                                         | An object with one entry for every name in step 3's `signals.facts`.                       | You         |
 | `status`, `createdAt`                             | Ignored if you send them.                                                                  | The server  |
 
 ### The consistency rules
@@ -391,6 +457,10 @@ with the current time.
   }
 }
 ```
+
+Sent as it is, this example is refused with `403 POLICY_DENIED`, because `managerApproved` is `false` and every refund
+needs a signed manager approval. That refusal is the normal first step: it is what tells a person to approve. The
+version with the approval is below.
 
 **Never set a signal to `true` unless you have checked it is true.** A policy trusts the signals you send for some
 facts, so a false `true` produces an authorization that should not exist.
@@ -736,6 +806,15 @@ Source: https://docs.parmanasystems.com/quickstart
   TypeScript. Pick whichever matches your client.
 </Note>
 
+<Warning>
+  No AI agent action is authorized without a signed human approval, reads
+  included ([Human approval](/concepts/human-approval)). So this quickstart has
+  you play the approver too: you make an approver key, the local server trusts
+  it, and you sign an approval before the agent's request. On a real deployment
+  the approver is a different person, added through [Manage
+  approvers](/guides/manage-approvers).
+</Warning>
+
 <Steps>
   <Step title="Install dependencies">
     ```bash
@@ -758,6 +837,18 @@ Source: https://docs.parmanasystems.com/quickstart
 
   </Step>
 
+  <Step title="Make a local approver key">
+    ```bash
+    npx tsx scripts/generate-approver-key.ts \
+      --approver-id local-test-approver --key-id local-test-approver-key-1 \
+      --out-dir ~/.parmana
+    ```
+
+    This writes `~/.parmana/local-test-approver__local-test-approver-key-1.private.pem` (keep it)
+    and `.public.pem` (the server trusts it in the next step).
+
+  </Step>
+
   <Step title="Start the Runtime locally">
     The committed `.env` defaults to Supabase-backed storage. To run fully locally with no
     external dependency, override storage to `memory` **and** set `NODE_ENV=test`. Both are
@@ -765,14 +856,19 @@ Source: https://docs.parmanasystems.com/quickstart
     Records are stored, two other components, the Execution Gateway's replay-nonce store and the
     caller-authentication audit trail, independently default to Supabase outside `NODE_ENV=test`.
     With `NODE_ENV=test`, a generic, test-only connector (`test-fixture`) registers
-    automatically, no credential environment variable required:
+    automatically, no credential environment variable required, and the server trusts
+    `local-test-approver` with the key in `PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE`:
 
     ```bash
     NODE_ENV=test \
       PARMANA_STORAGE=memory \
       PARMANA_POLICY_DIR=/absolute/path/to/policies \
+      PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE=~/.parmana/local-test-approver__local-test-approver-key-1.public.pem \
       npm run dev
     ```
+
+    `PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE` is honored only when `NODE_ENV` is `test`. With any
+    other `NODE_ENV` the server refuses to start while it is set.
 
     Confirm it's up:
 
@@ -855,15 +951,32 @@ Source: https://docs.parmanasystems.com/quickstart
 
   </Step>
 
-  <Step title="Execute a Business Transaction">
-    The `createBusinessTransaction` helper derives every id pair the server checks for
-    consistency, so there's nothing to hand-assemble and get wrong:
+  <Step title="Sign an approval, then execute a Business Transaction">
+    First the approver signs an approval for this action, this target, up to this amount. Then
+    the agent sends the transaction with the approval attached. The `createBusinessTransaction`
+    helper derives every id pair the server checks for consistency, so there's nothing to
+    hand-assemble and get wrong:
 
     <CodeGroup>
       ```python Python
+      from pathlib import Path
+
       from parmana import ParmanaClient, PolicyReference, create_business_transaction
+      from parmana.crypto import sign_approval
 
       client = ParmanaClient(endpoint="http://localhost:3000", api_key="my-secret-api-key")
+
+      # The approver's step, on the approver's machine.
+      approval = sign_approval(
+          private_key_pem=Path.home().joinpath(
+              ".parmana/local-test-approver__local-test-approver-key-1.private.pem"
+          ).read_text(),
+          approver_id="local-test-approver",
+          key_id="local-test-approver-key-1",
+          capability="test:fixture-execute",
+          resource_id="vendor://payments",
+          max_amount=1000,
+      )
 
       transaction = create_business_transaction(
           principal_id="python-sdk",
@@ -871,8 +984,10 @@ Source: https://docs.parmanasystems.com/quickstart
           action="test:fixture-execute",
           target="vendor://payments",
           parameters={"amount": 1000, "currency": "USD"},
-          policy=PolicyReference(name="vendor-payment", version="2.0.0", schema_version="1.0.0"),
+          policy=PolicyReference(name="vendor-payment", version="2.1.0", schema_version="1.0.0"),
           signals={
+              "humanApproved": True,
+              "approvalArtifact": approval,
               "vendorVerified": True,
               "invoiceVerified": True,
               "paymentApproved": True,
@@ -888,10 +1003,15 @@ Source: https://docs.parmanasystems.com/quickstart
       ```
 
       ```typescript TypeScript
+      import { readFileSync } from "node:fs";
+      import { homedir } from "node:os";
+      import { join } from "node:path";
+
       import {
         ParmanaClient,
         HttpTransport,
         createBusinessTransaction,
+        signApproval,
         ExecutionRejectedError,
       } from "@parmana/sdk";
 
@@ -904,14 +1024,29 @@ Source: https://docs.parmanasystems.com/quickstart
         transport: new HttpTransport({ endpoint, apiKey }),
       });
 
+      // The approver's step, on the approver's machine.
+      const approval = signApproval({
+        privateKeyPem: readFileSync(
+          join(homedir(), ".parmana/local-test-approver__local-test-approver-key-1.private.pem"),
+          "utf8",
+        ),
+        approverId: "local-test-approver",
+        keyId: "local-test-approver-key-1",
+        capability: "test:fixture-execute",
+        resourceId: "vendor://payments",
+        maxAmount: 1000,
+      });
+
       const transaction = createBusinessTransaction({
         principalId: "typescript-sdk-quickstart",
         purpose: "Quickstart demo",
         action: "test:fixture-execute",
         target: "vendor://payments",
         parameters: { amount: 1000, currency: "USD" },
-        policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+        policy: { name: "vendor-payment", version: "2.1.0", schemaVersion: "1.0.0" },
         signals: {
+          humanApproved: true,
+          approvalArtifact: approval,
           vendorVerified: true,
           invoiceVerified: true,
           paymentApproved: true,
@@ -940,9 +1075,13 @@ Source: https://docs.parmanasystems.com/quickstart
       ```
     </CodeGroup>
 
+    Without `humanApproved` and a valid `approvalArtifact`, the server refuses this transaction
+    with `403 POLICY_DENIED`, whatever else the signals say.
+
     Full runnable versions: `python/examples/quickstart/run.py` and
     `typescript/examples/06-create-business-transaction.ts`, these are exactly the
-    transactions shown above. `python/tests/test_quickstart_example.py` and
+    transactions shown above; each takes the signed approval as an argument, or from the file
+    `PARMANA_APPROVAL_FILE` names when run as a script. `python/tests/test_quickstart_example.py` and
     `typescript/test/integration/examples.integration.test.ts` run them against a real,
     freshly-spawned server on every test run, so both examples are verified to work, not just
     syntax-checked.
@@ -1123,7 +1262,7 @@ Payload Version  : 1
 Authorization ID : d93745e1-33ee-4cc4-9e1e-37731188eaa1
 Decision ID      : 44ebebd0-415d-41cd-9079-349eb6c30d4f
 Transaction ID   : txn-000001
-Policy           : vendor-payment@2.0.0
+Policy           : vendor-payment@2.1.0
 Algorithm        : ed25519
 Key ID           : default
 Authorized At    : 2026-07-12T08:21:04.036Z
@@ -1187,6 +1326,2398 @@ signals, same policy, same outcome, different amount of what you get to see.
     Check the resulting trust record's signature without Parmana running at all.
   </Card>
 </CardGroup>
+
+---
+
+## Human approval
+
+Source: https://docs.parmanasystems.com/concepts/human-approval
+
+**No AI agent action is authorized without a signed human approval. Reads included.** A
+refund, a merge, a Slack post, a HubSpot update, reading a pull request or a deal: each runs
+only when a trusted person has signed an approval for that action, on that resource, and the
+approval has not expired or been used.
+
+People also approve policies before those policies can authorize anything, and review every
+refused request. Parmana does not hold a request while it waits for a person: a refused request
+stays refused, and the agent sends a new one with the approval attached.
+
+| What a person does                                  | Status                                 |
+| --------------------------------------------------- | -------------------------------------- |
+| Sign an approval for every agent action, reads too  | **[REQUIRED]**                         |
+| Approve a policy before it can authorize anything   | **[AVAILABLE]**                        |
+| Review refused requests                             | **[AVAILABLE]**                        |
+| Get notified when a request waits for an approval   | **[AVAILABLE]**, when a webhook is set |
+| Add or revoke an approver without a deploy          | **[AVAILABLE]**                        |
+| Approve a refused request so that same request runs | **[NOT AVAILABLE]**                    |
+
+## Every action needs a signed approval
+
+Two checks enforce this in code, for every policy and every action:
+
+- **When a policy loads.** Every rule that approves must require one of the policy's
+  `approvalSignals` with `is_true`, either as its whole condition or directly inside its top
+  level `all`. A policy with any other approve rule fails to load, so every request under it is
+  refused with `400` and `approves without a signed human approval`. A proposed policy change of
+  that shape is refused the same way, so it cannot get through policy governance either.
+- **When a request is decided.** A signal in `approvalSignals` counts as true only with a valid
+  signed approval in the request: from a trusted, unrevoked approver, for this action and this
+  resource (and amount, where the policy names one), not expired, used once. A runtime with no
+  approval verifier configured refuses every approval instead of trusting the signal.
+
+An agent that sets the approval signal to `true` without a signed approval is refused, whatever
+else it declares. Tutorials 119 to 122 in `examples/tutorials/` show it step by step, for a
+refund, the rule itself, a read, a Slack post and a HubSpot update.
+
+| Action                | Policy in the binding       | The approval covers         |
+| --------------------- | --------------------------- | --------------------------- |
+| `paytm:refund`        | `customer-refund` 1.2.0     | the order, up to the amount |
+| `github:pr-merge`     | `github-pr-approval` 1.1.0  | the pull request            |
+| `github:pr-fetch`     | `github-pr-read` 1.1.0      | the pull request            |
+| `hubspot:deal-update` | `hubspot-deal-update` 1.1.0 | the deal                    |
+| `hubspot:deal-fetch`  | `hubspot-deal-read` 1.0.0   | the deal                    |
+| `slack:post-message`  | `slack-post-message` 1.1.0  | the channel                 |
+
+The reference policies with no connector need one too, for the Intent's `target`:
+`vendor-payment` 2.1.0, `access-control` 1.1.0, `agent-vendor-payment` 1.1.0,
+`api-key-issuance` 1.1.0, `connector-capability` 1.1.0, `database-change` 3.1.0,
+`expense-reimbursement` 1.1.0, `production-deployment` 1.1.0, `rag-document-access` 1.1.0 and
+`llm-tool-call` 1.1.0. The payment and expense policies also cover the amount. Older versions
+that approved without a person stay in the repository as history and are refused when they load.
+
+<Note>
+  Production runs the version most recently approved through policy governance.
+  Every version in the table and list above was approved in production on
+  2026-09-30 and is in effect. Ask the server which version applies to an action
+  with `GET /policies/in-effect?capability=<capability>`, and send that version.
+</Note>
+
+## Approve policies
+
+In production, a policy authorizes nothing until one person proposes it and a second person
+approves it with a signed step up authorization. The same person cannot do both. The whole
+process, with commands, is in [Policy lifecycle and approvals](/guides/policy-lifecycle-and-approvals).
+
+## Approve a refund
+
+The `customer-refund` 1.2.0 policy authorizes a refund only with a signed approval from a
+manager:
+
+| Refund amount     | What it needs                    |
+| ----------------- | -------------------------------- |
+| 0 or less         | Refused                          |
+| Above 0 to 100000 | A signed approval from a manager |
+| Above 100000      | Refused, even with an approval   |
+
+Why every refund: the agent declares `refundEligible` and `fraudCheckPassed` itself, and
+nothing checks them. In 1.1.0 a refund up to 10000 was authorized on those two claims alone, so
+an agent manipulated by prompt injection could approve its own refunds (G-75). In 1.2.0 they can
+only refuse a refund.
+
+<Note>
+  `customer-refund` 1.2.0 has been in effect in production since 2026-09-28. A
+  refund of any amount without a signed manager approval is refused with `403
+  POLICY_DENIED`. There is no amount below which a refund runs on its own.
+</Note>
+
+The flow for a refund of 75000 on order `ORD-1042`:
+
+<Steps>
+  <Step title="The agent's request is refused">
+    The agent sends the refund with `managerApproved: false`. Parmana refuses it with `403
+    POLICY_DENIED`: the refund needs a signed manager approval. Nothing is
+    executed, and a signed [Refusal Record](/concepts/refusal-records) is stored.
+  </Step>
+  <Step title="A manager reviews it">
+    The manager finds the refusal, for example with the query in
+    [Review refused requests](#review-refused-requests).
+  </Step>
+  <Step title="The manager signs an approval, on their own machine">
+    <CodeGroup>
+
+    ```bash Script
+    npx tsx scripts/sign-approval.ts \
+      --private-key-file ~/.parmana/manager-priya__manager-priya-key-1.private.pem \
+      --approver-id manager-priya --key-id manager-priya-key-1 \
+      --capability paytm:refund --resource-id ORD-1042 --max-amount 75000 \
+      --out approval.json
+    ```
+
+    ```typescript TypeScript
+    import { readFileSync, writeFileSync } from "node:fs";
+    import { signApproval } from "@parmana/sdk";
+
+    const approval = signApproval({
+      privateKeyPem: readFileSync("manager-priya__manager-priya-key-1.private.pem", "utf8"),
+      approverId: "manager-priya",
+      keyId: "manager-priya-key-1",
+      capability: "paytm:refund",
+      resourceId: "ORD-1042",
+      maxAmount: 75000,
+    });
+    writeFileSync("approval.json", JSON.stringify(approval));
+    ```
+
+    ```python Python
+    import json
+    from pathlib import Path
+    from parmana.crypto import sign_approval
+
+    approval = sign_approval(
+        private_key_pem=Path("manager-priya__manager-priya-key-1.private.pem").read_text(),
+        approver_id="manager-priya",
+        key_id="manager-priya-key-1",
+        capability="paytm:refund",
+        resource_id="ORD-1042",
+        max_amount=75000,
+    )
+    Path("approval.json").write_text(json.dumps(approval))
+    ```
+
+    </CodeGroup>
+
+    The approval is for this order only, for refunds up to 75000, valid for 15 minutes
+    (`--ttl-seconds` or `ttlSeconds` changes it, up to a day), and can be used once. The SDKs
+    need no clone of the repository; the private key never leaves the process.
+
+  </Step>
+  <Step title="The agent sends a new request with the approval">
+    A new `businessTransactionId`, the same order and amount, `managerApproved: true`, and the
+    contents of `approval.json` in `signals.approvalArtifact`:
+
+    ```json
+    "signals": {
+      "refundEligible": true,
+      "fraudCheckPassed": true,
+      "refundAmount": 75000,
+      "managerApproved": true,
+      "approvalArtifact": { "payload": { "...": "..." }, "signature": { "...": "..." } }
+    }
+    ```
+
+  </Step>
+  <Step title="Parmana verifies the approval and executes">
+    Before authorizing, Parmana checks that the approval is signed by a trusted approver, has
+    not expired or been revoked, is for `paytm:refund`, for this order (the Intent's
+    `parameters.orderId`), covers this amount (the Intent's `parameters.amount`), and has not
+    been used before. The gateway runs the same checks again just before release. Then the
+    refund runs. The policy says which order and amount to check, in its `approvalSignals`
+    (see [Add an approval to any action](#add-an-approval-to-any-action)).
+  </Step>
+</Steps>
+
+`managerApproved: true` without a valid approval is refused, at any amount:
+
+```text
+Execution rejected: Rejected: declared signal(s) do not match independently verified state (managerApproved=true != verified managerApproved=false).
+```
+
+The same happens for an approval for another order, a smaller amount, another action, a
+changed payload, an unknown or revoked approver, an expired approval, or one already used.
+
+## Set up an approver
+
+An approver is a person with an Ed25519 key pair. The private key stays on their machine; the
+server trusts the public key. Add one through maker checker, with no deploy:
+
+<Steps>
+  <Step title="The approver creates a key pair on their own machine">
+    ```bash npx tsx scripts/generate-approver-key.ts \ --approver-id
+    manager-priya --key-id manager-priya-key-1 --out-dir ~/.parmana ``` They
+    send the public key file, `manager-priya__manager-priya-key-1.public.pem`,
+    to a proposer.
+  </Step>
+  <Step title="One person proposes trusting it">
+    `POST /approval-issuers/changes` with `action: "add"`, the ids, the public
+    key and a reason.
+  </Step>
+  <Step title="A different person approves it">
+    `POST /approval-issuers/changes/{id}/approve` with a step up authorization.
+    The key is trusted from the next request on.
+  </Step>
+</Steps>
+
+The full walkthrough, with rotation, revocation and errors, is
+[Manage approvers](/guides/manage-approvers).
+
+Approvers can also be listed in the server code, `TRUSTED_APPROVAL_ISSUERS` in
+`packages/api/src/bootstrap/createApprovalIssuerRegistry.ts`. Those change only with a pull
+request and a deploy. The code list is checked first.
+
+<Info>
+  The hosted deployment trusts one approver in code, added on 2026-09-28.
+  Approver keys are always Ed25519, whatever signing algorithm the server itself
+  uses.
+</Info>
+
+## Add an approval to any action
+
+A policy declares which of its signals need a signed approval in `approvalSignals`, with a path
+to the resource in the Intent and, optionally, a path to a number the approval must cover. For
+a merge that needs a release manager:
+
+```json
+"approvalSignals": {
+  "releaseManagerApproved": { "resourceId": "target" }
+}
+```
+
+A rule then reads the signal like any other, for example `{ "fact": "releaseManagerApproved",
+"operator": "is_true" }`. The approver signs without `--max-amount`, since there is no amount;
+the approval then names exactly this pull request, `acme/api#42`:
+
+```bash
+npx tsx scripts/sign-approval.ts   --private-key-file ~/.parmana/lead-sam__lead-sam-key-1.private.pem   --approver-id lead-sam --key-id lead-sam-key-1   --capability github:pr-merge --resource-id "acme/api#42" --out approval.json
+```
+
+The change goes live like any policy change: a new version, proposed and approved through
+policy governance. It takes effect when it is approved, with no code change and no deploy. One
+thing still needs a deploy: binding an action to a different policy name. Approvers are added
+through [Manage approvers](/guides/manage-approvers).
+
+Rules for a declaration, checked when the policy loads:
+
+- `resourceId` is `"target"` (the Intent's target, such as `acme/api#42` for a pull request) or a
+  path into the Intent's `parameters`, such as `parameters.orderId`. A number is compared as its
+  decimal string. `value` is a path into `parameters` to a number.
+- The key must be read by a rule, and must not also be in `boundSignals`.
+- With more than one approval signal, give each its own `artifact`, the signal that carries its
+  approval. The default is `approvalArtifact`.
+
+## Approve a HubSpot update or read
+
+`hubspot-deal-update` 1.1.0 authorizes every deal update only with `dealUpdateApproved: true`
+and a signed approval for that deal in `signals.approvalArtifact`, whatever the amount. Sign it
+with `--capability hubspot:deal-update` and the deal id as `--resource-id`, without
+`--max-amount`. The dealstage transition is still checked against the real deal, and a
+transition that is not allowed is refused even with an approval.
+
+Reading a deal (`hubspot:deal-fetch`) has its own policy, `hubspot-deal-read` 1.0.0. It needs
+`readApproved: true` with an approval for that deal, signed with `--capability
+hubspot:deal-fetch`.
+
+Under 1.0.0 an update within the amount threshold needed no person, and only a larger amount
+change needed `preAuthorizedForAmountChange` with an approval. 1.0.0 now fails to load.
+
+## Review refused requests
+
+Every request that a policy refuses is stored with a signed
+[Refusal Record](/concepts/refusal-records). To list recent refunds that were refused:
+
+```sql
+select
+  refusal_record_id,
+  business_transaction_id,
+  submitted_by,
+  created_at,
+  decision_json ->> 'reason'                   as reason,
+  evaluated_intent_json -> 'parameters'        as parameters
+from refusal_records
+where decision_json -> 'policy' ->> 'name' = 'customer-refund'
+order by created_at desc
+limit 50;
+```
+
+To list only the refunds waiting for a manager, add
+`and decision_json ->> 'matchedRuleId' = 'reject-manager-approval-required'`.
+
+Requests refused before policy runs, such as a failed authentication or a capability the caller
+is not allowed to use, are in `caller_audit_events`:
+
+```sql
+select occurred_at, caller_id, capability, type, reason
+from caller_audit_events
+where type in (
+  'caller.rejected',
+  'caller.capability_denied',
+  'caller.principal_denied',
+  'caller.non_human_denied',
+  'caller.structural_rejected'
+)
+order by occurred_at desc
+limit 50;
+```
+
+<Warning>
+  A Refusal Record is written after the request is refused, and a failed write
+  does not change the refusal. A query can therefore miss a refused request.
+  Each miss is logged as `refusal_record_write_failed`.
+</Warning>
+
+## Get notified
+
+The full guide, with receiver code in Node.js and Python, is
+[Approval notifications](/guides/approval-notifications).
+
+Set `APPROVAL_WEBHOOK_URL` and `APPROVAL_WEBHOOK_SECRET`, and Parmana POSTs an event to that URL
+each time a request is refused **only** for want of an approval: the policy declares
+`approvalSignals`, and the same request with those signals true would have been authorized. A
+refund refused for a failed fraud check, or above the maximum, sends nothing.
+
+```json
+{
+  "type": "approval.needed",
+  "occurredAt": "2026-09-29T10:15:02.114Z",
+  "businessTransactionId": "5f0c...",
+  "decisionId": "a91e...",
+  "action": "paytm:refund",
+  "target": "paytm://orders/ORD-1042",
+  "policyId": "customer-refund",
+  "policyVersion": "1.2.0",
+  "reason": "...",
+  "approvals": [
+    { "signal": "managerApproved", "resourceId": "ORD-1042", "value": 75000 }
+  ]
+}
+```
+
+`approvals` is what to sign: `--capability` is `action`, `--resource-id` is `resourceId`, and
+`--max-amount` is `value` when there is one. The event carries nothing else from the request.
+
+Each request has two headers. `parmana-webhook-timestamp` is Unix seconds.
+`parmana-webhook-signature` is `v1=` and the lowercase hex HMAC SHA256, keyed with the secret,
+of the timestamp, a dot, and the exact body. Check it before acting, and refuse an old
+timestamp:
+
+```typescript
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+function isFromParmana(
+  secret: string,
+  timestamp: string,
+  body: string,
+  signature: string,
+) {
+  const expected =
+    "v1=" +
+    createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex");
+  const fresh = Math.abs(Date.now() / 1000 - Number(timestamp)) < 300;
+  return (
+    fresh &&
+    expected.length === signature.length &&
+    timingSafeEqual(Buffer.from(expected), Buffer.from(signature))
+  );
+}
+```
+
+Delivery is best effort: one attempt, at most 3 seconds, no retry. A failed delivery is logged
+as `approval_needed_notification_failed` and changes nothing about the refusal. The refused
+requests query above stays the complete list.
+
+## Not available
+
+**A refused request cannot be approved afterwards.** A policy decision is approve or refuse.
+Nothing waits for a person. After a manager signs an approval, the agent sends a new request.
+
+**Eligibility and fraud signals are still the caller's word.** `refundEligible` and
+`fraudCheckPassed` are not checked against another system (G-51 in
+`docs/VERIFICATION-GAPS.md`). They can only refuse; the signed approval authorizes.
+
+**An approval covers the action and the resource, not every parameter.** An approval for a
+Slack channel does not fix the message text, and an approval for a HubSpot deal does not fix the
+new amount or stage. The approver trusts the agent with those details for that one use. An
+approval for a payment, an expense or a refund does cover the amount.
+
+**There is no automatic path.** No action is authorized without a person, by design. Adding one
+would need a server side check that reads the facts itself, and a change to this rule
+(G-80 in `docs/VERIFICATION-GAPS.md`).
+
+## Why each action is bound to one policy
+
+Each request names the policy that should judge it. If Parmana accepted any approved policy, a
+caller could send a refund and name a policy written for Slack messages, which has no refund
+limit. So each live action is bound to one policy name:
+
+```text
+paytm:refund         ->  customer-refund
+github:pr-merge      ->  github-pr-approval
+github:pr-fetch      ->  github-pr-read
+hubspot:deal-update  ->  hubspot-deal-update
+hubspot:deal-fetch   ->  hubspot-deal-read
+slack:post-message   ->  slack-post-message
+```
+
+The name is fixed in code. The version is not: in production it is the version most recently
+approved through policy governance. Approving `customer-refund` 1.2.0 makes 1.2.0 the version
+refunds must use, with no deploy, and approving 1.1.0 again rolls back. A request that names a
+different policy, or any other version, is refused before any policy runs, with a message that
+names the version in effect. Agents must then send that version.
+
+---
+
+## Connect an External Agent
+
+Source: https://docs.parmanasystems.com/guides/connect-an-agent
+
+<Info>
+  Repo copy of this guide: `docs/connectors/CONNECTING_AN_AGENT.md`, kept in
+  sync with this page. Covers the caller/agent side only. For what happens after
+  `APPROVED` (Execution Gateway → connector → the real business system), see
+  [Add a connector](/guides/add-a-connector) and
+  `docs/connectors/PAYTM_CONNECTOR.md` (repo root).
+</Info>
+
+## The mental model
+
+```text
+AI Agent  --------------------------------------------------->  Parmana
+   |  understands the request, extracts an intent                  |
+   |  never decides whether the action is authorized                |
+   v                                                                v
+"I want to refund order X for ₹500"                    caller auth -> capability check
+                                                         -> CapabilityPolicyBinder
+                                                         -> SignalIntentBinder
+                                                         -> PolicyEngine.evaluate
+                                                         -> APPROVE or REJECT (binary, signed)
+```
+
+The agent proposes an intent. Parmana decides whether it's authorized. Only Parmana's decision can
+unlock execution. If your integration ever lets the agent set a value that determines the outcome —
+an approval flag, a fraud-check result, a policy name — the model is broken, even if it "works."
+
+## What you need, and why
+
+| #   | You need                                                                           | Why                                                                                                                                                         |
+| --- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | A reachable Parmana deployment                                                     | Nothing to connect to without one.                                                                                                                          |
+| 2   | A capability name (e.g. `paytm:refund`)                                            | Parmana authorizes capabilities, not free-form actions. Exact string matching — `refund` ≠ `paytm:refund`.                                                  |
+| 3   | A deployed policy bound to that capability                                         | Decides APPROVE/REJECT. Missing → `404 PolicyNotFoundError`.                                                                                                |
+| 4   | The policy's exact `signalsSchema`/`boundSignals`                                  | You must send every referenced signal; any `boundSignals` entry must equal the real `intent.parameters` value or the request is rejected before evaluation. |
+| 5   | An API key scoped to exactly that capability                                       | Your agent's identity — see below.                                                                                                                          |
+| 6   | A trusted-signal source that is not the conversation                               | Signals must come from an independent business system, never inferred from what the customer said.                                                          |
+| 7   | Real UUID generation                                                               | `businessTransactionId` is checked against a UUID-shaped regex (versions 1–5); anything else is a `400` before any other logic runs.                        |
+| 8   | (For real execution) a registered connector for your capability on this deployment | `APPROVED` ≠ "executed." A separate, verifiable claim — see step 8 below.                                                                                   |
+
+## Step by step
+
+**1. Read the policy file directly.** `cat policies/customer-refund/1.2.0/policy.json`; don't guess
+field names from a description. Ask the server which version is in effect:
+`GET /policies/in-effect?capability=paytm:refund`.
+
+**2. Pick the exact capability string.** Case- and character-exact. This single detail is the most
+common integration failure in practice.
+
+**3. Mint a scoped API key:**
+
+```bash
+npx tsx scripts/generate-api-key.ts \
+  --caller-id my-refund-agent \
+  --allowed-capabilities "paytm:refund" \
+  --credential-holder-type SERVICE
+```
+
+Use `SERVICE`, never `"AGENT"` — that value doesn't exist in `AuthorityType`. Never grant `"*"` to a
+single-purpose agent; `/callers/me`'s `unrestrictedCapabilities` is literally
+`allowedCapabilities.includes("*")`.
+
+<Warning>
+  **If you're the deployment operator adding this key** (not just the agent
+  developer): `PARMANA_API_KEYS` is one environment variable holding a JSON
+  **array**. Two real mistakes were made hand-editing a live deployment's value
+  in a hosting dashboard: pasting the new entry as the *entire* value instead of
+  appending it to the array (every caller gets a 500 until fixed — the server
+  fails closed on malformed JSON), and losing existing entries by replacing
+  rather than appending. Always paste the complete array — every existing entry
+  plus the new one. Full account: the 2026-09-15 KMS migration troubleshooting
+  guide (in git history).
+</Warning>
+
+**4. Verify the key before writing agent code:**
+
+```bash
+curl -i "https://<deployment>/callers/me" -H "Authorization: Bearer <key>"
+```
+
+If this fails, fix authentication first — nothing about your agent's request shape is relevant yet.
+
+**5. Wire up real trusted-signal sources** for every field in the policy's `signalsSchema`. Not a
+placeholder to fix later — from day one.
+
+**6. Build the request:**
+
+<Warning>
+  **This example was missing `metadata` until 2026-09-14** — found while running
+  [End-to-end: agent → Parmana → Paytm](/guides/end-to-end-paytm-flow) against a real
+  deployment. Omitting it fails with
+  `{"error":"metadata.businessTransactionId must match businessTransactionId."}` (400),
+  before policy is ever evaluated. It's now included below.
+</Warning>
+
+```json
+{
+  "businessTransactionId": "<uuid v4>",
+  "metadata": {
+    "businessTransactionId": "<same uuid v4 as above>"
+  },
+  "authority": {
+    "authorityId": "<uuid>",
+    "authorityType": "SERVICE",
+    "principalId": "my-refund-agent",
+    "issuedAt": "<iso8601>"
+  },
+  "authorization": {
+    "authorizationId": "<uuid>",
+    "authorityId": "<uuid>",
+    "purpose": "Authorize Paytm customer refund",
+    "issuedAt": "<iso8601>"
+  },
+  "intent": {
+    "intentId": "<uuid>",
+    "authorizationId": "<uuid>",
+    "action": "paytm:refund",
+    "target": "<orderId>",
+    "parameters": {
+      "orderId": "<orderId>",
+      "transactionId": "<txnId>",
+      "amount": 500
+    },
+    "createdAt": "<iso8601>"
+  },
+  "policy": {
+    "name": "customer-refund",
+    "version": "1.2.0",
+    "schemaVersion": "1.0.0"
+  },
+  "signals": {
+    "refundEligible": true,
+    "managerApproved": true,
+    "fraudCheckPassed": true,
+    "refundAmount": 500,
+    "approvalArtifact": {
+      "...": "the signed manager approval for this order and amount"
+    }
+  },
+  "status": "RECEIVED"
+}
+```
+
+`policy.name`/`policy.version` is never inferred from `intent.action`: name it explicitly, or a
+caller could pair a real capability with an unrelated policy. Under `customer-refund` 1.2.0 every
+refund needs a signed manager approval (G-75); without one the request is refused with `403
+POLICY_DENIED`, whatever your agent declares about eligibility and fraud.
+
+**7. Send it, handle the response** — see the complete reference table below.
+
+**8. Before claiming real execution**, confirm a connector is actually registered for your
+capability on this deployment. `docs/site/guides/live-api-and-demos.mdx` documents that the
+general-purpose demo deployment historically had **no connector registered at all**. "Got APPROVED"
+and "the action executed" are two separately-verifiable claims — never conflate them.
+
+**9. Verify independently**: `GET /refusal/:id` + `POST /refusal/verify` for a rejection,
+`GET /trust-records/:id` (only once a connector is wired) for an execution, or fully offline with
+`verifyExecutionTrustRecordOffline`.
+
+## Complete response reference
+
+Every row is cited to the exact source producing it:
+
+| Status | `code`                   | Source                                                                                                                                                              | Meaning                                                                                                                                                                                                  | Do this                                                                                                                                                                                                                                  |
+| ------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `200`  | —                        | Decision `APPROVE`                                                                                                                                                  | Authorized; a signed decision exists. Dispatch (if any) happens after.                                                                                                                                   | Report authorization only — not execution, unless separately confirmed.                                                                                                                                                                  |
+| `400`  | —                        | Invalid `businessTransactionId` / body shape                                                                                                                        | Structural rejection, before auth or policy.                                                                                                                                                             | Fix request construction.                                                                                                                                                                                                                |
+| `403`  | (none)                   | `principalId` not permitted                                                                                                                                         | Caller can't assert that principal.                                                                                                                                                                      | Use your own `callerId`.                                                                                                                                                                                                                 |
+| `403`  | `CAPABILITY_NOT_ALLOWED` | `intent.action` not in your key's `allowedCapabilities`                                                                                                             | **Most common real-world bug.** Exact-string mismatch.                                                                                                                                                   | Compare `/callers/me`'s `allowedCapabilities` to your `intent.action`, character for character.                                                                                                                                          |
+| `403`  | `POLICY_DENIED`          | `ExecutionGate.enforce` — uniform for _every_ rejection cause                                                                                                       | A real, correct decision. `message` names the actual rule that matched (excessive amount, failed fraud check, etc.).                                                                                     | Respect it. Never retry with altered parameters.                                                                                                                                                                                         |
+| `404`  | —                        | `PolicyNotFoundError`                                                                                                                                               | `policy.name`/`version` not deployed on this instance.                                                                                                                                                   | Check spelling/version and confirm deployment.                                                                                                                                                                                           |
+| `409`  | —                        | `DuplicateBusinessTransactionError`                                                                                                                                 | Reused `businessTransactionId`.                                                                                                                                                                          | Fresh UUID per attempt; design idempotency separately if needed.                                                                                                                                                                         |
+| `500`  | —                        | Generic fallback — catches an unregistered-connector error **and** `ExecutionGateway` rejecting a signed envelope (bad signature, tampered content, replayed nonce) | Deliberately ambiguous by design, not a flaw in the error handler. Very often "APPROVED, but no connector registered" — or a Parmana-side signing/verification bug with nothing to do with your request. | Check server logs for the exact message before assuming it's your bug — the 2026-09-15 KMS migration troubleshooting guide (in git history) (repo root) documents a real example of this exact failure mode caused entirely server-side. |
+| (none) | —                        | Timeout/network                                                                                                                                                     | Unknown whether Parmana ever received it.                                                                                                                                                                | Treat as unresolved — never guess APPROVED or REJECTED.                                                                                                                                                                                  |
+
+## Common mistakes
+
+- Capability string mismatch between `intent.action` and your key's `allowedCapabilities`.
+- `authorityType: "AGENT"` — invalid; use `"SERVICE"`.
+- A signal inferred from the customer's words instead of an independent business system.
+- Treating `POLICY_DENIED` as a bug instead of a correct decision.
+- Claiming execution from `APPROVED` alone, without confirming connector registration.
+- Granting `"*"` "to get it working" and never narrowing it.
+- Hand-editing `PARMANA_API_KEYS` by pasting a single entry instead of the complete array.
+- Assuming a `500` always means your request was wrong — it's deliberately ambiguous by design.
+
+## Reference implementation
+
+`pavancharak/parmana-phinite-agent` is a real, working implementation of every step above. Two bugs
+were found and fixed in it: the exact `CAPABILITY_NOT_ALLOWED` mistake from the table above
+(`"refund"` instead of `"paytm:refund"`), and error handling that crashed instead of resolving
+unrecognized failures to an unresolved client-side state. See that repository's README for the full
+writeup.
+
+**Second round, entirely on Parmana's own side (2026-09-15/16):** after those agent-side fixes, this
+same integration hit a sequence of purely Parmana-operator issues onboarding as a new caller on a
+freshly KMS-migrated deployment: no `PARMANA_API_KEYS` entry at all (401) → a malformed hand-edited
+entry (500 for every caller) → no `allowedPrincipalIds` grant for the asserted principal (403) → a
+genuine Parmana-side bug where the gateway's signing and verification paths silently used different
+keys after a KMS migration (500, unrelated to the request itself —
+`examples/tutorials/114-signing-verification-key-agreement/` reproduces it). None of these were agent
+bugs. Full account: the 2026-09-15 KMS migration troubleshooting guide (in git history).
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Add a connector" icon="plug" href="/guides/add-a-connector">
+    What happens after APPROVED: Execution Gateway, connector dispatch,
+    execution evidence.
+  </Card>
+  <Card
+    title="Live API and Demos"
+    icon="server"
+    href="/guides/live-api-and-demos"
+  >
+    Call the real, deployed Parmana API directly and see what's and isn't wired
+    on it today.
+  </Card>
+</CardGroup>
+
+---
+
+## Connector Development Guide
+
+Source: https://docs.parmanasystems.com/integrations/connector-development-guide
+
+<Info>
+  **[AVAILABLE] as a library**, `packages/connector-sdk`, **[AVAILABLE] wired
+  into the default server** for HubSpot, GitHub, Paytm, and Slack, each
+  registering only when its own credentials are configured. Adding another
+  connector is a code change today, see the warning below.
+</Info>
+
+<Note>
+  Examples below are TypeScript. Building a connector from Python instead? The
+  identical contract is published as [`parmana-connector-sdk` on
+  PyPI](https://pypi.org/project/parmana-connector-sdk/0.1.0/) — see [Connector
+  SDK (Python)](/reference/connector-sdk-python).
+</Note>
+
+## Connector responsibilities, and what a Connector must never do
+
+A Connector validates a request, executes using an already-resolved credential, and
+returns a response with a fixed, predictable shape. A Connector never evaluates policy, authorizes
+execution, interprets AI output, makes a business decision, or resolves a credential
+itself, credential resolution happens exclusively inside the Execution Gateway, before a
+Connector is ever called.
+
+```typescript
+import {
+  connectorCapabilities,
+  type Connector,
+  type ConnectorExecutionContext,
+  type ConnectorRequest,
+  type ConnectorResponse,
+} from "@parmana/connector-sdk";
+
+class ExampleConnector implements Connector {
+  readonly connectorId = "example";
+  readonly capabilities = connectorCapabilities(["crm:read"]);
+
+  async execute(
+    request: ConnectorRequest,
+    context: ConnectorExecutionContext,
+  ): Promise<ConnectorResponse> {
+    if (!this.capabilities.includes(request.capability)) {
+      throw new Error(`does not declare capability "${request.capability}"`);
+    }
+    // context.credential is an opaque CredentialHandle, read it, never log it.
+    return { success: true, metadata: { recordId: "example-1" } };
+  }
+}
+```
+
+## Capabilities are namespaced verbs
+
+`ConnectorCapability` is a plain string, validated eagerly by `connectorCapabilities()`
+against `namespace:verb` (e.g. `http:get`, `crm:read`, `payments:refund`), a malformed
+capability throws at connector construction, not at execution time. By convention,
+`ExecutableContent.action` _is_ the capability string; this is what
+`execution-control`'s `DefaultConnectorPolicy` already checks unchanged.
+
+## Registering a connector
+
+**This step is internal, not something `npm install @parmana/connector-sdk` alone gives you.**
+`@parmana/connector-sdk` lets you build and test a `Connector` in isolation. Wiring a built
+connector into a live Parmana deployment happens through `GatewayConnectorRegistry`
+(`@parmana/execution-gateway`) — a private, unpublished package internal to this repository,
+the same way `packages/api/src/bootstrap/*` registers HubSpot, GitHub, Paytm, and Slack
+today. If you're building a connector against the published `@parmana/connector-sdk` for your
+own deployment, this section shows the shape of that internal step, not an API surface you can
+call from outside this repository.
+
+```typescript
+import { GatewayConnectorRegistry } from "@parmana/execution-gateway";
+import { StaticCredentialProvider, healthyNow } from "@parmana/connector-sdk";
+
+const registry = new GatewayConnectorRegistry();
+
+registry.register({
+  connector: new ExampleConnector(),
+  metadata: {
+    connectorId: "example",
+    displayName: "Example CRM",
+    version: { major: 1, minor: 0, patch: 0 },
+    health: healthyNow(),
+  },
+  connectorIdentity: {
+    connectorId: "example",
+    publicIdentity: "spiffe://parmana/connectors/example",
+    authenticationMetadata: {},
+  },
+  credentialProvider: new StaticCredentialProvider({
+    example: { token: "..." },
+  }),
+  policy, // a ConnectorPolicy, e.g. CapabilityConnectorPolicy(new DefaultConnectorPolicy(...))
+  gatewayAuthentication,
+  crypto, // @parmana/crypto CryptoProvider, reused for evidence hashing, not reimplemented
+});
+```
+
+`registry` implements `execution-control`'s `ConnectorRegistry` interface (`get()`), so it
+plugs directly into `ExecutionControlService` exactly like `InMemoryConnectorRegistry`.
+
+## Testing your connector hermetically
+
+Use `MockConnector` to test anything upstream of your connector (policy wiring, routing)
+without a real target system:
+
+```typescript
+import { MockConnector, connectorCapabilities } from "@parmana/connector-sdk";
+
+const mock = new MockConnector({
+  connectorId: "example",
+  capabilities: connectorCapabilities(["crm:read"]),
+  script: {
+    respond: () => ({ success: true, metadata: { recordId: "example-1" } }),
+  },
+});
+
+const result = await mock.execute(
+  {
+    capability: "crm:read",
+    businessTransactionId: "t1",
+    action: "crm:read",
+    target: "crm://record/1",
+    parameters: {},
+  },
+  { credential: undefined as never },
+);
+```
+
+Real output, checked directly against this exact code:
+
+```
+mock result: { success: true, metadata: { recordId: 'example-1' } }
+mock invocations: 1
+```
+
+To test failure handling, use `script: { failWith: new Error("upstream unavailable") }`.
+`mock.invocations` records every `ConnectorRequest` the connector received, so tests can
+assert exactly what was executed.
+
+## Version and health checks fail closed
+
+`SdkConnectorExecutor` rejects execution, before invoking your connector, if:
+
+- an `expectedVersion` was configured at registration and the connector's own
+  `metadata.version` doesn't match (guards a rolling deployment that swapped connector
+  builds underneath a pinned expectation), or
+- `metadata.health.status === "unavailable"`.
+
+## What every connector's evidence looks like
+
+Every execution produces a `ConnectorEvidence` object, connector ID, version, capability,
+a sanitized endpoint (credentials and query parameters stripped), the credential provider's
+ID, redacted request/response summaries, timestamps, and a hash computed by the existing
+`TrustRecordHasher`, attached at `ExecutionResult.metadata.connector`. See
+[Execution Trust Record](/concepts/execution-trust-records) for how this reaches the Trust Record
+without any change to its schema or hashing pipeline.
+
+## What reaching the default server actually requires
+
+<Warning>
+This is the part that's easy to assume is configuration and isn't. A capability is only
+reachable on the default server when its connector is registered in
+`createConnectorRegistry.ts`, gated behind that connector's own credentials being
+configured. There is no unconditional or environment-only registration path: a capability
+with a signed `APPROVED` decision but no registered connector fails closed at dispatch, it
+never silently succeeds. The real, current registration pattern, copied verbatim from
+source:
+
+```typescript
+// packages/api/src/bootstrap/createConnectorRegistry.ts (abridged, real source)
+const hubspotCredentialProvider = createHubSpotCredentialProvider();
+if (hubspotCredentialProvider === undefined) {
+  console.warn({
+    event: "hubspot_connector_unavailable",
+    reason: "HUBSPOT_PRIVATE_APP_TOKEN is not configured.",
+  });
+} else {
+  registrations.push({
+    connector: createHubSpotConnector(),
+    metadata: HubSpotMetadata,
+    connectorIdentity: {
+      connectorId: "hubspot",
+      publicIdentity: "spiffe://parmana/connectors/hubspot",
+      authenticationMetadata: {},
+    },
+    credentialProvider: hubspotCredentialProvider,
+    policy: new DefaultConnectorPolicy(authenticator, sessions),
+    gatewayAuthentication,
+    crypto,
+    audit,
+  });
+}
+```
+
+Adding a connector to the running server means editing two files:
+`createConnectorRegistry.ts` (register it, following the shape above, return `undefined`
+in production until a real implementation exists, exactly like
+`createHubSpotCredentialProvider.ts` already does) and `createConnectorAuthenticator.ts`
+(trust its identity, add an entry to its hardcoded list). **Not** `createConnectorRoute.ts`,
+despite its name, that file's `route()` function is dead code in the current production
+wiring (`createExecutionGateway.ts` always supplies `executionControl.service`, which makes
+the only branch that calls `route()` unreachable); editing it has no effect on which
+connector actually handles a request. There is no dynamic registration path, no environment
+variable that adds a connector, this is a code change today. HubSpot, GitHub, Paytm, and
+Slack are the connectors actually reachable in the default production server, see
+[HubSpot](/integrations/hubspot) for that connector specifically.
+
+</Warning>
+
+## The pattern, proven twice: Razorpay and HubSpot
+
+<Note>
+  Razorpay was deliberately removed from the codebase in full. The lessons below
+  are kept as a historical, worked example (a second real connector, built after
+  HubSpot's own lessons already existed to apply), not a claim that Razorpay is
+  still registered anywhere in this codebase today.
+</Note>
+
+Both connectors implemented everything above, but the two builds themselves are the more
+useful lesson: Razorpay learned each point below the hard way, on a running connector,
+after the fact. HubSpot applied all of it from its first version instead. Read this before
+starting a new connector.
+
+**Scope to one narrow action first.** Don't build a connector for a whole external API
+surface. Razorpay started with refund creation only, not payouts, not subscriptions, not
+the rest of the payments API. HubSpot started with one property update on one object type,
+a Deal's `dealstage`, optionally alongside `amount`, not Contacts, not Companies, not
+delete. Widen scope in a later milestone, once the first one is fully proven, see
+[HubSpot](/integrations/hubspot)'s own [ROADMAP] section on its page.
+
+**Two structural guards belong in a connector's first version, not a follow-up fix.**
+
+- _Refuse a placeholder test credential against the real endpoint, before any network
+  call._ Don't rely on the vendor happening to reject it, that's an accident of their
+  behavior, not something this codebase controls. `RazorpayConnector` didn't have this
+  check originally, it survived only because Razorpay's real API happened to reject an
+  unrecognized key — a defense-in-depth fix was added after the fact.
+  `HubSpotConnector` refuses its own placeholder token against
+  `https://api.hubapi.com` from its first commit, see [HubSpot](/integrations/hubspot) and
+  `packages/connector-hubspot/src/HubSpotConnector.ts`.
+- _Read the documented test-credential environment variable name directly, never through a
+  bridge variable._ `createRazorpayCredentialProvider.ts`'s test-mode branch originally read
+  a word-order-swapped bridge variable instead of the name `.env.example` actually
+  documented, fixed only after it drifted out of sync.
+  `createHubSpotCredentialProvider.ts` reads `TEST_HUBSPOT_PRIVATE_APP_TOKEN`, the exact
+  documented name, with no bridge to get wrong.
+
+**Apply `boundSignals` hardening from the policy's first version, don't wait for an
+adversarial-testing session to find the gap.** `razorpay-refund/1.0.0` didn't declare
+`boundSignals` until a live demonstration showed a caller could declare small, verified
+signals while `intent` executed something else, closed in an adversarial-testing
+hardening session. `hubspot-deal-update/1.0.0` declares
+`boundSignals` binding `proposedDealStage`/`proposedAmount` to their `intent.parameters`
+fields from its first commit, closing the same class of gap before any live demonstration
+of it existed. See [Policies and the decision](/concepts/policies-and-the-decision).
+
+**Require a signed human approval in every approve rule, reads included.** No AI agent action
+is authorized without one. `PolicyValidator` refuses to load a policy whose approve rule does
+not require a fact from `approvalSignals` with `is_true` at its top level, so a new connector's
+policy must declare one, with `resourceId` naming what the approval covers (the Intent's
+`target`, or a path such as `parameters.dealId`) and, for an amount, `value`. Give a read its
+own policy, like `github-pr-read` and `hubspot-deal-read`, so its approval names only what is
+read. See [Human approval](/concepts/human-approval).
+
+**Test order, every time:**
+
+1. **Hermetic first.** The full authorize → verify → execute → confirm chain against a mock
+   server, zero network calls. Both connectors' unit suites run this way on every
+   `npm test`.
+2. **Policy-denial-makes-zero-calls, proven at two layers.** A direct state check against
+   the mock server (nothing changed), and a `fetch` spy at the HTTP boundary (literally zero
+   calls reached the mock or real endpoint). See [HubSpot](/integrations/hubspot) for what
+   that looks like in a captured response.
+3. **A gated live suite last**, behind an `ALLOW_LIVE_<CONNECTOR>=1` flag checked alongside a
+   real test credential, skipped by default so a routine `npm test` never makes a live call
+   by accident.
+
+**Prefer a non-destructive live-test action where the target system allows one.** Read live,
+apply a small reversible change, verify independently, revert, in the same run. HubSpot's
+live suite nudges a real test deal's `amount` by a small within-threshold delta and reverts
+it before finishing, safe to rerun indefinitely. Razorpay's refund is irreversible by
+construction, its captured test payment's refundable remainder depletes by a fixed amount
+on every live run — a real operational cost of testing against a real endpoint.
+
+**Disclose what actually happened, including when the mechanism catches your own mistake.**
+HubSpot's first live amount-change test run failed with a policy denial the test author
+didn't expect, because the test's own signals payload omitted `proposedAmount`,
+`SignalIntentBinder` correctly rejected the mismatch before the intended amount-threshold
+rule ever ran. That's not a connector defect, it's the binding working exactly as designed,
+against a test's own mistake this time instead of a caller's.
+
+## Troubleshoot
+
+- **`does not declare capability "..."` thrown by `MockConnector` or your own connector.**
+  `request.capability` didn't match anything in `connectorCapabilities([...])`. Check for a
+  typo, capability strings are exact, case-sensitive matches.
+- **`SdkConnectorExecutor` rejects with a version mismatch.** An `expectedVersion` was
+  configured at registration and your connector's `metadata.version` doesn't match, this
+  guards a rolling deployment that swapped connector builds underneath a pinned expectation.
+- **Registered your connector but `POST /execute` still says "No connector registered for
+  action."** Registration in a `ConnectorSdkRegistry` you constructed yourself doesn't reach
+  the running default server, that server builds its own registry in
+  `createConnectorRegistry.ts`, see the Warning above.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card
+    title="Issue and verify session credentials"
+    icon="key"
+    href="/guides/session-credentials"
+  >
+    What your connector's `context.credential` actually is, and its lifecycle.
+  </Card>
+  <Card
+    title="Credential isolation"
+    icon="shield"
+    href="/concepts/credential-isolation"
+  >
+    The concept this guide's credential handling exercises.
+  </Card>
+</CardGroup>
+
+---
+
+## Write Your First Policy
+
+Source: https://docs.parmanasystems.com/guides/write-your-first-policy
+
+<Info>
+  **[AVAILABLE]**, every command below runs against the repo's actual code.
+</Info>
+
+## Goal
+
+Write a new Policy from scratch, distinct from the shipped `vendor-payment` one, and confirm
+it approves and rejects correctly.
+
+## Prerequisites
+
+- The repo cloned and `npm install` run.
+- Read [Policies and the decision](/concepts/policies-and-the-decision) first if you haven't,
+  this guide assumes you know what first-match-wins and fail-closed mean.
+
+## Steps
+
+### 1. Write the policy document
+
+A Policy is a JSON file at `<policyDir>/<name>/<version>/policy.json`. This exact policy
+already ships at `examples/tutorials/14-custom-policy/policies/high-value-payment/1.0.0/policy.json`
+(step 3 below runs it directly, no file creation needed to follow along). Its core, the two
+rules this walkthrough exercises:
+
+```json
+{
+  "policyId": "high-value-payment",
+  "policyVersion": "1.0.0",
+  "schemaVersion": "1.0.0",
+  "description": "Authorizes high-value vendor payments requiring Finance Director approval.",
+  "signalsSchema": {
+    "vendorVerified": "boolean",
+    "invoiceVerified": "boolean",
+    "paymentApproved": "boolean",
+    "sufficientFunds": "boolean",
+    "paymentAmount": "number",
+    "riskScore": "number",
+    "financeDirectorApproved": "boolean"
+  },
+  "boundSignals": {
+    "paymentAmount": "parameters.amount"
+  },
+  "unboundSignalReasons": {
+    "vendorVerified": "Independently attested by upstream vendor verification; no Intent-side equivalent field exists to bind against.",
+    "invoiceVerified": "Result of an independent invoice-verification check; not a value the Intent itself declares.",
+    "paymentApproved": "Attested by a separate payment-approval step; the Intent carries no approval-status field to bind against.",
+    "sufficientFunds": "Result of an independent funds-availability check against account state; not expressible via the Intent's target/parameters.",
+    "riskScore": "A computed payment-risk score, not a value the caller's Intent declares or could be checked against."
+  },
+  "approvalSignals": {
+    "financeDirectorApproved": {
+      "resourceId": "target",
+      "value": "parameters.amount"
+    }
+  },
+  "rules": [
+    {
+      "id": "approve-high-value-payment",
+      "condition": {
+        "all": [
+          { "fact": "vendorVerified", "operator": "eq", "value": true },
+          { "fact": "invoiceVerified", "operator": "eq", "value": true },
+          { "fact": "paymentApproved", "operator": "eq", "value": true },
+          { "fact": "sufficientFunds", "operator": "eq", "value": true },
+          { "fact": "paymentAmount", "operator": "gt", "value": 10000 },
+          { "fact": "financeDirectorApproved", "operator": "is_true" },
+          { "fact": "riskScore", "operator": "lte", "value": 20 }
+        ]
+      },
+      "outcome": {
+        "action": "approve",
+        "reason": "High-value vendor payment authorized after Finance Director approval."
+      }
+    },
+    {
+      "id": "reject-high-value-without-director-approval",
+      "condition": {
+        "all": [
+          { "fact": "paymentAmount", "operator": "gt", "value": 10000 },
+          {
+            "fact": "financeDirectorApproved",
+            "operator": "eq",
+            "value": false
+          }
+        ]
+      },
+      "outcome": {
+        "action": "reject",
+        "reason": "High-value vendor payment rejected because Finance Director approval is required."
+      }
+    },
+    {
+      "id": "reject-default",
+      "condition": { "always": true },
+      "outcome": {
+        "action": "reject",
+        "reason": "One or more required policy conditions were not satisfied."
+      }
+    }
+  ]
+}
+```
+
+`financeDirectorApproved` is declared in `approvalSignals`, so it is true only with a signed
+approval from a trusted approver for this vendor (the Intent's `target`), covering this amount.
+Every approve rule must require such a signal with `is_true` at its top level: no agent action is
+authorized without a signed human approval, and `PolicyValidator` refuses to load a policy that
+breaks this ([Human approval](/concepts/human-approval)).
+
+The real file has more rules than shown above: a lower-value approve path (`paymentAmount`
+at or below 10000, still with the director's signed approval), and individual rejection rules for an
+unverified vendor, unverified invoice, unapproved payment, insufficient funds, an invalid
+amount, and high risk score, each with its own specific reason string, plus the trailing
+`reject-default` catch-all shown above. Without that catch-all, an unmatched transaction
+still rejects (fail-closed is the engine's default, not something the policy has to opt
+into), but writing it explicitly documents the reject-by-default behavior for anyone reading
+the policy file itself.
+
+<Note>
+  `PolicyValidator.validate()` fails closed on any rule-referenced fact that is
+  neither in `boundSignals` nor `unboundSignalReasons` — an uncovered,
+  unacknowledged fact throws `PolicyValidationError` and the policy never loads
+  at all, it does not merely warn. This policy has one fact with a genuine
+  Intent-side equivalent, `paymentAmount` (an amount, bound to
+  `parameters.amount` above), so it belongs in `boundSignals`, where
+  `SignalIntentBinder` checks it before evaluation runs rather than trusting a
+  caller's declaration unchecked. `financeDirectorApproved` is covered by its
+  `approvalSignals` entry. Every other fact here (`vendorVerified`,
+  `invoiceVerified`, `paymentApproved`, `sufficientFunds`, `riskScore`) is an
+  independently attested boolean or score with no Intent-side equivalent, so
+  each needs its own `unboundSignalReasons` entry explaining why, not silence.
+  See [Policies and the decision](/concepts/policies-and-the-decision) for the
+  mechanism and why it exists: failing closed here, instead of an easily-missed
+  load-time warning, is what makes an uncovered fact impossible to ship by
+  accident.
+</Note>
+
+### 2. Reference it from a Business Transaction
+
+```json
+{
+  "policy": {
+    "name": "high-value-payment",
+    "version": "1.0.0",
+    "schemaVersion": "1.0.0"
+  },
+  "signals": {
+    "vendorVerified": true,
+    "invoiceVerified": true,
+    "paymentApproved": true,
+    "sufficientFunds": true,
+    "paymentAmount": 25000,
+    "riskScore": 10,
+    "financeDirectorApproved": true,
+    "approvalArtifact": {
+      "payload": { "...": "..." },
+      "signature": { "...": "..." }
+    }
+  }
+}
+```
+
+`approvalArtifact` is the Finance Director's signed approval for this vendor, up to 25000.
+Without it, `financeDirectorApproved: true` is refused.
+
+### 3. Evaluate it
+
+This exact scenario already exists as `examples/tutorials/14-custom-policy/`, reuse it
+rather than writing a parallel harness: it builds a `FilePolicyRepository` pointed at a
+local `policies/` directory and executes a transaction through `RuntimeFactory.create()`
+directly, no server required. A demo Finance Director, a key made in memory
+(`examples/shared/helpers/demo-approval.ts`), signs the approval and is the only approver the
+tutorial trusts.
+
+```bash
+node_modules/.bin/tsx examples/tutorials/14-custom-policy/run.ts
+```
+
+Before the transaction result, you'll see several `policy_rule_conflict_detected` log lines.
+These are `PolicyValidator.findRuleConflicts()`'s advisory output, harmless, not a failure:
+this policy's extra rejection rules share some overlapping conditions the conflict checker
+can't fully reason about, so it flags them for manual review rather than guessing. See
+[Policies and the decision](/concepts/policies-and-the-decision) for what this check does
+and doesn't catch.
+
+## Verify
+
+Real output, captured from an actual run:
+
+```json
+"decision": {
+  "outcome": "APPROVED",
+  "reason": "High-value vendor payment authorized after Finance Director approval.",
+  "policy": { "name": "high-value-payment", "version": "1.0.0", "schemaVersion": "1.0.0" }
+},
+"status": "COMPLETED"
+```
+
+```
+Verification: { "status": "VERIFIED", "trustRecordHash": "c22620765972e43e39470d1631cd061de156a4a3a2367d791a23c40dfd32ea3a" }
+```
+
+Now confirm the reject path. In a scratch copy of
+`examples/tutorials/14-custom-policy/transaction.json`, set
+`"financeDirectorApproved": false`, and rerun. This is what actually happens, not what you
+might expect (verified against a real run):
+
+```
+RuntimeError: Execution rejected: High-value vendor payment rejected because Finance Director approval is required.
+    at ExecutionGate.enforce (packages/runtime/src/ExecutionGate.ts:28:11)
+```
+
+A `REJECTED` decision does not come back as a normal object with `outcome: "REJECTED"`,
+`RuntimeFactory`'s `ExecutionTrustApplication.execute()` throws a `RuntimeError` whose
+message is the matched rule's rejection reason. `examples/tutorials/14-custom-policy/run.ts`
+doesn't catch this specially, so an uncaught rejection crashes the script, that's expected,
+not a bug in the tutorial, a caller that wants to handle rejection gracefully needs a
+`try`/`catch` around `execute()`. The `reject-high-value-without-director-approval` rule is
+what matched, confirmed by the message, first-match-wins doing its job on different signals,
+same policy document, no code change.
+
+## Why explicit rejection rules? (Auditability over simplicity)
+
+Parmana policies mix approval and rejection rules in one ordered array, exactly like
+`high-value-payment` above. That's a deliberate choice, not an oversight — some architectures
+prefer "approval-only + implicit default-reject" instead, and it's worth being explicit about
+why this codebase doesn't.
+
+**The engine is fail-closed by default, independent of how you write your policy.**
+`PolicyEngine.evaluate()`'s outcome-mapping switch (`PolicyEngine.ts`) treats any unmatched or
+unrecognized action as `REJECT` — this is the engine's own default branch, not something a
+policy author opts into. You don't have to remember a catch-all rule for the engine to fail
+closed; it already does.
+
+**So why write explicit rejection rules at all?** Because the audit trail records a specific,
+human-readable reason for every rejection — _"the vendor has not been verified"_, not a
+generic _"no rule matched."_ For a system whose refusals are independently, cryptographically
+verifiable (see [Refusal records](/concepts/refusal-records)), a specific reason is the whole
+point: compliance, debugging, and customer communication all need to know _why_, not just
+_that_.
+
+**First-match-wins means rule order matters.** `PolicyEngine.findFirstMatch()` evaluates rules
+in the order they appear in the JSON file and returns on the first one whose condition is
+true — there is no priority system beyond array order. This is a real source of bugs if two
+rules' conditions can both be true for the same input: whichever is listed first silently
+wins, with nothing surfacing that the second rule is partly or wholly shadowed.
+
+<Note>
+  `PolicyValidator.findRuleConflicts(policy)` checks for exactly this — pairs of
+  rules whose conditions can be true simultaneously — and `PolicyRouter.load()`
+  logs a `policy_rule_conflict_detected` warning naming them. It is **advisory,
+  not fail-closed** (unlike `boundSignals` coverage): a flagged pair might be a
+  genuine bug, or might be an intentional priority ordering between two
+  violation reasons that can legitimately co-occur (this repo's own
+  `hubspot-deal-update` policy has exactly one such case). It also only proves
+  `NO_OVERLAP` for condition shapes it can fully reason about (same-fact
+  `eq`/`neq`/numeric comparisons, and `all` conjunctions where at least one
+  conjunct is provably disjoint from the other side) — anything more complex is
+  reported as `NEEDS_REVIEW`, an honest "can't tell," never a guessed answer.
+</Note>
+
+## Troubleshoot
+
+- **Decision comes back `REJECTED` with `"reason": "One or more required policy conditions were not satisfied."`, not the reason you expected.** Your transaction's signals matched no earlier rule, only the trailing default. Check `signalsSchema` against what you actually sent, a typo'd signal name is silently `undefined`, which fails every `eq`/`gt`/`lte` condition.
+- **`PolicyValidator` throws about policy identity.** Your Business Transaction's `policy.name`/`policy.version` doesn't match the loaded file's `policyId`/`policyVersion` exactly, these are checked, not inferred from the file path.
+- **Wrong policy loaded, or "policy not found."** `FilePolicyRepository` resolves `<policyDir>/<name>/<version>/policy.json` literally, confirm the directory structure matches, including the version folder.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card
+    title="Authorize and execute an action end to end"
+    icon="play"
+    href="/guides/authorize-and-execute"
+  >
+    What happens after a policy approves: signing, gateway verification,
+    execution.
+  </Card>
+  <Card
+    title="Policies and the decision"
+    icon="scale-balanced"
+    href="/concepts/policies-and-the-decision"
+  >
+    The concept this guide exercises.
+  </Card>
+</CardGroup>
+
+---
+
+## Policy lifecycle and approvals
+
+Source: https://docs.parmanasystems.com/guides/policy-lifecycle-and-approvals
+
+A policy authorizes nothing until one person proposes it and a different person approves it with a signed step up authorization. Once approved, it is the version in effect for its action, with no deploy. Separately, a policy can say that some actions also need a named person's signed approval each time they run. This page covers both, in the order you do them.
+
+## Who does what
+
+| Role               | What they do                          | What they hold                                                        |
+| ------------------ | ------------------------------------- | --------------------------------------------------------------------- |
+| Author             | Writes the policy file                | A clone of the repository                                             |
+| Proposer (maker)   | Sends the policy for approval         | An API key added as a human (`credentialHolderType USER`)             |
+| Approver (checker) | Reviews and approves or rejects it    | Their own API key added as a human, and their own step up private key |
+| Operator           | Adds API keys, approver keys, deploys | Access to the deployment                                              |
+| Agent              | Sends requests that name the policy   | A service API key                                                     |
+| Action approver    | Signs off on one critical action      | Their own approval private key                                        |
+
+The proposer and the approver must be two different people. The server refuses an approval from the proposer's API key, but it cannot tell whether two keys belong to two people: keep each key on its owner's machine.
+
+## Part 1: from a policy file to a policy in effect
+
+```mermaid
+sequenceDiagram
+    participant A as Author
+    participant P as Proposer
+    participant S as Parmana
+    participant R as Approver
+    participant G as Agent
+    A->>A: Write policies/name/version/policy.json
+    P->>S: POST /policies/name/version/pending-changes
+    S-->>P: 201, pendingPolicyChangeId, PENDING_APPROVAL
+    R->>S: GET /policies/pending-changes?status=PENDING_APPROVAL
+    R->>R: Sign step up authorization (own key, 120 s)
+    R->>S: POST /policies/pending-changes/id/approve
+    S->>S: Check, sign approval record, save policy
+    S-->>R: 200, APPROVED
+    G->>S: POST /execute naming name at version
+    S->>S: Version in effect? Approval record valid? Evaluate
+```
+
+### 1. Write the policy
+
+A policy is a JSON file at `policies/<name>/<version>/policy.json`: `policyId`, `policyVersion`, `schemaVersion`, and ordered `rules`, where the first matching rule decides. See [Write your first policy](/guides/write-your-first-policy) for rules and operators. Three optional sections tie signals to reality:
+
+- `boundSignals`: a signal must equal a field of the request, such as `"refundAmount": "parameters.amount"`.
+- `unboundSignalReasons`: why a signal the rules read is not bound. Every fact a rule reads must be bound, declared as an approval signal, or given a reason here, or the policy is refused.
+- `approvalSignals`: signals that count as `true` only with a person's signed approval (Part 2).
+
+A new version of a live policy is a new folder, such as `customer-refund/1.2.0`, never an edit of an approved one. Check it before proposing: `npx vitest run packages/policy/tests/unit/ReferencePolicies.test.ts` validates every policy file under `policies/`.
+
+### 2. Set up the people, once
+
+- **Proposer and approver API keys**, each added as a human. On a self hosted deployment: [Manage API keys](/self-hosted/api-keys). Anything else gets `403 NON_HUMAN_CALLER_DENIED` on every governance call.
+- **The approver's step up key**, made on the approver's own machine. Only the public half goes to the operator:
+
+```bash
+openssl genpkey -algorithm ed25519 -out step-up.private.pem
+openssl pkey -in step-up.private.pem -pubout -out step-up.public.pem
+```
+
+The operator registers `step-up.public.pem` on the approver's API key and deploys.
+
+### 3. Propose
+
+The request carries the whole policy and a reason. The name and version in the URL must match `policyId` and `policyVersion` in the content, and the content must pass validation.
+
+<CodeGroup>
+
+```bash Bash
+export PARMANA_URL=https://your-parmana-host
+export PROPOSER_KEY=<the proposer's API key>
+
+printf '{"reason":"Why this should take effect.","proposedContent":%s}' \
+  "$(cat policies/customer-refund/1.2.0/policy.json)" > proposal.json
+
+curl -s -X POST $PARMANA_URL/policies/customer-refund/1.2.0/pending-changes \
+  -H "Authorization: Bearer $PROPOSER_KEY" -H "Content-Type: application/json" \
+  --data @proposal.json
+```
+
+```powershell PowerShell
+$url = "https://your-parmana-host"
+$key = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((Read-Host "Proposer API key" -AsSecureString)))
+# Read as UTF-8: Windows PowerShell 5.1 Get-Content uses the local codepage and changes characters such as an em dash.
+$policy = [System.IO.File]::ReadAllText("$PWD\policies\customer-refund\1.2.0\policy.json", [System.Text.Encoding]::UTF8)
+$body = '{"reason":"Why this should take effect.","proposedContent":' + $policy + '}'
+$r = Invoke-RestMethod -Method Post -Uri "$url/policies/customer-refund/1.2.0/pending-changes" `
+  -Headers @{ Authorization = "Bearer $key" } -ContentType "application/json" `
+  -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
+$r.pendingPolicyChangeId
+```
+
+</CodeGroup>
+
+The response is `201` with a `pendingPolicyChangeId` and status `PENDING_APPROVAL`. Only one open proposal per policy version is allowed; a second gets `409 CONFLICT`. Send the id to the approver.
+
+Send the file's content unchanged. The approval stores a hash of the approved policy content (`hashPolicyContent`), and CI's `verify-policy-approvals` job (`scripts/verify-policy-changes-approved.ts`) compares it with the hash of the file in git; the server makes the same comparison at startup (`verifyPolicyGovernanceIntegrityAtStartup.ts`). If any value differs, even one character inside a description, the check fails. A version that is already approved can be proposed and approved again; the most recent approval is the one that counts, both for CI and for the server.
+
+### 4. Review
+
+The approver lists what is waiting and reads the proposed content before signing:
+
+```bash
+curl -s "$PARMANA_URL/policies/pending-changes?status=PENDING_APPROVAL" \
+  -H "Authorization: Bearer $APPROVER_KEY"
+```
+
+### 5. Approve or reject
+
+The approver signs a step up authorization for this one change and this one action, on their own machine, then sends it within its lifetime (120 seconds at most). The SDKs sign too: `signPolicyChangeStepUp()` in TypeScript, `sign_policy_change_step_up()` in Python.
+
+<CodeGroup>
+
+```bash Bash
+export CHANGE_ID=<the pendingPolicyChangeId>
+
+npx tsx scripts/sign-policy-change-step-up.ts \
+  --private-key-file step-up.private.pem --key-id <approver caller id> \
+  --pending-policy-change-id "$CHANGE_ID" --action approve > signed.txt
+
+curl -s -X POST $PARMANA_URL/policies/pending-changes/$CHANGE_ID/approve \
+  -H "Authorization: Bearer $APPROVER_KEY" -H "Content-Type: application/json" \
+  -d "{\"stepUpAuthorization\":$(grep '^{' signed.txt)}"
+```
+
+```powershell PowerShell
+$changeId = "<the pendingPolicyChangeId>"
+$stepUp = npx tsx scripts/sign-policy-change-step-up.ts --private-key-file step-up.private.pem `
+  --key-id <approver caller id> --pending-policy-change-id $changeId --action approve | Where-Object { $_ -like '{*' }
+$body = '{"stepUpAuthorization":' + $stepUp + '}'
+Invoke-RestMethod -Method Post -Uri "$url/policies/pending-changes/$changeId/approve" `
+  -Headers @{ Authorization = "Bearer $key" } -ContentType "application/json" `
+  -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
+```
+
+</CodeGroup>
+
+To reject, sign with `--action reject` and post to `.../reject` with a `rejectionReason`.
+
+On approve, the server does this, in order, and stops at the first failure:
+
+1. The caller is a verified human, or `403 NON_HUMAN_CALLER_DENIED`.
+2. The change exists, or `404 PENDING_POLICY_CHANGE_NOT_FOUND`.
+3. The caller is not the proposer, or `403 SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE`.
+4. The step up authorization is valid for this change and action, signed by the key registered for this caller, not expired, not used before, or `403 STEP_UP_AUTHORIZATION_INVALID`.
+5. It writes a signed approval record: who proposed, who approved, when, the content hash before and after, and the hash of the previous record for this policy version, so records form a chain.
+6. It saves the policy content and marks the change `APPROVED`.
+
+### 6. It takes effect
+
+For an action bound to a policy (such as `paytm:refund` to `customer-refund`), the version in effect is the one with the most recent approval, so the approval is the release: no deploy. From then on:
+
+- Agents must name that version. A request naming any other version, including an older one that was approved before, is refused before any rule runs, with a message naming the version in effect.
+- To roll back, approve the older version again. The newest approval wins.
+
+Binding an action to a different policy name, or adding a new action, still needs a code change and a deploy.
+
+### 7. What is checked on every request
+
+- The version named is the version in effect for the action.
+- The loaded policy has an approval record, the record's signature verifies, and its content hash equals the live policy's. Anything else refuses the request, so a policy edited in the database outside this flow cannot authorize anything.
+- The gateway checks the approval record again just before release.
+- At startup, the server checks every policy against its latest approval record and logs the result.
+
+These checks are on whenever `NODE_ENV` is anything other than `test` or `development`, and nothing switches them off in production. In `test` or `development` they are off unless `POLICY_EXECUTION_VERIFICATION_ENFORCED=true`. So approve every policy a deployment executes against **before** promoting it; a policy still `PENDING_APPROVAL`, or rejected with no approved replacement, is refused on the first request.
+
+### 8. Check what is approved
+
+`content_hash_after` is a hash of the canonical JSON (keys sorted), not of the file bytes, so a plain file hash will not match. Use the script that compares every policy on disk with its latest approval record:
+
+```bash
+npx tsx scripts/verify-policy-changes-approved.ts --full-scan
+```
+
+The CI job `verify-policy-approvals` runs the same full scan on every push and pull request, and is a required check on `main`, so a pull request that adds a policy version merges only after that version is approved in production. A rejection writes no approval record: the change's `rejectionReason` is the record it leaves.
+
+### Sign and submit in one step
+
+Signing and sending by hand leaves a gap in which the 120 second step up lifetime can run out. `scripts/local-review-action.ts` signs and submits in one process, on the approver's own machine:
+
+```powershell
+$env:REVIEWER_KEY = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR((Read-Host "Approver API key" -AsSecureString)))
+npx tsx scripts/local-review-action.ts --pending-policy-change-id <id> --action approve `
+  --private-key-file <path to your step-up.private.pem> --key-id <your caller id> `
+  --api-base https://your-parmana-host
+```
+
+Always pass `--private-key-file`, `--key-id` and `--api-base`: the defaults name a local file, a caller id and a host from this project's own setup. The script prints the HTTP status and response only, never a key.
+
+`scripts/refresh-approved-policy-content.ts` proposes the file on disk and approves it in one run, so it needs both the proposer's and the approver's keys in one process. That is one person acting as both; use it only in a test environment, never where the approval record must stand for a second person.
+
+## Part 2: a person signs off on one action
+
+Some actions need a person each time, such as a refund above 10000. The policy declares which signal needs a signed approval, and where the request says what the approval is for:
+
+```json
+"approvalSignals": {
+  "managerApproved": { "resourceId": "parameters.orderId", "value": "parameters.amount" }
+}
+```
+
+`resourceId` is `"target"` or a path into `parameters`; `value` is optional and must point at a number. Without `value`, the approval names exactly one resource, which suits a merge approval (`"resourceId": "target"`, for `acme/api#42`).
+
+```mermaid
+sequenceDiagram
+    participant G as Agent
+    participant S as Parmana
+    participant M as Manager
+    G->>S: Refund 75000, managerApproved false
+    S-->>G: 403, amounts above 10000 need a signed manager approval
+    M->>S: Finds the refusal (Refusal Records)
+    M->>M: sign-approval.ts: this order, up to 75000, 15 min, once
+    M-->>G: approval.json
+    G->>S: New request, managerApproved true, approvalArtifact
+    S->>S: Verify before authorizing, use it once
+    S->>S: Gateway verifies again before release
+    S-->>G: 200, refund executed, signed record
+```
+
+### Set up an action approver, once
+
+```bash
+npx tsx scripts/generate-approver-key.ts \
+  --approver-id manager-priya --key-id manager-priya-key-1 --out-dir ~/.parmana
+```
+
+The private key stays on the manager's machine. The operator adds `{ approverId, keyId, revoked: false, publicKeyPem }` to `TRUSTED_APPROVAL_ISSUERS` in `packages/api/src/bootstrap/createApprovalIssuerRegistry.ts`, with the contents of the `.public.pem` file as `publicKeyPem`, and deploys. To revoke, set `revoked: true` and deploy.
+
+### Sign an approval
+
+```bash
+npx tsx scripts/sign-approval.ts \
+  --private-key-file ~/.parmana/manager-priya__manager-priya-key-1.private.pem \
+  --approver-id manager-priya --key-id manager-priya-key-1 \
+  --capability paytm:refund --resource-id ORD-1042 --max-amount 75000 --out approval.json
+```
+
+The agent sends a new request with the approval signal set to `true` and the contents of `approval.json` in `signals.approvalArtifact`. Parmana checks the approver is trusted and not revoked, the Ed25519 signature, the expiry, the action, the resource and the amount taken from the request, never from the agent's signals, and that the approval was not used before. It checks again at the gateway just before release. Without a valid approval the request is refused:
+
+```text
+Execution rejected: Rejected: declared signal(s) do not match independently verified state (managerApproved=true != verified managerApproved=false).
+```
+
+To find refusals waiting for a manager, query the Refusal Records for `matchedRuleId = 'reject-manager-approval-required'` (see [Human approval](/concepts/human-approval#review-refused-requests)).
+
+To see the whole flow run, without a server or AWS, run tutorial 119: `npx tsx examples/tutorials/119-human-approval-for-one-action/run.ts`. It uses the real `customer-refund` 1.2.0 policy and shows a small refund refused without a manager, a refusal, a refused unsigned claim, a signed approval accepted and checked again before release, and an approval refused when reused, stretched to a larger amount or moved to another order.
+
+## Where it is recorded
+
+| Table                                   | Holds                                                                               |
+| --------------------------------------- | ----------------------------------------------------------------------------------- |
+| `pending_policy_changes`                | Every proposal, its status, who proposed and who resolved it                        |
+| `policy_change_approval_records`        | Signed, chained approval records; the latest per name decides the version in effect |
+| `policies`                              | The approved policy content                                                         |
+| `consumed_policy_change_step_up_nonces` | Step up authorizations already used                                                 |
+| `consumed_approval_nonces`              | Action approvals already used                                                       |
+| `refusal_records`                       | Every refused request, signed                                                       |
+
+## Troubleshooting
+
+| You see                                    | Cause                                                                                                                                                           | Fix                                                                                                                                                                                |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `401` `authentication required`            | The API key is missing, wrong or rotated, or the header is not `Authorization: Bearer <key>`                                                                    | Check the variable is set in this terminal (`$env:REVIEWER_KEY.Length` prints a number, not `0`).                                                                                  |
+| `403 STEP_UP_AUTHORIZATION_INVALID`        | The signature expired (over 120 seconds), was already used, or was made with a private key that does not match the `stepUpPublicKey` registered for this caller | Sign again and send at once, or use `local-review-action.ts`. If it persists, check your private key matches the registered public key (after a rotation, replace the `.pem` too). |
+| `403 SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE` | The approving API key belongs to the proposer                                                                                                                   | A different person approves with their own key. There is no override.                                                                                                              |
+| `403 NON_HUMAN_CALLER_DENIED`              | The API key is not registered as a human (`credentialHolderType USER`)                                                                                          | The operator registers it as a human.                                                                                                                                              |
+| `400` naming a field on propose            | The body is malformed, `policyId` does not match the name in the URL, or the version has characters outside `A-Z a-z 0-9 . _ -`                                 | Read the `error` message; it names the field.                                                                                                                                      |
+| `400 Malformed JSON body`                  | The shell changed the quotes in an inline JSON body                                                                                                             | Build the body in a variable or a file as shown above, not inline in the command.                                                                                                  |
+| `409 CONFLICT` on propose                  | A proposal for this policy version is already open                                                                                                              | Approve or reject the open one first.                                                                                                                                              |
+| Approved content lacks fields the file has | Proposals are frozen snapshots. An old proposal approved later carries the old content                                                                          | Reject stale proposals and propose again from the current file, then run the full scan above.                                                                                      |
+
+## Good to know
+
+- A decision is final. A change moves from `PENDING_APPROVAL` to `APPROVED` or `REJECTED` once and never back; to change your mind, propose again.
+- The step up private key is never sent. Only the signed authorization it produces is.
+- With a database configured, approved content is written to the `policies` table through `SupabasePolicyRepository`, and requests read it from there. With `PARMANA_STORAGE=memory` it is written to the local file.
+- `packages/governance-ui` can propose, list and show a diff, but cannot approve or reject: a web page that collected a step up private key would break the rule that the key never leaves its owner's machine.
+- The code for this flow is small: `packages/api/src/routes/pending-policy-changes.ts`, `packages/api/src/governance/PolicyChangeApprovalService.ts` and `packages/api/src/auth/PolicyChangeStepUpVerifier.ts`.
+
+## Keep it honest
+
+- Two people, two machines, two keys. A single person holding both API keys makes the record claim a second person who does not exist.
+- Never paste an API key into a chat or a ticket. `Read-Host -AsSecureString` in PowerShell keeps it off the screen. Rotate any key that was shown.
+- Approver private keys never leave their owner's machine; only public keys are shared.
+
+---
+
+## Manage approvers
+
+Source: https://docs.parmanasystems.com/guides/manage-approvers
+
+Every agent action needs a signed approval from a trusted approver key, reads included, such as
+a manager approving a refund or a reviewer approving a pull request read
+([Human approval](/concepts/human-approval)). With no trusted approver, nothing an agent asks
+for runs. This guide shows how to trust a new
+approver key, rotate one, and revoke one, through the API. Each change is proposed by one
+person and approved by a different person with a step up signature, and it takes effect on
+the next request. Nothing is deployed.
+
+<Info>
+  Approvers added this way are stored in the `approval_issuers` table. Approvers
+  listed in the server code (`createApprovalIssuerRegistry.ts`) still work, and
+  are shown by the same list call, but they change only with a pull request and
+  a deploy.
+</Info>
+
+## How it works
+
+```mermaid
+sequenceDiagram
+    participant A as New approver
+    participant P as Proposer
+    participant S as Parmana
+    participant C as Checker
+    participant G as Agent
+    A->>A: Generate an Ed25519 key pair, keep the private key
+    A->>P: Send the public key
+    P->>S: POST /approval-issuers/changes (action add)
+    S-->>P: 201, changeId, PENDING_APPROVAL
+    C->>S: GET /approval-issuers/changes?status=PENDING_APPROVAL
+    C->>C: Sign a step up authorization for changeId
+    C->>S: POST /approval-issuers/changes/changeId/approve
+    S-->>C: 200, APPROVED, the key is trusted
+    A->>A: Sign an approval for one action
+    G->>S: POST /execute with the approval
+    S-->>G: 200, authorized
+```
+
+| Rule                                    | What the server does                                                                  |
+| --------------------------------------- | ------------------------------------------------------------------------------------- |
+| Only people change approvers            | Every call needs an API key added as a human (`credentialHolderType USER`)            |
+| The proposer is never the checker       | `403 SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE`, in the API and in the database            |
+| Approve and reject need fresh intent    | A step up authorization for this change and this action, valid once, 120 seconds      |
+| One open change per approver key        | A second proposal for the same key is `409 CONFLICT` until the first is resolved      |
+| Approving applies the change atomically | The key is added or revoked and the change resolved in one database transaction       |
+| A change takes effect at once           | The next approval checked reads the table; nothing is cached                          |
+| Nothing is deleted                      | A revoked key stays listed, so every approval it ever signed can still be explained   |
+| Key ids are used once                   | A key id that exists, revoked or not, cannot be added again: rotate with a new key id |
+| Failures refuse                         | If the table cannot be read, the approver is unknown and the approval is refused      |
+
+## Before you begin
+
+You need three people, or at least three roles:
+
+- **The new approver**, who will sign approvals. They make their own key pair and never share
+  the private key.
+- **A proposer** with an API key added as a human.
+- **A checker**, a different person, with an API key added as a human and a registered step up
+  key. This is the same setup policy approvals use: see
+  [Policy lifecycle and approvals](/guides/policy-lifecycle-and-approvals#2-set-up-the-people-once).
+
+The deployment needs the migration `20260929120000_add_approval_issuers.sql`. Self hosted
+deployments apply it on start. Otherwise run `npm run db:migrate -- apply` before deploying
+this version, as in [Production deployment, step 2](/deployment/production#step-2-create-the-database-schema).
+
+## Step 1: The approver makes a key pair
+
+On the approver's own machine:
+
+```bash
+npx tsx scripts/generate-approver-key.ts \
+  --approver-id manager-priya \
+  --key-id manager-priya-key-1 \
+  --out-dir ~/.parmana
+```
+
+This writes `manager-priya__manager-priya-key-1.private.pem`, which stays on that machine, and
+`manager-priya__manager-priya-key-1.public.pem`, which they send to the proposer. Any Ed25519
+key works; `openssl genpkey -algorithm ed25519` makes one too.
+
+`approverId` and `keyId` are the names the approver will put in every approval they sign. Use
+letters, digits, `.`, `_` and `-`, at most 128 characters. Put a number in the key id, so a
+later key can have the next one.
+
+## Step 2: Propose adding the key
+
+<CodeGroup>
+
+```bash curl
+curl -X POST "$PARMANA_URL/approval-issuers/changes" \
+  -H "Authorization: Bearer $PROPOSER_KEY" \
+  -H "Content-Type: application/json" \
+  --data "$(jq -n --rawfile pem manager-priya__manager-priya-key-1.public.pem '{
+    action: "add",
+    approverId: "manager-priya",
+    keyId: "manager-priya-key-1",
+    publicKeyPem: $pem,
+    reason: "Priya approves refunds for the West region from October."
+  }')"
+```
+
+```typescript TypeScript
+import { readFileSync } from "node:fs";
+import { ParmanaClient } from "@parmana/sdk";
+
+const proposer = new ParmanaClient({
+  endpoint: process.env.PARMANA_URL!,
+  apiKey: process.env.PROPOSER_KEY,
+});
+
+const change = await proposer.proposeApproverChange({
+  action: "add",
+  approverId: "manager-priya",
+  keyId: "manager-priya-key-1",
+  publicKeyPem: readFileSync(
+    "manager-priya__manager-priya-key-1.public.pem",
+    "utf8",
+  ),
+  reason: "Priya approves refunds for the West region from October.",
+});
+
+console.log(change.changeId); // send this to the checker
+```
+
+```python Python
+import os
+from pathlib import Path
+from parmana import ParmanaClient
+
+proposer = ParmanaClient(endpoint=os.environ["PARMANA_URL"], api_key=os.environ["PROPOSER_KEY"])
+
+change = proposer.approvers.propose_add(
+    approver_id="manager-priya",
+    key_id="manager-priya-key-1",
+    public_key_pem=Path("manager-priya__manager-priya-key-1.public.pem").read_text(),
+    reason="Priya approves refunds for the West region from October.",
+)
+
+print(change.change_id)  # send this to the checker
+```
+
+</CodeGroup>
+
+The response is the change, waiting for a checker:
+
+```json 201 Created
+{
+  "changeId": "ba7c5827-5844-4069-94fc-9b438ef08f78",
+  "action": "add",
+  "approverId": "manager-priya",
+  "keyId": "manager-priya-key-1",
+  "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAEDuWHf+bbRY7J/Mr0RVmAKYHH5CDijTWhdnISXWLD6Y=\n-----END PUBLIC KEY-----\n",
+  "reason": "Priya approves refunds for the West region from October.",
+  "proposedBy": "human-maker",
+  "proposedAt": "2026-09-28T19:05:59.726Z",
+  "status": "PENDING_APPROVAL"
+}
+```
+
+The server stores the key in canonical PEM. A key that is not Ed25519 is refused with `400`.
+
+## Step 3: The checker reviews it
+
+<CodeGroup>
+
+```bash curl
+curl "$PARMANA_URL/approval-issuers/changes?status=PENDING_APPROVAL" \
+  -H "Authorization: Bearer $CHECKER_KEY"
+```
+
+```typescript TypeScript
+const pending = await checker.approverChanges("PENDING_APPROVAL");
+```
+
+```python Python
+pending = checker.approver_changes("PENDING_APPROVAL")
+```
+
+</CodeGroup>
+
+Check the approver and key id, the reason, and that the public key is the one the approver
+sent you, compared over a channel other than the one the proposer used.
+
+## Step 4: The checker approves it
+
+The checker signs a step up authorization on their own machine, naming this change and the
+action, and sends it with the approval. It is the same step up authorization policy changes
+use: the change id goes in `pendingPolicyChangeId`.
+
+<CodeGroup>
+
+```bash curl
+npx tsx scripts/sign-policy-change-step-up.ts \
+  --private-key-file ~/.parmana/step-up.private.pem \
+  --key-id checker-step-up-1 \
+  --pending-policy-change-id ba7c5827-5844-4069-94fc-9b438ef08f78 \
+  --action approve > step-up.json
+
+curl -X POST "$PARMANA_URL/approval-issuers/changes/ba7c5827-5844-4069-94fc-9b438ef08f78/approve" \
+  -H "Authorization: Bearer $CHECKER_KEY" \
+  -H "Content-Type: application/json" \
+  --data "{\"stepUpAuthorization\": $(cat step-up.json)}"
+```
+
+```typescript TypeScript
+import { readFileSync } from "node:fs";
+import { ParmanaClient, signPolicyChangeStepUp } from "@parmana/sdk";
+
+const checker = new ParmanaClient({
+  endpoint: process.env.PARMANA_URL!,
+  apiKey: process.env.CHECKER_KEY,
+});
+
+const approved = await checker.approveApproverChange(
+  changeId,
+  signPolicyChangeStepUp({
+    pendingPolicyChangeId: changeId,
+    action: "approve",
+    privateKeyPem: readFileSync("step-up.private.pem", "utf8"),
+    keyId: "checker-step-up-1",
+  }),
+);
+```
+
+```python Python
+from pathlib import Path
+from parmana.crypto import sign_policy_change_step_up
+
+approved = checker.approve_approver_change(
+    change_id,
+    sign_policy_change_step_up(
+        pending_policy_change_id=change_id,
+        action="approve",
+        private_key_pem=Path("step-up.private.pem").read_text(),
+        key_id="checker-step-up-1",
+    ),
+)
+```
+
+</CodeGroup>
+
+```json 200 OK
+{
+  "changeId": "ba7c5827-5844-4069-94fc-9b438ef08f78",
+  "action": "add",
+  "approverId": "manager-priya",
+  "keyId": "manager-priya-key-1",
+  "status": "APPROVED",
+  "proposedBy": "human-maker",
+  "resolvedBy": "human-checker",
+  "resolvedAt": "2026-09-28T19:05:59.738Z",
+  "...": "..."
+}
+```
+
+From the next request on, approvals signed with `manager-priya-key-1` verify.
+
+## Step 5: Confirm the key is trusted
+
+<CodeGroup>
+
+```bash curl
+curl "$PARMANA_URL/approval-issuers" -H "Authorization: Bearer $CHECKER_KEY"
+```
+
+```typescript TypeScript
+const approvers = await checker.approvers();
+```
+
+```python Python
+approvers = checker.list_approvers()
+```
+
+</CodeGroup>
+
+```json 200 OK
+{
+  "issuers": [
+    {
+      "approverId": "manager-charak1987",
+      "keyId": "manager-charak1987-key-1",
+      "revoked": false,
+      "source": "code",
+      "publicKeyPem": "-----BEGIN PUBLIC KEY-----\n..."
+    },
+    {
+      "approverId": "manager-priya",
+      "keyId": "manager-priya-key-1",
+      "revoked": false,
+      "source": "governed",
+      "addedByChangeId": "ba7c5827-5844-4069-94fc-9b438ef08f78",
+      "addedAt": "2026-09-28T19:05:59.738Z",
+      "publicKeyPem": "-----BEGIN PUBLIC KEY-----\n..."
+    }
+  ]
+}
+```
+
+The approver can now sign approvals, with `scripts/sign-approval.ts`, `signApproval()` or
+`parmana.crypto.sign_approval()`. See [Human approval](/concepts/human-approval).
+
+## Rotate a key
+
+Key ids are used once, so a rotation is two changes:
+
+1. The approver makes a new key pair with the next key id, such as `manager-priya-key-2`.
+2. Propose and approve adding it (Steps 2 to 4).
+3. The approver signs new approvals with the new key.
+4. Propose and approve revoking the old key (below).
+
+Approvals signed with the old key keep working until step 4. Approvals are valid for 15 minutes
+by default, so revoking a few minutes after the switch refuses none that are in use.
+
+## Revoke a key
+
+Revoke when an approver leaves the role, or a private key may be exposed. Once the revocation is
+approved, every approval the key ever signed is refused, including ones not used yet.
+
+<CodeGroup>
+
+```bash curl
+curl -X POST "$PARMANA_URL/approval-issuers/changes" \
+  -H "Authorization: Bearer $PROPOSER_KEY" \
+  -H "Content-Type: application/json" \
+  --data '{"action":"revoke","approverId":"manager-priya","keyId":"manager-priya-key-1","reason":"Priya moved to another team."}'
+```
+
+```typescript TypeScript
+const revoke = await proposer.proposeApproverChange({
+  action: "revoke",
+  approverId: "manager-priya",
+  keyId: "manager-priya-key-1",
+  reason: "Priya moved to another team.",
+});
+```
+
+```python Python
+revoke = proposer.approvers.propose_revoke(
+    approver_id="manager-priya",
+    key_id="manager-priya-key-1",
+    reason="Priya moved to another team.",
+)
+```
+
+</CodeGroup>
+
+A checker then approves it as in Step 4. Only keys added through approver changes can be
+revoked this way; a key in the server code is revoked by setting `revoked: true` there and
+deploying.
+
+<Warning>
+  A revocation needs a second person, like every change. If a private key is exposed and no
+  checker can be reached, an operator with database access can revoke it directly. This skips
+  maker checker, so the change row must name who did it and why:
+
+```sql
+begin;
+insert into approval_issuer_changes
+  (change_id, action, approver_id, key_id, reason, proposed_by, proposed_at,
+   status, resolved_by, resolved_at)
+values
+  ('emergency-2026-10-01-1', 'revoke', 'manager-priya', 'manager-priya-key-1',
+   'Emergency: private key exposed. Done at the database by the operator.',
+   'operator-a', now(), 'APPROVED', 'operator-b', now());
+update approval_issuers
+set revoked = true, revoked_by_change_id = 'emergency-2026-10-01-1', revoked_at = now()
+where approver_id = 'manager-priya' and key_id = 'manager-priya-key-1' and revoked = false;
+commit;
+```
+
+</Warning>
+
+## Reject a change
+
+<CodeGroup>
+
+```bash curl
+curl -X POST "$PARMANA_URL/approval-issuers/changes/$CHANGE_ID/reject" \
+  -H "Authorization: Bearer $CHECKER_KEY" \
+  -H "Content-Type: application/json" \
+  --data "{\"rejectionReason\": \"Priya stays on refunds until 31 October.\", \"stepUpAuthorization\": $(cat step-up-reject.json)}"
+```
+
+```typescript TypeScript
+await checker.rejectApproverChange(
+  changeId,
+  "Priya stays on refunds until 31 October.",
+  signPolicyChangeStepUp({
+    pendingPolicyChangeId: changeId,
+    action: "reject",
+    privateKeyPem,
+    keyId,
+  }),
+);
+```
+
+```python Python
+checker.reject_approver_change(
+    change_id,
+    "Priya stays on refunds until 31 October.",
+    sign_policy_change_step_up(
+        pending_policy_change_id=change_id, action="reject", private_key_pem=pem, key_id=key_id
+    ),
+)
+```
+
+</CodeGroup>
+
+A rejection changes no key. The change keeps its `rejectionReason`.
+
+## Errors
+
+| Status | Code                                   | When                                                                                                                          | What to do                                                                  |
+| ------ | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| 400    | none                                   | `action` is not `add` or `revoke`, an id has other characters, `reason` is missing, or `publicKeyPem` is not an Ed25519 key   | Fix the request. The message names the field.                               |
+| 401    | `UNAUTHORIZED`                         | No API key, or an unknown one                                                                                                 | Send `Authorization: Bearer <key>`.                                         |
+| 403    | `NON_HUMAN_CALLER_DENIED`              | The API key is not added as a human                                                                                           | Use a person's key, not an agent's.                                         |
+| 403    | `SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE` | The checker is the proposer                                                                                                   | A different person approves.                                                |
+| 403    | `STEP_UP_AUTHORIZATION_INVALID`        | No step up, or one that is expired, reused, for another change or action, or signed with a key not registered to this checker | Sign a new one for this change id and action, and send it within 2 minutes. |
+| 404    | `APPROVAL_ISSUER_CHANGE_NOT_FOUND`     | No change has this id                                                                                                         | Check the id from the proposal.                                             |
+| 409    | `CONFLICT`                             | The key is in code, already exists, is not active (revoke), another change for it is pending, or the change is resolved       | Read the message. Use a new key id to add a key again.                      |
+
+## Reference
+
+- API: [List approver keys](/api-reference/endpoints/list-approval-issuers),
+  [Propose](/api-reference/endpoints/propose-approval-issuer-change),
+  [List changes](/api-reference/endpoints/list-approval-issuer-changes),
+  [Approve](/api-reference/endpoints/approve-approval-issuer-change),
+  [Reject](/api-reference/endpoints/reject-approval-issuer-change).
+- Tables: [`approval_issuers` and `approval_issuer_changes`](/storage/schema-reference#approval_issuers-and-approval_issuer_changes).
+- The server logs `approval_issuer_change_approved` for every approved change, and
+  `approval_issuer_lookup_failed` when the table could not be read during a check.
+
+---
+
+## Approval notifications
+
+Source: https://docs.parmanasystems.com/guides/approval-notifications
+
+When an agent sends a request that a policy authorizes only with a signed approval, such as a
+refund that needs a manager, Parmana refuses it and the agent must send a new request with the
+approval attached. Approval notifications tell the approver right away, with exactly what they
+need to sign, in one or both of two ways:
+
+| Channel | You set                                           | Best for                                                                   |
+| ------- | ------------------------------------------------- | -------------------------------------------------------------------------- |
+| Email   | `APPROVAL_EMAIL_TO`, and the Resend integration   | A person's inbox, with nothing to host. [Set up email](#email).            |
+| Webhook | `APPROVAL_WEBHOOK_URL`, `APPROVAL_WEBHOOK_SECRET` | Your own system: Slack, a ticket, a queue. [Set up the webhook](#webhook). |
+
+Both carry the same facts and are sent under the same rule, below.
+
+```mermaid
+sequenceDiagram
+    participant G as Agent
+    participant S as Parmana
+    participant W as Your endpoint
+    participant M as Approver
+    G->>S: POST /execute (refund, no approval)
+    S->>S: Refuse. Would an approval authorize it? Yes
+    S->>W: POST approval.needed (signed)
+    S-->>G: 403 POLICY_DENIED
+    W->>W: Verify the signature
+    W->>M: Slack, email, ticket: "Refund ORD-1042, 75000, needs you"
+    M->>M: Sign an approval for ORD-1042 up to 75000
+    M->>G: The approval
+    G->>S: POST /execute (same refund, approval attached)
+    S-->>G: 200, authorized
+```
+
+## When an event is sent
+
+Parmana sends one event when all of these hold:
+
+1. The request was refused by the policy's own rules, or because an attached approval did not
+   verify.
+2. The policy declares `approvalSignals`.
+3. Evaluating the same policy, with every declared approval signal set to `true`, authorizes
+   the request.
+
+The third condition means an event only goes out when an approval would actually help. A refund
+refused for a failed fraud check, or above the policy's maximum, sends nothing, because a
+manager's signature would not change the outcome. Requests refused before the policy runs, such
+as a bad API key or a request whose signals do not match its own parameters, send nothing.
+
+## Email
+
+Parmana emails each event through [Resend](https://resend.com), from a domain you own.
+
+<Steps>
+  <Step title="Add Resend to the Vercel project">
+    From the repository, linked to the project with `npx vercel link`:
+
+    ```bash
+    npx vercel integration add resend/resend-email --environment production \
+      -m domain=notify.example.com -m region=us-east-1
+    ```
+
+    Accept Resend's terms in the browser when asked. This sets `RESEND_API_KEY` and
+    `RESEND_EMAIL_DOMAIN` on the project. Use a subdomain, such as `notify.example.com`, so its
+    records cannot affect other mail on your domain.
+
+  </Step>
+  <Step title="Verify the domain">
+    Resend lists three DNS records for the domain: a DKIM `TXT` record at
+    `resend._domainkey.notify`, and an `MX` and a `TXT` (SPF) record at `send.notify`. Add them
+    at your DNS provider. Emails are refused until the domain shows **Verified** in Resend.
+  </Step>
+  <Step title="Name the recipients">
+    ```bash
+    npx vercel env add APPROVAL_EMAIL_TO production
+    ```
+    One address, or several separated by commas. Then redeploy.
+  </Step>
+</Steps>
+
+Emails come from `Parmana approvals <approvals@<RESEND_EMAIL_DOMAIN>>`, or from
+`APPROVAL_EMAIL_FROM` if you set it. A missing Resend key, a missing sender, or an address that
+is not valid stops the server at startup, so a broken setup cannot fail silently.
+
+A notification email looks like this:
+
+```text
+Subject: Approval needed: paytm:refund ORD-1042 up to 75000
+
+A request was refused because it needs a signed approval.
+
+Action:       paytm:refund
+Target:       paytm://orders/ORD-1042
+Policy:       customer-refund 1.2.0
+Transaction:  5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90
+Refused at:   2026-09-29T10:15:02.114Z
+Sent by:      refund-agent
+
+To approve, sign on your own machine:
+  capability  paytm:refund
+  resourceId  ORD-1042
+  maxAmount   75000
+  signal      managerApproved
+
+Then send the approval to the agent, which resends the request with it.
+If you do not approve, do nothing: the request stays refused.
+```
+
+Each refusal sends at most one email: the send carries the idempotency key
+`approval-needed/<decisionId>`, so a retried send is not delivered twice. Delivery follows the
+same rules as the webhook: one attempt, a failure is logged and never changes the refusal.
+
+## Webhook
+
+### Set it up
+
+<Steps>
+  <Step title="Create an endpoint">
+    Any HTTPS endpoint that accepts a JSON `POST` and answers `2xx` within 3 seconds: a small
+    function of your own, a Slack workflow webhook behind a relay, or an automation service.
+  </Step>
+  <Step title="Generate a secret">
+    ```bash
+    openssl rand -hex 32
+    ```
+    Store it where your endpoint can read it. You will verify every event with it.
+  </Step>
+  <Step title="Configure Parmana">
+    Set both variables on the deployment, then redeploy:
+
+    ```bash
+    APPROVAL_WEBHOOK_URL=https://hooks.example.com/parmana-approvals
+    APPROVAL_WEBHOOK_SECRET=<the secret>
+    ```
+
+    With `PARMANA_SECRETS_PROVIDER=aws-secrets-manager`, `APPROVAL_WEBHOOK_SECRET` is the name or
+    ARN of the secret instead of its value. Setting only one of the two stops the server at
+    startup. The URL must be `https` outside `NODE_ENV=test` and `development`.
+
+  </Step>
+  <Step title="Send a test request">
+    Send a request the policy refuses only for want of an approval, for example a refund with
+    `managerApproved: false` and every other fact true. Your endpoint receives an event.
+  </Step>
+</Steps>
+
+## The event
+
+```json
+{
+  "type": "approval.needed",
+  "occurredAt": "2026-09-29T10:15:02.114Z",
+  "businessTransactionId": "5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90",
+  "decisionId": "a91e6c1d-0b8f-4f3a-8e57-6f2d1c9b7a44",
+  "action": "paytm:refund",
+  "target": "paytm://orders/ORD-1042",
+  "policyId": "customer-refund",
+  "policyVersion": "1.2.0",
+  "reason": "No rule matched.",
+  "submittedBy": "refund-agent",
+  "approvals": [
+    { "signal": "managerApproved", "resourceId": "ORD-1042", "value": 75000 }
+  ]
+}
+```
+
+<ResponseField name="type" type="string" required>
+  Always `approval.needed`.
+</ResponseField>
+
+<ResponseField name="occurredAt" type="string" required>
+  When the request was refused, ISO 8601 UTC.
+</ResponseField>
+
+<ResponseField name="businessTransactionId" type="string" required>
+  The refused request. Its Refusal Record has the full decision.
+</ResponseField>
+
+<ResponseField name="decisionId" type="string" required>
+  The refusal decision.
+</ResponseField>
+
+<ResponseField name="action" type="string" required>
+  The action that needs approval, such as `paytm:refund`. Sign with this as
+  `capability`.
+</ResponseField>
+
+<ResponseField name="target" type="string" required>
+  The request's target.
+</ResponseField>
+
+<ResponseField name="policyId" type="string" required>
+  The policy that refused it.
+</ResponseField>
+
+<ResponseField name="policyVersion" type="string" required>
+  Its version.
+</ResponseField>
+
+<ResponseField name="reason" type="string">
+  The refusal reason from the policy.
+</ResponseField>
+
+<ResponseField name="submittedBy" type="string">
+  The caller that sent the request, when known.
+</ResponseField>
+
+<ResponseField name="approvals" type="object[]" required>
+  One entry per approval the policy declares.
+
+  <Expandable title="properties">
+    <ResponseField name="signal" type="string" required>
+      The approval signal, such as `managerApproved`. The agent sets it to `true` on the new
+      request.
+    </ResponseField>
+    <ResponseField name="resourceId" type="string">
+      What the approval must name, read from the request at the policy's `resourceId` path. Sign
+      with this as `resourceId`. Absent if the request did not carry it.
+    </ResponseField>
+    <ResponseField name="value" type="number">
+      The amount the approval must cover, read at the policy's `value` path. Sign with at least
+      this as the maximum amount. Absent when the policy declares no amount.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+The event carries only what the approver needs. Other request parameters and signals are not
+sent; look them up by `businessTransactionId` if you need them.
+
+## Verify the signature
+
+Every event has two headers:
+
+| Header                      | Value                                                                                      |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| `parmana-webhook-timestamp` | Unix seconds when it was sent                                                              |
+| `parmana-webhook-signature` | `v1=` and the lowercase hex HMAC SHA256 of `<timestamp>.<raw body>`, keyed with the secret |
+
+Verify against the raw request body, before parsing it, compare in constant time, and refuse a
+timestamp more than 5 minutes old so a captured event cannot be replayed later.
+
+<CodeGroup>
+
+```typescript Node.js
+import { createHmac, timingSafeEqual } from "node:crypto";
+import express from "express";
+
+const app = express();
+
+app.post(
+  "/parmana-approvals",
+  express.raw({ type: "application/json" }),
+  (req, res) => {
+    const timestamp = req.header("parmana-webhook-timestamp") ?? "";
+    const signature = req.header("parmana-webhook-signature") ?? "";
+    const body = req.body.toString("utf8");
+
+    const expected =
+      "v1=" +
+      createHmac("sha256", process.env.APPROVAL_WEBHOOK_SECRET!)
+        .update(`${timestamp}.${body}`)
+        .digest("hex");
+
+    const fresh = Math.abs(Date.now() / 1000 - Number(timestamp)) < 300;
+    const valid =
+      expected.length === signature.length &&
+      timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+
+    if (!fresh || !valid) {
+      res.status(400).end();
+      return;
+    }
+
+    const event = JSON.parse(body);
+    // Hand off to a queue or notify the approver, then answer fast.
+    res.status(204).end();
+  },
+);
+```
+
+```python Python
+import hashlib
+import hmac
+import json
+import os
+import time
+
+from flask import Flask, abort, request
+
+app = Flask(__name__)
+SECRET = os.environ["APPROVAL_WEBHOOK_SECRET"].encode()
+
+
+@app.post("/parmana-approvals")
+def approvals():
+    timestamp = request.headers.get("parmana-webhook-timestamp", "")
+    signature = request.headers.get("parmana-webhook-signature", "")
+    body = request.get_data()  # raw bytes, before parsing
+
+    expected = "v1=" + hmac.new(
+        SECRET, timestamp.encode() + b"." + body, hashlib.sha256
+    ).hexdigest()
+
+    fresh = timestamp.isdigit() and abs(time.time() - int(timestamp)) < 300
+    if not fresh or not hmac.compare_digest(expected, signature):
+        abort(400)
+
+    event = json.loads(body)
+    # Hand off to a queue or notify the approver, then answer fast.
+    return "", 204
+```
+
+</CodeGroup>
+
+## From event to approval
+
+The approver signs exactly what the event names:
+
+<CodeGroup>
+
+```bash Script
+npx tsx scripts/sign-approval.ts \
+  --private-key-file ~/.parmana/manager-priya__manager-priya-key-1.private.pem \
+  --approver-id manager-priya --key-id manager-priya-key-1 \
+  --capability "$ACTION" --resource-id "$RESOURCE_ID" --max-amount "$VALUE" \
+  --out approval.json
+```
+
+```typescript TypeScript
+import { signApproval } from "@parmana/sdk";
+
+const [needed] = event.approvals;
+const approval = signApproval({
+  privateKeyPem,
+  approverId: "manager-priya",
+  keyId: "manager-priya-key-1",
+  capability: event.action,
+  resourceId: needed.resourceId,
+  ...(needed.value !== undefined ? { maxAmount: needed.value } : {}),
+});
+```
+
+```python Python
+from parmana.crypto import sign_approval
+
+needed = event["approvals"][0]
+approval = sign_approval(
+    private_key_pem=private_key_pem,
+    approver_id="manager-priya",
+    key_id="manager-priya-key-1",
+    capability=event["action"],
+    resource_id=needed["resourceId"],
+    max_amount=needed.get("value"),
+)
+```
+
+</CodeGroup>
+
+The agent then sends a new request, with a new `businessTransactionId`, the approval signal set
+to `true`, and the approval in `signals.approvalArtifact`. See
+[Human approval](/concepts/human-approval#approve-a-refund).
+
+<Warning>
+  An event says a request is waiting. It is not an instruction to approve it.
+  The approver decides, on their own machine, with their own key; your endpoint
+  should never sign approvals automatically.
+</Warning>
+
+## Delivery
+
+| Behavior   | Detail                                                                                                                  |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Attempts   | One. There is no retry.                                                                                                 |
+| Timeout    | 3 seconds. Answer quickly and do slow work afterwards.                                                                  |
+| Success    | Any `2xx`. Anything else, a timeout, a redirect, or a network error is logged as `approval_needed_notification_failed`. |
+| Effect     | None on the request. It is refused either way, and the agent's response is the same.                                    |
+| Ordering   | Events are sent in the order requests are refused, but may arrive out of order.                                         |
+| Duplicates | Each refused request sends at most one event. An agent that retries sends one per request.                              |
+
+Because delivery is best effort, the Refusal Records remain the complete list of waiting
+requests. For a daily sweep, see [Review refused requests](/concepts/human-approval#review-refused-requests).
+
+## Test locally
+
+Point the webhook at a local listener and run Parmana in development:
+
+```bash
+NODE_ENV=development \
+APPROVAL_WEBHOOK_URL=http://127.0.0.1:4000/parmana-approvals \
+APPROVAL_WEBHOOK_SECRET=local-test-secret \
+npm run dev
+```
+
+`http` is accepted only in `development` and `test`.
+
+## Reference
+
+| Variable                  | Required        | Description                                                  |
+| ------------------------- | --------------- | ------------------------------------------------------------ |
+| `APPROVAL_WEBHOOK_URL`    | With the secret | Where events are sent. `https` outside development and test. |
+| `APPROVAL_WEBHOOK_SECRET` | With the URL    | HMAC key, or a secret reference with a secrets provider.     |
+
+See also [Environment variables](/deployment/environment-variables#approval-notifications).
 
 ---
 
@@ -1976,14 +4507,23 @@ const client = new ParmanaClient({
   transport: new HttpTransport({ endpoint }),
 });
 
+// The approver's signed approval for this action and resource, made with
+// signApproval() on the approver's machine and passed to the agent.
+const approval = pendingApprovals.get("vendor/vendor-123");
+
 const transaction = createBusinessTransaction({
   principalId: "alice@example.com", // must match your key's allowedPrincipalIds
   purpose: "Vendor payment approval",
   action: "vendor-payment",
   target: "vendor/vendor-123",
   parameters: { amount: 100, currency: "USD" },
-  policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+  policy: { name: "vendor-payment", version: "2.1.0", schemaVersion: "1.0.0" },
   signals: {
+    // No agent action is authorized without a signed human approval: a trusted
+    // approver signs one for this target up to this amount (signApproval), and
+    // the agent attaches it. Without it the request is refused.
+    humanApproved: true,
+    approvalArtifact: approval,
     vendorVerified: true,
     invoiceVerified: true,
     paymentApproved: true,
@@ -2007,6 +4547,33 @@ doubles as the server's idempotency key. `authorityType` defaults to `"SERVICE"`
 `typescript/test/createBusinessTransaction.test.ts` (11 unit tests) /
 `typescript/test/integration/examples.integration.test.ts` (proves the generated ids round-trip
 correctly through a real running server, not just in isolation).
+
+## Next release (not yet published)
+
+<Info>
+  In this repository, not yet on npm. `npm install @parmana/sdk` still installs
+  1.4.0, which does not have this method.
+</Info>
+
+### What a request must carry, from the server
+
+`policyInEffect(capability)` calls `GET /policies/in-effect` and returns the policy to declare and what the request
+must carry: every fact the policy's rules read (`signals.facts`), their types (`signals.schema`), the signals that must
+equal a value of the Intent (`signals.bound`), and the signals that need a signed approval, with where the approval's
+resource and amount are in the request (`signals.approval`). It never returns the rules.
+
+```typescript
+const inEffect = await client.policyInEffect("paytm:refund");
+
+inEffect.policy; // { name: "customer-refund", version: "1.2.0", schemaVersion: "1.0.0" }
+inEffect.signals.facts; // ["fraudCheckPassed", "managerApproved", "refundAmount", "refundEligible"]
+inEffect.signals.approval; // { managerApproved: { resourceId: "parameters.orderId", value: "parameters.amount" } }
+```
+
+Call it before every request and send `policy` exactly as returned. It throws `AuthorizationError` (403,
+`CAPABILITY_NOT_ALLOWED`), `NotFoundError` (404, `CAPABILITY_NOT_BOUND`), `ConflictError` (409,
+`NO_APPROVED_POLICY_VERSION`) or `InternalServerError` (503, `POLICY_VERSION_UNAVAILABLE`); in each case send nothing.
+The step by step use is in [Integrate Parmana: specification for AI agents](/agents/integrate), step 3.
 
 ## New in 1.4.0
 
@@ -2345,7 +4912,7 @@ What is retried:
 
 | Request                                                                                                                                                                                                                                                                                                                                                                                                                              | Retried?                                                                                |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| `GET` requests (`health()`, `version()`, `transaction()`, `transactions()`, `trustRecord()`, `getLatestVerification()`, `refusalRecord()`, `executionIntent()`, `unfinalizedExecutionIntents()`, and from 1.3.0 `latestReceipt()`, `trustRecords()`, `caller()`, `publicKey()`, `policyChanges()`)                                                                                                                                   | Yes, on a network failure, a timeout, a `429` or a `5xx`. Nothing else.                 |
+| `GET` requests (`health()`, `version()`, `transaction()`, `transactions()`, `trustRecord()`, `getLatestVerification()`, `refusalRecord()`, `executionIntent()`, `unfinalizedExecutionIntents()`, and from 1.3.0 `latestReceipt()`, `trustRecords()`, `caller()`, `publicKey()`, `policyChanges()`, and in the next release `policyInEffect()`)                                                                                       | Yes, on a network failure, a timeout, a `429` or a `5xx`. Nothing else.                 |
 | `POST` requests (`execute()`, `createTransaction()`, `verify()`, `replay()`, `receipt()`, `validatePolicy()`, `verifyRefusalRecord()`, `verifyExecutionIntent()`, `finalizeExecutionIntent()`, `resolveExecutionIntent()`, `verifyAuditEvent()`, from 1.3.0 `proposePolicyChange()`, `approvePolicyChange()`, `rejectPolicyChange()`, and from 1.4.0 `proposeApproverChange()`, `approveApproverChange()`, `rejectApproverChange()`) | **Never.** This is deliberate, because retrying `execute()` could repeat a real action. |
 
 Tested: a server that returns `503` twice and then `200`, and a client with `enabled: true` and `maxAttempts: 3`, made 3 requests and returned success. With a supplied transport built from a partial configuration the same client made 1 request and threw `InternalServerError`.
@@ -2416,6 +4983,7 @@ On 1.1.2 and earlier `serverCode` is not on `InternalServerError`, so read the c
 | `verifyAuditEvent(event, signature)`                                                  | `POST /audit/verify`                              | `true` or `false`.                                                                                                                |
 | `health()`                                                                            | `GET /health`                                     | The health status.                                                                                                                |
 | `version()`                                                                           | `GET /version`                                    | The version information.                                                                                                          |
+| `policyInEffect(capability)` (next release)                                           | `GET /policies/in-effect`                         | A `PolicyInEffect`: the policy to declare, its description, and `signals` (facts, schema, bound, approval).                       |
 | `caller()` (1.3.0)                                                                    | `GET /callers/me`                                 | A `CallerIdentity`: caller ID, allowed principal IDs and capabilities.                                                            |
 | `publicKey(keyId = "default")` (1.3.0)                                                | `GET /keys/{keyId}`                               | A `PublicKeyInfo` with the PEM, for the offline verifiers. No credential needed.                                                  |
 | `endpoint()`                                                                          | None                                              | The configured endpoint, as a string.                                                                                             |
@@ -2469,12 +5037,24 @@ Source: https://docs.parmanasystems.com/guides/typescript-sdk-quickstart
     npm run generate:gateway-keys
     ```
 
-    Start the server fully locally, no external database:
+    No AI agent action is authorized without a signed human approval, reads included
+    ([Human approval](/concepts/human-approval)), so you also play the approver. Make an
+    approver key:
+
+    ```bash
+    npx tsx scripts/generate-approver-key.ts \
+      --approver-id local-test-approver --key-id local-test-approver-key-1 \
+      --out-dir ~/.parmana
+    ```
+
+    Start the server fully locally, no external database, trusting that key (honored only with
+    `NODE_ENV=test`):
 
     ```bash
     NODE_ENV=test \
       PARMANA_STORAGE=memory \
       PARMANA_POLICY_DIR=/absolute/path/to/policies \
+      PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE=~/.parmana/local-test-approver__local-test-approver-key-1.public.pem \
       npm run dev
     ```
 
@@ -2512,14 +5092,20 @@ Source: https://docs.parmanasystems.com/guides/typescript-sdk-quickstart
 
   </Step>
 
-  <Step title="Build and execute a Business Transaction">
-    Create `quickstart.ts`:
+  <Step title="Sign an approval, then build and execute a Business Transaction">
+    Create `quickstart.ts`. The approver signs first (on the approver's machine in real use),
+    then the agent sends the transaction with the approval attached:
 
     ```typescript
+    import { readFileSync } from "node:fs";
+    import { homedir } from "node:os";
+    import { join } from "node:path";
+
     import {
       ParmanaClient,
       HttpTransport,
       createBusinessTransaction,
+      signApproval,
       ExecutionRejectedError,
     } from "@parmana/sdk";
 
@@ -2532,14 +5118,28 @@ Source: https://docs.parmanasystems.com/guides/typescript-sdk-quickstart
       transport: new HttpTransport({ endpoint, apiKey }),
     });
 
+    const approval = signApproval({
+      privateKeyPem: readFileSync(
+        join(homedir(), ".parmana/local-test-approver__local-test-approver-key-1.private.pem"),
+        "utf8",
+      ),
+      approverId: "local-test-approver",
+      keyId: "local-test-approver-key-1",
+      capability: "test:fixture-execute",
+      resourceId: "vendor://payments",
+      maxAmount: 1000,
+    });
+
     const transaction = createBusinessTransaction({
       principalId: "typescript-sdk-quickstart",
       purpose: "Quickstart demo",
       action: "test:fixture-execute",
       target: "vendor://payments",
       parameters: { amount: 1000, currency: "USD" },
-      policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+      policy: { name: "vendor-payment", version: "2.1.0", schemaVersion: "1.0.0" },
       signals: {
+        humanApproved: true, // counts only with the signed approval below
+        approvalArtifact: approval,
         vendorVerified: true,
         invoiceVerified: true,
         paymentApproved: true,
@@ -2633,8 +5233,10 @@ doesn't have `PARMANA_AUTH_DISABLED=true` set, or the key is wrong. The demo key
 
 **`ExecutionRejectedError: Execution rejected: ...`**: the policy evaluated your signals
 and declined. The message names which rule failed; check
-[Write your first policy](/guides/write-your-first-policy) for how `vendor-payment@2.0.0`
-reads its signals, or loosen the signals in your own test transaction to see it pass.
+[Write your first policy](/guides/write-your-first-policy) for how `vendor-payment@2.1.0`
+reads its signals. A message naming `humanApproved` means the approval is missing, expired,
+already used, for another target, below the amount, or from a key the server does not trust:
+sign a fresh one.
 
 **A `400` about a mismatched id**: you built the `BusinessTransaction` object by hand
 instead of through `createBusinessTransaction()`. See [`createBusinessTransaction()`, no
@@ -2924,6 +5526,35 @@ server's idempotency key. `authority_type` defaults to `AuthorityType.SERVICE` (
 `examples/quickstart/run.py`, side by side, for direct comparison) and
 `tests/test_builders.py` (9 unit tests) / `tests/test_builder_example.py` (proves the
 generated ids round-trip correctly through a real running server, not just in isolation).
+
+## Next release (not yet published)
+
+<Info>
+  In this repository, not yet on PyPI. `pip install parmana` still installs
+  1.4.0, which does not have this method.
+</Info>
+
+### What a request must carry, from the server
+
+`client.policy_in_effect(capability)` (also `client.policy.in_effect(...)`) calls `GET /policies/in-effect` and returns
+a `PolicyInEffect`: the policy to declare and what the request must carry. Signal names keep their exact spelling; they
+are never converted to snake_case.
+
+```python
+in_effect = client.policy_in_effect("paytm:refund")
+
+in_effect.policy.version          # "1.2.0"
+in_effect.policy.schema_version   # "1.0.0"
+in_effect.signals.facts           # ["fraudCheckPassed", "managerApproved", "refundAmount", "refundEligible"]
+in_effect.signals.bound           # {"refundAmount": "parameters.amount"}
+in_effect.signals.approval        # {"managerApproved": {"resourceId": "parameters.orderId", "value": "parameters.amount"}}
+```
+
+Call it before every request and declare `name`, `version` and `schemaVersion` exactly as returned. It raises
+`AuthorizationError` (403, `CAPABILITY_NOT_ALLOWED`), `NotFoundError` (404, `CAPABILITY_NOT_BOUND`), `ConflictError`
+(409, `NO_APPROVED_POLICY_VERSION`) or `InternalServerError` (503, `POLICY_VERSION_UNAVAILABLE`); in each case send
+nothing. The step by step use
+is in [Integrate Parmana: specification for AI agents](/agents/integrate), step 3.
 
 ## New in 1.4.0
 
@@ -3228,6 +5859,7 @@ The client has methods for the common calls, and a sub API for each area.
 | `get_latest_verification(business_transaction_id)`                                                | `GET /verification/{id}`                          | The latest `Verification`.                                                                                           |
 | `transaction(business_transaction_id)`                                                            | `GET /transactions/{id}`                          | One `BusinessTransaction`.                                                                                           |
 | `trust_record(business_transaction_id)`                                                           | `GET /trust-records/{id}`                         | The Execution Trust Record.                                                                                          |
+| `policy_in_effect(capability)` (next release)                                                     | `GET /policies/in-effect`                         | A `PolicyInEffect`: the policy to declare, its description, and `signals` (facts, schema, bound, approval).          |
 | `validate_policy(policy_id, policy_version)`                                                      | `POST /policies/validate`                         | A dict with `valid` and `errors`.                                                                                    |
 | `propose_policy_change(name, version, proposed_content=..., reason=...)` (1.3.0)                  | `POST /policies/{name}/{version}/pending-changes` | A `ProposedPolicyChange`. The content is sent exactly as given. Needs a verified human credential.                   |
 | `policy_changes(status=None)` (1.3.0)                                                             | `GET /policies/pending-changes`                   | A list of `PolicyChangeForReview`, each with `diff.current` and `diff.proposed`. Needs a verified human credential.  |
@@ -3254,20 +5886,20 @@ Two values are properties, not methods, so do not call them: `client.endpoint` i
 
 The sub APIs cover the rest, for example `client.replay.replay(...)`, `client.receipt.generate(...)`, `client.receipt.get_latest(...)` and `client.transactions.list(...)`:
 
-| Sub API                    | Methods                                                                                            |
-| -------------------------- | -------------------------------------------------------------------------------------------------- |
-| `client.execution`         | `health`, `version`, `execute`                                                                     |
-| `client.verification`      | `verify`, `get_latest`                                                                             |
-| `client.replay`            | `replay`                                                                                           |
-| `client.receipt`           | `generate`, `get_latest`                                                                           |
-| `client.transactions`      | `create`, `get`, `list`                                                                            |
-| `client.trust_records`     | `get`, `list` (1.3.0)                                                                              |
-| `client.policy`            | `validate`, and from 1.3.0 `propose_change`, `list_changes`, `approve_change`, `reject_change`     |
-| `client.refusal`           | `verify`, `get`                                                                                    |
-| `client.execution_intents` | `verify`, `get`, `list_unfinalized`, `finalize`, `resolve`                                         |
-| `client.audit`             | `verify`                                                                                           |
-| `client.callers`           | `me`, `public_key` (1.3.0)                                                                         |
-| `client.approvers`         | `list`, `propose_add`, `propose_revoke`, `list_changes`, `approve_change`, `reject_change` (1.4.0) |
+| Sub API                    | Methods                                                                                                                             |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `client.execution`         | `health`, `version`, `execute`                                                                                                      |
+| `client.verification`      | `verify`, `get_latest`                                                                                                              |
+| `client.replay`            | `replay`                                                                                                                            |
+| `client.receipt`           | `generate`, `get_latest`                                                                                                            |
+| `client.transactions`      | `create`, `get`, `list`                                                                                                             |
+| `client.trust_records`     | `get`, `list` (1.3.0)                                                                                                               |
+| `client.policy`            | `validate`, and from 1.3.0 `propose_change`, `list_changes`, `approve_change`, `reject_change`, and in the next release `in_effect` |
+| `client.refusal`           | `verify`, `get`                                                                                                                     |
+| `client.execution_intents` | `verify`, `get`, `list_unfinalized`, `finalize`, `resolve`                                                                          |
+| `client.audit`             | `verify`                                                                                                                            |
+| `client.callers`           | `me`, `public_key` (1.3.0)                                                                                                          |
+| `client.approvers`         | `list`, `propose_add`, `propose_revoke`, `list_changes`, `approve_change`, `reject_change` (1.4.0)                                  |
 
 The full signature of every method is in the [API reference](/sdks/reference/python/client).
 
@@ -3305,14 +5937,34 @@ Source: https://docs.parmanasystems.com/guides/python-sdk-quickstart
 - **Node.js** (to run the Parmana server locally, `node --version`)
 - A local clone of the Parmana repo, with `npm install` already run in it
 
+<Note>
+  No AI agent action is authorized without a signed human approval, reads
+  included ([Human approval](/concepts/human-approval)). In this walkthrough you
+  also play the approver: you make an approver key, the local server trusts it,
+  and you sign an approval before the agent's request.
+</Note>
+
 <Steps>
+  <Step title="Make a local approver key">
+    From the repo root:
+
+    ```bash
+    npx tsx scripts/generate-approver-key.ts \
+      --approver-id local-test-approver --key-id local-test-approver-key-1 \
+      --out-dir ~/.parmana
+    ```
+
+  </Step>
+
   <Step title="Start the Runtime locally">
-    From the repo root, override storage to run with no external dependency:
+    From the repo root, override storage to run with no external dependency, and trust the
+    approver key (honored only with `NODE_ENV=test`):
 
     ```bash
     NODE_ENV=test \
       PARMANA_STORAGE=memory \
       PARMANA_POLICY_DIR=/absolute/path/to/policies \
+      PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE=~/.parmana/local-test-approver__local-test-approver-key-1.public.pem \
       npm run dev
     ```
 
@@ -3353,6 +6005,31 @@ Source: https://docs.parmanasystems.com/guides/python-sdk-quickstart
 
   </Step>
 
+  <Step title="Sign the approval">
+    The approver's step, on the approver's machine. It approves this action, this target, up to
+    this amount, for 15 minutes, once:
+
+    ```python
+    from pathlib import Path
+
+    from parmana.crypto import sign_approval
+
+    approval = sign_approval(
+        private_key_pem=Path.home().joinpath(
+            ".parmana/local-test-approver__local-test-approver-key-1.private.pem"
+        ).read_text(),
+        approver_id="local-test-approver",
+        key_id="local-test-approver-key-1",
+        capability="test:fixture-execute",
+        resource_id="vendor://payments",
+        max_amount=1000,
+    )
+    ```
+
+    `parmana.crypto` needs `pip install "parmana[verify]"`.
+
+  </Step>
+
   <Step title="Build a Business Transaction">
     `create_business_transaction()` derives every id pair the server checks for internal consistency
     (see [why that matters](/sdks/python#create_business_transaction-no-more-hand-synced-ids)), so
@@ -3367,15 +6044,18 @@ Source: https://docs.parmanasystems.com/guides/python-sdk-quickstart
         action="test:fixture-execute",
         target="vendor://payments",
         parameters={"amount": 1000, "currency": "USD"},
-        policy=PolicyReference(name="vendor-payment", version="2.0.0", schema_version="1.0.0"),
+        policy=PolicyReference(name="vendor-payment", version="2.1.0", schema_version="1.0.0"),
         signals={
+            # The signed approval. Without it the request is refused.
+            "humanApproved": True,
+            "approvalArtifact": approval,
             "vendorVerified": True,
             "invoiceVerified": True,
             "paymentApproved": True,
             "sufficientFunds": True,
             "paymentAmount": 1000,
             "riskScore": 5,
-            # vendor-payment@2.0.0 declares boundSignals: { "vendorId": "target" }.
+            # vendor-payment@2.1.0 declares boundSignals: { "vendorId": "target" }.
             # This must exactly equal `target` above, checked before policy evaluation
             # ever runs, or the request is rejected as a binding-tamper attempt.
             "vendorId": "vendor://payments",
@@ -3434,14 +6114,28 @@ Source: https://docs.parmanasystems.com/guides/python-sdk-quickstart
 ## Full script
 
 ```python
+from pathlib import Path
+
 from parmana import (
     ExecutionRejectedError,
     ParmanaClient,
     PolicyReference,
     create_business_transaction,
 )
+from parmana.crypto import sign_approval
 
 client = ParmanaClient(endpoint="http://localhost:3000", api_key="my-secret-api-key")
+
+approval = sign_approval(
+    private_key_pem=Path.home().joinpath(
+        ".parmana/local-test-approver__local-test-approver-key-1.private.pem"
+    ).read_text(),
+    approver_id="local-test-approver",
+    key_id="local-test-approver-key-1",
+    capability="test:fixture-execute",
+    resource_id="vendor://payments",
+    max_amount=1000,
+)
 
 transaction = create_business_transaction(
     principal_id="python-sdk-quickstart",
@@ -3449,8 +6143,10 @@ transaction = create_business_transaction(
     action="test:fixture-execute",
     target="vendor://payments",
     parameters={"amount": 1000, "currency": "USD"},
-    policy=PolicyReference(name="vendor-payment", version="2.0.0", schema_version="1.0.0"),
+    policy=PolicyReference(name="vendor-payment", version="2.1.0", schema_version="1.0.0"),
     signals={
+        "humanApproved": True,
+        "approvalArtifact": approval,
         "vendorVerified": True,
         "invoiceVerified": True,
         "paymentApproved": True,
@@ -3478,6 +6174,11 @@ test run, so it's verified to work, not just syntax-checked.
 **`ConnectionError` / connection refused on `localhost:3000`**
 The server isn't running, or isn't listening on the port you're pointing at. Confirm with
 `curl http://localhost:3000/health`.
+
+**`ExecutionRejectedError` naming `humanApproved`**
+The approval is missing, expired, already used, for another target, below the amount, or signed
+by a key the server does not trust. Sign a fresh one, and check the server was started with
+`PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE` pointing at the matching public key.
 
 **`AuthenticationError` (401)**
 Either no `api_key` was passed against a server that requires one, or the key is wrong. Confirm
@@ -4421,6 +7122,14 @@ is the value multiplied by the number of instances, and the server logs `rate_li
 | `RESEND_API_KEY`          | With `APPROVAL_EMAIL_TO`                                      | None                                                | Set by the Resend integration                       | The Resend API key.                                                                                                                                                             |
 | `RESEND_EMAIL_DOMAIN`     | With `APPROVAL_EMAIL_TO`, unless `APPROVAL_EMAIL_FROM` is set | None                                                | Set by the Resend integration                       | The verified sending domain.                                                                                                                                                    |
 | `APPROVAL_WEBHOOK_SECRET` | With `APPROVAL_WEBHOOK_URL`                                   | None                                                | A random string, or a secret reference              | Signs each event (HMAC SHA256). See `PARMANA_SECRETS_PROVIDER`. Setting only one of the two stops the server at startup.                                                        |
+
+## Local test approver
+
+No agent action is authorized without a signed human approval, so a local test server needs an approver it trusts.
+
+| Variable                                | Required            | Default           | Values or format                         | What it does                                                                                                                                                                                                                                                                                                     |
+| --------------------------------------- | ------------------- | ----------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE` | Never in production | None: not trusted | A path to an Ed25519 public key PEM file | Trusts the approver `local-test-approver`, key `local-test-approver-key-1`, with this key, for the [Quickstart](/quickstart). Honored only when `NODE_ENV` is `test`. Set with any other `NODE_ENV`, the server refuses to start. Real approvers are added through [Manage approvers](/guides/manage-approvers). |
 
 ## Secrets
 

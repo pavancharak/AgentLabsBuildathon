@@ -22,6 +22,10 @@ import {
   MemoryExecutionTrustRecordRepository,
   MemoryPolicyChangeApprovalRecordRepository,
 } from "@parmana/storage";
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 //
 // docs/CLAIMS.md 2.35: on top of the maker-checker approval flow
@@ -51,35 +55,43 @@ function policy(policyId: string): Policy {
     policyId,
     policyVersion: "1.0.0",
     schemaVersion: "1.0.0",
+    // No action is authorized without a signed human approval.
+    approvalSignals: { humanApproved: { resourceId: "target" } },
     rules: [
       {
-        id: "always-approve",
-        condition: { always: true },
+        id: "approve-with-approval",
+        condition: { fact: "humanApproved", operator: "is_true" },
         outcome: { action: PolicyAction.APPROVE, reason: "tutorial fixture" },
       },
     ],
   };
 }
 
-function transactionFor(policyId: string, id: string): BusinessTransaction {
-  return {
-    businessTransactionId: id,
-    metadata: { executionMode: "SYNC" } as unknown as TransactionMetadata,
-    authority: {} as Authority,
-    authorization: {} as Authorization,
-    intent: {
-      intentId: `${id}-intent`,
-      authorizationId: `${id}-authorization`,
-      action: "tutorial:noop",
-      target: "tutorial://target",
-      parameters: {},
+async function transactionFor(
+  policyId: string,
+  id: string,
+): Promise<BusinessTransaction> {
+  return withDemoApproval(
+    {
+      businessTransactionId: id,
+      metadata: { executionMode: "SYNC" } as unknown as TransactionMetadata,
+      authority: {} as Authority,
+      authorization: {} as Authorization,
+      intent: {
+        intentId: `${id}-intent`,
+        authorizationId: `${id}-authorization`,
+        action: "tutorial:noop",
+        target: "tutorial://target",
+        parameters: {},
+        createdAt: new Date(),
+      },
+      policy: { name: policyId, version: "1.0.0", schemaVersion: "1.0.0" },
+      signals: {},
+      status: BusinessTransactionStatus.RECEIVED,
       createdAt: new Date(),
     },
-    policy: { name: policyId, version: "1.0.0", schemaVersion: "1.0.0" },
-    signals: {},
-    status: BusinessTransactionStatus.RECEIVED,
-    createdAt: new Date(),
-  };
+    policy(policyId),
+  );
 }
 
 const policyRepository = new FilePolicyRepository(scratchPolicyDir);
@@ -99,6 +111,7 @@ const executionVerifier = new PolicyGovernanceExecutionVerifier(
 );
 
 const runtime = new RuntimeBuilder()
+  .withSignalStateVerifier(demoApprovalSignalVerifier())
   .withPolicyRepository(policyRepository)
   .withPolicyExecutionVerifier(executionVerifier)
   .build(new MemoryExecutionTrustRecordRepository());
@@ -133,7 +146,7 @@ try {
   console.log("--------------------------------------------------");
   await approve("tutorial-104-approved");
   const okResult = await runtime.execute(
-    transactionFor("tutorial-104-approved", "tx-1"),
+    await transactionFor("tutorial-104-approved", "tx-1"),
   );
   console.log(
     `Decision outcome : ${okResult.trustRecord.executions[0]?.decision.outcome}`,
@@ -151,7 +164,9 @@ try {
   );
   let scenario2Reason = "";
   try {
-    await runtime.execute(transactionFor("tutorial-104-unapproved", "tx-2"));
+    await runtime.execute(
+      await transactionFor("tutorial-104-unapproved", "tx-2"),
+    );
   } catch (error) {
     scenario2Reason = error instanceof Error ? error.message : String(error);
   }
@@ -166,8 +181,8 @@ try {
     ...policy("tutorial-104-approved"),
     rules: [
       {
-        id: "always-approve",
-        condition: { always: true },
+        id: "approve-with-approval",
+        condition: { fact: "humanApproved", operator: "is_true" },
         outcome: {
           action: PolicyAction.APPROVE,
           reason: "TAMPERED, not what was approved",
@@ -178,7 +193,9 @@ try {
   await policyRepository.save("tutorial-104-approved", "1.0.0", tampered);
   let scenario3Reason = "";
   try {
-    await runtime.execute(transactionFor("tutorial-104-approved", "tx-3"));
+    await runtime.execute(
+      await transactionFor("tutorial-104-approved", "tx-3"),
+    );
   } catch (error) {
     scenario3Reason = error instanceof Error ? error.message : String(error);
   }
@@ -219,7 +236,9 @@ try {
   }
   let scenario4Reason = "";
   try {
-    await runtime.execute(transactionFor("tutorial-104-approved", "tx-4"));
+    await runtime.execute(
+      await transactionFor("tutorial-104-approved", "tx-4"),
+    );
   } catch (error) {
     scenario4Reason = error instanceof Error ? error.message : String(error);
   }

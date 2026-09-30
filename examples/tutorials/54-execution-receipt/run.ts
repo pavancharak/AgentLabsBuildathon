@@ -16,6 +16,10 @@ import {
 } from "@parmana/storage";
 
 import type { BusinessTransaction } from "@parmana/shared";
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 //
 // Historical note: this tutorial previously combined the dead
@@ -82,6 +86,8 @@ const application = RuntimeFactory.create(
   trustRecords,
   policyRepository,
   executionSystem,
+  undefined,
+  demoApprovalSignalVerifier(),
 );
 
 // --------------------------------------------------
@@ -93,7 +99,9 @@ const application = RuntimeFactory.create(
 // call, exactly as Tutorial 07 already shows.
 // --------------------------------------------------
 
-const trustRecord = await application.execute(transaction);
+const trustRecord = await application.execute(
+  await withDemoApproval(transaction),
+);
 
 const receipt = trustRecord.receipts.at(-1);
 

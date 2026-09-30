@@ -30,6 +30,10 @@ import type {
 } from "@parmana/shared";
 
 import { print, printHeading } from "../shared/helpers/print.js";
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../shared/helpers/demo-approval.js";
 
 //
 // To run this example under the post-quantum provider instead of
@@ -256,6 +260,8 @@ async function main(): Promise<void> {
     trustRecords,
     policyRepository,
     gateway,
+    undefined,
+    demoApprovalSignalVerifier(),
   );
 
   console.log(
@@ -277,7 +283,9 @@ async function main(): Promise<void> {
 
   print("Business Transaction", transaction);
 
-  const trustRecord = await application.execute(transaction);
+  const trustRecord = await application.execute(
+    await withDemoApproval(transaction),
+  );
 
   console.log();
   console.log(

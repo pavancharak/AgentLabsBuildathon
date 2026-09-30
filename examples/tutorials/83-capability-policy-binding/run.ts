@@ -10,7 +10,7 @@ import {
 // policy paired with a given capability was actually the right one.
 // A caller could submit hubspot:deal-update (a data-mutating
 // capability whose stage/amount protections are scoped to
-// hubspot-deal-update/1.0.0's own boundSignals) paired with an
+// hubspot-deal-update/1.1.0's own boundSignals) paired with an
 // unrelated, unprotected policy that declares no boundSignals for it
 // at all -- entirely bypassing those protections, since
 // PolicyEngine.evaluate takes no action parameter and nothing else
@@ -46,7 +46,7 @@ console.log(
 console.log("--------------------------------------------------");
 const violation2 = await binder.findViolation("hubspot:deal-update", {
   name: "hubspot-deal-update",
-  version: "1.0.0",
+  version: "1.1.0",
   schemaVersion: "1.0.0",
 });
 console.log(
@@ -58,14 +58,14 @@ console.log(
   "Scenario 3: The exact live-shaped exploit -- hubspot:deal-update paired with an unrelated, unprotected policy",
 );
 console.log("--------------------------------------------------");
-// vendor-payment/2.0.0 is a real, production-loadable policy that
+// vendor-payment/2.1.0 is a real, production-loadable policy that
 // declares no boundSignals for hubspot:deal-update -- its own approve
 // rule is trivially satisfiable by caller-declared signals alone,
 // entirely decoupled from the real deal state that would actually be
 // mutated.
 const violation3 = await binder.findViolation("hubspot:deal-update", {
   name: "vendor-payment",
-  version: "2.0.0",
+  version: "2.1.0",
   schemaVersion: "1.0.0",
 });
 console.log(`Violation : ${JSON.stringify(violation3)}`);
@@ -108,7 +108,7 @@ const allPassed =
   violation3?.action === "hubspot:deal-update" &&
   violation3.expected.name === "hubspot-deal-update" &&
   violation3.declared.name === "vendor-payment" &&
-  violation4?.expected.name === "hubspot-deal-update" &&
+  violation4?.expected.name === "hubspot-deal-read" &&
   violation5 !== undefined;
 
 if (allPassed) {

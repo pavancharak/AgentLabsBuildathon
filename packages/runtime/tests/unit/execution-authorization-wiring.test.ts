@@ -39,6 +39,11 @@ import {
 } from "@parmana/crypto";
 
 import { RuntimeBuilder } from "../../src/RuntimeBuilder.js";
+
+import {
+  testApprovalSignalVerifier,
+  withTestApproval,
+} from "../../../../test-support/approvals.js";
 import { RuntimeError } from "../../src/errors/RuntimeError.js";
 import { ExecutionRequestBuilder } from "../../src/ExecutionRequestBuilder.js";
 import { ExecutionEvidenceBuilder } from "../../src/ExecutionEvidenceBuilder.js";
@@ -147,10 +152,11 @@ const APPROVE_POLICY: Policy = {
   policyId: "payment-approval",
   policyVersion: "1.0.0",
   schemaVersion: "1.0.0",
+  approvalSignals: { humanApproved: { resourceId: "target" } },
   rules: [
     {
-      id: "approve-all",
-      condition: { always: true },
+      id: "approve-with-approval",
+      condition: { fact: "humanApproved", operator: "is_true" },
       outcome: {
         action: PolicyAction.APPROVE,
         reason: "approved for test",
@@ -175,53 +181,58 @@ const REJECT_POLICY: Policy = {
   ],
 };
 
-function createTransaction(businessTransactionId: string): BusinessTransaction {
+function createTransaction(
+  businessTransactionId: string,
+): Promise<BusinessTransaction> {
   const authorityId = "authority-1";
   const authorizationId = "authorization-1";
   const fixedDate = new Date("2026-01-01T00:00:00Z");
 
-  return {
-    businessTransactionId,
-
-    metadata: {
+  return withTestApproval(
+    {
       businessTransactionId,
-    },
 
-    authority: {
-      authorityId,
-      authorityType: AuthorityType.SERVICE,
-      principalId: "svc-1",
-      issuedAt: fixedDate,
-    },
+      metadata: {
+        businessTransactionId,
+      },
 
-    authorization: {
-      authorizationId,
-      authorityId,
-      purpose: "test",
-      issuedAt: fixedDate,
-    },
+      authority: {
+        authorityId,
+        authorityType: AuthorityType.SERVICE,
+        principalId: "svc-1",
+        issuedAt: fixedDate,
+      },
 
-    intent: {
-      intentId: "intent-1",
-      authorizationId,
-      action: "PAY",
-      target: "vendor/1",
-      parameters: { amount: 100 },
+      authorization: {
+        authorizationId,
+        authorityId,
+        purpose: "test",
+        issuedAt: fixedDate,
+      },
+
+      intent: {
+        intentId: "intent-1",
+        authorizationId,
+        action: "PAY",
+        target: "vendor/1",
+        parameters: { amount: 100 },
+        createdAt: fixedDate,
+      },
+
+      policy: {
+        name: "payment-approval",
+        version: "1.0.0",
+        schemaVersion: "1.0.0",
+      },
+
+      signals: { amount: 100 },
+
+      status: BusinessTransactionStatus.RECEIVED,
+
       createdAt: fixedDate,
     },
-
-    policy: {
-      name: "payment-approval",
-      version: "1.0.0",
-      schemaVersion: "1.0.0",
-    },
-
-    signals: { amount: 100 },
-
-    status: BusinessTransactionStatus.RECEIVED,
-
-    createdAt: fixedDate,
-  };
+    APPROVE_POLICY,
+  );
 }
 
 function createRuntime(policy: Policy) {
@@ -231,6 +242,7 @@ function createRuntime(policy: Policy) {
 
   const runtime = new RuntimeBuilder()
     .withPolicyRepository(new FixedPolicyRepository(policy))
+    .withSignalStateVerifier(testApprovalSignalVerifier())
     .addStage(new TrustChainValidationComponent())
     .addStage(
       new ExecutionComponent(
@@ -250,7 +262,7 @@ describe("Execution Authorization Wiring", () => {
     const { runtime, transactions, executionSystem } =
       createRuntime(APPROVE_POLICY);
 
-    const transaction = createTransaction("txn-approved-1");
+    const transaction = await createTransaction("txn-approved-1");
     await transactions.create(transaction);
 
     const { trustRecord } = await runtime.execute(transaction);
@@ -282,7 +294,7 @@ describe("Execution Authorization Wiring", () => {
     const { runtime, transactions, trustRecords, executionSystem } =
       createRuntime(REJECT_POLICY);
 
-    const transaction = createTransaction("txn-rejected-1");
+    const transaction = await createTransaction("txn-rejected-1");
     await transactions.create(transaction);
 
     let caught: unknown;
@@ -318,7 +330,7 @@ describe("Execution Authorization Wiring", () => {
       const { runtime, transactions, executionSystem } =
         createRuntime(APPROVE_POLICY);
 
-      const transaction = createTransaction("txn-ttl-1");
+      const transaction = await createTransaction("txn-ttl-1");
       await transactions.create(transaction);
 
       await runtime.execute(transaction);
@@ -342,7 +354,7 @@ describe("Execution Authorization Wiring", () => {
     const { runtime, transactions, executionSystem } =
       createRuntime(APPROVE_POLICY);
 
-    const transaction = createTransaction("txn-trust-ref-1");
+    const transaction = await createTransaction("txn-trust-ref-1");
     await transactions.create(transaction);
 
     const { trustRecord } = await runtime.execute(transaction);
@@ -386,7 +398,7 @@ describe("Execution Authorization Wiring", () => {
     const { runtime, transactions, executionSystem } =
       createRuntime(APPROVE_POLICY);
 
-    const transaction = createTransaction("txn-signals-hash-1");
+    const transaction = await createTransaction("txn-signals-hash-1");
     await transactions.create(transaction);
 
     await runtime.execute(transaction);
@@ -406,7 +418,7 @@ describe("Execution Authorization Wiring", () => {
       createRuntime(APPROVE_POLICY);
 
     const transaction: BusinessTransaction = {
-      ...createTransaction("txn-caller-claim-1"),
+      ...(await createTransaction("txn-caller-claim-1")),
       metadata: {
         businessTransactionId: "txn-caller-claim-1",
         submittedBy: "caller-alice",
@@ -427,7 +439,7 @@ describe("Execution Authorization Wiring", () => {
     const { runtime, transactions, executionSystem } =
       createRuntime(APPROVE_POLICY);
 
-    const transaction = createTransaction("txn-no-caller-claim-1");
+    const transaction = await createTransaction("txn-no-caller-claim-1");
     await transactions.create(transaction);
 
     await runtime.execute(transaction);
@@ -457,7 +469,7 @@ describe("Execution Authorization Wiring", () => {
       createRuntime(APPROVE_POLICY);
 
     const transaction: BusinessTransaction = {
-      ...createTransaction("txn-tenant-key-1"),
+      ...(await createTransaction("txn-tenant-key-1")),
       metadata: {
         businessTransactionId: "txn-tenant-key-1",
         tenantId: "acme-corp",
@@ -498,7 +510,7 @@ describe("Execution Authorization Wiring", () => {
     const { runtime, transactions, executionSystem } =
       createRuntime(APPROVE_POLICY);
 
-    const transaction = createTransaction("txn-no-tenant-1");
+    const transaction = await createTransaction("txn-no-tenant-1");
     await transactions.create(transaction);
 
     await runtime.execute(transaction);

@@ -7,6 +7,10 @@ import { RuntimeBuilder } from "@parmana/runtime";
 import mismatchedSignalTransaction from "./transaction-mismatched-signal.json" with { type: "json" };
 
 import correctlyBoundTransaction from "./transaction-correctly-bound.json" with { type: "json" };
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 async function main(): Promise<void> {
   console.log();
@@ -30,7 +34,7 @@ async function main(): Promise<void> {
   console.log("that happens to look correct in isolation.");
   console.log();
   console.log(
-    'vendor-payment@2.0.0 declares: boundSignals.vendorId = "target".',
+    'vendor-payment@2.1.0 declares: boundSignals.vendorId = "target".',
   );
   console.log(
     'Every transaction below shares the same intent.target, "sap.payment.release".',
@@ -42,6 +46,7 @@ async function main(): Promise<void> {
   //
 
   const runtime = new RuntimeBuilder()
+    .withSignalStateVerifier(demoApprovalSignalVerifier())
     .withPolicyRepository(new FilePolicyRepository("policies"))
     .build(new MemoryExecutionTrustRecordRepository());
 
@@ -55,7 +60,7 @@ async function main(): Promise<void> {
   console.log();
 
   try {
-    await runtime.execute(mismatchedSignalTransaction);
+    await runtime.execute(await withDemoApproval(mismatchedSignalTransaction));
 
     throw new Error(
       "Expected this transaction to be rejected, but it was approved. " +
@@ -86,7 +91,9 @@ async function main(): Promise<void> {
   console.log("--------------------------------------------------");
   console.log();
 
-  const { context } = await runtime.execute(correctlyBoundTransaction);
+  const { context } = await runtime.execute(
+    await withDemoApproval(correctlyBoundTransaction),
+  );
 
   console.log(`✓ ${context.decision.outcome}`);
   console.log(`Reason : ${context.decision.reason}`);

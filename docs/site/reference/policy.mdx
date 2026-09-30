@@ -63,6 +63,16 @@ npm install @parmana/policy
   instead, with a reason.
 </Note>
 
+<Note>
+  **Every approve rule needs a signed human approval.**
+  `PolicyValidator.validate()` also throws `PolicyValidationError` (`approves
+  without a signed human approval`) for any approve rule that does not require a
+  fact declared in `approvalSignals` with `is_true`, as its whole condition or
+  directly inside its top level `all`. No AI agent action is authorized without
+  a signed human approval, reads included. See [Human
+  approval](/concepts/human-approval).
+</Note>
+
 ### Types
 
 `Policy` (including its optional `boundSignals: Record<string, string>` and
@@ -84,10 +94,13 @@ npm install @parmana/policy
 import { FilePolicyRepository, PolicyEngine } from "@parmana/policy";
 
 const repository = new FilePolicyRepository("policies");
-const policy = await repository.load("vendor-payment", "2.0.0");
+const policy = await repository.load("vendor-payment", "2.1.0");
 
 const engine = new PolicyEngine();
 const decision = engine.evaluate(policy, {
+  // PolicyEngine only reads the fact. Through the runtime, humanApproved counts
+  // as true only with a valid signed approval (ApprovalSignalVerifier).
+  humanApproved: true,
   vendorVerified: true,
   invoiceVerified: true,
   paymentApproved: true,

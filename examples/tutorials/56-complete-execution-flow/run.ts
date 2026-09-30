@@ -19,6 +19,10 @@ import type {
   BusinessTransaction,
   ExecutionTrustRecord,
 } from "@parmana/shared";
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 //
 // Historical note: this tutorial previously chained the dead
@@ -85,6 +89,8 @@ const application = RuntimeFactory.create(
   trustRecords,
   policyRepository,
   executionSystem,
+  undefined,
+  demoApprovalSignalVerifier(),
 );
 
 console.log("========================================");
@@ -108,7 +114,9 @@ console.log();
 //    and a hybrid-signed Execution Trust Record.
 // --------------------------------------------------
 
-const trustRecord = await application.execute(transaction);
+const trustRecord = await application.execute(
+  await withDemoApproval(transaction),
+);
 
 console.log("1. Execution Trust Record");
 console.log("--------------------------------------------------");

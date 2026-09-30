@@ -175,7 +175,13 @@ package that implements `Connector` fails Invariant 2 of
       the first version; every signal the rules read bound, declared in `approvalSignals`, or
       explained in `unboundSignalReasons` (the validator refuses the policy otherwise); and a last
       rule that rejects unconditionally (`"condition": { "always": true }`). Reference:
-      `policies/hubspot-deal-update/1.0.0/policy.json`.
+      `policies/hubspot-deal-update/1.1.0/policy.json`.
+- [ ] **Every approve rule requires a signed human approval, reads included.** Declare one signal
+      in `approvalSignals` (`resourceId`: `"target"` or a `parameters.*` path, and `value` for an
+      amount) and require it with `is_true` as the rule's whole condition or directly inside its
+      top level `all`. `PolicyValidator` refuses any other approve rule on load and on proposal
+      (`docs/CLAIMS.md` 2.47, G-80). Give a read its own policy, like `github-pr-read` and
+      `hubspot-deal-read`, so its approval names only what is read.
 - [ ] **Bind the capability** in `CANONICAL_CAPABILITY_POLICY_BINDINGS`
       (`packages/capability-registry/src/CapabilityPolicyBinding.ts`). The binding fixes the policy
       **name**; where policy governance is enforced, the version in effect is the most recently
@@ -315,8 +321,9 @@ suite was not run. This guide itself is never a claim.
   `GatewayGitHubAdapter.ts`, `createGitHubConnector.ts`, `createGitHubCredentialProvider.ts`.
 - **Slack** (in process, a from scratch worked example, not a production capability):
   `packages/connector-slack/src/`, `GatewaySlackAdapter.ts`, `createSlackConnector.ts`,
-  `createSlackCredentialProvider.ts`, policy `slack-post-message@1.0.0` (bound signal
-  `channelId == intent.target`, approval needs `contentApproved` and `channelAuthorized`),
+  `createSlackCredentialProvider.ts`, policy `slack-post-message@1.1.0` (bound signal
+  `channelId == intent.target`, a signed approval for the channel in `postApproved`, plus
+  `contentApproved` and `channelAuthorized`),
   variables `SLACK_BOT_TOKEN`, `SLACK_BASE_URL` (test seam) and `TEST_SLACK_BOT_TOKEN`. It sends
   only `channel` and `text`, one message per approved transaction, and has no live suite. Since
   G-76 the server checks the channel itself: `SlackChannelSignalVerifier`

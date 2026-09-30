@@ -105,14 +105,23 @@ const client = new ParmanaClient({
   transport: new HttpTransport({ endpoint, apiKey }),
 });
 
+// The approver's signed approval for this action and resource, made with
+// signApproval() on the approver's machine and passed to the agent.
+const approval = pendingApprovals.get("vendor/vendor-123");
+
 const transaction = createBusinessTransaction({
   principalId: "ai-agent-001",
   purpose: "Vendor payment approval",
   action: "vendor-payment",
   target: "vendor/vendor-123",
   parameters: { amount: 100, currency: "USD" },
-  policy: { name: "vendor-payment", version: "2.0.0", schemaVersion: "1.0.0" },
+  policy: { name: "vendor-payment", version: "2.1.0", schemaVersion: "1.0.0" },
   signals: {
+    // No agent action is authorized without a signed human approval: a trusted
+    // approver signs one for this target up to this amount (signApproval), and
+    // the agent attaches it. Without it the request is refused.
+    humanApproved: true,
+    approvalArtifact: approval,
     vendorVerified: true,
     invoiceVerified: true,
     paymentApproved: true,
@@ -141,22 +150,28 @@ what [End-to-end: agent → Parmana → Paytm](/guides/end-to-end-paytm-flow) ru
 live infrastructure:
 
 ```typescript
+// The approver's signed approval for this action and resource, made with
+// signApproval() on the approver's machine and passed to the agent.
+const approval = pendingApprovals.get("order-8842");
+
 const refund = createBusinessTransaction({
   principalId: "ai-customer-service-agent",
   purpose: "Customer-requested refund",
   action: "paytm:refund",
-  target: "paytm/order-8842",
+  target: "paytm://orders/order-8842",
   parameters: {
     orderId: "order-8842",
     amount: 500,
-    reason: "customer_requested",
   },
-  policy: { name: "customer-refund", version: "1.1.0", schemaVersion: "1.0.0" },
+  policy: { name: "customer-refund", version: "1.2.0", schemaVersion: "1.0.0" },
   signals: {
+    refundEligible: true,
+    fraudCheckPassed: true,
     refundAmount: 500,
-    orderId: "order-8842",
-    customerVerified: true,
-    withinRefundWindow: true,
+    // Every refund needs the manager's signed approval for this order and
+    // amount (signApproval on the manager's machine). Without it: refused.
+    managerApproved: true,
+    approvalArtifact: approval,
   },
 });
 

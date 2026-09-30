@@ -257,6 +257,14 @@ hardening session. `hubspot-deal-update/1.0.0` declares
 fields from its first commit, closing the same class of gap before any live demonstration
 of it existed. See [Policies and the decision](/concepts/policies-and-the-decision).
 
+**Require a signed human approval in every approve rule, reads included.** No AI agent action
+is authorized without one. `PolicyValidator` refuses to load a policy whose approve rule does
+not require a fact from `approvalSignals` with `is_true` at its top level, so a new connector's
+policy must declare one, with `resourceId` naming what the approval covers (the Intent's
+`target`, or a path such as `parameters.dealId`) and, for an amount, `value`. Give a read its
+own policy, like `github-pr-read` and `hubspot-deal-read`, so its approval names only what is
+read. See [Human approval](/concepts/human-approval).
+
 **Test order, every time:**
 
 1. **Hermetic first.** The full authorize → verify → execute → confirm chain against a mock

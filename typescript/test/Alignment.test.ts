@@ -150,6 +150,43 @@ describe("policy governance", () => {
   });
 });
 
+describe("policy in effect", () => {
+  it("reads the policy in effect and what a request must carry", async () => {
+    const body = {
+      capability: "paytm:refund",
+      policy: {
+        name: "customer-refund",
+        version: "1.2.0",
+        schemaVersion: "1.0.0",
+      },
+      description: "Every refund needs a signed manager approval.",
+      signals: {
+        facts: ["managerApproved", "refundAmount"],
+        schema: { managerApproved: "boolean", refundAmount: "number" },
+        bound: { refundAmount: "parameters.amount" },
+        approval: {
+          managerApproved: {
+            resourceId: "parameters.orderId",
+            value: "parameters.amount",
+          },
+        },
+      },
+    };
+    const { client, transport } = clientWith(body);
+
+    const result = await client.policyInEffect("paytm:refund");
+
+    expect(result).toEqual(body);
+    expect(result.signals.approval.managerApproved?.resourceId).toBe(
+      "parameters.orderId",
+    );
+    expect(transport.lastRequest).toMatchObject({
+      method: "GET",
+      path: "/policies/in-effect?capability=paytm%3Arefund",
+    });
+  });
+});
+
 describe("caller, keys, trust records, receipts", () => {
   it("reads the caller identity", async () => {
     const { client, transport } = clientWith({ callerId: "local-operator" });

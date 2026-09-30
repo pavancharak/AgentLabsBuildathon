@@ -7,6 +7,19 @@ Every real, tested guarantee Parmana makes holds only within a stated boundary. 
 states those boundaries precisely instead of leaving them implicit, and names, threat by
 threat, what's actually tested versus what's an honest gap.
 
+## What a signed approval does and does not cover
+
+Every agent action needs a signed human approval ([Human approval](/concepts/human-approval)).
+Its limits, stated plainly:
+
+- **It names the action and the resource, not every parameter.** A Slack approval does not fix
+  the message text, and a HubSpot approval does not fix the new stage or amount. Payment,
+  expense and refund approvals do cover the amount.
+- **It trusts the approver.** Parmana checks that a trusted, unrevoked key signed it; it cannot
+  check that the person read the request. Today one approver key is trusted in production.
+- **No request waits for it.** A refused request stays refused; the agent sends a new one with
+  the approval.
+
 ## What Parmana does not claim
 
 These are not "not yet" items, no implementation could honestly back them, so Parmana does

@@ -13,6 +13,10 @@ import {
 } from "@parmana/storage";
 
 import type { BusinessTransaction } from "@parmana/shared";
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 const root = path.resolve(import.meta.dirname);
 
@@ -43,6 +47,8 @@ const application = RuntimeFactory.create(
   trustRecords,
   policyRepository,
   executionSystem,
+  undefined,
+  demoApprovalSignalVerifier(),
 );
 
 //
@@ -57,7 +63,9 @@ const application = RuntimeFactory.create(
 // - Trust Record generation
 // - Cryptographic signing
 //
-const trustRecord = await application.execute(transaction);
+const trustRecord = await application.execute(
+  await withDemoApproval(transaction),
+);
 
 //
 // Verification uses the same verification

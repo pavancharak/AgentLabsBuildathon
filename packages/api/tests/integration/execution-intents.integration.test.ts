@@ -26,6 +26,7 @@ import { StaticKeyAuthenticator } from "../../src/auth/StaticKeyAuthenticator.js
 
 import { createBusinessTransaction } from "../fixtures/business-transaction.js";
 import { createInspectableExecutionSystem } from "../bootstrap/createInspectableExecutionSystem.js";
+import { testApprovalSignalVerifier } from "../../../../test-support/approvals.js";
 
 /**
  * HTTP-level proof of ADR-0012 through the real Express app: an Execution
@@ -85,7 +86,7 @@ describe("Execution Intents (ADR-0012, HTTP boundary): normal execution", () => 
 
   it("stores a signed intent that ends FINALIZED, and never exposes the saved release context", async () => {
     const app = buildApp();
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     const executed = await request(app).post("/execute").send(transaction);
 
@@ -113,7 +114,7 @@ describe("Execution Intents (ADR-0012, HTTP boundary): normal execution", () => 
 
   it("verifies the intent with no authentication, and rejects a tampered one", async () => {
     const app = buildApp();
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     await request(app).post("/execute").send(transaction);
 
@@ -263,7 +264,7 @@ describe("Execution Intents (ADR-0012, HTTP boundary): repair after a released a
       ),
       executionSystem,
       new MemoryRefusalRecordRepository(),
-      undefined,
+      testApprovalSignalVerifier(),
       undefined,
       undefined,
       undefined,
@@ -282,7 +283,7 @@ describe("Execution Intents (ADR-0012, HTTP boundary): repair after a released a
 
   it("keeps a signed intent, lists it, rebuilds the record without a second release, and is idempotent", async () => {
     const { app, trustRecords, calls } = buildRepairApp();
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     //
     // The action is released, the record cannot be stored.
@@ -432,7 +433,7 @@ describe("Execution Intents (G-54, HTTP boundary): closing an intent reconciled 
       ),
       executionSystem,
       new MemoryRefusalRecordRepository(),
-      undefined,
+      testApprovalSignalVerifier(),
       undefined,
       undefined,
       undefined,
@@ -453,7 +454,7 @@ describe("Execution Intents (G-54, HTTP boundary): closing an intent reconciled 
 
   it("closes an ERRORED intent, attributes it to the caller, and drops it from the unfinalized list", async () => {
     const { app, calls } = buildResolveApp(true);
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
     const id = transaction.businessTransactionId;
 
     const executed = await request(app)
@@ -518,7 +519,7 @@ describe("Execution Intents (G-54, HTTP boundary): closing an intent reconciled 
 
   it("needs a verified human, and validates the body", async () => {
     const { app } = buildResolveApp(true);
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
     const id = transaction.businessTransactionId;
 
     await request(app).post("/execute").set(human()).send(transaction);
@@ -570,7 +571,7 @@ describe("Execution Intents (G-54, HTTP boundary): closing an intent reconciled 
 
   it("refuses a RELEASED intent with 409 and points to finalize", async () => {
     const { app, trustRecords } = buildResolveApp(false);
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
     const id = transaction.businessTransactionId;
 
     trustRecords.failCreate = true;
@@ -589,7 +590,7 @@ describe("Execution Intents (G-54, HTTP boundary): closing an intent reconciled 
 
   it("refuses a FINALIZED intent and says it is already complete, not to run finalize", async () => {
     const { app } = buildResolveApp(false);
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
     const id = transaction.businessTransactionId;
 
     const executed = await request(app)
@@ -612,7 +613,7 @@ describe("Execution Intents (G-54, HTTP boundary): closing an intent reconciled 
 
   it("refuses to close an intent when a signed Trust Record already exists", async () => {
     const { app, intents } = buildResolveApp(false);
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
     const id = transaction.businessTransactionId;
 
     // The record is stored, but neither status update reaches the intent, so it

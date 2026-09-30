@@ -4,6 +4,13 @@
 
 Show that an over-threshold HubSpot amount change requires more than a caller's bare `preAuthorizedForAmountChange: true` claim — it requires a real, independently-issued, signed Approval Artifact from a trusted issuer, scoped to the right deal and a large enough amount.
 
+> **Since 2026-09-30** every HubSpot update needs one signed approval for the deal, whatever the
+> amount (`hubspot-deal-update` 1.1.0, `dealUpdateApproved`), checked by `ApprovalSignalVerifier`
+> like every other action. `HubSpotSignalStateVerifier` still has the pre authorization check this
+> tutorial exercises directly, and uses it only for a policy that declares no `approvalSignals`,
+> which no current policy is. No AI agent action is authorized without a signed human approval
+> (`docs/site/concepts/human-approval.mdx`).
+
 ## What You'll Learn
 
 - A well-formed, validly-signed artifact from an issuer nobody trusts is worth exactly as much as no artifact at all

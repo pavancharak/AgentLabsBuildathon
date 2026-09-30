@@ -9,6 +9,10 @@ import transaction1 from "./transaction-1.json" with { type: "json" };
 import transaction2 from "./transaction-2.json" with { type: "json" };
 
 import transaction3 from "./transaction-3.json" with { type: "json" };
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 async function main(): Promise<void> {
   console.log();
@@ -28,6 +32,7 @@ async function main(): Promise<void> {
   //
 
   const runtime = new RuntimeBuilder()
+    .withSignalStateVerifier(demoApprovalSignalVerifier())
     .withPolicyRepository(new FilePolicyRepository("policies"))
     .build(repository);
 
@@ -40,7 +45,9 @@ async function main(): Promise<void> {
     console.log(`Processing transaction ${index + 1}...`);
 
     try {
-      const { context } = await runtime.execute(transaction);
+      const { context } = await runtime.execute(
+        await withDemoApproval(transaction),
+      );
 
       console.log(`✓ ${context.decision.outcome}`);
 

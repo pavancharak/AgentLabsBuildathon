@@ -9,7 +9,7 @@ describe("Execution Trust Lifecycle", () => {
     //
     // Arrange
     //
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     //
     // Execute

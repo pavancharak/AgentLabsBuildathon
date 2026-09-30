@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { PolicyValidator } from "../../src/PolicyValidator.js";
-import type { Policy } from "../../src/types/Policy.js";
+import type { Policy, PolicyCondition } from "../../src/types/Policy.js";
 
 /**
  * Gap #1 (boundSignals coverage): PolicyValidator validates boundSignals
@@ -484,7 +484,12 @@ describe("PolicyValidator.findRuleConflicts", () => {
       rules: [
         {
           id: "rule1",
-          condition: { fact: "riskScore", operator: "lte", value: 30 },
+          condition: {
+            all: [
+              { fact: "humanApproved", operator: "is_true" },
+              { fact: "riskScore", operator: "lte", value: 30 },
+            ],
+          },
           outcome: { action: "approve" as never, reason: "..." },
         },
         {
@@ -493,9 +498,135 @@ describe("PolicyValidator.findRuleConflicts", () => {
           outcome: { action: "reject" as never, reason: "..." },
         },
       ],
+      approvalSignals: { humanApproved: { resourceId: "target" } },
       unboundSignalReasons: { riskScore: "test fixture" },
     };
     expect(() => validator.validate(policy)).not.toThrow();
     expect(validator.findRuleConflicts(policy).length).toBeGreaterThan(0);
+  });
+});
+
+describe("PolicyValidator: no approval without a signed human approval", () => {
+  const validator = new PolicyValidator();
+
+  const approval = { humanApproved: { resourceId: "target" } };
+
+  function policyWith(
+    condition: PolicyCondition,
+    approvalSignals: Policy["approvalSignals"] | null = approval,
+  ): Policy {
+    return {
+      policyId: "test-policy",
+      policyVersion: "1.0.0",
+      schemaVersion: "1.0.0",
+      ...(approvalSignals !== null ? { approvalSignals } : {}),
+      unboundSignalReasons: { riskScore: "test fixture" },
+      rules: [
+        {
+          id: "approve",
+          condition,
+          outcome: { action: "approve" as never, reason: "approves" },
+        },
+        {
+          id: "reject-not-approved",
+          condition: { fact: "humanApproved", operator: "is_false" },
+          outcome: { action: "reject" as never, reason: "not approved" },
+        },
+        {
+          id: "reject-default",
+          condition: { always: true },
+          outcome: { action: "reject" as never, reason: "rejects" },
+        },
+      ],
+    };
+  }
+
+  it("accepts an approve rule whose whole condition is the approval signal", () => {
+    expect(() =>
+      validator.validate(
+        policyWith({ fact: "humanApproved", operator: "is_true" }),
+      ),
+    ).not.toThrow();
+  });
+
+  it("accepts an approve rule that requires the approval signal in its top level all", () => {
+    expect(() =>
+      validator.validate(
+        policyWith({
+          all: [
+            { fact: "riskScore", operator: "lte", value: 20 },
+            { fact: "humanApproved", operator: "is_true" },
+          ],
+        }),
+      ),
+    ).not.toThrow();
+  });
+
+  it.each<[string, PolicyCondition]>([
+    ["always", { always: true }],
+    [
+      "a caller declared fact",
+      { fact: "riskScore", operator: "lte", value: 20 },
+    ],
+    [
+      "the approval signal only inside an any",
+      {
+        any: [
+          { fact: "humanApproved", operator: "is_true" },
+          { fact: "riskScore", operator: "lte", value: 20 },
+        ],
+      },
+    ],
+    [
+      "the approval signal only inside a nested all",
+      {
+        all: [
+          { all: [{ fact: "humanApproved", operator: "is_true" }] },
+          { fact: "riskScore", operator: "lte", value: 20 },
+        ],
+      },
+    ],
+    [
+      "the approval signal compared with eq instead of is_true",
+      {
+        all: [
+          { fact: "humanApproved", operator: "eq", value: true },
+          { fact: "riskScore", operator: "lte", value: 20 },
+        ],
+      },
+    ],
+  ])("refuses an approve rule gated by %s", (_name, condition) => {
+    expect(() => validator.validate(policyWith(condition))).toThrow(
+      /'approve' approves without a signed human approval/,
+    );
+  });
+
+  it("refuses an approve rule on a fact that is not declared in approvalSignals", () => {
+    expect(() =>
+      validator.validate({
+        ...policyWith({ fact: "humanApproved", operator: "is_true" }, null),
+        unboundSignalReasons: {
+          riskScore: "test fixture",
+          humanApproved: "declared by the caller",
+        },
+      }),
+    ).toThrow(/approves without a signed human approval/);
+  });
+
+  it("accepts a policy that only rejects", () => {
+    expect(() =>
+      validator.validate({
+        policyId: "test-policy",
+        policyVersion: "1.0.0",
+        schemaVersion: "1.0.0",
+        rules: [
+          {
+            id: "reject-default",
+            condition: { always: true },
+            outcome: { action: "reject" as never, reason: "rejects" },
+          },
+        ],
+      }),
+    ).not.toThrow();
   });
 });

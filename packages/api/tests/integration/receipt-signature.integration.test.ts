@@ -32,7 +32,7 @@ describe.skipIf(!databaseConfigured)("Receipt Signature", () => {
     //
     // Arrange
     //
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     //
     // Execute

@@ -5,6 +5,10 @@ import { FilePolicyRepository } from "@parmana/policy";
 import { RuntimeBuilder } from "@parmana/runtime";
 
 import transaction from "./transaction.json" with { type: "json" };
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 async function main(): Promise<void> {
   console.log();
@@ -24,6 +28,7 @@ async function main(): Promise<void> {
   //
 
   const runtime = new RuntimeBuilder()
+    .withSignalStateVerifier(demoApprovalSignalVerifier())
     .withPolicyRepository(new FilePolicyRepository("policies"))
     .build(repository);
 
@@ -37,7 +42,9 @@ async function main(): Promise<void> {
   console.log("First execution...");
 
   try {
-    const { context } = await runtime.execute(transaction);
+    const { context } = await runtime.execute(
+      await withDemoApproval(transaction),
+    );
 
     console.log(`✓ ${context.decision.outcome}`);
 
@@ -55,7 +62,7 @@ async function main(): Promise<void> {
   console.log("Retry #1...");
 
   try {
-    await runtime.execute(transaction);
+    await runtime.execute(await withDemoApproval(transaction));
 
     console.log("✓ Transaction executed again.");
   } catch (error) {
@@ -73,7 +80,7 @@ async function main(): Promise<void> {
   console.log("Retry #2...");
 
   try {
-    await runtime.execute(transaction);
+    await runtime.execute(await withDemoApproval(transaction));
 
     console.log("✓ Transaction executed again.");
   } catch (error) {

@@ -4,6 +4,17 @@ description: "Direct answers, including the ones that aren't flattering."
 ---
 
 <AccordionGroup>
+  <Accordion title="Can an AI agent do anything without a person's approval?">
+    No, reads included. Every policy must require a signed approval from a
+    trusted person, for the action and its resource, in every rule that
+    approves: `PolicyValidator` refuses to load or accept a proposal for a
+    policy that does not. The agent can set the approval signal to `true`, but
+    it counts only with a valid signed approval, checked before authorization
+    and again at the gateway, and used once. See [Human
+    approval](/concepts/human-approval). The approval names the action and the
+    resource (and the amount for payments and refunds), not every parameter, and
+    a refused request is not held: the agent sends a new one with the approval.
+  </Accordion>
   <Accordion title="Does Parmana prevent an AI from executing an unauthorized action?">
     Within a scope that's now the default, yes, see [Content Binding &
     TOCTOU](/concepts/content-binding-toctou) and [The

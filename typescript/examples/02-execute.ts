@@ -14,7 +14,10 @@ import {
  * this exact example actually works against a real running server,
  * not just that it compiles.
  */
-export async function runExecuteExample(endpoint = "http://localhost:3000") {
+export async function runExecuteExample(
+  endpoint = "http://localhost:3000",
+  approvalArtifact: unknown = readApprovalArtifact(),
+) {
   const client = new ParmanaClient({
     endpoint,
 
@@ -94,19 +97,25 @@ export async function runExecuteExample(endpoint = "http://localhost:3000") {
     policy: {
       name: "vendor-payment",
 
-      version: "2.0.0",
+      version: "2.1.0",
 
       schemaVersion: "1.0.0",
     },
 
     signals: {
+      // No agent action is authorized without a signed human approval.
+      // A trusted approver signs one for this target and amount (for
+      // example through the approval email), and the agent attaches it
+      // here. Without it, POST /execute refuses the transaction.
+      humanApproved: true,
+      approvalArtifact: approvalArtifact as never,
       vendorVerified: true,
       invoiceVerified: true,
       paymentApproved: true,
       sufficientFunds: true,
       paymentAmount: 100,
       riskScore: 5,
-      // vendor-payment@2.0.0 declares boundSignals: vendorId -> target;
+      // vendor-payment@2.1.0 declares boundSignals: vendorId -> target;
       // SignalIntentBinder rejects this transaction unless this signal
       // exactly equals intent.target, checked before policy evaluation
       // ever runs (docs/VERIFICATION-GAPS.md G-24).
@@ -119,6 +128,16 @@ export async function runExecuteExample(endpoint = "http://localhost:3000") {
   };
 
   return client.execute(transaction);
+}
+
+/**
+ * The signed approval, as JSON, from PARMANA_APPROVAL_ARTIFACT when run
+ * as a script.
+ */
+function readApprovalArtifact(): unknown {
+  const raw = process.env.PARMANA_APPROVAL_ARTIFACT;
+
+  return raw === undefined ? undefined : JSON.parse(raw);
 }
 
 const isMainModule =

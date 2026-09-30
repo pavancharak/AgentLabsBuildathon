@@ -16,7 +16,7 @@ describe.skipIf(!databaseConfigured)("Replay Integration", () => {
     //
     // Execute
     //
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     const execute = await request(app).post("/execute").send(transaction);
 

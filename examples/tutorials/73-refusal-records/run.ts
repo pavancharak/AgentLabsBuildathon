@@ -1,6 +1,10 @@
 import crypto from "node:crypto";
 
 import type { BusinessTransaction } from "@parmana/shared";
+import {
+  demoApprovalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 //
 // RFC-0021: every policy REJECT produces a durable, signed Refusal
@@ -56,7 +60,7 @@ function vendorPaymentTransaction(overrides: {
     },
     policy: {
       name: "vendor-payment",
-      version: "2.0.0",
+      version: "2.1.0",
       schemaVersion: "1.0.0",
     },
     signals: {
@@ -80,9 +84,9 @@ console.log("==================================================");
 console.log();
 
 const executionSystem = await createExecutionSystem();
-const application = createApplication(executionSystem);
+const application = createApplication(executionSystem, demoApprovalVerifier());
 
-// riskScore: 999 fails vendor-payment/2.0.0's own risk-score rule
+// riskScore: 999 fails vendor-payment/2.1.0's own risk-score rule
 // (requires <= 20) -- an ordinary PolicyEngine REJECT.
 const transaction = vendorPaymentTransaction({ riskScore: 999 });
 
@@ -90,7 +94,7 @@ console.log("Submitting a transaction policy will reject (riskScore: 999)");
 console.log("--------------------------------------------------");
 
 try {
-  await application.execute(transaction);
+  await application.execute(await withDemoApproval(transaction));
   console.log("✗ Expected this transaction to be rejected by policy.");
 } catch (error) {
   console.log(

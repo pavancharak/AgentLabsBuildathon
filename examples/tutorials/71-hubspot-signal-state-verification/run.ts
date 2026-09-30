@@ -5,6 +5,10 @@ import {
   MockHubSpotServer,
   HUBSPOT_TEST_MODE_PLACEHOLDER_TOKEN,
 } from "@parmana/connector-hubspot";
+import {
+  demoApprovalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 //
 // The HubSpot sibling of Tutorial 65: a caller can declare any
@@ -76,7 +80,7 @@ function dealUpdateTransaction(overrides: {
     },
     policy: {
       name: "hubspot-deal-update",
-      version: "1.0.0",
+      version: "1.1.0",
       schemaVersion: "1.0.0",
     },
     signals: overrides.signals,
@@ -104,7 +108,10 @@ try {
   });
 
   const executionSystem = await createExecutionSystem();
-  const application = createApplication(executionSystem);
+  const application = createApplication(
+    executionSystem,
+    demoApprovalVerifier(),
+  );
 
   // The caller declares signals as if the deal were still at an early,
   // non-terminal stage -- so the proposed forward transition looks
@@ -128,7 +135,9 @@ try {
   let reason = "";
 
   try {
-    const trustRecord = await application.execute(transaction);
+    const trustRecord = await application.execute(
+      await withDemoApproval(transaction),
+    );
     const decision = trustRecord.executions.at(-1)?.decision;
     outcome = (decision?.outcome as "APPROVED" | "REJECTED") ?? "REJECTED";
     reason = decision?.reason ?? "";

@@ -16,6 +16,10 @@ import { LoggingComponent } from "./LoggingComponent.js";
 import { MetricsComponent } from "./MetricsComponent.js";
 
 import { NotificationComponent } from "./NotificationComponent.js";
+import {
+  demoApprovalSignalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 const root = path.resolve(import.meta.dirname);
 
@@ -35,6 +39,7 @@ const executionSystem = new DefaultExecutionSystem();
 // Build a custom Runtime Pipeline.
 //
 const runtime = new RuntimeBuilder()
+  .withSignalStateVerifier(demoApprovalSignalVerifier())
   .withPolicyRepository(policyRepository)
   .addStage(new LoggingComponent())
   .addStage(new MetricsComponent())
@@ -44,7 +49,7 @@ const runtime = new RuntimeBuilder()
 //
 // Execute.
 //
-const result = await runtime.execute(transaction);
+const result = await runtime.execute(await withDemoApproval(transaction));
 
 const trustRecord = result.trustRecord;
 

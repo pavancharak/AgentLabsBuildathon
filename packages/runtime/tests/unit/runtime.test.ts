@@ -21,6 +21,11 @@ import {
 
 import { RuntimeBuilder } from "../../src/RuntimeBuilder.js";
 
+import {
+  testApprovalSignalVerifier,
+  withTestApproval,
+} from "../../../../test-support/approvals.js";
+
 //
 // Hermetic key material: a fresh temp key dir per test,
 // matching packages/crypto/test/dilithium3-cross-instance.test.ts.
@@ -86,10 +91,11 @@ const APPROVE_POLICY: Policy = {
   policyId: "payment-approval",
   policyVersion: "1.0.0",
   schemaVersion: "1.0.0",
+  approvalSignals: { humanApproved: { resourceId: "target" } },
   rules: [
     {
-      id: "approve-all",
-      condition: { always: true },
+      id: "approve-with-approval",
+      condition: { fact: "humanApproved", operator: "is_true" },
       outcome: {
         action: PolicyAction.APPROVE,
         reason: "approved for test",
@@ -163,9 +169,13 @@ describe("Runtime (facade)", () => {
 
     const runtime = new RuntimeBuilder()
       .withPolicyRepository(new FixedPolicyRepository())
+      .withSignalStateVerifier(testApprovalSignalVerifier())
       .build(trustRecords);
 
-    const transaction = createTransaction();
+    const transaction = await withTestApproval(
+      createTransaction(),
+      APPROVE_POLICY,
+    );
 
     const result = await runtime.execute(transaction);
 
@@ -180,6 +190,43 @@ describe("Runtime (facade)", () => {
     //
     expect(trustRecords.created).toHaveLength(1);
     expect(trustRecords.created[0]).toBe(result.trustRecord);
+  });
+
+  it("refuses an approval when no approval verifier is configured, even with the approval signal set", async () => {
+    const trustRecords = new InMemoryExecutionTrustRecordRepository();
+
+    const runtime = new RuntimeBuilder()
+      .withPolicyRepository(new FixedPolicyRepository())
+      .build(trustRecords);
+
+    const transaction = await withTestApproval(
+      createTransaction(),
+      APPROVE_POLICY,
+    );
+
+    await expect(runtime.execute(transaction)).rejects.toThrow(
+      /no approval verifier is configured/,
+    );
+    expect(trustRecords.created).toHaveLength(0);
+  });
+
+  it("refuses a caller that sets the approval signal true with no signed approval", async () => {
+    const trustRecords = new InMemoryExecutionTrustRecordRepository();
+
+    const runtime = new RuntimeBuilder()
+      .withPolicyRepository(new FixedPolicyRepository())
+      .withSignalStateVerifier(testApprovalSignalVerifier())
+      .build(trustRecords);
+
+    const transaction = createTransaction();
+
+    await expect(
+      runtime.execute({
+        ...transaction,
+        signals: { ...transaction.signals, humanApproved: true },
+      }),
+    ).rejects.toThrow(/do not match independently verified state/);
+    expect(trustRecords.created).toHaveLength(0);
   });
 
   it("isEmpty() and size() delegate to the configured pipeline", () => {

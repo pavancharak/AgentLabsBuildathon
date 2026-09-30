@@ -50,8 +50,13 @@ rules this walkthrough exercises:
     "invoiceVerified": "Result of an independent invoice-verification check; not a value the Intent itself declares.",
     "paymentApproved": "Attested by a separate payment-approval step; the Intent carries no approval-status field to bind against.",
     "sufficientFunds": "Result of an independent funds-availability check against account state; not expressible via the Intent's target/parameters.",
-    "riskScore": "A computed payment-risk score, not a value the caller's Intent declares or could be checked against.",
-    "financeDirectorApproved": "Attested by a separate Finance Director approval step; the Intent carries no approval-status field to bind against."
+    "riskScore": "A computed payment-risk score, not a value the caller's Intent declares or could be checked against."
+  },
+  "approvalSignals": {
+    "financeDirectorApproved": {
+      "resourceId": "target",
+      "value": "parameters.amount"
+    }
   },
   "rules": [
     {
@@ -63,11 +68,7 @@ rules this walkthrough exercises:
           { "fact": "paymentApproved", "operator": "eq", "value": true },
           { "fact": "sufficientFunds", "operator": "eq", "value": true },
           { "fact": "paymentAmount", "operator": "gt", "value": 10000 },
-          {
-            "fact": "financeDirectorApproved",
-            "operator": "eq",
-            "value": true
-          },
+          { "fact": "financeDirectorApproved", "operator": "is_true" },
           { "fact": "riskScore", "operator": "lte", "value": 20 }
         ]
       },
@@ -105,8 +106,14 @@ rules this walkthrough exercises:
 }
 ```
 
+`financeDirectorApproved` is declared in `approvalSignals`, so it is true only with a signed
+approval from a trusted approver for this vendor (the Intent's `target`), covering this amount.
+Every approve rule must require such a signal with `is_true` at its top level: no agent action is
+authorized without a signed human approval, and `PolicyValidator` refuses to load a policy that
+breaks this ([Human approval](/concepts/human-approval)).
+
 The real file has more rules than shown above: a lower-value approve path (`paymentAmount`
-at or below 10000, no director approval needed), and individual rejection rules for an
+at or below 10000, still with the director's signed approval), and individual rejection rules for an
 unverified vendor, unverified invoice, unapproved payment, insufficient funds, an invalid
 amount, and high risk score, each with its own specific reason string, plus the trailing
 `reject-default` catch-all shown above. Without that catch-all, an unmatched transaction
@@ -122,14 +129,15 @@ the policy file itself.
   Intent-side equivalent, `paymentAmount` (an amount, bound to
   `parameters.amount` above), so it belongs in `boundSignals`, where
   `SignalIntentBinder` checks it before evaluation runs rather than trusting a
-  caller's declaration unchecked. Every other fact here — `vendorVerified`,
-  `invoiceVerified`, `paymentApproved`, `sufficientFunds`, `riskScore`,
-  `financeDirectorApproved` — is an independently-attested boolean or score with
-  no Intent-side equivalent, so each needs its own `unboundSignalReasons` entry
-  explaining why, not silence. See [Policies and the
-  decision](/concepts/policies-and-the-decision) for the mechanism and why it
-  exists: failing closed here, instead of an easily-missed load-time warning, is
-  what makes an uncovered fact impossible to ship by accident.
+  caller's declaration unchecked. `financeDirectorApproved` is covered by its
+  `approvalSignals` entry. Every other fact here (`vendorVerified`,
+  `invoiceVerified`, `paymentApproved`, `sufficientFunds`, `riskScore`) is an
+  independently attested boolean or score with no Intent-side equivalent, so
+  each needs its own `unboundSignalReasons` entry explaining why, not silence.
+  See [Policies and the decision](/concepts/policies-and-the-decision) for the
+  mechanism and why it exists: failing closed here, instead of an easily-missed
+  load-time warning, is what makes an uncovered fact impossible to ship by
+  accident.
 </Note>
 
 ### 2. Reference it from a Business Transaction
@@ -148,17 +156,26 @@ the policy file itself.
     "sufficientFunds": true,
     "paymentAmount": 25000,
     "riskScore": 10,
-    "financeDirectorApproved": true
+    "financeDirectorApproved": true,
+    "approvalArtifact": {
+      "payload": { "...": "..." },
+      "signature": { "...": "..." }
+    }
   }
 }
 ```
+
+`approvalArtifact` is the Finance Director's signed approval for this vendor, up to 25000.
+Without it, `financeDirectorApproved: true` is refused.
 
 ### 3. Evaluate it
 
 This exact scenario already exists as `examples/tutorials/14-custom-policy/`, reuse it
 rather than writing a parallel harness: it builds a `FilePolicyRepository` pointed at a
 local `policies/` directory and executes a transaction through `RuntimeFactory.create()`
-directly, no server required.
+directly, no server required. A demo Finance Director, a key made in memory
+(`examples/shared/helpers/demo-approval.ts`), signs the approval and is the only approver the
+tutorial trusts.
 
 ```bash
 node_modules/.bin/tsx examples/tutorials/14-custom-policy/run.ts

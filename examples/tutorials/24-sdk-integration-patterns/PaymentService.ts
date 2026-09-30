@@ -4,6 +4,7 @@ import type {
 } from "@parmana/shared";
 
 import type { Runtime } from "@parmana/runtime";
+import { withDemoApproval } from "../../shared/helpers/demo-approval.js";
 
 /**
  * Example application service.
@@ -23,7 +24,9 @@ export class PaymentService {
   async releasePayment(
     transaction: BusinessTransaction,
   ): Promise<ExecutionTrustRecord> {
-    const { trustRecord } = await this.runtime.execute(transaction);
+    const { trustRecord } = await this.runtime.execute(
+      await withDemoApproval(transaction),
+    );
 
     return trustRecord;
   }

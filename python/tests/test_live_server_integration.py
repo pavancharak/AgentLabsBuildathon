@@ -54,6 +54,7 @@ from parmana import (
     SignatureAlgorithm,
     ValidationError,
 )
+from tests.local_approver import local_approver_env, sign_local_approval
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -119,6 +120,8 @@ def live_server() -> str:
         env = {
             **os.environ,
             "NODE_ENV": "test",
+            # Trusts the local test approver (tests/local_approver.py).
+            **local_approver_env(),
             "PARMANA_STORAGE": "memory",
             "PARMANA_POLICY_DIR": str(REPO_ROOT / "policies"),
             "PARMANA_API_KEYS": api_keys,
@@ -225,9 +228,17 @@ def _transaction(
             created_at=now,
         ),
         policy=PolicyReference(
-            name="vendor-payment", version="2.0.0", schema_version="1.0.0"
+            name="vendor-payment", version="2.1.0", schema_version="1.0.0"
         ),
         signals={
+            # Signed by the local test approver: no agent action is
+            # authorized without a signed human approval.
+            "humanApproved": True,
+            "approvalArtifact": sign_local_approval(
+                capability="test:fixture-execute",
+                resource_id=target,
+                max_amount=4200,
+            ),
             "vendorVerified": True,
             "invoiceVerified": True,
             "paymentApproved": True,

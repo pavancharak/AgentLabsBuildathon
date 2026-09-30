@@ -58,6 +58,9 @@ key and the envelope itself. Every property below exists so that check is meanin
 
 ## How it behaves
 
+- **Only with a signed human approval.** No policy can approve without one: every approve
+  rule must require an `approvalSignals` fact, which counts only with a valid signed approval
+  for the action and resource. See [Human approval](/concepts/human-approval).
 - **Signed only after approval.** A `REJECTED` decision never produces a
   `SignedExecutionAuthorization`, signing happens only after `ExecutionGate.enforce()`
   approves (`RuntimeEngine`; `execution-authorization-wiring.test.ts`, "rejected transaction

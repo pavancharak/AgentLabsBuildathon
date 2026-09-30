@@ -84,6 +84,12 @@ export type {
 
 export type { PolicySignals } from "./types/PolicySignals.js";
 
+export {
+  collectReferencedFacts,
+  describePolicySignalRequirements,
+} from "./policySignalRequirements.js";
+export type { PolicySignalRequirements } from "./policySignalRequirements.js";
+
 export type { PolicyDecision } from "./types/PolicyDecision.js";
 
 export { PolicyAction } from "./types/PolicyAction.js";

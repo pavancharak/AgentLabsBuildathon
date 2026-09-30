@@ -10,7 +10,7 @@ time — no retrofit needed.
 
 ## What You'll Learn
 
-- `policies/api-key-issuance/1.0.0/policy.json` binds its one genuinely Intent-bindable fact
+- `policies/api-key-issuance/1.1.0/policy.json` binds its one genuinely Intent-bindable fact
   (`keyLifetimeDays`, an amount-like field) via `boundSignals`, and explicitly acknowledges
   every other fact (`requesterVerified`, `scopeAuthorized`, `riskScore`) in
   `unboundSignalReasons` with a specific reason — `PolicyValidator.validate()` would otherwise
@@ -34,7 +34,7 @@ time — no retrofit needed.
 npx tsx examples/tutorials/106-api-key-issuance/run.ts
 ```
 
-Uses the real `policies/` directory (including the new `api-key-issuance/1.0.0` policy this
+Uses the real `policies/` directory (including the new `api-key-issuance/1.1.0` policy this
 tutorial adds), in-memory trust records — no HTTP server, no Supabase, no scratch key
 directory needed.
 

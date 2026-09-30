@@ -14,7 +14,7 @@ const databaseConfigured = resolveDatabaseGate("Trust Record GET Integration");
 describe.skipIf(!databaseConfigured)("Trust Record GET Integration", () => {
   it("retrieves an existing Execution Trust Record", async () => {
     //
-    const transaction = createBusinessTransaction();
+    const transaction = await createBusinessTransaction();
 
     // Execute
     //

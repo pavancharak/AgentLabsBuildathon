@@ -11,8 +11,11 @@
 //   3. policy governance works: one verified human proposes the shipped
 //      customer-refund policy, the same human is refused as approver, and
 //      a different human approves it with a signed step-up authorization;
-//   4. an authorized refund is executed (200) and reaches the downstream
-//      system, which verifies the gateway's signature itself;
+//      the same two humans then add a trusted refund manager key through
+//      maker checker;
+//   4. a refund with the manager's signed approval is executed (200) and
+//      reaches the downstream system, which verifies the gateway's
+//      signature itself;
 //   5. a refund the policy's rules refuse is rejected (403 POLICY_DENIED,
 //      for the policy's own reason) and never reaches the downstream system;
 //   6. the Trust Record for the authorized refund verifies with only the
@@ -22,11 +25,12 @@
 // next to it, so it can be checked again later with
 // scripts/verify-trust-record.ts.
 
-import { createPrivateKey, randomUUID } from "node:crypto";
+import { createPrivateKey, generateKeyPairSync, randomUUID } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
 
 import {
+  ApprovalArtifactSigner,
   PolicyChangeStepUpAuthorizationSigner,
   verifyExecutionTrustRecordOffline,
 } from "@parmana/crypto";
@@ -39,12 +43,19 @@ const identities = JSON.parse(readFileSync("/identities/secrets.json", "utf8"));
 const { operator, proposer, approver } = identities;
 
 const policyName = "customer-refund";
-// Stays on 1.1.0 on purpose. This check proves an authorized refund runs
-// end to end with no internet route, and under 1.2.0 (G-75) every refund
-// needs a manager approval signed by a key the server trusts. The image
-// holds no such key, and adding a demo approver to the trusted list would
-// weaken every deployment. The network here is isolated and throwaway.
-const policyVersion = "1.1.0";
+// 1.2.0: every refund needs a manager's signed approval (G-75), and no
+// agent action runs without a signed human approval (G-80). The image
+// trusts no approver, so this check adds one through maker checker, the
+// same way an operator would, with a key made here in this throwaway
+// network. 1.1.0 no longer loads.
+const policyVersion = "1.2.0";
+
+// The refund manager this check adds and signs approvals as.
+const manager = {
+  approverId: "offline-check-manager",
+  keyId: "offline-check-manager-key-1",
+  keys: generateKeyPairSync("ed25519"),
+};
 const policyContent = JSON.parse(
   readFileSync(
     `/app/policies/${policyName}/${policyVersion}/policy.json`,
@@ -119,12 +130,31 @@ async function waitForReady() {
   return undefined;
 }
 
-function refund({ amount, managerApproved }) {
+async function refund({ amount, managerApproved }) {
   const businessTransactionId = randomUUID();
   const authorityId = randomUUID();
   const authorizationId = randomUUID();
   const orderId = `offline-order-${businessTransactionId.slice(0, 8)}`;
   const now = new Date().toISOString();
+
+  // The manager signs an approval for this order, up to this amount.
+  const approvalArtifact = managerApproved
+    ? JSON.parse(
+        JSON.stringify(
+          await new ApprovalArtifactSigner().sign(
+            {
+              approverId: manager.approverId,
+              keyId: manager.keyId,
+              capability: "paytm:refund",
+              resourceId: orderId,
+              scope: { field: "amount", comparator: "lte", value: amount },
+              ttlSeconds: 900,
+            },
+            manager.keys.privateKey,
+          ),
+        ),
+      )
+    : undefined;
 
   return {
     businessTransactionId,
@@ -167,6 +197,7 @@ function refund({ amount, managerApproved }) {
       managerApproved,
       fraudCheckPassed: true,
       refundAmount: amount,
+      ...(approvalArtifact !== undefined ? { approvalArtifact } : {}),
     },
     decision: { outcome: "APPROVED" },
     status: "APPROVED",
@@ -241,10 +272,44 @@ check(
   describe(approval),
 );
 
-// 4. Authorized refund.
+// 3b. Approver governance: trust the refund manager's key, with no deploy.
+const managerProposed = await call(
+  "POST",
+  "/approval-issuers/changes",
+  proposer.key,
+  {
+    action: "add",
+    approverId: manager.approverId,
+    keyId: manager.keyId,
+    publicKeyPem: manager.keys.publicKey
+      .export({ format: "pem", type: "spki" })
+      .toString(),
+    reason: "Offline check: trust a refund manager.",
+  },
+);
+check(
+  "adding a refund manager key proposed by a verified human",
+  managerProposed.status === 201,
+  describe(managerProposed),
+);
+
+const managerChangeId = managerProposed.body?.changeId;
+const managerApproval = await call(
+  "POST",
+  `/approval-issuers/changes/${managerChangeId}/approve`,
+  approver.key,
+  { stepUpAuthorization: await stepUpFor(managerChangeId) },
+);
+check(
+  "a different human approves the manager key with a signed step-up authorization",
+  managerApproval.status === 200,
+  describe(managerApproval),
+);
+
+// 4. Authorized refund, with the manager's signed approval.
 const before = await acceptedByStandIn();
 
-const authorized = refund({ amount: 500, managerApproved: false });
+const authorized = await refund({ amount: 500, managerApproved: true });
 const authorizedResponse = await call(
   "POST",
   "/execute",
@@ -262,7 +327,7 @@ check(
 );
 
 // 5. Refused refund: refused by the policy's rules, not by anything else.
-const refused = refund({ amount: 50000, managerApproved: false });
+const refused = await refund({ amount: 50000, managerApproved: false });
 const refusedResponse = await call("POST", "/execute", operator.key, refused);
 const refusedForPolicyRule =
   refusedResponse.status === 403 &&

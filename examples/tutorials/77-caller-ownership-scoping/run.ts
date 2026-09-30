@@ -1,6 +1,10 @@
 import crypto from "node:crypto";
 
 import type { BusinessTransaction } from "@parmana/shared";
+import {
+  demoApprovalVerifier,
+  withDemoApproval,
+} from "../../shared/helpers/demo-approval.js";
 
 //
 // Without this check, every transaction-scoped route (trust-records,
@@ -67,7 +71,7 @@ function vendorPaymentTransaction(submittedBy: string): BusinessTransaction {
     },
     policy: {
       name: "vendor-payment",
-      version: "2.0.0",
+      version: "2.1.0",
       schemaVersion: "1.0.0",
     },
     signals: {
@@ -91,10 +95,10 @@ console.log("==================================================");
 console.log();
 
 const executionSystem = await createExecutionSystem();
-const application = createApplication(executionSystem);
+const application = createApplication(executionSystem, demoApprovalVerifier());
 
 const transaction = vendorPaymentTransaction("caller-a");
-await application.execute(transaction);
+await application.execute(await withDemoApproval(transaction));
 
 console.log(
   `Transaction ${transaction.businessTransactionId} submitted by caller-a and approved.`,

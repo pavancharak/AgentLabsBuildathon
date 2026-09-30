@@ -55,7 +55,7 @@ describe("Caller authentication (HTTP boundary)", () => {
   describe("valid credential", () => {
     it("reaches the route handler and executes normally", async () => {
       const { app } = buildApp();
-      const transaction = createBusinessTransaction();
+      const transaction = await createBusinessTransaction();
 
       const response = await request(app)
         .post("/execute")
@@ -69,7 +69,7 @@ describe("Caller authentication (HTTP boundary)", () => {
   describe("missing credential", () => {
     it("is rejected 401 before any Business Transaction is constructed", async () => {
       const { app, executionAuditSink } = buildApp();
-      const transaction = createBusinessTransaction();
+      const transaction = await createBusinessTransaction();
 
       const response = await request(app).post("/execute").send(transaction);
 
@@ -84,7 +84,9 @@ describe("Caller authentication (HTTP boundary)", () => {
     it('records a caller.rejected event with reason "missing credential"', async () => {
       const { app, callerAuditSink } = buildApp();
 
-      await request(app).post("/execute").send(createBusinessTransaction());
+      await request(app)
+        .post("/execute")
+        .send(await createBusinessTransaction());
 
       expect(callerAuditSink.events).toHaveLength(1);
       expect(callerAuditSink.events[0]).toMatchObject({
@@ -103,7 +105,7 @@ describe("Caller authentication (HTTP boundary)", () => {
       const response = await request(app)
         .post("/execute")
         .set("Authorization", "Bearer not-a-real-key")
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(response.status).toBe(401);
       expect(executionAuditSink.events).toHaveLength(0);
@@ -115,7 +117,7 @@ describe("Caller authentication (HTTP boundary)", () => {
       await request(app)
         .post("/execute")
         .set("Authorization", "Bearer not-a-real-key")
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(callerAuditSink.events).toHaveLength(1);
       expect(callerAuditSink.events[0]).toMatchObject({
@@ -132,7 +134,7 @@ describe("Caller authentication (HTTP boundary)", () => {
       await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${CALLER_A_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       const authenticatedEvent = callerAuditSink.events.find(
         (event) => event.type === "caller.authenticated",
@@ -175,7 +177,7 @@ describe("Caller authentication (HTTP boundary)", () => {
       const stillWorks = await request(appDuringRotation)
         .post("/execute")
         .set("Authorization", `Bearer ${oldKey}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(stillWorks.status).toBe(200);
 
@@ -200,14 +202,14 @@ describe("Caller authentication (HTTP boundary)", () => {
       const revokedKeyRejected = await request(appAfterRevocation)
         .post("/execute")
         .set("Authorization", `Bearer ${oldKey}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(revokedKeyRejected.status).toBe(401);
 
       const newKeyStillWorks = await request(appAfterRevocation)
         .post("/execute")
         .set("Authorization", `Bearer ${newKey}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(newKeyStillWorks.status).toBe(200);
     });
@@ -220,9 +222,11 @@ describe("Caller authentication (HTTP boundary)", () => {
       await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${CALLER_A_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
-      await request(app).post("/execute").send(createBusinessTransaction());
+      await request(app)
+        .post("/execute")
+        .send(await createBusinessTransaction());
 
       // caller.authenticated + caller.capability_granted for the
       // successful call, caller.rejected for the unauthenticated one.
@@ -245,7 +249,7 @@ describe("Caller authentication (HTTP boundary)", () => {
       const executeResponse = await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${CALLER_A_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(executeResponse.status).toBe(200);
       expect(executeResponse.body.authorization.payload.grantedCapability).toBe(
@@ -255,7 +259,7 @@ describe("Caller authentication (HTTP boundary)", () => {
       const transactionsResponse = await request(app)
         .post("/transactions")
         .set("Authorization", `Bearer ${CALLER_A_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(transactionsResponse.status).toBe(201);
       expect(
@@ -273,7 +277,7 @@ describe("Caller authentication (HTTP boundary)", () => {
     it("blocks the exact live exploit: an ordinary caller cannot self-declare an unrelated authority.principalId (e.g. impersonating a CEO)", async () => {
       const { app } = buildApp();
 
-      const spoofedTransaction = createBusinessTransaction();
+      const spoofedTransaction = await createBusinessTransaction();
       // @ts-expect-error -- test fixture's authority is typed loosely
       // enough upstream that this direct mutation is the simplest way
       // to reproduce the live exploit: caller-a authenticates as
@@ -299,7 +303,7 @@ describe("Caller authentication (HTTP boundary)", () => {
       const response = await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${CALLER_A_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(response.status).toBe(200);
     });
@@ -309,7 +313,7 @@ describe("Caller authentication (HTTP boundary)", () => {
     it("a well-authenticated caller submitting a policy-rejected transaction is still rejected by policy", async () => {
       const { app } = buildApp();
 
-      const rejectedTransaction = createBusinessTransaction();
+      const rejectedTransaction = await createBusinessTransaction();
       // @ts-expect-error -- test fixture's signals are typed loosely enough
       // upstream that this direct mutation is the simplest way to force the
       // real policy engine (policies/vendor-payment/2.0.0/policy.json,
@@ -340,12 +344,12 @@ describe("Caller authentication (HTTP boundary)", () => {
       const responseA = await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${CALLER_A_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       const responseB = await request(app)
         .post("/execute")
         .set("Authorization", `Bearer ${CALLER_B_KEY}`)
-        .send(createBusinessTransaction());
+        .send(await createBusinessTransaction());
 
       expect(responseA.status).toBe(200);
       expect(responseB.status).toBe(200);

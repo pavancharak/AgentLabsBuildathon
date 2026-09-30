@@ -18,7 +18,7 @@ Policy Evaluation
 
 
 
-vendor-payment@2.0.0
+vendor-payment@2.1.0
 
 
 
@@ -42,7 +42,7 @@ Attacker changes policy
 
 
 
-vendor-payment@2.0.0
+vendor-payment@2.1.0
 
 &#x20;       │
 
@@ -148,7 +148,7 @@ Authorized Policy
 
 
 
-vendor-payment@2.0.0
+vendor-payment@2.1.0
 
 
 

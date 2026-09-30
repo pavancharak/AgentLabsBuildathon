@@ -243,6 +243,35 @@ server's idempotency key. `authority_type` defaults to `AuthorityType.SERVICE` (
 `tests/test_builders.py` (9 unit tests) / `tests/test_builder_example.py` (proves the
 generated ids round-trip correctly through a real running server, not just in isolation).
 
+## Next release (not yet published)
+
+<Info>
+  In this repository, not yet on PyPI. `pip install parmana` still installs
+  1.4.0, which does not have this method.
+</Info>
+
+### What a request must carry, from the server
+
+`client.policy_in_effect(capability)` (also `client.policy.in_effect(...)`) calls `GET /policies/in-effect` and returns
+a `PolicyInEffect`: the policy to declare and what the request must carry. Signal names keep their exact spelling; they
+are never converted to snake_case.
+
+```python
+in_effect = client.policy_in_effect("paytm:refund")
+
+in_effect.policy.version          # "1.2.0"
+in_effect.policy.schema_version   # "1.0.0"
+in_effect.signals.facts           # ["fraudCheckPassed", "managerApproved", "refundAmount", "refundEligible"]
+in_effect.signals.bound           # {"refundAmount": "parameters.amount"}
+in_effect.signals.approval        # {"managerApproved": {"resourceId": "parameters.orderId", "value": "parameters.amount"}}
+```
+
+Call it before every request and declare `name`, `version` and `schemaVersion` exactly as returned. It raises
+`AuthorizationError` (403, `CAPABILITY_NOT_ALLOWED`), `NotFoundError` (404, `CAPABILITY_NOT_BOUND`), `ConflictError`
+(409, `NO_APPROVED_POLICY_VERSION`) or `InternalServerError` (503, `POLICY_VERSION_UNAVAILABLE`); in each case send
+nothing. The step by step use
+is in [Integrate Parmana: specification for AI agents](/agents/integrate), step 3.
+
 ## New in 1.4.0
 
 <Info>

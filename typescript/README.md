@@ -133,7 +133,7 @@ Replay deterministically re-executes the recorded execution.
 # Validate Policy
 
 ```typescript
-const result = await client.validatePolicy("customer-refund", "1.0.0");
+const result = await client.validatePolicy("customer-refund", "1.2.0");
 // { valid: true, errors: [] }
 ```
 
@@ -149,7 +149,7 @@ A policy decides nothing until two different people have approved it. One propos
 import { readFileSync } from "node:fs";
 import { signPolicyChangeStepUp } from "@parmana/sdk";
 
-const change = await proposer.proposePolicyChange("customer-refund", "1.0.0", {
+const change = await proposer.proposePolicyChange("customer-refund", "1.3.0", {
   proposedContent: policyJson,
   reason: "Adopt the customer-refund policy.",
 });
