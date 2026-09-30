@@ -87,65 +87,7 @@ export class GatewayConnectorRegistry implements ConnectorRegistry {
       throw new Error(`Connector already registered: ${connectorId}.`);
     }
 
-    const executor = new SdkConnectorExecutor({
-      connector: options.connector,
-      metadata: options.metadata,
-      credentialProviderId: options.credentialProvider.providerId,
-      crypto: options.crypto,
-      ...(options.expectedVersion !== undefined
-        ? { expectedVersion: options.expectedVersion }
-        : {}),
-      ...(options.timeoutMs !== undefined
-        ? { timeoutMs: options.timeoutMs }
-        : {}),
-    });
-
-    const credentialVault = new CredentialVaultAdapter(
-      options.credentialProvider,
-    );
-
-    let secureConnector: SecureConnector;
-
-    if (options.legacyInsecure === true) {
-      secureConnector = new InMemorySecureConnector({
-        identity: options.connectorIdentity,
-        capabilities: options.connector.capabilities.declared,
-        policy: options.policy,
-        gatewayAuthentication: options.gatewayAuthentication,
-        credentialVault,
-        executor,
-      });
-    } else {
-      if (options.audit === undefined) {
-        throw new Error(
-          `Connector "${connectorId}" registration requires an ExecutionAuditSink — the ` +
-            `same instance ExecutionControlService writes to, per the single-audit-trail ` +
-            `requirement — unless legacyInsecure: true is explicitly set.`,
-        );
-      }
-
-      const clock = options.clock ?? new SystemClock();
-
-      const sessionCredentials = new InMemorySessionCredentialVault({
-        credentials: credentialVault,
-        clock,
-        idGenerator: options.idGenerator ?? new RandomIdGenerator(),
-        lifetimeMs:
-          options.sessionCredentialLifetimeMs ??
-          DEFAULT_SESSION_CREDENTIAL_LIFETIME_MS,
-      });
-
-      secureConnector = new SessionCredentialSecureConnector({
-        identity: options.connectorIdentity,
-        capabilities: options.connector.capabilities.declared,
-        policy: options.policy,
-        gatewayAuthentication: options.gatewayAuthentication,
-        sessionCredentials,
-        executor,
-        audit: options.audit,
-        clock,
-      });
-    }
+    const secureConnector = buildSecureConnector(options);
 
     this.inner.register(secureConnector);
     this.entries.set(connectorId, {
@@ -178,5 +120,75 @@ export class GatewayConnectorRegistry implements ConnectorRegistry {
 
   list(): readonly ConnectorRegistryEntry[] {
     return [...this.entries.values()];
+  }
+}
+
+/**
+ * The secure connector that executes a registration: the connector
+ * behind its SDK executor, credential vault, policy and, unless
+ * legacyInsecure, a single use session credential and the audit sink.
+ * Used for every built in connector (GatewayConnectorRegistry.register)
+ * and for each external connector built at request time
+ * (ExternalConnectorAwareRegistry).
+ */
+export function buildSecureConnector(
+  options: ConnectorRegistrationOptions,
+): SecureConnector {
+  const executor = new SdkConnectorExecutor({
+    connector: options.connector,
+    metadata: options.metadata,
+    credentialProviderId: options.credentialProvider.providerId,
+    crypto: options.crypto,
+    ...(options.expectedVersion !== undefined
+      ? { expectedVersion: options.expectedVersion }
+      : {}),
+    ...(options.timeoutMs !== undefined
+      ? { timeoutMs: options.timeoutMs }
+      : {}),
+  });
+
+  const credentialVault = new CredentialVaultAdapter(
+    options.credentialProvider,
+  );
+
+  if (options.legacyInsecure === true) {
+    return new InMemorySecureConnector({
+      identity: options.connectorIdentity,
+      capabilities: options.connector.capabilities.declared,
+      policy: options.policy,
+      gatewayAuthentication: options.gatewayAuthentication,
+      credentialVault,
+      executor,
+    });
+  } else {
+    if (options.audit === undefined) {
+      throw new Error(
+        `Connector "${options.connector.connectorId}" registration requires an ExecutionAuditSink — the ` +
+          `same instance ExecutionControlService writes to, per the single-audit-trail ` +
+          `requirement — unless legacyInsecure: true is explicitly set.`,
+      );
+    }
+
+    const clock = options.clock ?? new SystemClock();
+
+    const sessionCredentials = new InMemorySessionCredentialVault({
+      credentials: credentialVault,
+      clock,
+      idGenerator: options.idGenerator ?? new RandomIdGenerator(),
+      lifetimeMs:
+        options.sessionCredentialLifetimeMs ??
+        DEFAULT_SESSION_CREDENTIAL_LIFETIME_MS,
+    });
+
+    return new SessionCredentialSecureConnector({
+      identity: options.connectorIdentity,
+      capabilities: options.connector.capabilities.declared,
+      policy: options.policy,
+      gatewayAuthentication: options.gatewayAuthentication,
+      sessionCredentials,
+      executor,
+      audit: options.audit,
+      clock,
+    });
   }
 }

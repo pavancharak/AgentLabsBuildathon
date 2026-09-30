@@ -41,6 +41,7 @@ export {
 export type {
   CapabilityPolicyBindingViolation,
   CurrentPolicyVersionSource,
+  ExternalPolicyBindingSource,
   PolicyInEffect,
 } from "@parmana/capability-registry";
 

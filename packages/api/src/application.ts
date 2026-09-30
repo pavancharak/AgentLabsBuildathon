@@ -30,6 +30,7 @@ import type { ApprovalVerifier } from "@parmana/approval";
 
 import { createApprovalVerifier } from "./bootstrap/createApprovalVerifier.js";
 import { createCurrentPolicyVersionSource } from "./bootstrap/createCurrentPolicyVersionSource.js";
+import { createExternalPolicyBindingSource } from "./bootstrap/createExternalPolicyBindingSource.js";
 import { createHubSpotSignalStateVerifier } from "./bootstrap/createHubSpotSignalStateVerifier.js";
 import { createApprovalSignalVerifier } from "./bootstrap/createApprovalSignalVerifier.js";
 import { createSlackChannelSignalVerifier } from "./bootstrap/createSlackChannelSignalVerifier.js";
@@ -126,5 +127,6 @@ export function createApplication(
     createExecutionIntents(),
     createCurrentPolicyVersionSource(),
     createApprovalNeededNotifier(),
+    createExternalPolicyBindingSource(),
   );
 }

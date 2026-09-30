@@ -13,6 +13,7 @@ import { isHumanCaller } from "../auth/isHumanCaller.js";
 import { recordCallerAuditEvent } from "../auth/recordCallerAuditEvent.js";
 import { policyRepository } from "../application.js";
 import { createCurrentPolicyVersionSource } from "../bootstrap/createCurrentPolicyVersionSource.js";
+import { createExternalPolicyBindingSource } from "../bootstrap/createExternalPolicyBindingSource.js";
 
 /**
  * GET /policies/in-effect?capability=<action>
@@ -50,6 +51,7 @@ export function createPolicyInEffectRouter(
   auditSink?: CallerAuditSink,
   binder: CapabilityPolicyBinder = new CapabilityPolicyBinder(
     createCurrentPolicyVersionSource(),
+    createExternalPolicyBindingSource(),
   ),
   loadPolicy: (name: string, version: string) => Promise<Policy> = (
     name,

@@ -61,3 +61,13 @@ export {
   type ReleaseTransport,
   type SignedExternalRelease,
 } from "./connector-execution/GatewayExternalAdapter.js";
+
+/**
+ * The registry that also serves capabilities registered as external
+ * connectors (ADR-0013), built by bootstrap around the built in one.
+ */
+export {
+  ExternalConnectorAwareRegistry,
+  type ActiveExternalConnector,
+  type ExternalConnectorAwareRegistryOptions,
+} from "./connector-execution/ExternalConnectorAwareRegistry.js";

@@ -55,7 +55,7 @@ export class ExecutionControlService implements ExecutionControl {
     // Resolve connector from capability.
     //
 
-    const connector = this.options.registry.resolveCapability(
+    const connector = await this.options.registry.resolveCapability(
       release.executableContent.action,
     );
 

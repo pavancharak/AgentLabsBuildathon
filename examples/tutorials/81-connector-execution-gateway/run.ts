@@ -2,6 +2,7 @@ import {
   InMemoryGatewaySessionStore,
   MemoryExecutionAuditSink,
 } from "@parmana/execution-control";
+import { MemoryExternalConnectorRepository } from "@parmana/storage";
 
 //
 // Tutorials 57-59 show the credential-isolation and secure-connector
@@ -28,6 +29,9 @@ function buildRegistry() {
     sessions,
     audit,
     Object.freeze({ token: "test" }),
+    // No external connector is registered here (ADR-0013), and none is
+    // read from real storage.
+    new MemoryExternalConnectorRepository(),
   );
 }
 
@@ -44,13 +48,13 @@ console.log("--------------------------------------------------");
 
 const registry1 = buildRegistry();
 console.log(
-  `hubspot:deal-update    -> connector "${registry1.resolveCapability("hubspot:deal-update").connectorId}"`,
+  `hubspot:deal-update    -> connector "${(await registry1.resolveCapability("hubspot:deal-update")).connectorId}"`,
 );
 console.log(
-  `hubspot:deal-fetch     -> connector "${registry1.resolveCapability("hubspot:deal-fetch").connectorId}"`,
+  `hubspot:deal-fetch     -> connector "${(await registry1.resolveCapability("hubspot:deal-fetch")).connectorId}"`,
 );
 console.log(
-  `test:fixture-execute   -> connector "${registry1.resolveCapability("test:fixture-execute").connectorId}"`,
+  `test:fixture-execute   -> connector "${(await registry1.resolveCapability("test:fixture-execute")).connectorId}"`,
 );
 console.log();
 
@@ -69,7 +73,7 @@ const registry2 = buildRegistry();
 
 let hubspotError: string | undefined;
 try {
-  registry2.resolveCapability("hubspot:deal-update");
+  await registry2.resolveCapability("hubspot:deal-update");
 } catch (error) {
   hubspotError = error instanceof Error ? error.message : String(error);
 }
@@ -81,7 +85,7 @@ console.log(`hubspot:deal-update    -> throws: ${hubspotError}`);
 // independently on its own terms.
 let testFixtureError: string | undefined;
 try {
-  registry2.resolveCapability("test:fixture-execute");
+  await registry2.resolveCapability("test:fixture-execute");
 } catch (error) {
   testFixtureError = error instanceof Error ? error.message : String(error);
 }
@@ -102,7 +106,7 @@ process.env.HUBSPOT_PRIVATE_APP_TOKEN = "hubspot-tutorial-test-token";
 
 const registry3 = buildRegistry();
 console.log(
-  `hubspot:deal-update    -> connector "${registry3.resolveCapability("hubspot:deal-update").connectorId}"`,
+  `hubspot:deal-update    -> connector "${(await registry3.resolveCapability("hubspot:deal-update")).connectorId}"`,
 );
 
 delete process.env.HUBSPOT_PRIVATE_APP_TOKEN;
@@ -110,13 +114,14 @@ process.env.NODE_ENV = previousNodeEnv;
 console.log();
 
 const allPassed =
-  registry1.resolveCapability("hubspot:deal-update").connectorId ===
+  (await registry1.resolveCapability("hubspot:deal-update")).connectorId ===
     "hubspot" &&
-  registry1.resolveCapability("test:fixture-execute").connectorId ===
+  (await registry1.resolveCapability("test:fixture-execute")).connectorId ===
     "test-fixture" &&
   hubspotError?.includes("hubspot:deal-update") === true &&
   testFixtureError?.includes("test:fixture-execute") === true &&
-  registry3.resolveCapability("hubspot:deal-update").connectorId === "hubspot";
+  (await registry3.resolveCapability("hubspot:deal-update")).connectorId ===
+    "hubspot";
 
 if (allPassed) {
   console.log(
