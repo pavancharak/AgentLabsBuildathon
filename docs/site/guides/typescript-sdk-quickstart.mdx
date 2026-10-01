@@ -24,13 +24,16 @@ description: "Install to your first authorized execution with the TypeScript SDK
     From a clone of this repository:
 
     ```bash
-    npm install
+    cp .env.example .env
+    npm ci
+    npm run build
     ```
 
-    Generate a local Gateway signing keypair (the Execution Gateway signs its own attestations
-    with a keypair separate from the authorization-verification key):
+    Generate the local signing keys. `keys/` is gitignored, so a fresh clone has none: the server
+    signs with `default`, and the Execution Gateway signs its own attestations with `gateway`:
 
     ```bash
+    npx tsx scripts/generate-keypair.ts --algorithm ed25519 --key-id default
     npm run generate:gateway-keys
     ```
 
@@ -50,7 +53,7 @@ description: "Install to your first authorized execution with the TypeScript SDK
     ```bash
     NODE_ENV=test \
       PARMANA_STORAGE=memory \
-      PARMANA_POLICY_DIR=/absolute/path/to/policies \
+      PARMANA_API_KEYS='[{"callerId":"demo","keyHash":"325ededd6c3b9988f623c7f964abb9b016b76b0f8b3474df0f7d7c23b941381f","allowedCapabilities":["test:fixture-execute"]}]' \
       PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE=~/.parmana/local-test-approver__local-test-approver-key-1.public.pem \
       npm run dev
     ```
@@ -64,8 +67,9 @@ description: "Install to your first authorized execution with the TypeScript SDK
 
     With `NODE_ENV=test`, a generic, credential-free test connector (`test-fixture`) registers
     automatically, no connector credentials required for this walkthrough. Every other route,
-    including `/version`, fails closed with a `401` until you send the demo bearer key the
-    committed `.env` ships for local development, raw key `my-secret-api-key`:
+    including `/version`, fails closed with a `401` until you send the demo bearer key in
+    `PARMANA_API_KEYS` above, raw key `my-secret-api-key`. It is for local development only: it may
+    use `test:fixture-execute` and act as `demo`, and its raw key is public:
 
     ```bash
     curl http://localhost:3000/version -H "Authorization: Bearer my-secret-api-key"
@@ -128,7 +132,7 @@ description: "Install to your first authorized execution with the TypeScript SDK
     });
 
     const transaction = createBusinessTransaction({
-      principalId: "typescript-sdk-quickstart",
+      principalId: "demo", // the key may act only as its own caller id
       purpose: "Quickstart demo",
       action: "test:fixture-execute",
       target: "vendor://payments",
@@ -226,7 +230,8 @@ the wrong `endpoint`. Confirm step 1's `curl http://localhost:3000/health` succe
 
 **`AuthenticationError` on every call**: either you omitted `apiKey` against a server that
 doesn't have `PARMANA_AUTH_DISABLED=true` set, or the key is wrong. The demo key above,
-`my-secret-api-key`, only works against a server started exactly as shown in step 1.
+`my-secret-api-key`, only works against a server started exactly as shown in step 1, with its
+`PARMANA_API_KEYS` entry.
 
 **`ExecutionRejectedError: Execution rejected: ...`**: the policy evaluated your signals
 and declined. The message names which rule failed; check

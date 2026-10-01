@@ -91,6 +91,11 @@ export const MAX_APPROVAL_TTL_SECONDS = 86_400;
 
 const CAPABILITY = /^[A-Za-z0-9_-]+:[A-Za-z0-9_.-]+$/;
 
+/**
+ * Signs an approval for one action on one resource, optionally up to an
+ * amount, valid for ttlSeconds (default 900, at most 86400) and usable once.
+ * Run by the approver, with their own private key.
+ */
 export function signApproval(input: SignApprovalInput): SignedApproval {
   const ttlSeconds = input.ttlSeconds ?? DEFAULT_APPROVAL_TTL_SECONDS;
 

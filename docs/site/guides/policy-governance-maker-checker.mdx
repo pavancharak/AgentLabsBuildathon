@@ -126,6 +126,10 @@ npx tsx scripts/refresh-approved-policy-content.ts --policy-name <name> --policy
 
 Neither script ever prints your bearer key or private key.
 
+The one shot script holds the maker's and the checker's keys in one process, so one person acts as both, and the
+approval record names a second person who did not decide. Use it only in a test environment. In production the
+maker proposes with their own key, and the checker approves with `local-review-action.ts` on their own machine.
+
 ## Verify
 
 ```bash
@@ -162,9 +166,8 @@ npx tsx scripts/verify-policy-changes-approved.ts --full-scan
   Node and never pass JSON through a shell.
 - **Approved content is missing fields you expect, e.g. `boundSignals`.** You approved a proposal
   that was created a long time before the live file gained those fields. Proposals are frozen
-  snapshots — nothing re-checks them against the current file while `PENDING_APPROVAL`. Use
-  `scripts/refresh-approved-policy-content.ts` to always propose from the live file, then confirm
-  with `--full-scan`.
+  snapshots — nothing re-checks them against the current file while `PENDING_APPROVAL`. Reject the stale
+  proposal, have the maker propose again from the live file, then confirm with `--full-scan`.
 - **`SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE`, 403.** The approving bearer key belongs to the same
   `callerId` that proposed the change. There is no override — use a genuinely distinct checker
   credential.

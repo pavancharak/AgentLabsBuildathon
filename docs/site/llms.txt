@@ -241,6 +241,24 @@ This file is generated from the documentation navigation. Do not edit it by hand
 * [Roadmap](https://docs.parmanasystems.com/roadmap): What's designed but not built, stated plainly, this is a feature of this documentation, not an apology.
 * [Changelog](https://docs.parmanasystems.com/changelog): What shipped, newest first.
 * [Contributing to This Documentation](https://docs.parmanasystems.com/contributing): The rule this entire site follows, and how to add a page without breaking it.
+## Build book: Build with Parmana
+
+* [Build with Parmana](https://docs.parmanasystems.com/build-book/overview): The integration book: how Parmana works, how to connect an agent and a system to it, how to write and approve policies, how to verify what happened, and how to run it in production. For people and for AI agents.
+* [1. How Parmana works](https://docs.parmanasystems.com/build-book/01-how-parmana-works): One request, from an AI agent to a signed record: the policy decision, the human approval, the release through the gateway, and the evidence left behind.
+* [2. Your first governed action](https://docs.parmanasystems.com/build-book/02-your-first-governed-action): Run Parmana on your machine from a fresh clone: set it up, watch a refund refused until a person signs, release an action to an external system, then call your own local server from the SDK.
+* [3. Connect an agent](https://docs.parmanasystems.com/build-book/03-connect-an-agent): The agent's side of every action, in both SDKs and over plain HTTP: check the key, read the policy in effect, build the request, handle the refusal that asks for a person, send the approved request, and keep the record.
+* [4. Policies](https://docs.parmanasystems.com/build-book/04-policies): Write a policy that decides one action, make every signal it reads accountable, get it approved by two people, and change or roll it back with no deploy.
+* [5. Human approvals](https://docs.parmanasystems.com/build-book/05-human-approvals): Who can approve, how an approver is trusted, what a signed approval covers, how a person learns an approval is needed, and the limits of what an approval fixes.
+* [6. Connect your systems](https://docs.parmanasystems.com/build-book/06-connect-your-systems): How an approved action reaches a real system: the built in connectors, and the external connector that puts any system behind Parmana with no change to Parmana's code.
+* [7. Verify and audit](https://docs.parmanasystems.com/build-book/07-verify-and-audit): The signed records Parmana leaves, how anyone checks them offline without trusting the server, and how an operator closes an action whose outcome is unknown.
+* [8. Deploy and operate](https://docs.parmanasystems.com/build-book/08-deploy-and-operate): Bring Parmana to production: keys, database, callers, policies approved by two people, the checks that prove each step worked, monitoring, upgrades and rotation.
+* [9. Errors and troubleshooting](https://docs.parmanasystems.com/build-book/09-errors-and-troubleshooting): What every answer from Parmana means, which ones are safe to retry, the one that is never retried as a new transaction, and how each maps to an SDK error.
+* [10. Security model and limits](https://docs.parmanasystems.com/build-book/10-security-model-and-limits): What Parmana guarantees, under which assumptions, what it does not claim, and the known gaps, each with where it is recorded.
+## Build book: Reference
+
+* [Reference: every endpoint](https://docs.parmanasystems.com/build-book/reference-endpoints): Every operation of the Parmana REST API, grouped as in the API reference, generated from the OpenAPI file.
+* [Reference: every SDK method](https://docs.parmanasystems.com/build-book/reference-sdk): Every method of ParmanaClient in the TypeScript and Python SDKs, and every signing and verifying function they export, generated from the SDK source.
+* [Reference: every error code](https://docs.parmanasystems.com/build-book/reference-errors): Every error code the server can return, with its HTTP status, where it occurs and a real message, generated from the source and the OpenAPI file.
 
 ## Generated reference
 

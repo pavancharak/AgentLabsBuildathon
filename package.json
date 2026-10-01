@@ -30,6 +30,8 @@
     "generate:postman": "tsx scripts/generate-postman-collection.ts",
     "check:sdk-docs": "tsx scripts/check-sdk-docs.ts",
     "generate:endpoint-pages": "tsx scripts/generate-endpoint-pages.ts",
+    "generate:build-book-reference": "tsx scripts/generate-build-book-reference.ts",
+    "generate:build-book-pdf": "tsx scripts/generate-build-book-pdf.ts",
     "generate:typescript-sdk-reference": "tsx scripts/generate-typescript-sdk-reference.ts",
     "generate:python-sdk-reference": "tsx scripts/generate-python-sdk-reference.ts",
     "rotate:verification-key": "tsx scripts/rotate-verification-key.ts",
