@@ -225,7 +225,7 @@ npx tsx scripts/generate-approver-key.ts \
   --approver-id manager-priya --key-id manager-priya-key-1 --out-dir ~/.parmana
 ```
 
-The private key stays on the manager's machine. The operator adds `{ approverId, keyId, revoked: false, publicKeyPem }` to `TRUSTED_APPROVAL_ISSUERS` in `packages/api/src/bootstrap/createApprovalIssuerRegistry.ts`, with the contents of the `.public.pem` file as `publicKeyPem`, and deploys. To revoke, set `revoked: true` and deploy.
+The private key stays on the manager's machine. The public key is trusted through maker checker, with no deploy: one person proposes adding it and a different person approves it ([Manage approvers](/guides/manage-approvers)). Revoking it is the same flow.
 
 ### Sign an approval
 

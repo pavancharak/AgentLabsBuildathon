@@ -562,6 +562,35 @@
         ]
       },
       {
+        "tab": "Build book",
+        "groups": [
+          {
+            "group": "Build with Parmana",
+            "pages": [
+              "build-book/overview",
+              "build-book/01-how-parmana-works",
+              "build-book/02-your-first-governed-action",
+              "build-book/03-connect-an-agent",
+              "build-book/04-policies",
+              "build-book/05-human-approvals",
+              "build-book/06-connect-your-systems",
+              "build-book/07-verify-and-audit",
+              "build-book/08-deploy-and-operate",
+              "build-book/09-errors-and-troubleshooting",
+              "build-book/10-security-model-and-limits"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "build-book/reference-endpoints",
+              "build-book/reference-sdk",
+              "build-book/reference-errors"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "Handbook",
         "groups": [
           {

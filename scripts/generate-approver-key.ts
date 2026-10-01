@@ -7,10 +7,11 @@ import { join } from "node:path";
  * Artifacts (scripts/sign-approval.ts).
  *
  * Run by the approver, on their own machine. The private key never
- * leaves it. The operator adds { approverId, keyId, revoked: false,
- * publicKeyPem } to TRUSTED_APPROVAL_ISSUERS in
- * packages/api/src/bootstrap/createApprovalIssuerRegistry.ts, pasting
- * the public key file's contents as publicKeyPem, and deploys. The file
+ * leaves it. The public key is then trusted through maker checker
+ * (POST /approval-issuers/changes, docs/site/guides/manage-approvers.mdx),
+ * with no deploy. Listing it in TRUSTED_APPROVAL_ISSUERS in
+ * packages/api/src/bootstrap/codeApprovalIssuers.ts still works, with a
+ * pull request and a deploy. The file
  * is also named the way the server loads it from
  * $PARMANA_KEY_DIR/approval-issuers/, for deployments that use files.
  *
@@ -107,10 +108,10 @@ function main(args = process.argv.slice(2)): void {
     );
     console.log();
     console.log(
-      `The operator adds { approverId: "${approverId}", keyId: "${keyId}", revoked: false, publicKeyPem: <the public key file's contents> }`,
+      `To trust it, one person proposes adding approver "${approverId}", key "${keyId}", with this public key`,
     );
     console.log(
-      "to TRUSTED_APPROVAL_ISSUERS in packages/api/src/bootstrap/createApprovalIssuerRegistry.ts, then deploys.",
+      "(POST /approval-issuers/changes) and a different person approves it. See docs/site/guides/manage-approvers.mdx.",
     );
     console.log();
   } catch (error) {

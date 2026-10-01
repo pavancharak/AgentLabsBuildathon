@@ -816,24 +816,30 @@ Source: https://docs.parmanasystems.com/quickstart
 </Warning>
 
 <Steps>
-  <Step title="Install dependencies">
+  <Step title="Install and build">
     ```bash
-    npm install
+    cp .env.example .env
+    npm ci
+    npm run build
     ```
+
+    Only `.env.example` is in the repository; `.env` is gitignored and holds your local settings.
+
   </Step>
 
-  <Step title="Generate a local Gateway keypair">
-    The Execution Gateway signs its own attestations with a keypair separate from the
-    authorization-verification key (`keys/default.*.pem`, already committed for local dev). No
-    key is generated automatically, you have to create one:
+  <Step title="Generate the local signing keys">
+    The server signs authorizations and records with the `default` key, and the Execution Gateway
+    signs its own attestations with a separate `gateway` key. `keys/` is gitignored, so a fresh
+    clone has neither. Create both:
 
     ```bash
+    npx tsx scripts/generate-keypair.ts --algorithm ed25519 --key-id default
     npm run generate:gateway-keys
     ```
 
-    This runs `scripts/generate-keypair.ts --algorithm ed25519 --key-id gateway`, writing
-    `keys/gateway.private.pem` / `keys/gateway.public.pem`. `keys/` is gitignored, this stays
-    local. See [Deploy patterns](/guides/deploy-patterns) for how to manage keys outside local dev.
+    This writes `keys/default.private.pem`, `keys/default.public.pem`, `keys/gateway.private.pem`
+    and `keys/gateway.public.pem`. They stay local. See [Deploy patterns](/guides/deploy-patterns)
+    for how to manage keys outside local dev.
 
   </Step>
 
@@ -850,7 +856,7 @@ Source: https://docs.parmanasystems.com/quickstart
   </Step>
 
   <Step title="Start the Runtime locally">
-    The committed `.env` defaults to Supabase-backed storage. To run fully locally with no
+    The `.env` copied from `.env.example` defaults to Supabase-backed storage. To run fully locally with no
     external dependency, override storage to `memory` **and** set `NODE_ENV=test`. Both are
     required: `PARMANA_STORAGE=memory` alone only affects where Business Transactions and Trust
     Records are stored, two other components, the Execution Gateway's replay-nonce store and the
@@ -862,7 +868,7 @@ Source: https://docs.parmanasystems.com/quickstart
     ```bash
     NODE_ENV=test \
       PARMANA_STORAGE=memory \
-      PARMANA_POLICY_DIR=/absolute/path/to/policies \
+      PARMANA_API_KEYS='[{"callerId":"demo","keyHash":"325ededd6c3b9988f623c7f964abb9b016b76b0f8b3474df0f7d7c23b941381f","allowedCapabilities":["test:fixture-execute"]}]' \
       PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE=~/.parmana/local-test-approver__local-test-approver-key-1.public.pem \
       npm run dev
     ```
@@ -898,10 +904,12 @@ Source: https://docs.parmanasystems.com/quickstart
     # {"error":"authentication required"}
     ```
 
-    The committed `.env` ships one demo caller key for local development, `callerId: "demo"`,
-    raw key `my-secret-api-key` (only its SHA-256 hash is ever stored, see
-    [Authentication](/api-reference/authentication)). Send it as a bearer token and the same
-    route succeeds:
+    The `PARMANA_API_KEYS` entry in the previous step is a demo caller key for local development
+    only: `callerId: "demo"`, raw key `my-secret-api-key`, allowed to use `test:fixture-execute`
+    and to act as `demo` (only its SHA-256 hash is stored, see
+    [Authentication](/api-reference/authentication)). Its raw key is public, so never use it on a
+    server anyone else can reach; make real keys with `npm run generate:api-key`. Send it as a
+    bearer token and the same route succeeds:
 
     ```bash
     curl http://localhost:3000/version \
@@ -979,7 +987,7 @@ Source: https://docs.parmanasystems.com/quickstart
       )
 
       transaction = create_business_transaction(
-          principal_id="python-sdk",
+          principal_id="demo",
           purpose="Quickstart demo",
           action="test:fixture-execute",
           target="vendor://payments",
@@ -1038,7 +1046,7 @@ Source: https://docs.parmanasystems.com/quickstart
       });
 
       const transaction = createBusinessTransaction({
-        principalId: "typescript-sdk-quickstart",
+        principalId: "demo", // the key may act only as its own caller id
         purpose: "Quickstart demo",
         action: "test:fixture-execute",
         target: "vendor://payments",
@@ -1079,12 +1087,13 @@ Source: https://docs.parmanasystems.com/quickstart
     with `403 POLICY_DENIED`, whatever else the signals say.
 
     Full runnable versions: `python/examples/quickstart/run.py` and
-    `typescript/examples/06-create-business-transaction.ts`, these are exactly the
-    transactions shown above; each takes the signed approval as an argument, or from the file
+    `typescript/examples/06-create-business-transaction.ts`, the same transactions run against a
+    test server with authentication off, so they act as other principals; each takes the signed approval as an argument, or from the file
     `PARMANA_APPROVAL_FILE` names when run as a script. `python/tests/test_quickstart_example.py` and
     `typescript/test/integration/examples.integration.test.ts` run them against a real,
     freshly-spawned server on every test run, so both examples are verified to work, not just
-    syntax-checked.
+    syntax-checked. The two samples above were run as shown, with the demo key, against a server
+    started as in this page, on a fresh clone on 2026-10-01.
 
   </Step>
 
@@ -1129,6 +1138,62 @@ Source: https://docs.parmanasystems.com/quickstart
     local test fixture.
   </Card>
 </CardGroup>
+
+---
+
+## Build with Parmana
+
+Source: https://docs.parmanasystems.com/build-book/overview
+
+This book takes you from nothing to a production integration: an AI agent that can act on a real system only when a
+policy and a person allow it, with a signed record of every decision. It is the companion to
+[The Parmana Handbook](/handbook/overview), which explains how each part of Parmana is built. This book explains how to
+**build with** it.
+
+Download it as one PDF: [build-with-parmana.pdf](/build-with-parmana.pdf).
+
+## Who it is for
+
+| You are                                     | Start with                                                                                                                                |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| A developer connecting an agent             | [Chapter 1](/build-book/01-how-parmana-works), then [Chapter 3](/build-book/03-connect-an-agent)                                          |
+| An operator bringing Parmana to production  | [Chapter 8](/build-book/08-deploy-and-operate), then [Chapter 4](/build-book/04-policies) and [Chapter 5](/build-book/05-human-approvals) |
+| Connecting a system Parmana has no code for | [Chapter 6](/build-book/06-connect-your-systems)                                                                                          |
+| Reviewing Parmana for security              | [Chapter 10](/build-book/10-security-model-and-limits), then [Chapter 7](/build-book/07-verify-and-audit)                                 |
+| An AI agent                                 | [Integrate Parmana: specification for AI agents](/agents/integrate), and `llms-full.txt` for this site in one file                        |
+
+## How the book is written
+
+- **Every statement is checked against the code.** Where the book and the code disagree, the code wins and the book
+  is fixed. Anything not verified in production says so.
+- **The reference chapters are generated from the code.** [Every endpoint](/build-book/reference-endpoints),
+  [every SDK method](/build-book/reference-sdk) and [every error code](/build-book/reference-errors) are produced by
+  `scripts/generate-build-book-reference.ts` from the OpenAPI file, the SDK source and the server's error classes. A
+  test fails when they fall behind the code.
+- **Examples are real.** Responses are captured from the running server; tutorial output is what the tutorial prints.
+- **Procedures state what to expect.** Where a step can fail, it says what you see and what to do.
+
+## The chapters
+
+1. [How Parmana works](/build-book/01-how-parmana-works): one request, from an agent to a signed record.
+2. [Your first governed action](/build-book/02-your-first-governed-action): run it on your machine in minutes.
+3. [Connect an agent](/build-book/03-connect-an-agent): the request, the policy in effect, approvals, in both SDKs.
+4. [Policies](/build-book/04-policies): write one, get it approved, change it, roll it back.
+5. [Human approvals](/build-book/05-human-approvals): approvers, signing, and what an approval covers.
+6. [Connect your systems](/build-book/06-connect-your-systems): built in connectors and external connectors.
+7. [Verify and audit](/build-book/07-verify-and-audit): records you can check without trusting the server.
+8. [Deploy and operate](/build-book/08-deploy-and-operate): production, keys, migrations, monitoring.
+9. [Errors and troubleshooting](/build-book/09-errors-and-troubleshooting): what each answer means and what to do.
+10. [Security model and limits](/build-book/10-security-model-and-limits): what is guaranteed, and what is not.
+
+Reference: [every endpoint](/build-book/reference-endpoints), [every SDK method](/build-book/reference-sdk),
+[every error code](/build-book/reference-errors).
+
+## Versions
+
+This edition describes the code on `main` as of 2026-10-01. The published SDKs are 1.4.0 (`@parmana/sdk` on npm,
+`parmana` on PyPI). Methods marked **next release** are in the repository and not yet published:
+`policyInEffect` and `policy_in_effect`, `verifyParmanaRelease` and `verify_parmana_release`.
 
 ---
 
@@ -3136,7 +3201,7 @@ npx tsx scripts/generate-approver-key.ts \
   --approver-id manager-priya --key-id manager-priya-key-1 --out-dir ~/.parmana
 ```
 
-The private key stays on the manager's machine. The operator adds `{ approverId, keyId, revoked: false, publicKeyPem }` to `TRUSTED_APPROVAL_ISSUERS` in `packages/api/src/bootstrap/createApprovalIssuerRegistry.ts`, with the contents of the `.public.pem` file as `publicKeyPem`, and deploys. To revoke, set `revoked: true` and deploy.
+The private key stays on the manager's machine. The public key is trusted through maker checker, with no deploy: one person proposes adding it and a different person approves it ([Manage approvers](/guides/manage-approvers)). Revoking it is the same flow.
 
 ### Sign an approval
 
@@ -4595,6 +4660,142 @@ same HTTP responses.
 
 ---
 
+## 9. Errors and troubleshooting
+
+Source: https://docs.parmanasystems.com/build-book/09-errors-and-troubleshooting
+
+Every error body is `{ "error": "<message>", "code": "<CODE>" }`. A few answers carry no `code`; the message then
+says what is wrong. Every code, with the operations that return it, is in the
+[error reference](/build-book/reference-errors).
+
+## The one rule
+
+**Know whether the action may have run before you retry.** Parmana's answers fall into three groups:
+
+| Group                           | Answers                                                                           | Retry?                                                                                                    |
+| ------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Refused, nothing ran            | `400`, `401`, `403`, `404`, `409` (except `NONCE_ALREADY_CONSUMED`), `429`, `503` | Fix the cause, then send a **new** transaction. `429`: wait for `Retry-After`.                            |
+| Released, the record is missing | `500 EXECUTION_RECORD_INCOMPLETE`                                                 | **No.** The action ran. The operator finalizes the record ([Chapter 7](/build-book/07-verify-and-audit)). |
+| Released, the outcome unknown   | `502 EXECUTION_OUTCOME_UNKNOWN`                                                   | **No.** The action may have run. The operator checks the system and resolves the intent.                  |
+
+The SDKs never retry a `POST` on their own; they retry only `GET` requests, and only when you configure a retry policy.
+
+## How the SDKs raise them
+
+| HTTP                              | TypeScript (`@parmana/sdk`)                     | Python (`parmana.errors`)                        |
+| --------------------------------- | ----------------------------------------------- | ------------------------------------------------ |
+| 403 with `POLICY_DENIED`          | `ExecutionRejectedError`                        | `ExecutionRejectedError`                         |
+| 403 with `CAPABILITY_NOT_ALLOWED` | `AuthorizationError` (`serverCode` set)         | `AuthorizationError`                             |
+| 400                               | `ValidationError`                               | `ValidationError`                                |
+| 401                               | `AuthenticationError`                           | `AuthenticationError`                            |
+| 403, any other                    | `AuthorizationError`                            | `AuthorizationError`                             |
+| 404                               | `NotFoundError`                                 | `NotFoundError`                                  |
+| 409                               | `ConflictError`                                 | `ConflictError`                                  |
+| 429                               | `RateLimitError` (`retryAfterSeconds`)          | `RateLimitError` (`retry_after_seconds`)         |
+| 5xx                               | `InternalServerError`, the code in `serverCode` | `InternalServerError`, the code in `server_code` |
+
+Every error from a response carries its status: `statusCode` in TypeScript, `status_code` in Python. Decide on a 5xx by
+its code, never by the status alone.
+
+## By status
+
+### 400: the request is malformed
+
+| Code                                                              | Meaning and fix                                                                              |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `AUTHORITY_REQUIRED`, `AUTHORIZATION_REQUIRED`, `INTENT_REQUIRED` | A section of the Business Transaction is missing. Build it with `createBusinessTransaction`. |
+| No code, `approves without a signed human approval`               | The policy named cannot load ([Chapter 4](/build-book/04-policies)).                         |
+| `INVALID_EXTERNAL_CONNECTOR`, `EXTERNAL_ENDPOINT_ADDRESS_REFUSED` | A registration was refused ([Chapter 6](/build-book/06-connect-your-systems)).               |
+| `EXECUTION_INTENT_RESOLUTION_INVALID`                             | `resolution` must be `NOT_EXECUTED` or `EXECUTED`, with a `note`.                            |
+
+### 401: no valid key
+
+`{"error":"authentication required"}`, with a `WWW-Authenticate` header. The key is missing, wrong, rotated, or not
+sent as `Authorization: Bearer <key>`. Nothing about the request was read.
+
+### 403: not allowed
+
+| Code                                   | Meaning and fix                                                                                                                                                                                                               |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POLICY_DENIED`                        | **The policy refused.** A correct answer, with the policy's reason. If the reason asks for an approval, get one signed and send a new transaction ([Chapter 5](/build-book/05-human-approvals)). A Refusal Record was stored. |
+| `CAPABILITY_NOT_ALLOWED`               | The key may not use this action. The operator adds it to `allowedCapabilities`.                                                                                                                                               |
+| No code, about the principal           | The key may not act for this `principalId`. Act as your own `callerId`.                                                                                                                                                       |
+| `NON_HUMAN_CALLER_DENIED`              | A governance call from a key not registered as a human.                                                                                                                                                                       |
+| `SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE` | The checker is the maker. A different person approves.                                                                                                                                                                        |
+| `STEP_UP_AUTHORIZATION_INVALID`        | The step up signature expired (120 seconds), was used, is for another change or decision, or does not match the checker's registered key. Sign again and send at once.                                                        |
+
+`POLICY_DENIED` covers every refusal by the decision, each with its own message:
+
+| Message starts with                                                                                                                | Cause and fix                                                                                                           |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| The policy's own reason, for example `Refund rejected. Every refund needs ...`                                                     | A rule refused. If it asks for an approval, get one signed and send a new transaction.                                  |
+| `Rejected: capability "x" requires policy "p"@"v", but ... was declared.`                                                          | The request names another policy or an old version. Read `GET /policies/in-effect` and send that.                       |
+| `Rejected: declared signal(s) do not match independently verified state (managerApproved=true != verified managerApproved=false).` | The approval is missing, expired, used, by an untrusted key, for another resource, or below the amount. Sign a new one. |
+| `Rejected: declared signal(s) do not match the executed intent (refundAmount=900 != intent.parameters.amount=750).`                | A bound signal does not equal its request field. Copy the value from the request.                                       |
+| `Rejected: no version of policy "p" ... has been approved through policy governance`                                               | No approved version yet. Approve one ([Chapter 4](/build-book/04-policies)).                                            |
+
+### 404: not found
+
+| Code                                                                                                         | Meaning and fix                                                                                   |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `CAPABILITY_NOT_BOUND`                                                                                       | No policy is bound to the action: not a built in capability, and no active external registration. |
+| `POLICY_NOT_FOUND`                                                                                           | The policy named does not exist on the server.                                                    |
+| `BUSINESS_TRANSACTION_NOT_FOUND`, `EXECUTION_INTENT_NOT_FOUND`                                               | No record with that `businessTransactionId`.                                                      |
+| `PENDING_POLICY_CHANGE_NOT_FOUND`, `APPROVAL_ISSUER_CHANGE_NOT_FOUND`, `EXTERNAL_CONNECTOR_CHANGE_NOT_FOUND` | No change with that id.                                                                           |
+| `VERIFICATION_FAILED`                                                                                        | The record for that id could not be verified or found; the message says which.                    |
+
+### 409: conflict
+
+| Code                                   | Meaning and fix                                                                                                                        |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `DUPLICATE_BUSINESS_TRANSACTION`       | This `businessTransactionId` was already used. To retry the same attempt, read its record; for a new attempt, build a new transaction. |
+| `NONCE_ALREADY_CONSUMED`               | This exact authorization was already released: the action ran. Read its record; do not send it again as a new transaction.             |
+| `NO_APPROVED_POLICY_VERSION`           | No version of the bound policy is approved. Every request is refused until one is.                                                     |
+| `CONFLICT`                             | A change is already open, or already resolved, or a registration is already active.                                                    |
+| `EXECUTION_INTENT_NOT_RESOLVABLE`      | The intent is `RELEASED` (finalize it) or already final.                                                                               |
+| `EXECUTION_INTENT_RESULT_NOT_RECORDED` | Finalize has nothing to build from: the intent is not `RELEASED`.                                                                      |
+
+### 429: too many requests
+
+`RATE_LIMITED`. Wait for the `Retry-After` header, then retry the same request.
+
+### 500, 502: the action may have run
+
+| Code                          | Meaning                                                                                                         | Do                                                                                                                                                                      |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EXECUTION_RECORD_INCOMPLETE` | The action was released; the signed record was not stored.                                                      | Do not resend. `POST /execution-intents/{id}/finalize` rebuilds the record without acting again.                                                                        |
+| `EXECUTION_OUTCOME_UNKNOWN`   | The release failed after it may have reached the system: a timeout, an error, an answer that failed the checks. | **Never resend as a new transaction.** Check the system with the `businessTransactionId` and `target`, then `POST /execution-intents/{id}/resolve` with what you found. |
+
+For an external connector, a request naming a parameter the registration does not allow, or an endpoint whose host
+now resolves to a non public address, is also reported as `502 EXECUTION_OUTCOME_UNKNOWN` although nothing was sent.
+Check the endpoint's own record before resolving.
+
+### 503: unavailable, nothing ran
+
+| Code                           | Meaning                                                                                  |
+| ------------------------------ | ---------------------------------------------------------------------------------------- |
+| `CONNECTOR_NOT_REGISTERED`     | No connector for the action: not configured, or the external registration is not active. |
+| `SIGNING_UNAVAILABLE`          | The signing path is unhealthy. Nothing is released until it is fixed.                    |
+| `EXECUTION_INTENT_UNAVAILABLE` | The intent store is unavailable (or its table is missing after an upgrade).              |
+| `POLICY_VERSION_UNAVAILABLE`   | The server could not read the policy in effect.                                          |
+| `AUDIT_UNAVAILABLE`            | The audit store is unavailable.                                                          |
+
+Retry later with a **new** transaction. If it persists, tell the operator; each is an alert in
+[Chapter 8](/build-book/08-deploy-and-operate).
+
+## Common situations
+
+| You see                                                         | Cause                                                                        | Fix                                                                            |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `403 POLICY_DENIED`, `requires policy ... but ... was declared` | The agent sent an old policy version.                                        | Read `GET /policies/in-effect` before each request; never hard code a version. |
+| Every request refused after a policy change was proposed        | The new version is not approved, or the agent names a version not in effect. | Approve it, then read the version in effect.                                   |
+| A server that will not start                                    | A required setting is missing or wrong; the message names the variable.      | [Environment variable reference](/deployment/environment-variables).           |
+| `PGRST205` "Could not find the table"                           | The database's schema cache is stale.                                        | `NOTIFY pgrst, 'reload schema';`                                               |
+
+More, by symptom: [Troubleshooting](/troubleshooting).
+
+---
+
 ## TypeScript SDK
 
 Source: https://docs.parmanasystems.com/sdks/typescript
@@ -5378,13 +5579,16 @@ Source: https://docs.parmanasystems.com/guides/typescript-sdk-quickstart
     From a clone of this repository:
 
     ```bash
-    npm install
+    cp .env.example .env
+    npm ci
+    npm run build
     ```
 
-    Generate a local Gateway signing keypair (the Execution Gateway signs its own attestations
-    with a keypair separate from the authorization-verification key):
+    Generate the local signing keys. `keys/` is gitignored, so a fresh clone has none: the server
+    signs with `default`, and the Execution Gateway signs its own attestations with `gateway`:
 
     ```bash
+    npx tsx scripts/generate-keypair.ts --algorithm ed25519 --key-id default
     npm run generate:gateway-keys
     ```
 
@@ -5404,7 +5608,7 @@ Source: https://docs.parmanasystems.com/guides/typescript-sdk-quickstart
     ```bash
     NODE_ENV=test \
       PARMANA_STORAGE=memory \
-      PARMANA_POLICY_DIR=/absolute/path/to/policies \
+      PARMANA_API_KEYS='[{"callerId":"demo","keyHash":"325ededd6c3b9988f623c7f964abb9b016b76b0f8b3474df0f7d7c23b941381f","allowedCapabilities":["test:fixture-execute"]}]' \
       PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE=~/.parmana/local-test-approver__local-test-approver-key-1.public.pem \
       npm run dev
     ```
@@ -5418,8 +5622,9 @@ Source: https://docs.parmanasystems.com/guides/typescript-sdk-quickstart
 
     With `NODE_ENV=test`, a generic, credential-free test connector (`test-fixture`) registers
     automatically, no connector credentials required for this walkthrough. Every other route,
-    including `/version`, fails closed with a `401` until you send the demo bearer key the
-    committed `.env` ships for local development, raw key `my-secret-api-key`:
+    including `/version`, fails closed with a `401` until you send the demo bearer key in
+    `PARMANA_API_KEYS` above, raw key `my-secret-api-key`. It is for local development only: it may
+    use `test:fixture-execute` and act as `demo`, and its raw key is public:
 
     ```bash
     curl http://localhost:3000/version -H "Authorization: Bearer my-secret-api-key"
@@ -5482,7 +5687,7 @@ Source: https://docs.parmanasystems.com/guides/typescript-sdk-quickstart
     });
 
     const transaction = createBusinessTransaction({
-      principalId: "typescript-sdk-quickstart",
+      principalId: "demo", // the key may act only as its own caller id
       purpose: "Quickstart demo",
       action: "test:fixture-execute",
       target: "vendor://payments",
@@ -5580,7 +5785,8 @@ the wrong `endpoint`. Confirm step 1's `curl http://localhost:3000/health` succe
 
 **`AuthenticationError` on every call**: either you omitted `apiKey` against a server that
 doesn't have `PARMANA_AUTH_DISABLED=true` set, or the key is wrong. The demo key above,
-`my-secret-api-key`, only works against a server started exactly as shown in step 1.
+`my-secret-api-key`, only works against a server started exactly as shown in step 1, with its
+`PARMANA_API_KEYS` entry.
 
 **`ExecutionRejectedError: Execution rejected: ...`**: the policy evaluated your signals
 and declined. The message names which rule failed; check
@@ -6313,7 +6519,8 @@ Source: https://docs.parmanasystems.com/guides/python-sdk-quickstart
 
 - **Python 3.8+** (`python --version`)
 - **Node.js** (to run the Parmana server locally, `node --version`)
-- A local clone of the Parmana repo, with `npm install` already run in it
+- A local clone of the Parmana repo, set up as in [Quickstart](/quickstart): `.env` copied from
+  `.env.example`, `npm ci` and `npm run build` run, and the `default` and `gateway` keys generated
 
 <Note>
   No AI agent action is authorized without a signed human approval, reads
@@ -6341,7 +6548,7 @@ Source: https://docs.parmanasystems.com/guides/python-sdk-quickstart
     ```bash
     NODE_ENV=test \
       PARMANA_STORAGE=memory \
-      PARMANA_POLICY_DIR=/absolute/path/to/policies \
+      PARMANA_API_KEYS='[{"callerId":"demo","keyHash":"325ededd6c3b9988f623c7f964abb9b016b76b0f8b3474df0f7d7c23b941381f","allowedCapabilities":["test:fixture-execute"]}]' \
       PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE=~/.parmana/local-test-approver__local-test-approver-key-1.public.pem \
       npm run dev
     ```
@@ -6376,8 +6583,9 @@ Source: https://docs.parmanasystems.com/guides/python-sdk-quickstart
     client = ParmanaClient(endpoint="http://localhost:3000", api_key="my-secret-api-key")
     ```
 
-    The committed `.env` in the repo ships one demo caller key for local development:
-    `callerId: "demo"`, raw key `my-secret-api-key`. `api_key` is optional only against a server
+    `PARMANA_API_KEYS` in the previous step holds one demo caller key for local development only:
+    `callerId: "demo"`, raw key `my-secret-api-key`, allowed to use `test:fixture-execute` and to
+    act as `demo`. Its raw key is public: never use it on a server anyone else can reach. `api_key` is optional only against a server
     started with `PARMANA_AUTH_DISABLED=true`. Every real deployment requires one, and an
     omitted/wrong key raises `AuthenticationError`, not a silent failure.
 
@@ -6417,7 +6625,7 @@ Source: https://docs.parmanasystems.com/guides/python-sdk-quickstart
     from parmana import PolicyReference, create_business_transaction
 
     transaction = create_business_transaction(
-        principal_id="python-sdk-quickstart",
+        principal_id="demo",
         purpose="Quickstart demo",
         action="test:fixture-execute",
         target="vendor://payments",
@@ -6516,7 +6724,7 @@ approval = sign_approval(
 )
 
 transaction = create_business_transaction(
-    principal_id="python-sdk-quickstart",
+    principal_id="demo",
     purpose="Quickstart demo",
     action="test:fixture-execute",
     target="vendor://payments",
@@ -6662,8 +6870,7 @@ env var) without touching `default.*.pem` at all.
 ```bash
 NODE_ENV=test \
   PARMANA_STORAGE=memory \
-  PARMANA_POLICY_DIR=/absolute/path/to/policies \
-  PARMANA_API_KEYS='[{"callerId":"demo","keyHash":"325ededd6c3b9988f623c7f964abb9b016b76b0f8b3474df0f7d7c23b941381f"}]' \
+  PARMANA_API_KEYS='[{"callerId":"demo","keyHash":"325ededd6c3b9988f623c7f964abb9b016b76b0f8b3474df0f7d7c23b941381f","allowedCapabilities":["test:fixture-execute"]}]' \
   npm run dev
 ```
 
@@ -6671,10 +6878,11 @@ NODE_ENV=test \
 the Execution Gateway's replay-nonce store and the caller-authentication audit trail, default
 to Supabase-backed implementations outside `NODE_ENV=test` (`createNonceStore.ts`,
 `createCallerAuditSink.ts`) and will fail closed without a real, reachable Supabase project.
-`PARMANA_API_KEYS` above is the demo key already committed in this repo's root `.env`, raw
-key `my-secret-api-key`, see [Authentication](/api-reference/authentication).
+`PARMANA_API_KEYS` above is a demo key for local development only, raw key
+`my-secret-api-key`, allowed to use `test:fixture-execute` and to act as `demo`. Its raw key is
+public: make real keys with `npm run generate:api-key`, see [Authentication](/api-reference/authentication).
 
-Generate the gateway keypair first if you haven't, `npm run generate:gateway-keys`, see
+Generate the `default` and `gateway` keypairs first if you haven't, see
 [Quickstart](/quickstart) step 2. Without it, the server refuses to start: the gateway is
 wired unconditionally (see [The gateway](/concepts/the-gateway)), there is no code path that
 skips needing this key.
@@ -6891,15 +7099,12 @@ npx tsx scripts/apply-policies-table-and-backfill.ts
 
 It creates the `policies` table if needed and copies every policy found under `PARMANA_POLICY_DIR`. It prints one line per policy.
 
-**7b. Give every policy a signed approval.** In production the gateway refuses to release an action for a policy that has no signed approval record whose hash matches the live policy. This gate is always on and cannot be switched off by a variable. Approve each policy you will use with the maker checker flow. The maker proposes and a different person, the checker, approves with a step up signature. The one shot script does both halves:
+**7b. Give every policy a signed approval.** In production the gateway refuses to release an action for a policy that has no signed approval record whose hash matches the live policy. This gate is always on and cannot be switched off by a variable. Approve each policy you will use with the maker checker flow: the maker proposes it with their own key, and a different person, the checker, reviews it and approves it on their own machine with their step up key:
 
-```bash
-export PROPOSER_KEY="<the maker's bearer key, a USER key>"
-export REVIEWER_KEY="<the checker's bearer key>"
-npx tsx scripts/refresh-approved-policy-content.ts \n  --api-base "$URL" \n  --policy-name <name> --policy-version <version> \n  --key-id my-checker --private-key-file ./my-checker.step-up.private.pem
-```
+1. The maker: `POST $URL/policies/<name>/<version>/pending-changes` with the policy file, unchanged, as `proposedContent`.
+2. The checker: `npx tsx scripts/local-review-action.ts --pending-policy-change-id <id> --action approve --private-key-file ./my-checker.step-up.private.pem --key-id my-checker --api-base "$URL"`, with their own key in `REVIEWER_KEY`.
 
-Pass `--api-base` every time. Its default is a fixed address that is not your server. `--key-id` is the checker's caller id from step 3, and the private key file is the one that step printed.
+Pass `--api-base` every time. Its default is a fixed address that is not your server. `--key-id` is the checker's caller id from step 3, and the private key file is the one that step printed. Do not use `scripts/refresh-approved-policy-content.ts` here: it proposes and approves in one process, so one person holds both keys and the approval record names a second person who did not decide.
 
 The full procedure, and how to do it step by step by hand, is in [Policy governance: maker checker approval](/guides/policy-governance-maker-checker). Three rules matter here. The maker and the checker must be different callers. Both must have `credentialHolderType` set to `USER`. The checker also needs a step up public key.
 

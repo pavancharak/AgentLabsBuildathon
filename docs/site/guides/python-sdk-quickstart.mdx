@@ -17,7 +17,8 @@ description: "Get Parmana running end-to-end with the Python SDK: build a transa
 
 - **Python 3.8+** (`python --version`)
 - **Node.js** (to run the Parmana server locally, `node --version`)
-- A local clone of the Parmana repo, with `npm install` already run in it
+- A local clone of the Parmana repo, set up as in [Quickstart](/quickstart): `.env` copied from
+  `.env.example`, `npm ci` and `npm run build` run, and the `default` and `gateway` keys generated
 
 <Note>
   No AI agent action is authorized without a signed human approval, reads
@@ -45,7 +46,7 @@ description: "Get Parmana running end-to-end with the Python SDK: build a transa
     ```bash
     NODE_ENV=test \
       PARMANA_STORAGE=memory \
-      PARMANA_POLICY_DIR=/absolute/path/to/policies \
+      PARMANA_API_KEYS='[{"callerId":"demo","keyHash":"325ededd6c3b9988f623c7f964abb9b016b76b0f8b3474df0f7d7c23b941381f","allowedCapabilities":["test:fixture-execute"]}]' \
       PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE=~/.parmana/local-test-approver__local-test-approver-key-1.public.pem \
       npm run dev
     ```
@@ -80,8 +81,9 @@ description: "Get Parmana running end-to-end with the Python SDK: build a transa
     client = ParmanaClient(endpoint="http://localhost:3000", api_key="my-secret-api-key")
     ```
 
-    The committed `.env` in the repo ships one demo caller key for local development:
-    `callerId: "demo"`, raw key `my-secret-api-key`. `api_key` is optional only against a server
+    `PARMANA_API_KEYS` in the previous step holds one demo caller key for local development only:
+    `callerId: "demo"`, raw key `my-secret-api-key`, allowed to use `test:fixture-execute` and to
+    act as `demo`. Its raw key is public: never use it on a server anyone else can reach. `api_key` is optional only against a server
     started with `PARMANA_AUTH_DISABLED=true`. Every real deployment requires one, and an
     omitted/wrong key raises `AuthenticationError`, not a silent failure.
 
@@ -121,7 +123,7 @@ description: "Get Parmana running end-to-end with the Python SDK: build a transa
     from parmana import PolicyReference, create_business_transaction
 
     transaction = create_business_transaction(
-        principal_id="python-sdk-quickstart",
+        principal_id="demo",
         purpose="Quickstart demo",
         action="test:fixture-execute",
         target="vendor://payments",
@@ -220,7 +222,7 @@ approval = sign_approval(
 )
 
 transaction = create_business_transaction(
-    principal_id="python-sdk-quickstart",
+    principal_id="demo",
     purpose="Quickstart demo",
     action="test:fixture-execute",
     target="vendor://payments",

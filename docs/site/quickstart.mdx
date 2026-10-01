@@ -25,24 +25,30 @@ description: "Install to your first authorized execution in under 10 minutes, us
 </Warning>
 
 <Steps>
-  <Step title="Install dependencies">
+  <Step title="Install and build">
     ```bash
-    npm install
+    cp .env.example .env
+    npm ci
+    npm run build
     ```
+
+    Only `.env.example` is in the repository; `.env` is gitignored and holds your local settings.
+
   </Step>
 
-  <Step title="Generate a local Gateway keypair">
-    The Execution Gateway signs its own attestations with a keypair separate from the
-    authorization-verification key (`keys/default.*.pem`, already committed for local dev). No
-    key is generated automatically, you have to create one:
+  <Step title="Generate the local signing keys">
+    The server signs authorizations and records with the `default` key, and the Execution Gateway
+    signs its own attestations with a separate `gateway` key. `keys/` is gitignored, so a fresh
+    clone has neither. Create both:
 
     ```bash
+    npx tsx scripts/generate-keypair.ts --algorithm ed25519 --key-id default
     npm run generate:gateway-keys
     ```
 
-    This runs `scripts/generate-keypair.ts --algorithm ed25519 --key-id gateway`, writing
-    `keys/gateway.private.pem` / `keys/gateway.public.pem`. `keys/` is gitignored, this stays
-    local. See [Deploy patterns](/guides/deploy-patterns) for how to manage keys outside local dev.
+    This writes `keys/default.private.pem`, `keys/default.public.pem`, `keys/gateway.private.pem`
+    and `keys/gateway.public.pem`. They stay local. See [Deploy patterns](/guides/deploy-patterns)
+    for how to manage keys outside local dev.
 
   </Step>
 
@@ -59,7 +65,7 @@ description: "Install to your first authorized execution in under 10 minutes, us
   </Step>
 
   <Step title="Start the Runtime locally">
-    The committed `.env` defaults to Supabase-backed storage. To run fully locally with no
+    The `.env` copied from `.env.example` defaults to Supabase-backed storage. To run fully locally with no
     external dependency, override storage to `memory` **and** set `NODE_ENV=test`. Both are
     required: `PARMANA_STORAGE=memory` alone only affects where Business Transactions and Trust
     Records are stored, two other components, the Execution Gateway's replay-nonce store and the
@@ -71,7 +77,7 @@ description: "Install to your first authorized execution in under 10 minutes, us
     ```bash
     NODE_ENV=test \
       PARMANA_STORAGE=memory \
-      PARMANA_POLICY_DIR=/absolute/path/to/policies \
+      PARMANA_API_KEYS='[{"callerId":"demo","keyHash":"325ededd6c3b9988f623c7f964abb9b016b76b0f8b3474df0f7d7c23b941381f","allowedCapabilities":["test:fixture-execute"]}]' \
       PARMANA_TEST_APPROVER_PUBLIC_KEY_FILE=~/.parmana/local-test-approver__local-test-approver-key-1.public.pem \
       npm run dev
     ```
@@ -107,10 +113,12 @@ description: "Install to your first authorized execution in under 10 minutes, us
     # {"error":"authentication required"}
     ```
 
-    The committed `.env` ships one demo caller key for local development, `callerId: "demo"`,
-    raw key `my-secret-api-key` (only its SHA-256 hash is ever stored, see
-    [Authentication](/api-reference/authentication)). Send it as a bearer token and the same
-    route succeeds:
+    The `PARMANA_API_KEYS` entry in the previous step is a demo caller key for local development
+    only: `callerId: "demo"`, raw key `my-secret-api-key`, allowed to use `test:fixture-execute`
+    and to act as `demo` (only its SHA-256 hash is stored, see
+    [Authentication](/api-reference/authentication)). Its raw key is public, so never use it on a
+    server anyone else can reach; make real keys with `npm run generate:api-key`. Send it as a
+    bearer token and the same route succeeds:
 
     ```bash
     curl http://localhost:3000/version \
@@ -188,7 +196,7 @@ description: "Install to your first authorized execution in under 10 minutes, us
       )
 
       transaction = create_business_transaction(
-          principal_id="python-sdk",
+          principal_id="demo",
           purpose="Quickstart demo",
           action="test:fixture-execute",
           target="vendor://payments",
@@ -247,7 +255,7 @@ description: "Install to your first authorized execution in under 10 minutes, us
       });
 
       const transaction = createBusinessTransaction({
-        principalId: "typescript-sdk-quickstart",
+        principalId: "demo", // the key may act only as its own caller id
         purpose: "Quickstart demo",
         action: "test:fixture-execute",
         target: "vendor://payments",
@@ -288,12 +296,13 @@ description: "Install to your first authorized execution in under 10 minutes, us
     with `403 POLICY_DENIED`, whatever else the signals say.
 
     Full runnable versions: `python/examples/quickstart/run.py` and
-    `typescript/examples/06-create-business-transaction.ts`, these are exactly the
-    transactions shown above; each takes the signed approval as an argument, or from the file
+    `typescript/examples/06-create-business-transaction.ts`, the same transactions run against a
+    test server with authentication off, so they act as other principals; each takes the signed approval as an argument, or from the file
     `PARMANA_APPROVAL_FILE` names when run as a script. `python/tests/test_quickstart_example.py` and
     `typescript/test/integration/examples.integration.test.ts` run them against a real,
     freshly-spawned server on every test run, so both examples are verified to work, not just
-    syntax-checked.
+    syntax-checked. The two samples above were run as shown, with the demo key, against a server
+    started as in this page, on a fresh clone on 2026-10-01.
 
   </Step>
 

@@ -52,8 +52,7 @@ env var) without touching `default.*.pem` at all.
 ```bash
 NODE_ENV=test \
   PARMANA_STORAGE=memory \
-  PARMANA_POLICY_DIR=/absolute/path/to/policies \
-  PARMANA_API_KEYS='[{"callerId":"demo","keyHash":"325ededd6c3b9988f623c7f964abb9b016b76b0f8b3474df0f7d7c23b941381f"}]' \
+  PARMANA_API_KEYS='[{"callerId":"demo","keyHash":"325ededd6c3b9988f623c7f964abb9b016b76b0f8b3474df0f7d7c23b941381f","allowedCapabilities":["test:fixture-execute"]}]' \
   npm run dev
 ```
 
@@ -61,10 +60,11 @@ NODE_ENV=test \
 the Execution Gateway's replay-nonce store and the caller-authentication audit trail, default
 to Supabase-backed implementations outside `NODE_ENV=test` (`createNonceStore.ts`,
 `createCallerAuditSink.ts`) and will fail closed without a real, reachable Supabase project.
-`PARMANA_API_KEYS` above is the demo key already committed in this repo's root `.env`, raw
-key `my-secret-api-key`, see [Authentication](/api-reference/authentication).
+`PARMANA_API_KEYS` above is a demo key for local development only, raw key
+`my-secret-api-key`, allowed to use `test:fixture-execute` and to act as `demo`. Its raw key is
+public: make real keys with `npm run generate:api-key`, see [Authentication](/api-reference/authentication).
 
-Generate the gateway keypair first if you haven't, `npm run generate:gateway-keys`, see
+Generate the `default` and `gateway` keypairs first if you haven't, see
 [Quickstart](/quickstart) step 2. Without it, the server refuses to start: the gateway is
 wired unconditionally (see [The gateway](/concepts/the-gateway)), there is no code path that
 skips needing this key.

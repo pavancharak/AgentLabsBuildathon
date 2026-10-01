@@ -181,15 +181,12 @@ npx tsx scripts/apply-policies-table-and-backfill.ts
 
 It creates the `policies` table if needed and copies every policy found under `PARMANA_POLICY_DIR`. It prints one line per policy.
 
-**7b. Give every policy a signed approval.** In production the gateway refuses to release an action for a policy that has no signed approval record whose hash matches the live policy. This gate is always on and cannot be switched off by a variable. Approve each policy you will use with the maker checker flow. The maker proposes and a different person, the checker, approves with a step up signature. The one shot script does both halves:
+**7b. Give every policy a signed approval.** In production the gateway refuses to release an action for a policy that has no signed approval record whose hash matches the live policy. This gate is always on and cannot be switched off by a variable. Approve each policy you will use with the maker checker flow: the maker proposes it with their own key, and a different person, the checker, reviews it and approves it on their own machine with their step up key:
 
-```bash
-export PROPOSER_KEY="<the maker's bearer key, a USER key>"
-export REVIEWER_KEY="<the checker's bearer key>"
-npx tsx scripts/refresh-approved-policy-content.ts \n  --api-base "$URL" \n  --policy-name <name> --policy-version <version> \n  --key-id my-checker --private-key-file ./my-checker.step-up.private.pem
-```
+1. The maker: `POST $URL/policies/<name>/<version>/pending-changes` with the policy file, unchanged, as `proposedContent`.
+2. The checker: `npx tsx scripts/local-review-action.ts --pending-policy-change-id <id> --action approve --private-key-file ./my-checker.step-up.private.pem --key-id my-checker --api-base "$URL"`, with their own key in `REVIEWER_KEY`.
 
-Pass `--api-base` every time. Its default is a fixed address that is not your server. `--key-id` is the checker's caller id from step 3, and the private key file is the one that step printed.
+Pass `--api-base` every time. Its default is a fixed address that is not your server. `--key-id` is the checker's caller id from step 3, and the private key file is the one that step printed. Do not use `scripts/refresh-approved-policy-content.ts` here: it proposes and approves in one process, so one person holds both keys and the approval record names a second person who did not decide.
 
 The full procedure, and how to do it step by step by hand, is in [Policy governance: maker checker approval](/guides/policy-governance-maker-checker). Three rules matter here. The maker and the checker must be different callers. Both must have `credentialHolderType` set to `USER`. The checker also needs a step up public key.
 

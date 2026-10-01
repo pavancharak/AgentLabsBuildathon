@@ -47,6 +47,12 @@ export interface SignPolicyChangeStepUpInput {
 
 const DEFAULT_TTL_SECONDS = 120;
 
+/**
+ * Signs a step up authorization for one decision (approve or reject) on one
+ * change: a policy, an approver or an external connector. Valid for
+ * ttlSeconds (default 120) and usable once. Run by the checker, with their
+ * own step up private key.
+ */
 export function signPolicyChangeStepUp(
   input: SignPolicyChangeStepUpInput,
 ): PolicyChangeStepUpAuthorization {
