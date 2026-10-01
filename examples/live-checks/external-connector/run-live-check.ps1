@@ -13,6 +13,7 @@
 #   ApproveRegistration  checker reviews and approves it, with a step up signature
 #   AgentKey             a key for livecheck-agent, added to PARMANA_API_KEYS, API redeployed
 #   Send                 approver signs one approval; the agent sends three requests
+#   Verify               fetch one transaction's record and verify it offline (-BusinessTransactionId)
 #   ProposeRevoke        maker proposes revoking the registration (after the check)
 #   ApproveRevoke        checker approves the revoke
 #
@@ -22,7 +23,7 @@
 param(
   [Parameter(Mandatory = $true)]
   [ValidateSet("ProposePolicy", "ApprovePolicy", "ProposeRegistration", "ApproveRegistration",
-    "AgentKey", "Send", "ProposeRevoke", "ApproveRevoke")]
+    "AgentKey", "Send", "Verify", "ProposeRevoke", "ApproveRevoke")]
   [string]$Stage,
 
   [string]$ApiUrl = "https://parmana-api-real.vercel.app",
@@ -41,7 +42,10 @@ param(
   # Send: the action approver's private key and ids.
   [string]$ApproverKeyFile,
   [string]$ApproverId = "manager-charak1987",
-  [string]$ApproverKeyId = "manager-charak1987-key-2"
+  [string]$ApproverKeyId = "manager-charak1987-key-2",
+
+  # Verify: the transaction whose record to fetch and verify.
+  [string]$BusinessTransactionId
 )
 
 $ErrorActionPreference = "Stop"
@@ -256,6 +260,21 @@ switch ($Stage) {
     Remove-Item $approvalFile -ErrorAction SilentlyContinue
     if ($exit -ne 0) { Stop-Run "The check did not pass. Read the lines above, and README.md, When it fails." }
     Say "Passed. Send $record (it holds no secret) for the evidence, and check the endpoint's logs." Green
+  }
+
+  "Verify" {
+    if (-not $BusinessTransactionId) { Stop-Run "Pass -BusinessTransactionId." }
+    Step "Fetch and verify the record of $BusinessTransactionId"
+    $env:PARMANA_URL = $ApiUrl
+    $env:PARMANA_API_KEY = Read-Secret "livecheck-agent API key"
+    $record = Join-Path $Here "live-check-record-$BusinessTransactionId.json"
+    Invoke-Native {
+      npx tsx examples/live-checks/external-connector/send.ts --verify $BusinessTransactionId --out $record
+    }
+    $exit = $LASTEXITCODE
+    Remove-Item Env:\PARMANA_API_KEY
+    if ($exit -ne 0) { Stop-Run "The record could not be fetched or did not verify. Read the lines above." }
+    Say "Verified. The record is $record (it holds no secret)." Green
   }
 
   "ProposeRevoke" {

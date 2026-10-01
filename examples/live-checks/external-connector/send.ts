@@ -13,6 +13,9 @@
  *   $env:PARMANA_API_KEY = <the agent key, read with Read-Host -AsSecureString>
  *   npx tsx examples/live-checks/external-connector/send.ts --approval approval.json --target live-check-1 --out record.json
  *
+ * With --verify <businessTransactionId> --out record.json it sends nothing:
+ * it fetches that record and verifies it offline.
+ *
  * It needs the SDK from this repository (policyInEffect is not published
  * yet): run `npm run build` first. It never prints the key.
  */
@@ -49,18 +52,54 @@ function required(name: string): string {
   return value;
 }
 
+/**
+ * Sends nothing: fetches one transaction's record, saves it and verifies
+ * it offline. For a request whose answer was lost, for example to a
+ * timeout.
+ */
+async function verifyOnly(
+  client: ParmanaClient,
+  businessTransactionId: string,
+  out: string,
+): Promise<void> {
+  const record = await client.trustRecord(businessTransactionId);
+  writeFileSync(out, `${JSON.stringify(record, null, 2)}\n`);
+
+  const execution = record.executions[0];
+  console.log(`Transaction          : ${record.businessTransactionId}`);
+  console.log(`Decision             : ${execution?.decision.outcome}`);
+  console.log(`Endpoint answered    : ${JSON.stringify(execution?.evidence)}`);
+  console.log(`Record saved to      : ${out}`);
+
+  const { pem } = await client.publicKey("default");
+  const offline = verifyExecutionTrustRecordOffline(record, { default: pem });
+  console.log(
+    `Verifies offline     : ${offline.valid}${offline.valid ? "" : ` ${offline.errors.join("; ")}`}`,
+  );
+  process.exitCode = offline.valid ? 0 : 1;
+}
+
 async function main(): Promise<void> {
   const endpoint = required("PARMANA_URL").replace(/\/+$/, "");
+  const out = argument("--out");
+
+  // An approved request in production took longer than the SDK's default
+  // 30 seconds on 2026-10-01; wait up to two minutes.
+  const client = new ParmanaClient({
+    endpoint,
+    apiKey: required("PARMANA_API_KEY"),
+    timeout: 120_000,
+  });
+
+  if (process.argv.includes("--verify")) {
+    await verifyOnly(client, argument("--verify"), out);
+    return;
+  }
+
   const approval: unknown = JSON.parse(
     readFileSync(argument("--approval"), "utf8"),
   );
   const target = argument("--target");
-  const out = argument("--out");
-
-  const client = new ParmanaClient({
-    endpoint,
-    apiKey: required("PARMANA_API_KEY"),
-  });
   let failures = 0;
 
   const me = await client.caller();
@@ -104,13 +143,16 @@ async function main(): Promise<void> {
   }
 
   // 2. With the signed approval.
+  const started = Date.now();
   const record = await client.execute(
     request({ receiptApproved: true, approvalArtifact: approval }),
   );
   const execution = record.executions[0];
   writeFileSync(out, `${JSON.stringify(record, null, 2)}\n`);
 
-  console.log(`2. With approval     : ${execution?.decision.outcome}`);
+  console.log(
+    `2. With approval     : ${execution?.decision.outcome} (${((Date.now() - started) / 1000).toFixed(1)} s)`,
+  );
   console.log(`   Transaction       : ${record.businessTransactionId}`);
   console.log(`   Endpoint answered : ${JSON.stringify(execution?.evidence)}`);
   console.log(`   Record saved to   : ${out}`);

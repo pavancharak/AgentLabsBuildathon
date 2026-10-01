@@ -74,8 +74,8 @@ not claim them:
   endpoint needs two human credentials, as for approver changes, and the endpoint must resolve
   only to public addresses, checked again at every release. Parmana releases only what a person
   approved, signed and bound to that endpoint, and records what the endpoint answers as its claim,
-  not as proof that it acted. Releasing to a registered endpoint is not yet checked against a live
-  endpoint.
+  not as proof that it acted. Releasing to a registered endpoint was checked live in production on
+  2026-10-01, with an endpoint that acts on nothing.
 - **Approval notifications are best effort.** One attempt, 3 seconds, no retry. A lost event
   changes nothing about the refusal, and the Refusal Records stay the complete list.
 - **Mocks are labeled as mocks.** `SapConnector`, `OracleConnector`, `WorkdayConnector`, and

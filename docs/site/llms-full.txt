@@ -486,8 +486,9 @@ With a signed approval, send the signal as `true` and put the approval, exactly 
 
 **Do:** send `POST {PARMANA_URL}/execute` with the header, `Content-Type: application/json`, and the object from step 4.
 
-**Set a client timeout of at least 30 seconds.** The request runs the whole pipeline before it answers, including the
-call to the connector. The Paytm connector, for example, is allowed up to 10 seconds by default.
+**Set a client timeout of at least 120 seconds.** The request runs the whole pipeline before it answers, including the
+call to the connector. In production an approved request took 24 to 32 seconds on 2026-10-01 (G-84), longer than the
+SDKs' default of 30 seconds: pass `timeout: 120_000` (TypeScript) or `timeout=120` (Python) to the client.
 
 **Never retry this request automatically.** A retry could repeat a real action. The rules for a timeout are in step 7.
 
@@ -1980,13 +1981,15 @@ approved request for the action to that endpoint as a **signed release**; the en
 acts with its own credentials, and answers. Parmana holds none of the system's credentials.
 
 <Warning>
-  **Status, 2026-10-01.** Registering a connector through maker checker is live
-  in production (`docs/CLAIMS.md` 2.49). Releasing to a registered endpoint is
-  built and tested but **not yet checked against a live endpoint** (ADR-0013
-  step 6), and the SDK helpers `verifyParmanaRelease` and
-  `verify_parmana_release` are in the repository but **not yet published** to
-  npm and PyPI. Until the next SDK release, build the endpoint from the
-  repository's SDK packages.
+  **Status, 2026-10-01.** Registering a connector through maker checker, and
+  releasing approved requests to it, are live in production and were checked end
+  to end against a deployed endpoint (`docs/CLAIMS.md` 2.49 and 2.50). The SDK
+  helpers `verifyParmanaRelease` and `verify_parmana_release` are in the
+  repository but **not yet published** to npm and PyPI: until the next SDK
+  release, build the endpoint from the repository's SDK packages, as
+  `examples/live-checks/external-connector/build-endpoint.ts` does. An approved
+  request took 24 to 32 seconds in production (G-84): give the agent a timeout
+  of at least 120 seconds.
 </Warning>
 
 Follow it literally, as `agents/integrate` is followed. If your situation is not covered, **stop and ask the operator**.

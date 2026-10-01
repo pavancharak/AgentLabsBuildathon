@@ -7,6 +7,20 @@ signed, to a registered endpoint on the public internet, and the record verifies
 
 Nothing in this check acts on a real system. The endpoint answers with a receipt and changes nothing.
 
+## Result, 2026-10-01: passed
+
+| Request (transaction `97ddeaa9-8e2d-4dbc-93c7-452cca85db8f`) | Result                                                            |
+| ------------------------------------------------------------ | ----------------------------------------------------------------- |
+| 1. No approval                                               | Refused, with the policy's reason                                 |
+| 2. Approval signed by `manager-charak1987` for the target    | `APPROVED` in 23.9 s, released once, the record verifies offline  |
+| 3. The same approval again                                   | Refused: `receiptApproved=true != verified receiptApproved=false` |
+
+The endpoint logged exactly one `release_acted` per approved transaction. The first attempt
+(`ec2f6c00-1009-43f0-9faf-1aeb84917860`) completed on the server, but its agent stopped waiting at the SDK's
+default 30 seconds; its record, fetched with `-Stage Verify`, is `APPROVED` and verifies offline. That is
+`docs/VERIFICATION-GAPS.md` G-84; `send.ts` now waits up to 120 seconds. Both records are in `evidence/`. The claim
+is `docs/CLAIMS.md` 2.50.
+
 ## What is deployed
 
 | Part         | Where                                                  | What it is                                                      |

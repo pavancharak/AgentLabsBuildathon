@@ -606,7 +606,7 @@ Evidence
 
 Scope, stated plainly:
 
-- **This claim is about governing registrations, not about releasing actions to them.** Since ADR-0013 step 4 (2026-10-01, `docs/VERIFICATION-GAPS.md` G-81) an approved request for a registered capability is released to its endpoint as a signed release, its policy bound from the registration, and `GET /policies/in-effect` answers for it; that is built and tested, not yet checked against a live endpoint, and is claimed only after the live check of ADR-0013 step 6. The SDK helpers `verifyParmanaRelease` and `verify_parmana_release` are not published yet.
+- **This claim is about governing registrations, not about releasing actions to them.** Since ADR-0013 step 4 (2026-10-01, `docs/VERIFICATION-GAPS.md` G-81) an approved request for a registered capability is released to its endpoint as a signed release, its policy bound from the registration, and `GET /policies/in-effect` answers for it; that is claimed in 2.50, after the live check of ADR-0013 step 6 on 2026-10-01. The SDK helpers `verifyParmanaRelease` and `verify_parmana_release` are not published yet.
 - **Distinct credentials, not proven distinct people**, as in 2.45. An operator with database access can bypass the API.
 - **Built in namespaces stay code.** A capability in the namespace of a built in connector (paytm, hubspot, github, slack, test) is refused.
 - **The policy name is checked for form only** at registration, not that the policy exists or has an approved version (G-81).
@@ -621,8 +621,36 @@ Evidence
 
 - `packages/api/src/routes/external-connectors.ts`; `packages/shared/src/network/externalEndpointAddress.ts`; `packages/storage/src/supabase/SupabaseExternalConnectorRepository.ts`
 - Migration `supabase/migrations/20260930120000_add_external_connectors.sql`, applied in production on 2026-09-30 (`npm run db:migrate -- status`: 33 applied, 0 pending); PR #92 deployed; `GET /external-connectors` with the maker key returned `{"connectors":[]}` in production.
-- Not checked in production: a full propose and approve cycle.
+- Checked in production on 2026-10-01: a full propose and approve cycle (the live check in 2.50).
 - `openapi/openapi.yaml` (`listExternalConnectors`, `proposeExternalConnectorChange`, `listExternalConnectorChanges`, `approveExternalConnectorChange`, `rejectExternalConnectorChange`); `docs/adr/ADR-0013-Generic-External-Connector.md`
+
+## 2.50 An Approved Request Is Released, Signed, to a Registered External Endpoint (Scoped, 2026-10-01)
+
+**Claim:** for a capability registered to an external HTTPS endpoint through maker checker (2.49), Parmana releases an approved request to that endpoint as a release signed with its own key, naming the capability, target, allowed parameters, the policy at its approved version, the approver, the authorization and the endpoint as audience, and expiring 60 seconds after it is issued. The endpoint can verify it with Parmana's public key alone (`verifyParmanaRelease`), and the signed Execution Trust Record of the request carries the endpoint's answer and verifies offline. A request with no signed approval, or with an approval already used, is refused and nothing is released. This is ADR-0013 steps 2 to 4, checked live in production in step 6.
+
+Scope, stated plainly:
+
+- **What the endpoint answers is its claim, not proof that it acted** (G-82). The record proves what Parmana released and what the endpoint said, not what the endpoint's system did.
+- **Checked live once, with one endpoint that acts on nothing.** The check endpoint answers with a receipt; no external system was changed. The same code path serves every registered capability.
+- **Distinct credentials, not proven distinct people**, as in 2.45 and 2.49: in the live check the maker and the checker keys, and the approver key, are held by one person.
+- **Slow in production** (G-84): the approved request took 23.9 and about 32 seconds end to end; the SDK's default timeout is 30 seconds, and the first attempt's agent stopped waiting while the request completed.
+- **The SDK helpers are not published yet.** `verifyParmanaRelease` and `verify_parmana_release` are in the repository; the check endpoint bundles them from it.
+
+Verification
+
+- `packages/execution-gateway/tests/unit/external-adapter.test.ts`: the signed release (canonical form, audience, 60 second expiry), the pinned transport, refused parameters, and every rejected answer.
+- `packages/api/tests/integration/external-connector-release.integration.test.ts` and `policy-in-effect-external.integration.test.ts`: a registered capability released through the HTTP boundary, its policy bound from the registration, and `GET /policies/in-effect` for it.
+- `typescript/test/VerifyParmanaRelease.test.ts`, `python/tests/test_verify_parmana_release.py`: the helpers, against releases signed by the real server.
+- Tutorial 123 (`examples/tutorials/123-external-connector`), run on every preflight: register, release, a retry answered once, a release for another endpoint refused, a revoke.
+
+Evidence: the live check, 2026-10-01 (`examples/live-checks/external-connector/README.md`)
+
+- Endpoint `https://parmana-release-check.vercel.app/api/release` (Vercel project `parmana-release-check`, built from `endpoint.ts`). It answered `401` to an unsigned body.
+- Policy `livecheck-receipt` 1.0.0 proposed by `charak1987` (change `ed3dddd3-00d3-448a-a29a-0bcc05f41ec0`) and approved by `reviewer-charak1987` with a step up authorization. Registration of `livecheck:receipt` proposed by `charak1987` (change `e16dc8c3-46c9-4b19-9a40-131f464ab170`) and approved by `reviewer-charak1987`; stored with the endpoint URL unchanged.
+- Agent key `livecheck-agent`, allowed only `livecheck:receipt`. `GET /policies/in-effect` named `livecheck-receipt` 1.0.0.
+- Transaction `97ddeaa9-8e2d-4dbc-93c7-452cca85db8f`: with no approval, refused (`403`, the policy's reason); with an approval signed by `manager-charak1987` (`manager-charak1987-key-2`) for the target, `APPROVED` in 23.9 s, and the record verifies offline with `GET /keys/default` alone; the same approval again, refused (`receiptApproved=true != verified receiptApproved=false`). Record: `examples/live-checks/external-connector/evidence/2026-10-01-97ddeaa9-record.json`.
+- Transaction `ec2f6c00-1009-43f0-9faf-1aeb84917860` (the first attempt, whose agent timed out at 30 s): the API answered `200`, and its record, fetched afterwards, is `APPROVED` and verifies offline. Record: `evidence/2026-10-01-ec2f6c00-record.json`.
+- The endpoint's log has exactly one `release_acted` line per approved transaction, each naming the capability, the target, `livecheck-receipt` 1.0.0 with its content hash, and the approver, and `release_refused` only for the unsigned probes.
 
 ## 2.23 Independently Certified Authorization (Phase 3D)
 
