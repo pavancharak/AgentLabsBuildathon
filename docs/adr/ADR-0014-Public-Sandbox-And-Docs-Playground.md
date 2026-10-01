@@ -123,5 +123,7 @@ governance (policy, approver or connector changes) except as captured examples.
    the demo key.
 2. Infrastructure, by the operator with steps written for them: the Supabase project, the Vercel project, keys,
    migrations, the receipt endpoint, the policy and the registration through maker checker, the demo key.
-3. A live check of the sandbox, as for ADR-0013, then a CLAIMS entry.
+   **Kit ready:** `deploy/sandbox/` (README, `setup-sandbox.ps1` stages, `make-keys.ts`, `policy.json`, `check.ts`).
+   Not run yet.
+3. A live check of the sandbox, as for ADR-0013, then a CLAIMS entry. The kit's stage `Check` is this live check.
 4. Docs: the OpenAPI server and prefilled key, the Playground page, the quickstart.
