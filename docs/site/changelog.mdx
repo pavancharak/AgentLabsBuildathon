@@ -12,6 +12,15 @@ every commit, run `git log` in the repository for the complete record.
 
 ## 2026-10-01
 
+**SDK, next release: external connector methods**
+
+- TypeScript: `externalConnectors()`, `proposeExternalConnectorChange()`, `externalConnectorChanges()`,
+  `approveExternalConnectorChange()` and `rejectExternalConnectorChange()`, also on `ExternalConnectorApi`.
+- Python: `client.external_connectors` with `list`, `propose_register`, `propose_revoke`, `list_changes`,
+  `approve_change` and `reject_change`, plus shortcuts on the client.
+- In the repository, not yet on npm or PyPI. The API reference samples for the five `/external-connectors` operations
+  now use them, and Tutorial 123 registers and revokes its connector through them against a real server.
+
 **Docs: the API reference shows code and a real response for every operation**
 
 - Every endpoint page has a cURL, TypeScript and Python sample, each checked as code: the cURL body

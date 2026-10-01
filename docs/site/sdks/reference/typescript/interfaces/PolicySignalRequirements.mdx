@@ -1,0 +1,52 @@
+---
+title: "Interface: PolicySignalRequirements"
+---
+
+Defined in: [typescript/src/models/policy-in-effect.ts:30](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/policy-in-effect.ts#L30)
+
+What a request under a policy must carry. Rule conditions are not
+included.
+
+## Properties
+
+### facts
+
+> `readonly` **facts**: readonly `string`[]
+
+Defined in: [typescript/src/models/policy-in-effect.ts:35](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/policy-in-effect.ts#L35)
+
+Every fact the policy's rules read, sorted. Send each one in the
+request's `signals`.
+
+---
+
+### schema
+
+> `readonly` **schema**: `Readonly`\<`Record`\<`string`, `string`\>\>
+
+Defined in: [typescript/src/models/policy-in-effect.ts:40](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/policy-in-effect.ts#L40)
+
+The declared type of each signal: `boolean`, `number` or `string`.
+
+---
+
+### bound
+
+> `readonly` **bound**: `Readonly`\<`Record`\<`string`, `string`\>\>
+
+Defined in: [typescript/src/models/policy-in-effect.ts:46](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/policy-in-effect.ts#L46)
+
+Signals that must equal a value of the Intent, as signal name to path,
+for example `refundAmount` to `parameters.amount`.
+
+---
+
+### approval
+
+> `readonly` **approval**: `Readonly`\<`Record`\<`string`, \{ `resourceId`: `string`; `value?`: `string`; \}\>\>
+
+Defined in: [typescript/src/models/policy-in-effect.ts:53](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/policy-in-effect.ts#L53)
+
+Signals that count as true only with a signed approval in
+`signals.approvalArtifact`, and where the resource (and the amount, if
+any) the approval must name are in the request.

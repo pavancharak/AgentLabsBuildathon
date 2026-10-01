@@ -1,8 +1,11 @@
+import { ParmanaClient, signPolicyChangeStepUp } from "@parmana/sdk";
 import { readFileSync } from "node:fs";
 
-import { signPolicyChangeStepUp } from "@parmana/sdk";
+const client = new ParmanaClient({
+  endpoint: "https://parmana-api-real.vercel.app",
+  apiKey: process.env.PARMANA_API_KEY!,
+});
 
-// Not in the SDK yet: call the route directly.
 const stepUp = signPolicyChangeStepUp({
   pendingPolicyChangeId: "ba7c5827-5844-4069-94fc-9b438ef08f78",
   action: "approve",
@@ -10,16 +13,9 @@ const stepUp = signPolicyChangeStepUp({
   keyId: "checker-step-up-1",
 });
 
-const response = await fetch(
-  "https://parmana-api-real.vercel.app/external-connectors/changes/ba7c5827-5844-4069-94fc-9b438ef08f78/approve",
-  {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.PARMANA_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ stepUpAuthorization: stepUp }),
-  },
+const change = await client.approveExternalConnectorChange(
+  "ba7c5827-5844-4069-94fc-9b438ef08f78",
+  stepUp,
 );
 
-console.log(response.status, await response.json());
+console.log(change.status);

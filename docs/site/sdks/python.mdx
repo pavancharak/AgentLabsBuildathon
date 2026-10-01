@@ -247,7 +247,7 @@ generated ids round-trip correctly through a real running server, not just in is
 
 <Info>
   In this repository, not yet on PyPI. `pip install parmana` still installs
-  1.4.0, which does not have this method.
+  1.4.0, which does not have these methods.
 </Info>
 
 ### What a request must carry, from the server
@@ -271,6 +271,38 @@ Call it before every request and declare `name`, `version` and `schemaVersion` e
 (409, `NO_APPROVED_POLICY_VERSION`) or `InternalServerError` (503, `POLICY_VERSION_UNAVAILABLE`); in each case send
 nothing. The step by step use
 is in [Integrate Parmana: specification for AI agents](/agents/integrate), step 3.
+
+### Register an external connector
+
+Connect your own system with no Parmana code change: one person proposes registering a capability to your HTTPS
+endpoint, a different person approves it with a step up authorization. Both need a human key.
+
+```python
+change = maker.external_connectors.propose_register(
+    capability="erp:create-invoice",
+    endpoint_url="https://erp.example.com/parmana/release",
+    policy="erp-invoice",
+    allowed_parameters=["amount", "currency"],
+    reason="Finance creates invoices in the ERP through Parmana.",
+)
+
+checker.approve_external_connector_change(
+    change.change_id,
+    sign_policy_change_step_up(
+        pending_policy_change_id=change.change_id,
+        action="approve",
+        private_key_pem=Path("step-up.private.pem").read_text(),
+        key_id="checker-step-up-1",
+    ),
+)
+
+checker.list_external_connectors()  # [ExternalConnector(capability="erp:create-invoice", status="active", ...)]
+```
+
+`external_connector_changes(status=None)` lists proposals and `reject_external_connector_change(change_id, reason,
+step_up)` rejects one. To end a registration, call `external_connectors.propose_revoke(capability=..., reason=...)` and
+approve it the same way. The whole path, with the endpoint, is in
+[Connect any external system](/guides/connect-any-external-system).
 
 ## New in 1.4.0
 

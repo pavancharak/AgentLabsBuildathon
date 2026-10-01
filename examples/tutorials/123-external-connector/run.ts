@@ -5,7 +5,6 @@ import type { AddressInfo } from "node:net";
 import {
   AuthorizationSigner,
   CryptoBootstrap,
-  PolicyChangeStepUpAuthorizationSigner,
   SignerBootstrap,
 } from "@parmana/crypto";
 import { MemoryNonceStore } from "@parmana/envelope-verifier";
@@ -25,7 +24,8 @@ import { AuthorityType, type ExecutableContent } from "@parmana/shared";
 // as an external connector (ADR-0013).
 //
 // 1. A maker proposes registering erp:create-invoice to the ERP's
-//    endpoint; a checker approves it with a step up signature.
+//    endpoint; a checker approves it with a step up signature. Both use
+//    the SDK (proposeExternalConnectorChange, approveExternalConnectorChange).
 // 2. The ERP runs the endpoint from typescript/examples/07: it checks
 //    every release with the SDK's verifyParmanaRelease before acting.
 // 3. An approved request is released to it, signed with the server's
@@ -73,6 +73,8 @@ const { PolicyChangeStepUpVerifier } =
   await import("../../../packages/api/src/auth/PolicyChangeStepUpVerifier.js");
 const { createReleaseHandler } =
   await import("../../../typescript/examples/07-external-connector-endpoint.js");
+const { ParmanaClient, signPolicyChangeStepUp } =
+  await import("../../../typescript/src/index.js");
 
 console.log();
 console.log("==================================================");
@@ -141,28 +143,28 @@ async function call(
   };
 }
 
-const stepUpSigner = new PolicyChangeStepUpAuthorizationSigner();
+// The maker and the checker use the SDK, each with their own key.
+const maker = new ParmanaClient({ endpoint: apiUrl, apiKey: MAKER });
+const checker = new ParmanaClient({ endpoint: apiUrl, apiKey: CHECKER });
 
 async function approve(changeId: string) {
-  return call(
-    "POST",
-    `/external-connectors/changes/${changeId}/approve`,
-    CHECKER,
-    {
-      stepUpAuthorization: await stepUpSigner.sign(
-        { pendingPolicyChangeId: changeId, action: "approve" },
-        checkerStepUp.privateKey,
-        "checker-step-up-key",
-        120,
-      ),
-    },
+  return checker.approveExternalConnectorChange(
+    changeId,
+    signPolicyChangeStepUp({
+      pendingPolicyChangeId: changeId,
+      action: "approve",
+      privateKeyPem: checkerStepUp.privateKey
+        .export({ format: "pem", type: "pkcs8" })
+        .toString(),
+      keyId: "checker-step-up-key",
+    }),
   );
 }
 
 console.log("Step 1: register erp:create-invoice, maker then checker");
 console.log("--------------------------------------------------");
 
-const proposed = await call("POST", "/external-connectors/changes", MAKER, {
+const proposed = await maker.proposeExternalConnectorChange({
   action: "register",
   capability: "erp:create-invoice",
   endpointUrl: ENDPOINT_URL,
@@ -170,13 +172,11 @@ const proposed = await call("POST", "/external-connectors/changes", MAKER, {
   allowedParameters: ["amount", "currency"],
   reason: "Finance creates invoices in the ERP through Parmana.",
 });
-console.log(
-  `Proposed by the maker : ${proposed.status} ${proposed.body.status}`,
-);
+console.log(`Proposed by the maker : ${proposed.status}`);
 
 const ownApproval = await call(
   "POST",
-  `/external-connectors/changes/${String(proposed.body.changeId)}/approve`,
+  `/external-connectors/changes/${proposed.changeId}/approve`,
   MAKER,
   {},
 );
@@ -184,15 +184,12 @@ console.log(
   `Maker approves own   : ${ownApproval.status} ${ownApproval.body.code}`,
 );
 
-const approved = await approve(String(proposed.body.changeId));
-console.log(
-  `Approved by checker  : ${approved.status} ${approved.body.status}`,
-);
+const approved = await approve(proposed.changeId);
+console.log(`Approved by checker  : ${approved.status}`);
 
-const listed = await call("GET", "/external-connectors", CHECKER);
-const registration = (
-  listed.body.connectors as Array<Record<string, unknown>>
-).find((connector) => connector.capability === "erp:create-invoice");
+const registration = (await checker.externalConnectors()).find(
+  (connector) => connector.capability === "erp:create-invoice",
+);
 console.log(
   `Registration         : ${String(registration?.status)} -> ${String(registration?.endpointUrl)}`,
 );
@@ -378,13 +375,13 @@ console.log();
 console.log("Step 6: revoke the registration");
 console.log("--------------------------------------------------");
 
-const revoke = await call("POST", "/external-connectors/changes", MAKER, {
+const revoke = await maker.proposeExternalConnectorChange({
   action: "revoke",
   capability: "erp:create-invoice",
   reason: "The ERP integration is retired.",
 });
-const revoked = await approve(String(revoke.body.changeId));
-console.log(`Revoke approved      : ${revoked.status} ${revoked.body.status}`);
+const revoked = await approve(revoke.changeId);
+console.log(`Revoke approved      : ${revoked.status}`);
 
 let afterRevoke: string;
 try {
@@ -405,9 +402,11 @@ await new Promise<void>((resolve) => erp.close(() => resolve()));
 await new Promise<void>((resolve) => api.close(() => resolve()));
 
 if (
-  proposed.status === 201 &&
+  proposed.status === "PENDING_APPROVAL" &&
   ownApproval.status === 403 &&
-  approved.body.status === "APPROVED" &&
+  approved.status === "APPROVED" &&
+  registration?.status === "active" &&
+  revoked.status === "APPROVED" &&
   sent.release?.audience === ENDPOINT_URL &&
   result.success === true &&
   again.status === 200 &&

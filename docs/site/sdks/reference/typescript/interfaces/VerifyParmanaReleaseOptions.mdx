@@ -1,0 +1,72 @@
+---
+title: "Interface: VerifyParmanaReleaseOptions"
+---
+
+Defined in: [typescript/src/crypto/release.ts:62](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/crypto/release.ts#L62)
+
+## Properties
+
+### publicKeys
+
+> `readonly` **publicKeys**: [`PublicKeys`](/sdks/reference/typescript/type-aliases/PublicKeys)
+
+Defined in: [typescript/src/crypto/release.ts:67](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/crypto/release.ts#L67)
+
+Key ID to PEM public key. The release names its key in
+signature.keyId, usually `default`.
+
+---
+
+### audience
+
+> `readonly` **audience**: `string`
+
+Defined in: [typescript/src/crypto/release.ts:74](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/crypto/release.ts#L74)
+
+This endpoint's URL exactly as Parmana stored it at registration
+(GET /external-connectors shows it). A release made for another
+endpoint is refused.
+
+---
+
+### isAlreadyExecuted
+
+> `readonly` **isAlreadyExecuted**: (`businessTransactionId`) => `boolean` \| `Promise`\<`boolean`\>
+
+Defined in: [typescript/src/crypto/release.ts:83](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/crypto/release.ts#L83)
+
+Whether this endpoint already executed the businessTransactionId.
+Keep that record durably: Parmana may send the same release again
+after a timeout, and the endpoint must answer with its first result,
+not act twice. Called only for a release that passed every other
+check.
+
+#### Parameters
+
+##### businessTransactionId
+
+`string`
+
+#### Returns
+
+`boolean` \| `Promise`\<`boolean`\>
+
+---
+
+### now?
+
+> `readonly` `optional` **now?**: `Date`
+
+Defined in: [typescript/src/crypto/release.ts:90](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/crypto/release.ts#L90)
+
+Defaults to the current time.
+
+---
+
+### clockSkewSeconds?
+
+> `readonly` `optional` **clockSkewSeconds?**: `number`
+
+Defined in: [typescript/src/crypto/release.ts:95](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/crypto/release.ts#L95)
+
+Defaults to DEFAULT_RELEASE_CLOCK_SKEW_SECONDS.
