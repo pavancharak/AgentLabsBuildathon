@@ -1588,10 +1588,13 @@ server trusts the public key. Add one through maker checker, with no deploy:
 
 <Steps>
   <Step title="The approver creates a key pair on their own machine">
-    ```bash npx tsx scripts/generate-approver-key.ts \ --approver-id
-    manager-priya --key-id manager-priya-key-1 --out-dir ~/.parmana ``` They
-    send the public key file, `manager-priya__manager-priya-key-1.public.pem`,
-    to a proposer.
+
+    ```bash
+    npx tsx scripts/generate-approver-key.ts --approver-id manager-priya --key-id manager-priya-key-1 --out-dir ~/.parmana
+    ```
+
+    They send the public key file, `manager-priya__manager-priya-key-1.public.pem`, to a proposer.
+
   </Step>
   <Step title="One person proposes trusting it">
     `POST /approval-issuers/changes` with `action: "add"`, the ids, the public
@@ -1607,13 +1610,14 @@ The full walkthrough, with rotation, revocation and errors, is
 [Manage approvers](/guides/manage-approvers).
 
 Approvers can also be listed in the server code, `TRUSTED_APPROVAL_ISSUERS` in
-`packages/api/src/bootstrap/createApprovalIssuerRegistry.ts`. Those change only with a pull
-request and a deploy. The code list is checked first.
+`packages/api/src/bootstrap/codeApprovalIssuers.ts`. Those change only with a pull request and a
+deploy. The code list is checked first.
 
 <Info>
-  The hosted deployment trusts one approver in code, added on 2026-09-28.
-  Approver keys are always Ed25519, whatever signing algorithm the server itself
-  uses.
+  The hosted deployment's code list holds one key, `manager-charak1987-key-1`,
+  revoked on 2026-09-30; its current approver key was added through maker
+  checker. Approver keys are always Ed25519, whatever signing algorithm the
+  server itself uses.
 </Info>
 
 ## Add an approval to any action

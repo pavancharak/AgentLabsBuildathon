@@ -52,6 +52,7 @@ The open items that matter most when you build with Parmana:
 | G-51 | Facts the agent declares (such as `refundEligible`, `fraudCheckPassed`) are not checked against another system. | Use them only to refuse. The signed approval authorizes.                                                                     |
 | G-82 | An external endpoint's answer is its claim, not proof that it acted.                                            | Keep the endpoint's own records; reconcile them against Trust Records.                                                       |
 | G-83 | The external release connects to the first checked address only.                                                | If that address is down, the release fails as an unknown outcome instead of trying the next one. Availability, not security. |
+| G-84 | An approved request takes 24 to 32 seconds in production, past the SDKs' default 30 second timeout.             | Set a 120 second timeout; after a timeout, read the record before sending anything new.                                      |
 
 Also scoped, not absent:
 
@@ -63,7 +64,8 @@ Also scoped, not absent:
   read.
 - **Approval notifications are best effort.** One attempt, no retry; the Refusal Records are the complete list.
 - **Python verifies Ed25519 only.** A record's ML-DSA-65 signatures are checked by the TypeScript verifier.
-- **Releasing to an external endpoint is not yet checked against a live endpoint in production** (ADR-0013 step 6).
+- **Releasing to an external endpoint was checked live once**, on 2026-10-01, with an endpoint that acts on nothing
+  (`docs/CLAIMS.md` 2.50).
 
 ## Reporting a vulnerability
 
