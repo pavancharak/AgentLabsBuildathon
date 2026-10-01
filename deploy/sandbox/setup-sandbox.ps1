@@ -41,7 +41,11 @@ param(
   [string]$ProductionLink = "$env:USERPROFILE\parmana-vercel-link",
   [string]$Project = "parmana-sandbox",
   [string]$Scope = "pavan-dev-singh-charaks-projects",
-  [string]$CorsOrigins = "https://docs.parmanasystems.com"
+  [string]$CorsOrigins = "https://docs.parmanasystems.com",
+
+  # Production's Supabase project, which the sandbox must never use. The
+  # repository's .env is also read, and its project refused too.
+  [string]$ProductionProjectRef = "ltjadvsjlpcygborxzet"
 )
 
 $ErrorActionPreference = "Stop"
@@ -150,6 +154,36 @@ function Approve-Change([string]$listPath, [string]$idField, [string]$approvePat
   Say "Status: $($result.status)" Green
 }
 
+# The Supabase project in a pooler string: the user is postgres.<project>.
+function Get-ProjectRef([string]$url) {
+  if ($url -match '^postgres(?:ql)?://postgres\.([a-z0-9]+)[:@]') { return $Matches[1] }
+  return ""
+}
+
+# Refuses production's database, and any string that is not a Supabase
+# pooler string with a port, before anything connects to it.
+function Assert-SandboxDatabase([string]$url, [string]$port) {
+  $ref = Get-ProjectRef $url
+  if (-not $ref) { Stop-Run "That is not a Supabase pooler string (postgresql://postgres.<project>:...). Nothing was done." }
+
+  $production = @($ProductionProjectRef)
+  $envFile = Join-Path (Get-Location) ".env"
+  if (Test-Path $envFile) {
+    $line = (Read-Utf8 $envFile) -split "`n" | Where-Object { $_ -match '^DATABASE_URL=' } | Select-Object -First 1
+    if ($line) { $production += Get-ProjectRef ($line -replace '^DATABASE_URL=', '').Trim().Trim('"') }
+  }
+  if ($production -contains $ref) {
+    Stop-Run "That string is PRODUCTION's database (project $ref). Nothing was done. Copy the string from the Connect page of the sandbox project in Supabase, not from .env."
+  }
+  if ($url -notmatch ":$port/") { Stop-Run "That is not the string on port $port. Nothing was done." }
+
+  $saved = (Read-State).sandboxProjectRef
+  if ($saved -and $saved -ne $ref) {
+    Stop-Run "That is project $ref, but Migrate used project $saved. Use the same sandbox project. Nothing was done."
+  }
+  return $ref
+}
+
 function Set-VercelEnv([string]$name, [string]$value) {
   $ErrorActionPreference = "Continue"
   vercel env rm $name production --yes --cwd $VercelLink 2>&1 | Out-Null
@@ -176,10 +210,22 @@ switch ($Stage) {
   "Migrate" {
     Step "Create the schema in the sandbox database"
     Say "Paste the SESSION pooler string of the NEW sandbox project (port 5432), never production's."
-    $env:DATABASE_URL = Read-Secret "Sandbox DATABASE_URL, session pooler"
+    $url = Read-Secret "Sandbox DATABASE_URL, session pooler"
+    $ref = Assert-SandboxDatabase $url "5432"
+    $env:DATABASE_URL = $url
+    Remove-Variable url
     $status = Invoke-Native { npm run --silent db:migrate -- status 2>&1 }
     $status | Select-Object -First 3 | Write-Host
-    Confirm-Word "APPLY" "apply every migration to the database named above"
+    if (-not (($status | Out-String) -match "(?m)^Database: \S+ as postgres\.$ref ")) {
+      Remove-Item Env:\DATABASE_URL
+      Stop-Run "The migration runner did not use the string you pasted. Nothing was written."
+    }
+    if ($status | Where-Object { $_ -match '^applied ' }) {
+      Remove-Item Env:\DATABASE_URL
+      Stop-Run "This database already has migrations, so it is not a new sandbox database. Nothing was written."
+    }
+    Save-State "sandboxProjectRef" $ref
+    Confirm-Word "APPLY" "apply every migration to the new, empty database $ref"
     Invoke-Native { npm run --silent db:migrate -- apply }
     $code = $LASTEXITCODE
     Invoke-Native { npm run --silent db:migrate -- status 2>&1 } | Select-Object -Last 2 | Write-Host
@@ -219,7 +265,9 @@ switch ($Stage) {
 
     Say "Paste the TRANSACTION pooler string of the sandbox project (port 6543), never production's."
     $databaseUrl = Read-Secret "Sandbox DATABASE_URL, transaction pooler"
-    if ($databaseUrl -notmatch ":6543/") { Stop-Run "That is not the transaction pooler string (port 6543)." }
+    $null = Get-StateValue "sandboxProjectRef" "Migrate"
+    $ref = Assert-SandboxDatabase $databaseUrl "6543"
+    Say "Sandbox database: project $ref" Green
 
     Confirm-Word "SET" "set 12 variables on $Project"
     Set-VercelEnv "NODE_ENV" "production"
