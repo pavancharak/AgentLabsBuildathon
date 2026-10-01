@@ -223,14 +223,14 @@ Same rules as approver changes: human callers only, maker is not checker, step u
 reject. Built in namespaces (paytm, hubspot, github, slack, test) refused. The endpoint's address
 is checked when proposed and when approved (`packages/shared/src/network/externalEndpointAddress.ts`).
 
-**Releasing to a registered endpoint (step 4, 2026-10-01): built and tested, not yet checked live.**
+**Releasing to a registered endpoint (step 4, 2026-10-01): live, checked in production on 2026-10-01 (step 6).**
 `ExternalConnectorAwareRegistry` serves a registered capability from its active registration with
 `GatewayExternalAdapter` (PR #93), the policy is bound from the registration at the version policy
 governance approved, and `GET /policies/in-effect` answers for it. The SDK helpers
 `verifyParmanaRelease` and `verify_parmana_release` (PR #94) are not published yet.
-`docs/CLAIMS.md` 2.49 claims the registration governance only; releasing to an endpoint is claimed
-after the live check (step 6). `docs/VERIFICATION-GAPS.md` G-81 fixed in the repository; G-82 and
-G-83 open.
+`docs/CLAIMS.md` 2.49 claims the registration governance, and 2.50 releasing to an endpoint, after
+the live check (`examples/live-checks/external-connector`). `docs/VERIFICATION-GAPS.md` G-81 fixed;
+G-82, G-83 and G-84 (an approved request takes 24 to 32 seconds in production) open.
 
 ## On disk, but not reachable
 

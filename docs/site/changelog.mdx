@@ -21,8 +21,12 @@ every commit, run `git log` in the repository for the complete record.
 - The registration's policy is the binding: a request must declare it at the version approved
   through policy governance, and `GET /policies/in-effect?capability=` answers for the capability.
   Every request is refused while no version of that policy is approved.
-- Not yet checked against a live endpoint, and the SDK helpers `verifyParmanaRelease` and
-  `verify_parmana_release` are not published yet. A guide to connecting any external system follows.
+- Checked live in production on 2026-10-01 against a deployed endpoint: refused with no approval,
+  released and recorded with one, refused when the approval was reused (`docs/CLAIMS.md` 2.50). The
+  SDK helpers `verifyParmanaRelease` and `verify_parmana_release` are not published yet.
+- Found in the live check: an approved request took 24 to 32 seconds in production, longer than the
+  SDKs' default 30 second timeout (`docs/VERIFICATION-GAPS.md` G-84). After a timeout, read the
+  record before sending anything new.
 - **Examples:** an endpoint in TypeScript (`typescript/examples/07-external-connector-endpoint.ts`)
   and in Python (`python/examples/13_external_connector_endpoint.py`), each checking releases with
   its SDK helper, and Tutorial 123, which registers the TypeScript one through maker checker and

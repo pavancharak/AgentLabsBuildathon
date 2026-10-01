@@ -1,0 +1,238 @@
+{
+  "trustRecordId": "8eb62160-6ba4-4137-ac57-440d884e5182",
+  "businessTransactionId": "ec2f6c00-1009-43f0-9faf-1aeb84917860",
+  "transaction": {
+    "intent": {
+      "action": "livecheck:receipt",
+      "target": "live-check-20261001-075243",
+      "intentId": "fabbd7eb-df40-492e-9234-47022c11dced",
+      "createdAt": "2026-10-01T02:23:31.599Z",
+      "parameters": {
+        "note": "live check, acts on nothing"
+      },
+      "authorizationId": "1703a996-7633-4786-95c4-b9278d438b83"
+    },
+    "policy": {
+      "name": "livecheck-receipt",
+      "version": "1.0.0",
+      "contentHash": "93db20840981083da2b1c6509eba5f5bc48f7399eef11619e6870eab52822f1e",
+      "schemaVersion": "1.0.0",
+      "governanceAnchor": {
+        "status": "VERIFIED",
+        "approvalRecordId": "28e0b22d-07c2-466e-88be-7b6cddeb9730"
+      }
+    },
+    "status": "RECEIVED",
+    "signals": {
+      "receiptApproved": true,
+      "approvalArtifact": {
+        "payload": {
+          "nonce": "8ebdbb09-a4a6-468b-a94a-5b901b138598",
+          "scope": {
+            "field": "resourceId",
+            "value": "live-check-20261001-075243",
+            "comparator": "eq"
+          },
+          "issuer": {
+            "keyId": "manager-charak1987-key-2",
+            "approverId": "manager-charak1987"
+          },
+          "version": 1,
+          "issuedAt": "2026-10-01T02:22:44.501Z",
+          "expiresAt": "2026-10-01T02:37:44.501Z",
+          "approvalId": "fb9757bb-0d97-4c9f-b5e1-0856dab38399",
+          "capability": "livecheck:receipt",
+          "resourceId": "live-check-20261001-075243"
+        },
+        "signature": {
+          "keyId": "manager-charak1987-key-2",
+          "value": "5uST0ZNl+ZSuGO2QDPFwEsIdwLzaQtosloLJ3fzWZj87tbvW7W4HlEIg3dH61vUQk0IAABpfKDU8dF6gLQ+3AA==",
+          "signedAt": "2026-10-01T02:22:44.501Z",
+          "algorithm": "ed25519"
+        }
+      }
+    },
+    "metadata": {
+      "submittedBy": "livecheck-agent",
+      "grantedCapability": "livecheck:receipt",
+      "businessTransactionId": "ec2f6c00-1009-43f0-9faf-1aeb84917860"
+    },
+    "authority": {
+      "issuedAt": "2026-10-01T02:23:31.599Z",
+      "authorityId": "c83f8f68-5bb0-4599-9c98-a687c20c23e6",
+      "principalId": "livecheck-agent",
+      "authorityType": "SERVICE"
+    },
+    "createdAt": "2026-10-01T02:23:30.973Z",
+    "authorization": {
+      "purpose": "ADR-0013 step 6: live check of an external connector",
+      "issuedAt": "2026-10-01T02:23:31.599Z",
+      "authorityId": "c83f8f68-5bb0-4599-9c98-a687c20c23e6",
+      "authorizationId": "1703a996-7633-4786-95c4-b9278d438b83"
+    },
+    "businessTransactionId": "ec2f6c00-1009-43f0-9faf-1aeb84917860"
+  },
+  "executions": [
+    {
+      "mode": "SYNC",
+      "status": "COMPLETED",
+      "decision": {
+        "policy": {
+          "name": "livecheck-receipt",
+          "version": "1.0.0",
+          "schemaVersion": "1.0.0"
+        },
+        "reason": "Receipt approved by a trusted person for this target.",
+        "outcome": "APPROVED",
+        "signals": {
+          "receiptApproved": true,
+          "approvalArtifact": {
+            "payload": {
+              "nonce": "8ebdbb09-a4a6-468b-a94a-5b901b138598",
+              "scope": {
+                "field": "resourceId",
+                "value": "live-check-20261001-075243",
+                "comparator": "eq"
+              },
+              "issuer": {
+                "keyId": "manager-charak1987-key-2",
+                "approverId": "manager-charak1987"
+              },
+              "version": 1,
+              "issuedAt": "2026-10-01T02:22:44.501Z",
+              "expiresAt": "2026-10-01T02:37:44.501Z",
+              "approvalId": "fb9757bb-0d97-4c9f-b5e1-0856dab38399",
+              "capability": "livecheck:receipt",
+              "resourceId": "live-check-20261001-075243"
+            },
+            "signature": {
+              "keyId": "manager-charak1987-key-2",
+              "value": "5uST0ZNl+ZSuGO2QDPFwEsIdwLzaQtosloLJ3fzWZj87tbvW7W4HlEIg3dH61vUQk0IAABpfKDU8dF6gLQ+3AA==",
+              "signedAt": "2026-10-01T02:22:44.501Z",
+              "algorithm": "ed25519"
+            }
+          }
+        },
+        "intentId": "fabbd7eb-df40-492e-9234-47022c11dced",
+        "decisionId": "fc8cd19b-3a9e-4516-a8cc-d186e1350844",
+        "evaluatedAt": "2026-10-01T02:23:35.301Z",
+        "matchedPath": ["approve-with-approval"],
+        "matchedRuleId": "approve-with-approval",
+        "evaluatedRules": 1
+      },
+      "evidence": {
+        "action": "livecheck:receipt",
+        "target": "live-check-20261001-075243",
+        "success": true,
+        "attributes": {
+          "connector": {
+            "startedAt": "2026-10-01T02:23:47.016Z",
+            "capability": "livecheck:receipt",
+            "completedAt": "2026-10-01T02:23:49.201Z",
+            "connectorId": "ext-livecheck:receipt",
+            "requestSummary": {
+              "action": "livecheck:receipt",
+              "target": "live-check-20261001-075243",
+              "parameters": {
+                "note": "live check, acts on nothing"
+              },
+              "businessTransactionId": "ec2f6c00-1009-43f0-9faf-1aeb84917860"
+            },
+            "responseSummary": {
+              "success": true,
+              "metadata": {
+                "result": {
+                  "target": "live-check-20261001-075243",
+                  "receiptId": "RC-ec2f6c00",
+                  "parameters": {
+                    "note": "live check, acts on nothing"
+                  }
+                },
+                "executedAt": "2026-10-01T02:23:49.192Z",
+                "endpointUrl": "https://parmana-release-check.vercel.app/api/release",
+                "releaseIssuedAt": "2026-10-01T02:23:47.019Z"
+              }
+            },
+            "connectorVersion": "1.0.0",
+            "sanitizedEndpoint": "live-check-20261001-075243",
+            "credentialProviderId": "static",
+            "connectorEvidenceHash": "10e5e28e38407e5796a130665b5c6f21ca0e9ffca83964690865acc6dee08af5",
+            "vendorConfirmationVerified": false
+          }
+        },
+        "executedAt": "2026-10-01T02:23:49.201Z",
+        "parameters": {
+          "note": "live check, acts on nothing"
+        },
+        "businessTransactionId": "ec2f6c00-1009-43f0-9faf-1aeb84917860"
+      },
+      "metadata": {
+        "authorizationId": "8c42a31e-6d6a-4262-9c59-4b93b37c53e2"
+      },
+      "chainHash": "555bedbbcc3f19d99aa274237b05a511ed08b8029f2aee1cc6bd2292b5e628e9",
+      "startedAt": "2026-10-01T02:23:39.990Z",
+      "completedAt": "2026-10-01T02:23:52.415Z",
+      "executionId": "bcadd0cf-d9d3-4884-8b34-4f2b076379bf",
+      "chainSignature": {
+        "keyId": "default",
+        "value": "WfuZ8iFvGPvH5vtOi0rcLu0T0Sp8CRNnwi6vXsGU2Dfn3YxVkK7WL032UBREcL7FAy9y5dSQHQ+1QFnfMYGiDg==",
+        "signedAt": "2026-10-01T02:23:52.607Z",
+        "algorithm": "ed25519"
+      },
+      "previousChainHash": null,
+      "businessTransactionId": "ec2f6c00-1009-43f0-9faf-1aeb84917860"
+    }
+  ],
+  "overrides": [],
+  "verifications": [
+    {
+      "status": "VERIFIED",
+      "message": "Execution Trust Record verified successfully.",
+      "verifiedAt": "2026-10-01T02:23:58.817Z",
+      "verificationId": "bf7739f2-fa01-49b5-b901-9ea489e77a18",
+      "trustRecordHash": "ae965169120a3ee1727aa51ceead477a755f37d6114b0378b9c054c4ce8ebf14",
+      "businessTransactionId": "ec2f6c00-1009-43f0-9faf-1aeb84917860"
+    }
+  ],
+  "receipts": [
+    {
+      "issuedAt": "2026-10-01T02:23:59.571Z",
+      "algorithm": "ed25519",
+      "receiptId": "80cf8355-85d2-4ba8-a198-25f6cb57750a",
+      "signature": "Cn8/OBIolKJO0TTtwG00gm5Dqy60QYvUSvNImUMJ6yLHXRq79OOah1Icp+LOhNBlKArx2yvlQlrS/Ioi08jyBg==",
+      "receiptHash": "6de1ebfdcbe7f1027722bc3ecd96307ccbc280ef91f6e19065cb93e35404e385",
+      "trustRecordHash": "ae965169120a3ee1727aa51ceead477a755f37d6114b0378b9c054c4ce8ebf14",
+      "businessTransactionId": "ec2f6c00-1009-43f0-9faf-1aeb84917860"
+    }
+  ],
+  "trustRecordHash": "ae965169120a3ee1727aa51ceead477a755f37d6114b0378b9c054c4ce8ebf14",
+  "signature": {
+    "keyId": "default",
+    "value": "et+ICMB1FETzFIE3k2VHs+pF5fxvVMZ3TpXpHuNHleJyyFi56kkyJkLtM5RNYOKSqgs2tkbhPebZIL4clTuMCw==",
+    "signedAt": "2026-10-01T02:23:54.611Z",
+    "algorithm": "ed25519"
+  },
+  "authorization": {
+    "keyId": "default",
+    "payload": {
+      "nonce": "665d1d8d-b86c-4cb9-b278-9c514286f396",
+      "version": 1,
+      "expiresAt": "2026-10-01T02:25:35.301Z",
+      "decisionId": "fc8cd19b-3a9e-4516-a8cc-d186e1350844",
+      "policyName": "livecheck-receipt",
+      "signalsHash": "a6e533555787517a1547d1747091f86de4bd4800522eb4b32ea6d96044f4922c",
+      "submittedBy": "livecheck-agent",
+      "authorizedAt": "2026-10-01T02:23:35.301Z",
+      "policyVersion": "1.0.0",
+      "authorizationId": "8c42a31e-6d6a-4262-9c59-4b93b37c53e2",
+      "grantedCapability": "livecheck:receipt",
+      "policyContentHash": "93db20840981083da2b1c6509eba5f5bc48f7399eef11619e6870eab52822f1e",
+      "businessTransactionId": "ec2f6c00-1009-43f0-9faf-1aeb84917860",
+      "businessTransactionHash": "fab2771d1a46911afaca30183e13df8ab9c2d4966c1feaa96b249ca3ea5d4605"
+    },
+    "algorithm": "ed25519",
+    "signature": "h8XYxdFYnBlFW3RgBmG2V6Vh60PanSE4eVn5DnpxH/TSQH/BURg3Mglo7wG7SLmhlENh/iO0lExgExMU4j+CDQ=="
+  },
+  "createdAt": "2026-10-01T02:23:53.172Z",
+  "updatedAt": "2026-10-01T02:24:01.093Z"
+}
