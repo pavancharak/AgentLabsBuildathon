@@ -582,8 +582,32 @@ paths:
                       as kty "AKP" (the IETF JOSE/COSE key type for ML-DSA, not
                       an identifier this codebase invented). Omitted, not null,
                       when unavailable.
+              examples:
+                defaultKey:
+                  summary: Real captured response
+                  value:
+                    keyId: default
+                    algorithm: ed25519
+                    use: sig
+                    pem: |
+                      -----BEGIN PUBLIC KEY-----
+                      MCowBQYDK2VwAyEAQKyaz9ifANjaew96i34spqhM31mBatJ6TTHaMY7mclI=
+                      -----END PUBLIC KEY-----
+                    jwk:
+                      crv: Ed25519
+                      x: QKyaz9ifANjaew96i34spqhM31mBatJ6TTHaMY7mclI
+                      kty: OKP
         "404":
           description: No key exists for the given keyId.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error.schema"
+              examples:
+                unknownKey:
+                  summary: Real captured response
+                  value:
+                    error: "Key not found: does-not-exist"
       x-codeSamples:
         - lang: bash
           label: cURL
@@ -662,6 +686,33 @@ paths:
                           type: string
                         jwk:
                           type: object
+              examples:
+                keys:
+                  summary: Real captured response
+                  value:
+                    keys:
+                      - keyId: default
+                        algorithm: ed25519
+                        use: sig
+                        pem: |
+                          -----BEGIN PUBLIC KEY-----
+                          MCowBQYDK2VwAyEAQKyaz9ifANjaew96i34spqhM31mBatJ6TTHaMY7mclI=
+                          -----END PUBLIC KEY-----
+                        jwk:
+                          crv: Ed25519
+                          x: QKyaz9ifANjaew96i34spqhM31mBatJ6TTHaMY7mclI
+                          kty: OKP
+                      - keyId: gateway
+                        algorithm: ed25519
+                        use: sig
+                        pem: |
+                          -----BEGIN PUBLIC KEY-----
+                          MCowBQYDK2VwAyEAFIS92deNnIcw9U2ZrLxYo6Uqmt31SN0OKwoFhipfObk=
+                          -----END PUBLIC KEY-----
+                        jwk:
+                          crv: Ed25519
+                          x: FIS92deNnIcw9U2ZrLxYo6Uqmt31SN0OKwoFhipfObk
+                          kty: OKP
       x-codeSamples:
         - lang: bash
           label: cURL
@@ -3071,6 +3122,74 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/refusal-record.schema"
+              examples:
+                refused:
+                  summary: Real captured response, a payment refused for insufficient funds
+                  value:
+                    refusalRecordId: a46475ef-53ae-4cb9-b407-1a64b6af03fe
+                    businessTransactionId: 511e9aaf-bffe-4834-a454-6cc2894e7ab4
+                    decision:
+                      decisionId: 8df80cd5-d88f-416e-9b87-ac346bd144a1
+                      intentId: 88d49afb-ac0b-4cb0-8420-cd2100bf1cb0
+                      policy:
+                        name: vendor-payment
+                        version: 2.1.0
+                        schemaVersion: 1.0.0
+                      signals:
+                        vendorVerified: true
+                        invoiceVerified: true
+                        paymentApproved: true
+                        sufficientFunds: false
+                        paymentAmount: 1000
+                        riskScore: 10
+                        vendorId: vendor://payments
+                        humanApproved: true
+                        approvalArtifact:
+                          payload:
+                            version: 1
+                            approvalId: ab8f7d00-194d-428b-a40f-4f63517de2ff
+                            issuer:
+                              approverId: test-approver
+                              keyId: test-approver-key-1
+                            issuedAt: 2026-10-01T10:14:05.085Z
+                            expiresAt: 2026-10-01T10:29:05.085Z
+                            capability: test:fixture-execute
+                            resourceId: vendor://payments
+                            scope:
+                              field: amount
+                              comparator: lte
+                              value: 1000
+                            nonce: a5b7a9f3-a679-4052-9aa4-391e0e6b298c
+                          signature:
+                            algorithm: ed25519
+                            keyId: test-approver-key-1
+                            value: fBA9eUxZwTD/cbjVjpYLmmDFQkpOd54nLgLiBGWhGVLHQ/xsWL/pDJUfhrmvd3YRoJSibwn7+LaHAHLPsgJ1BA==
+                            signedAt: 2026-10-01T10:14:05.085Z
+                      outcome: REJECTED
+                      reason: Vendor payment rejected because sufficient funds are not available.
+                      matchedRuleId: reject-insufficient-funds
+                      evaluatedRules: 6
+                      matchedPath:
+                        - approve-payment
+                        - reject-high-risk-payment
+                        - reject-unverified-vendor
+                        - reject-unverified-invoice
+                        - reject-payment-not-approved
+                        - reject-insufficient-funds
+                      evaluatedAt: 2026-10-01T10:14:05.097Z
+                    evaluatedIntent:
+                      target: vendor://payments
+                      parameters:
+                        paymentId: payment-001
+                        amount: 1000
+                    submittedBy: operator-maker
+                    createdAt: 2026-10-01T10:14:05.098Z
+                    refusalRecordHash: e4988c237239299438ed9fb99aa86a9fada04facd0128eb73dcdb21bfa683386
+                    signature:
+                      algorithm: ed25519
+                      keyId: default
+                      value: LE2h4I+CkhAaivg6n0GZ3FbUN5tAtKR6R2HcvweB4nb3JHhkyO6mFTbNgsoHi+EyfXcoX7L7GAXVeMYNoXP5DQ==
+                      signedAt: 2026-10-01T10:14:05.099Z
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -3273,6 +3392,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/execution-intents-unfinalized-response.schema"
+              examples:
+                errored:
+                  summary: Real captured response, one intent whose connector call failed
+                  value:
+                    intents:
+                      - intent:
+                          intentId: 6fbdabeb-65c5-4264-976d-cc0db7c75dfe
+                          businessTransactionId: 40dd71a7-d627-4e8a-8935-2ba35d5060f7
+                          decisionId: 05521896-0a5c-4ad8-9963-d27f5d10988f
+                          authorizationId: 36057e16-2ea6-4a59-b496-59bb13506e0c
+                          policyName: vendor-payment
+                          policyVersion: 2.1.0
+                          policyContentHash: 18f4acca151fef1c45c867f622bdd4edd5d640aa38b95e026430aba10756ee2d
+                          signalsHash: edaa331fb10564b8562dbf0c29212554b8a5d0e917ca1595c66dee1a67064ac0
+                          businessTransactionHash: c85fefd375e9d224d0e5a931465fab5595cb8cee8d5fdd704dd2fe3d60cc485e
+                          action: test:fixture-execute
+                          target: vendor://payments
+                          submittedBy: operator-maker
+                          grantedCapability: test:fixture-execute
+                          createdAt: 2026-10-01T10:14:05.140Z
+                          intentHash: 6bf3d216b31f8ca056743ee847f9259acc78b5014669411b6936bffa40ea39ff
+                          signature:
+                            algorithm: ed25519
+                            keyId: default
+                            value: Bjt1kU6s297FI88N+bMxHjh9Pb1ZgxA5cqMKpW5KECyZ3RG5ifsNKs3cLCiJ3nqxw/qIHLCAjwSRpAXJ+MgBBg==
+                            signedAt: 2026-10-01T10:14:05.140Z
+                        status:
+                          state: ERRORED
+                          failureReason: connector timed out
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -3356,6 +3504,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/execution-intent-response.schema"
+              examples:
+                finalized:
+                  summary: Real captured response, an intent finalized inline
+                  value:
+                    intent:
+                      intentId: eb477e41-97d5-4f06-b288-a82b285d43c8
+                      businessTransactionId: b09eb4f2-30f8-4783-bd23-4092eabc8378
+                      decisionId: abc800f7-31f7-4200-a0b8-40ddee4531d9
+                      authorizationId: c2adcd88-46ea-48c6-998e-4b1104d78dc4
+                      policyName: vendor-payment
+                      policyVersion: 2.1.0
+                      policyContentHash: 18f4acca151fef1c45c867f622bdd4edd5d640aa38b95e026430aba10756ee2d
+                      signalsHash: 57fba49e69315b5edc10cae142b6f635d3ad37456004e4fd0bba3d56f6516beb
+                      businessTransactionHash: 6f5d7263b1769bbb3fe63c590348fe0e5e3e47d24521da6b3473c990b475144a
+                      action: test:fixture-execute
+                      target: vendor://payments
+                      submittedBy: operator-maker
+                      grantedCapability: test:fixture-execute
+                      createdAt: 2026-10-01T10:14:05.108Z
+                      intentHash: c0b44a20cad33538471c5f13e6c8b659e9a91849428d9c27718e57fa7b41ddd9
+                      signature:
+                        algorithm: ed25519
+                        keyId: default
+                        value: Zkj+SVWnnLH+CTStZaOMsAOmq4Ea8nlI30StVdTqTNKd925QArXbabNf6xIMH+CQU4BYBlX8LlHTvFZXCFrjBw==
+                        signedAt: 2026-10-01T10:14:05.109Z
+                    status:
+                      state: FINALIZED
+                      releasedAt: 2026-10-01T10:14:05.115Z
+                      trustRecordId: 3b911989-c708-4ad8-8a30-a407bd118982
+                      finalizationMode: INLINE
+                      finalizedAt: 2026-10-01T10:14:05.117Z
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -3448,15 +3627,394 @@ paths:
               schema:
                 $ref: "#/components/schemas/execution-intent-finalize-response.schema"
               examples:
+                finalized:
+                  summary: Real captured response, this call rebuilt the record
+                  value:
+                    outcome: FINALIZED
+                    businessTransactionId: 0815b845-20b0-4c45-9582-31fce04eaf58
+                    trustRecordId: e90c619d-d84d-4ac5-8ccd-1533e19620b7
+                    trustRecord:
+                      trustRecordId: e90c619d-d84d-4ac5-8ccd-1533e19620b7
+                      businessTransactionId: 0815b845-20b0-4c45-9582-31fce04eaf58
+                      transaction:
+                        businessTransactionId: 0815b845-20b0-4c45-9582-31fce04eaf58
+                        metadata:
+                          businessTransactionId: 0815b845-20b0-4c45-9582-31fce04eaf58
+                          correlationId: 76fd653b-0b4d-42a3-a520-1d54aa0cff39
+                          createdBy: integration-test
+                          createdAt: 2026-10-01T10:14:05.158Z
+                          submittedBy: operator-maker
+                          grantedCapability: test:fixture-execute
+                        authority:
+                          authorityId: 3ab4a04e-f032-4a2d-bdec-45a216e347e2
+                          authorityType: USER
+                          principalId: integration-test
+                          displayName: Integration Test
+                          issuedAt: 2026-10-01T10:14:05.158Z
+                        authorization:
+                          authorizationId: 6b9aa3b5-ea9c-4ffd-8471-a62d127846a8
+                          authorityId: 3ab4a04e-f032-4a2d-bdec-45a216e347e2
+                          purpose: Integration Test
+                          issuedAt: 2026-10-01T10:14:05.158Z
+                        intent:
+                          intentId: 0ed0f62f-9cb9-4e89-a88e-e7eb0cd733d8
+                          authorizationId: 6b9aa3b5-ea9c-4ffd-8471-a62d127846a8
+                          action: test:fixture-execute
+                          target: vendor://payments
+                          parameters:
+                            paymentId: payment-001
+                            amount: 1000
+                          createdAt: 2026-10-01T10:14:05.158Z
+                        policy:
+                          name: vendor-payment
+                          version: 2.1.0
+                          schemaVersion: 1.0.0
+                          contentHash: 18f4acca151fef1c45c867f622bdd4edd5d640aa38b95e026430aba10756ee2d
+                        signals:
+                          vendorVerified: true
+                          invoiceVerified: true
+                          paymentApproved: true
+                          sufficientFunds: true
+                          paymentAmount: 1000
+                          riskScore: 10
+                          vendorId: vendor://payments
+                          humanApproved: true
+                          approvalArtifact:
+                            payload:
+                              version: 1
+                              approvalId: 5a8f523b-8bbc-4e85-b802-4e2beed9f423
+                              issuer:
+                                approverId: test-approver
+                                keyId: test-approver-key-1
+                              issuedAt: 2026-10-01T10:14:05.158Z
+                              expiresAt: 2026-10-01T10:29:05.158Z
+                              capability: test:fixture-execute
+                              resourceId: vendor://payments
+                              scope:
+                                field: amount
+                                comparator: lte
+                                value: 1000
+                              nonce: d95d37c2-5214-4f05-b25b-b6b9cfccc3f1
+                            signature:
+                              algorithm: ed25519
+                              keyId: test-approver-key-1
+                              value: rr8nX28mY3mw4NqI39HFkevWyYIyuR+YfIpROngbwCPnaOIvFzP/xtIiV4TfxwjJzid2v0jw2SkU9na2tm+pAw==
+                              signedAt: 2026-10-01T10:14:05.158Z
+                        status: RECEIVED
+                        createdAt: 2026-10-01T10:14:05.161Z
+                      authorization:
+                        payload:
+                          version: 1
+                          authorizationId: 0124ee41-6b81-4a34-9dca-4e7e6903a605
+                          nonce: 9600d763-0309-4b44-a5c2-d1079e67e112
+                          decisionId: 0086ad8e-8dc6-4dfb-895f-3f6bf93756c3
+                          businessTransactionId: 0815b845-20b0-4c45-9582-31fce04eaf58
+                          policyName: vendor-payment
+                          policyVersion: 2.1.0
+                          policyContentHash: 18f4acca151fef1c45c867f622bdd4edd5d640aa38b95e026430aba10756ee2d
+                          signalsHash: 22740e756e579df6102d6408aa403cdc42292f8d8ced9b1e23b189ddc655b3f8
+                          submittedBy: operator-maker
+                          grantedCapability: test:fixture-execute
+                          authorizedAt: 2026-10-01T10:14:05.162Z
+                          expiresAt: 2026-10-01T10:16:05.162Z
+                          businessTransactionHash: d1ccf6f901a96576c004a53a197b8e6a32eea95713b9dd00499b07a4b89da4e4
+                        signature: TDZgeHSqXhdacOLBUZzEMIFFTP1BkF68hTrvtQrI3SWJo7MApe6JqPTou7xoqzKK7tBwvDrG25mTyRA3TUA8AQ==
+                        keyId: default
+                        algorithm: ed25519
+                      overrides: []
+                      executions:
+                        - executionId: ad87bb66-5811-404b-bdbf-f8196bfec100
+                          businessTransactionId: 0815b845-20b0-4c45-9582-31fce04eaf58
+                          decision:
+                            decisionId: 0086ad8e-8dc6-4dfb-895f-3f6bf93756c3
+                            intentId: 0ed0f62f-9cb9-4e89-a88e-e7eb0cd733d8
+                            policy:
+                              name: vendor-payment
+                              version: 2.1.0
+                              schemaVersion: 1.0.0
+                            signals:
+                              vendorVerified: true
+                              invoiceVerified: true
+                              paymentApproved: true
+                              sufficientFunds: true
+                              paymentAmount: 1000
+                              riskScore: 10
+                              vendorId: vendor://payments
+                              humanApproved: true
+                              approvalArtifact:
+                                payload:
+                                  version: 1
+                                  approvalId: 5a8f523b-8bbc-4e85-b802-4e2beed9f423
+                                  issuer:
+                                    approverId: test-approver
+                                    keyId: test-approver-key-1
+                                  issuedAt: 2026-10-01T10:14:05.158Z
+                                  expiresAt: 2026-10-01T10:29:05.158Z
+                                  capability: test:fixture-execute
+                                  resourceId: vendor://payments
+                                  scope:
+                                    field: amount
+                                    comparator: lte
+                                    value: 1000
+                                  nonce: d95d37c2-5214-4f05-b25b-b6b9cfccc3f1
+                                signature:
+                                  algorithm: ed25519
+                                  keyId: test-approver-key-1
+                                  value: rr8nX28mY3mw4NqI39HFkevWyYIyuR+YfIpROngbwCPnaOIvFzP/xtIiV4TfxwjJzid2v0jw2SkU9na2tm+pAw==
+                                  signedAt: 2026-10-01T10:14:05.158Z
+                            outcome: APPROVED
+                            reason: Vendor payment authorized. Vendor verification, invoice verification,
+                              payment approval, funding, and risk assessment
+                              requirements were satisfied, with a verified human
+                              approval.
+                            matchedRuleId: approve-payment
+                            evaluatedRules: 1
+                            matchedPath:
+                              - approve-payment
+                            evaluatedAt: 2026-10-01T10:14:05.162Z
+                          status: COMPLETED
+                          mode: SYNC
+                          startedAt: 2026-10-01T10:14:05.164Z
+                          metadata:
+                            authorizationId: 0124ee41-6b81-4a34-9dca-4e7e6903a605
+                          previousChainHash: null
+                          chainHash: 94a3d02990b2e74a76bbaf742854ef6478855bc219cfe2c0761aa88a5222e40d
+                          chainSignature:
+                            algorithm: ed25519
+                            keyId: default
+                            value: 4aKQdzrhPjdIEphO85x0am3wAesHiFfhDg45gQvtkCAmAO7sUMkgHdMMm9qmuhZMFPz4rPqY/2QiMVVT9ZpSAA==
+                            signedAt: 2026-10-01T10:14:05.167Z
+                          evidence:
+                            businessTransactionId: 0815b845-20b0-4c45-9582-31fce04eaf58
+                            action: test:fixture-execute
+                            target: vendor://payments
+                            parameters:
+                              paymentId: payment-001
+                              amount: 1000
+                            success: true
+                            executedAt: 2026-10-01T10:14:05.165Z
+                            attributes: {}
+                          completedAt: 2026-10-01T10:14:05.166Z
+                      verifications:
+                        - verificationId: ed256da8-bab4-429c-b161-8da81e4c794a
+                          businessTransactionId: 0815b845-20b0-4c45-9582-31fce04eaf58
+                          status: VERIFIED
+                          message: Execution Trust Record verified successfully.
+                          verifiedAt: 2026-10-01T10:14:05.174Z
+                          trustRecordHash: 59d9a80090980ef5adf536a08897b66072dd86f98550ff45310502fe22b38612
+                      receipts:
+                        - receiptId: 85a5bc98-a5e3-4b58-b90c-ae46ee3226f6
+                          businessTransactionId: 0815b845-20b0-4c45-9582-31fce04eaf58
+                          trustRecordHash: 59d9a80090980ef5adf536a08897b66072dd86f98550ff45310502fe22b38612
+                          receiptHash: 1896eea5226afcca692bc7163a446b2699b63b26255b1902549e38d1cafd093f
+                          issuedAt: 2026-10-01T10:14:05.174Z
+                          algorithm: ed25519
+                          signature: XxsHhBDY9ZKD3VnjRS7e/ad5mdBoaJFsvETgrdmUEaA4WGT8C4TE+ANj97snSMS/WEmp4d+MjRR3inidJSu9Dg==
+                      evidenceAnchor:
+                        policyContentHash: 18f4acca151fef1c45c867f622bdd4edd5d640aa38b95e026430aba10756ee2d
+                        anchorHash: d9c24439faa28d86e5702a10b6cceace41ea1feac5e90af659c306f5ec3cd46e
+                      createdAt: 2026-10-01T10:14:05.171Z
+                      updatedAt: 2026-10-01T10:14:05.171Z
+                      trustRecordHash: 59d9a80090980ef5adf536a08897b66072dd86f98550ff45310502fe22b38612
+                      signature:
+                        algorithm: ed25519
+                        keyId: default
+                        value: XK2qjtDkiHNCA12TNIvb5XnoBLqats3CiLdHN7xYxgYul+hCPrp78CPqNXGWDlzsItk8HMYPjQdkCjsgVBcFCw==
+                        signedAt: 2026-10-01T10:14:05.172Z
                 alreadyFinalized:
-                  summary: A second call changes nothing (real captured response, trust record
-                    omitted here)
+                  summary: Real captured response, the same call repeated
                   value:
                     outcome: ALREADY_FINALIZED
-                    businessTransactionId: b1237ce3-305a-4004-8179-749352fc1ade
-                    trustRecordId: 3f8d340d-14c5-4d2e-b692-492fa74b2651
-                    trustRecord: The full Execution Trust Record. See the Execution Trust Record
-                      schema.
+                    businessTransactionId: 0815b845-20b0-4c45-9582-31fce04eaf58
+                    trustRecordId: e90c619d-d84d-4ac5-8ccd-1533e19620b7
+                    trustRecord:
+                      trustRecordId: e90c619d-d84d-4ac5-8ccd-1533e19620b7
+                      businessTransactionId: 0815b845-20b0-4c45-9582-31fce04eaf58
+                      transaction:
+                        businessTransactionId: 0815b845-20b0-4c45-9582-31fce04eaf58
+                        metadata:
+                          businessTransactionId: 0815b845-20b0-4c45-9582-31fce04eaf58
+                          correlationId: 76fd653b-0b4d-42a3-a520-1d54aa0cff39
+                          createdBy: integration-test
+                          createdAt: 2026-10-01T10:14:05.158Z
+                          submittedBy: operator-maker
+                          grantedCapability: test:fixture-execute
+                        authority:
+                          authorityId: 3ab4a04e-f032-4a2d-bdec-45a216e347e2
+                          authorityType: USER
+                          principalId: integration-test
+                          displayName: Integration Test
+                          issuedAt: 2026-10-01T10:14:05.158Z
+                        authorization:
+                          authorizationId: 6b9aa3b5-ea9c-4ffd-8471-a62d127846a8
+                          authorityId: 3ab4a04e-f032-4a2d-bdec-45a216e347e2
+                          purpose: Integration Test
+                          issuedAt: 2026-10-01T10:14:05.158Z
+                        intent:
+                          intentId: 0ed0f62f-9cb9-4e89-a88e-e7eb0cd733d8
+                          authorizationId: 6b9aa3b5-ea9c-4ffd-8471-a62d127846a8
+                          action: test:fixture-execute
+                          target: vendor://payments
+                          parameters:
+                            paymentId: payment-001
+                            amount: 1000
+                          createdAt: 2026-10-01T10:14:05.158Z
+                        policy:
+                          name: vendor-payment
+                          version: 2.1.0
+                          schemaVersion: 1.0.0
+                          contentHash: 18f4acca151fef1c45c867f622bdd4edd5d640aa38b95e026430aba10756ee2d
+                        signals:
+                          vendorVerified: true
+                          invoiceVerified: true
+                          paymentApproved: true
+                          sufficientFunds: true
+                          paymentAmount: 1000
+                          riskScore: 10
+                          vendorId: vendor://payments
+                          humanApproved: true
+                          approvalArtifact:
+                            payload:
+                              version: 1
+                              approvalId: 5a8f523b-8bbc-4e85-b802-4e2beed9f423
+                              issuer:
+                                approverId: test-approver
+                                keyId: test-approver-key-1
+                              issuedAt: 2026-10-01T10:14:05.158Z
+                              expiresAt: 2026-10-01T10:29:05.158Z
+                              capability: test:fixture-execute
+                              resourceId: vendor://payments
+                              scope:
+                                field: amount
+                                comparator: lte
+                                value: 1000
+                              nonce: d95d37c2-5214-4f05-b25b-b6b9cfccc3f1
+                            signature:
+                              algorithm: ed25519
+                              keyId: test-approver-key-1
+                              value: rr8nX28mY3mw4NqI39HFkevWyYIyuR+YfIpROngbwCPnaOIvFzP/xtIiV4TfxwjJzid2v0jw2SkU9na2tm+pAw==
+                              signedAt: 2026-10-01T10:14:05.158Z
+                        status: RECEIVED
+                        createdAt: 2026-10-01T10:14:05.161Z
+                      authorization:
+                        payload:
+                          version: 1
+                          authorizationId: 0124ee41-6b81-4a34-9dca-4e7e6903a605
+                          nonce: 9600d763-0309-4b44-a5c2-d1079e67e112
+                          decisionId: 0086ad8e-8dc6-4dfb-895f-3f6bf93756c3
+                          businessTransactionId: 0815b845-20b0-4c45-9582-31fce04eaf58
+                          policyName: vendor-payment
+                          policyVersion: 2.1.0
+                          policyContentHash: 18f4acca151fef1c45c867f622bdd4edd5d640aa38b95e026430aba10756ee2d
+                          signalsHash: 22740e756e579df6102d6408aa403cdc42292f8d8ced9b1e23b189ddc655b3f8
+                          submittedBy: operator-maker
+                          grantedCapability: test:fixture-execute
+                          authorizedAt: 2026-10-01T10:14:05.162Z
+                          expiresAt: 2026-10-01T10:16:05.162Z
+                          businessTransactionHash: d1ccf6f901a96576c004a53a197b8e6a32eea95713b9dd00499b07a4b89da4e4
+                        signature: TDZgeHSqXhdacOLBUZzEMIFFTP1BkF68hTrvtQrI3SWJo7MApe6JqPTou7xoqzKK7tBwvDrG25mTyRA3TUA8AQ==
+                        keyId: default
+                        algorithm: ed25519
+                      overrides: []
+                      executions:
+                        - executionId: ad87bb66-5811-404b-bdbf-f8196bfec100
+                          businessTransactionId: 0815b845-20b0-4c45-9582-31fce04eaf58
+                          decision:
+                            decisionId: 0086ad8e-8dc6-4dfb-895f-3f6bf93756c3
+                            intentId: 0ed0f62f-9cb9-4e89-a88e-e7eb0cd733d8
+                            policy:
+                              name: vendor-payment
+                              version: 2.1.0
+                              schemaVersion: 1.0.0
+                            signals:
+                              vendorVerified: true
+                              invoiceVerified: true
+                              paymentApproved: true
+                              sufficientFunds: true
+                              paymentAmount: 1000
+                              riskScore: 10
+                              vendorId: vendor://payments
+                              humanApproved: true
+                              approvalArtifact:
+                                payload:
+                                  version: 1
+                                  approvalId: 5a8f523b-8bbc-4e85-b802-4e2beed9f423
+                                  issuer:
+                                    approverId: test-approver
+                                    keyId: test-approver-key-1
+                                  issuedAt: 2026-10-01T10:14:05.158Z
+                                  expiresAt: 2026-10-01T10:29:05.158Z
+                                  capability: test:fixture-execute
+                                  resourceId: vendor://payments
+                                  scope:
+                                    field: amount
+                                    comparator: lte
+                                    value: 1000
+                                  nonce: d95d37c2-5214-4f05-b25b-b6b9cfccc3f1
+                                signature:
+                                  algorithm: ed25519
+                                  keyId: test-approver-key-1
+                                  value: rr8nX28mY3mw4NqI39HFkevWyYIyuR+YfIpROngbwCPnaOIvFzP/xtIiV4TfxwjJzid2v0jw2SkU9na2tm+pAw==
+                                  signedAt: 2026-10-01T10:14:05.158Z
+                            outcome: APPROVED
+                            reason: Vendor payment authorized. Vendor verification, invoice verification,
+                              payment approval, funding, and risk assessment
+                              requirements were satisfied, with a verified human
+                              approval.
+                            matchedRuleId: approve-payment
+                            evaluatedRules: 1
+                            matchedPath:
+                              - approve-payment
+                            evaluatedAt: 2026-10-01T10:14:05.162Z
+                          status: COMPLETED
+                          mode: SYNC
+                          startedAt: 2026-10-01T10:14:05.164Z
+                          metadata:
+                            authorizationId: 0124ee41-6b81-4a34-9dca-4e7e6903a605
+                          previousChainHash: null
+                          chainHash: 94a3d02990b2e74a76bbaf742854ef6478855bc219cfe2c0761aa88a5222e40d
+                          chainSignature:
+                            algorithm: ed25519
+                            keyId: default
+                            value: 4aKQdzrhPjdIEphO85x0am3wAesHiFfhDg45gQvtkCAmAO7sUMkgHdMMm9qmuhZMFPz4rPqY/2QiMVVT9ZpSAA==
+                            signedAt: 2026-10-01T10:14:05.167Z
+                          evidence:
+                            businessTransactionId: 0815b845-20b0-4c45-9582-31fce04eaf58
+                            action: test:fixture-execute
+                            target: vendor://payments
+                            parameters:
+                              paymentId: payment-001
+                              amount: 1000
+                            success: true
+                            executedAt: 2026-10-01T10:14:05.165Z
+                            attributes: {}
+                          completedAt: 2026-10-01T10:14:05.166Z
+                      verifications:
+                        - verificationId: ed256da8-bab4-429c-b161-8da81e4c794a
+                          businessTransactionId: 0815b845-20b0-4c45-9582-31fce04eaf58
+                          status: VERIFIED
+                          message: Execution Trust Record verified successfully.
+                          verifiedAt: 2026-10-01T10:14:05.174Z
+                          trustRecordHash: 59d9a80090980ef5adf536a08897b66072dd86f98550ff45310502fe22b38612
+                      receipts:
+                        - receiptId: 85a5bc98-a5e3-4b58-b90c-ae46ee3226f6
+                          businessTransactionId: 0815b845-20b0-4c45-9582-31fce04eaf58
+                          trustRecordHash: 59d9a80090980ef5adf536a08897b66072dd86f98550ff45310502fe22b38612
+                          receiptHash: 1896eea5226afcca692bc7163a446b2699b63b26255b1902549e38d1cafd093f
+                          issuedAt: 2026-10-01T10:14:05.174Z
+                          algorithm: ed25519
+                          signature: XxsHhBDY9ZKD3VnjRS7e/ad5mdBoaJFsvETgrdmUEaA4WGT8C4TE+ANj97snSMS/WEmp4d+MjRR3inidJSu9Dg==
+                      evidenceAnchor:
+                        policyContentHash: 18f4acca151fef1c45c867f622bdd4edd5d640aa38b95e026430aba10756ee2d
+                        anchorHash: d9c24439faa28d86e5702a10b6cceace41ea1feac5e90af659c306f5ec3cd46e
+                      createdAt: 2026-10-01T10:14:05.171Z
+                      updatedAt: 2026-10-01T10:14:05.171Z
+                      trustRecordHash: 59d9a80090980ef5adf536a08897b66072dd86f98550ff45310502fe22b38612
+                      signature:
+                        algorithm: ed25519
+                        keyId: default
+                        value: XK2qjtDkiHNCA12TNIvb5XnoBLqats3CiLdHN7xYxgYul+hCPrp78CPqNXGWDlzsItk8HMYPjQdkCjsgVBcFCw==
+                        signedAt: 2026-10-01T10:14:05.172Z
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -3600,6 +4158,73 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/execution-intent-resolve-response.schema"
+              examples:
+                resolved:
+                  summary: Real captured response, this call closed the intent
+                  value:
+                    outcome: RESOLVED
+                    businessTransactionId: 40dd71a7-d627-4e8a-8935-2ba35d5060f7
+                    intent:
+                      intentId: 6fbdabeb-65c5-4264-976d-cc0db7c75dfe
+                      businessTransactionId: 40dd71a7-d627-4e8a-8935-2ba35d5060f7
+                      decisionId: 05521896-0a5c-4ad8-9963-d27f5d10988f
+                      authorizationId: 36057e16-2ea6-4a59-b496-59bb13506e0c
+                      policyName: vendor-payment
+                      policyVersion: 2.1.0
+                      policyContentHash: 18f4acca151fef1c45c867f622bdd4edd5d640aa38b95e026430aba10756ee2d
+                      signalsHash: edaa331fb10564b8562dbf0c29212554b8a5d0e917ca1595c66dee1a67064ac0
+                      businessTransactionHash: c85fefd375e9d224d0e5a931465fab5595cb8cee8d5fdd704dd2fe3d60cc485e
+                      action: test:fixture-execute
+                      target: vendor://payments
+                      submittedBy: operator-maker
+                      grantedCapability: test:fixture-execute
+                      createdAt: 2026-10-01T10:14:05.140Z
+                      intentHash: 6bf3d216b31f8ca056743ee847f9259acc78b5014669411b6936bffa40ea39ff
+                      signature:
+                        algorithm: ed25519
+                        keyId: default
+                        value: Bjt1kU6s297FI88N+bMxHjh9Pb1ZgxA5cqMKpW5KECyZ3RG5ifsNKs3cLCiJ3nqxw/qIHLCAjwSRpAXJ+MgBBg==
+                        signedAt: 2026-10-01T10:14:05.140Z
+                    status:
+                      state: RESOLVED
+                      failureReason: connector timed out
+                      resolution: NOT_EXECUTED
+                      resolutionNote: Checked the connector. Nothing was created for this order.
+                      resolvedBy: operator-maker
+                      resolvedAt: 2026-10-01T10:14:05.149Z
+                alreadyResolved:
+                  summary: Real captured response, the same call repeated
+                  value:
+                    outcome: ALREADY_RESOLVED
+                    businessTransactionId: 40dd71a7-d627-4e8a-8935-2ba35d5060f7
+                    intent:
+                      intentId: 6fbdabeb-65c5-4264-976d-cc0db7c75dfe
+                      businessTransactionId: 40dd71a7-d627-4e8a-8935-2ba35d5060f7
+                      decisionId: 05521896-0a5c-4ad8-9963-d27f5d10988f
+                      authorizationId: 36057e16-2ea6-4a59-b496-59bb13506e0c
+                      policyName: vendor-payment
+                      policyVersion: 2.1.0
+                      policyContentHash: 18f4acca151fef1c45c867f622bdd4edd5d640aa38b95e026430aba10756ee2d
+                      signalsHash: edaa331fb10564b8562dbf0c29212554b8a5d0e917ca1595c66dee1a67064ac0
+                      businessTransactionHash: c85fefd375e9d224d0e5a931465fab5595cb8cee8d5fdd704dd2fe3d60cc485e
+                      action: test:fixture-execute
+                      target: vendor://payments
+                      submittedBy: operator-maker
+                      grantedCapability: test:fixture-execute
+                      createdAt: 2026-10-01T10:14:05.140Z
+                      intentHash: 6bf3d216b31f8ca056743ee847f9259acc78b5014669411b6936bffa40ea39ff
+                      signature:
+                        algorithm: ed25519
+                        keyId: default
+                        value: Bjt1kU6s297FI88N+bMxHjh9Pb1ZgxA5cqMKpW5KECyZ3RG5ifsNKs3cLCiJ3nqxw/qIHLCAjwSRpAXJ+MgBBg==
+                        signedAt: 2026-10-01T10:14:05.140Z
+                    status:
+                      state: RESOLVED
+                      failureReason: connector timed out
+                      resolution: NOT_EXECUTED
+                      resolutionNote: Checked the connector. Nothing was created for this order.
+                      resolvedBy: operator-maker
+                      resolvedAt: 2026-10-01T10:14:05.149Z
         "400":
           description: The body is invalid. `resolution` must be `NOT_EXECUTED` or
             `EXECUTED`, and `note` is required, at most 2000 characters. Nothing
@@ -4139,6 +4764,197 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/trust-records-list-response.schema"
+              examples:
+                onePage:
+                  summary: Real captured response, limit=1
+                  value:
+                    - trustRecordId: 3b911989-c708-4ad8-8a30-a407bd118982
+                      businessTransactionId: b09eb4f2-30f8-4783-bd23-4092eabc8378
+                      transaction:
+                        businessTransactionId: b09eb4f2-30f8-4783-bd23-4092eabc8378
+                        metadata:
+                          businessTransactionId: b09eb4f2-30f8-4783-bd23-4092eabc8378
+                          correlationId: ee634901-6073-42dc-8faa-0e45f282af64
+                          createdBy: integration-test
+                          createdAt: 2026-10-01T10:14:05.103Z
+                          submittedBy: operator-maker
+                          grantedCapability: test:fixture-execute
+                        authority:
+                          authorityId: 1ae40760-1bd1-42b7-adbe-4489e7cf58c8
+                          authorityType: USER
+                          principalId: integration-test
+                          displayName: Integration Test
+                          issuedAt: 2026-10-01T10:14:05.103Z
+                        authorization:
+                          authorizationId: 7a761cc1-77b3-45eb-8485-3dcb41c640ff
+                          authorityId: 1ae40760-1bd1-42b7-adbe-4489e7cf58c8
+                          purpose: Integration Test
+                          issuedAt: 2026-10-01T10:14:05.103Z
+                        intent:
+                          intentId: 65026d03-6b60-4c06-bf72-c4035ddcf58e
+                          authorizationId: 7a761cc1-77b3-45eb-8485-3dcb41c640ff
+                          action: test:fixture-execute
+                          target: vendor://payments
+                          parameters:
+                            paymentId: payment-001
+                            amount: 1000
+                          createdAt: 2026-10-01T10:14:05.103Z
+                        policy:
+                          name: vendor-payment
+                          version: 2.1.0
+                          schemaVersion: 1.0.0
+                          contentHash: 18f4acca151fef1c45c867f622bdd4edd5d640aa38b95e026430aba10756ee2d
+                        signals:
+                          vendorVerified: true
+                          invoiceVerified: true
+                          paymentApproved: true
+                          sufficientFunds: true
+                          paymentAmount: 1000
+                          riskScore: 10
+                          vendorId: vendor://payments
+                          humanApproved: true
+                          approvalArtifact:
+                            payload:
+                              version: 1
+                              approvalId: e0b1d343-220f-46fc-915b-ed356b3cd57b
+                              issuer:
+                                approverId: test-approver
+                                keyId: test-approver-key-1
+                              issuedAt: 2026-10-01T10:14:05.103Z
+                              expiresAt: 2026-10-01T10:29:05.103Z
+                              capability: test:fixture-execute
+                              resourceId: vendor://payments
+                              scope:
+                                field: amount
+                                comparator: lte
+                                value: 1000
+                              nonce: 162faeee-644b-4a94-8abe-a5515149296f
+                            signature:
+                              algorithm: ed25519
+                              keyId: test-approver-key-1
+                              value: l/WpaJqRgoqbh/BuZ1VOfKar+wiYd6C3DUU9ypU8GNx8QCZjRCu79D//Ghq75HWSftiAGfcKN6WzrOwSzfP/CQ==
+                              signedAt: 2026-10-01T10:14:05.103Z
+                        status: RECEIVED
+                        createdAt: 2026-10-01T10:14:05.105Z
+                      authorization:
+                        payload:
+                          version: 1
+                          authorizationId: c2adcd88-46ea-48c6-998e-4b1104d78dc4
+                          nonce: 09408113-67d5-4447-8cd7-9c0203767b8d
+                          decisionId: abc800f7-31f7-4200-a0b8-40ddee4531d9
+                          businessTransactionId: b09eb4f2-30f8-4783-bd23-4092eabc8378
+                          policyName: vendor-payment
+                          policyVersion: 2.1.0
+                          policyContentHash: 18f4acca151fef1c45c867f622bdd4edd5d640aa38b95e026430aba10756ee2d
+                          signalsHash: 57fba49e69315b5edc10cae142b6f635d3ad37456004e4fd0bba3d56f6516beb
+                          submittedBy: operator-maker
+                          grantedCapability: test:fixture-execute
+                          authorizedAt: 2026-10-01T10:14:05.107Z
+                          expiresAt: 2026-10-01T10:16:05.107Z
+                          businessTransactionHash: 6f5d7263b1769bbb3fe63c590348fe0e5e3e47d24521da6b3473c990b475144a
+                        signature: 2mCcxfvZ1LIGiFnfHH8ug+Azw7W8AiXMyWmx98z2bDVK9cUZyutsOQD/pLxJ4YBwcjl003acuqkU1iB2OX3sAA==
+                        keyId: default
+                        algorithm: ed25519
+                      overrides: []
+                      executions:
+                        - executionId: d405986b-899c-40d6-bba4-71f885e5a6a9
+                          businessTransactionId: b09eb4f2-30f8-4783-bd23-4092eabc8378
+                          decision:
+                            decisionId: abc800f7-31f7-4200-a0b8-40ddee4531d9
+                            intentId: 65026d03-6b60-4c06-bf72-c4035ddcf58e
+                            policy:
+                              name: vendor-payment
+                              version: 2.1.0
+                              schemaVersion: 1.0.0
+                            signals:
+                              vendorVerified: true
+                              invoiceVerified: true
+                              paymentApproved: true
+                              sufficientFunds: true
+                              paymentAmount: 1000
+                              riskScore: 10
+                              vendorId: vendor://payments
+                              humanApproved: true
+                              approvalArtifact:
+                                payload:
+                                  version: 1
+                                  approvalId: e0b1d343-220f-46fc-915b-ed356b3cd57b
+                                  issuer:
+                                    approverId: test-approver
+                                    keyId: test-approver-key-1
+                                  issuedAt: 2026-10-01T10:14:05.103Z
+                                  expiresAt: 2026-10-01T10:29:05.103Z
+                                  capability: test:fixture-execute
+                                  resourceId: vendor://payments
+                                  scope:
+                                    field: amount
+                                    comparator: lte
+                                    value: 1000
+                                  nonce: 162faeee-644b-4a94-8abe-a5515149296f
+                                signature:
+                                  algorithm: ed25519
+                                  keyId: test-approver-key-1
+                                  value: l/WpaJqRgoqbh/BuZ1VOfKar+wiYd6C3DUU9ypU8GNx8QCZjRCu79D//Ghq75HWSftiAGfcKN6WzrOwSzfP/CQ==
+                                  signedAt: 2026-10-01T10:14:05.103Z
+                            outcome: APPROVED
+                            reason: Vendor payment authorized. Vendor verification, invoice verification,
+                              payment approval, funding, and risk assessment
+                              requirements were satisfied, with a verified human
+                              approval.
+                            matchedRuleId: approve-payment
+                            evaluatedRules: 1
+                            matchedPath:
+                              - approve-payment
+                            evaluatedAt: 2026-10-01T10:14:05.107Z
+                          status: COMPLETED
+                          mode: SYNC
+                          startedAt: 2026-10-01T10:14:05.109Z
+                          metadata:
+                            authorizationId: c2adcd88-46ea-48c6-998e-4b1104d78dc4
+                          previousChainHash: null
+                          chainHash: 28596091c4c7e7f1038d05fbaac939c8a2efa6eda2ca4673fc2fd2a40ec8bf49
+                          chainSignature:
+                            algorithm: ed25519
+                            keyId: default
+                            value: L4JVGQx1XqG5G/4cgbtWpkWlGUvIdrLpPHKEuq8AG1kH6ospPHdaPT1ZMRgqdWh8VOv/+UY2cAGL82DSbjoDBg==
+                            signedAt: 2026-10-01T10:14:05.115Z
+                          evidence:
+                            businessTransactionId: b09eb4f2-30f8-4783-bd23-4092eabc8378
+                            action: test:fixture-execute
+                            target: vendor://payments
+                            parameters:
+                              paymentId: payment-001
+                              amount: 1000
+                            success: true
+                            executedAt: 2026-10-01T10:14:05.113Z
+                            attributes: {}
+                          completedAt: 2026-10-01T10:14:05.114Z
+                      verifications:
+                        - verificationId: e01892bd-40f8-4b15-b3fd-83f78d45593f
+                          businessTransactionId: b09eb4f2-30f8-4783-bd23-4092eabc8378
+                          status: VERIFIED
+                          message: Execution Trust Record verified successfully.
+                          verifiedAt: 2026-10-01T10:14:05.119Z
+                          trustRecordHash: 4a6e9f2f131bd648bd4fa5d026d34a54988d0fb664ab368f378d1897b9683a30
+                      receipts:
+                        - receiptId: 4dc3a959-5cde-4204-a7b2-11f3a55e29b2
+                          businessTransactionId: b09eb4f2-30f8-4783-bd23-4092eabc8378
+                          trustRecordHash: 4a6e9f2f131bd648bd4fa5d026d34a54988d0fb664ab368f378d1897b9683a30
+                          receiptHash: 37422e2d6254c26bb41db226e6595baeefa03bff5c62a8f726a95c195d1b4ff4
+                          issuedAt: 2026-10-01T10:14:05.120Z
+                          algorithm: ed25519
+                          signature: j3Vh5Drv63BTm+N0litbKYY/NZwgjFW4DWp3B7njPlHQrp+ZifuHO8ZiGcrinTt6gqHu7nhWMYY/UoZBU4LuAA==
+                      evidenceAnchor:
+                        policyContentHash: 18f4acca151fef1c45c867f622bdd4edd5d640aa38b95e026430aba10756ee2d
+                        anchorHash: d9c24439faa28d86e5702a10b6cceace41ea1feac5e90af659c306f5ec3cd46e
+                      createdAt: 2026-10-01T10:14:05.115Z
+                      updatedAt: 2026-10-01T10:14:05.115Z
+                      trustRecordHash: 4a6e9f2f131bd648bd4fa5d026d34a54988d0fb664ab368f378d1897b9683a30
+                      signature:
+                        algorithm: ed25519
+                        keyId: default
+                        value: QOHBaXP4Qplx66sH2q1wkhfM+u1Geswh+DdPUPc6URt179sibLMts035o5D42HIudgz20NwL9UYiGBmVNjxCBg==
+                        signedAt: 2026-10-01T10:14:05.117Z
         "401":
           $ref: "#/components/responses/Unauthorized"
       x-codeSamples:
@@ -4643,6 +5459,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                missingCapability:
+                  summary: Real captured response
+                  value:
+                    error: capability is required, for example ?capability=paytm:refund.
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -4651,12 +5472,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                capabilityNotAllowed:
+                  summary: Real captured response, a key allowed only slack:post-message
+                  value:
+                    error: Caller is not permitted to invoke this capability.
+                    code: CAPABILITY_NOT_ALLOWED
         "404":
           description: No policy is bound to this capability (code CAPABILITY_NOT_BOUND).
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                capabilityNotBound:
+                  summary: Real captured response
+                  value:
+                    error: No policy is bound to capability "test:fixture-execute".
+                    code: CAPABILITY_NOT_BOUND
         "409":
           description: No version of the bound policy has been approved, so every request
             for the capability is refused (code NO_APPROVED_POLICY_VERSION).
@@ -4664,6 +5497,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                noApprovedVersion:
+                  summary: Real captured response
+                  value:
+                    error: 'Every request for "paytm:refund" is refused right now: no version of
+                      policy "customer-refund", which capability "paytm:refund"
+                      requires, has been approved through policy governance.'
+                    code: NO_APPROVED_POLICY_VERSION
         "503":
           description: The version in effect, or the policy itself, could not be read, so
             every request for the capability is refused meanwhile (code
@@ -4672,6 +5513,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                lookupFailed:
+                  summary: Real captured response, the policy version store was unreachable
+                  value:
+                    error: 'Every request for "paytm:refund" is refused right now: the version of
+                      policy "customer-refund" in effect for capability
+                      "paytm:refund" could not be looked up: database
+                      unreachable.'
+                    code: POLICY_VERSION_UNAVAILABLE
       x-codeSamples:
         - lang: bash
           label: cURL
@@ -5054,6 +5904,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                badStatus:
+                  summary: Real captured response, status=OPEN
+                  value:
+                    error: status must be one of PENDING_APPROVAL, APPROVED, REJECTED.
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -5062,6 +5917,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                service:
+                  summary: Real captured response, a service credential
+                  value:
+                    error: "This action requires a caller credential provisioned as a verified human
+                      (credentialHolderType: USER)."
+                    code: NON_HUMAN_CALLER_DENIED
       x-codeSamples:
         - lang: bash
           label: cURL
@@ -5201,6 +6063,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                misconfigured:
+                  summary: Real captured response, a deployment with no
+                    PolicyChangeApprovalService
+                  value:
+                    error: Internal Server Error
       x-codeSamples:
         - lang: bash
           label: cURL
@@ -5336,6 +6204,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                emptyReason:
+                  summary: Real captured response
+                  value:
+                    error: rejectionReason is required.
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -5345,12 +6218,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                sameActor:
+                  summary: Real captured response, the maker rejecting their own change
+                  value:
+                    error: Pending Policy Change '011c1620-89d9-4bf5-a0b0-356edd566d3f' was proposed
+                      by this same caller — the proposer (maker) may not also
+                      approve or reject it (checker).
+                    code: SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE
         "404":
           description: No Pending Policy Change exists for this id.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                unknownChange:
+                  summary: Real captured response
+                  value:
+                    error: Pending Policy Change '7d5f8a52-0000-4000-8000-000000000000' not found.
+                    code: PENDING_POLICY_CHANGE_NOT_FOUND
       x-codeSamples:
         - lang: bash
           label: cURL
@@ -5472,6 +6359,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                service:
+                  summary: Real captured response, a service credential
+                  value:
+                    error: "This action requires a caller credential provisioned as a verified human
+                      (credentialHolderType: USER)."
+                    code: NON_HUMAN_CALLER_DENIED
       x-codeSamples:
         - lang: bash
           label: cURL
@@ -5583,6 +6477,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                service:
+                  summary: Real captured response, a service credential
+                  value:
+                    error: "This action requires a caller credential provisioned as a verified human
+                      (credentialHolderType: USER)."
+                    code: NON_HUMAN_CALLER_DENIED
         "409":
           description: CONFLICT. The key is listed in code, the key to add already exists,
             the key to revoke is not an active governed key, or another change
@@ -5711,6 +6612,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                badStatus:
+                  summary: Real captured response, status=OPEN
+                  value:
+                    error: status must be one of PENDING_APPROVAL, APPROVED, REJECTED.
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -5719,6 +6625,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                service:
+                  summary: Real captured response, a service credential
+                  value:
+                    error: "This action requires a caller credential provisioned as a verified human
+                      (credentialHolderType: USER)."
+                    code: NON_HUMAN_CALLER_DENIED
       x-codeSamples:
         - lang: bash
           label: cURL
@@ -5864,6 +6777,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                alreadyApproved:
+                  summary: Real captured response
+                  value:
+                    error: Approver change 'e0292192-c75b-45eb-89e2-c14bae0f8751' is already
+                      APPROVED.
+                    code: CONFLICT
       x-codeSamples:
         - lang: bash
           label: cURL
@@ -5980,6 +6900,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                emptyReason:
+                  summary: Real captured response
+                  value:
+                    error: rejectionReason is required, at most 2000 characters.
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -5989,18 +6914,39 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                sameActor:
+                  summary: Real captured response, the maker rejecting their own change
+                  value:
+                    error: Approver change 'e0292192-c75b-45eb-89e2-c14bae0f8751' was proposed by
+                      this same caller — the proposer (maker) may not also
+                      approve or reject it (checker).
+                    code: SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE
         "404":
           description: No approver change has this id (APPROVAL_ISSUER_CHANGE_NOT_FOUND).
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                unknownChange:
+                  summary: Real captured response
+                  value:
+                    error: Approver change '7d5f8a52-0000-4000-8000-000000000000' not found.
+                    code: APPROVAL_ISSUER_CHANGE_NOT_FOUND
         "409":
           description: CONFLICT. The change is already resolved.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                alreadyResolved:
+                  summary: Real captured response
+                  value:
+                    error: Approver change 'e0292192-c75b-45eb-89e2-c14bae0f8751' is already
+                      APPROVED.
+                    code: CONFLICT
       x-codeSamples:
         - lang: bash
           label: cURL
@@ -6516,6 +7462,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                service:
+                  summary: Real captured response, a service credential
+                  value:
+                    error: "This action requires a caller credential provisioned as a verified human
+                      (credentialHolderType: USER)."
+                    code: NON_HUMAN_CALLER_DENIED
       x-codeSamples:
         - lang: bash
           label: cURL
@@ -6848,6 +7801,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                emptyReason:
+                  summary: Real captured response
+                  value:
+                    error: rejectionReason is required, at most 2000 characters.
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -6857,6 +7815,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                sameActor:
+                  summary: Real captured response, the maker rejecting their own change
+                  value:
+                    error: External connector change 'f25d72fd-c6da-4223-b614-3658af8d02d2' was
+                      proposed by this same caller — the proposer (maker) may
+                      not also approve or reject it (checker).
+                    code: SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE
         "404":
           description: No external connector change has this id
             (EXTERNAL_CONNECTOR_CHANGE_NOT_FOUND).
@@ -6864,12 +7830,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                unknownChange:
+                  summary: Real captured response
+                  value:
+                    error: External connector change '7d5f8a52-0000-4000-8000-000000000000' not
+                      found.
+                    code: EXTERNAL_CONNECTOR_CHANGE_NOT_FOUND
         "409":
           description: CONFLICT. The change is already resolved.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+              examples:
+                alreadyResolved:
+                  summary: Real captured response
+                  value:
+                    error: External connector change 'f25d72fd-c6da-4223-b614-3658af8d02d2' is
+                      already REJECTED.
+                    code: CONFLICT
       x-codeSamples:
         - lang: bash
           label: cURL
