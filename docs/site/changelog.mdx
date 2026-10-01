@@ -12,6 +12,15 @@ every commit, run `git log` in the repository for the complete record.
 
 ## 2026-10-01
 
+**Docs: the API reference shows code and a real response for every operation**
+
+- Every endpoint page has a cURL, TypeScript and Python sample, each checked as code: the cURL body
+  against the request schema, TypeScript by the compiler, Python by mypy.
+- Every JSON response, success and error, shows a real response captured from the server, 36 of them
+  new. A test checks each example against its response schema. The only responses without one are
+  the OpenAPI document itself, the handbook PDF and a redirect.
+- `GET /keys/{keyId}` documents the JSON error body its 404 returns.
+
 **Added: a registered external connector receives releases (ADR-0013 step 4)**
 
 - An approved request for a capability registered as an external connector is released to the
