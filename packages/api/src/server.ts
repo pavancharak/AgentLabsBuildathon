@@ -17,6 +17,7 @@ import { createPolicyChangeApprovalService } from "./bootstrap/createPolicyChang
 import { runPolicyGovernanceIntegrityCheckAtStartup } from "./bootstrap/runPolicyGovernanceIntegrityCheckAtStartup.js";
 import { schedulePolicyGovernanceIntegrityCheck } from "./bootstrap/schedulePolicyGovernanceIntegrityCheck.js";
 import { createRateLimitStore } from "./bootstrap/createRateLimitStore.js";
+import { createSandboxOptions } from "./bootstrap/createSandboxOptions.js";
 import { createApp } from "./app.js";
 
 /**
@@ -46,6 +47,10 @@ assertStorageConfigured();
 assertSigningKeyMaterialConfigured();
 await assertKmsSigningKeyReachable();
 assertPaytmConnectorConfigured();
+
+// ADR-0014: PARMANA_CORS_ORIGINS and sandbox mode, refused at startup
+// when unsafe (see createSandboxOptions).
+const sandbox = createSandboxOptions();
 
 const executionSystem = await createExecutionSystem();
 
@@ -78,6 +83,10 @@ const app = createApp(application, {
         stepUpVerifier: createPolicyChangeStepUpVerifier(),
         policyChangeApprovalService: createPolicyChangeApprovalService(),
       }),
+  ...(sandbox.sandboxApprover
+    ? { sandboxApprover: sandbox.sandboxApprover }
+    : {}),
+  corsOrigins: sandbox.corsOrigins,
 });
 
 // PaaS platforms (Railway, Render, Fly, etc.) commonly inject PORT

@@ -1,6 +1,6 @@
 # ADR-0014: Public sandbox and docs playground
 
-**Status:** Accepted by the operator on 2026-10-01 (PR #103 merged), with the proposed answers to the three open questions. Not built yet; see the order of work.
+**Status:** Accepted by the operator on 2026-10-01 (PR #103 merged), with the proposed answers to the three open questions. Step 1 (code) built on 2026-10-01; steps 2 to 4 not yet. See the order of work.
 
 **Date:** Proposed 2026-10-01.
 
@@ -117,7 +117,10 @@ governance (policy, approver or connector changes) except as captured examples.
 ## Order of work if accepted
 
 1. Code: `PARMANA_CORS_ORIGINS`, sandbox mode with its startup guard, `POST /sandbox/approvals`, the length rule;
-   tests; OpenAPI. Production unchanged unless the variables are set.
+   tests; OpenAPI. Production unchanged unless the variables are set. **Built.** The length rule needed no code: the
+   policy engine already has `length_gt`. The guard refuses the exact variables the connectors read (a test keeps the
+   list complete), and also refuses sandbox mode with caller authentication disabled. `POST /sandbox/approvals` needs
+   the demo key.
 2. Infrastructure, by the operator with steps written for them: the Supabase project, the Vercel project, keys,
    migrations, the receipt endpoint, the policy and the registration through maker checker, the demo key.
 3. A live check of the sandbox, as for ADR-0013, then a CLAIMS entry.

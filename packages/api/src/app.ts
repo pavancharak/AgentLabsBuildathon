@@ -4,6 +4,7 @@ import referenceRoutes from "./routes/reference.js";
 
 import { createErrorHandler } from "./middleware/error-handler.js";
 import { createCallerAuthMiddleware } from "./middleware/caller-auth.js";
+import { createCorsMiddleware } from "./middleware/cors.js";
 import {
   createExecuteRateLimiter,
   createHealthReadyRateLimiter,
@@ -44,6 +45,10 @@ import { createAuditVerifyRouter } from "./routes/audit-verify.js";
 import { createReadyRouter } from "./routes/ready.js";
 import { createKeysRouter } from "./routes/keys.js";
 import { createHandbookRouter } from "./routes/handbook.js";
+import {
+  createSandboxApprovalsRouter,
+  type SandboxApprover,
+} from "./routes/sandbox-approvals.js";
 
 import versionRoutes from "./routes/version.js";
 
@@ -156,6 +161,20 @@ export interface CreateAppOptions {
    * their own so they need no network.
    */
   readonly externalEndpointLookup?: EndpointAddressLookup;
+
+  /**
+   * Origins allowed to call the API from a browser (ADR-0014,
+   * PARMANA_CORS_ORIGINS). Omitted or empty: no CORS header is sent.
+   */
+  readonly corsOrigins?: readonly string[];
+
+  /**
+   * The sandbox's demo approver (ADR-0014, PARMANA_SANDBOX=true). When
+   * present, POST /sandbox/approvals exists; otherwise it does not.
+   * createSandboxOptions() refuses it outside sandbox mode and while any
+   * built in connector is configured.
+   */
+  readonly sandboxApprover?: SandboxApprover;
 }
 
 export function createApp(
@@ -173,6 +192,10 @@ export function createApp(
    * original client's.
    */
   app.set("trust proxy", 1);
+
+  if (options.corsOrigins !== undefined && options.corsOrigins.length > 0) {
+    app.use(createCorsMiddleware(options.corsOrigins));
+  }
 
   const executePerMinute =
     options.rateLimit?.executePerMinute ?? DEFAULT_EXECUTE_PER_MINUTE;
@@ -294,6 +317,19 @@ export function createApp(
    * and exactly what it's authorized to do").
    */
   app.use("/callers/me", createCallersMeRouter());
+
+  /**
+   * ADR-0014: the sandbox's demo approver. Exists only in sandbox mode.
+   * Behind caller authentication (the published demo key) and the
+   * per address public limit.
+   */
+  if (options.sandboxApprover !== undefined) {
+    app.use(
+      "/sandbox/approvals",
+      publicRateLimiter,
+      createSandboxApprovalsRouter(options.sandboxApprover),
+    );
+  }
 
   /**
    * Rate limiting on /execute is keyed by authenticated caller identity

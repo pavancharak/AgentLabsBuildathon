@@ -78,6 +78,9 @@ tags:
   - name: External Connectors
     description: Maker-checker for binding a capability to an operator's HTTPS endpoint and its policy, without a deploy (ADR-0013)
 
+  - name: Sandbox
+    description: Routes that exist only on the public sandbox (ADR-0014), for trying Parmana from a browser
+
   - name: Refusal Records
     description: Durable, signed evidence that a policy decision rejected a transaction (RFC-0021)
 
@@ -5631,6 +5634,94 @@ paths:
                       "error": "External connector change 'f25d72fd-c6da-4223-b614-3658af8d02d2' is already REJECTED.",
                       "code": "CONFLICT",
                     }
+
+  /sandbox/approvals:
+    post:
+      tags:
+        - Sandbox
+      summary: Get a demo approval (sandbox only)
+      operationId: createSandboxApproval
+      description: |
+        **Sandbox only.** Returns an approval signed by the sandbox's demo approver, so you can try an approved
+        request from a browser. In production a person signs every approval with their own key on their own
+        machine; this route does not exist there.
+
+        It signs only for `sandbox:receipt`, for the one `resourceId` you name (the target of the request you will
+        send), valid 5 minutes. Put it in your request's `signals.approvalArtifact`. `POST /execute` checks it like
+        any other approval: a trusted approver key, the signature, the capability, the resource and the expiry, and
+        it accepts it once. Needs the published demo key.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "../schemas/requests/sandbox-approval-request.schema.json"
+      responses:
+        "201":
+          description: "The signed approval. Send it as `signals.approvalArtifact` within 5 minutes; it is accepted once."
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/signed-approval.schema.json"
+              examples:
+                approved:
+                  summary: "Real captured response"
+                  value:
+                    {
+                      "payload":
+                        {
+                          "version": 1,
+                          "approvalId": "f328a67e-a527-4119-8617-1eadead9367d",
+                          "issuer":
+                            {
+                              "approverId": "sandbox-demo-approver",
+                              "keyId": "sandbox-demo-approver-key-1",
+                            },
+                          "issuedAt": "2026-10-01T11:10:57.825Z",
+                          "expiresAt": "2026-10-01T11:15:57.825Z",
+                          "capability": "sandbox:receipt",
+                          "resourceId": "demo-order-1",
+                          "scope":
+                            {
+                              "field": "resourceId",
+                              "comparator": "eq",
+                              "value": "demo-order-1",
+                            },
+                          "nonce": "9c199e50-746d-409f-98f4-26c319af22ae",
+                        },
+                      "signature":
+                        {
+                          "algorithm": "ed25519",
+                          "keyId": "sandbox-demo-approver-key-1",
+                          "value": "H5Anvojj4J3325IkJnL/SD50WEDJxhv7AafGgkSauSyQKQ6y3Fw5d+ZoC0k2BUfDDJvR0jn1IDgZ/1I+nx6ZAQ==",
+                          "signedAt": "2026-10-01T11:10:57.825Z",
+                        },
+                    }
+        "400":
+          description: "`INVALID_SANDBOX_APPROVAL_REQUEST`: `capability` is not `sandbox:receipt`, or `resourceId` is missing, empty or over 200 characters. Nothing was signed."
+          content:
+            application/json:
+              schema:
+                $ref: "../schemas/common/error.schema.json"
+              examples:
+                otherCapability:
+                  summary: "Real captured response, capability paytm:refund"
+                  value:
+                    {
+                      "error": 'The sandbox approver signs only for capability "sandbox:receipt".',
+                      "code": "INVALID_SANDBOX_APPROVAL_REQUEST",
+                    }
+                missingResource:
+                  summary: "Real captured response, no resourceId"
+                  value:
+                    {
+                      "error": "resourceId is required: the request's target, at most 200 characters.",
+                      "code": "INVALID_SANDBOX_APPROVAL_REQUEST",
+                    }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
 
 components:
   schemas:
