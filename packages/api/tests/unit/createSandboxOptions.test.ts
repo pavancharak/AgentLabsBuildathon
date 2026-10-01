@@ -82,11 +82,10 @@ describe("createSandboxOptions", () => {
     },
   );
 
-  it("ignores a connector variable that is set but empty", () => {
-    expect(
-      createSandboxOptions({ ...SANDBOX, PAYTM_CONNECTOR_URL: " " })
-        .sandboxApprover,
-    ).toBeDefined();
+  it("refuses a connector variable that is defined but empty, as the connector factories register one for it", () => {
+    expect(() =>
+      createSandboxOptions({ ...SANDBOX, HUBSPOT_PRIVATE_APP_TOKEN: "" }),
+    ).toThrow(/HUBSPOT_PRIVATE_APP_TOKEN/);
   });
 
   it("refuses sandbox mode with caller authentication disabled", () => {
