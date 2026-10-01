@@ -21,6 +21,9 @@ every commit, run `git log` in the repository for the complete record.
   while any Paytm, HubSpot, Slack or GitHub variable is set or caller authentication is disabled, and refuses the demo
   approver variables outside sandbox mode.
 - Nothing changes in production unless these variables are set. The sandbox itself is not deployed yet.
+- Fixed the same day: the startup guard missed `PARMANA_GITHUB_VERCEL_CONNECT_CONNECTOR_ID`, which also turns on the
+  GitHub connector, and ignored a connector variable defined as an empty string, which the connector factories treat as
+  set. Both are refused now, and a test reads the variables from the code that registers each connector.
 
 **SDK, next release: external connector methods**
 

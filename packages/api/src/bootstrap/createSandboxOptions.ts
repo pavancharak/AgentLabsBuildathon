@@ -5,9 +5,11 @@ import type { SandboxApprover } from "../routes/sandbox-approvals.js";
 
 /**
  * Every variable a built in connector reads. Sandbox mode refuses to
- * start while any of them is set, so a sandbox can never reach a real
- * system (ADR-0014). tests/architecture keeps this list complete against
- * the source.
+ * start while any of them is defined, even as an empty string, because
+ * the connector factories register a connector for any defined value
+ * (ADR-0014). tests/architecture keeps this list complete against
+ * createConnectorRegistry and the connector and credential provider
+ * factories it calls.
  */
 export const BUILT_IN_CONNECTOR_VARIABLES = [
   "PAYTM_CONNECTOR_URL",
@@ -20,6 +22,7 @@ export const BUILT_IN_CONNECTOR_VARIABLES = [
   "GITHUB_APP_PRIVATE_KEY",
   "GITHUB_INSTALLATION_ID",
   "GITHUB_BASE_URL",
+  "PARMANA_GITHUB_VERCEL_CONNECT_CONNECTOR_ID",
   "SLACK_BOT_TOKEN",
   "SLACK_BASE_URL",
 ] as const;
@@ -95,8 +98,8 @@ export function createSandboxOptions(
     );
   }
 
-  const connectors = BUILT_IN_CONNECTOR_VARIABLES.filter((name) =>
-    isSet(env[name]),
+  const connectors = BUILT_IN_CONNECTOR_VARIABLES.filter(
+    (name) => env[name] !== undefined,
   );
 
   if (connectors.length > 0) {
