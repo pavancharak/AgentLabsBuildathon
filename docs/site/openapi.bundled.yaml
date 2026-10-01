@@ -3,27 +3,70 @@ info:
   title: Parmana API
   version: 1.0.0
   description: >
-    Parmana is an Execution Trust Infrastructure that ensures there is no gap
-    between what humans decide and what AI systems do. The API enables creation,
-    execution, verification, replay, and auditing of Business Transactions
-    through cryptographically verifiable Execution Trust Records.
+    Parmana sits between an AI agent and the systems it acts on. An agent sends
+    a Business Transaction: who
+
+    authorized it, what action it wants, and the facts that justify it. Parmana
+    evaluates the policy bound to
+
+    the action, checks any signed human approval the policy requires, releases
+    the action to the connector
+
+    only if the policy approves, and returns a signed Execution Trust Record
+    anyone can verify.
 
 
-    **Every route requires a caller bearer key**, except the liveness/readiness
-    probes and documentation/verification routes that must be reachable with no
-    credential: GET /health, GET /ready, GET /openapi.yaml, GET /documentation,
-    GET /reference, POST /refusal/verify, POST /execution-intents/verify, POST
-    /audit/verify, GET /keys/{keyId}, and GET /.well-known/jwks.json. Send
-    `Authorization: Bearer <key>` on every other request. Keys are issued by
-    `scripts/generate-api-key.ts` and configured server-side via
-    `PARMANA_API_KEYS`; only a hash of each key is ever held by the server,
-    verified in constant time. A missing or invalid credential returns 401
-    before a Business Transaction is even constructed, independent of Policy
-    evaluation and gateway attestation, see
-    `packages/api/src/middleware/caller-auth.ts` and
-    [Authentication](/api-reference/authentication). Local development may set
-    `PARMANA_AUTH_DISABLED=true` to skip this middleware entirely; that flag
-    must never be set in a real deployment.
+    **Authentication.** Send `Authorization: Bearer <key>` on every request. The
+    only routes that need no key
+
+    are the probes, the documents and the independent verification routes: `GET
+    /health`, `GET /ready`,
+
+    `GET /openapi.yaml`, `GET /openapi.json`, `GET /api-manifest.json`, `GET
+    /documentation`,
+
+    `GET /reference`, `GET /parmana-handbook.pdf`, `GET
+    /handbook/download-leads`,
+
+    `POST /handbook/download-leads`, `POST /refusal/verify`, `POST
+    /execution-intents/verify`,
+
+    `POST /audit/verify`, `GET /keys/{keyId}` and `GET /.well-known/jwks.json`.
+    A missing or unknown key
+
+    returns `401` before anything else runs. The server holds only a hash of
+    each key. See
+
+    [Authentication](/api-reference/authentication).
+
+
+    **Two kinds of key.** An agent or service key may invoke only the
+    capabilities listed on it. A human key
+
+    (`credentialHolderType: USER`) is required for governance: proposing and
+    approving policies, approvers
+
+    and external connectors, and repairing Execution Intents. Approving or
+    rejecting a change also needs a
+
+    step up authorization signed with the checker's own step up key, and the
+    checker must not be the
+
+    person who proposed it.
+
+
+    **Ownership.** Every lookup by `businessTransactionId` is scoped to the key
+    that submitted the
+
+    transaction. A transaction submitted by another key returns the same `404`
+    as one that does not exist.
+
+
+    **Start here:** the [Quickstart](/quickstart), then [Integrate
+    Parmana](/agents/integrate) for agents
+
+    and [Connect any external system](/guides/connect-any-external-system) for
+    your own endpoint.
   contact:
     name: Parmana Systems
     email: founder@parmanasystems.com
@@ -81,13 +124,13 @@ paths:
       summary: Root
       operationId: getRoot
       description: >
-        Minimal liveness response. Not registered under any router file, defined
-        directly in packages/api/src/app.ts, ahead of every mounted route.
-        Requires caller authentication, like every route not listed as exempt in
-        this document's top-level description. See the security scheme above.
+        Returns the service name and `UP`. Use it to check that your key is
+        accepted: unlike `GET /health`,
+
+        this route requires a key.
       responses:
         "200":
-          description: Service is responding.
+          description: The key is valid and the service is responding.
           content:
             application/json:
               schema:
@@ -140,19 +183,14 @@ paths:
       summary: Health check
       operationId: getHealth
       description: >
-        Returns the operational health of the Parmana service. Always returns
-        status: "UP" unconditionally. See the response schema description for
-        exactly what this endpoint does and does not check.
+        Liveness probe. Always returns `UP` while the process is serving
+        requests; it checks no dependency.
 
-
-        One of several routes exempt from caller authentication, see the top of
-        this document for the full list. Liveness probes must be able to reach
-        it with no credential, see packages/api/src/app.ts (mounted ahead of the
-        caller-auth middleware).
+        Needs no key. For a check that includes storage, use `GET /ready`.
       security: []
       responses:
         "200":
-          description: Service health information.
+          description: The process is up.
           content:
             application/json:
               schema:
@@ -201,19 +239,19 @@ paths:
       summary: Readiness check
       operationId: getReady
       description: >
-        Readiness probe, distinct from GET /health's pure liveness check: when
-        storage is Supabase-backed, this one actually queries Postgres (SELECT
-        1, no table rows transferred) so an orchestrator can tell a process that
-        is up but backed by dead storage apart from one that is genuinely ready
-        to serve traffic. When storage is not Supabase-backed (NODE_ENV=test, or
-        PARMANA_STORAGE=memory outside test), there is no external dependency to
-        probe, so this reports READY unconditionally. Exempt from caller
-        authentication for the same reason GET /health is, see
-        packages/api/src/routes/ready.ts.
+        Readiness probe. When storage is Postgres, it runs `SELECT 1` so an
+        orchestrator can tell a process
+
+        that is up but cannot reach its database from one that can serve
+        traffic. With in memory storage
+
+        there is nothing to check and it always returns `READY`. Needs no key.
       security: []
       responses:
         "200":
-          description: Storage reachable, or not Supabase-backed.
+          description: Ready to serve traffic. `authDisabled` says whether caller
+            authentication is off on this deployment, which must never be true
+            in production.
           content:
             application/json:
               schema:
@@ -235,10 +273,8 @@ paths:
                       with no caller authentication. Must never be set in a real
                       deployment.
         "503":
-          description: Supabase-backed storage is configured but Postgres could not be
-            reached. Shape derived from packages/api/src/routes/ready.ts's catch
-            branch, not independently reproducible outside a real
-            Supabase-backed deployment.
+          description: Postgres storage is configured but could not be reached. Requests
+            that need storage will fail until it recovers.
           content:
             application/json:
               schema:
@@ -280,19 +316,17 @@ paths:
       summary: Get the OpenAPI spec
       operationId: getOpenApiSpec
       description: >
-        Serves the bundled, self-contained OpenAPI document
-        (openapi/openapi.bundled.yaml, produced by `npm run bundle:openapi` from
-        openapi/openapi.yaml + schemas/*.json) as a static file, see
-        packages/api/src/routes/openapi.ts. Exempt from caller authentication
-        for the same reason GET /health is: a caller cannot discover how to get
-        a key from a spec it isn't allowed to read. See [Deploy
-        patterns](/guides/deploy-patterns#the-openapi-spec-endpoint) for the
-        tradeoff of exposing this in production versus disabling it.
+        This API's complete OpenAPI 3.1 document as YAML, self contained with no
+        external references. Needs
+
+        no key, so a client can discover the API before it has one. Load it into
+        a code generator, Postman or
+
+        an agent. `GET /openapi.json` serves the same document as JSON.
       security: []
       responses:
         "200":
-          description: The complete OpenAPI 3.1 document, YAML, self-contained (no
-            external $ref).
+          description: The OpenAPI document, YAML.
           content:
             application/yaml:
               schema:
@@ -327,16 +361,14 @@ paths:
       summary: Get the OpenAPI spec, as JSON
       operationId: getOpenApiSpecJson
       description: >
-        The same bundled spec as GET /openapi.yaml, JSON-serialized instead of
-        YAML, see packages/api/src/routes/openapi-json.ts. Exists because some
-        tooling, and most AI coding agents, expects a machine-readable spec at a
-        .json path by convention. Both routes describe the identical spec; pick
-        whichever format your tooling consumes.
+        The same document as `GET /openapi.yaml`, as JSON, for tools and agents
+        that expect a spec at a
+
+        `.json` path. Needs no key.
       security: []
       responses:
         "200":
-          description: The complete OpenAPI 3.1 document, JSON, self-contained (no
-            external $ref).
+          description: The OpenAPI document, JSON.
           content:
             application/json:
               schema:
@@ -371,19 +403,20 @@ paths:
       summary: Machine-readable SDK and discovery manifest
       operationId: getApiManifest
       description: >
-        A single machine-readable index for coding agents and tooling: the
-        OpenAPI spec locations, the rendered documentation views, the
-        authentication scheme, and both official SDKs (TypeScript and Python)
-        with their real, current package name, registry, and version, read
-        directly from each package's own manifest at startup, see
-        packages/api/src/routes/api-manifest.ts. Go and Java are reported as
-        null: no SDK exists for those languages in this repository (see
-        /sdks/other-languages on the documentation site). Exempt from caller
-        authentication for the same reason GET /openapi.json is.
+        One index for agents and tools: where the OpenAPI document and the
+        rendered references are, how to
+
+        authenticate, and both official SDKs with their package name, registry
+        and current version. Read it
+
+        first when an agent sets itself up. Go and Java are `null` because no
+        SDK exists for them; call the
+
+        REST API directly. Needs no key.
       security: []
       responses:
         "200":
-          description: The manifest, JSON.
+          description: The manifest.
           content:
             application/json:
               schema:
@@ -466,14 +499,15 @@ paths:
       summary: Service version
       operationId: getVersion
       description: >
-        Returns hardcoded deployment identifiers. See the response schema
-        description: these three literals are not read from package.json,
-        environment variables, or build metadata. Requires caller
-        authentication, like every route not listed as exempt in this document's
-        top-level description.
+        Returns `name`, `version` and `api`. These are literals in the server
+        code, not a build number, so do
+
+        not use them to detect a deploy. The SDKs carry their own versions; see
+
+        `GET /api-manifest.json`.
       responses:
         "200":
-          description: Service version information.
+          description: The version identifiers.
           content:
             application/json:
               schema:
@@ -530,26 +564,30 @@ paths:
       summary: Fetch a public signing key for independent, offline verification
       operationId: getKey
       description: >
-        Deliberately unauthenticated, like GET /audit/verify and GET
-        /refusal/verify. A third party (regulator, auditor, customer tool)
-        fetching the key it needs to independently verify a signature cannot be
-        required to already hold a Parmana credential to reach it. Returns the
-        current or any still-retained historical key's public half; a keyId
-        whose private key was rotated away from is still resolvable here as long
-        as its files were not deleted. See
-        packages/crypto/src/OfflineVerifier.ts (and its Python counterpart,
-        python/parmana/crypto/ offline_verifier.py) for a reference verifier
-        that consumes exactly this response's `pem` field with zero further
-        network calls.
+        Returns the public half of a signing key, so anyone can verify a Parmana
+        signature without a Parmana
+
+        account: "an auditor, a regulator, or an endpoint receiving a release.
+        Every signed artifact names its"
+
+        `keyId`; pass it here. Keys that were rotated out stay available as long
+        as the server keeps them, so
+
+        old records remain verifiable. Use the `pem` field with the SDK
+        verifiers (`verifyParmanaRelease`,
+
+        `verify_parmana_release`) or the offline verifier. Needs no key.
       parameters:
         - name: keyId
+          description: The `keyId` named in the signature you want to verify, for example
+            `default`.
           in: path
           required: true
           schema:
             type: string
       responses:
         "200":
-          description: The requested public key.
+          description: The public key.
           content:
             application/json:
               schema:
@@ -598,7 +636,8 @@ paths:
                       x: QKyaz9ifANjaew96i34spqhM31mBatJ6TTHaMY7mclI
                       kty: OKP
         "404":
-          description: No key exists for the given keyId.
+          description: This deployment has no key with this id. Check the `keyId` in the
+            signature, then try `GET /.well-known/jwks.json` to see every key.
           content:
             application/json:
               schema:
@@ -649,14 +688,16 @@ paths:
       summary: List every public signing key this deployment can currently produce
       operationId: getJwks
       description: >
-        Same unauthenticated, third-party-verification purpose as GET
-        /keys/{keyId}, this is the enumeration form. Not a standards-pure RFC
-        7517 JWK Set (not every entry necessarily has a `jwk` field), but a
-        superset any consumer that only wants `.jwk` per entry can filter down
-        to.
+        Lists every public signing key this deployment can serve, the
+        enumeration form of `GET /keys/{keyId}`.
+
+        Fetch and cache it when you verify many artifacts. Not a strict RFC 7517
+        JWK Set: use the `pem` of
+
+        each entry; an entry may have no `jwk` field. Needs no key.
       responses:
         "200":
-          description: Every key this deployment can currently produce a public key for.
+          description: Every public key this deployment can serve.
           content:
             application/json:
               schema:
@@ -755,27 +796,24 @@ paths:
       summary: Get the authenticated caller's identity and resolved scope
       operationId: getCallerMe
       description: >
-        The proof artifact a security review asks for: "show me this agent's
-        identity and exactly what it's authorized to do." Read-only, self-lookup
-        only, an authenticated caller sees its own record, never another
-        caller's, and this never returns key material. Values are resolved (the
-        effective scope after defaults are applied), not the raw configured
-        entry: allowedPrincipalIds defaults to [callerId] and
-        allowedCapabilities defaults to an empty array when unset on the key,
-        see packages/api/src/routes/callers-me.ts. Requires caller
-        authentication, like every route not listed as exempt in this document's
-        top-level description.
+        Returns who your key is and exactly what it may do: the caller id, the
+        principals it may act for, the
 
+        capabilities it may invoke and whether that includes every capability
+        (`*`), after defaults are
 
-        Returns 404 with {"error":"No authenticated caller identity available."}
-        when no caller identity is present on the request, which in practice
-        only happens when caller authentication is disabled
-        (PARMANA_AUTH_DISABLED=true, local development only). Under normal,
-        authenticated operation this route always has a callerId by the time it
-        runs.
+        applied. Call it
+
+        first when you set up an agent, and show it in a security review. An
+        unset `allowedPrincipalIds`
+
+        means the caller's own id; an unset `allowedCapabilities` means none.
+        Never returns key material, and
+
+        never another caller's record.
       responses:
         "200":
-          description: The authenticated caller's identity and resolved scope.
+          description: Your key's identity and scope.
           content:
             application/json:
               schema:
@@ -793,8 +831,8 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          description: No authenticated caller identity on the request (caller auth
-            disabled).
+          description: No caller identity on the request. Happens only when caller
+            authentication is disabled, which is for local development.
           content:
             application/json:
               schema:
@@ -845,69 +883,69 @@ paths:
       summary: Execute a Business Transaction
       operationId: executeTransaction
       description: >
-        Runs the complete pipeline synchronously and returns the finished
-        Execution Trust Record. In order, the server accepts and stores the
-        Business Transaction, evaluates the policy, signs an authorization for
-        an approved action and releases it to the connector, then builds, signs
-        and verifies the record and generates a receipt.
+        Sends one action for a decision and, if approved, performs it. This is
+        the call an agent makes. The
+
+        server stores the Business Transaction, evaluates the policy, checks any
+        signed human approval the
+
+        policy requires, releases the action to its connector, and returns the
+        signed Execution Trust Record.
+
+        It runs synchronously: an approved action that calls an external system
+        took 24 to 32 seconds in
+
+        production, so set your client timeout to 120 seconds.
 
 
-        `businessTransactionId` must be a valid UUID (v1 to v5). It is the
-        idempotency key: sending the same one again returns `409`. The server
-        assigns `status` and `createdAt`, sets `metadata.submittedBy` from the
-        authenticated key, and drops any top level field that is not in the
-        request schema.
+        **Before you send:** ask `GET /policies/in-effect?capability=<action>`
+        which policy and version to
+
+        declare and which facts to carry.
 
 
-        Which `intent.action` values work depends on the connectors registered
-        on the server. An approved action with no registered connector fails
-        with `503` and code `CONNECTOR_NOT_REGISTERED`, and nothing is executed.
+        **Idempotency:** `businessTransactionId` is a UUID you choose and the
+        idempotency key. Sending the
+
+        same id again returns `409`; it never runs twice. After a timeout, read
+
+        `GET /execution-intents/{businessTransactionId}` before sending anything
+        new.
 
 
-        How each outcome is reported:
+        **What the server sets:** `status`, `createdAt` and
+        `metadata.submittedBy` (from your key). Top level
+
+        fields not in the schema are dropped.
 
 
-        1. `200`: approved and released. The body is the signed Execution Trust
-        Record.
+        **Outcomes:**
 
-        2. `403` with code `POLICY_DENIED`: a policy refused. This is final and
-        nothing was released.
+        1. `200`: approved and released. The body is the signed Trust Record.
 
-        3. `403` with code `CAPABILITY_NOT_ALLOWED`, or with no code: the key
-        may not invoke the action, or may not assert that principal.
+        2. `403` `POLICY_DENIED`: the policy refused. Final; nothing was
+        released. A Refusal Record is kept at
+           `GET /refusal/{businessTransactionId}`.
+        3. `403` `CAPABILITY_NOT_ALLOWED`, or no code: your key may not invoke
+        this action, or may not act for
+           this principal.
+        4. `503`: refused before release; nothing was executed. See the codes on
+        that response.
 
-        4. `429`: rate limited. Nothing was recorded. Wait for the `Retry-After`
-        header.
+        5. `502` `EXECUTION_OUTCOME_UNKNOWN`: released, then the connector call
+        failed, so the outcome is
+           unknown. Do not resend under a new id. Check the target system, then close the intent with
+           `POST /execution-intents/{businessTransactionId}/resolve`.
+        6. `500` `EXECUTION_RECORD_INCOMPLETE`: released, but the signed record
+        could not be produced. Do not
+           resend. An operator rebuilds it with `POST /execution-intents/{businessTransactionId}/finalize`.
 
-        5. `503` with code `SIGNING_UNAVAILABLE`,
-        `EXECUTION_INTENT_UNAVAILABLE`, `AUDIT_UNAVAILABLE` or
-        `CONNECTOR_NOT_REGISTERED`: refused before release. Nothing was
-        executed. For `CONNECTOR_NOT_REGISTERED` the operator must configure the
-        connector for that action before any retry. For
-        `EXECUTION_INTENT_UNAVAILABLE` the signed Execution Intent could not be
-        signed and stored, so nothing was released. Retry later with a new
-        businessTransactionId.
+        The examples named `vendor-payment-flow` show the response shape; their
+        `payments:execute` action no
 
-        6. `500` with code `EXECUTION_RECORD_INCOMPLETE`: the action was
-        released but its signed record could not be produced. Do not resubmit
-        under a new id. Read `GET /execution-intents/{businessTransactionId}`:
-        the signed intent exists, and an operator can rebuild the record with
-        `POST /execution-intents/{businessTransactionId}/finalize` without
-        calling the connector again.
+        longer exists. See [Integrate Parmana](/agents/integrate) and the
 
-        7. `502` with code `EXECUTION_OUTCOME_UNKNOWN`: the action was released
-        and the call to the connector failed (unreachable, timed out, or an
-        error response), so whether it was performed is unknown. The Execution
-        Intent is `ERRORED`. Do not resubmit under a new id. Check the target
-        system, then close the intent with `POST
-        /execution-intents/{businessTransactionId}/resolve`.
-
-
-        The examples named `vendor-payment-flow` are historical captures that
-        show the response shape. The `payments:execute` action they use no
-        longer exists on a current server. See the [Error
-        catalog](/api-reference/error-catalog) and [Integrate Parmana:
-        specification for AI agents](/agents/integrate).
+        [Error catalog](/api-reference/error-catalog).
       requestBody:
         required: true
         content:
@@ -1004,9 +1042,8 @@ paths:
                     riskScore: 12
       responses:
         "200":
-          description: Execution Trust pipeline completed. The Execution Trust Record
-            reflects whatever the Decision outcome was. This status code does
-            not by itself mean the payment was approved.
+          description: Approved and released. The body is the signed Execution Trust
+            Record; `executions[0].result` holds the connector's answer.
           content:
             application/json:
               schema:
@@ -1296,8 +1333,11 @@ paths:
                       value: gjDYmHUBKIrv7bT3uwAkt3wHeoSwz5uANXQV5MfsFgbUIh83KiufZwxht3F3Een+7K/ZW9SRn0F0J7ACJRLbAg==
                       signedAt: 2026-07-13T17:36:00.972Z
         "400":
-          description: businessTransactionId missing/malformed, or a Business Transaction
-            trust-chain invariant failed (BusinessTransactionValidationError).
+          description: The request is malformed and nothing was stored.
+            `businessTransactionId` is missing or not a UUID, or the trust chain
+            does not hold together (for example `authorization.authorityId` is
+            not `authority.authorityId`, or `metadata.businessTransactionId`
+            differs). The message names the field.
           content:
             application/json:
               schema:
@@ -1310,22 +1350,13 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: "Three distinct denials share this status. (1) Code POLICY_DENIED:
-            a policy rejected the transaction, this is a final decision, do not
-            retry the same request. (2) Code CAPABILITY_NOT_ALLOWED: the
-            authenticated key is not permitted to invoke this
-            transaction.intent.action (isCapabilityAllowed, an unset or empty
-            allowedCapabilities denies everything). (3) No code:
-            transaction.authority.principalId is missing/empty, or the
-            authenticated caller is not permitted to assert it:
-            isPrincipalAllowed (packages/api/src/auth/isPrincipalAllowed.ts)
-            requires principalId to equal the caller's own callerId when no
-            allowedPrincipalIds is configured for that key, or to appear in
-            allowedPrincipalIds when one is. Checked immediately after caller
-            authentication, before metadata.submittedBy is server-set and before
-            any Policy evaluation. Skipped entirely (no 403 possible) when
-            caller authentication itself is disabled. Identical check on POST
-            /transactions, live-verified on both routes."
+          description: "Refused. `POLICY_DENIED`: the policy refused this request. Final
+            for this request; nothing was released; do not resend the same
+            facts. `CAPABILITY_NOT_ALLOWED`: your key may not invoke
+            `intent.action`; an operator must add it to the key. No code:
+            `authority.principalId` is missing, or your key may not act for it
+            (it must equal your caller id, or be in the key's
+            `allowedPrincipalIds`)."
           content:
             application/json:
               schema:
@@ -1347,10 +1378,8 @@ paths:
                       risk exceeds the maximum permitted threshold."
                     code: POLICY_DENIED
         "404":
-          description: transaction.policy.name/version does not match any published Policy
-            (PolicyNotFoundError, thrown by PolicyRouter.load during Runtime
-            execution, reachable identically from POST /transactions, since both
-            share the same application.execute() pipeline).
+          description: "`policy.name` and `policy.version` do not match a policy this
+            server has. Ask `GET /policies/in-effect` which to declare."
           content:
             application/json:
               schema:
@@ -1361,8 +1390,10 @@ paths:
                   value:
                     error: Policy 'does-not-exist' version '9.9.9' was not found.
         "409":
-          description: A Business Transaction with this businessTransactionId already
-            exists (DuplicateBusinessTransactionError).
+          description: This `businessTransactionId` was already used. Nothing ran again.
+            Read the existing result with `GET
+            /trust-records/{businessTransactionId}` or `GET
+            /execution-intents/{businessTransactionId}`.
           content:
             application/json:
               schema:
@@ -1376,16 +1407,12 @@ paths:
         "429":
           $ref: "#/components/responses/RateLimited"
         "500":
-          description: "Server failure. Covers these conditions. Code
-            EXECUTION_RECORD_INCOMPLETE: the action was released to the
-            execution system but its signed Execution Trust Record could not be
-            produced or persisted, so do not resubmit under a new
-            businessTransactionId and reconcile against the connector and the
-            execution audit events instead. A structurally incomplete request
-            body (a valid-UUID businessTransactionId but missing required nested
-            fields, e.g. metadata). A policy rejection is NOT a 500, it is a 403
-            with code POLICY_DENIED, and a failed connector call is a 502 with
-            code EXECUTION_OUTCOME_UNKNOWN."
+          description: "`EXECUTION_RECORD_INCOMPLETE`: the action was released but its
+            signed record could not be produced or stored. Do not resend under a
+            new id; an operator rebuilds the record with `POST
+            /execution-intents/{businessTransactionId}/finalize`, which never
+            calls the connector again. Without a code: an unexpected failure,
+            for example a body missing a required nested object."
           content:
             application/json:
               schema:
@@ -1409,16 +1436,13 @@ paths:
                   value:
                     error: Internal Server Error
         "502":
-          description: "Code EXECUTION_OUTCOME_UNKNOWN: the action was released to the
-            execution system and the call failed, typically a connector that
-            could not be reached, timed out or answered with an error, so
-            whether the action was performed is unknown. The Execution Intent
-            for this businessTransactionId is in state ERRORED. Do not resubmit
-            under a new businessTransactionId: check the target system, then
-            close the intent with POST
-            /execution-intents/{businessTransactionId}/resolve. The message
-            carries the businessTransactionId and authorizationId, never the
-            connector's own error."
+          description: "`EXECUTION_OUTCOME_UNKNOWN`: the action was released and the
+            connector call failed (unreachable, timed out, or answered with an
+            error), so whether it was performed is unknown. The Execution Intent
+            is `ERRORED`. Do not resend under a new id: check the target system,
+            then close the intent with `POST
+            /execution-intents/{businessTransactionId}/resolve`. The message
+            carries the ids, never the connector's own error."
           content:
             application/json:
               schema:
@@ -1598,12 +1622,13 @@ paths:
       summary: Create (execute) a Business Transaction
       operationId: createTransaction
       description: >
-        Identical to `POST /execute` in every way except the success status:
-        this endpoint returns `201` where `POST /execute` returns `200`. The
-        request, the pipeline, the errors and the response body are the same, so
-        read [Execute a Business
-        Transaction](/api-reference/endpoints/execute-transaction) for the full
-        behavior.
+        The same as `POST /execute` in every way except the success status,
+        `201` instead of `200`. Use
+
+        whichever fits your client. Read [Execute a Business
+        Transaction](/api-reference/endpoints/execute-transaction)
+
+        for the full behavior, the outcomes and what to do after each.
       requestBody:
         required: true
         content:
@@ -1702,8 +1727,7 @@ paths:
                   unexpectedField: should-not-be-persisted
       responses:
         "201":
-          description: Execution Trust pipeline completed (see POST /execute, identical
-            pipeline, different entry point and status code).
+          description: Approved and released. The body is the signed Execution Trust Record.
           content:
             application/json:
               schema:
@@ -1993,9 +2017,8 @@ paths:
                       value: teph6TYn3Q0s+/hjz3TQr4uNmaRrGaPsozXkbiEkf0MjfPDIEChYa2pBjrQktLFwXW8X8cnih8/z3Sd8vjasDA==
                       signedAt: 2026-07-13T17:36:20.487Z
         "400":
-          description: businessTransactionId missing/malformed, or a Business Transaction
-            trust-chain invariant failed (BusinessTransactionValidationError),
-            identical checks and treatment to POST /execute.
+          description: The request is malformed and nothing was stored. The same checks as
+            `POST /execute`.
           content:
             application/json:
               schema:
@@ -2013,15 +2036,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: "Identical to POST /execute. Three distinct denials share this
-            status: code POLICY_DENIED (a policy rejected the transaction, a
-            final decision), code CAPABILITY_NOT_ALLOWED (the key may not invoke
-            this action), and no code, which is the principal check:
-            transaction.authority.principalId is missing/empty, or the
-            authenticated caller is not permitted to assert it
-            (isPrincipalAllowed). See POST /execute, identical check, same route
-            ordering (before metadata.submittedBy is server-set, before Policy
-            evaluation), live-verified on both routes."
+          description: Refused, with the same codes and meaning as `POST /execute`.
           content:
             application/json:
               schema:
@@ -2043,8 +2058,8 @@ paths:
                       risk exceeds the maximum permitted threshold."
                     code: POLICY_DENIED
         "404":
-          description: transaction.policy.name/version does not match any published Policy
-            (PolicyNotFoundError). See POST /execute, identical pipeline.
+          description: "`policy.name` and `policy.version` do not match a policy this
+            server has."
           content:
             application/json:
               schema:
@@ -2055,8 +2070,7 @@ paths:
                   value:
                     error: Policy 'does-not-exist' version '9.9.9' was not found.
         "409":
-          description: A Business Transaction with this businessTransactionId already
-            exists (DuplicateBusinessTransactionError).
+          description: This `businessTransactionId` was already used. Nothing ran again.
           content:
             application/json:
               schema:
@@ -2070,14 +2084,9 @@ paths:
         "429":
           $ref: "#/components/responses/RateLimited"
         "500":
-          description: Server failure. Code EXECUTION_RECORD_INCOMPLETE (the action was
-            released but its signed record could not be produced, do not
-            resubmit under a new businessTransactionId), and a structurally
-            incomplete body throwing an uncaught TypeError. An approved action
-            with no registered Connector is a 503 CONNECTOR_NOT_REGISTERED, and
-            a failed connector call is a 502 EXECUTION_OUTCOME_UNKNOWN. A policy
-            rejection is NOT a 500, it is a 403 with code POLICY_DENIED. See the
-            fuller description on POST /execute, same pipeline.
+          description: "`EXECUTION_RECORD_INCOMPLETE`: released, but the signed record
+            could not be produced. Do not resend; an operator finalizes it. See
+            `POST /execute`."
           content:
             application/json:
               schema:
@@ -2095,16 +2104,9 @@ paths:
                       381ef27a-0955-4085-9e5d-e4223fef2986."
                     code: EXECUTION_RECORD_INCOMPLETE
         "502":
-          description: "Code EXECUTION_OUTCOME_UNKNOWN: the action was released to the
-            execution system and the call failed, typically a connector that
-            could not be reached, timed out or answered with an error, so
-            whether the action was performed is unknown. The Execution Intent
-            for this businessTransactionId is in state ERRORED. Do not resubmit
-            under a new businessTransactionId: check the target system, then
-            close the intent with POST
-            /execution-intents/{businessTransactionId}/resolve. The message
-            carries the businessTransactionId and authorizationId, never the
-            connector's own error."
+          description: "`EXECUTION_OUTCOME_UNKNOWN`: released, then the connector call
+            failed. Do not resend under a new id; check the target system, then
+            resolve the intent. See `POST /execute`."
           content:
             application/json:
               schema:
@@ -2281,12 +2283,18 @@ paths:
       summary: List Business Transactions
       operationId: listTransactions
       description: >
-        Returns every accepted Business Transaction. page and pageSize are
-        accepted and forwarded to the storage provider, but the response is a
-        bare array with no pagination metadata (no page/pageSize/totalItems).
-        See the response schema description.
+        Lists the Business Transactions your key submitted, as a bare array with
+        no paging metadata. Each
+
+        item is the request as stored; for the signed outcome of each, use `GET
+        /trust-records`. A page can hold fewer than `pageSize` items, or none,
+        when other callers'
+
+        transactions fall in that window, so keep paging until you have what you
+        need.
       parameters:
         - name: page
+          description: Page number, starting at 1. Default 1.
           in: query
           required: false
           schema:
@@ -2294,6 +2302,7 @@ paths:
             minimum: 1
             default: 1
         - name: pageSize
+          description: Items per page before filtering to your own transactions. Default 25.
           in: query
           required: false
           schema:
@@ -2302,7 +2311,7 @@ paths:
             default: 25
       responses:
         "200":
-          description: Every accepted Business Transaction on the requested page.
+          description: Your transactions on this page. May be empty.
           content:
             application/json:
               schema:
@@ -2473,18 +2482,21 @@ paths:
         - Transactions
       summary: Get Business Transaction
       operationId: getTransaction
-      description: Returns a bare Business Transaction by ID. No format validation is
-        applied to the path parameter.
+      description: >
+        Returns one Business Transaction as it was stored. For the signed
+        outcome, what was decided and
+
+        executed, use `GET /trust-records/{businessTransactionId}`.
       parameters:
         - name: businessTransactionId
           in: path
           required: true
-          description: Unique Business Transaction identifier.
+          description: The id you chose when you sent the transaction.
           schema:
             type: string
       responses:
         "200":
-          description: Business Transaction found.
+          description: The Business Transaction.
           content:
             application/json:
               schema:
@@ -2536,7 +2548,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          description: Business Transaction not found.
+          description: Your key submitted no transaction with this id.
           content:
             application/json:
               schema:
@@ -2594,11 +2606,19 @@ paths:
       summary: Verify an Execution Trust Record
       operationId: verifyTransaction
       description: >
-        Deterministically re-validates the complete Execution Trust Record for
-        businessTransactionId: recomputed hash vs. stored hash, signature
-        verification, and authorization binding on every APPROVED Execution. All
-        checks always run; failures are joined into one message. Appends a new
-        immutable Verification to the record.
+        Checks a Trust Record again on the server: recomputes its hash, verifies
+        its signature and checks
+
+        that every approved execution is bound to its authorization. All checks
+        run and every failure is
+
+        reported. The result is appended to the record as a new Verification. A
+        receipt can only be
+
+        generated after a `VERIFIED` result. To verify without trusting this
+        server, use
+
+        [Verify independently](/guides/verify-independently).
       requestBody:
         required: true
         content:
@@ -2612,8 +2632,8 @@ paths:
                   businessTransactionId: 44b34a79-e0f2-49d7-a48e-e52fff88182e
       responses:
         "200":
-          description: Verification completed (status VERIFIED or FAILED, see the response
-            schema; a 200 does not by itself mean verification succeeded).
+          description: "The check ran. Read `status`: `VERIFIED` or `FAILED`. A `200`
+            alone does not mean the record verified."
           content:
             application/json:
               schema:
@@ -2629,7 +2649,7 @@ paths:
                     verifiedAt: 2026-07-13T17:42:11.002Z
                     trustRecordHash: e20a8861864f1a0a6c5fe00e64abca04de18a7d165a82ef9d7beb458c2096b3f
         "400":
-          description: businessTransactionId missing or not a valid UUID.
+          description: "`businessTransactionId` is missing or not a UUID."
           content:
             application/json:
               schema:
@@ -2642,9 +2662,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          description: Execution Trust Record not found (VerificationFailedError, mapped
-            through the generic RuntimeError branch, carries a code field,
-            unlike most other 404s in this API).
+          description: Your key has no Trust Record with this id.
           content:
             application/json:
               schema:
@@ -2701,21 +2719,18 @@ paths:
         - Verification
       summary: Get latest Verification
       operationId: getLatestVerification
-      description: >
-        Returns the most recent Verification for the Execution Trust Record
-        identified by businessTransactionId. Registered from
-        packages/api/src/routes/verify-get.ts, whose own internal comment
-        (misleadingly) says "GET /verify/:id"; the real mounted path, per
-        packages/api/src/app.ts, is /verification/:id.
+      description: Returns the most recent Verification appended to a Trust Record by
+        `POST /verify`.
       parameters:
         - name: businessTransactionId
+          description: The transaction's id.
           in: path
           required: true
           schema:
             type: string
       responses:
         "200":
-          description: Verification found.
+          description: The latest Verification.
           content:
             application/json:
               schema:
@@ -2733,10 +2748,8 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          description: Execution Trust Record not found, OR found but has no Verification
-            yet; both return this exact shape ("Execution Trust Record not
-            found." / "Verification not found.", no code field, unlike POST
-            /verify's 404).
+          description: Your key has no Trust Record with this id, or the record has not
+            been verified yet. Run `POST /verify` first.
           content:
             application/json:
               schema:
@@ -2789,12 +2802,13 @@ paths:
       summary: Verify a Refusal Record's signature
       operationId: verifyRefusalRecord
       description: >
-        Verifies a Refusal Record's signature (RFC-0021). Deliberately mounted
-        before this app's caller-auth middleware, see packages/api/src/app.ts:
-        no caller authentication or API key is required, by design. This is the
-        capability that makes a refusal independently third-party verifiable. It
-        takes the record itself, not a lookup by ID, no database access, no
-        ownership check, nothing but the artifact and Parmana's public key.
+        Checks a Refusal Record's signature. Send the record itself; the server
+        reads no storage and needs no
+
+        key, so anyone holding a refusal can prove Parmana issued it and that it
+        was not changed. Fetch the
+
+        record with `GET /refusal/{businessTransactionId}`.
       security: []
       requestBody:
         required: true
@@ -2804,8 +2818,8 @@ paths:
               $ref: "#/components/schemas/refusal-record.schema"
       responses:
         "200":
-          description: Verification completed. A 200 does not by itself mean the signature
-            verified, see the valid field.
+          description: The check ran. Read `valid`. A `200` alone does not mean the
+            signature verified.
           content:
             application/json:
               schema:
@@ -2816,7 +2830,7 @@ paths:
                   value:
                     valid: true
         "400":
-          description: Request body is not a structurally plausible Refusal Record.
+          description: The body is not shaped like a Refusal Record.
           content:
             application/json:
               schema:
@@ -2884,18 +2898,11 @@ paths:
         - Handbook
       summary: Download the Parmana Handbook (PDF)
       operationId: getHandbookPdf
-      description: >
-        Serves the handbook PDF (docs/site/parmana-handbook.pdf, generated by
-        scripts/generate-handbook-pdf.ts from docs/site/handbook/*.mdx) as a
-        static file directly from this API, see
-        packages/api/src/routes/handbook-pdf.ts. Not served from the docs site
-        itself: PDF file serving on Mintlify requires an Enterprise plan. Exempt
-        from caller authentication for the same reason GET /openapi.yaml is: a
-        visitor downloading documentation has no Parmana credential yet.
+      description: Downloads the Parmana Handbook as a PDF. Needs no key.
       security: []
       responses:
         "200":
-          description: The complete handbook PDF.
+          description: The handbook PDF.
           content:
             application/pdf:
               schema:
@@ -2941,18 +2948,17 @@ paths:
       summary: Capture an email address, then redirect straight to the handbook PDF
       operationId: getHandbookDownloadLead
       description: >
-        Backs the plain-HTML-form download at docs/site/handbook/download.mdx --
-        a GET so a `<form method="get">` with no client-side JavaScript can
-        submit it directly, since the docs site host may sandbox or strip inline
-        `<script>` tags. Deliberately mounted before this app's caller-auth
-        middleware, see packages/api/src/app.ts: a visitor downloading the
-        handbook has no Parmana credential yet. Records the email address; does
-        not send a verification email, see migration
-        20260916150000_add_handbook_download_leads.sql's own comment for why
-        that is a deliberate scope boundary, not an oversight.
+        Records an email address, then redirects to the handbook PDF. Backs the
+        download form on the docs
+
+        site, which submits with a plain GET. The address is stored, not
+        verified. Needs no key. For a JSON
+
+        answer use `POST /handbook/download-leads`.
       security: []
       parameters:
         - name: email
+          description: The visitor's email address.
           in: query
           required: true
           schema:
@@ -2960,17 +2966,15 @@ paths:
             format: email
       responses:
         "302":
-          description: Email captured. Redirects to the static PDF file on the docs site's
-            own domain.
+          description: The address was recorded. The `Location` header points to the PDF.
           headers:
             Location:
               schema:
                 type: string
               example: https://parmana-api-real.vercel.app/parmana-handbook.pdf
         "400":
-          description: Missing or malformed email address (plain text body, not the shared
-            error envelope, since this route is meant to be hit by a browser
-            form submission, not an API client).
+          description: The email address is missing or malformed. The body is plain text,
+            for a browser.
           content:
             text/plain:
               schema:
@@ -3011,10 +3015,10 @@ paths:
       summary: Capture an email address before unlocking the handbook PDF download
       operationId: createHandbookDownloadLead
       description: >
-        Backs a programmatic caller that wants a `downloadUrl` back in a JSON
-        response body instead of a redirect -- see GET /handbook/download-leads
-        above for the browser-form variant, which is what the actual docs site
-        page uses. Same capture, same non-verification scope boundary.
+        Records an email address and returns the handbook download link as JSON.
+        The address is stored, not
+
+        verified. Needs no key.
       security: []
       requestBody:
         required: true
@@ -3030,8 +3034,7 @@ paths:
                   format: email
       responses:
         "201":
-          description: Email captured. downloadUrl points to the static PDF file on the
-            docs site's own domain.
+          description: The address was recorded. `downloadUrl` is the PDF.
           content:
             application/json:
               schema:
@@ -3047,7 +3050,7 @@ paths:
                   value:
                     downloadUrl: https://parmana-api-real.vercel.app/parmana-handbook.pdf
         "400":
-          description: Missing or malformed email address.
+          description: The email address is missing or malformed.
           content:
             application/json:
               schema:
@@ -3101,23 +3104,23 @@ paths:
       summary: Get a Refusal Record by transaction ID
       operationId: getRefusalRecord
       description: >
-        Looks up a Refusal Record by businessTransactionId from Parmana's own
-        storage. Unlike POST /refusal/verify, this route stays behind caller
-        authentication and ownership scoping identically to GET /verify, GET
-        /verification/{businessTransactionId}, and GET
-        /trust-records/{businessTransactionId}: the underlying transaction
-        content (signals, intent parameters) may be sensitive, so lookup is
-        scoped even though independent signature verification (the other route)
-        is not.
+        Returns the signed Refusal Record kept when a policy refused a
+        transaction: the decision, the rule
+
+        that refused, the facts it saw and the signature. Use it to show a
+        person why an action was refused,
+
+        or pass it to `POST /refusal/verify`, which anyone can call.
       parameters:
         - name: businessTransactionId
+          description: The id of the refused transaction.
           in: path
           required: true
           schema:
             type: string
       responses:
         "200":
-          description: Refusal Record found.
+          description: The Refusal Record.
           content:
             application/json:
               schema:
@@ -3193,9 +3196,8 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          description: No Refusal Record exists for this businessTransactionId, or it
-            belongs to a different caller (ownership-scoped, same 404-not-403
-            convention as every other scoped lookup in this API).
+          description: Your key has no refused transaction with this id. An approved
+            transaction has a Trust Record instead.
           content:
             application/json:
               schema:
@@ -3253,19 +3255,16 @@ paths:
       summary: Verify an Execution Intent's signature
       operationId: verifyExecutionIntent
       description: >
-        Verifies an Execution Intent's hash and signature (ADR-0012).
-        Deliberately mounted before this app's caller-auth middleware, see
-        packages/api/src/app.ts: no caller authentication or API key is
-        required, by design, the same as POST /refusal/verify. It takes the
-        intent itself, reads no storage, and needs nothing but the artifact and
-        Parmana's public key. A `valid: true` result proves the intent was
-        signed by the holder of the key and has not been altered. It does NOT
-        prove the action was released, or what its result was, because an intent
-        is written BEFORE release. To check the outcome, look for the signed
-        Execution Trust Record for the same businessTransactionId. For a check
-        that needs no call to this API at all, use
-        scripts/verify-execution-intent.ts with the public key from GET
-        /keys/{keyId}.
+        Checks an Execution Intent's hash and signature. Send the intent itself;
+        the server reads no storage
+
+        and needs no key. A valid intent proves Parmana signed it before release
+        and that it was not changed.
+
+        It does not prove the action ran: an intent is written before release.
+        For the outcome, read the
+
+        Trust Record for the same transaction.
       security: []
       requestBody:
         required: true
@@ -3275,8 +3274,8 @@ paths:
               $ref: "#/components/schemas/execution-intent.schema"
       responses:
         "200":
-          description: Verification completed. A 200 does not by itself mean the signature
-            verified, see the valid field.
+          description: The check ran. Read `valid`. A `200` alone does not mean the
+            signature verified.
           content:
             application/json:
               schema:
@@ -3292,7 +3291,7 @@ paths:
                   value:
                     valid: false
         "400":
-          description: Request body is not a structurally plausible Execution Intent.
+          description: The body is not shaped like an Execution Intent.
           content:
             application/json:
               schema:
@@ -3362,32 +3361,32 @@ paths:
       summary: List Execution Intents that never reached a signed Trust Record
       operationId: listUnfinalizedExecutionIntents
       description: >
-        Lists Execution Intents that never reached a signed Execution Trust
-        Record and were not closed by hand, oldest first (ADR-0012). Each one is
-        an action that may have been released with no signed record, or whose
-        outcome nobody has reconciled yet, and needs an operator. Entries in
-        state RELEASED are repaired with POST
-        /execution-intents/{businessTransactionId}/finalize. Entries in state
-        PREPARED or ERRORED are reconciled at the connector and then closed with
-        POST /execution-intents/{businessTransactionId}/resolve, after which
-        they no longer appear here. Requires a credential provisioned as a
-        verified human (`credentialHolderType: USER`), because the list spans
-        every caller's transactions. Any other credential gets `403` with code
-        `NON_HUMAN_CALLER_DENIED`. The saved release context used to rebuild a
-        record is internal and is never returned.
+        The operator's work queue: Execution Intents that never reached a signed
+        Trust Record and were not
+
+        closed by hand, oldest first. Each one is an action that may have been
+        performed without a record.
+
+        For an intent in state `RELEASED`, rebuild the record with `POST
+        .../finalize`. For `PREPARED` or
+
+        `ERRORED`, check the target system, then close it with `POST
+        .../resolve`. Needs a human key, because
+
+        the list spans every caller. See [Execution
+        Intents](/concepts/execution-intents).
       parameters:
         - name: limit
           in: query
           required: false
-          description: Maximum number of intents to return. Default 50, maximum 200. A
-            value that is not a positive integer uses the default.
+          description: How many intents to return. Default 50, at most 200.
           schema:
             type: integer
             minimum: 1
             maximum: 200
       responses:
         "200":
-          description: The unfinalized intents, oldest first. May be empty.
+          description: The intents, oldest first. Empty when nothing needs attention.
           content:
             application/json:
               schema:
@@ -3424,7 +3423,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: The credential is not provisioned as a verified human.
+          description: "`NON_HUMAN_CALLER_DENIED`: this needs a human key."
           content:
             application/json:
               schema:
@@ -3477,29 +3476,34 @@ paths:
       summary: Get an Execution Intent and its status
       operationId: getExecutionIntent
       description: >
-        Returns the signed Execution Intent for a businessTransactionId and its
-        operational status (ADR-0012). The state tells you where the request got
-        to. PREPARED: the intent is signed and stored, and the action may or may
-        not have been released. RELEASED: the release stage returned and the
-        execution context was saved. FINALIZED: a signed Execution Trust Record
-        exists. ERRORED: the release stage raised an error, the action may still
-        have been executed. RESOLVED: a verified human reconciled a PREPARED or
-        ERRORED intent at the connector and closed it (the status carries
-        `resolution`, `resolutionNote`, `resolvedBy` and `resolvedAt`, an
-        unsigned operator statement). Stays behind caller authentication and
-        ownership scoping, identically to GET
-        /trust-records/{businessTransactionId} and GET
-        /refusal/{businessTransactionId}. Transactions created before ADR-0012
-        have no intent and return `404`.
+        Returns the signed Execution Intent for a transaction and where it got
+        to. Read it after a timeout or
+
+        a `5xx` before sending anything new. The `status.state` is one of:
+
+
+        * `PREPARED`: signed and stored; the action may or may not have been
+        released.
+
+        * `RELEASED`: released and its result saved.
+
+        * `FINALIZED`: a signed Trust Record exists.
+
+        * `ERRORED`: the release failed; the action may still have run.
+
+        * `RESOLVED`: a person checked the target system and closed it
+        (`resolution`, `resolutionNote`,
+          `resolvedBy`, `resolvedAt`; an unsigned statement).
       parameters:
         - name: businessTransactionId
+          description: The transaction's id.
           in: path
           required: true
           schema:
             type: string
       responses:
         "200":
-          description: Execution Intent found.
+          description: The intent and its status.
           content:
             application/json:
               schema:
@@ -3538,9 +3542,8 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          description: No Execution Intent exists for this businessTransactionId, or it
-            belongs to a different caller (ownership scoped, the same 404 not
-            403 convention as every other scoped lookup in this API).
+          description: Your key has no intent with this id. Transactions sent before
+            Execution Intents existed have none.
           content:
             application/json:
               schema:
@@ -3598,30 +3601,28 @@ paths:
       summary: Rebuild the signed Trust Record for a released action
       operationId: finalizeExecutionIntent
       description: >
-        Rebuilds the signed Execution Trust Record for an action that was
-        released but whose record was never produced (ADR-0012). It NEVER calls
-        a connector: it reads the execution context that was saved right after
-        release and runs the same record building step the runtime uses, then
-        verifies the record and generates its receipt, so a repaired record ends
-        in the same state as an ordinary one. It is idempotent: if a Trust
-        Record already exists it returns that record with outcome
-        `ALREADY_FINALIZED` and builds nothing, so running it twice, or twice at
-        once, produces one record. It refuses with `409` when no execution
-        result was saved, because a record cannot be rebuilt from nothing.
-        Requires a credential provisioned as a verified human
-        (`credentialHolderType: USER`), otherwise `403` with code
-        `NON_HUMAN_CALLER_DENIED`. This is the only supported way to create a
-        Trust Record after the fact.
+        Rebuilds the signed Trust Record for an action that was released but
+        whose record was never
+
+        produced, the repair for a `500` `EXECUTION_RECORD_INCOMPLETE`. It never
+        calls the connector: it uses
+
+        the result saved right after release, then verifies the record and
+        generates its receipt. Safe to
+
+        repeat: "if a record exists it returns it as `ALREADY_FINALIZED` and
+        builds nothing. Needs a human key."
       parameters:
         - name: businessTransactionId
+          description: The transaction's id.
           in: path
           required: true
           schema:
             type: string
       responses:
         "200":
-          description: The Trust Record exists. `outcome` says whether this call rebuilt
-            it (`FINALIZED`) or it already existed (`ALREADY_FINALIZED`).
+          description: The Trust Record exists. `outcome` is `FINALIZED` when this call
+            built it, `ALREADY_FINALIZED` when it already existed.
           content:
             application/json:
               schema:
@@ -4018,7 +4019,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: The credential is not provisioned as a verified human.
+          description: "`NON_HUMAN_CALLER_DENIED`: this needs a human key."
           content:
             application/json:
               schema:
@@ -4031,8 +4032,7 @@ paths:
                       (credentialHolderType: USER)."
                     code: NON_HUMAN_CALLER_DENIED
         "404":
-          description: No Execution Intent exists for this businessTransactionId.
-            Transactions created before ADR-0012 have none.
+          description: No intent exists for this id.
           content:
             application/json:
               schema:
@@ -4046,10 +4046,9 @@ paths:
                       Execution Intents were introduced have none.
                     code: EXECUTION_INTENT_NOT_FOUND
         "409":
-          description: The intent exists but no execution result was saved, so the Trust
-            Record cannot be rebuilt. The action may or may not have been
-            released. Establish the outcome from the connector and reconcile it
-            by hand. Nothing was called and nothing was changed.
+          description: No execution result was saved, so there is nothing to rebuild from.
+            Check the target system, then close the intent with `POST
+            .../resolve`. Nothing was called or changed.
           content:
             application/json:
               schema:
@@ -4121,25 +4120,25 @@ paths:
       summary: Close an intent you reconciled by hand
       operationId: resolveExecutionIntent
       description: >
-        Closes an Execution Intent in state `PREPARED` or `ERRORED` after a
-        verified human reconciled it at the connector (G-54). Those are the
-        intents whose outcome only an operator can establish, because no
-        execution result was saved. The body records what you found
-        (`NOT_EXECUTED` or `EXECUTED`) and a required note. The intent moves to
-        `RESOLVED` and leaves `GET /execution-intents/unfinalized`. It never
-        calls a connector. It is idempotent: resolving an intent that is already
-        `RESOLVED` changes nothing and returns `ALREADY_RESOLVED` with the
-        original resolution, note and author. It refuses a `RELEASED` intent,
-        because its execution result is saved and `finalize` is the right
-        operation, and it refuses a `FINALIZED` intent, or any intent whose
-        transaction already has a signed Trust Record. **The resolution is an
-        attributed, timestamped statement by an operator, stored in the intent's
-        unsigned status. It is not tamper evident and it is not a Trust
-        Record.** Requires a credential provisioned as a verified human
-        (`credentialHolderType: USER`), otherwise `403` with code
-        `NON_HUMAN_CALLER_DENIED`.
+        Closes an intent in state `PREPARED` or `ERRORED` after a person checked
+        the target system, the
+
+        repair for a `502` `EXECUTION_OUTCOME_UNKNOWN`. Record what you found,
+        `NOT_EXECUTED` or `EXECUTED`,
+
+        with a note. The intent becomes `RESOLVED` and leaves the unfinalized
+        list. It never calls the
+
+        connector. Safe to repeat: a second call returns `ALREADY_RESOLVED` with
+        the first answer.
+
+        **The resolution is an attributed, timestamped statement in the intent's
+        unsigned status. It is not
+
+        tamper evident and it is not a Trust Record.** Needs a human key.
       parameters:
         - name: businessTransactionId
+          description: The transaction's id.
           in: path
           required: true
           schema:
@@ -4152,8 +4151,8 @@ paths:
               $ref: "#/components/schemas/execution-intent-resolve-request.schema"
       responses:
         "200":
-          description: The intent is closed. `outcome` says whether this call closed it
-            (`RESOLVED`) or it was already closed (`ALREADY_RESOLVED`).
+          description: The intent is closed. `outcome` is `RESOLVED` when this call closed
+            it, `ALREADY_RESOLVED` when it was already closed.
           content:
             application/json:
               schema:
@@ -4226,9 +4225,8 @@ paths:
                       resolvedBy: operator-maker
                       resolvedAt: 2026-10-01T10:14:05.149Z
         "400":
-          description: The body is invalid. `resolution` must be `NOT_EXECUTED` or
-            `EXECUTED`, and `note` is required, at most 2000 characters. Nothing
-            was changed.
+          description: "`resolution` must be `NOT_EXECUTED` or `EXECUTED`, and `note` is
+            required, at most 2000 characters. Nothing was changed."
           content:
             application/json:
               schema:
@@ -4243,7 +4241,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: The credential is not provisioned as a verified human.
+          description: "`NON_HUMAN_CALLER_DENIED`: this needs a human key."
           content:
             application/json:
               schema:
@@ -4256,7 +4254,7 @@ paths:
                       (credentialHolderType: USER)."
                     code: NON_HUMAN_CALLER_DENIED
         "404":
-          description: No Execution Intent exists for this businessTransactionId.
+          description: No intent exists for this id.
           content:
             application/json:
               schema:
@@ -4270,9 +4268,9 @@ paths:
                       Execution Intents were introduced have none.
                     code: EXECUTION_INTENT_NOT_FOUND
         "409":
-          description: The intent cannot be resolved by hand. It is `RELEASED` (use
-            finalize), `FINALIZED`, or a signed Trust Record already exists for
-            the transaction. Nothing was changed.
+          description: "This intent cannot be closed by hand. `RELEASED`: its result is
+            saved, use `POST .../finalize`. `FINALIZED`, or a signed Trust
+            Record exists: it is already complete. Nothing was changed."
           content:
             application/json:
               schema:
@@ -4362,14 +4360,15 @@ paths:
       summary: Verify a signed caller-authentication audit event
       operationId: verifyAuditEvent
       description: >
-        Verifies a signed caller-authentication audit event's signature, the
-        same unauthenticated, third-party-verifiable capability as POST
-        /refusal/verify, over the durable caller_audit_events audit trail
-        instead of Refusal Records. No database lookup involved, pure
-        signature-over-bytes verification against the event and signature
-        supplied in the request body. Only production (Supabase) audit sinks
-        sign; in-memory test sinks never produce a genuinely valid signature for
-        this route to confirm.
+        Checks the signature of a caller authentication audit event, the record
+        the server keeps of every
+
+        authentication, denial and governance action. Send the event and its
+        signature; the server reads no
+
+        storage and needs no key. Only production audit trails sign events. See
+
+        [Caller audit trail](/concepts/caller-audit-trail).
       security: []
       requestBody:
         required: true
@@ -4379,8 +4378,8 @@ paths:
               $ref: "#/components/schemas/audit-verify-request.schema"
       responses:
         "200":
-          description: Verification completed. A 200 does not by itself mean the signature
-            verified, see the valid field.
+          description: The check ran. Read `valid`. A `200` alone does not mean the
+            signature verified.
           content:
             application/json:
               schema:
@@ -4392,8 +4391,7 @@ paths:
                   value:
                     valid: false
         "400":
-          description: Request body is not a structurally plausible { event, signature }
-            pair.
+          description: The body is not an `{ event, signature }` pair.
           content:
             application/json:
               schema:
@@ -4490,12 +4488,13 @@ paths:
       summary: Generate a Receipt
       operationId: generateReceipt
       description: >
-        Generates a cryptographically signed Receipt for businessTransactionId.
-        If no Execution Trust Record exists for businessTransactionId, this
-        fails with a 404 (VerificationFailedError, the same not-found error used
-        by POST /verify and POST /replay). If the record exists but its latest
-        Verification does not have status VERIFIED, this fails with a 409
-        (ReceiptGenerationError) instead.
+        Generates a signed Receipt for a Trust Record: a compact proof of what
+        was decided and executed,
+
+        to hand to a person or another system. The record must have a `VERIFIED`
+        Verification first; run
+
+        `POST /verify`.
       requestBody:
         required: true
         content:
@@ -4509,7 +4508,7 @@ paths:
                   businessTransactionId: 44b34a79-e0f2-49d7-a48e-e52fff88182e
       responses:
         "200":
-          description: Receipt generated.
+          description: The signed Receipt.
           content:
             application/json:
               schema:
@@ -4526,7 +4525,7 @@ paths:
                     algorithm: ed25519
                     signature: uchgXRFJnByGu3F+NZSoq1Hwt6bBr3rRJjQGpLOULKJ7jR4NfE/P4g7loD4L5aADdYxUqLh6Yn7ngfnz2peCCA==
         "400":
-          description: businessTransactionId missing or not a valid UUID.
+          description: "`businessTransactionId` is missing or not a UUID."
           content:
             application/json:
               schema:
@@ -4539,9 +4538,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          description: businessTransactionId does not correspond to any Execution Trust
-            Record (VerificationFailedError, the same not-found error used by
-            POST /verify and POST /replay).
+          description: Your key has no Trust Record with this id.
           content:
             application/json:
               schema:
@@ -4553,8 +4550,8 @@ paths:
                     error: Execution Trust Record not found.
                     code: VERIFICATION_FAILED
         "409":
-          description: The Execution Trust Record exists but its latest Verification does
-            not have status VERIFIED (ReceiptGenerationError).
+          description: The record's latest Verification is not `VERIFIED`. Run `POST
+            /verify`, then try again.
           content:
             application/json:
               schema:
@@ -4620,20 +4617,20 @@ paths:
       summary: Get latest Receipt
       operationId: getLatestReceipt
       description: >
-        Returns the most recent Receipt for the Execution Trust Record
-        identified by businessTransactionId. Registered from
-        packages/api/src/routes/receipt-get.ts, whose own internal comment
-        (misleadingly) says "GET /receipt/:id"; the real mounted path, per
-        packages/api/src/app.ts, is /receipt/latest/:id.
+        Returns the most recent Receipt for a Trust Record. `POST /execute`
+        generates one for every executed
+
+        action.
       parameters:
         - name: businessTransactionId
+          description: The transaction's id.
           in: path
           required: true
           schema:
             type: string
       responses:
         "200":
-          description: Receipt found.
+          description: The latest Receipt.
           content:
             application/json:
               schema:
@@ -4652,9 +4649,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          description: Execution Trust Record not found, OR found but has no Receipt yet;
-            both return this exact shape ("Execution Trust Record not found." /
-            "Receipt not found.").
+          description: Your key has no Trust Record with this id, or it has no Receipt yet.
           content:
             application/json:
               schema:
@@ -4712,21 +4707,19 @@ paths:
       summary: Bulk-export Execution Trust Records (compliance/audit)
       operationId: listTrustRecords
       description: >
-        Returns the full, signed Execution Trust Record (transaction,
-        executions, verifications, receipts, authorization) for every
-        transaction on the requested page -- the periodic full-export capability
-        for external audit/compliance review, distinct from GET
-        /trust-records/{businessTransactionId} (single-record lookup) and GET
-        /transactions (raw Business Transaction only, no
-        execution/verification/receipt history). Scoping and pagination mirror
-        GET /transactions exactly: an authenticated caller sees only
-        transactions they submitted, page/pageSize page over the same
-        storage-provider listing GET /transactions uses, and the response is a
-        bare array with no pagination metadata. since/until (ISO 8601)
-        additionally filter by transaction.createdAt for a bounded date-range
-        export.
+        Exports your full, signed Trust Records (transaction, decision,
+        executions, verifications, receipts)
+
+        a page at a time, for audit and compliance. Filter by date with `since`
+        and `until`. Paging works as
+
+        on `GET /transactions`: a bare array, scoped to your key, and a page can
+        hold fewer than `pageSize`
+
+        items.
       parameters:
         - name: page
+          description: Page number, starting at 1. Default 1.
           in: query
           required: false
           schema:
@@ -4734,6 +4727,7 @@ paths:
             minimum: 1
             default: 1
         - name: pageSize
+          description: Items per page before filtering. Default 25.
           in: query
           required: false
           schema:
@@ -4758,8 +4752,7 @@ paths:
             format: date-time
       responses:
         "200":
-          description: Every Execution Trust Record on the requested page (after ownership
-            and date-range filtering).
+          description: Your Trust Records on this page. May be empty.
           content:
             application/json:
               schema:
@@ -5005,20 +4998,23 @@ paths:
       summary: Get Execution Trust Record
       operationId: getTrustRecord
       description: >
-        Returns the complete Execution Trust Record for businessTransactionId
-        (looked up by Business Transaction ID, despite the path segment name;
-        there is no separate trustRecordId lookup).
+        Returns the complete signed Execution Trust Record for a transaction:
+        what was asked, what the
+
+        policy decided, what was executed and the connector's answer, with
+        signatures. Look it up by the
+
+        `businessTransactionId` you chose, not by `trustRecordId`.
       parameters:
         - name: businessTransactionId
           in: path
           required: true
-          description: Business Transaction identifier (not the Trust Record's own
-            trustRecordId).
+          description: The transaction's id, not the record's `trustRecordId`.
           schema:
             type: string
       responses:
         "200":
-          description: Execution Trust Record found.
+          description: The Trust Record.
           content:
             application/json:
               schema:
@@ -5154,7 +5150,8 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          description: Execution Trust Record not found.
+          description: Your key has no Trust Record with this id. A refused transaction
+            has a Refusal Record instead.
           content:
             application/json:
               schema:
@@ -5209,14 +5206,13 @@ paths:
       summary: Replay an Execution Trust Record
       operationId: replayTransaction
       description: >
-        Re-verifies the stored signature on the Execution Trust Record for
-        businessTransactionId and returns its hash alongside the verification
-        result. Does not re-run Policy evaluation or re-execute anything. See
-        ExecutionTrustApplication.replay. When businessTransactionId does not
-        correspond to any Execution Trust Record, this throws
-        VerificationFailedError (the same not-found error used by POST /verify),
-        which the shared error handler maps to a 404 naming the missing
-        resource. See the 404 response and its notFound example.
+        Verifies the stored signature on a Trust Record and returns its hash
+        with the result. It does not
+
+        evaluate the policy again and does not execute anything. Nothing is
+        appended to the record; for a
+
+        recorded check use `POST /verify`.
       requestBody:
         required: true
         content:
@@ -5230,7 +5226,8 @@ paths:
                   businessTransactionId: 44b34a79-e0f2-49d7-a48e-e52fff88182e
       responses:
         "200":
-          description: Replay completed.
+          description: The check ran. Read `verified`; a `200` alone does not mean the
+            signature verified.
           content:
             application/json:
               schema:
@@ -5243,7 +5240,7 @@ paths:
                     trustRecordHash: e20a8861864f1a0a6c5fe00e64abca04de18a7d165a82ef9d7beb458c2096b3f
                     verified: true
         "400":
-          description: businessTransactionId missing.
+          description: "`businessTransactionId` is missing."
           content:
             application/json:
               schema:
@@ -5256,9 +5253,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          description: businessTransactionId does not correspond to any Execution Trust
-            Record (VerificationFailedError, the same not-found error used by
-            POST /verify).
+          description: Your key has no Trust Record with this id.
           content:
             application/json:
               schema:
@@ -5323,31 +5318,33 @@ paths:
       summary: Get the policy a capability's requests must declare right now
       operationId: getPolicyInEffect
       description: >
-        Returns the policy bound to a capability and the version a request for
-        it must declare right now. Where policy governance decides the version
-        (production), it is the version most recently approved for the policy
-        name, so approving a new version changes the answer with no deploy. An
-        agent reads it before sending instead of writing a version into its
-        code. It is the same rule POST /execute enforces, so a request declaring
-        this policy passes that check; the request is still checked. The answer
-        also says what a request must carry, without the rules: the policy's
-        description and its signal requirements (every fact the rules read,
-        their declared types, the facts that must equal a value of the Intent,
-        and the facts that need a signed approval with what that approval
-        names). Rule conditions are not returned; the description is the policy
-        author's text. Allowed for a caller whose key may invoke the capability,
-        and for human callers. See packages/api/src/routes/policy-in-effect.ts.
+        Tells an agent what a request for a capability must declare and carry
+        right now: the policy name and
+
+        version, the policy's description, and its signals (every fact the rules
+        read with its type, the
+
+        facts that must equal a value of the intent, and the facts that need a
+        signed human approval with
+
+        what that approval must name). Call it before every `POST /execute`
+        instead of hard coding a version:
+
+        approving a new version changes the answer with no deploy. The rule
+        conditions are never returned.
+
+        Allowed for a key that may invoke the capability, and for human keys.
       parameters:
         - name: capability
           in: query
           required: true
-          description: The capability, the Intent action, for example paytm:refund.
+          description: The action, as in `intent.action`, for example `paytm:refund`.
           schema:
             type: string
           example: paytm:refund
       responses:
         "200":
-          description: The policy to declare.
+          description: What to declare and carry.
           content:
             application/json:
               schema:
@@ -5454,7 +5451,7 @@ paths:
                           resourceId: parameters.orderId
                           value: parameters.amount
         "400":
-          description: The capability query parameter is missing.
+          description: The `capability` query parameter is missing.
           content:
             application/json:
               schema:
@@ -5467,7 +5464,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: The key may not invoke this capability (code CAPABILITY_NOT_ALLOWED).
+          description: "`CAPABILITY_NOT_ALLOWED`: your key may not invoke this capability."
           content:
             application/json:
               schema:
@@ -5479,7 +5476,8 @@ paths:
                     error: Caller is not permitted to invoke this capability.
                     code: CAPABILITY_NOT_ALLOWED
         "404":
-          description: No policy is bound to this capability (code CAPABILITY_NOT_BOUND).
+          description: "`CAPABILITY_NOT_BOUND`: no policy is bound to this capability, so
+            no request for it can succeed."
           content:
             application/json:
               schema:
@@ -5491,8 +5489,9 @@ paths:
                     error: No policy is bound to capability "test:fixture-execute".
                     code: CAPABILITY_NOT_BOUND
         "409":
-          description: No version of the bound policy has been approved, so every request
-            for the capability is refused (code NO_APPROVED_POLICY_VERSION).
+          description: "`NO_APPROVED_POLICY_VERSION`: no version of the bound policy has
+            been approved yet, so every request is refused. A person must
+            propose and approve one."
           content:
             application/json:
               schema:
@@ -5506,9 +5505,8 @@ paths:
                       requires, has been approved through policy governance.'
                     code: NO_APPROVED_POLICY_VERSION
         "503":
-          description: The version in effect, or the policy itself, could not be read, so
-            every request for the capability is refused meanwhile (code
-            POLICY_VERSION_UNAVAILABLE).
+          description: "`POLICY_VERSION_UNAVAILABLE`: the version in effect could not be
+            read, so every request is refused meanwhile. Retry later."
           content:
             application/json:
               schema:
@@ -5563,15 +5561,13 @@ paths:
       summary: Validate that a Policy exists and is readable
       operationId: validatePolicy
       description: >
-        Checks that policies/{policyId}/{policyVersion}/policy.json exists and
-        parses. Does NOT use the shared Error envelope for its failure
-        responses: every status code (200, 400, 404) returns the same {valid,
-        errors} shape. Field checks run in order: policyId first, then
-        policyVersion; the first missing/empty field short-circuits with its own
-        message. The one exception is 401: caller authentication runs in
-        middleware, before this handler is ever reached, so a rejected caller
-        gets the shared Error envelope ({"error": "authentication required"}),
-        not {valid, errors}.
+        Checks that this server can load a policy at a name and version, the
+        same lookup a request uses.
+
+        Unlike other routes, every answer, success or failure, has the shape `{
+        valid, errors }`; only a
+
+        `401` uses the usual error body.
       requestBody:
         required: true
         content:
@@ -5591,7 +5587,7 @@ paths:
                   policyVersion: 9.9.9
       responses:
         "200":
-          description: Policy exists and is readable.
+          description: The policy exists and loads.
           content:
             application/json:
               schema:
@@ -5603,7 +5599,8 @@ paths:
                     valid: true
                     errors: []
         "400":
-          description: policyId or policyVersion missing/empty.
+          description: "`policyId` or `policyVersion` is missing or empty. Checked in that
+            order."
           content:
             application/json:
               schema:
@@ -5618,9 +5615,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
-          description: No policy.json exists at the requested name/version
-            (PolicyNotFoundError, caught locally and re-shaped, not routed
-            through the shared error handler).
+          description: No policy exists at this name and version.
           content:
             application/json:
               schema:
@@ -5682,25 +5677,30 @@ paths:
       summary: Propose a policy change (maker)
       operationId: proposePolicyChange
       description: >
-        Proposes a change to a policy's content (Policy Governance,
-        maker-checker). {version} is the existing version this proposal is a
-        change against ("the version being replaced"); proposedContent's own
-        policyVersion may equal it (an in-place content patch) or differ (a
-        version bump). Requires a human-authenticated caller
-        (credentialHolderType USER); a SERVICE-credentialed or unverified caller
-        is denied with 403 NON_HUMAN_CALLER_DENIED, and a signed
-        caller.non_human_denied audit event is recorded. proposedContent is
-        validated with the same rules POST /policies/validate checks, plus:
-        proposedContent.policyId must equal {name}, and
-        proposedContent.policyVersion must match ^[A-Za-z0-9._-]+$.
+        Proposes new content for a policy, the maker's step in maker checker
+        governance. Nothing changes
+
+        until a different person approves it. `{version}` is the version this
+        proposal changes;
+
+        `proposedContent.policyVersion` may be the same (a correction) or new (a
+        new version). The content is
+
+        checked as `POST /policies/validate` would, and
+        `proposedContent.policyId` must equal `{name}`. Needs
+
+        a human key. See [Policy lifecycle and
+        approvals](/guides/policy-lifecycle-and-approvals).
       parameters:
         - name: name
+          description: The policy name, for example `customer-refund`.
           in: path
           required: true
           schema:
             type: string
             pattern: ^[A-Za-z0-9._-]+$
         - name: version
+          description: The version this proposal changes, for example `1.2.0`.
           in: path
           required: true
           schema:
@@ -5714,7 +5714,7 @@ paths:
               $ref: "#/components/schemas/propose-policy-change-request.schema"
       responses:
         "201":
-          description: Pending Policy Change created.
+          description: Proposed and waiting for a checker. Keep the `pendingPolicyChangeId`.
           content:
             application/json:
               schema:
@@ -5742,8 +5742,8 @@ paths:
                     status: PENDING_APPROVAL
                     reason: Capture a real Pending Policy Change for the OpenAPI spec
         "400":
-          description: name/version pattern invalid, reason missing, proposedContent
-            malformed, or proposedContent fails Policy validation.
+          description: The name or version is malformed, `reason` is missing, or the
+            content is not a valid policy. The message says which.
           content:
             application/json:
               schema:
@@ -5756,7 +5756,8 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: Caller is not human-credentialed (NON_HUMAN_CALLER_DENIED).
+          description: "`NON_HUMAN_CALLER_DENIED`: this needs a human key. The attempt is
+            recorded in the audit trail."
           content:
             application/json:
               schema:
@@ -5839,13 +5840,16 @@ paths:
       summary: List pending policy changes (maker-checker)
       operationId: listPendingPolicyChanges
       description: >
-        Lists Pending Policy Changes, each alongside a diff view: current (the
-        live content at (policyName, policyVersion) today, or null if that
-        version has never been published) and proposed (the change's own
-        proposedContent). Requires a human-authenticated caller, the same
-        discipline as POST .../pending-changes.
+        Lists policy changes with a diff: the content in effect today
+        (`current`, or `null` for a new version)
+
+        next to the proposed content. A checker uses `status=PENDING_APPROVAL`
+        to find what waits for review.
+
+        Needs a human key.
       parameters:
         - name: status
+          description: "`PENDING_APPROVAL`, `APPROVED` or `REJECTED`. Omit for all."
           in: query
           required: false
           schema:
@@ -5856,7 +5860,7 @@ paths:
               - REJECTED
       responses:
         "200":
-          description: Pending Policy Changes, with diff.
+          description: The changes with their diffs.
           content:
             application/json:
               schema:
@@ -5898,8 +5902,7 @@ paths:
                                   action: approve
                                   reason: OpenAPI spec capture fixture
         "400":
-          description: status query param is not one of PENDING_APPROVAL, APPROVED,
-            REJECTED.
+          description: "`status` is not `PENDING_APPROVAL`, `APPROVED` or `REJECTED`."
           content:
             application/json:
               schema:
@@ -5912,7 +5915,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: Caller is not human-credentialed (NON_HUMAN_CALLER_DENIED).
+          description: "`NON_HUMAN_CALLER_DENIED`: this needs a human key."
           content:
             application/json:
               schema:
@@ -5965,20 +5968,25 @@ paths:
       summary: Approve a pending policy change (checker)
       operationId: approvePolicyChange
       description: >
-        Approves a Pending Policy Change (checker). Requires, in order, all
-        fail-closed: a human-authenticated caller distinct from the proposer
-        (maker != checker, 403 SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE otherwise),
-        and a valid step-up authorization envelope proving fresh, explicit
-        intent (403 STEP_UP_AUTHORIZATION_INVALID on a missing, malformed,
-        expired, replayed, wrong-id, wrong-action, or wrong-key-signed
-        envelope). Once both pass, this writes the live
-        policies/{policyName}/{policyVersion}/policy.json file and records a
-        signed PolicyChangeApprovalRecord BEFORE marking the change APPROVED, so
-        a failure partway through never leaves a pending change falsely resolved
-        with no corresponding live effect. Per-check step-up diagnostic detail
-        is logged server-side only, never in this response.
+        Approves a policy change, the checker's step, and puts it into effect.
+        Checked in order: a human key,
+
+        not the person who proposed it, and a step up authorization signed with
+        your step up key for this
+
+        change id and action `approve`, valid once. The policy is written and a
+        signed approval record is
+
+        kept before the change is marked approved, so a failure never leaves a
+        change approved without
+
+        effect. The next request for the bound capability must declare the
+        approved version. See
+
+        [Policy governance](/guides/policy-governance-maker-checker).
       parameters:
         - name: id
+          description: The `pendingPolicyChangeId` from the proposal.
           in: path
           required: true
           schema:
@@ -5991,7 +5999,7 @@ paths:
               $ref: "#/components/schemas/approve-policy-change-request.schema"
       responses:
         "200":
-          description: Approved. The live policy.json file has been written.
+          description: Approved and in effect.
           content:
             application/json:
               schema:
@@ -6023,8 +6031,11 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: NON_HUMAN_CALLER_DENIED, SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE, or
-            STEP_UP_AUTHORIZATION_INVALID.
+          description: "`NON_HUMAN_CALLER_DENIED` (needs a human key),
+            `SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE` (the proposer cannot
+            approve), or `STEP_UP_AUTHORIZATION_INVALID` (missing, expired,
+            reused, or signed for another change, action or key; sign a new
+            one)."
           content:
             application/json:
               schema:
@@ -6044,7 +6055,7 @@ paths:
                       replayed, or does not match this request.
                     code: STEP_UP_AUTHORIZATION_INVALID
         "404":
-          description: No Pending Policy Change exists for this id.
+          description: No policy change has this id.
           content:
             application/json:
               schema:
@@ -6056,9 +6067,8 @@ paths:
                     error: Pending Policy Change '00000000-0000-0000-0000-000000000000' not found.
                     code: PENDING_POLICY_CHANGE_NOT_FOUND
         "500":
-          description: Server misconfigured, no PolicyChangeApprovalService provided.
-            Fails closed, never marks the change APPROVED without applying its
-            live effect.
+          description: The server is misconfigured and cannot apply policy changes. The
+            change stays pending; nothing was written.
           content:
             application/json:
               schema:
@@ -6150,12 +6160,13 @@ paths:
       summary: Reject a pending policy change (checker)
       operationId: rejectPolicyChange
       description: >
-        Rejects a Pending Policy Change (checker). Same discipline as approve
-        (human, maker != checker, step-up authorization), but never touches the
-        live policy file, a rejection is purely a repository state transition
-        with no PolicyChangeApprovalRecord of its own.
+        Rejects a policy change. The policy in effect does not change. The same
+        checks as approve, with a
+
+        step up authorization for action `reject` and a `rejectionReason`.
       parameters:
         - name: id
+          description: The `pendingPolicyChangeId` from the proposal.
           in: path
           required: true
           schema:
@@ -6168,7 +6179,7 @@ paths:
               $ref: "#/components/schemas/reject-policy-change-request.schema"
       responses:
         "200":
-          description: Rejected.
+          description: Rejected. The policy in effect did not change.
           content:
             application/json:
               schema:
@@ -6199,7 +6210,7 @@ paths:
                     resolvedAt: 2026-09-15T03:48:21.422Z
                     rejectionReason: Does not meet the bar for this fixture
         "400":
-          description: rejectionReason missing or empty.
+          description: "`rejectionReason` is missing or empty."
           content:
             application/json:
               schema:
@@ -6212,8 +6223,8 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: NON_HUMAN_CALLER_DENIED, SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE, or
-            STEP_UP_AUTHORIZATION_INVALID.
+          description: "`NON_HUMAN_CALLER_DENIED`, `SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE`
+            or `STEP_UP_AUTHORIZATION_INVALID`, as on approve."
           content:
             application/json:
               schema:
@@ -6227,7 +6238,7 @@ paths:
                       approve or reject it (checker).
                     code: SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE
         "404":
-          description: No Pending Policy Change exists for this id.
+          description: No policy change has this id.
           content:
             application/json:
               schema:
@@ -6315,12 +6326,17 @@ paths:
       summary: List approver keys
       operationId: listApprovalIssuers
       description: >
-        Every approver key the server trusts, or trusted, to sign approvals for
-        policies that declare approvalSignals. Keys listed in the server code
-        come first (source code), then keys added through approver changes
-        (source governed). Revoked keys are included and marked, so the list
-        explains every approval ever verified. Requires a human credential
-        (credentialHolderType USER).
+        Lists every approver key the server trusts, or once trusted, to sign
+        human approvals for policies
+
+        that require one. Keys in the server code come first (`source: code`),
+        then keys added through
+
+        approver changes (`source: governed`). Revoked keys stay listed and
+        marked, so every approval ever
+
+        accepted can be explained. Needs a human key. See [Manage
+        approvers](/guides/manage-approvers).
       responses:
         "200":
           description: The approver keys.
@@ -6354,7 +6370,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: The caller is not a human credential (NON_HUMAN_CALLER_DENIED).
+          description: "`NON_HUMAN_CALLER_DENIED`: this needs a human key."
           content:
             application/json:
               schema:
@@ -6407,13 +6423,16 @@ paths:
       summary: Propose adding or revoking an approver key
       operationId: proposeApprovalIssuerChange
       description: >
-        Proposes adding an approver key (action add, with the approver Ed25519
-        public key) or revoking a key added this way (action revoke). Nothing
-        changes until a different person approves the proposal. Requires a human
-        credential. A key listed in the server code is refused (409): change
-        those with a pull request. A key id that already exists, revoked or not,
-        cannot be added again: rotate by adding a new key id, then revoking the
-        old one.
+        Proposes trusting a new approver key (`add`, with its Ed25519 public
+        key) or revoking one added this
+
+        way (`revoke`). Nothing changes until a different person approves it.
+        Keys in the server code change
+
+        only through a pull request. A key id can be added once: to rotate, add
+        a new key id, then revoke the
+
+        old one. Needs a human key.
       requestBody:
         required: true
         content:
@@ -6422,7 +6441,7 @@ paths:
               $ref: "#/components/schemas/propose-approval-issuer-change-request.schema"
       responses:
         "201":
-          description: Proposed, PENDING_APPROVAL.
+          description: Proposed and waiting for a checker. Keep the `changeId`.
           content:
             application/json:
               schema:
@@ -6455,10 +6474,10 @@ paths:
                     proposedAt: 2026-09-28T19:05:59.750Z
                     status: PENDING_APPROVAL
         "400":
-          description: action is not add or revoke; approverId or keyId does not match
-            ^[A-Za-z0-9._-]{{1,128}}$; reason is missing or longer than 2000
-            characters; publicKeyPem is not an Ed25519 public key (add) or is
-            present (revoke).
+          description: "`action` is not `add` or `revoke`, `approverId` or `keyId` is not
+            1 to 128 letters, digits, dots, underscores or hyphens, `reason` is
+            missing or over 2000 characters, or `publicKeyPem` is not an Ed25519
+            public key (on add) or is present (on revoke)."
           content:
             application/json:
               schema:
@@ -6472,7 +6491,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: The caller is not a human credential (NON_HUMAN_CALLER_DENIED).
+          description: "`NON_HUMAN_CALLER_DENIED`: this needs a human key."
           content:
             application/json:
               schema:
@@ -6485,9 +6504,9 @@ paths:
                       (credentialHolderType: USER)."
                     code: NON_HUMAN_CALLER_DENIED
         "409":
-          description: CONFLICT. The key is listed in code, the key to add already exists,
-            the key to revoke is not an active governed key, or another change
-            for this approver and key is pending.
+          description: "`CONFLICT`: the key is in the server code, the key to add already
+            exists, the key to revoke is not an active governed key, or another
+            change for this key is pending."
           content:
             application/json:
               schema:
@@ -6569,11 +6588,13 @@ paths:
       summary: List approver changes
       operationId: listApprovalIssuerChanges
       description: >
-        Approver changes, newest first, optionally filtered by status. A checker
-        uses status=PENDING_APPROVAL to find what waits for review. Requires a
-        human credential.
+        Lists approver changes, newest first. A checker uses
+        `status=PENDING_APPROVAL` to find what waits for
+
+        review. Needs a human key.
       parameters:
         - name: status
+          description: "`PENDING_APPROVAL`, `APPROVED` or `REJECTED`. Omit for all."
           in: query
           required: false
           schema:
@@ -6607,7 +6628,7 @@ paths:
                         proposedAt: 2026-09-28T19:05:59.726Z
                         status: PENDING_APPROVAL
         "400":
-          description: status is not PENDING_APPROVAL, APPROVED or REJECTED.
+          description: "`status` is not `PENDING_APPROVAL`, `APPROVED` or `REJECTED`."
           content:
             application/json:
               schema:
@@ -6620,7 +6641,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: The caller is not a human credential (NON_HUMAN_CALLER_DENIED).
+          description: "`NON_HUMAN_CALLER_DENIED`: this needs a human key."
           content:
             application/json:
               schema:
@@ -6673,19 +6694,24 @@ paths:
       summary: Approve an approver change
       operationId: approveApprovalIssuerChange
       description: >
-        Approves an approver change and applies it in one step: add trusts the
-        key from the next approval checked, revoke refuses every approval the
-        key ever signed from the next request on. Requires, in order: a human
-        credential, not the proposer (403 SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE),
-        and a step up authorization signed with the checker step up key for this
-        change id and action approve, used once (403
-        STEP_UP_AUTHORIZATION_INVALID). It is the same step up authorization
-        policy changes use, with the change id in payload.pendingPolicyChangeId.
+        Approves an approver change and applies it at once: an added key is
+        trusted from the next approval
+
+        checked; a revoked key's approvals are refused from the next request on,
+        including ones it already
+
+        signed. Checked in order: a human key, not the proposer, and a step up
+        authorization for this change
+
+        id and action `approve`, valid once. The step up authorization is the
+        same one policy changes use,
+
+        with the change id in `payload.pendingPolicyChangeId`.
       parameters:
         - name: id
           in: path
           required: true
-          description: The changeId.
+          description: The `changeId` from the proposal.
           schema:
             type: string
       requestBody:
@@ -6737,8 +6763,9 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: NON_HUMAN_CALLER_DENIED, SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE, or
-            STEP_UP_AUTHORIZATION_INVALID.
+          description: "`NON_HUMAN_CALLER_DENIED`, `SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE`
+            or `STEP_UP_AUTHORIZATION_INVALID`. Sign a new step up authorization
+            for this change and action."
           content:
             application/json:
               schema:
@@ -6758,7 +6785,7 @@ paths:
                       replayed, or does not match this request.
                     code: STEP_UP_AUTHORIZATION_INVALID
         "404":
-          description: No approver change has this id (APPROVAL_ISSUER_CHANGE_NOT_FOUND).
+          description: "`APPROVAL_ISSUER_CHANGE_NOT_FOUND`: no approver change has this id."
           content:
             application/json:
               schema:
@@ -6770,9 +6797,9 @@ paths:
                     error: Approver change '00000000-0000-0000-0000-000000000000' not found.
                     code: APPROVAL_ISSUER_CHANGE_NOT_FOUND
         "409":
-          description: CONFLICT. The change is already resolved, the key to add now
+          description: "`CONFLICT`: the change is already resolved, the key to add now
             exists, or the key to revoke is no longer active. Nothing was
-            written.
+            written."
           content:
             application/json:
               schema:
@@ -6856,14 +6883,15 @@ paths:
       summary: Reject an approver change
       operationId: rejectApprovalIssuerChange
       description: >
-        Rejects an approver change. No approver key changes. The same checks as
-        approve, with a step up authorization for action reject, and a
-        rejectionReason.
+        Rejects an approver change. No key changes. The same checks as approve,
+        with a step up authorization
+
+        for action `reject` and a `rejectionReason`.
       parameters:
         - name: id
           in: path
           required: true
-          description: The changeId.
+          description: The `changeId` from the proposal.
           schema:
             type: string
       requestBody:
@@ -6874,7 +6902,7 @@ paths:
               $ref: "#/components/schemas/reject-policy-change-request.schema"
       responses:
         "200":
-          description: Rejected.
+          description: Rejected. No key changed.
           content:
             application/json:
               schema:
@@ -6895,7 +6923,7 @@ paths:
                     resolvedAt: 2026-09-28T19:05:59.753Z
                     rejectionReason: Priya stays on refunds until 31 October.
         "400":
-          description: rejectionReason is missing, empty, or longer than 2000 characters.
+          description: "`rejectionReason` is missing, empty or over 2000 characters."
           content:
             application/json:
               schema:
@@ -6908,8 +6936,8 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: NON_HUMAN_CALLER_DENIED, SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE, or
-            STEP_UP_AUTHORIZATION_INVALID.
+          description: "`NON_HUMAN_CALLER_DENIED`, `SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE`
+            or `STEP_UP_AUTHORIZATION_INVALID`, as on approve."
           content:
             application/json:
               schema:
@@ -6923,7 +6951,7 @@ paths:
                       approve or reject it (checker).
                     code: SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE
         "404":
-          description: No approver change has this id (APPROVAL_ISSUER_CHANGE_NOT_FOUND).
+          description: "`APPROVAL_ISSUER_CHANGE_NOT_FOUND`: no approver change has this id."
           content:
             application/json:
               schema:
@@ -6935,7 +6963,7 @@ paths:
                     error: Approver change '7d5f8a52-0000-4000-8000-000000000000' not found.
                     code: APPROVAL_ISSUER_CHANGE_NOT_FOUND
         "409":
-          description: CONFLICT. The change is already resolved.
+          description: "`CONFLICT`: the change is already resolved."
           content:
             application/json:
               schema:
@@ -7024,11 +7052,16 @@ paths:
       summary: List external connectors
       operationId: listExternalConnectors
       description: >
-        Every external connector registration (ADR-0013), active and revoked:
-        the capability, the HTTPS endpoint Parmana releases it to, the policy
-        that governs it, and the parameters Parmana forwards. Revoked
+        Lists every external connector registration, active and revoked: the
+        capability, the HTTPS endpoint
+
+        Parmana releases it to, the policy that governs it and the parameters
+        forwarded. Revoked
+
         registrations stay listed, so every release ever made can be explained.
-        Requires a human credential (credentialHolderType USER).
+        Needs a human key. See
+
+        [Connect any external system](/guides/connect-any-external-system).
       responses:
         "200":
           description: The registrations.
@@ -7072,7 +7105,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: The caller is not a human credential (NON_HUMAN_CALLER_DENIED).
+          description: "`NON_HUMAN_CALLER_DENIED`: this needs a human key."
           content:
             application/json:
               schema:
@@ -7130,17 +7163,28 @@ paths:
       summary: Propose registering or revoking an external connector
       operationId: proposeExternalConnectorChange
       description: >
-        Proposes registering an external connector (action register: a
+        Proposes connecting your own system to Parmana with no Parmana code
+        change: `register` names a
+
         capability, the HTTPS endpoint to release it to, the policy that governs
-        it, the parameters to forward, and optionally a timeout) or revoking the
-        active one for a capability (action revoke). Nothing changes until a
-        different person approves the proposal. Requires a human credential. A
-        capability in a built in connector's namespace (paytm, hubspot, github,
-        slack, test) is refused. The endpoint must be https, name a host with a
-        domain (not an IP address, not localhost), carry no user name, password
-        or fragment, and resolve only to public addresses; the address is
-        checked again when the change is approved. To move a capability to a new
-        endpoint, revoke the registration, then register the new one.
+        it, the parameters to
+
+        forward and optionally a timeout; `revoke` ends the active registration
+        for a capability. Nothing
+
+        changes until a different person approves it. The endpoint must be
+        `https`, name a domain (not an IP
+
+        address or localhost), carry no user name, password or fragment, and
+        resolve only to public
+
+        addresses; the address is checked again on approval and at every
+        release. Capabilities in a built in
+
+        namespace (`paytm`, `hubspot`, `github`, `slack`, `test`) are refused.
+        To move a capability, revoke
+
+        it, then register the new endpoint. Needs a human key.
       requestBody:
         required: true
         content:
@@ -7169,7 +7213,7 @@ paths:
                   reason: The ERP endpoint moves to a new host.
       responses:
         "201":
-          description: Proposed, PENDING_APPROVAL.
+          description: Proposed and waiting for a checker. Keep the `changeId`.
           content:
             application/json:
               schema:
@@ -7203,11 +7247,11 @@ paths:
                     proposedAt: 2026-09-30T17:25:46.418Z
                     status: PENDING_APPROVAL
         "400":
-          description: INVALID_EXTERNAL_CONNECTOR (a field is missing or malformed, the
-            namespace belongs to a built in connector, or a revoke carries
-            registration fields) or EXTERNAL_ENDPOINT_ADDRESS_REFUSED (the
-            endpoint is not https, names an IP address or localhost, or resolves
-            to an address that is not public, or does not resolve).
+          description: "`INVALID_EXTERNAL_CONNECTOR`: a field is missing or malformed, the
+            namespace is built in, or a revoke carries registration fields.
+            `EXTERNAL_ENDPOINT_ADDRESS_REFUSED`: the endpoint is not https,
+            names an IP address or localhost, resolves to an address that is not
+            public, or does not resolve."
           content:
             application/json:
               schema:
@@ -7255,7 +7299,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: The caller is not a human credential (NON_HUMAN_CALLER_DENIED).
+          description: "`NON_HUMAN_CALLER_DENIED`: this needs a human key."
           content:
             application/json:
               schema:
@@ -7268,9 +7312,9 @@ paths:
                       (credentialHolderType: USER)."
                     code: NON_HUMAN_CALLER_DENIED
         "409":
-          description: CONFLICT. The capability to register already has an active
-            registration, the capability to revoke has none, or another change
-            for this capability is pending.
+          description: "`CONFLICT`: the capability already has an active registration (to
+            register) or has none (to revoke), or another change for it is
+            pending."
           content:
             application/json:
               schema:
@@ -7374,11 +7418,13 @@ paths:
       summary: List external connector changes
       operationId: listExternalConnectorChanges
       description: >
-        External connector changes, newest first, optionally filtered by status.
-        A checker uses status=PENDING_APPROVAL to find what waits for review.
-        Requires a human credential.
+        Lists external connector changes, newest first. A checker uses
+        `status=PENDING_APPROVAL` to find what
+
+        waits for review. Needs a human key.
       parameters:
         - name: status
+          description: "`PENDING_APPROVAL`, `APPROVED` or `REJECTED`. Omit for all."
           in: query
           required: false
           schema:
@@ -7444,7 +7490,7 @@ paths:
                         resolvedBy: human-checker
                         resolvedAt: 2026-09-30T19:03:21.535Z
         "400":
-          description: status is not PENDING_APPROVAL, APPROVED or REJECTED.
+          description: "`status` is not `PENDING_APPROVAL`, `APPROVED` or `REJECTED`."
           content:
             application/json:
               schema:
@@ -7457,7 +7503,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: The caller is not a human credential (NON_HUMAN_CALLER_DENIED).
+          description: "`NON_HUMAN_CALLER_DENIED`: this needs a human key."
           content:
             application/json:
               schema:
@@ -7515,21 +7561,27 @@ paths:
       summary: Approve an external connector change
       operationId: approveExternalConnectorChange
       description: >
-        Approves an external connector change and applies it in one step:
-        register makes the registration active, revoke ends it. For a register,
-        the endpoint's address is checked again first, so a DNS change since the
-        proposal cannot point it at a private address. Requires, in order: a
-        human credential, not the proposer (403
-        SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE), and a step up authorization
-        signed with the checker step up key for this change id and action
-        approve, used once (403 STEP_UP_AUTHORIZATION_INVALID). It is the same
-        step up authorization policy changes use, with the change id in
-        payload.pendingPolicyChangeId.
+        Approves an external connector change and applies it at once: `register`
+        makes the registration
+
+        active, `revoke` ends it. For a register, the endpoint's address is
+        checked again first, so a DNS
+
+        change since the proposal cannot point it at a private address. Checked
+        in order: a human key, not
+
+        the proposer, and a step up authorization for this change id and action
+        `approve`, valid once, with
+
+        the change id in `payload.pendingPolicyChangeId`. Requests for the
+        capability are refused until a
+
+        version of its policy is approved.
       parameters:
         - name: id
           in: path
           required: true
-          description: The changeId.
+          description: The `changeId` from the proposal.
           schema:
             type: string
       requestBody:
@@ -7593,10 +7645,10 @@ paths:
                     resolvedBy: human-checker
                     resolvedAt: 2026-09-30T19:03:21.554Z
         "400":
-          description: EXTERNAL_ENDPOINT_ADDRESS_REFUSED. The endpoint now resolves to an
-            address that is not public, or does not resolve. The change stays
-            pending; reject it or fix the DNS and approve again with a new step
-            up authorization.
+          description: "`EXTERNAL_ENDPOINT_ADDRESS_REFUSED`: the endpoint now resolves to
+            an address that is not public, or does not resolve. The change stays
+            pending; fix the DNS and approve with a new step up authorization,
+            or reject it."
           content:
             application/json:
               schema:
@@ -7612,8 +7664,9 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: NON_HUMAN_CALLER_DENIED, SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE, or
-            STEP_UP_AUTHORIZATION_INVALID.
+          description: "`NON_HUMAN_CALLER_DENIED`, `SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE`
+            or `STEP_UP_AUTHORIZATION_INVALID`. Sign a new step up authorization
+            for this change and action."
           content:
             application/json:
               schema:
@@ -7627,8 +7680,8 @@ paths:
                       not also approve or reject it (checker).
                     code: SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE
         "404":
-          description: No external connector change has this id
-            (EXTERNAL_CONNECTOR_CHANGE_NOT_FOUND).
+          description: "`EXTERNAL_CONNECTOR_CHANGE_NOT_FOUND`: no external connector
+            change has this id."
           content:
             application/json:
               schema:
@@ -7641,9 +7694,9 @@ paths:
                       found.
                     code: EXTERNAL_CONNECTOR_CHANGE_NOT_FOUND
         "409":
-          description: CONFLICT. The change is already resolved, the capability to
-            register now has an active registration, or the capability to revoke
-            no longer has one. Nothing was written.
+          description: "`CONFLICT`: the change is already resolved, the capability now has
+            an active registration (register) or no longer has one (revoke).
+            Nothing was written."
           content:
             application/json:
               schema:
@@ -7740,13 +7793,14 @@ paths:
       operationId: rejectExternalConnectorChange
       description: >
         Rejects an external connector change. No registration changes. The same
-        checks as approve, with a step up authorization for action reject, and a
-        rejectionReason.
+        checks as approve, with a
+
+        step up authorization for action `reject` and a `rejectionReason`.
       parameters:
         - name: id
           in: path
           required: true
-          description: The changeId.
+          description: The `changeId` from the proposal.
           schema:
             type: string
       requestBody:
@@ -7757,7 +7811,7 @@ paths:
               $ref: "#/components/schemas/reject-policy-change-request.schema"
       responses:
         "200":
-          description: Rejected.
+          description: Rejected. No registration changed.
           content:
             application/json:
               schema:
@@ -7796,7 +7850,7 @@ paths:
                     resolvedAt: 2026-09-30T19:03:21.549Z
                     rejectionReason: The CRM host moved inside the office network.
         "400":
-          description: rejectionReason is missing, empty, or longer than 2000 characters.
+          description: "`rejectionReason` is missing, empty or over 2000 characters."
           content:
             application/json:
               schema:
@@ -7809,8 +7863,8 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
-          description: NON_HUMAN_CALLER_DENIED, SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE, or
-            STEP_UP_AUTHORIZATION_INVALID.
+          description: "`NON_HUMAN_CALLER_DENIED`, `SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE`
+            or `STEP_UP_AUTHORIZATION_INVALID`, as on approve."
           content:
             application/json:
               schema:
@@ -7824,8 +7878,8 @@ paths:
                       not also approve or reject it (checker).
                     code: SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE
         "404":
-          description: No external connector change has this id
-            (EXTERNAL_CONNECTOR_CHANGE_NOT_FOUND).
+          description: "`EXTERNAL_CONNECTOR_CHANGE_NOT_FOUND`: no external connector
+            change has this id."
           content:
             application/json:
               schema:
@@ -7838,7 +7892,7 @@ paths:
                       found.
                     code: EXTERNAL_CONNECTOR_CHANGE_NOT_FOUND
         "409":
-          description: CONFLICT. The change is already resolved.
+          description: "`CONFLICT`: the change is already resolved."
           content:
             application/json:
               schema:
@@ -10666,9 +10720,8 @@ components:
         top-level description. See /api-reference/authentication.
   responses:
     Unauthorized:
-      description: Missing or invalid caller credential (StaticKeyAuthenticator
-        returned no identity). Real captured response,
-        packages/api/src/middleware/caller-auth.ts.
+      description: The `Authorization` header is missing, is not a bearer key, or
+        names a key the server does not know. Nothing ran. Send a valid key.
       content:
         application/json:
           schema:
@@ -10679,13 +10732,12 @@ components:
               value:
                 error: authentication required
     RateLimited:
-      description: The caller exceeded the per minute limit on this route
-        (RATE_LIMIT_EXECUTE_PER_MINUTE, default 30 per authenticated caller, on
-        /execute; RATE_LIMIT_HEALTH_PER_MINUTE, default 300 per IP address, on
-        /health and /ready; RATE_LIMIT_PUBLIC_PER_MINUTE, default 60 per IP
-        address, shared by the unauthenticated verify routes and /handbook). The
+      description: Too many requests from this caller on this route in the last
+        minute. The default limits are 30 per caller per minute on `/execute`,
+        300 per IP address on `/health` and `/ready`, and 60 per IP address
+        shared by the unauthenticated verification and handbook routes. The
         request never reached the handler, so nothing was recorded or executed.
-        Wait the number of seconds in the Retry-After header, then retry.
+        Wait the number of seconds in the `Retry-After` header, then retry.
       headers:
         Retry-After:
           description: Seconds to wait before retrying.
@@ -10702,18 +10754,14 @@ components:
                 error: Rate limit exceeded. Try again later.
                 code: RATE_LIMITED
     SigningUnavailable:
-      description: "The action was refused BEFORE it was released, so nothing was
-        executed. Code SIGNING_UNAVAILABLE: the runtime could not prove it can
-        sign an Execution Trust Record. Code AUDIT_UNAVAILABLE: the caller
-        authentication audit trail could not be written. In both cases retry
-        later with a new businessTransactionId, because the original was already
-        accepted. Code CONNECTOR_NOT_REGISTERED: no connector is registered for
-        the action on this deployment, usually because its credentials were
-        never configured. The operator must configure the connector first, then
-        retry with a new businessTransactionId. Code
-        EXECUTION_INTENT_UNAVAILABLE: the signed Execution Intent for this
-        transaction could not be signed and stored, so nothing was released
-        (ADR-0012). Retry later with a new businessTransactionId."
+      description: "Refused before release: nothing was executed.
+        `SIGNING_UNAVAILABLE`: the server could not prove it can sign a Trust
+        Record. `AUDIT_UNAVAILABLE`: the caller audit trail could not be
+        written. `EXECUTION_INTENT_UNAVAILABLE`: the signed Execution Intent
+        could not be stored. For these three, retry later with a new
+        `businessTransactionId`, because the first one was already accepted.
+        `CONNECTOR_NOT_REGISTERED`: no connector is configured for this action
+        on this deployment; the operator must configure it before any retry."
       content:
         application/json:
           schema:

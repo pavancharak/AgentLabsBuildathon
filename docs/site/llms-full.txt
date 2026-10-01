@@ -4291,16 +4291,17 @@ Source: https://docs.parmanasystems.com/api-reference/authentication
 
 ## Send a bearer key
 
-Every route requires `Authorization: Bearer <key>` except `GET /health`, `GET /ready`,
-`GET /openapi.yaml`, `GET /openapi.json`, `GET /api-manifest.json`, `GET /documentation`, and
-`GET /reference` (liveness/readiness probes, API documentation, and machine-readable
-discovery), `POST /refusal/verify` and `POST /audit/verify` (unauthenticated,
-independently third-party-verifiable signature checks; a credential-gated route
-cannot be how a party with no Parmana credential verifies a signature), and, added
-2026-09-11 for the same reason, `GET /keys/:keyId` and `GET /.well-known/jwks.json`
-(public-key discovery, see [Verify a trust record
-independently](/guides/verify-independently)). All mounted ahead of the caller-auth
-middleware in `packages/api/src/app.ts`; every other route sits behind it.
+Every route requires `Authorization: Bearer <key>` except these, which need no key:
+
+| Routes                                                                                                                            | Why no key                                                                                                                                                 |
+| --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /health`, `GET /ready`                                                                                                       | Probes: an orchestrator has no key to present.                                                                                                             |
+| `GET /openapi.yaml`, `GET /openapi.json`, `GET /api-manifest.json`, `GET /documentation`, `GET /reference`                        | Discovery: a client reads how to use the API before it has a key.                                                                                          |
+| `POST /refusal/verify`, `POST /execution-intents/verify`, `POST /audit/verify`, `GET /keys/{keyId}`, `GET /.well-known/jwks.json` | Independent verification: anyone holding a signed artifact can check it with no Parmana account. See [Verify independently](/guides/verify-independently). |
+| `GET /parmana-handbook.pdf`, `GET /handbook/download-leads`, `POST /handbook/download-leads`                                      | The handbook download, for visitors.                                                                                                                       |
+
+These are mounted ahead of the caller authentication middleware in `packages/api/src/app.ts`;
+every other route sits behind it.
 
 ```bash
 curl http://localhost:3000/version \
