@@ -16,6 +16,7 @@ import { createPolicyChangeStepUpVerifier } from "../packages/api/dist/bootstrap
 import { createPolicyChangeApprovalService } from "../packages/api/dist/bootstrap/createPolicyChangeApprovalService.js";
 import { runPolicyGovernanceIntegrityCheckAtStartup } from "../packages/api/dist/bootstrap/runPolicyGovernanceIntegrityCheckAtStartup.js";
 import { createRateLimitStore } from "../packages/api/dist/bootstrap/createRateLimitStore.js";
+import { createSandboxOptions } from "../packages/api/dist/bootstrap/createSandboxOptions.js";
 import { createApp } from "../packages/api/dist/app.js";
 
 /**
@@ -50,6 +51,10 @@ import { createApp } from "../packages/api/dist/app.js";
 assertStorageConfigured();
 assertSigningKeyMaterialConfigured();
 
+// ADR-0014: PARMANA_CORS_ORIGINS and sandbox mode, refused at startup
+// when unsafe (see createSandboxOptions).
+const sandbox = createSandboxOptions();
+
 type App = Awaited<ReturnType<typeof buildApp>>;
 
 let appPromise: Promise<App> | undefined;
@@ -83,6 +88,10 @@ async function buildApp() {
           stepUpVerifier: createPolicyChangeStepUpVerifier(),
           policyChangeApprovalService: createPolicyChangeApprovalService(),
         }),
+    ...(sandbox.sandboxApprover
+      ? { sandboxApprover: sandbox.sandboxApprover }
+      : {}),
+    corsOrigins: sandbox.corsOrigins,
   });
 
   runPolicyGovernanceIntegrityCheckAtStartup();

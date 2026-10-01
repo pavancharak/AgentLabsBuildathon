@@ -163,6 +163,9 @@ This file is generated from the documentation navigation. Do not edit it by hand
 * [Propose registering or revoking an external connector](https://docs.parmanasystems.com/api-reference/endpoints/propose-external-connector-change): Proposes connecting your own system to Parmana with no Parmana code change: `register` names a capability, the HTTPS endpoint to release it to, the policy that governs it, the parameters to forward and optionally a timeout; `revoke` ends...
 * [Approve an external connector change](https://docs.parmanasystems.com/api-reference/endpoints/approve-external-connector-change): Approves an external connector change and applies it at once: `register` makes the registration active, `revoke` ends it.
 * [Reject an external connector change](https://docs.parmanasystems.com/api-reference/endpoints/reject-external-connector-change): Rejects an external connector change.
+## REST API: Sandbox
+
+* [Get a demo approval (sandbox only)](https://docs.parmanasystems.com/api-reference/endpoints/create-sandbox-approval): **Sandbox only.** Returns an approval signed by the sandbox's demo approver, so you can try an approved request from a browser.
 ## REST API: Refusal Records
 
 * [Verify a Refusal Record's signature](https://docs.parmanasystems.com/api-reference/endpoints/verify-refusal-record): Checks a Refusal Record's signature.

@@ -12,6 +12,16 @@ every commit, run `git log` in the repository for the complete record.
 
 ## 2026-10-01
 
+**Added: browser access and sandbox mode, for the public playground (ADR-0014 step 1)**
+
+- `PARMANA_CORS_ORIGINS`: lets a browser on the listed origins call the API. Unset, as in production today, no CORS
+  header is sent.
+- `PARMANA_SANDBOX=true` mounts `POST /sandbox/approvals`: the sandbox's demo approver signs an approval for
+  `sandbox:receipt` only, for one resource, valid 5 minutes, accepted once. The server refuses to start in sandbox mode
+  while any Paytm, HubSpot, Slack or GitHub variable is set or caller authentication is disabled, and refuses the demo
+  approver variables outside sandbox mode.
+- Nothing changes in production unless these variables are set. The sandbox itself is not deployed yet.
+
 **SDK, next release: external connector methods**
 
 - TypeScript: `externalConnectors()`, `proposeExternalConnectorChange()`, `externalConnectorChanges()`,

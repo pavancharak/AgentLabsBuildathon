@@ -1069,6 +1069,44 @@
       ]
     },
     {
+      "name": "Sandbox",
+      "description": "Routes that exist only on the public sandbox (ADR-0014), for trying Parmana from a browser",
+      "item": [
+        {
+          "name": "Get a demo approval (sandbox only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"capability\": \"sandbox:receipt\",\n  \"resourceId\": \"<string>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sandbox/approvals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sandbox",
+                "approvals"
+              ]
+            },
+            "description": "operationId: createSandboxApproval\n\n**Sandbox only.** Returns an approval signed by the sandbox's demo approver, so you can try an approved\nrequest from a browser. In production a person signs every approval with their own key on their own\nmachine; this route does not exist there.\n\nIt signs only for `sandbox:receipt`, for the one `resourceId` you name (the target of the request you will\nsend), valid 5 minutes. Put it in your request's `signals.approvalArtifact`. `POST /execute` checks it like\nany other approval: a trusted approver key, the signature, the capability, the resource and the expiry, and\nit accepts it once. Needs the published demo key."
+          }
+        }
+      ]
+    },
+    {
       "name": "Refusal Records",
       "description": "Durable, signed evidence that a policy decision rejected a transaction (RFC-0021)",
       "item": [

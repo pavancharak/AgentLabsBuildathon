@@ -468,6 +468,10 @@
             ]
           },
           {
+            "group": "Sandbox",
+            "pages": ["api-reference/endpoints/create-sandbox-approval"]
+          },
+          {
             "group": "Refusal Records",
             "pages": [
               "api-reference/endpoints/verify-refusal-record",

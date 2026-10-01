@@ -104,6 +104,9 @@ tags:
   - name: External Connectors
     description: Maker-checker for binding a capability to an operator's HTTPS
       endpoint and its policy, without a deploy (ADR-0013)
+  - name: Sandbox
+    description: Routes that exist only on the public sandbox (ADR-0014), for trying
+      Parmana from a browser
   - name: Refusal Records
     description: Durable, signed evidence that a policy decision rejected a
       transaction (RFC-0021)
@@ -7947,6 +7950,162 @@ paths:
             )
 
             print(change.status)
+  /sandbox/approvals:
+    post:
+      tags:
+        - Sandbox
+      summary: Get a demo approval (sandbox only)
+      operationId: createSandboxApproval
+      description: >
+        **Sandbox only.** Returns an approval signed by the sandbox's demo
+        approver, so you can try an approved
+
+        request from a browser. In production a person signs every approval with
+        their own key on their own
+
+        machine; this route does not exist there.
+
+
+        It signs only for `sandbox:receipt`, for the one `resourceId` you name
+        (the target of the request you will
+
+        send), valid 5 minutes. Put it in your request's
+        `signals.approvalArtifact`. `POST /execute` checks it like
+
+        any other approval: a trusted approver key, the signature, the
+        capability, the resource and the expiry, and
+
+        it accepts it once. Needs the published demo key.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/sandbox-approval-request.schema"
+      responses:
+        "201":
+          description: The signed approval. Send it as `signals.approvalArtifact` within 5
+            minutes; it is accepted once.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/signed-approval.schema"
+              examples:
+                approved:
+                  summary: Real captured response
+                  value:
+                    payload:
+                      version: 1
+                      approvalId: f328a67e-a527-4119-8617-1eadead9367d
+                      issuer:
+                        approverId: sandbox-demo-approver
+                        keyId: sandbox-demo-approver-key-1
+                      issuedAt: 2026-10-01T11:10:57.825Z
+                      expiresAt: 2026-10-01T11:15:57.825Z
+                      capability: sandbox:receipt
+                      resourceId: demo-order-1
+                      scope:
+                        field: resourceId
+                        comparator: eq
+                        value: demo-order-1
+                      nonce: 9c199e50-746d-409f-98f4-26c319af22ae
+                    signature:
+                      algorithm: ed25519
+                      keyId: sandbox-demo-approver-key-1
+                      value: H5Anvojj4J3325IkJnL/SD50WEDJxhv7AafGgkSauSyQKQ6y3Fw5d+ZoC0k2BUfDDJvR0jn1IDgZ/1I+nx6ZAQ==
+                      signedAt: 2026-10-01T11:10:57.825Z
+        "400":
+          description: "`INVALID_SANDBOX_APPROVAL_REQUEST`: `capability` is not
+            `sandbox:receipt`, or `resourceId` is missing, empty or over 200
+            characters. Nothing was signed."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error.schema"
+              examples:
+                otherCapability:
+                  summary: Real captured response, capability paytm:refund
+                  value:
+                    error: The sandbox approver signs only for capability "sandbox:receipt".
+                    code: INVALID_SANDBOX_APPROVAL_REQUEST
+                missingResource:
+                  summary: Real captured response, no resourceId
+                  value:
+                    error: "resourceId is required: the request's target, at most 200 characters."
+                    code: INVALID_SANDBOX_APPROVAL_REQUEST
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+      x-codeSamples:
+        - lang: bash
+          label: cURL
+          source: >-
+            curl -X POST
+            https://parmana-sandbox.vercel.app/sandbox/approvals   -H
+            "Authorization: Bearer $PARMANA_API_KEY"   -H "Content-Type:
+            application/json"   -d '{
+                "capability": "sandbox:receipt",
+                "resourceId": "demo-order-1"
+              }'
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            // Sandbox only, and not in the SDK: a demo for trying Parmana, not
+            part of
+
+            // the product API. Call the route directly.
+
+            const response = await fetch(
+              "https://parmana-sandbox.vercel.app/sandbox/approvals",
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${process.env.PARMANA_API_KEY}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  capability: "sandbox:receipt",
+                  resourceId: "demo-order-1",
+                }),
+              },
+            );
+
+
+            // Send it as signals.approvalArtifact within 5 minutes.
+
+            const approval: unknown = await response.json();
+
+
+            console.log(response.status, approval);
+        - lang: python
+          label: Python
+          source: >-
+            # Sandbox only, and not in the SDK: a demo for trying Parmana, not
+            part of
+
+            # the product API. Call the route directly.
+
+            import os
+
+
+            import requests
+
+
+            response = requests.post(
+                "https://parmana-sandbox.vercel.app/sandbox/approvals",
+                headers={"Authorization": f"Bearer {os.environ['PARMANA_API_KEY']}"},
+                json={"capability": "sandbox:receipt", "resourceId": "demo-order-1"},
+                timeout=30,
+            )
+
+
+            # Send it as signals.approvalArtifact within 5 minutes.
+
+            approval = response.json()
+
+
+            print(response.status_code, approval)
 components:
   schemas:
     Error:
@@ -10668,6 +10827,139 @@ components:
         - action: revoke
           capability: erp:create-invoice
           reason: The ERP endpoint moves to a new host.
+    sandbox-approval-request.schema:
+      title: Sandbox Approval Request
+      description: Asks the sandbox's demo approver to approve one sandbox:receipt request.
+      type: object
+      additionalProperties: false
+      required:
+        - capability
+        - resourceId
+      properties:
+        capability:
+          type: string
+          const: sandbox:receipt
+          description: The only capability the demo approver signs for.
+        resourceId:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: The target of the request you will send, its intent.target.
+    signed-approval.schema:
+      title: Signed Approval
+      description: A person's approval of one action, signed with their approver key.
+        A request carries it in signals.approvalArtifact when its policy
+        declares approvalSignals. The server checks the issuer is a trusted
+        approver key, the signature, the capability, the resource, the scope and
+        the expiry, and consumes the nonce, so an approval is used once.
+      type: object
+      additionalProperties: false
+      required:
+        - payload
+        - signature
+      properties:
+        payload:
+          type: object
+          additionalProperties: false
+          required:
+            - version
+            - approvalId
+            - issuer
+            - issuedAt
+            - expiresAt
+            - capability
+            - resourceId
+            - scope
+            - nonce
+          properties:
+            version:
+              const: 1
+            approvalId:
+              type: string
+            issuer:
+              type: object
+              additionalProperties: false
+              required:
+                - approverId
+                - keyId
+              properties:
+                approverId:
+                  type: string
+                keyId:
+                  type: string
+            issuedAt:
+              type: string
+              format: date-time
+            expiresAt:
+              type: string
+              format: date-time
+            capability:
+              type: string
+              description: The action approved, the request's intent.action.
+            resourceId:
+              type: string
+              description: The resource approved, as the policy's approvalSignals names it,
+                for example the request's target.
+            scope:
+              type: object
+              additionalProperties: false
+              required:
+                - field
+                - comparator
+                - value
+              description: "What exactly is approved: an amount limit, or exactly this
+                resource."
+              properties:
+                field:
+                  type: string
+                comparator:
+                  type: string
+                  enum:
+                    - eq
+                    - lte
+                    - gte
+                    - lt
+                    - gt
+                    - between
+                value:
+                  oneOf:
+                    - type: number
+                    - type: string
+                    - type: object
+                      additionalProperties: false
+                      required:
+                        - min
+                        - max
+                      properties:
+                        min:
+                          type: number
+                        max:
+                          type: number
+            constraints:
+              type: object
+            nonce:
+              type: string
+              description: Consumed when the approval is used, so it is accepted once.
+        signature:
+          type: object
+          additionalProperties: false
+          required:
+            - algorithm
+            - keyId
+            - value
+            - signedAt
+          properties:
+            algorithm:
+              type: string
+              const: ed25519
+            keyId:
+              type: string
+            value:
+              type: string
+              description: Base64 Ed25519 signature over the canonical payload.
+            signedAt:
+              type: string
+              format: date-time
   securitySchemes:
     bearerAuth:
       type: http

@@ -5,7 +5,25 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
 
-import app from "../test-app.js";
+import { generateKeyPairSync } from "node:crypto";
+
+import { createApplication } from "../../src/application.js";
+import { createApp } from "../../src/app.js";
+import { createExecutionSystem } from "../../src/bootstrap/createExecutionSystem.js";
+
+/**
+ * The app with every optional route mounted, so each one is checked
+ * against the spec too: POST /sandbox/approvals exists only in sandbox
+ * mode (ADR-0014).
+ */
+const app = createApp(createApplication(await createExecutionSystem()), {
+  callerAuth: "disabled",
+  sandboxApprover: {
+    approverId: "parity-sandbox-approver",
+    keyId: "parity-sandbox-approver-key",
+    privateKey: generateKeyPairSync("ed25519").privateKey,
+  },
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
