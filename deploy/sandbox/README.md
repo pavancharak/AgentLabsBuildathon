@@ -47,6 +47,11 @@ password. When it is ready, open **Connect** and keep the page open: stage 4 nee
 (port 5432) and stage 7 the **Transaction pooler** string (port 6543), each with the password filled in. These are the
 sandbox's, not production's.
 
+**Copy both strings from the sandbox project's Connect page, never from the repository's `.env` file:** `.env` holds
+production's database. Stages 4 and 7 refuse production's project, a string on the wrong port, a database that already
+has migrations, and, at stage 7, a different project from the one stage 4 used. Each refusal happens before anything
+connects.
+
 ### 3. Create the Vercel project (in the browser)
 
 In the Vercel dashboard, team `pavan-dev-singh-charaks-projects`: **Add New**, **Project**, import
@@ -65,21 +70,21 @@ powershell -ExecutionPolicy Bypass -File D:\last\AgentLabsBuildathon\deploy\sand
 
 Then the same command with each stage below, in this order.
 
-| #   | Stage                 | Needs                                     | Expect                                                                                               |
-| --- | --------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| 4   | `Migrate`             | The **session** pooler string, pasted     | `Database: ...` naming the sandbox host; after `APPLY`, the status ends with `0 pending`             |
-| 5   | `Link`                | The Vercel CLI, logged in                 | `Linked.`                                                                                            |
-| 6   | `ProductionNames`     | `%USERPROFILE%\parmana-vercel-link`       | Production's variable names. Read the yellow lines and stop if one is unexplained                    |
-| 7   | `SetEnv`              | The **transaction** pooler string, pasted | Twelve `set ...` lines, then `All 12 set.`                                                           |
-| 8   | `Deploy`              |                                           | After `DEPLOY`, `GET /ready: READY, authDisabled False` and `GET /keys/default: default, ed25519`    |
-| 9   | `Endpoint`            |                                           | After `DEPLOY`, `The endpoint refuses an unsigned body with 401, as required.`                       |
-| 10  | `ProposeApprover`     |                                           | `Proposed: <id>, PENDING_APPROVAL`                                                                   |
-| 11  | `ApproveApprover`     |                                           | The change shown, then after `APPROVE`, `Status: APPROVED`                                           |
-| 12  | `ProposePolicy`       |                                           | `Proposed: <id>, PENDING_APPROVAL`                                                                   |
-| 13  | `ApprovePolicy`       |                                           | The policy shown, then `Status: APPROVED`                                                            |
-| 14  | `ProposeRegistration` |                                           | `Proposed: <id>, PENDING_APPROVAL, stored as https://parmana-sandbox-receipt.vercel.app/api/release` |
-| 15  | `ApproveRegistration` |                                           | The registration shown, then `Status: APPROVED`                                                      |
-| 16  | `Check`               |                                           | Nine lines with no `WRONG`, then `All nine behaved as required.`                                     |
+| #   | Stage                 | Needs                                           | Expect                                                                                                             |
+| --- | --------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| 4   | `Migrate`             | The sandbox's **session** pooler string, pasted | `Database: ... as postgres.<the sandbox project>`, every migration pending; after `APPLY`, `33 applied, 0 pending` |
+| 5   | `Link`                | The Vercel CLI, logged in                       | `Linked.`                                                                                                          |
+| 6   | `ProductionNames`     | `%USERPROFILE%\parmana-vercel-link`             | Production's variable names. Read the yellow lines and stop if one is unexplained                                  |
+| 7   | `SetEnv`              | The **transaction** pooler string, pasted       | Twelve `set ...` lines, then `All 12 set.`                                                                         |
+| 8   | `Deploy`              |                                                 | After `DEPLOY`, `GET /ready: READY, authDisabled False` and `GET /keys/default: default, ed25519`                  |
+| 9   | `Endpoint`            |                                                 | After `DEPLOY`, `The endpoint refuses an unsigned body with 401, as required.`                                     |
+| 10  | `ProposeApprover`     |                                                 | `Proposed: <id>, PENDING_APPROVAL`                                                                                 |
+| 11  | `ApproveApprover`     |                                                 | The change shown, then after `APPROVE`, `Status: APPROVED`                                                         |
+| 12  | `ProposePolicy`       |                                                 | `Proposed: <id>, PENDING_APPROVAL`                                                                                 |
+| 13  | `ApprovePolicy`       |                                                 | The policy shown, then `Status: APPROVED`                                                                          |
+| 14  | `ProposeRegistration` |                                                 | `Proposed: <id>, PENDING_APPROVAL, stored as https://parmana-sandbox-receipt.vercel.app/api/release`               |
+| 15  | `ApproveRegistration` |                                                 | The registration shown, then `Status: APPROVED`                                                                    |
+| 16  | `Check`               |                                                 | Nine lines with no `WRONG`, then `All nine behaved as required.`                                                   |
 
 Stage 16 is ADR-0014 step 3. It uses only the visitor key, as a docs reader will, and checks: the key's scope, the
 policy in effect, a refusal with no approval, a demo approval, an approved request released to the receipt endpoint
@@ -92,7 +97,9 @@ approver, and browser access for the docs site only. Its record is saved to `dep
 | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `D:\key\parmana-sandbox already has files`                                 | The keys exist. Do not make them again; go on with the next stage.                                                                                    |
 | `Database:` names a host you do not recognise                              | Wrong string. Type anything but `APPLY`, and paste the sandbox project's session pooler string.                                                       |
-| `That is not the transaction pooler string`                                | Stage 7 needs the port 6543 string.                                                                                                                   |
+| `That string is PRODUCTION's database`                                     | You pasted production's string, probably from `.env`. Copy the string from the sandbox project's Connect page.                                        |
+| `This database already has migrations`                                     | The string is not the new sandbox project's. Nothing was written. Check which project you copied it from.                                             |
+| `That is not the string on port ...`                                       | Stage 4 needs the session pooler (5432), stage 7 the transaction pooler (6543).                                                                       |
 | Stage 8: `Not ready`, or the redeploy fails                                | Read the function log: `vercel logs --project parmana-sandbox --scope pavan-dev-singh-charaks-projects`. A startup refusal names the variable to fix. |
 | `PARMANA_SANDBOX=true refuses to start while a built in connector`         | A connector variable is set on `parmana-sandbox`. Remove it in the project's settings, then stage 8 again.                                            |
 | Stage 9: `expected 401`                                                    | Vercel gave the endpoint another address. Run stage 9 again with `-EndpointUrl https://<its address>/api/release`, and use the same in stage 14.      |
