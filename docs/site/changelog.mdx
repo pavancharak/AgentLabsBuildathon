@@ -20,6 +20,11 @@ every commit, run `git log` in the repository for the complete record.
   new. A test checks each example against its response schema. The only responses without one are
   the OpenAPI document itself, the handbook PDF and a redirect.
 - `GET /keys/{keyId}` documents the JSON error body its 404 returns.
+- Every operation's description now says what it does, when to use it and who may call it, and
+  every response says what happened and what to do next. Every parameter is described.
+- The list of routes that need no key was incomplete: `GET /openapi.json`, `GET /api-manifest.json`,
+  `POST /execution-intents/verify` and the handbook routes were missing. Fixed in the reference
+  and on [Authentication](/api-reference/authentication).
 
 **Added: a registered external connector receives releases (ADR-0013 step 4)**
 
