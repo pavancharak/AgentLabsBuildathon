@@ -57,6 +57,7 @@ const FULL_TEXT_PAGES = [
   "guides/authorize-and-execute",
   "concepts/human-approval",
   "guides/connect-an-agent",
+  "guides/connect-any-external-system",
   "integrations/connector-development-guide",
   "guides/write-your-first-policy",
   "guides/policy-lifecycle-and-approvals",

@@ -154,7 +154,7 @@ For an action bound to a policy (such as `paytm:refund` to `customer-refund`), t
 - Agents must name that version. A request naming any other version, including an older one that was approved before, is refused before any rule runs, with a message naming the version in effect.
 - To roll back, approve the older version again. The newest approval wins.
 
-Binding an action to a different policy name, or adding a new action, still needs a code change and a deploy.
+Binding a built in action to a different policy name still needs a code change and a deploy. A new action for a system Parmana has no connector for needs neither: register it as an external connector, with its policy, through maker checker. See [Connect any external system](/guides/connect-any-external-system).
 
 ### 7. What is checked on every request
 

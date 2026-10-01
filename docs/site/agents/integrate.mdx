@@ -45,7 +45,7 @@ For the actions with a connector, the approval signal and the resource it names 
 | `hubspot:deal-fetch`  | `hubspot-deal-read` 1.0.0          | `readApproved`       | `intent.parameters.dealId`                                    | none                                                                                                                                                                     |
 | `slack:post-message`  | `slack-post-message` 1.1.0         | `postApproved`       | `intent.target` (the channel id)                              | `channelAuthorized`, `contentApproved`; `channelId` equal to `intent.target`                                                                                             |
 
-For any action, including one not in this table, step 3 returns the same information from the server:
+For any action, including one not in this table (such as an action an operator registered as an external connector, see [Connect any external system](/guides/connect-any-external-system)), step 3 returns the same information from the server:
 `signals.approval` names the approval signal and where its resource (and amount) are in the request. Use the server's
 answer over this table if they ever differ.
 
