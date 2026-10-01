@@ -7,9 +7,9 @@ import { parse, stringify } from "yaml";
 import { samplePaths } from "./openapi/codeSamples.js";
 
 /**
- * Adds an SDK code sample in TypeScript and in Python to every operation
- * of the bundled OpenAPI file, as `x-codeSamples`, which the docs site
- * shows next to the generated curl on every endpoint page.
+ * Adds code samples in cURL, TypeScript and Python to every operation of
+ * the bundled OpenAPI file, as `x-codeSamples`, which the docs site shows
+ * on every endpoint page. cURL samples: openapi/code-samples/curl/.
  *
  * The samples are real files, one per operation, so they are checked
  * like code: typescript/examples/api-reference/<operationId>.ts is
@@ -50,7 +50,7 @@ for (const [route, item] of Object.entries(bundle.paths)) {
     }
 
     const files = samplePaths(operationId);
-    const absent = [files.typescript, files.python].filter(
+    const absent = [files.curl, files.typescript, files.python].filter(
       (file) => !existsSync(file),
     );
 
@@ -62,6 +62,11 @@ for (const [route, item] of Object.entries(bundle.paths)) {
     }
 
     operation["x-codeSamples"] = [
+      {
+        lang: "bash",
+        label: "cURL",
+        source: readFileSync(files.curl, "utf8").trimEnd(),
+      },
       {
         lang: "typescript",
         label: "TypeScript",
@@ -83,5 +88,5 @@ if (missing.length > 0) {
 
 writeFileSync(bundlePath, stringify(bundle), "utf8");
 console.log(
-  `add-openapi-code-samples: ${added} operations have TypeScript and Python samples.`,
+  `add-openapi-code-samples: ${added} operations have cURL, TypeScript and Python samples.`,
 );
