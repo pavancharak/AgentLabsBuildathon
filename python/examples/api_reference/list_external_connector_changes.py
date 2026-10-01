@@ -1,12 +1,11 @@
-# Not in the SDK yet: call the route directly.
 import os
 
-import requests
+from parmana import ParmanaClient
 
-response = requests.get(
-    "https://parmana-api-real.vercel.app/external-connectors/changes?status=PENDING_APPROVAL",
-    headers={"Authorization": f"Bearer {os.environ['PARMANA_API_KEY']}"},
-    timeout=30,
+client = ParmanaClient(
+    endpoint="https://parmana-api-real.vercel.app",
+    api_key=os.environ["PARMANA_API_KEY"],
 )
 
-print(response.status_code, response.json())
+for change in client.external_connector_changes("PENDING_APPROVAL"):
+    print(change.change_id, change.action, change.capability)

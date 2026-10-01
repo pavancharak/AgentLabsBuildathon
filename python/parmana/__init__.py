@@ -20,6 +20,7 @@ from .models.execution_intent_results import (
     ResolveExecutionIntentResult,
     UnfinalizedExecutionIntents,
 )
+from .models.external_connector import ExternalConnector, ExternalConnectorChange
 from .models.policy_change_results import (
     PolicyChangeDiff,
     PolicyChangeForReview,
@@ -46,5 +47,7 @@ __all__ = [
     "ProposedPolicyChange",
     "ApprovalIssuer",
     "ApprovalIssuerChange",
+    "ExternalConnector",
+    "ExternalConnectorChange",
     *_error_exports,
 ]

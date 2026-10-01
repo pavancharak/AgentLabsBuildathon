@@ -276,7 +276,7 @@ correctly through a real running server, not just in isolation).
 
 <Info>
   In this repository, not yet on npm. `npm install @parmana/sdk` still installs
-  1.4.0, which does not have this method.
+  1.4.0, which does not have these methods.
 </Info>
 
 ### What a request must carry, from the server
@@ -298,6 +298,39 @@ Call it before every request and send `policy` exactly as returned. It throws `A
 `CAPABILITY_NOT_ALLOWED`), `NotFoundError` (404, `CAPABILITY_NOT_BOUND`), `ConflictError` (409,
 `NO_APPROVED_POLICY_VERSION`) or `InternalServerError` (503, `POLICY_VERSION_UNAVAILABLE`); in each case send nothing.
 The step by step use is in [Integrate Parmana: specification for AI agents](/agents/integrate), step 3.
+
+### Register an external connector
+
+Connect your own system with no Parmana code change: one person proposes registering a capability to your HTTPS
+endpoint, a different person approves it with a step up authorization. Both need a human key.
+
+```typescript
+const change = await maker.proposeExternalConnectorChange({
+  action: "register",
+  capability: "erp:create-invoice",
+  endpointUrl: "https://erp.example.com/parmana/release",
+  policy: "erp-invoice",
+  allowedParameters: ["amount", "currency"],
+  reason: "Finance creates invoices in the ERP through Parmana.",
+});
+
+await checker.approveExternalConnectorChange(
+  change.changeId,
+  signPolicyChangeStepUp({
+    pendingPolicyChangeId: change.changeId,
+    action: "approve",
+    privateKeyPem: readFileSync("step-up.private.pem", "utf8"),
+    keyId: "checker-step-up-1",
+  }),
+);
+
+await checker.externalConnectors(); // [{ capability: "erp:create-invoice", status: "active", ... }]
+```
+
+`externalConnectorChanges(status?)` lists proposals and `rejectExternalConnectorChange(changeId, reason, stepUp)`
+rejects one. To end a registration, propose `{ action: "revoke", capability, reason }` and approve it the same way.
+Tutorial 123 runs these calls against a real server. The whole path, with the endpoint, is in
+[Connect any external system](/guides/connect-any-external-system).
 
 ## New in 1.4.0
 

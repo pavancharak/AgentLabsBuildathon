@@ -1,9 +1,12 @@
-// Not in the SDK yet: call the route directly.
-const response = await fetch(
-  "https://parmana-api-real.vercel.app/external-connectors/changes?status=PENDING_APPROVAL",
-  {
-    headers: { Authorization: `Bearer ${process.env.PARMANA_API_KEY}` },
-  },
-);
+import { ParmanaClient } from "@parmana/sdk";
 
-console.log(response.status, await response.json());
+const client = new ParmanaClient({
+  endpoint: "https://parmana-api-real.vercel.app",
+  apiKey: process.env.PARMANA_API_KEY!,
+});
+
+for (const change of await client.externalConnectorChanges(
+  "PENDING_APPROVAL",
+)) {
+  console.log(change.changeId, change.action, change.capability);
+}

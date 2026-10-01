@@ -13,6 +13,7 @@ from parmana.api.audit_api import AuditApi
 from parmana.api.caller_api import CallerApi
 from parmana.api.execution_api import ExecutionApi
 from parmana.api.execution_intent_api import ExecutionIntentApi
+from parmana.api.external_connector_api import ExternalConnectorApi
 from parmana.api.policy_api import PolicyApi
 from parmana.api.receipt_api import ReceiptApi
 from parmana.api.refusal_api import RefusalApi
@@ -40,6 +41,10 @@ if TYPE_CHECKING:
         FinalizeExecutionIntentResult,
         ResolveExecutionIntentResult,
         UnfinalizedExecutionIntents,
+    )
+    from parmana.models.external_connector import (
+        ExternalConnector,
+        ExternalConnectorChange,
     )
     from parmana.models.policy_change import PendingPolicyChange
     from parmana.models.policy_change_results import (
@@ -191,6 +196,10 @@ class ParmanaClient:
         )
 
         self.approvers = ApproverApi(
+            self._transport,
+        )
+
+        self.external_connectors = ExternalConnectorApi(
             self._transport,
         )
 
@@ -473,5 +482,49 @@ class ParmanaClient:
         """
 
         return self.approvers.reject_change(
+            change_id, rejection_reason, step_up_authorization
+        )
+
+    def list_external_connectors(self) -> list[ExternalConnector]:
+        """
+        Every external connector registration, active and revoked. See
+        ExternalConnectorApi.list.
+        """
+
+        return self.external_connectors.list()
+
+    def external_connector_changes(
+        self, status: str | None = None
+    ) -> list[ExternalConnectorChange]:
+        """
+        List external connector changes. See ExternalConnectorApi.list_changes.
+        """
+
+        return self.external_connectors.list_changes(status)
+
+    def approve_external_connector_change(
+        self,
+        change_id: str,
+        step_up_authorization: dict[str, Any],
+    ) -> ExternalConnectorChange:
+        """
+        Approve and apply an external connector change. See
+        ExternalConnectorApi.approve_change.
+        """
+
+        return self.external_connectors.approve_change(change_id, step_up_authorization)
+
+    def reject_external_connector_change(
+        self,
+        change_id: str,
+        rejection_reason: str,
+        step_up_authorization: dict[str, Any],
+    ) -> ExternalConnectorChange:
+        """
+        Reject an external connector change. See
+        ExternalConnectorApi.reject_change.
+        """
+
+        return self.external_connectors.reject_change(
             change_id, rejection_reason, step_up_authorization
         )

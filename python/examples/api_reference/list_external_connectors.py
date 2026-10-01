@@ -1,12 +1,11 @@
-# Not in the SDK yet: call the route directly.
 import os
 
-import requests
+from parmana import ParmanaClient
 
-response = requests.get(
-    "https://parmana-api-real.vercel.app/external-connectors",
-    headers={"Authorization": f"Bearer {os.environ['PARMANA_API_KEY']}"},
-    timeout=30,
+client = ParmanaClient(
+    endpoint="https://parmana-api-real.vercel.app",
+    api_key=os.environ["PARMANA_API_KEY"],
 )
 
-print(response.status_code, response.json())
+for connector in client.list_external_connectors():
+    print(connector.capability, connector.status, connector.endpoint_url)

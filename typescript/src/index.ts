@@ -92,6 +92,7 @@ export { ExecutionIntentApi } from "./client/ExecutionIntentApi.js";
 export { AuditApi } from "./client/AuditApi.js";
 export { CallerApi } from "./client/CallerApi.js";
 export { ApproverApi } from "./client/ApproverApi.js";
+export { ExternalConnectorApi } from "./client/ExternalConnectorApi.js";
 
 // -----------------------------------------------------------------------------
 // Offline verification, step up signing and approval signing

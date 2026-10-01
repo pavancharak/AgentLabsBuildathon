@@ -191,6 +191,10 @@ curl -s -X POST $PARMANA_URL/external-connectors/changes \
 
 `timeoutMs` is optional: 1000 to 30000, default 10000.
 
+From the next SDK release, steps 6 and 7 are also one call each: `proposeExternalConnectorChange()` and
+`approveExternalConnectorChange()` in TypeScript, `external_connectors.propose_register()` and
+`approve_external_connector_change()` in Python. See [SDK coverage of the API](/sdks/api-coverage#external-connectors).
+
 **Expect:** `201` with a `changeId`, `"status":"PENDING_APPROVAL"`, and `endpointUrl` as stored (the host in lowercase).
 Use that stored `endpointUrl` as the endpoint's `audience` in step 5.
 

@@ -75,6 +75,18 @@ The offline verifiers make no network call. Get the public key once with `public
 | `POST /approval-issuers/changes/{id}/approve` | `approveApproverChange(id, stepUp)` **1.4.0**        | `approve_approver_change(id, step_up)` **1.4.0**                        |
 | `POST /approval-issuers/changes/{id}/reject`  | `rejectApproverChange(id, reason, stepUp)` **1.4.0** | `reject_approver_change(id, reason, step_up)` **1.4.0**                 |
 
+## External connectors
+
+| Operation                                        | TypeScript                                                           | Python                                                                                                  |
+| ------------------------------------------------ | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `GET /external-connectors`                       | `externalConnectors()` **next release**                              | `list_external_connectors()`, `external_connectors.list()` **next release**                             |
+| `POST /external-connectors/changes`              | `proposeExternalConnectorChange({ action, ... })` **next release**   | `external_connectors.propose_register(...)`, `external_connectors.propose_revoke(...)` **next release** |
+| `GET /external-connectors/changes`               | `externalConnectorChanges(status?)` **next release**                 | `external_connector_changes(status=None)` **next release**                                              |
+| `POST /external-connectors/changes/{id}/approve` | `approveExternalConnectorChange(id, stepUp)` **next release**        | `approve_external_connector_change(id, step_up)` **next release**                                       |
+| `POST /external-connectors/changes/{id}/reject`  | `rejectExternalConnectorChange(id, reason, stepUp)` **next release** | `reject_external_connector_change(id, reason, step_up)` **next release**                                |
+
+Sign the step up authorization for approve or reject with `signPolicyChangeStepUp()` or `sign_policy_change_step_up()`, with the `changeId` as `pendingPolicyChangeId`. Until the next release is published, call these routes directly; see [Connect any external system](/guides/connect-any-external-system).
+
 ## Caller and service
 
 | Operation         | TypeScript           | Python                                                                                                              |

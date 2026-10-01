@@ -7126,36 +7126,35 @@ paths:
         - lang: typescript
           label: TypeScript
           source: >-
-            // Not in the SDK yet: call the route directly.
-
-            const response = await fetch(
-              "https://parmana-api-real.vercel.app/external-connectors",
-              {
-                headers: { Authorization: `Bearer ${process.env.PARMANA_API_KEY}` },
-              },
-            );
+            import { ParmanaClient } from "@parmana/sdk";
 
 
-            console.log(response.status, await response.json());
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+
+            for (const connector of await client.externalConnectors()) {
+              console.log(connector.capability, connector.status, connector.endpointUrl);
+            }
         - lang: python
           label: Python
           source: >-
-            # Not in the SDK yet: call the route directly.
-
             import os
 
 
-            import requests
+            from parmana import ParmanaClient
 
 
-            response = requests.get(
-                "https://parmana-api-real.vercel.app/external-connectors",
-                headers={"Authorization": f"Bearer {os.environ['PARMANA_API_KEY']}"},
-                timeout=30,
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
             )
 
 
-            print(response.status_code, response.json())
+            for connector in client.list_external_connectors():
+                print(connector.capability, connector.status, connector.endpoint_url)
   /external-connectors/changes:
     post:
       tags:
@@ -7359,59 +7358,47 @@ paths:
               }'
         - lang: typescript
           label: TypeScript
-          source: >-
-            // Not in the SDK yet: call the route directly.
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
 
-            const response = await fetch(
-              "https://parmana-api-real.vercel.app/external-connectors/changes",
-              {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${process.env.PARMANA_API_KEY}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  action: "register",
-                  capability: "erp:create-invoice",
-                  endpointUrl: "https://erp.example.com/parmana/release",
-                  policy: "erp-invoice",
-                  allowedParameters: ["amount", "currency"],
-                  timeoutMs: 10000,
-                  reason: "Finance creates invoices in the ERP through Parmana.",
-                }),
-              },
-            );
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
 
+            const change = await client.proposeExternalConnectorChange({
+              action: "register",
+              capability: "erp:create-invoice",
+              endpointUrl: "https://erp.example.com/parmana/release",
+              policy: "erp-invoice",
+              allowedParameters: ["amount", "currency"],
+              timeoutMs: 10000,
+              reason: "Finance creates invoices in the ERP through Parmana.",
+            });
 
-            console.log(response.status, await response.json());
+            console.log(change.changeId);
         - lang: python
           label: Python
-          source: >-
-            # Not in the SDK yet: call the route directly.
-
+          source: |-
             import os
 
+            from parmana import ParmanaClient
 
-            import requests
-
-
-            response = requests.post(
-                "https://parmana-api-real.vercel.app/external-connectors/changes",
-                headers={"Authorization": f"Bearer {os.environ['PARMANA_API_KEY']}"},
-                json={
-                    "action": "register",
-                    "capability": "erp:create-invoice",
-                    "endpointUrl": "https://erp.example.com/parmana/release",
-                    "policy": "erp-invoice",
-                    "allowedParameters": ["amount", "currency"],
-                    "timeoutMs": 10000,
-                    "reason": "Finance creates invoices in the ERP through Parmana.",
-                },
-                timeout=30,
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
             )
 
+            change = client.external_connectors.propose_register(
+                capability="erp:create-invoice",
+                endpoint_url="https://erp.example.com/parmana/release",
+                policy="erp-invoice",
+                allowed_parameters=["amount", "currency"],
+                timeout_ms=10000,
+                reason="Finance creates invoices in the ERP through Parmana.",
+            )
 
-            print(response.status_code, response.json())
+            print(change.change_id)
     get:
       tags:
         - External Connectors
@@ -7523,37 +7510,33 @@ paths:
               -H "Authorization: Bearer $PARMANA_API_KEY"
         - lang: typescript
           label: TypeScript
-          source: >-
-            // Not in the SDK yet: call the route directly.
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
 
-            const response = await fetch(
-              "https://parmana-api-real.vercel.app/external-connectors/changes?status=PENDING_APPROVAL",
-              {
-                headers: { Authorization: `Bearer ${process.env.PARMANA_API_KEY}` },
-              },
-            );
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
 
-
-            console.log(response.status, await response.json());
+            for (const change of await client.externalConnectorChanges(
+              "PENDING_APPROVAL",
+            )) {
+              console.log(change.changeId, change.action, change.capability);
+            }
         - lang: python
           label: Python
-          source: >-
-            # Not in the SDK yet: call the route directly.
-
+          source: |-
             import os
 
+            from parmana import ParmanaClient
 
-            import requests
-
-
-            response = requests.get(
-                "https://parmana-api-real.vercel.app/external-connectors/changes?status=PENDING_APPROVAL",
-                headers={"Authorization": f"Bearer {os.environ['PARMANA_API_KEY']}"},
-                timeout=30,
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
             )
 
-
-            print(response.status_code, response.json())
+            for change in client.external_connector_changes("PENDING_APPROVAL"):
+                print(change.change_id, change.action, change.capability)
   /external-connectors/changes/{id}/approve:
     post:
       tags:
@@ -7722,13 +7705,17 @@ paths:
         - lang: typescript
           label: TypeScript
           source: >-
+            import { ParmanaClient, signPolicyChangeStepUp } from
+            "@parmana/sdk";
+
             import { readFileSync } from "node:fs";
 
 
-            import { signPolicyChangeStepUp } from "@parmana/sdk";
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
 
-
-            // Not in the SDK yet: call the route directly.
 
             const stepUp = signPolicyChangeStepUp({
               pendingPolicyChangeId: "ba7c5827-5844-4069-94fc-9b438ef08f78",
@@ -7738,35 +7725,26 @@ paths:
             });
 
 
-            const response = await fetch(
-              "https://parmana-api-real.vercel.app/external-connectors/changes/ba7c5827-5844-4069-94fc-9b438ef08f78/approve",
-              {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${process.env.PARMANA_API_KEY}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ stepUpAuthorization: stepUp }),
-              },
+            const change = await client.approveExternalConnectorChange(
+              "ba7c5827-5844-4069-94fc-9b438ef08f78",
+              stepUp,
             );
 
 
-            console.log(response.status, await response.json());
+            console.log(change.status);
         - lang: python
           label: Python
-          source: >-
+          source: |-
             import os
-
             from pathlib import Path
 
-
-            import requests
-
-
+            from parmana import ParmanaClient
             from parmana.crypto import sign_policy_change_step_up
 
-
-            # Not in the SDK yet: call the route directly.
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
 
             step_up = sign_policy_change_step_up(
                 pending_policy_change_id="ba7c5827-5844-4069-94fc-9b438ef08f78",
@@ -7775,16 +7753,11 @@ paths:
                 key_id="checker-step-up-1",
             )
 
-
-            response = requests.post(
-                "https://parmana-api-real.vercel.app/external-connectors/changes/ba7c5827-5844-4069-94fc-9b438ef08f78/approve",
-                headers={"Authorization": f"Bearer {os.environ['PARMANA_API_KEY']}"},
-                json={"stepUpAuthorization": step_up},
-                timeout=30,
+            change = client.approve_external_connector_change(
+                "ba7c5827-5844-4069-94fc-9b438ef08f78", step_up
             )
 
-
-            print(response.status_code, response.json())
+            print(change.status)
   /external-connectors/changes/{id}/reject:
     post:
       tags:
@@ -7918,13 +7891,17 @@ paths:
         - lang: typescript
           label: TypeScript
           source: >-
+            import { ParmanaClient, signPolicyChangeStepUp } from
+            "@parmana/sdk";
+
             import { readFileSync } from "node:fs";
 
 
-            import { signPolicyChangeStepUp } from "@parmana/sdk";
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
 
-
-            // Not in the SDK yet: call the route directly.
 
             const stepUp = signPolicyChangeStepUp({
               pendingPolicyChangeId: "ba7c5827-5844-4069-94fc-9b438ef08f78",
@@ -7934,38 +7911,27 @@ paths:
             });
 
 
-            const response = await fetch(
-              "https://parmana-api-real.vercel.app/external-connectors/changes/ba7c5827-5844-4069-94fc-9b438ef08f78/reject",
-              {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${process.env.PARMANA_API_KEY}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  rejectionReason: "The ERP team has not reviewed the endpoint yet.",
-                  stepUpAuthorization: stepUp,
-                }),
-              },
+            const change = await client.rejectExternalConnectorChange(
+              "ba7c5827-5844-4069-94fc-9b438ef08f78",
+              "Use the finance team's own endpoint.",
+              stepUp,
             );
 
 
-            console.log(response.status, await response.json());
+            console.log(change.status);
         - lang: python
           label: Python
-          source: >-
+          source: |-
             import os
-
             from pathlib import Path
 
-
-            import requests
-
-
+            from parmana import ParmanaClient
             from parmana.crypto import sign_policy_change_step_up
 
-
-            # Not in the SDK yet: call the route directly.
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
 
             step_up = sign_policy_change_step_up(
                 pending_policy_change_id="ba7c5827-5844-4069-94fc-9b438ef08f78",
@@ -7974,19 +7940,13 @@ paths:
                 key_id="checker-step-up-1",
             )
 
-
-            response = requests.post(
-                "https://parmana-api-real.vercel.app/external-connectors/changes/ba7c5827-5844-4069-94fc-9b438ef08f78/reject",
-                headers={"Authorization": f"Bearer {os.environ['PARMANA_API_KEY']}"},
-                json={
-                    "rejectionReason": "The ERP team has not reviewed the endpoint yet.",
-                    "stepUpAuthorization": step_up,
-                },
-                timeout=30,
+            change = client.reject_external_connector_change(
+                "ba7c5827-5844-4069-94fc-9b438ef08f78",
+                "Use the finance team's own endpoint.",
+                step_up,
             )
 
-
-            print(response.status_code, response.json())
+            print(change.status)
 components:
   schemas:
     Error:

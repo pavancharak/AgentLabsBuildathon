@@ -45,6 +45,11 @@ import type {
   ProposeApproverChangeInput,
 } from "../models/approval-issuer.js";
 import type {
+  ExternalConnector,
+  ExternalConnectorChange,
+  ProposeExternalConnectorChangeInput,
+} from "../models/external-connector.js";
+import type {
   PendingPolicyChange,
   PendingPolicyChangeStatus,
   PolicyChangeForReview,
@@ -77,6 +82,7 @@ import { TrustRecordApi } from "./TrustRecordApi.js";
 
 import { PolicyApi, type PolicyValidationResult } from "./PolicyApi.js";
 import { ApproverApi } from "./ApproverApi.js";
+import { ExternalConnectorApi } from "./ExternalConnectorApi.js";
 
 import { RefusalApi } from "./RefusalApi.js";
 import { ExecutionIntentApi } from "./ExecutionIntentApi.js";
@@ -140,6 +146,8 @@ export class ParmanaClient {
 
   private readonly approverApi: ApproverApi;
 
+  private readonly externalConnectorApi: ExternalConnectorApi;
+
   /**
    * Runtime Refusal Record API.
    */
@@ -189,6 +197,8 @@ export class ParmanaClient {
     this.policyApi = new PolicyApi(this.transport);
 
     this.approverApi = new ApproverApi(this.transport);
+
+    this.externalConnectorApi = new ExternalConnectorApi(this.transport);
 
     this.refusalApi = new RefusalApi(this.transport);
 
@@ -524,6 +534,62 @@ export class ParmanaClient {
     stepUpAuthorization: PolicyChangeStepUpAuthorization,
   ): Promise<ApprovalIssuerChange> {
     return this.approverApi.rejectChange(
+      changeId,
+      rejectionReason,
+      stepUpAuthorization,
+    );
+  }
+  /**
+   * Every external connector registration, active and revoked. See
+   * ExternalConnectorApi.list.
+   */
+  public externalConnectors(): Promise<ExternalConnector[]> {
+    return this.externalConnectorApi.list();
+  }
+
+  /**
+   * Proposes registering or revoking an external connector. See
+   * ExternalConnectorApi.proposeChange.
+   */
+  public proposeExternalConnectorChange(
+    input: ProposeExternalConnectorChangeInput,
+  ): Promise<ExternalConnectorChange> {
+    return this.externalConnectorApi.proposeChange(input);
+  }
+
+  /**
+   * Lists external connector changes. See ExternalConnectorApi.listChanges.
+   */
+  public externalConnectorChanges(
+    status?: PendingPolicyChangeStatus,
+  ): Promise<ExternalConnectorChange[]> {
+    return this.externalConnectorApi.listChanges(status);
+  }
+
+  /**
+   * Approves and applies an external connector change. See
+   * ExternalConnectorApi.approveChange.
+   */
+  public approveExternalConnectorChange(
+    changeId: string,
+    stepUpAuthorization: PolicyChangeStepUpAuthorization,
+  ): Promise<ExternalConnectorChange> {
+    return this.externalConnectorApi.approveChange(
+      changeId,
+      stepUpAuthorization,
+    );
+  }
+
+  /**
+   * Rejects an external connector change. See
+   * ExternalConnectorApi.rejectChange.
+   */
+  public rejectExternalConnectorChange(
+    changeId: string,
+    rejectionReason: string,
+    stepUpAuthorization: PolicyChangeStepUpAuthorization,
+  ): Promise<ExternalConnectorChange> {
+    return this.externalConnectorApi.rejectChange(
       changeId,
       rejectionReason,
       stepUpAuthorization,

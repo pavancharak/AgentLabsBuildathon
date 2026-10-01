@@ -1,0 +1,57 @@
+---
+title: "Interface: PolicyInEffect"
+---
+
+Defined in: [typescript/src/models/policy-in-effect.ts:6](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/policy-in-effect.ts#L6)
+
+The policy a capability's requests must declare right now, and what a
+request under it must carry. The response of
+GET /policies/in-effect?capability=...
+
+## Properties
+
+### capability
+
+> `readonly` **capability**: `string`
+
+Defined in: [typescript/src/models/policy-in-effect.ts:7](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/policy-in-effect.ts#L7)
+
+---
+
+### policy
+
+> `readonly` **policy**: `object`
+
+Defined in: [typescript/src/models/policy-in-effect.ts:12](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/policy-in-effect.ts#L12)
+
+Declare this, exactly, as the request's `policy`.
+
+#### name
+
+> `readonly` **name**: `string`
+
+#### version
+
+> `readonly` **version**: `string`
+
+#### schemaVersion
+
+> `readonly` **schemaVersion**: `string`
+
+---
+
+### description
+
+> `readonly` **description**: `string` \| `null`
+
+Defined in: [typescript/src/models/policy-in-effect.ts:21](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/policy-in-effect.ts#L21)
+
+The policy author's description for people, or null.
+
+---
+
+### signals
+
+> `readonly` **signals**: [`PolicySignalRequirements`](/sdks/reference/typescript/interfaces/PolicySignalRequirements)
+
+Defined in: [typescript/src/models/policy-in-effect.ts:23](https://github.com/pavancharak/AgentLabsBuildathon/blob/main/typescript/src/models/policy-in-effect.ts#L23)
