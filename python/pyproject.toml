@@ -74,6 +74,7 @@ dev = [
     "ruff>=0.6.0",
     "black>=24.0.0",
     "mypy>=1.10.0",
+    "types-requests>=2.32.0",
     "pydoc-markdown>=4.8.2",
 ]
 

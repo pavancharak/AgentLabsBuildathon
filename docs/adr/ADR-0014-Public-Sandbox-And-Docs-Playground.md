@@ -1,6 +1,6 @@
 # ADR-0014: Public sandbox and docs playground
 
-**Status:** Proposed 2026-10-01, waiting for the operator's decision and the open questions below.
+**Status:** Accepted by the operator on 2026-10-01 (PR #103 merged), with the proposed answers to the three open questions. Not built yet; see the order of work.
 
 **Date:** Proposed 2026-10-01.
 

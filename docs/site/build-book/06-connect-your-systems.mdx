@@ -152,8 +152,9 @@ external connector. The literal procedure, with what to expect and what to do at
 
 ### Status
 
-Registration through maker checker is live in production. Releasing to a registered endpoint is built and tested, and
-not yet checked against a live endpoint in production. `verifyParmanaRelease` and `verify_parmana_release` are in the
+Registration through maker checker, and releasing approved requests to the registered endpoint, are live in
+production, checked end to end on 2026-10-01 (`docs/CLAIMS.md` 2.50, `examples/live-checks/external-connector`). An
+approved request took 24 to 32 seconds there (G-84): give agents a timeout of at least 120 seconds. `verifyParmanaRelease` and `verify_parmana_release` are in the
 repository and not yet published. What the endpoint answers is its claim, not proof that it acted
 (`docs/VERIFICATION-GAPS.md` G-82).
 

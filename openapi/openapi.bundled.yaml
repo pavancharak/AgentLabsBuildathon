@@ -100,6 +100,34 @@ paths:
                     status: UP
         "401":
           $ref: "#/components/responses/Unauthorized"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            const response = await fetch("https://parmana-api-real.vercel.app/",
+            {
+              headers: { Authorization: `Bearer ${process.env.PARMANA_API_KEY}` },
+            });
+
+
+            console.log(response.status, await response.json());
+        - lang: python
+          label: Python
+          source: >-
+            import os
+
+
+            import requests
+
+
+            response = requests.get(
+                "https://parmana-api-real.vercel.app/",
+                headers={"Authorization": f"Bearer {os.environ['PARMANA_API_KEY']}"},
+                timeout=30,
+            )
+
+
+            print(response.status_code, response.json())
   /health:
     get:
       tags:
@@ -129,6 +157,35 @@ paths:
                   summary: Real captured response
                   value:
                     status: UP
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const health = await client.health();
+
+            console.log(health.status);
+        - lang: python
+          label: Python
+          source: |-
+            import os
+
+            from parmana import ParmanaClient
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+            health = client.health()
+
+            print(health["status"])
   /ready:
     get:
       tags:
@@ -185,6 +242,26 @@ paths:
                     status: NOT_READY
                     reason: connect ECONNREFUSED 127.0.0.1:5432
                     authDisabled: false
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            const response = await
+            fetch("https://parmana-api-real.vercel.app/ready");
+
+
+            console.log(response.status, await response.json());
+        - lang: python
+          label: Python
+          source: |-
+            import requests
+
+            response = requests.get(
+                "https://parmana-api-real.vercel.app/ready",
+                timeout=30,
+            )
+
+            print(response.status_code, response.json())
   /openapi.yaml:
     get:
       tags:
@@ -209,6 +286,26 @@ paths:
             application/yaml:
               schema:
                 type: string
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            const response = await fetch(
+              "https://parmana-api-real.vercel.app/openapi.yaml",
+            );
+
+            console.log(response.status, await response.text());
+        - lang: python
+          label: Python
+          source: |-
+            import requests
+
+            response = requests.get(
+                "https://parmana-api-real.vercel.app/openapi.yaml",
+                timeout=30,
+            )
+
+            print(response.status_code, response.text)
   /openapi.json:
     get:
       tags:
@@ -230,6 +327,26 @@ paths:
             application/json:
               schema:
                 type: object
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            const response = await fetch(
+              "https://parmana-api-real.vercel.app/openapi.json",
+            );
+
+            console.log(response.status, await response.json());
+        - lang: python
+          label: Python
+          source: |-
+            import requests
+
+            response = requests.get(
+                "https://parmana-api-real.vercel.app/openapi.json",
+                timeout=30,
+            )
+
+            print(response.status_code, response.json())
   /api-manifest.json:
     get:
       tags:
@@ -302,6 +419,26 @@ paths:
                         version: 0.1.0
                         install: pip install parmana-connector-sdk
                         docs: https://docs.parmanasystems.com/reference/connector-sdk-python
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            const response = await fetch(
+              "https://parmana-api-real.vercel.app/api-manifest.json",
+            );
+
+            console.log(response.status, await response.json());
+        - lang: python
+          label: Python
+          source: |-
+            import requests
+
+            response = requests.get(
+                "https://parmana-api-real.vercel.app/api-manifest.json",
+                timeout=30,
+            )
+
+            print(response.status_code, response.json())
   /version:
     get:
       tags:
@@ -330,6 +467,37 @@ paths:
                     api: v1
         "401":
           $ref: "#/components/responses/Unauthorized"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const version = await client.version();
+
+            console.log(version);
+        - lang: python
+          label: Python
+          source: >-
+            import os
+
+
+            import requests
+
+
+            response = requests.get(
+                "https://parmana-api-real.vercel.app/version",
+                headers={"Authorization": f"Bearer {os.environ['PARMANA_API_KEY']}"},
+                timeout=30,
+            )
+
+
+            print(response.status_code, response.json())
   /keys/{keyId}:
     get:
       tags:
@@ -391,6 +559,35 @@ paths:
                       when unavailable.
         "404":
           description: No key exists for the given keyId.
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const key = await client.publicKey("default");
+
+            console.log(key.pem);
+        - lang: python
+          label: Python
+          source: |-
+            import os
+
+            from parmana import ParmanaClient
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+            key = client.public_key("default")
+
+            print(key.pem)
   /.well-known/jwks.json:
     get:
       tags:
@@ -435,6 +632,36 @@ paths:
                           type: string
                         jwk:
                           type: object
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            const response = await fetch(
+              "https://parmana-api-real.vercel.app/.well-known/jwks.json",
+              {
+                headers: { Authorization: `Bearer ${process.env.PARMANA_API_KEY}` },
+              },
+            );
+
+
+            console.log(response.status, await response.json());
+        - lang: python
+          label: Python
+          source: >-
+            import os
+
+
+            import requests
+
+
+            response = requests.get(
+                "https://parmana-api-real.vercel.app/.well-known/jwks.json",
+                headers={"Authorization": f"Bearer {os.environ['PARMANA_API_KEY']}"},
+                timeout=30,
+            )
+
+
+            print(response.status_code, response.json())
   /callers/me:
     get:
       tags:
@@ -491,6 +718,35 @@ paths:
                   summary: Real captured response when caller-auth is disabled
                   value:
                     error: No authenticated caller identity available.
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const me = await client.caller();
+
+            console.log(me.callerId, me.allowedCapabilities);
+        - lang: python
+          label: Python
+          source: |-
+            import os
+
+            from parmana import ParmanaClient
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+            me = client.caller()
+
+            print(me.caller_id, me.allowed_capabilities)
   /execute:
     post:
       tags:
@@ -1092,6 +1348,105 @@ paths:
                     code: EXECUTION_OUTCOME_UNKNOWN
         "503":
           $ref: "#/components/responses/SigningUnavailable"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            import { createBusinessTransaction, ParmanaClient } from
+            "@parmana/sdk";
+
+            import { readFileSync } from "node:fs";
+
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+
+            const inEffect = await client.policyInEffect("paytm:refund");
+
+
+            // The signed approval the approver sent, for this order and up to
+            this amount.
+
+            const approval = JSON.parse(readFileSync("approval.json", "utf8"));
+
+
+            const transaction = createBusinessTransaction({
+              principalId: (await client.caller()).callerId,
+              purpose: "Refund order ORD-1042",
+              action: "paytm:refund",
+              target: "ORD-1042",
+              parameters: { orderId: "ORD-1042", transactionId: "TXN-9", amount: 750 },
+              policy: inEffect.policy,
+              signals: {
+                refundEligible: true,
+                fraudCheckPassed: true,
+                refundAmount: 750,
+                managerApproved: true,
+                approvalArtifact: approval,
+              },
+            });
+
+
+            const record = await client.execute(transaction);
+
+
+            console.log(
+              record.businessTransactionId,
+              record.executions[0]?.decision.outcome,
+            );
+        - lang: python
+          label: Python
+          source: >-
+            import json
+
+            import os
+
+            from pathlib import Path
+
+
+            from parmana import ParmanaClient, create_business_transaction
+
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+
+            in_effect = client.policy_in_effect("paytm:refund")
+
+
+            # The signed approval the approver sent, for this order and up to
+            this amount.
+
+            approval = json.loads(Path("approval.json").read_text())
+
+
+            transaction = create_business_transaction(
+                principal_id=client.caller().caller_id,
+                purpose="Refund order ORD-1042",
+                action="paytm:refund",
+                target="ORD-1042",
+                parameters={"orderId": "ORD-1042", "transactionId": "TXN-9", "amount": 750},
+                policy=in_effect.policy,
+                signals={
+                    "refundEligible": True,
+                    "fraudCheckPassed": True,
+                    "refundAmount": 750,
+                    "managerApproved": True,
+                    "approvalArtifact": approval,
+                },
+            )
+
+
+            record = client.execute(transaction)
+
+
+            print(record.business_transaction_id,
+            record.executions[0].decision.outcome)
   /transactions:
     post:
       tags:
@@ -1626,6 +1981,105 @@ paths:
                     code: EXECUTION_OUTCOME_UNKNOWN
         "503":
           $ref: "#/components/responses/SigningUnavailable"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            import { createBusinessTransaction, ParmanaClient } from
+            "@parmana/sdk";
+
+            import { readFileSync } from "node:fs";
+
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+
+            const inEffect = await client.policyInEffect("paytm:refund");
+
+
+            // The signed approval the approver sent, for this order and up to
+            this amount.
+
+            const approval = JSON.parse(readFileSync("approval.json", "utf8"));
+
+
+            const transaction = createBusinessTransaction({
+              principalId: (await client.caller()).callerId,
+              purpose: "Refund order ORD-1042",
+              action: "paytm:refund",
+              target: "ORD-1042",
+              parameters: { orderId: "ORD-1042", transactionId: "TXN-9", amount: 750 },
+              policy: inEffect.policy,
+              signals: {
+                refundEligible: true,
+                fraudCheckPassed: true,
+                refundAmount: 750,
+                managerApproved: true,
+                approvalArtifact: approval,
+              },
+            });
+
+
+            const record = await client.createTransaction(transaction);
+
+
+            console.log(
+              record.businessTransactionId,
+              record.executions[0]?.decision.outcome,
+            );
+        - lang: python
+          label: Python
+          source: >-
+            import json
+
+            import os
+
+            from pathlib import Path
+
+
+            from parmana import ParmanaClient, create_business_transaction
+
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+
+            in_effect = client.policy_in_effect("paytm:refund")
+
+
+            # The signed approval the approver sent, for this order and up to
+            this amount.
+
+            approval = json.loads(Path("approval.json").read_text())
+
+
+            transaction = create_business_transaction(
+                principal_id=client.caller().caller_id,
+                purpose="Refund order ORD-1042",
+                action="paytm:refund",
+                target="ORD-1042",
+                parameters={"orderId": "ORD-1042", "transactionId": "TXN-9", "amount": 750},
+                policy=in_effect.policy,
+                signals={
+                    "refundEligible": True,
+                    "fraudCheckPassed": True,
+                    "refundAmount": 750,
+                    "managerApproved": True,
+                    "approvalArtifact": approval,
+                },
+            )
+
+
+            record = client.create_transaction(transaction)
+
+
+            print(record.business_transaction_id,
+            record.executions[0].decision.outcome)
     get:
       tags:
         - Transactions
@@ -1784,6 +2238,35 @@ paths:
                       createdAt: 2026-07-13T17:36:20.483Z
         "401":
           $ref: "#/components/responses/Unauthorized"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const transactions = await client.transactions(1, 25);
+
+            console.log(transactions.length);
+        - lang: python
+          label: Python
+          source: |-
+            import os
+
+            from parmana import ParmanaClient
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+            transactions = client.transactions.list(page=1, page_size=25)
+
+            print(len(transactions))
   /transactions/{businessTransactionId}:
     get:
       tags:
@@ -1863,6 +2346,42 @@ paths:
                   summary: Real captured response
                   value:
                     error: Business Transaction not found.
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const transaction = await client.transaction(
+              "5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90",
+            );
+
+            console.log(transaction.intent.action);
+        - lang: python
+          label: Python
+          source: >-
+            import os
+
+
+            from parmana import ParmanaClient
+
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+
+            transaction =
+            client.transaction("5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90")
+
+
+            print(transaction.intent.action)
   /verify:
     post:
       tags:
@@ -1931,6 +2450,37 @@ paths:
                   value:
                     error: Execution Trust Record not found.
                     code: VERIFICATION_FAILED
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const verification = await client.verify(
+              "5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90",
+            );
+
+            console.log(verification);
+        - lang: python
+          label: Python
+          source: |-
+            import os
+
+            from parmana import ParmanaClient
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+            verification = client.verify("5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90")
+
+            print(verification)
   /verification/{businessTransactionId}:
     get:
       tags:
@@ -1982,6 +2532,37 @@ paths:
                   summary: Real captured response
                   value:
                     error: Execution Trust Record not found.
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const verification = await client.getLatestVerification(
+              "5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90",
+            );
+
+            console.log(verification);
+        - lang: python
+          label: Python
+          source: |-
+            import os
+
+            from parmana import ParmanaClient
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+            verification = client.get_latest_verification("5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90")
+
+            print(verification)
   /refusal/verify:
     post:
       tags:
@@ -2030,6 +2611,45 @@ paths:
                       signature required).
         "429":
           $ref: "#/components/responses/RateLimited"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const record = await client.refusalRecord(
+              "5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90",
+            );
+            const valid = await client.verifyRefusalRecord(record);
+
+            console.log(valid);
+        - lang: python
+          label: Python
+          source: >-
+            import os
+
+
+            from parmana import ParmanaClient
+
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+
+            record =
+            client.refusal_record("5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90")
+
+            valid = client.verify_refusal_record(record)
+
+
+            print(valid)
   /parmana-handbook.pdf:
     get:
       tags:
@@ -2053,6 +2673,35 @@ paths:
               schema:
                 type: string
                 format: binary
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { writeFileSync } from "node:fs";
+
+            const response = await fetch(
+              "https://parmana-api-real.vercel.app/parmana-handbook.pdf",
+            );
+
+            writeFileSync(
+              "parmana-handbook.pdf",
+              Buffer.from(await response.arrayBuffer()),
+            );
+        - lang: python
+          label: Python
+          source: >-
+            from pathlib import Path
+
+
+            import requests
+
+
+            response = requests.get(
+                "https://parmana-api-real.vercel.app/parmana-handbook.pdf", timeout=30
+            )
+
+
+            Path("parmana-handbook.pdf").write_bytes(response.content)
   /handbook/download-leads:
     get:
       tags:
@@ -2097,6 +2746,29 @@ paths:
               example: A valid email address is required.
         "429":
           $ref: "#/components/responses/RateLimited"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            const response = await fetch(
+              "https://parmana-api-real.vercel.app/handbook/download-leads?email=reader%40example.com",
+            );
+
+
+            console.log(response.status, await response.json());
+        - lang: python
+          label: Python
+          source: >-
+            import requests
+
+
+            response = requests.get(
+                "https://parmana-api-real.vercel.app/handbook/download-leads?email=reader%40example.com",
+                timeout=30,
+            )
+
+
+            print(response.status_code, response.json())
     post:
       tags:
         - Handbook
@@ -2151,6 +2823,32 @@ paths:
                     error: A valid email address is required.
         "429":
           $ref: "#/components/responses/RateLimited"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            const response = await fetch(
+              "https://parmana-api-real.vercel.app/handbook/download-leads",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: "reader@example.com" }),
+              },
+            );
+
+            console.log(response.status, await response.json());
+        - lang: python
+          label: Python
+          source: |-
+            import requests
+
+            response = requests.post(
+                "https://parmana-api-real.vercel.app/handbook/download-leads",
+                json={"email": "reader@example.com"},
+                timeout=30,
+            )
+
+            print(response.status_code, response.json())
   /refusal/{businessTransactionId}:
     get:
       tags:
@@ -2194,6 +2892,42 @@ paths:
                   summary: Real captured response
                   value:
                     error: Refusal Record not found.
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const record = await client.refusalRecord(
+              "5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90",
+            );
+
+            console.log(record);
+        - lang: python
+          label: Python
+          source: >-
+            import os
+
+
+            from parmana import ParmanaClient
+
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+
+            record =
+            client.refusal_record("5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90")
+
+
+            print(record)
   /execution-intents/verify:
     post:
       tags:
@@ -2254,6 +2988,45 @@ paths:
                       signature required).
         "429":
           $ref: "#/components/responses/RateLimited"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const view = await client.executionIntent(
+              "5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90",
+            );
+            const valid = await client.verifyExecutionIntent(view.intent);
+
+            console.log(valid);
+        - lang: python
+          label: Python
+          source: >-
+            import os
+
+
+            from parmana import ParmanaClient
+
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+
+            view =
+            client.execution_intent("5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90")
+
+            valid = client.verify_execution_intent(view.intent)
+
+
+            print(valid)
   /execution-intents/unfinalized:
     get:
       tags:
@@ -2306,6 +3079,35 @@ paths:
                     error: "This action requires a caller credential provisioned as a verified human
                       (credentialHolderType: USER)."
                     code: NON_HUMAN_CALLER_DENIED
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const { intents } = await client.unfinalizedExecutionIntents(50);
+
+            console.log(intents.length);
+        - lang: python
+          label: Python
+          source: |-
+            import os
+
+            from parmana import ParmanaClient
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+            result = client.unfinalized_execution_intents(50)
+
+            print(len(result.intents))
   /execution-intents/{businessTransactionId}:
     get:
       tags:
@@ -2355,6 +3157,42 @@ paths:
                   summary: Message text from the source
                   value:
                     error: Execution Intent not found.
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const view = await client.executionIntent(
+              "5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90",
+            );
+
+            console.log(view.status.state);
+        - lang: python
+          label: Python
+          source: >-
+            import os
+
+
+            from parmana import ParmanaClient
+
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+
+            view =
+            client.execution_intent("5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90")
+
+
+            print(view.status.state)
   /execution-intents/{businessTransactionId}/finalize:
     post:
       tags:
@@ -2463,6 +3301,37 @@ paths:
                   value:
                     error: Execution Intents are not enabled on this deployment.
                     code: EXECUTION_INTENTS_NOT_ENABLED
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const result = await client.finalizeExecutionIntent(
+              "5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90",
+            );
+
+            console.log(result.outcome);
+        - lang: python
+          label: Python
+          source: |-
+            import os
+
+            from parmana import ParmanaClient
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+            result = client.finalize_execution_intent("5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90")
+
+            print(result.outcome)
   /execution-intents/{businessTransactionId}/resolve:
     post:
       tags:
@@ -2581,6 +3450,52 @@ paths:
                   value:
                     error: Execution Intents are not enabled on this deployment.
                     code: EXECUTION_INTENTS_NOT_ENABLED
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            import { ParmanaClient } from "@parmana/sdk";
+
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+
+            const result = await client.resolveExecutionIntent(
+              "5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90",
+              {
+                resolution: "NOT_EXECUTED",
+                note: "Checked the Paytm dashboard for order ORD-1042. No refund exists.",
+              },
+            );
+
+
+            console.log(result.outcome);
+        - lang: python
+          label: Python
+          source: >-
+            import os
+
+
+            from parmana import ParmanaClient
+
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+
+            result = client.resolve_execution_intent(
+                "5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90",
+                resolution="NOT_EXECUTED",
+                note="Checked the Paytm dashboard for order ORD-1042. No refund exists.",
+            )
+
+
+            print(result.outcome)
   /audit/verify:
     post:
       tags:
@@ -2632,6 +3547,74 @@ paths:
                       route; signature: algorithm, keyId, value required)."
         "429":
           $ref: "#/components/responses/RateLimited"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            import { readFileSync } from "node:fs";
+
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+
+            // A signed audit event and its signature, as exported from
+            caller_audit_events.
+
+            const { event, signature } = JSON.parse(
+              readFileSync("audit-event.json", "utf8"),
+            );
+
+
+            const valid = await client.verifyAuditEvent(event, signature);
+
+
+            console.log(valid);
+        - lang: python
+          label: Python
+          source: >-
+            import json
+
+            import os
+
+            from datetime import datetime
+
+            from pathlib import Path
+
+
+            from parmana import ParmanaClient
+
+            from parmana.models import Signature, SignatureAlgorithm
+
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+
+            # A signed audit event and its signature, as exported from
+            caller_audit_events.
+
+            exported = json.loads(Path("audit-event.json").read_text())
+
+
+            signature = Signature(
+                algorithm=SignatureAlgorithm(exported["signature"]["algorithm"]),
+                key_id=exported["signature"]["keyId"],
+                value=exported["signature"]["value"],
+                signed_at=datetime.fromisoformat(exported["signature"]["signedAt"]),
+            )
+
+
+            valid = client.verify_audit_event(exported["event"], signature)
+
+
+            print(valid)
   /receipt:
     post:
       tags:
@@ -2715,6 +3698,44 @@ paths:
                     error: Execution Trust Record must be successfully verified before a Receipt can
                       be generated.
                     code: RECEIPT_GENERATION_FAILED
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            import { ParmanaClient } from "@parmana/sdk";
+
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+
+            const receipt = await
+            client.receipt("5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90");
+
+
+            console.log(receipt);
+        - lang: python
+          label: Python
+          source: >-
+            import os
+
+
+            from parmana import ParmanaClient
+
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+
+            receipt =
+            client.receipt.generate("5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90")
+
+
+            print(receipt)
   /receipt/latest/{businessTransactionId}:
     get:
       tags:
@@ -2766,6 +3787,42 @@ paths:
                   summary: Real captured response
                   value:
                     error: Execution Trust Record not found.
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const receipt = await client.latestReceipt(
+              "5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90",
+            );
+
+            console.log(receipt);
+        - lang: python
+          label: Python
+          source: >-
+            import os
+
+
+            from parmana import ParmanaClient
+
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+
+            receipt =
+            client.latest_receipt("5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90")
+
+
+            print(receipt)
   /trust-records:
     get:
       tags:
@@ -2827,6 +3884,42 @@ paths:
                 $ref: "#/components/schemas/trust-records-list-response.schema"
         "401":
           $ref: "#/components/responses/Unauthorized"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const records = await client.trustRecords(1, 25, {
+              since: "2026-10-01T00:00:00Z",
+            });
+
+            console.log(records.length);
+        - lang: python
+          label: Python
+          source: >-
+            import os
+
+
+            from parmana import ParmanaClient
+
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+
+            records = client.trust_records.list(page=1, page_size=25,
+            since="2026-10-01T00:00:00Z")
+
+
+            print(len(records))
   /trust-records/{businessTransactionId}:
     get:
       tags:
@@ -2993,6 +4086,39 @@ paths:
                   summary: Real captured response
                   value:
                     error: Execution Trust Record not found.
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            import { ParmanaClient } from "@parmana/sdk";
+
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+
+            const record = await
+            client.trustRecord("5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90");
+
+
+            console.log(record.executions[0]?.decision.outcome);
+        - lang: python
+          label: Python
+          source: |-
+            import os
+
+            from parmana import ParmanaClient
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+            record = client.trust_record("5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90")
+
+            print(record.executions[0].decision.outcome)
   /replay:
     post:
       tags:
@@ -3060,6 +4186,44 @@ paths:
                   value:
                     error: Execution Trust Record not found.
                     code: VERIFICATION_FAILED
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            import { ParmanaClient } from "@parmana/sdk";
+
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+
+            const replay = await
+            client.replay("5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90");
+
+
+            console.log(replay);
+        - lang: python
+          label: Python
+          source: >-
+            import os
+
+
+            from parmana import ParmanaClient
+
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+
+            replay =
+            client.replay.replay("5f0c2a7e-3d7b-4d0e-9a55-2f6d8b1c4e90")
+
+
+            print(replay)
   /policies/in-effect:
     get:
       tags:
@@ -3232,6 +4396,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const inEffect = await client.policyInEffect("paytm:refund");
+
+            console.log(inEffect.policy, inEffect.signals.approval);
+        - lang: python
+          label: Python
+          source: |-
+            import os
+
+            from parmana import ParmanaClient
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+            in_effect = client.policy_in_effect("paytm:refund")
+
+            print(in_effect.policy, in_effect.signals.approval)
   /policies/validate:
     post:
       tags:
@@ -3308,6 +4501,39 @@ paths:
                     valid: false
                     errors:
                       - Policy 'does-not-exist' version '9.9.9' was not found.
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            import { ParmanaClient } from "@parmana/sdk";
+
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+
+            const result = await client.validatePolicy("customer-refund",
+            "1.2.0");
+
+
+            console.log(result);
+        - lang: python
+          label: Python
+          source: |-
+            import os
+
+            from parmana import ParmanaClient
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+            result = client.validate_policy("customer-refund", "1.2.0")
+
+            print(result)
   /policies/{name}/{version}/pending-changes:
     post:
       tags:
@@ -3402,6 +4628,61 @@ paths:
                     error: "This action requires a caller credential provisioned as a verified human
                       (credentialHolderType: USER)."
                     code: NON_HUMAN_CALLER_DENIED
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            import { readFileSync } from "node:fs";
+
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+
+            const change = await client.proposePolicyChange("customer-refund",
+            "1.3.0", {
+              reason: "Raise the maximum refund to 150000.",
+              proposedContent: JSON.parse(
+                readFileSync("policies/customer-refund/1.3.0/policy.json", "utf8"),
+              ),
+            });
+
+
+            console.log(change.pendingPolicyChangeId);
+        - lang: python
+          label: Python
+          source: >-
+            import json
+
+            import os
+
+            from pathlib import Path
+
+
+            from parmana import ParmanaClient
+
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+
+            change = client.propose_policy_change(
+                "customer-refund",
+                "1.3.0",
+                proposed_content=json.loads(
+                    Path("policies/customer-refund/1.3.0/policy.json").read_text()
+                ),
+                reason="Raise the maximum refund to 150000.",
+            )
+
+
+            print(change.pending_policy_change_id)
   /policies/pending-changes:
     get:
       tags:
@@ -3482,6 +4763,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const changes = await client.policyChanges("PENDING_APPROVAL");
+
+            console.log(changes.length);
+        - lang: python
+          label: Python
+          source: |-
+            import os
+
+            from parmana import ParmanaClient
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+            changes = client.policy_changes("PENDING_APPROVAL")
+
+            print(len(changes))
   /policies/pending-changes/{id}/approve:
     post:
       tags:
@@ -3587,6 +4897,70 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            import { ParmanaClient, signPolicyChangeStepUp } from
+            "@parmana/sdk";
+
+            import { readFileSync } from "node:fs";
+
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+
+            const stepUp = signPolicyChangeStepUp({
+              pendingPolicyChangeId: "ba7c5827-5844-4069-94fc-9b438ef08f78",
+              action: "approve",
+              privateKeyPem: readFileSync("step-up.private.pem", "utf8"),
+              keyId: "checker-step-up-1",
+            });
+
+
+            const change = await client.approvePolicyChange(
+              "ba7c5827-5844-4069-94fc-9b438ef08f78",
+              stepUp,
+            );
+
+
+            console.log(change.status);
+        - lang: python
+          label: Python
+          source: >-
+            import os
+
+            from pathlib import Path
+
+
+            from parmana import ParmanaClient
+
+            from parmana.crypto import sign_policy_change_step_up
+
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+
+            step_up = sign_policy_change_step_up(
+                pending_policy_change_id="ba7c5827-5844-4069-94fc-9b438ef08f78",
+                action="approve",
+                private_key_pem=Path("step-up.private.pem").read_text(),
+                key_id="checker-step-up-1",
+            )
+
+
+            change =
+            client.approve_policy_change("ba7c5827-5844-4069-94fc-9b438ef08f78",
+            step_up)
+
+
+            print(change.status)
   /policies/pending-changes/{id}/reject:
     post:
       tags:
@@ -3663,6 +5037,66 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            import { ParmanaClient, signPolicyChangeStepUp } from
+            "@parmana/sdk";
+
+            import { readFileSync } from "node:fs";
+
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+
+            const stepUp = signPolicyChangeStepUp({
+              pendingPolicyChangeId: "ba7c5827-5844-4069-94fc-9b438ef08f78",
+              action: "reject",
+              privateKeyPem: readFileSync("step-up.private.pem", "utf8"),
+              keyId: "checker-step-up-1",
+            });
+
+
+            const change = await client.rejectPolicyChange(
+              "ba7c5827-5844-4069-94fc-9b438ef08f78",
+              "The maximum stays at 100000 this quarter.",
+              stepUp,
+            );
+
+
+            console.log(change.status);
+        - lang: python
+          label: Python
+          source: |-
+            import os
+            from pathlib import Path
+
+            from parmana import ParmanaClient
+            from parmana.crypto import sign_policy_change_step_up
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+            step_up = sign_policy_change_step_up(
+                pending_policy_change_id="ba7c5827-5844-4069-94fc-9b438ef08f78",
+                action="reject",
+                private_key_pem=Path("step-up.private.pem").read_text(),
+                key_id="checker-step-up-1",
+            )
+
+            change = client.reject_policy_change(
+                "ba7c5827-5844-4069-94fc-9b438ef08f78",
+                "The maximum stays at 100000 this quarter.",
+                step_up,
+            )
+
+            print(change.status)
   /approval-issuers:
     get:
       tags:
@@ -3714,6 +5148,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const approvers = await client.approvers();
+
+            console.log(approvers);
+        - lang: python
+          label: Python
+          source: |-
+            import os
+
+            from parmana import ParmanaClient
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+            approvers = client.list_approvers()
+
+            print(approvers)
   /approval-issuers/changes:
     post:
       tags:
@@ -3806,6 +5269,60 @@ paths:
                     error: Approver 'manager-priya' key 'manager-priya-key-1' already exists. Use a
                       new key id to add a new key.
                     code: CONFLICT
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            import { readFileSync } from "node:fs";
+
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+
+            const change = await client.proposeApproverChange({
+              action: "add",
+              approverId: "manager-priya",
+              keyId: "manager-priya-key-1",
+              publicKeyPem: readFileSync(
+                "manager-priya__manager-priya-key-1.public.pem",
+                "utf8",
+              ),
+              reason: "Priya approves refunds for the West region from October.",
+            });
+
+
+            console.log(change.changeId);
+        - lang: python
+          label: Python
+          source: >-
+            import os
+
+            from pathlib import Path
+
+
+            from parmana import ParmanaClient
+
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+
+            change = client.approvers.propose_add(
+                approver_id="manager-priya",
+                key_id="manager-priya-key-1",
+                public_key_pem=Path("manager-priya__manager-priya-key-1.public.pem").read_text(),
+                reason="Priya approves refunds for the West region from October.",
+            )
+
+
+            print(change.change_id)
     get:
       tags:
         - Approvers
@@ -3863,6 +5380,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: |-
+            import { ParmanaClient } from "@parmana/sdk";
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+            const changes = await client.approverChanges("PENDING_APPROVAL");
+
+            console.log(changes.length);
+        - lang: python
+          label: Python
+          source: |-
+            import os
+
+            from parmana import ParmanaClient
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+            changes = client.approver_changes("PENDING_APPROVAL")
+
+            print(len(changes))
   /approval-issuers/changes/{id}/approve:
     post:
       tags:
@@ -3974,6 +5520,61 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            import { ParmanaClient, signPolicyChangeStepUp } from
+            "@parmana/sdk";
+
+            import { readFileSync } from "node:fs";
+
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+
+            const stepUp = signPolicyChangeStepUp({
+              pendingPolicyChangeId: "ba7c5827-5844-4069-94fc-9b438ef08f78",
+              action: "approve",
+              privateKeyPem: readFileSync("step-up.private.pem", "utf8"),
+              keyId: "checker-step-up-1",
+            });
+
+
+            const change = await client.approveApproverChange(
+              "ba7c5827-5844-4069-94fc-9b438ef08f78",
+              stepUp,
+            );
+
+
+            console.log(change.status);
+        - lang: python
+          label: Python
+          source: |-
+            import os
+            from pathlib import Path
+
+            from parmana import ParmanaClient
+            from parmana.crypto import sign_policy_change_step_up
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+            step_up = sign_policy_change_step_up(
+                pending_policy_change_id="ba7c5827-5844-4069-94fc-9b438ef08f78",
+                action="approve",
+                private_key_pem=Path("step-up.private.pem").read_text(),
+                key_id="checker-step-up-1",
+            )
+
+            change = client.approve_approver_change("ba7c5827-5844-4069-94fc-9b438ef08f78", step_up)
+
+            print(change.status)
   /approval-issuers/changes/{id}/reject:
     post:
       tags:
@@ -4046,6 +5647,66 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            import { ParmanaClient, signPolicyChangeStepUp } from
+            "@parmana/sdk";
+
+            import { readFileSync } from "node:fs";
+
+
+            const client = new ParmanaClient({
+              endpoint: "https://parmana-api-real.vercel.app",
+              apiKey: process.env.PARMANA_API_KEY!,
+            });
+
+
+            const stepUp = signPolicyChangeStepUp({
+              pendingPolicyChangeId: "ba7c5827-5844-4069-94fc-9b438ef08f78",
+              action: "reject",
+              privateKeyPem: readFileSync("step-up.private.pem", "utf8"),
+              keyId: "checker-step-up-1",
+            });
+
+
+            const change = await client.rejectApproverChange(
+              "ba7c5827-5844-4069-94fc-9b438ef08f78",
+              "Priya stays on refunds until 31 October.",
+              stepUp,
+            );
+
+
+            console.log(change.status);
+        - lang: python
+          label: Python
+          source: |-
+            import os
+            from pathlib import Path
+
+            from parmana import ParmanaClient
+            from parmana.crypto import sign_policy_change_step_up
+
+            client = ParmanaClient(
+                endpoint="https://parmana-api-real.vercel.app",
+                api_key=os.environ["PARMANA_API_KEY"],
+            )
+
+            step_up = sign_policy_change_step_up(
+                pending_policy_change_id="ba7c5827-5844-4069-94fc-9b438ef08f78",
+                action="reject",
+                private_key_pem=Path("step-up.private.pem").read_text(),
+                key_id="checker-step-up-1",
+            )
+
+            change = client.reject_approver_change(
+                "ba7c5827-5844-4069-94fc-9b438ef08f78",
+                "Priya stays on refunds until 31 October.",
+                step_up,
+            )
+
+            print(change.status)
   /external-connectors:
     get:
       tags:
@@ -4113,6 +5774,40 @@ paths:
                     error: "This action requires a caller credential provisioned as a verified human
                       (credentialHolderType: USER)."
                     code: NON_HUMAN_CALLER_DENIED
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            // Not in the SDK yet: call the route directly.
+
+            const response = await fetch(
+              "https://parmana-api-real.vercel.app/external-connectors",
+              {
+                headers: { Authorization: `Bearer ${process.env.PARMANA_API_KEY}` },
+              },
+            );
+
+
+            console.log(response.status, await response.json());
+        - lang: python
+          label: Python
+          source: >-
+            # Not in the SDK yet: call the route directly.
+
+            import os
+
+
+            import requests
+
+
+            response = requests.get(
+                "https://parmana-api-real.vercel.app/external-connectors",
+                headers={"Authorization": f"Bearer {os.environ['PARMANA_API_KEY']}"},
+                timeout=30,
+            )
+
+
+            print(response.status_code, response.json())
   /external-connectors/changes:
     post:
       tags:
@@ -4283,6 +5978,62 @@ paths:
                   value:
                     error: Capability 'erp:create-invoice' has no active external connector.
                     code: CONFLICT
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            // Not in the SDK yet: call the route directly.
+
+            const response = await fetch(
+              "https://parmana-api-real.vercel.app/external-connectors/changes",
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${process.env.PARMANA_API_KEY}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  action: "register",
+                  capability: "erp:create-invoice",
+                  endpointUrl: "https://erp.example.com/parmana/release",
+                  policy: "erp-invoice",
+                  allowedParameters: ["amount", "currency"],
+                  timeoutMs: 10000,
+                  reason: "Finance creates invoices in the ERP through Parmana.",
+                }),
+              },
+            );
+
+
+            console.log(response.status, await response.json());
+        - lang: python
+          label: Python
+          source: >-
+            # Not in the SDK yet: call the route directly.
+
+            import os
+
+
+            import requests
+
+
+            response = requests.post(
+                "https://parmana-api-real.vercel.app/external-connectors/changes",
+                headers={"Authorization": f"Bearer {os.environ['PARMANA_API_KEY']}"},
+                json={
+                    "action": "register",
+                    "capability": "erp:create-invoice",
+                    "endpointUrl": "https://erp.example.com/parmana/release",
+                    "policy": "erp-invoice",
+                    "allowedParameters": ["amount", "currency"],
+                    "timeoutMs": 10000,
+                    "reason": "Finance creates invoices in the ERP through Parmana.",
+                },
+                timeout=30,
+            )
+
+
+            print(response.status_code, response.json())
     get:
       tags:
         - External Connectors
@@ -4377,6 +6128,40 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            // Not in the SDK yet: call the route directly.
+
+            const response = await fetch(
+              "https://parmana-api-real.vercel.app/external-connectors/changes?status=PENDING_APPROVAL",
+              {
+                headers: { Authorization: `Bearer ${process.env.PARMANA_API_KEY}` },
+              },
+            );
+
+
+            console.log(response.status, await response.json());
+        - lang: python
+          label: Python
+          source: >-
+            # Not in the SDK yet: call the route directly.
+
+            import os
+
+
+            import requests
+
+
+            response = requests.get(
+                "https://parmana-api-real.vercel.app/external-connectors/changes?status=PENDING_APPROVAL",
+                headers={"Authorization": f"Bearer {os.environ['PARMANA_API_KEY']}"},
+                timeout=30,
+            )
+
+
+            print(response.status_code, response.json())
   /external-connectors/changes/{id}/approve:
     post:
       tags:
@@ -4524,6 +6309,73 @@ paths:
                     error: External connector change 'd1164799-36e9-4281-878a-93d666befd42' is
                       already APPROVED.
                     code: CONFLICT
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            import { readFileSync } from "node:fs";
+
+
+            import { signPolicyChangeStepUp } from "@parmana/sdk";
+
+
+            // Not in the SDK yet: call the route directly.
+
+            const stepUp = signPolicyChangeStepUp({
+              pendingPolicyChangeId: "ba7c5827-5844-4069-94fc-9b438ef08f78",
+              action: "approve",
+              privateKeyPem: readFileSync("step-up.private.pem", "utf8"),
+              keyId: "checker-step-up-1",
+            });
+
+
+            const response = await fetch(
+              "https://parmana-api-real.vercel.app/external-connectors/changes/ba7c5827-5844-4069-94fc-9b438ef08f78/approve",
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${process.env.PARMANA_API_KEY}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ stepUpAuthorization: stepUp }),
+              },
+            );
+
+
+            console.log(response.status, await response.json());
+        - lang: python
+          label: Python
+          source: >-
+            import os
+
+            from pathlib import Path
+
+
+            import requests
+
+
+            from parmana.crypto import sign_policy_change_step_up
+
+
+            # Not in the SDK yet: call the route directly.
+
+            step_up = sign_policy_change_step_up(
+                pending_policy_change_id="ba7c5827-5844-4069-94fc-9b438ef08f78",
+                action="approve",
+                private_key_pem=Path("step-up.private.pem").read_text(),
+                key_id="checker-step-up-1",
+            )
+
+
+            response = requests.post(
+                "https://parmana-api-real.vercel.app/external-connectors/changes/ba7c5827-5844-4069-94fc-9b438ef08f78/approve",
+                headers={"Authorization": f"Bearer {os.environ['PARMANA_API_KEY']}"},
+                json={"stepUpAuthorization": step_up},
+                timeout=30,
+            )
+
+
+            print(response.status_code, response.json())
   /external-connectors/changes/{id}/reject:
     post:
       tags:
@@ -4615,6 +6467,79 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/error.schema"
+      x-codeSamples:
+        - lang: typescript
+          label: TypeScript
+          source: >-
+            import { readFileSync } from "node:fs";
+
+
+            import { signPolicyChangeStepUp } from "@parmana/sdk";
+
+
+            // Not in the SDK yet: call the route directly.
+
+            const stepUp = signPolicyChangeStepUp({
+              pendingPolicyChangeId: "ba7c5827-5844-4069-94fc-9b438ef08f78",
+              action: "reject",
+              privateKeyPem: readFileSync("step-up.private.pem", "utf8"),
+              keyId: "checker-step-up-1",
+            });
+
+
+            const response = await fetch(
+              "https://parmana-api-real.vercel.app/external-connectors/changes/ba7c5827-5844-4069-94fc-9b438ef08f78/reject",
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${process.env.PARMANA_API_KEY}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  rejectionReason: "The ERP team has not reviewed the endpoint yet.",
+                  stepUpAuthorization: stepUp,
+                }),
+              },
+            );
+
+
+            console.log(response.status, await response.json());
+        - lang: python
+          label: Python
+          source: >-
+            import os
+
+            from pathlib import Path
+
+
+            import requests
+
+
+            from parmana.crypto import sign_policy_change_step_up
+
+
+            # Not in the SDK yet: call the route directly.
+
+            step_up = sign_policy_change_step_up(
+                pending_policy_change_id="ba7c5827-5844-4069-94fc-9b438ef08f78",
+                action="reject",
+                private_key_pem=Path("step-up.private.pem").read_text(),
+                key_id="checker-step-up-1",
+            )
+
+
+            response = requests.post(
+                "https://parmana-api-real.vercel.app/external-connectors/changes/ba7c5827-5844-4069-94fc-9b438ef08f78/reject",
+                headers={"Authorization": f"Bearer {os.environ['PARMANA_API_KEY']}"},
+                json={
+                    "rejectionReason": "The ERP team has not reviewed the endpoint yet.",
+                    "stepUpAuthorization": step_up,
+                },
+                timeout=30,
+            )
+
+
+            print(response.status_code, response.json())
 components:
   schemas:
     Error:
