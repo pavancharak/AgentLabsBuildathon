@@ -1387,6 +1387,32 @@ Fix: the decoder keeps the server's JSON on every decoded model (`SOURCE_JSON_AT
 with `dataclasses.replace()` has no source and is encoded from its fields. Test:
 `python/tests/test_decoded_record_verifies.py`, on the real sandbox record with the sandbox's public key.
 
+**G-86. All visitor data in the public sandbox was deleted around the retention job's first run, cause not
+established. FOUND 2026-10-02, `pre-production` (sandbox data only; production not affected).**
+The job `parmana-sandbox-retention` (`deploy/sandbox/retention.sql`, installed at about 03:00 UTC) ran once, at
+03:30:00 UTC, for 9 ms, and `cron.job_run_details` reports `succeeded`. At 03:46 UTC the sandbox listed no
+transactions, known Trust Records answered 404, and the oldest caller audit event left was from 03:36:54 UTC: every
+event and request before it was gone, although all of it was less than a day old and the job's period is 7 days.
+What was ruled out: the database holds one version of the function; the repository has only ever had one version of
+`retention.sql`; every time column it compares is `TIMESTAMPTZ` and the server stamps them with its own clock; no
+application code deletes from these tables; the install stage's check runs its 0 day period inside a transaction it
+rolls back, and 28 transactions were still listed after it. Run against real Postgres with every migration (PGlite),
+the job's exact command keeps a row an hour old and deletes one 10 days old. So either the scheduled run behaved
+differently on Supabase than in every reproduction, or something deleted the data by hand between 03:30 and 03:36,
+such as the manual reset `parmana_sandbox_retention(0)` the kit's README then documented; nobody could say whether
+it was run. Production's database has no such function (the job is not a migration, and the kit refuses
+production's project), and production answered READY throughout. The CLAIMS 2.51 evidence is kept in
+`deploy/sandbox/evidence/check-record.json`; its transaction no longer exists in the sandbox. The job was paused
+the same day (`cron.unschedule`).
+
+Fix: any period under 7 days is refused unless the second argument is the confirmation word
+`'DELETE RECENT DATA'`, and the one argument version of the function is dropped, so `parmana_sandbox_retention(0)`
+alone deletes nothing. The README no longer shows a reset line. Every run that deletes writes a row to
+`sandbox_retention_runs` (time, period, cutoff, session user, application name, client address, backend pid,
+counts per table), so a future deletion says who ran it. Test: `tests/architecture/sandbox-retention-postgres.test.ts`
+runs the file and the job's exact command against PGlite. Open: reinstall the job (`setup-sandbox.ps1 -Stage
+Retention`) and check the first run's log row the next morning.
+
 ---
 
 ## Remaining gaps, by severity

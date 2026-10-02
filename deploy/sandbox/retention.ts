@@ -80,7 +80,7 @@ try {
 
   if (command === "check") {
     const result = await client.query<{ table_name: string; deleted: string }>(
-      "SELECT * FROM parmana_sandbox_retention(0)",
+      "SELECT * FROM parmana_sandbox_retention(0, 'DELETE RECENT DATA')",
     );
 
     console.log("A 0 day period would delete, in this order:");
