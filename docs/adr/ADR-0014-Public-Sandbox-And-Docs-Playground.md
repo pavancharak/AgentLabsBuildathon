@@ -1,6 +1,6 @@
 # ADR-0014: Public sandbox and docs playground
 
-**Status:** Accepted by the operator on 2026-10-01 (PR #103 merged), with the proposed answers to the three open questions. Step 1 (code) built on 2026-10-01; steps 2 to 4 not yet. See the order of work.
+**Status:** Accepted by the operator on 2026-10-01 (PR #103 merged), with the proposed answers to the three open questions. Step 1 (code) built on 2026-10-01. Steps 2 and 3 done on 2026-10-02: the sandbox is live at `https://parmana-sandbox.vercel.app` and its live check passed (`docs/CLAIMS.md` 2.51). Step 4 (docs) built on 2026-10-02. Retention (open question 3) is not built yet. See the order of work.
 
 **Date:** Proposed 2026-10-01.
 
@@ -123,7 +123,12 @@ governance (policy, approver or connector changes) except as captured examples.
    the demo key.
 2. Infrastructure, by the operator with steps written for them: the Supabase project, the Vercel project, keys,
    migrations, the receipt endpoint, the policy and the registration through maker checker, the demo key.
-   **Kit ready:** `deploy/sandbox/` (README, `setup-sandbox.ps1` stages, `make-keys.ts`, `policy.json`, `check.ts`).
-   Not run yet.
+   **Done 2026-10-02** with the kit in `deploy/sandbox/`: Supabase project `zkrfrfyokkpfwghoohne` (not production's),
+   Vercel projects `parmana-sandbox` and `parmana-sandbox-receipt`.
 3. A live check of the sandbox, as for ADR-0013, then a CLAIMS entry. The kit's stage `Check` is this live check.
-4. Docs: the OpenAPI server and prefilled key, the Playground page, the quickstart.
+   **Passed 2026-10-02**, all nine checks (`deploy/sandbox/evidence/check-record.json`).
+4. Docs: the OpenAPI server and prefilled key, the Playground page, the quickstart. **Built 2026-10-02:**
+   `docs/site/playground.mdx` (scripts in `examples/sandbox-playground`, each run against the sandbox, kept equal to
+   the page by `tests/architecture/sandbox-playground.test.ts`), the sandbox first in `servers` with `x-default` on
+   the bearer scheme, and the sandbox in the quickstart, the agents guide, the API introduction and authentication.
+   The in browser record check of section 5 is not built: the page shows the offline check in each SDK instead.

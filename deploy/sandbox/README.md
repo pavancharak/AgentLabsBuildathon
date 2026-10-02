@@ -20,12 +20,13 @@ reads production (`ProductionNames`) lists variable names only, never values.
 
 ## Files
 
-| File                | Purpose                                                                                           |
-| ------------------- | ------------------------------------------------------------------------------------------------- |
-| `setup-sandbox.ps1` | Every stage, for Windows PowerShell. Sandbox keys are read from the key folder and never printed. |
-| `make-keys.ts`      | Makes every sandbox key as files in one new folder (stage `Keys`).                                |
-| `policy.json`       | `sandbox-receipt` 1.0.0. Checked by `tests/architecture/sandbox-policy.test.ts`.                  |
-| `check.ts`          | The live check, with the published demo key only (stage `Check`).                                 |
+| File                   | Purpose                                                                                                              |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `setup-sandbox.ps1`    | Every stage, for Windows PowerShell. Sandbox keys are read from the key folder and never printed.                    |
+| `make-keys.ts`         | Makes every sandbox key as files in one new folder (stage `Keys`).                                                   |
+| `policy.json`          | `sandbox-receipt` 1.0.0. Checked by `tests/architecture/sandbox-policy.test.ts`.                                     |
+| `check.ts`             | The live check, with the published demo key only (stage `Check`).                                                    |
+| `publish-demo-key.ps1` | Writes the demo key into the docs in place of their placeholder, after the sandbox confirms it is `sandbox-visitor`. |
 
 ## The stages
 
@@ -113,6 +114,7 @@ approver, and browser access for the docs site only. Its record is saved to `dep
 ## Afterwards
 
 - Keep `evidence/check-record.json` (no secret) for the `docs/CLAIMS.md` entry.
-- `sandbox-visitor.key` is the demo key the docs will publish (ADR-0014 step 4). Every other file in
-  `D:\key\parmana-sandbox` stays private.
+- `sandbox-visitor.key` is the demo key the docs publish (ADR-0014 step 4). The docs hold a placeholder
+  until `publish-demo-key.ps1` writes the key in. Every other file in `D:\key\parmana-sandbox` stays
+  private.
 - Retention (ADR-0014 open question 3, accepted: 7 days, daily) is not set up by this kit yet.

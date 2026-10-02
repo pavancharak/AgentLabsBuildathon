@@ -62,8 +62,27 @@ info:
     as one that does not exist.
 
 
-    **Start here:** the [Quickstart](/quickstart), then [Integrate
-    Parmana](/agents/integrate) for agents
+    **Try it live.** The first server below is the public sandbox,
+    `https://parmana-sandbox.vercel.app`: the same
+
+    code as production with its own database, keys and demo approver, whose one
+    action, `sandbox:receipt`,
+
+    acts on nothing. Every "Try it" panel calls it with the published demo key
+    prefilled. The demo key may
+
+    invoke only `sandbox:receipt`, so other capabilities return `403` and
+    governance routes return
+
+    `403 NON_HUMAN_CALLER_DENIED`. Everything sent to the sandbox is visible to
+    every visitor. See
+
+    [Playground](/playground). Production needs a key issued by its operator.
+
+
+    **Start here:** the [Playground](/playground) (no install), the
+    [Quickstart](/quickstart), then [Integrate Parmana](/agents/integrate) for
+    agents
 
     and [Connect any external system](/guides/connect-any-external-system) for
     your own endpoint.
@@ -74,9 +93,11 @@ info:
     name: Proprietary, source-available for evaluation only, see LICENSE
     url: https://github.com/pavancharak/AgentLabsBuildathon/blob/main/LICENSE
 servers:
+  - url: https://parmana-sandbox.vercel.app
+    description: Public sandbox (the docs playground). Same code as production, demo
+      data only, acts on nothing. Demo key prefilled.
   - url: https://parmana-api-real.vercel.app
-    description: Production (real, deployed instance -- the docs site playground
-      uses this by default)
+    description: Production. Needs a key issued by the operator.
   - url: http://localhost:3000
     description: Local (packages/api, PORT env var, default 3000)
 security:
@@ -7976,6 +7997,16 @@ paths:
         capability, the resource and the expiry, and
 
         it accepts it once. Needs the published demo key.
+
+
+        Live at `https://parmana-sandbox.vercel.app`. The request that uses it
+        carries
+
+        `signals: { "note": "<the same text as parameters.note>",
+        "receiptApproved": true, "approvalArtifact": <this response> }`,
+
+        with `target` equal to the `resourceId` you named here. The
+        [Playground](/playground) walks through every step.
       requestBody:
         required: true
         content:
@@ -10964,6 +10995,7 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
+      x-default: SANDBOX_DEMO_KEY
       description: >
         Caller API key issued by scripts/generate-api-key.ts. Sent as
         Authorization: Bearer <key>. Verified against a stored SHA-256 hash in

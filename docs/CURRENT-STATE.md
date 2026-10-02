@@ -232,6 +232,15 @@ governance approved, and `GET /policies/in-effect` answers for it. The SDK helpe
 the live check (`examples/live-checks/external-connector`). `docs/VERIFICATION-GAPS.md` G-81 fixed;
 G-82, G-83 and G-84 (an approved request takes 24 to 32 seconds in production) open.
 
+## Public sandbox (ADR-0014, live 2026-10-02)
+
+`https://parmana-sandbox.vercel.app`: the same `main` as production with `PARMANA_SANDBOX=true`, its own Supabase
+project (`zkrfrfyokkpfwghoohne`), keys and demo approver. One capability, `sandbox:receipt`, registered as an external
+connector to `https://parmana-sandbox-receipt.vercel.app/api/release`, which acts on nothing. Published demo key:
+caller `sandbox-visitor`, allowed only `sandbox:receipt`. Live check passed 2026-10-02 (`docs/CLAIMS.md` 2.51). Docs:
+`docs/site/playground.mdx`, the first OpenAPI server. Not built: retention (7 days, daily) and the custom domain
+`sandbox.parmanasystems.com`. Vercel deploys it on every merge to `main`, as production.
+
 ## On disk, but not reachable
 
 15 policy names exist under `policies/` (checked 2026-09-28). 5 are bound to a

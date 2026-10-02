@@ -17,7 +17,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "https://parmana-api-real.vercel.app",
+      "value": "https://parmana-sandbox.vercel.app",
       "type": "string"
     },
     {
@@ -1101,7 +1101,7 @@
                 "approvals"
               ]
             },
-            "description": "operationId: createSandboxApproval\n\n**Sandbox only.** Returns an approval signed by the sandbox's demo approver, so you can try an approved\nrequest from a browser. In production a person signs every approval with their own key on their own\nmachine; this route does not exist there.\n\nIt signs only for `sandbox:receipt`, for the one `resourceId` you name (the target of the request you will\nsend), valid 5 minutes. Put it in your request's `signals.approvalArtifact`. `POST /execute` checks it like\nany other approval: a trusted approver key, the signature, the capability, the resource and the expiry, and\nit accepts it once. Needs the published demo key."
+            "description": "operationId: createSandboxApproval\n\n**Sandbox only.** Returns an approval signed by the sandbox's demo approver, so you can try an approved\nrequest from a browser. In production a person signs every approval with their own key on their own\nmachine; this route does not exist there.\n\nIt signs only for `sandbox:receipt`, for the one `resourceId` you name (the target of the request you will\nsend), valid 5 minutes. Put it in your request's `signals.approvalArtifact`. `POST /execute` checks it like\nany other approval: a trusted approver key, the signature, the capability, the resource and the expiry, and\nit accepts it once. Needs the published demo key.\n\nLive at `https://parmana-sandbox.vercel.app`. The request that uses it carries\n`signals: { \"note\": \"<the same text as parameters.note>\", \"receiptApproved\": true, \"approvalArtifact\": <this response> }`,\nwith `target` equal to the `resourceId` you named here. The [Playground](/playground) walks through every step."
           }
         }
       ]
