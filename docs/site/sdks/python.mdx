@@ -216,11 +216,15 @@ client = ParmanaClient(endpoint=endpoint)
 transaction = create_business_transaction(
     principal_id="alice@example.com",  # must match your key's allowed_principal_ids
     purpose="Vendor payment approval",
-    action="vendor-payment",
+    action="test:fixture-execute",  # a test capability, registered only with NODE_ENV=test
     target="vendor/vendor-123",
     parameters={"amount": 100, "currency": "USD"},
-    policy=PolicyReference(name="vendor-payment", version="2.0.0", schema_version="1.0.0"),
+    policy=PolicyReference(name="vendor-payment", version="2.1.0", schema_version="1.0.0"),
     signals={
+        # The approver's signed approval for this target, up to this amount
+        # (parmana.crypto.sign_approval). Without it the request is refused.
+        "humanApproved": True,
+        "approvalArtifact": approval,
         "vendorVerified": True,
         "invoiceVerified": True,
         "paymentApproved": True,

@@ -188,7 +188,7 @@ description: "Install to your first authorized execution with the TypeScript SDK
 
   <Step title="Real output">
 
-Captured from an actual run against a local server, using the same
+Captured on 2026-10-02 from a run against a local server (trimmed), using the same
 `createBusinessTransaction()` call this page documents (see
 `typescript/examples/06-create-business-transaction.ts` in this repository for the exact
 source, and `typescript/test/integration/examples.integration.test.ts` for the test that
@@ -196,25 +196,33 @@ proves it stays runnable):
 
 ```json
 {
-  "trustRecordId": "2d26aaec-e274-4255-8415-d93b672747b4",
-  "businessTransactionId": "435e1c86-d2ed-4f4d-8549-aee574d1c77d",
+  "trustRecordId": "7966d3f2-758b-4fef-8ef4-119f7c759560",
+  "businessTransactionId": "54958790-351c-4c0f-bf52-918676952b53",
   "transaction": {
-    "businessTransactionId": "435e1c86-d2ed-4f4d-8549-aee574d1c77d",
+    "businessTransactionId": "54958790-351c-4c0f-bf52-918676952b53",
     "authority": {
-      "authorityId": "5c6df777-3685-4b5e-9378-3433388cf9d6",
+      "authorityId": "22d127fe-d55a-4188-ba16-469b1eb7688f",
       "authorityType": "SERVICE",
       "principalId": "alice@example.com",
-      "issuedAt": "2026-09-14T17:12:04.538Z"
+      "displayName": "Alice",
+      "issuedAt": "2026-10-02T11:16:44.451Z"
     },
     "intent": {
       "action": "test:fixture-execute",
       "target": "vendor/vendor-123",
-      "parameters": { "amount": 100, "currency": "USD" }
+      "parameters": {
+        "amount": 100,
+        "currency": "USD"
+      }
     },
     "policy": {
       "name": "vendor-payment",
-      "version": "2.0.0",
-      "schemaVersion": "1.0.0"
+      "version": "2.1.0",
+      "schemaVersion": "1.0.0",
+      "contentHash": "18f4acca151fef1c45c867f622bdd4edd5d640aa38b95e026430aba10756ee2d",
+      "governanceAnchor": {
+        "status": "NO_APPROVAL_RECORD"
+      }
     },
     "status": "RECEIVED"
   }
