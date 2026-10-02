@@ -12,6 +12,14 @@ every commit, run `git log` in the repository for the complete record.
 
 ## 2026-10-02
 
+**Sandbox: visitor data deleted, retention paused**
+
+- Every request and record visitors had sent to the public sandbox was deleted around 03:30 UTC, around the
+  retention job's first run. Production was not affected. The job is paused. Sandbox records are not guaranteed to
+  be kept: keep any record you need.
+- The retention function now refuses any period under 7 days without an explicit confirmation word, and logs every
+  run that deletes.
+
 **Added: sandbox retention**
 
 - A daily job in the sandbox database deletes every request and record visitors sent more than 7 days ago, and keeps
