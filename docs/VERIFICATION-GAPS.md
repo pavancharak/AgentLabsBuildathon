@@ -1367,7 +1367,7 @@ twice. Until this is fixed, agents should set a longer timeout and, after a time
 (`GET /trust-records/{id}`) before anything else. The refund flow takes the same path.
 
 **G-85. The Python SDK cannot verify its own decoded record when `previousChainHash` is `null`.
-FOUND 2026-10-02 while writing the sandbox Playground, `pre-production` (verification tooling, not
+FIXED IN CODE 2026-10-02, not yet published (next Python release); 1.4.0 has it. FOUND 2026-10-02 while writing the sandbox Playground, `pre-production` (verification tooling, not
 authorization).** `verify_execution_trust_record_offline(record, keys)` accepts the decoded
 `ExecutionTrustRecord` model (`python/parmana/crypto/offline_verifier.py`, `_as_json`), and encodes it again
 with `parmana.serialization.encode`, which leaves out every field whose value is `None`. The server
@@ -1380,6 +1380,12 @@ transaction `f0ff68b5-adab-49d4-ad00-12a1fcd99536` verifies, the model of the sa
 TypeScript SDK is not affected. Until fixed, the docs (`docs/site/sdks/python.mdx`,
 `docs/site/playground.mdx`) say to verify the raw JSON. A fix has to tell null from absent in the
 generated models or keep the server's JSON with the model.
+
+Fix: the decoder keeps the server's JSON on every decoded model (`SOURCE_JSON_ATTRIBUTE`, not a field), and
+`encode()` returns a copy of it, so a decoded model goes back out exactly as the server sent it. This also fixes
+`refusal_record` and Execution Intent verification, which send a decoded model back to the server. A model changed
+with `dataclasses.replace()` has no source and is encoded from its fields. Test:
+`python/tests/test_decoded_record_verifies.py`, on the real sandbox record with the sandbox's public key.
 
 ---
 

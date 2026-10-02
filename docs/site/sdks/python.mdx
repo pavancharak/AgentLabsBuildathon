@@ -250,6 +250,15 @@ generated ids round-trip correctly through a real running server, not just in is
   1.4.0, which does not have these methods.
 </Info>
 
+### A decoded record verifies offline (fixes a 1.4.0 bug)
+
+A model the SDK decoded keeps the server's own JSON, and encodes back to exactly that JSON. So
+`verify_execution_trust_record_offline(record, keys)` verifies the `ExecutionTrustRecord` returned by
+`client.execute()` or `client.trust_record()` directly, including records with `previousChainHash: null`, and
+`refusal_record` and Execution Intent verification send the server exactly what it signed. In 1.4.0 those records
+failed with a hash mismatch (see the warning under [Verify records offline](#verify-records-offline-straight-from-the-clients-results)).
+A model changed with `dataclasses.replace()` is encoded from its fields, so a changed record still fails.
+
 ### What a request must carry, from the server
 
 `client.policy_in_effect(capability)` (also `client.policy.in_effect(...)`) calls `GET /policies/in-effect` and returns
@@ -418,14 +427,15 @@ verify_execution_intent_offline(view.intent, {"default": pem})
 From 1.3.0 the verifiers accept the SDK's own models, as above, as well as the raw JSON dict of a response or a file. Needs `pip install "parmana[verify]"`.
 
 <Warning>
-  Known issue in 1.4.0: a decoded `ExecutionTrustRecord` drops a `null`
-  `previousChainHash`, so `verify_execution_trust_record_offline` reports a hash
-  mismatch for a record that carries one, although the record is intact. Records
-  from a Postgres backed server, such as the [public sandbox](/playground),
-  carry it. Until this is fixed, verify the record as the server sent it, for
-  example `requests.get(f"{url}/trust-records/{business_transaction_id}",
-  headers=headers).json()`, or a saved JSON file. The TypeScript SDK is not
-  affected.
+  Known issue in 1.4.0, fixed in the [next
+  release](#next-release-not-yet-published): a decoded `ExecutionTrustRecord`
+  drops a `null` `previousChainHash`, so `verify_execution_trust_record_offline`
+  reports a hash mismatch for a record that carries one, although the record is
+  intact. Records from a Postgres backed server, such as the [public
+  sandbox](/playground), carry it. With 1.4.0, verify the record as the server
+  sent it, for example `requests.get(f"{url}/trust-records/
+  {business_transaction_id}", headers=headers).json()`, or a saved JSON file.
+  The TypeScript SDK is not affected.
 </Warning>
 
 ### Check a release at an external connector endpoint (next release)
