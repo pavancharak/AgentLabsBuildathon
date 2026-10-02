@@ -3,13 +3,12 @@ title: "Policies and the Decision"
 description: "Deterministic, first-match rule evaluation over runtime signals: what a Policy is, why it's structured this way, and how a Decision comes out of it."
 ---
 
-<Info>**[AVAILABLE]**. `packages/policy`, 72 tests. CLAIMS.md 2.2/2.3.</Info>
+<Info>**[AVAILABLE]**. `packages/policy`, 101 tests. CLAIMS.md 2.2/2.3.</Info>
 
 ## What it is
 
 A Policy is a named, versioned, ordered list of rules. Each rule pairs a condition (a
-boolean expression over named "signals") with an outcome: approve, reject, or require
-override. `PolicyEngine` evaluates a transaction's signals against a policy's rules and
+boolean expression over named "signals") with an outcome: approve or reject. `PolicyEngine` evaluates a transaction's signals against a policy's rules and
 returns exactly one [Decision](#what-a-decision-records).
 
 ## Why it exists
@@ -25,13 +24,18 @@ The runtime executes exactly one, explicitly referenced policy, identified by
 `PolicyReference { name, version, schemaVersion }` on the Business Transaction. It does not
 discover policies, negotiate them, auto-select "latest," or substitute an alternative.
 `PolicyRouter` loads by exact name and version; `PolicyValidator` checks the loaded policy's
-identity before evaluation runs.
+identity before evaluation runs. The version named must also be the one **in effect** for the
+action's capability, the latest version approved through policy governance; a request naming
+any other version is refused with `403 POLICY_DENIED`. Ask `GET /policies/in-effect?capability=...`
+which version that is.
 
 Rules are evaluated **sequentially, first match wins**:
 
 ```typescript
-// packages/policy/src/PolicyEngine.ts:96-117 (findFirstMatch)
+// packages/policy/src/PolicyEngine.ts (findFirstMatch)
 for (const rule of rules) {
+  trace.push(rule.id);
+
   if (this.evaluateCondition(rule.condition, signals)) {
     return rule;
   }
@@ -40,7 +44,7 @@ return null;
 ```
 
 If no rule matches, `findFirstMatch` returns `null`, and the outcome defaults to `REJECT`
-(`PolicyEngine.ts:191-206`, `toOutcome`'s `default` case). There is no code path where an
+(`PolicyEngine.ts`, `toOutcome`'s `default` case). There is no code path where an
 unmatched transaction is approved. This is what "fail closed" means here in practice: the
 absence of a rule is a denial, not a pass-through. A trailing `{ "always": true }` rule
 typically makes the reject-by-default behavior explicit in the policy document itself.
@@ -181,9 +185,10 @@ From `policies/vendor-payment/2.1.0/policy.json`, a real policy in this repo:
 ```
 
 <Note>
-  Trimmed for this example: the real file also has an `unboundSignalReasons`
-  field naming a reason for each of `vendorVerified`, `invoiceVerified`,
-  `paymentApproved`, `sufficientFunds`, and `riskScore`.
+  Trimmed for this example: the real file also has a `description`, seven reject
+  rules after the approve rule (the last is `reject-default`), and an
+  `unboundSignalReasons` field naming a reason for each of `vendorVerified`,
+  `invoiceVerified`, `paymentApproved`, `sufficientFunds`, and `riskScore`.
   `PolicyValidator.validate()` fails closed on any rule-referenced fact that is
   neither in `boundSignals` nor `unboundSignalReasons`, so a policy shaped
   exactly like the excerpt above, with nothing said about those five facts,
@@ -203,6 +208,9 @@ export interface Decision {
   readonly signals: Record<string, JsonValue>; // captured for deterministic replay
   readonly outcome: DecisionOutcome; // APPROVED | REJECTED
   readonly reason?: string;
+  readonly matchedRuleId?: string; // the rule that matched, "none" when no rule did
+  readonly evaluatedRules?: number; // how many rules were tried
+  readonly matchedPath?: readonly string[]; // the ids of the rules tried, in order
   readonly evaluatedAt: Date;
 }
 ```

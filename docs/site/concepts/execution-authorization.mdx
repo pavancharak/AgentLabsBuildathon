@@ -66,9 +66,9 @@ key and the envelope itself. Every property below exists so that check is meanin
   approves (`RuntimeEngine`; `execution-authorization-wiring.test.ts`, "rejected transaction
   produces no authorization").
 - **Single use.** A receiving system must reject an authorization whose nonce has been seen
-  before, enforced by whichever `NonceStore` performs the check. See
-  [The gateway](/concepts/the-gateway) for the fleet-wide caveat: single-use is scoped to
-  whichever `NonceStore` instance checks it.
+  before. Parmana's own gateway records consumed nonces in Postgres (`consumed_nonces`), so
+  this holds across every instance of a deployment. A system that runs its own
+  `EnvelopeVerifier` gets the same guarantee only if its instances share one `NonceStore`.
 - **Time bounded.** `expiresAt` is required; a receiving system must reject an expired
   authorization.
 - **Content bound.** `businessTransactionHash` binds a canonical hash of the executable
@@ -98,6 +98,7 @@ itself:
 const verifier = new EnvelopeVerifier({ publicKey, nonceStore });
 const result = await verifier.verify(authorization);
 // result.valid, result.checks: { versionSupported, signatureVerified, notExpired, ttlWithinPolicy, nonceUnseen }
+// plus keyValid when a keyProvider is given instead of a fixed publicKey
 ```
 
 An Express middleware ships for this: `requireParmanaAuthorization(verifier)`
@@ -110,9 +111,10 @@ one layer up, because it needs the actual executable content to hash, not just t
 
 ## Rejections proven by test
 
-`packages/envelope-verifier/test/envelope-verifier.test.ts` proves: a forged signature is
+`packages/envelope-verifier/tests/unit/envelope-verifier.test.ts` proves: a forged signature is
 rejected and does not burn the nonce; an expired envelope is rejected and does not burn the
-nonce; a second use of the same nonce is rejected.
+nonce; a second use of the same nonce is rejected, and of two concurrent uses exactly one
+succeeds; an envelope whose lifetime exceeds `maxTtlSeconds` is rejected.
 
 <Note>
   **Related work.** The Execution Governance framework (Ku, 2026, EG Reference

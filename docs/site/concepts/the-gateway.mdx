@@ -3,7 +3,7 @@ title: "The Gateway"
 description: "The sole boundary through which Parmana releases approved execution requests to connectors. Wired into the default server unconditionally."
 ---
 
-<Info>**[AVAILABLE]**. `packages/execution-gateway`, 25 tests.</Info>
+<Info>**[AVAILABLE]**. `packages/execution-gateway`, 160 tests.</Info>
 
 <Note>
   `packages/api/src/bootstrap/createExecutionSystem.ts` unconditionally returns
@@ -43,7 +43,7 @@ signals against real-world state is optional, when a `SignalStateVerifier` is su
 the full mechanism.
 
 ```typescript
-// packages/execution-gateway/src/ExecutionGateway.ts:150-165
+// packages/execution-gateway/src/ExecutionGateway.ts
 if (passed) {
   const actualHash = await this.contentHasher.hash(executableContent);
   const expectedHash = request.authorization.payload.businessTransactionHash;
@@ -69,7 +69,7 @@ version → signature → expiry → TTL policy → businessTransactionHash reco
 The nonce (single-use) check runs **last**, and only if every prior check, including the
 content hash, passed. This matters: a forged or mismatched request must never burn a nonce,
 or an attacker who observes a nonce in transit could poison it and get the _legitimate_
-request rejected instead (`ExecutionGateway.ts:170-180`).
+request rejected instead (`ExecutionGateway.ts`, `consumeNonce` runs only when every check passed).
 
 `ExecutableContentHasher` delegates to the same `TrustRecordHasher` used elsewhere in the
 system (`packages/crypto/src/ExecutableContentHasher.ts`), the signing side and verifying
@@ -77,10 +77,11 @@ side run identical canonical serialization and hashing, never two parallel imple
 of the same computation.
 
 <Note>
-  **Nonce single-use is scoped to whichever `NonceStore` instance checks it.**
-  Multiple independent gateway instances each using their own `MemoryNonceStore`
-  can each accept the same authorization once. Fleet-wide single-use requires
-  one shared store (CLAIMS.md 3.2).
+  **Single use holds across instances.** The default server gives the gateway a
+  Postgres `NonceStore` (`consumed_nonces`, `createNonceStore.ts`), so every
+  instance on the same database accepts an authorization once. Only the test
+  suite (`NODE_ENV=test`) uses `MemoryNonceStore`. If you build your own
+  gateway, give every instance one shared store.
 </Note>
 
 ## Minimal example
@@ -108,7 +109,11 @@ passes. `HttpConnector` and `MockConnector` are reference implementations in
 [`hubspot`](/integrations/hubspot), `github`, `paytm`, and `slack`, each making genuine
 external API calls, not scripted responses, and each registering only when its own
 credentials are configured. A `razorpay` connector was previously registered here too; it was deliberately removed from
-the repository entirely (see [Changelog](/changelog)).
+the repository entirely (see [Changelog](/changelog)). Any other HTTPS endpoint can be
+connected without a code change as an **external connector**: an operator registers a
+capability, its policy and its endpoint through maker checker, and the gateway releases to it
+with a signed release the endpoint verifies (`GatewayExternalAdapter`). See [Connect any
+external system](/guides/connect-any-external-system).
 Four enterprise-named mocks also exist in the codebase
 (`packages/connector-sdk/src/connectors/{sap,oracle,workday,salesforce}/`), each an explicit
 `MockConnector` wrapper, self-documented as _"deterministic, in-memory, used until the real
@@ -122,9 +127,10 @@ Oracle, Workday, or Salesforce connectivity.
   test fixtures and the [Quickstart](/quickstart) something to execute
   against. It's internal test scaffolding, not a product feature.
 
-Adding a real connector to the running server is a bootstrap code change today
-(`createConnectorRegistry.ts`, `createConnectorAuthenticator.ts`), not configuration. See
-[Add a connector with the Connector SDK](/integrations/connector-development-guide).
+Adding a **built in** connector, one that holds the target system's credential, is a
+bootstrap code change (`createConnectorRegistry.ts`, `createConnectorAuthenticator.ts`), see
+[Add a connector with the Connector SDK](/integrations/connector-development-guide). An
+external connector needs no code change, see above.
 
 </Note>
 
@@ -138,7 +144,16 @@ Execution Gateway rejected request: failed checks [businessTransactionHashMatche
 businessTransactionHash mismatch: expected <hash>, got <hash>.
 ```
 
-(`ExecutionGateway.ts:250-265`, `describeFailure`.)
+The policy checks add their own detail the same way (`ExecutionGateway.ts`, `describeFailure`):
+
+```
+policyContentHash mismatch: expected <hash>, got <hash>.
+policy approval check failed: <reason>.
+signalsHash mismatch: expected <hash>, got <hash>.
+```
+
+This text is for the server log; an API caller sees the outcome through the [Error
+catalog](/api-reference/error-catalog)'s codes.
 
 ## Next
 

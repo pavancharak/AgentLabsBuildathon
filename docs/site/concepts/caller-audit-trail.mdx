@@ -54,7 +54,7 @@ export interface CallerAuditSink {
 - **`SupabaseCallerAuditSink`**, every other environment. Fails closed at startup
   (`assertDatabaseUrlConfigured`) if `DATABASE_URL` isn't configured, there is no silent
   fallback to the in-memory sink outside tests. Every event is signed
-  (`AuditEventCrypto`, same `DEFAULT_KEY_ID` signing stack as every other artifact this
+  (`AuditEventCrypto`, with the same signer and key as every other artifact this
   system produces) before being written, and, since the per-caller chaining milestone
   below, chained per caller as well.
 
@@ -99,6 +99,15 @@ on this table follows.
   not detect reordering or deletion across *different* callers' independent
   chains. Both are stated limits, not oversights, see `docs/CLAIMS.md` §2.32.
 </Warning>
+
+<Note>
+  **In the public sandbox, chains start partway.** The sandbox deletes visitor
+  data on a schedule (see [Playground](/playground)), including caller audit
+  events, and on 2026-10-02 all of it was deleted at once. A sandbox caller's
+  oldest surviving event therefore still names the hash of a deleted one, and
+  `verifyChain` reports a break at position 1. That is expected there; in
+  production nothing deletes these rows.
+</Note>
 
 ## Verifying a chain, standalone
 

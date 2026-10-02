@@ -49,15 +49,21 @@ time-dependent logic (expiry, ordering, replay windows) means racing the clock. 
 
 <Warning>
 **This is not a system-wide pattern.** `Clock` and `IdGenerator` are defined once, in
-`packages/execution-control`, and used by exactly two production call sites: gateway
-attestation signing and session credential issuance:
+`packages/execution-control`, and used only on the release path, where expiry and single use
+matter: gateway attestation signing, session credential issuance and consumption, and the
+connector registry that wires them together:
 
 - `GatewayAttestationSigner` (`packages/execution-control/src/GatewayAttestation.ts:50-54`)
   takes a `Clock` and `IdGenerator` in its constructor, used for `issuedAt` and the
   attestation's `nonce`. See [Gateway attestation](/concepts/gateway-attestation).
-- `InMemorySessionCredentialVault` (`packages/execution-control/src/SessionCredentialVault.ts:35-36,64-97`)
+- `InMemorySessionCredentialVault` (`packages/execution-control/src/SessionCredentialVault.ts`)
   takes the same two, used for a session credential's `issuedAt`, expiry comparison, and
-  `sessionCredentialId`. See [Credential isolation](/concepts/credential-isolation).
+  `sessionCredentialId`. `SessionCredentialSecureConnector` takes the `Clock` for the same
+  expiry. See [Credential isolation](/concepts/credential-isolation).
+- `GatewayConnectorRegistry` (`packages/execution-gateway/src/connector-execution/`) accepts
+  an optional `Clock` and `IdGenerator` and passes them to the components above, defaulting
+  to `SystemClock` and `RandomIdGenerator`. The default server passes those two explicitly
+  (`createExecutionGateway.ts`, `createExecutionControl.ts`).
 
 Everywhere else on this site, "deterministic" means something different: [policy
 evaluation](/concepts/policies-and-the-decision) producing the same decision for the same

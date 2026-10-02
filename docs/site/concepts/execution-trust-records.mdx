@@ -19,7 +19,8 @@ description: "The canonical, immutable, cryptographically signed record of every
 
 ## What it is
 
-Every Business Transaction produces exactly one Execution Trust Record: the aggregate of
+Every Business Transaction that is approved and executed produces exactly one Execution
+Trust Record (a refused one produces a [Refusal Record](/concepts/refusal-records) instead): the aggregate of
 everything Parmana knows about it, built from a chain of immutable artifacts, each
 referencing the one before it by ID:
 
@@ -50,7 +51,7 @@ Execution Trust Record  the aggregate: transaction + executions + overrides +
 `BusinessTransactionValidator` enforces structural consistency across the chain before
 anything is evaluated, for example, `authorization.authorityId` must match
 `authority.authorityId`, and `intent.authorizationId` must match
-`authorization.authorizationId` (`packages/runtime/src/validators/BusinessTransactionValidator.ts:21-37`).
+`authorization.authorizationId` (`packages/runtime/src/validators/BusinessTransactionValidator.ts`).
 A Business Transaction that doesn't hang together structurally never reaches
 [policy evaluation](/concepts/policies-and-the-decision).
 
@@ -72,10 +73,14 @@ export interface ExecutionTrustRecord {
   readonly executions: readonly Execution[]; // append-only
   readonly verifications: readonly Verification[]; // append-only
   readonly receipts: readonly Receipt[]; // append-only
+  readonly authorization?: SignedExecutionAuthorization; // the authorization that released it
   readonly trustRecordHash: string;
   readonly signature: Signature;
+  readonly schemaVersion?: number; // present on records with hybrid signatures
+  readonly signatures?: readonly SignatureEntry[]; // hybrid (post quantum) signatures, when enabled
   readonly createdAt: Date;
   readonly updatedAt: Date;
+  readonly evidenceAnchor?: EvidenceAnchor;
 }
 ```
 
@@ -92,11 +97,13 @@ convention rather than from the signature.
 
 ## What the hash and signature actually cover
 
-`VerificationCrypto.canonicalRecord()` (`packages/crypto/src/VerificationCrypto.ts:46-68`)
-builds the exact object that gets hashed and signed. It includes six fields:
-`trustRecordId`, `businessTransactionId`, `transaction`, `overrides`, `executions`, and
-`createdAt`. `hash()` and `sign()` both call it (lines 73-78 and 85-97), so the
-`trustRecordHash` and `signature` cover precisely this content, no more and no less.
+`canonicalExecutionTrustRecord()` (`packages/crypto/src/ExecutionTrustRecordCanonicalView.ts`)
+builds the exact object that gets hashed and signed, and both `VerificationCrypto` and the
+offline verifier use it. It includes seven fields: `trustRecordId`, `businessTransactionId`,
+`transaction`, `authorization`, `overrides`, `executions`, and `createdAt`. `hash()` and
+`sign()` both call it, so the `trustRecordHash` and `signature` cover precisely this content,
+no more and no less. A record without an `authorization` (older records) hashes exactly as
+before, because the canonical serializer leaves out undefined keys.
 
 <Warning>
   `verifications` and `receipts` are **not** part of the hashed content, even
