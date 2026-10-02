@@ -12,6 +12,12 @@ every commit, run `git log` in the repository for the complete record.
 
 ## 2026-10-02
 
+**Added: sandbox retention**
+
+- A daily job in the sandbox database deletes every request and record visitors sent more than 7 days ago, and keeps
+  the sandbox's policy, approver and registration. Sandbox only: it is not a migration, and it refuses any database
+  without the sandbox's registration.
+
 **Added: the public sandbox and the Playground (ADR-0014 steps 2 to 4)**
 
 - The sandbox is live at `https://parmana-sandbox.vercel.app`: the same code as production, its own database, signing

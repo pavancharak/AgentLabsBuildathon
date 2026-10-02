@@ -238,7 +238,8 @@ G-82, G-83 and G-84 (an approved request takes 24 to 32 seconds in production) o
 project (`zkrfrfyokkpfwghoohne`), keys and demo approver. One capability, `sandbox:receipt`, registered as an external
 connector to `https://parmana-sandbox-receipt.vercel.app/api/release`, which acts on nothing. Published demo key:
 caller `sandbox-visitor`, allowed only `sandbox:receipt`. Live check passed 2026-10-02 (`docs/CLAIMS.md` 2.51). Docs:
-`docs/site/playground.mdx`, the first OpenAPI server. Not built: retention (7 days, daily) and the custom domain
+`docs/site/playground.mdx`, the first OpenAPI server. Retention: a daily `pg_cron` job in the sandbox database deletes what visitors sent more than 7 days
+ago (`deploy/sandbox/retention.sql`, kit stage `Retention`). Not set up: the custom domain
 `sandbox.parmanasystems.com`. Vercel deploys it on every merge to `main`, as production.
 
 ## On disk, but not reachable

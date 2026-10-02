@@ -1,6 +1,6 @@
 # ADR-0014: Public sandbox and docs playground
 
-**Status:** Accepted by the operator on 2026-10-01 (PR #103 merged), with the proposed answers to the three open questions. Step 1 (code) built on 2026-10-01. Steps 2 and 3 done on 2026-10-02: the sandbox is live at `https://parmana-sandbox.vercel.app` and its live check passed (`docs/CLAIMS.md` 2.51). Step 4 (docs) built on 2026-10-02. Retention (open question 3) is not built yet. See the order of work.
+**Status:** Accepted by the operator on 2026-10-01 (PR #103 merged), with the proposed answers to the three open questions. Step 1 (code) built on 2026-10-01. Steps 2 and 3 done on 2026-10-02: the sandbox is live at `https://parmana-sandbox.vercel.app` and its live check passed (`docs/CLAIMS.md` 2.51). Step 4 (docs) built on 2026-10-02. Retention (open question 3) built on 2026-10-02: `deploy/sandbox/retention.sql`, installed by the kit stage `Retention`. See the order of work.
 
 **Date:** Proposed 2026-10-01.
 

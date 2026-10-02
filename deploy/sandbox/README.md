@@ -78,21 +78,22 @@ powershell -ExecutionPolicy Bypass -File D:\last\AgentLabsBuildathon\deploy\sand
 
 Then the same command with each stage below, in this order.
 
-| #   | Stage                 | Needs                                           | Expect                                                                                                             |
-| --- | --------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| 4   | `Migrate`             | The sandbox's **session** pooler string, pasted | `Database: ... as postgres.<the sandbox project>`, every migration pending; after `APPLY`, `33 applied, 0 pending` |
-| 5   | `Link`                | The Vercel CLI, logged in                       | `Linked.`                                                                                                          |
-| 6   | `ProductionNames`     | `%USERPROFILE%\parmana-vercel-link`             | Production's variable names. Read the yellow lines and stop if one is unexplained                                  |
-| 7   | `SetEnv`              | The **transaction** pooler string, pasted       | Twelve `set ...` lines, then `All 12 set.`                                                                         |
-| 8   | `Deploy`              |                                                 | After `DEPLOY`, `GET /ready: READY, authDisabled False` and `GET /keys/default: default, ed25519`                  |
-| 9   | `Endpoint`            |                                                 | After `DEPLOY`, `The endpoint refuses an unsigned body with 401, as required.`                                     |
-| 10  | `ProposeApprover`     |                                                 | `Proposed: <id>, PENDING_APPROVAL`                                                                                 |
-| 11  | `ApproveApprover`     |                                                 | The change shown, then after `APPROVE`, `Status: APPROVED`                                                         |
-| 12  | `ProposePolicy`       |                                                 | `Proposed: <id>, PENDING_APPROVAL`                                                                                 |
-| 13  | `ApprovePolicy`       |                                                 | The policy shown, then `Status: APPROVED`                                                                          |
-| 14  | `ProposeRegistration` |                                                 | `Proposed: <id>, PENDING_APPROVAL, stored as https://parmana-sandbox-receipt.vercel.app/api/release`               |
-| 15  | `ApproveRegistration` |                                                 | The registration shown, then `Status: APPROVED`                                                                    |
-| 16  | `Check`               |                                                 | Nine lines with no `WRONG`, then `All nine behaved as required.`                                                   |
+| #   | Stage                 | Needs                                           | Expect                                                                                                                         |
+| --- | --------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 4   | `Migrate`             | The sandbox's **session** pooler string, pasted | `Database: ... as postgres.<the sandbox project>`, every migration pending; after `APPLY`, `33 applied, 0 pending`             |
+| 5   | `Link`                | The Vercel CLI, logged in                       | `Linked.`                                                                                                                      |
+| 6   | `ProductionNames`     | `%USERPROFILE%\parmana-vercel-link`             | Production's variable names. Read the yellow lines and stop if one is unexplained                                              |
+| 7   | `SetEnv`              | The **transaction** pooler string, pasted       | Twelve `set ...` lines, then `All 12 set.`                                                                                     |
+| 8   | `Deploy`              |                                                 | After `DEPLOY`, `GET /ready: READY, authDisabled False` and `GET /keys/default: default, ed25519`                              |
+| 9   | `Endpoint`            |                                                 | After `DEPLOY`, `The endpoint refuses an unsigned body with 401, as required.`                                                 |
+| 10  | `ProposeApprover`     |                                                 | `Proposed: <id>, PENDING_APPROVAL`                                                                                             |
+| 11  | `ApproveApprover`     |                                                 | The change shown, then after `APPROVE`, `Status: APPROVED`                                                                     |
+| 12  | `ProposePolicy`       |                                                 | `Proposed: <id>, PENDING_APPROVAL`                                                                                             |
+| 13  | `ApprovePolicy`       |                                                 | The policy shown, then `Status: APPROVED`                                                                                      |
+| 14  | `ProposeRegistration` |                                                 | `Proposed: <id>, PENDING_APPROVAL, stored as https://parmana-sandbox-receipt.vercel.app/api/release`                           |
+| 15  | `ApproveRegistration` |                                                 | The registration shown, then `Status: APPROVED`                                                                                |
+| 16  | `Check`               |                                                 | Nine lines with no `WRONG`, then `All nine behaved as required.`                                                               |
+| 17  | `Retention`           | The **session** pooler string, pasted           | A rolled back check listing what a 0 day period would delete, then after `INSTALL`, `Installed. Job parmana-sandbox-retention` |
 
 Stage 16 is ADR-0014 step 3. It uses only the visitor key, as a docs reader will, and checks: the key's scope, the
 policy in effect, a refusal with no approval, a demo approval, an approved request released to the receipt endpoint
@@ -124,4 +125,9 @@ approver, and browser access for the docs site only. Its record is saved to `dep
 - `sandbox-visitor.key` is the demo key the docs publish (ADR-0014 step 4). The docs hold a placeholder
   until `publish-demo-key.ps1` writes the key in. Every other file in `D:\key\parmana-sandbox` stays
   private.
-- Retention (ADR-0014 open question 3, accepted: 7 days, daily) is not set up by this kit yet.
+- Retention (ADR-0014 open question 3, accepted: 7 days, daily) is stage 17: `retention.sql` installs the function
+  `parmana_sandbox_retention(days)` and a `pg_cron` job that runs it at 03:30 UTC with 7 days. It deletes requests,
+  their records, audit events, expired nonces and handbook leads older than that, children first; it keeps governance.
+  It refuses any database without the active `sandbox:receipt` registration, and it is not a migration, so it never
+  reaches production. To reset the sandbox by hand, run `SELECT * FROM parmana_sandbox_retention(0);` in the sandbox
+  project's SQL editor.
