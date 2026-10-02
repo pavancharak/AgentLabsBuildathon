@@ -1671,6 +1671,12 @@ server trusts the public key. Add one through maker checker, with no deploy:
 The full walkthrough, with rotation, revocation and errors, is
 [Manage approvers](/guides/manage-approvers).
 
+<Tip>
+  To try the flow without a key pair, use the public sandbox: `POST
+  /sandbox/approvals` signs a demo approval for `sandbox:receipt`, valid 300
+  seconds. See [Playground](/playground). It exists only in the sandbox.
+</Tip>
+
 Approvers can also be listed in the server code, `TRUSTED_APPROVAL_ISSUERS` in
 `packages/api/src/bootstrap/codeApprovalIssuers.ts`. Those change only with a pull request and a
 deploy. The code list is checked first.
@@ -1704,7 +1710,9 @@ npx tsx scripts/sign-approval.ts   --private-key-file ~/.parmana/lead-sam__lead-
 
 The change goes live like any policy change: a new version, proposed and approved through
 policy governance. It takes effect when it is approved, with no code change and no deploy. One
-thing still needs a deploy: binding an action to a different policy name. Approvers are added
+thing still needs a deploy: binding a built in connector's action to a different policy name. An
+action registered as an [external connector](/guides/connect-any-external-system) names its
+policy in its registration, through maker checker, with no deploy. Approvers are added
 through [Manage approvers](/guides/manage-approvers).
 
 Rules for a declaration, checked when the policy loads:
@@ -1869,7 +1877,9 @@ hubspot:deal-fetch   ->  hubspot-deal-read
 slack:post-message   ->  slack-post-message
 ```
 
-The name is fixed in code. The version is not: in production it is the version most recently
+For a built in connector the name is fixed in code; for an external connector it is the
+policy its active registration names (in the sandbox, `sandbox:receipt -> sandbox-receipt`).
+The version is not fixed: in production it is the version most recently
 approved through policy governance. Approving `customer-refund` 1.2.0 makes 1.2.0 the version
 refunds must use, with no deploy, and approving 1.1.0 again rolls back. A request that names a
 different policy, or any other version, is refused before any policy runs, with a message that
