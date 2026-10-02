@@ -4541,7 +4541,7 @@ most:
 | 403    | `POLICY_DENIED`             | The policy refused the action, including a missing, expired or already used human approval. Nothing ran. |
 | 403    | `CAPABILITY_NOT_ALLOWED`    | Your key may not invoke this capability.                                                                 |
 | 403    | `NON_HUMAN_CALLER_DENIED`   | A governance route refused a non human caller, such as an agent's key.                                   |
-| 409    | `NONCE_ALREADY_CONSUMED`    | This exact authorization already released its action.                                                    |
+| 409    | `CONFLICT`                  | A governance change contradicts the current state, for example one is already open.                      |
 | 429    | `RATE_LIMITED`              | Too many requests for this key. Wait and retry.                                                          |
 | 502    | `EXECUTION_OUTCOME_UNKNOWN` | The action was released and the call to the connector failed. **Do not retry as a new transaction.**     |
 | 503    | `CONNECTOR_NOT_REGISTERED`  | No connector serves this capability on this deployment. Nothing was executed.                            |
@@ -4646,7 +4646,9 @@ A caller never sends or manages a nonce. The word means two single use values in
 
 - **The authorization nonce.** Every approved decision becomes a `SignedExecutionAuthorization` with its own `nonce`.
   The [gateway](/concepts/the-gateway) consumes it before it releases the action, so one authorization can release
-  one action. Presenting it again is refused with `409 NONCE_ALREADY_CONSUMED`.
+  one action. Over HTTP you never meet this check: a repeated `businessTransactionId` is refused with `409` before a
+  second authorization exists. It protects a system that calls `@parmana/execution-gateway` directly, which refuses a
+  replay with `NONCE_ALREADY_CONSUMED`.
 - **The approval nonce.** A signed human approval carries a nonce too, and is accepted once. Sending the same approval
   again, even under a new `businessTransactionId`, is refused with `403 POLICY_DENIED`: the approval no longer
   verifies, so the policy's approval signal is false (`declared signal(s) do not match independently verified state
@@ -4661,11 +4663,11 @@ Authorization](/concepts/execution-authorization) for the full mechanism.
 
 Three replay defenses exist at different layers, and none is an `Idempotency-Key` header:
 
-| Layer                              | Mechanism                           | What repeating gets you                    |
-| ---------------------------------- | ----------------------------------- | ------------------------------------------ |
-| REST API (`businessTransactionId`) | Unique key in the database          | `409`, not the original response           |
-| Human approval (approval nonce)    | Single use, checked in the database | `403 POLICY_DENIED`, nothing runs          |
-| Internal authorization (`nonce`)   | Single use, consumed by the gateway | `409 NONCE_ALREADY_CONSUMED`, nothing runs |
+| Layer                              | Mechanism                           | What repeating gets you                                         |
+| ---------------------------------- | ----------------------------------- | --------------------------------------------------------------- |
+| REST API (`businessTransactionId`) | Unique key in the database          | `409`, not the original response                                |
+| Human approval (approval nonce)    | Single use, checked in the database | `403 POLICY_DENIED`, nothing runs                               |
+| Internal authorization (`nonce`)   | Single use, consumed by the gateway | Refused by the gateway (`NONCE_ALREADY_CONSUMED`), nothing runs |
 
 None of them is configurable per request, and there is no way to opt out of the `businessTransactionId` uniqueness
 check from the API.
@@ -4677,17 +4679,18 @@ check from the API.
 Source: https://docs.parmanasystems.com/api-reference/error-catalog
 
 <Info>
-  **[AVAILABLE]**. Every row below was triggered against a live server, not
-  inferred from reading source alone. See [Error
-  handling](/api-reference/error-handling) for the envelope shape this table
-  assumes.
+  **[AVAILABLE]**. Rows come from responses captured from the server and from
+  the integration tests that assert them, checked against the code on
+  2026-10-02. See [Error handling](/api-reference/error-handling) for the
+  envelope shape this table assumes.
 </Info>
 
 ## Authentication
 
-| Status | Code | Message                   | Condition                                                                                        | What to do                                                                                                      |
-| ------ | ---- | ------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| 401    | none | `authentication required` | `Authorization` header missing, not a `Bearer <key>`, or the key doesn't match a configured hash | Send a valid key from [Authentication](/api-reference/authentication). Not retryable without fixing the header. |
+| Status | Code                | Message                                                                                          | Condition                                                                                                                         | What to do                                                                                                      |
+| ------ | ------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| 401    | none                | `authentication required`                                                                        | `Authorization` header missing, not a `Bearer <key>`, or the key doesn't match a configured hash                                  | Send a valid key from [Authentication](/api-reference/authentication). Not retryable without fixing the header. |
+| 503    | `AUDIT_UNAVAILABLE` | `Caller authentication audit trail is unavailable; refusing to proceed without an audit record.` | The server could not write the caller audit event a request needs (a database outage). Any authenticated route. Nothing was done. | Retry later with the same request.                                                                              |
 
 ## Authorization (caller is known; not permitted for this principal or action)
 
@@ -4698,9 +4701,9 @@ Source: https://docs.parmanasystems.com/api-reference/error-catalog
 
 ## Policy denial (request well-formed; the business rule said no)
 
-| Status | Code            | Message                                        | Condition                                                                                                                                                              | Routes                                | What to do                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| ------ | --------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 403    | `POLICY_DENIED` | `Execution rejected: <policy-specific reason>` | Policy evaluation returned `REJECTED` (`ExecutionGate.enforce`, `packages/runtime/src/ExecutionGate.ts`, thrown with an explicit `status: 403, code: "POLICY_DENIED"`) | `POST /execute`, `POST /transactions` | This is a real, observed pipeline outcome, not a bug: the request was well-formed but the business decision was no. Read the reason string; it names the specific Policy condition that failed. Distinct from the caller-identity 403 above — that one is about who the caller may act as, this one is about whether the requested action itself is allowed. Previously indistinguishable from a genuine server error (both surfaced as a generic `500`), now corrected. |
+| Status | Code            | Message                                        | Condition                                                                                                                                                                                                                                                                                                                                                                                                                                       | Routes                                | What to do                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------ | --------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 403    | `POLICY_DENIED` | `Execution rejected: <policy-specific reason>` | Policy evaluation returned `REJECTED` (`ExecutionGate.enforce`, `packages/runtime/src/ExecutionGate.ts`). This includes a required human approval that is missing, expired, for other content or already used (the reason then names the approval signal, for example `humanApproved=true != verified humanApproved=false`), a bound signal that does not match the Intent, and a request naming a policy version that is not the one in effect | `POST /execute`, `POST /transactions` | This is a real, observed pipeline outcome, not a bug: the request was well-formed but the business decision was no. Read the reason string; it names the specific Policy condition that failed. Distinct from the caller identity 403 above: that one is about who the caller may act as, this one is about whether the requested action itself is allowed. Previously indistinguishable from a genuine server error (both surfaced as a generic `500`), now corrected. |
 
 ## Validation (caller's request is malformed)
 
@@ -4726,6 +4729,38 @@ Source: https://docs.parmanasystems.com/api-reference/error-catalog
 | 404    | none                               | `Receipt not found.`                                                              | Record exists but has no Receipt yet                                                                                                                        | `GET /receipt/latest/{id}`                                                      | Call `POST /receipt` first, or the record's Execution hasn't reached that stage.                                                      |
 | 404    | none                               | `No authenticated caller identity available.`                                     | No caller identity on the request, in practice only reachable when caller authentication is disabled (`PARMANA_AUTH_DISABLED=true`, local development only) | `GET /callers/me`                                                               | Not reachable under normal, authenticated operation. See [Authentication](/api-reference/authentication).                             |
 
+## Policy in effect (`GET /policies/in-effect`)
+
+| Status | Code                         | Message                                                                                                                            | Condition                                                              | What to do                                                                                                                |
+| ------ | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 400    | none                         | `capability is required, for example ?capability=paytm:refund.`                                                                    | The `capability` query parameter is missing or blank                   | Add `?capability=<capability>`.                                                                                           |
+| 403    | `CAPABILITY_NOT_ALLOWED`     | `Caller is not permitted to invoke this capability.`                                                                               | A non human caller asked about a capability its key may not invoke     | Ask only about capabilities your key may invoke (`GET /callers/me`).                                                      |
+| 404    | `CAPABILITY_NOT_BOUND`       | `No policy is bound to capability "<capability>".`                                                                                 | No policy governs this capability on this deployment                   | Check the capability name. Every request for it would be refused.                                                         |
+| 409    | `NO_APPROVED_POLICY_VERSION` | `Every request for "<capability>" is refused right now: <reason>.`                                                                 | The bound policy has no approved version yet                           | Every request is refused until a version is approved through [policy governance](/guides/policy-lifecycle-and-approvals). |
+| 503    | `POLICY_VERSION_UNAVAILABLE` | `Every request for "<capability>" is refused right now: <reason>.` or `The policy in effect for "<capability>" could not be read.` | The lookup of the version in effect, or the policy file itself, failed | Retry later. Every request for the capability is refused meanwhile.                                                       |
+
+## Governance (policy changes, approvers, external connectors)
+
+These come from the maker checker routes: `/policies/{name}/{version}/pending-changes` and `/policies/pending-changes`,
+`/approval-issuers/changes`, and `/external-connectors/changes`. Every one of them, reads included, needs a human
+caller; approve and reject also need a fresh step up signature from the checker. See [Policy lifecycle and
+approvals](/guides/policy-lifecycle-and-approvals), [Manage approvers](/guides/manage-approvers) and [Connect any
+external system](/guides/connect-any-external-system).
+
+| Status | Code                                   | Message                                                                                                                                                                                                                                   | Condition                                                                                                                                                                           | Routes                                                         |
+| ------ | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| 400    | none                                   | The field and its rule, for example `reason is required, at most <n> characters.`                                                                                                                                                         | A field of the proposal is missing or invalid. Nothing was stored.                                                                                                                  | Every propose route                                            |
+| 400    | `INVALID_EXTERNAL_CONNECTOR`           | The field and its rule, for example `policy must be a policy name matching ^[a-z0-9][a-z0-9-]{0,127}$.`                                                                                                                                   | A registration or revoke proposal is invalid                                                                                                                                        | `POST /external-connectors/changes`                            |
+| 400    | `EXTERNAL_ENDPOINT_ADDRESS_REFUSED`    | `The endpoint host '<host>' does not resolve.` or `... resolves to an address that is not public (<addresses>).`                                                                                                                          | The endpoint is not a public HTTPS address. Checked when proposed and again when approved.                                                                                          | `POST /external-connectors/changes`, `.../approve`             |
+| 403    | `NON_HUMAN_CALLER_DENIED`              | `This action requires a caller credential provisioned as a verified human (credentialHolderType: USER).`                                                                                                                                  | The key is not provisioned as a human (`credentialHolderType: USER`), such as an agent's key or the sandbox demo key. Recorded as a flagged audit event.                            | Every governance route                                         |
+| 403    | `SAME_ACTOR_CANNOT_APPROVE_OWN_CHANGE` | `<kind> '<id>' was proposed by this same caller — the proposer (maker) may not also approve or reject it (checker).`                                                                                                                      | The checker is the maker                                                                                                                                                            | Every approve and reject route                                 |
+| 403    | `STEP_UP_AUTHORIZATION_INVALID`        | `The step-up authorization envelope is missing, invalid, expired, replayed, or does not match this request.`                                                                                                                              | The step up signature is missing, not from the checker's registered key, expired, already used, or for another change or action                                                     | Every approve and reject route                                 |
+| 404    | `PENDING_POLICY_CHANGE_NOT_FOUND`      | `Pending Policy Change '<id>' not found.`                                                                                                                                                                                                 | No policy change has this id                                                                                                                                                        | `POST /policies/pending-changes/{id}/approve`, `.../reject`    |
+| 404    | `EXTERNAL_CONNECTOR_CHANGE_NOT_FOUND`  | `External connector change '<id>' not found.`                                                                                                                                                                                             | No external connector change has this id                                                                                                                                            | `POST /external-connectors/changes/{id}/approve`, `.../reject` |
+| 409    | `CONFLICT`                             | For example `A PENDING_APPROVAL change already exists for policy '<name>' version '<version>' ...`, `Approver change '<id>' is already APPROVED.`, `Capability '<capability>' already has an active external connector. Revoke it first.` | The change contradicts the current state: another change is already open for the same thing, the change was already resolved, or the key or registration already exists or does not | Every propose, approve and reject route                        |
+
+`APPROVAL_ISSUER_CHANGE_NOT_FOUND` (404) is in [Not found](#not-found) above.
+
 ## Rate limited
 
 | Status | Code           | Message                                 | Condition                                                                                                                                                                                                                                                     | Routes                                                                                                                                                                              | What to do                                                                                                                                                                                                                                        |
@@ -4741,16 +4776,15 @@ Source: https://docs.parmanasystems.com/api-reference/error-catalog
 
 <Note>
   **Not listed here on purpose:** `NonceAlreadyConsumedError` (409, code
-  `NONCE_ALREADY_CONSUMED`) is a real, tested error `error-handler.ts` maps —
+  `NONCE_ALREADY_CONSUMED`) is a real, tested error `error-handler.ts` maps,
   thrown by `ExecutionGateway.execute()` when every other verification check
   passed and only nonce consumption failed (an isolated replay of an
   already-executed authorization). It is not reachable through any of the routes
   this catalog covers: a resubmitted `businessTransactionId` is always caught
   first by the `DuplicateBusinessTransactionError` 409 above, before a second
-  authorization — and thus a second nonce — is ever generated. It's a
-  library-level guarantee for a receiving system calling
-  `@parmana/execution-gateway` directly, not an HTTP-reachable outcome of
-  Parmana's own server.
+  authorization, and so a second nonce, is ever generated. It's a library-level
+  guarantee for a receiving system calling `@parmana/execution-gateway`
+  directly, not an HTTP-reachable outcome of Parmana's own server.
 </Note>
 
 ## Signing and evidence (the action could not be recorded)
