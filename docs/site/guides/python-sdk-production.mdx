@@ -5,13 +5,13 @@ description: "Deploy the Python SDK to production: real error handling, audit lo
 
 <Note>
   The patterns on this page (retry decorators, an audit-log schema, a rate
-  limiter) are illustrative — adapt them to your own stack. What's specific to
+  limiter) are illustrative, adapt them to your own stack. What's specific to
   Parmana (the client construction, the exception taxonomy, which call raises
-  what) is the real, verified API — see [Python SDK](/sdks/python). For how to
+  what) is the real, verified API, see [Python SDK](/sdks/python). For how to
   actually run the server itself in production (Fly.io, Docker, environment
   variables the server reads), see [Production
   deployment](/deployment/production) and [Deploy
-  patterns](/guides/deploy-patterns) — this page is about the client side,
+  patterns](/guides/deploy-patterns), this page is about the client side,
   calling an already-deployed Parmana instance.
 </Note>
 
@@ -24,14 +24,14 @@ Your service (FastAPI, a worker, an agent loop)
 ParmanaClient (Python SDK)
         │  bearer-key auth, typed errors
         ▼
-Parmana Runtime (your deployment — see Production deployment)
+Parmana Runtime (your deployment, see Production deployment)
         │
         ▼
 Policy Engine + registered connectors
 ```
 
 Your service is the only thing that ever holds the Parmana API key; the connectors' own
-credentials (Paytm, HubSpot, whichever you've registered) never leave the Runtime — see
+credentials (Paytm, HubSpot, whichever you've registered) never leave the Runtime, see
 [Credential isolation](/concepts/credential-isolation).
 
 ## Configuration
@@ -65,7 +65,7 @@ from parmana import ParmanaClient
 client = ParmanaClient(endpoint=settings.endpoint, api_key=settings.api_key)
 ```
 
-There's no `ParmanaConfig` object to pass around — `ParmanaClient` takes `endpoint` and `api_key`
+There's no `ParmanaConfig` object to pass around, `ParmanaClient` takes `endpoint` and `api_key`
 directly. Keep your own settings object (like `ParmanaSettings` above) if you want centralized
 validation; just unpack it into the two real constructor kwargs.
 
@@ -74,8 +74,9 @@ validation; just unpack it into the two real constructor kwargs.
 ### Fail-closed by default
 
 A denial should be a denial, not an exception a caller has to remember to interpret correctly.
-Wrap the client so every failure mode — policy rejection, network error, timeout — resolves to
-"did not execute", explicitly:
+Wrap the client so each failure resolves to an explicit outcome. A policy rejection means "did
+not execute". A timeout or network error does **not**: an approved request can take tens of
+seconds (G-84) and may have run, so it means "unknown, read the record before anything else":
 
 ```python
 import logging
@@ -105,9 +106,9 @@ class SafeParmanaClient:
             logger.warning("execution denied", extra={"reason": str(exc)})
             return None
         except (NetworkError, ParmanaTimeoutError) as exc:
-            logger.error("parmana unreachable", extra={"error": str(exc)})
-            if self.fail_closed:
-                return None
+            # Unknown, not "did not execute": the request may still have run.
+            # Read it with the same id before doing anything else.
+            logger.error("parmana outcome unknown", extra={"error": str(exc)})
             raise
         except Exception:
             logger.exception("unexpected error calling parmana")
@@ -118,56 +119,52 @@ class SafeParmanaClient:
 
 ### Error types
 
-The exception taxonomy is real and verified — see [Errors, correctly mapped to real
+The exception taxonomy is real and verified, see [Errors, correctly mapped to real
 conditions](/sdks/python#errors-correctly-mapped-to-real-conditions) for the complete, tested
 table. The ones worth handling explicitly in production:
 
-| Exception                                       | Cause                                                   | Typical handling                                    |
-| ----------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------- |
-| `AuthenticationError` (401)                     | Missing/wrong API key                                   | Alert — this is a config problem, not a runtime one |
-| `ExecutionRejectedError` (403, `POLICY_DENIED`) | Policy denied the transaction                           | Expected outcome, log and return to caller          |
-| `AuthorizationError` (403, no code)             | Caller asserting a `principal_id` it isn't permitted to | Config problem — check `allowed_principal_ids`      |
-| `NotFoundError` (404)                           | Unknown transaction/record id                           | Usually a caller bug                                |
-| `ConflictError` (409)                           | Duplicate `business_transaction_id`                     | Retried request — check idempotency handling        |
-| `ServerError` (5xx)                             | Parmana-side failure                                    | Retry with backoff                                  |
-| `NetworkError`                                  | Connection failure                                      | Fail-closed, alert                                  |
+| Exception                                       | Cause                                                                                                                                                                                                 | Typical handling                                                                     |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `AuthenticationError` (401)                     | Missing/wrong API key                                                                                                                                                                                 | Alert, this is a config problem, not a runtime one                                   |
+| `ExecutionRejectedError` (403, `POLICY_DENIED`) | Policy denied the transaction                                                                                                                                                                         | Expected outcome, log and return to caller                                           |
+| `AuthorizationError` (403, no code)             | Caller asserting a `principal_id` it isn't permitted to                                                                                                                                               | Config problem, check `allowed_principal_ids`                                        |
+| `NotFoundError` (404)                           | Unknown transaction/record id                                                                                                                                                                         | Usually a caller bug                                                                 |
+| `ConflictError` (409)                           | Duplicate `business_transaction_id`                                                                                                                                                                   | Retried request, check idempotency handling                                          |
+| `ServerError` (5xx), check `server_code`        | `SIGNING_UNAVAILABLE`, `EXECUTION_INTENT_UNAVAILABLE`, `CONNECTOR_NOT_REGISTERED` (503): nothing ran. `EXECUTION_RECORD_INCOMPLETE` (500), `EXECUTION_OUTCOME_UNKNOWN` (502): the action was released | 503: retry later with a **new** id. 500 and 502: **never resend**; tell the operator |
+| `NetworkError`, `TimeoutError`                  | Connection failure or no answer in time                                                                                                                                                               | Outcome unknown: read the record with the same id                                    |
 
 ### Retries
 
-`ParmanaClient` already retries idempotent GETs with backoff on `429`/`502`/`503`/`504`; POSTs (which
-`execute()` is) are never retried automatically, since retrying an execution isn't safe by
-default. If you want your own retry around a `ServerError`, keep it narrowly scoped to that one
-exception and make sure you're supplying your own `business_transaction_id` so a retried request
-is idempotent server-side rather than creating a second transaction:
+`ParmanaClient` already retries idempotent GETs with backoff on `429`/`502`/`503`/`504`; POSTs
+(which `execute()` is) are never retried automatically, since retrying an execution isn't safe.
+**Do not wrap `execute()` in a generic retry.** Sending the same transaction again (same
+`business_transaction_id`) returns `ConflictError` (409), never the original result; sending it
+with a new id asks for the action a second time. Use the server code instead:
 
 ```python
-import random
-import time
-from functools import wraps
-
 from parmana import ServerError
 
+NOTHING_RAN = {"SIGNING_UNAVAILABLE", "EXECUTION_INTENT_UNAVAILABLE", "CONNECTOR_NOT_REGISTERED"}
 
-def retry_on_server_error(max_attempts: int = 3, base_delay: float = 1.0):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            for attempt in range(1, max_attempts + 1):
-                try:
-                    return func(*args, **kwargs)
-                except ServerError:
-                    if attempt == max_attempts:
-                        raise
-                    delay = base_delay * (2 ** (attempt - 1)) + random.random()
-                    time.sleep(delay)
-        return wrapper
-    return decorator
+try:
+    record = client.execution.execute(transaction)
+except ServerError as exc:
+    if exc.server_code in NOTHING_RAN:
+        # Nothing was executed. Retry later with a NEW business_transaction_id.
+        ...
+    else:
+        # EXECUTION_RECORD_INCOMPLETE (500) or EXECUTION_OUTCOME_UNKNOWN (502): the action
+        # was released. Never resend; the operator finalizes or resolves the Execution Intent.
+        raise
 ```
+
+Set `timeout=120` on the client (the default is 30 seconds), and after a timeout read the
+record with the same id before anything else (G-84).
 
 ## Audit logging
 
 Parmana already produces a signed [Execution Trust Record](/concepts/execution-trust-records) for
-every approved execution, and a [Refusal Record](/concepts/refusal-records) for a rejected one —
+every approved execution, and a [Refusal Record](/concepts/refusal-records) for a rejected one ,
 both independently verifiable. What you typically still want on your own side is a queryable local
 log tying those records back to your application's own request context:
 
@@ -215,7 +212,7 @@ CREATE INDEX ON parmana_audit_log (business_transaction_id);
 CREATE INDEX ON parmana_audit_log (occurred_at);
 ```
 
-This is your own local index for fast lookups — the actual [caller-authentication audit
+This is your own local index for fast lookups, the actual [caller-authentication audit
 trail](/concepts/caller-audit-trail) and the signed trust/refusal records remain the source of
 truth if the two ever disagree.
 
@@ -276,7 +273,7 @@ class RateLimiter:
 
 ## Smoke-testing a deployment
 
-Run something like this after every deploy — it should complete without raising anything other
+Run something like this after every deploy, it should complete without raising anything other
 than an expected `ExecutionRejectedError`:
 
 ```python
@@ -295,11 +292,11 @@ def smoke_test(endpoint: str, api_key: str) -> None:
 - [ ] `PARMANA_ENDPOINT` and `PARMANA_API_KEY` (or equivalent) set from your secrets manager, not
       hardcoded
 - [ ] Fail-closed behavior confirmed for `NetworkError`/`ServerError` (see above)
-- [ ] `ExecutionRejectedError` handled as an expected, logged outcome — not swallowed silently
+- [ ] `ExecutionRejectedError` handled as an expected, logged outcome, not swallowed silently
 - [ ] Your own audit log wired up, keyed by `business_transaction_id`
 - [ ] Basic metrics (outcome counts, latency) exported
 - [ ] Smoke test run against the target environment after deploy
-- [ ] You've read [Limitations](/security/limitations) — know what Parmana does and doesn't
+- [ ] You've read [Limitations](/security/limitations), know what Parmana does and doesn't
       guarantee before you make claims of your own downstream
 
 ## Next
@@ -310,7 +307,7 @@ def smoke_test(endpoint: str, api_key: str) -> None:
     icon="server"
     href="/deployment/production"
   >
-    Running the Parmana server itself in production — the other half of this
+    Running the Parmana server itself in production, the other half of this
     page.
   </Card>
   <Card
@@ -325,7 +322,7 @@ def smoke_test(endpoint: str, api_key: str) -> None:
     icon="triangle-exclamation"
     href="/security/limitations"
   >
-    What Parmana does and doesn't guarantee — read before you write your own SLA
+    What Parmana does and doesn't guarantee, read before you write your own SLA
     on top of it.
   </Card>
   <Card title="Python SDK reference" icon="python" href="/sdks/python">

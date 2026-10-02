@@ -32,7 +32,7 @@ itself in production (Fly.io/Docker, or any Node-compatible platform).
 | ----------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `PARMANA_ENDPOINT`      | Yes                    | Your Runtime's base URL.                                                                                                                                                                      |
 | `PARMANA_API_KEY`       | Yes, outside local dev | Bearer key minted by `scripts/generate-api-key.ts`. Omitting it only works against a Runtime started with `PARMANA_AUTH_DISABLED=true` — see [Authentication](/api-reference/authentication). |
-| `PARMANA_TIMEOUT_MS`    | No                     | Request timeout; SDK default is 30000ms if unset.                                                                                                                                             |
+| `PARMANA_TIMEOUT_MS`    | No                     | Request timeout. The SDK default is 30000 ms; use 120000 (G-84).                                                                                                                              |
 | `PARMANA_RETRY_ENABLED` | No                     | Whether your wrapper enables the SDK's retry policy (see below).                                                                                                                              |
 
 ## A production-safe client wrapper
@@ -52,7 +52,7 @@ function createParmanaClient(): ParmanaClient {
   const configuration: Configuration = {
     endpoint,
     apiKey,
-    timeout: Number(process.env.PARMANA_TIMEOUT_MS ?? 30_000),
+    timeout: Number(process.env.PARMANA_TIMEOUT_MS ?? 120_000), // approved requests can take tens of seconds (G-84)
     retryPolicy: {
       enabled: true,
       maxAttempts: 3,
@@ -153,13 +153,15 @@ async function executeOrFailClosed(transaction: BusinessTransaction) {
 failed, so never resubmit it under a new id: tell the operator, who can rebuild the record without repeating the action
 (see [Execution Intents](/concepts/execution-intents)). On `EXECUTION_OUTCOME_UNKNOWN` (502) the action was released and the connector call failed, so it may have run: never resubmit it either; the operator checks the target system and closes the intent with `resolveExecutionIntent`. The Execution Intent methods (`executionIntent`, `unfinalizedExecutionIntents`, `finalizeExecutionIntent`, `resolveExecutionIntent`) are available from SDK 1.2.0. On 1.1.6 and earlier the operator uses the HTTP API.
 
-`POST /execute` is not itself retried by the SDK's retry policy — see
+`POST /execute` is not itself retried by the SDK's retry policy, see
 [TypeScript SDK](/sdks/typescript#errors-they-actually-throw-now) for exactly which
-operations are retry-eligible. If you need your own retry around `execute()` (for a
-`NetworkError`/`TimeoutError` only, never for `ExecutionRejectedError`), reuse
-`businessTransactionId` on the retry — it's the server's idempotency key, so a retried
-`execute()` against a transaction that actually succeeded returns the original result
-instead of executing twice.
+operations are retry eligible. **Do not wrap `execute()` in a retry.** After a
+`TimeoutError` or `NetworkError` the request may still have run: an approved request can take
+tens of seconds (G-84). Read what happened first, with the same `businessTransactionId`:
+`trustRecord(id)` answers if it executed, `GET /refusal/{id}` if it was refused. Sending it
+again with the **same** id returns `409 ConflictError`, never the original result; sending it
+with a **new** id asks for the action a second time. See [Idempotency and
+nonces](/api-reference/idempotency-and-nonces).
 
 ## Audit logging pattern
 
