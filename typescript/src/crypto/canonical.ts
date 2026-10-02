@@ -23,7 +23,16 @@ function normalize(value: unknown): unknown {
   return Object.keys(object)
     .sort()
     .reduce<Record<string, unknown>>((normalized, key) => {
-      normalized[key] = normalize(object[key]);
+      // defineProperty, not normalized[key] = ...: plain assignment sends a
+      // literal "__proto__" key to the prototype setter, dropping it from
+      // the output (and from what is signed). The server's
+      // CanonicalSerializer, the Python SDK and @parmana/sign all keep it.
+      Object.defineProperty(normalized, key, {
+        value: normalize(object[key]),
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
       return normalized;
     }, {});
 }
