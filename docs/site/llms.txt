@@ -112,7 +112,7 @@ This file is generated from the documentation navigation. Do not edit it by hand
 ## REST API: REST API guide
 
 * [REST API Introduction](https://docs.parmanasystems.com/api-reference/introduction): 26 paths, generated from openapi/openapi.yaml into the sidebar under REST API. This page covers what that spec can't express.
-* [Authentication](https://docs.parmanasystems.com/api-reference/authentication): How to authenticate API requests: the bearer key model, what gets checked, and how it differs from Policy evaluation and gateway attestation.
+* [Authentication](https://docs.parmanasystems.com/api-reference/authentication): Send a bearer key on every request. What a key may do, how to check it, where keys come from, the rate limits, and every authentication error with its exact body.
 * [Error Handling](https://docs.parmanasystems.com/api-reference/error-handling): The shared error envelope, when the code field is present versus absent, and the two verified gaps where implementation doesn't match the envelope's own design.
 * [Idempotency and Nonces](https://docs.parmanasystems.com/api-reference/idempotency-and-nonces): There is no Idempotency-Key header. businessTransactionId is the API-layer idempotency mechanism, and it behaves differently from Stripe's: a duplicate is a 409, not a replayed response. Nonces are a separate, internal concept.
 * [Error Catalog](https://docs.parmanasystems.com/api-reference/error-catalog): Every error this API can return: HTTP status, code (when present), the exact condition that produces it, and what a caller should do. Assembled from live-triggered captures, not inferred from code.
