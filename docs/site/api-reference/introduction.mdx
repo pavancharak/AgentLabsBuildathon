@@ -18,7 +18,14 @@ description: "26 paths, generated from openapi/openapi.yaml into the sidebar und
 
 ## Base URL
 
-Local: `http://localhost:3000` (see [Quickstart](/quickstart) for starting the server). The
+| Server         | Base URL                              | Key                                                                        | Use it for                                                                                  |
+| -------------- | ------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Public sandbox | `https://parmana-sandbox.vercel.app`  | The published demo key, `SANDBOX_DEMO_KEY`, allowed only `sandbox:receipt` | Trying every request for real with nothing installed. **Try it** panels call it by default. |
+| Production     | `https://parmana-api-real.vercel.app` | A key issued by the operator                                               | Real actions. Not open to the public.                                                       |
+| Local          | `http://localhost:3000`               | The committed demo key or your own, see [Quickstart](/quickstart)          | Development on your own machine                                                             |
+
+The sandbox runs the same code as production, with its own database, keys and demo approver; its one action acts on
+nothing, and everything sent to it is visible to every visitor. See [Playground](/playground). The
 raw spec is also served at `GET /openapi.yaml` and, identically, JSON-serialized, at
 `GET /openapi.json` (some tooling and most AI coding agents expect a `.json` path by
 convention; both describe the same spec), see [Deploy
@@ -36,7 +43,7 @@ patterns](/guides/deploy-patterns#the-openapi-spec-endpoint).
 
 ## Every endpoint has its own page
 
-The **REST API** tab lists every endpoint on its own page, grouped by area: Execution, Transactions, Verification, Receipts, Trust Records, Replay, Policies, Policy Governance, Refusal Records, Audit, System and Handbook. Each page is generated from the bundled OpenAPI file, so it shows the exact parameters, request body, every response with a real example, and an interactive playground. A test fails if an endpoint is added to the spec without a page. Start with [Execute a Business Transaction](/api-reference/endpoints/execute-transaction), the endpoint every integration uses.
+The **REST API** tab lists every endpoint on its own page, grouped by area: Execution, Transactions, Verification, Receipts, Trust Records, Replay, Policies, Policy Governance, Refusal Records, Audit, System and Handbook. Each page is generated from the bundled OpenAPI file, so it shows the exact parameters, request body, every response with a real example, and a **Try it** panel that sends a real request to the public sandbox with the demo key filled in (switch the server to call your own). With the demo key, only `sandbox:receipt` and the read routes work; other capabilities return `403`, and governance routes return `403 NON_HUMAN_CALLER_DENIED`, so use their captured examples. A test fails if an endpoint is added to the spec without a page. Start with [Execute a Business Transaction](/api-reference/endpoints/execute-transaction), the endpoint every integration uses.
 
 If you are an AI agent, follow [Integrate Parmana: specification for AI agents](/agents/integrate) instead of reading the pages one by one.
 
@@ -79,11 +86,11 @@ spec. It is generated from the same OpenAPI file (`npm run generate:postman`), a
 if it falls behind.
 
 1. In Postman, choose **Import** and select the file.
-2. Create an environment with a secret variable `apiKey` holding your API key. The collection
-   sends it as `Authorization: Bearer {{apiKey}}`; requests the API marks as public send no key.
-   Never put the key in the collection itself.
-3. `baseUrl` defaults to the production deployment. Override it in the environment for your
-   own deployment, for example `http://localhost:3000`.
+2. Create an environment with a secret variable `apiKey` holding your API key, or the sandbox demo key
+   `SANDBOX_DEMO_KEY` to try it. The collection sends it as `Authorization: Bearer {{apiKey}}`; requests the API
+   marks as public send no key. Never put a real key in the collection itself.
+3. `baseUrl` defaults to the public sandbox, `https://parmana-sandbox.vercel.app`. Override it in the environment for
+   production (`https://parmana-api-real.vercel.app`) or your own deployment, for example `http://localhost:3000`.
 
 Most example bodies use sample ids, so replace them before sending. Approving or rejecting a
 policy change needs a fresh step up signature from the approver's own machine; the sample

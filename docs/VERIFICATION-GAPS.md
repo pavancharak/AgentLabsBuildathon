@@ -1366,6 +1366,21 @@ record, fetched afterwards, is `APPROVED`). An agent that then sends a new trans
 twice. Until this is fixed, agents should set a longer timeout and, after a timeout, read the record
 (`GET /trust-records/{id}`) before anything else. The refund flow takes the same path.
 
+**G-85. The Python SDK cannot verify its own decoded record when `previousChainHash` is `null`.
+FOUND 2026-10-02 while writing the sandbox Playground, `pre-production` (verification tooling, not
+authorization).** `verify_execution_trust_record_offline(record, keys)` accepts the decoded
+`ExecutionTrustRecord` model (`python/parmana/crypto/offline_verifier.py`, `_as_json`), and encodes it again
+with `parmana.serialization.encode`, which leaves out every field whose value is `None`. The server
+sends `executions[0].previousChainHash: null` (the TypeScript type is `previousChainHash?: string | null`;
+the generated Python field is `previous_chain_hash: Any | None = None`, so null and absent are the same).
+The encoded record lacks the key, its canonical hash differs, and verification reports
+`trustRecordHash mismatch` and a failed signature for a record that is intact. Reproduced on 2026-10-02
+against the public sandbox with the published `parmana` 1.4.0 and with `main`: the raw JSON of
+transaction `f0ff68b5-adab-49d4-ad00-12a1fcd99536` verifies, the model of the same record does not. The
+TypeScript SDK is not affected. Until fixed, the docs (`docs/site/sdks/python.mdx`,
+`docs/site/playground.mdx`) say to verify the raw JSON. A fix has to tell null from absent in the
+generated models or keep the server's JSON with the model.
+
 ---
 
 ## Remaining gaps, by severity

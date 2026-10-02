@@ -24,6 +24,13 @@ background to interpret. If your situation is not covered, **stop and ask the op
 | `APPROVAL_SIGNALS` | Step 3: the keys of `signals.approval` in the server's answer. The table in [Every action needs a signed approval](#every-action-needs-a-signed-approval) shows them for the connector actions. | It is never empty. Every action needs one, reads included. If the operator says none, stop: that is not possible on a current server. |
 | `ACTION`           | The operator. The capability name, for example `paytm:refund`.                                                                                                                                  | Step 2 checks your key may use it.                                                                                                    |
 
+**No deployment yet? Practise on the public sandbox.** Use `PARMANA_URL` `https://parmana-sandbox.vercel.app`,
+`PARMANA_API_KEY` `SANDBOX_DEMO_KEY` (the published demo key: it is public, so the rule about never printing a key does
+not protect anything for it, but keep the habit), and `ACTION` `sandbox:receipt`; step 3 gives `APPROVAL_SIGNALS`
+`receiptApproved`. Every step below is the same, except that in the sandbox you get the approval yourself from
+`POST /sandbox/approvals` (see [If the action needs a person's approval](#if-the-action-needs-a-persons-approval)). The
+sandbox acts on nothing and everything sent to it is visible to every visitor. See [Playground](/playground).
+
 Do not ask for a policy version. Step 3 reads the version in effect from the server, because an approved new version
 replaces the old one at once and a request naming an old version is refused.
 
@@ -36,14 +43,15 @@ signs an approval for it.
 
 For the actions with a connector, the approval signal and the resource it names are:
 
-| `ACTION`              | Policy in effect (step 3 confirms) | Approval signal      | Resource the approval names                                   | Other signals the policy reads                                                                                                                                           |
-| --------------------- | ---------------------------------- | -------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `paytm:refund`        | `customer-refund` 1.2.0            | `managerApproved`    | `intent.parameters.orderId`, up to `intent.parameters.amount` | `refundEligible`, `fraudCheckPassed`, `refundAmount` (equal to `intent.parameters.amount`)                                                                               |
-| `github:pr-merge`     | `github-pr-approval` 1.1.0         | `mergeApproved`      | `intent.target`                                               | `branchProtected`, `repositoryAuthorized`, `requiredReviewsCompleted`, `riskScore`, `statusChecksPassed`                                                                 |
-| `github:pr-fetch`     | `github-pr-read` 1.1.0             | `readApproved`       | `intent.target`                                               | none                                                                                                                                                                     |
-| `hubspot:deal-update` | `hubspot-deal-update` 1.1.0        | `dealUpdateApproved` | `intent.parameters.dealId`                                    | `dealStageChangeRequested`, `dealStageTransitionAllowed`; `proposedDealStage` and `proposedAmount` equal to `intent.parameters.dealstage` and `intent.parameters.amount` |
-| `hubspot:deal-fetch`  | `hubspot-deal-read` 1.0.0          | `readApproved`       | `intent.parameters.dealId`                                    | none                                                                                                                                                                     |
-| `slack:post-message`  | `slack-post-message` 1.1.0         | `postApproved`       | `intent.target` (the channel id)                              | `channelAuthorized`, `contentApproved`; `channelId` equal to `intent.target`                                                                                             |
+| `ACTION`                         | Policy in effect (step 3 confirms) | Approval signal      | Resource the approval names                                   | Other signals the policy reads                                                                                                                                           |
+| -------------------------------- | ---------------------------------- | -------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `paytm:refund`                   | `customer-refund` 1.2.0            | `managerApproved`    | `intent.parameters.orderId`, up to `intent.parameters.amount` | `refundEligible`, `fraudCheckPassed`, `refundAmount` (equal to `intent.parameters.amount`)                                                                               |
+| `github:pr-merge`                | `github-pr-approval` 1.1.0         | `mergeApproved`      | `intent.target`                                               | `branchProtected`, `repositoryAuthorized`, `requiredReviewsCompleted`, `riskScore`, `statusChecksPassed`                                                                 |
+| `github:pr-fetch`                | `github-pr-read` 1.1.0             | `readApproved`       | `intent.target`                                               | none                                                                                                                                                                     |
+| `hubspot:deal-update`            | `hubspot-deal-update` 1.1.0        | `dealUpdateApproved` | `intent.parameters.dealId`                                    | `dealStageChangeRequested`, `dealStageTransitionAllowed`; `proposedDealStage` and `proposedAmount` equal to `intent.parameters.dealstage` and `intent.parameters.amount` |
+| `hubspot:deal-fetch`             | `hubspot-deal-read` 1.0.0          | `readApproved`       | `intent.parameters.dealId`                                    | none                                                                                                                                                                     |
+| `slack:post-message`             | `slack-post-message` 1.1.0         | `postApproved`       | `intent.target` (the channel id)                              | `channelAuthorized`, `contentApproved`; `channelId` equal to `intent.target`                                                                                             |
+| `sandbox:receipt` (sandbox only) | `sandbox-receipt` 1.0.0            | `receiptApproved`    | `intent.target`                                               | none; `note` equal to `intent.parameters.note`, at most 200 characters                                                                                                   |
 
 For any action, including one not in this table (such as an action an operator registered as an external connector, see [Connect any external system](/guides/connect-any-external-system)), step 3 returns the same information from the server:
 `signals.approval` names the approval signal and where its resource (and amount) are in the request. Use the server's
@@ -319,6 +327,12 @@ person has approved.
    the approval signal `true`, and the approval in `signals.approvalArtifact`. Do not change anything else.
 5. If it is refused again, do not retry with the same approval: it may be expired, used, for a different resource or
    amount, or from an approver the server does not trust. Report the message to the operator.
+
+**In the sandbox only** (`https://parmana-sandbox.vercel.app`, `ACTION` `sandbox:receipt`), steps 1 and 2 are
+replaced by one request you make yourself: `POST /sandbox/approvals` with
+`{ "capability": "sandbox:receipt", "resourceId": "<intent.target>" }`. Expect `201` and an approval valid 5 minutes,
+accepted once. Then do steps 3 and 4. This route exists only in the sandbox; on any other server, never try to make an
+approval yourself. See [Playground](/playground).
 
 For people: [Human approval](/concepts/human-approval) and [Approval notifications](/guides/approval-notifications).
 

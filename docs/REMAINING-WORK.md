@@ -149,6 +149,17 @@ Goal: connect any external system with no change to Parmana's code (ADR-0013). B
 | 5    | Docs page "Connect any external system", example endpoints in TypeScript and Python, tutorial, CLAIMS entry | Done: examples and Tutorial 123 (PR #98), the guide (PR #99). The CLAIMS entry waits for step 6.                                                                   |
 | 6    | A live check against a deployed example endpoint before the claim                                           | **Passed** in production on 2026-10-01 (`examples/live-checks/external-connector`, `docs/CLAIMS.md` 2.50). Found G-84: an approved request takes 24 to 32 seconds. |
 
+## K. Public sandbox (added 2026-10-02)
+
+The sandbox is live and documented (ADR-0014 steps 1 to 4, `docs/CLAIMS.md` 2.51). Still open:
+
+| Item                                                                                  | State                                                    |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Retention: delete sandbox records older than 7 days, daily (ADR-0014 open question 3) | Not built.                                               |
+| `sandbox.parmanasystems.com` (ADR-0014 open question 1)                               | Not set up; `parmana-sandbox.vercel.app` is used.        |
+| An in browser record check on the Playground (ADR-0014 section 5)                     | Not built; the page shows the offline check in each SDK. |
+| Python SDK verifies its own decoded record (`docs/VERIFICATION-GAPS.md` G-85)         | Open; docs say to verify the raw JSON.                   |
+
 ## H. Considered, not built (moved here from the old root `ROADMAP.md`, 2026-09-28)
 
 None of these is scheduled. They are recorded so the ideas are not lost when the old roadmap is removed.
