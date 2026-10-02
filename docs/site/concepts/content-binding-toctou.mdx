@@ -25,7 +25,8 @@ Parmana's `SignedExecutionAuthorization` binds a **canonical content hash** into
 payload, not just an ID:
 
 ```typescript
-// packages/shared/src/domain/execution-authorization.ts
+// packages/shared/src/domain/execution-authorization.ts (abridged: submittedBy and
+// grantedCapability left out, see Execution Authorization)
 export interface ExecutionAuthorizationPayload {
   readonly version: 1;
   readonly authorizationId: string;
@@ -59,7 +60,7 @@ the hash of the content it is about to forward, and compares it to the signed
 `businessTransactionHash`:
 
 ```typescript
-// packages/execution-gateway/src/ExecutionGateway.ts:150-165
+// packages/execution-gateway/src/ExecutionGateway.ts
 if (passed) {
   const actualHash = await this.contentHasher.hash(executableContent);
   const expectedHash = request.authorization.payload.businessTransactionHash;
@@ -85,7 +86,7 @@ version → signature → expiry → TTL policy → businessTransactionHash reco
 The nonce (single-use) check runs **last**, and only if every prior check, including the
 content hash, passed. This matters: a forged or mismatched request must never burn a
 nonce, or an attacker who observes a nonce in transit could poison it and get the
-_legitimate_ request rejected instead (`ExecutionGateway.ts:170-180`).
+_legitimate_ request rejected instead (`ExecutionGateway.ts`, `consumeNonce` runs only when every check passed).
 
 `ExecutableContentHasher` delegates to the same `TrustRecordHasher` used elsewhere in the
 system (`packages/crypto/src/ExecutableContentHasher.ts`), the signing side and verifying
@@ -120,8 +121,15 @@ if (currentSignalsHash !== signalsHash) {
   signalsHashMismatch = { expected: signalsHash, actual: currentSignalsHash };
 } else {
   const violations = await this.signalStateVerifier.findViolations(
-    { action, businessTransactionId, intentParameters },
-    request.signals,
+    {
+      action: executableContent.action,
+      businessTransactionId: executableContent.businessTransactionId,
+      intentParameters: executableContent.parameters,
+      intentTarget: executableContent.target,
+      stage: "release",
+      ...(verifiedPolicy !== undefined ? { policy: verifiedPolicy } : {}),
+    },
+    request.signals as PolicySignals,
   );
 
   signalsStillCurrent = violations.length === 0;
@@ -132,9 +140,25 @@ Two receiving systems can hold the exact same authorization, the exact same decl
 signals, and the exact same `signalsHash`, and still disagree, because what differs is what
 each one's own live check finds _right then_. That is the entire point: this is a freshness
 check, not a tamper check. See `examples/tutorials/98-signal-freshness-enforcement` for both
-outcomes run side by side. This only has teeth for a capability with a `SignalStateVerifier`
-actually configured (today, `hubspot-deal-update`), and only when decision and execution are
-genuinely separated in time, which the default in-process wiring is not.
+outcomes run side by side.
+
+The default server always wires one: a `CompositeSignalStateVerifier`
+(`packages/api/src/application.ts`) with three parts, run before the authorization is signed and
+again at release (`stage: "release"`):
+
+- **The human approval**, for every action (`ApprovalSignalVerifier`): the signed approval must
+  verify for this action, resource and value. It is used (its nonce recorded) at authorization;
+  the release check repeats every other check, such as expiry and whether the approver's key is
+  still trusted. See [Human approval](/concepts/human-approval).
+- **HubSpot deal state**, for `hubspot-deal-update` (`HubSpotSignalStateVerifier`), fetched
+  live from HubSpot.
+- **The Slack channel**, for Slack actions, against the server's allowlist
+  (`SLACK_ALLOWED_CHANNEL_IDS`).
+
+In the default server decision and release happen in the same request, seconds apart, so the
+release check catches what changed in those seconds, such as an approval that just expired or
+an approver key just revoked. It matters most when an authorization is carried to a separate
+system and released later.
 
 ## What this proves, precisely scoped
 
@@ -189,9 +213,9 @@ tampering](/guides/detect-tampering) for three of these run live with real outpu
 
 ## Connector SDK: the same content, unmodified, all the way to the connector
 
-`@parmana/connector-sdk`'s `SdkConnectorExecutor` sits downstream of every check above, it
+`SdkConnectorExecutor` (`packages/execution-gateway/src/connector-execution/`) sits downstream of every check above, it
 only ever runs after `ExecutionGateway.verify()` has already passed and the content is
-already deep-frozen (`ExecutionGateway.ts`'s `deepFreeze(executableContent)`). From there:
+already deep frozen (`ExecutionGateway.ts`, `deepFreeze(executableContent)`). From there:
 
 - `SdkConnectorExecutor.execute(content, credential)` builds `ConnectorRequest` by copying
   `businessTransactionId`, `action`, `target`, and `parameters` straight off the verified,
@@ -204,18 +228,20 @@ already deep-frozen (`ExecutionGateway.ts`'s `deepFreeze(executableContent)`). F
 Any mismatch between what was authorized and what a connector would execute is still
 caught upstream, in the unchanged `ExecutionGateway.verify()` hash comparison, this is a
 permanent architectural invariant, not something `connector-sdk` re-implements or could
-weaken. `connector-sdk` adds capability-declaration and version/health checks _in front of_
-a connector call (`SdkConnectorExecutor`, `CapabilityConnectorPolicy`), all of which fail
+weaken. The gateway adds capability declaration and version and health checks _in front of_
+a connector call (`SdkConnectorExecutor`, `CapabilityConnectorPolicy` in
+`packages/execution-gateway/src/connector-runtime/`), all of which fail
 closed (throw, never a partial or guessed success) before a connector is ever invoked.
 
 ## Related, and also worth knowing
 
-- **Nonce single-use is scoped to whichever `NonceStore` instance checks it.** Multiple
-  independent gateway instances each using their own `MemoryNonceStore` can each accept the
-  same authorization once. Fleet-wide single-use requires one shared store (CLAIMS.md 3.2).
+- **Single use holds across instances in the default server.** Its `NonceStore` is in
+  Postgres (`consumed_nonces`), so every instance on the same database accepts an
+  authorization once. A gateway you build yourself needs one shared store for the same
+  guarantee (CLAIMS.md 3.2).
 - **ML-DSA-65 (post-quantum) signatures are randomized, not deterministic.** Signing the
   same message twice with the same key produces two different, both-valid signatures, only
   _verification_ is deterministic. Don't build tooling that assumes identical input produces
   an identical PQ signature (CLAIMS.md §5).
-- Every envelope carries a bounded TTL specifically so the exposure window from either of
-  the above gaps is bounded, not unlimited.
+- Every envelope carries a bounded TTL, so the window in which a carried authorization can be
+  used is bounded, not unlimited.
