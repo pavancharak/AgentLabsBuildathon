@@ -35,7 +35,7 @@ Gateway attestation is that second, separate check.
 ## How it behaves
 
 ```typescript
-// packages/execution-control/src/GatewayAttestation.ts:50-71
+// packages/execution-control/src/GatewayAttestation.ts:50-76
 export class GatewayAttestationSigner {
   constructor(
     private readonly clock: Clock,
@@ -65,7 +65,8 @@ export class GatewayAttestationSigner {
 
 `authorizationId` binds the attestation to one specific request, so it cannot be replayed to
 authenticate a _different_ request. The default server mints one of these per release, using
-its own dedicated keypair (`keys/gateway.*.pem`), deliberately separate from the
+its own dedicated keypair (`gateway.private.pem` and `gateway.public.pem` in `PARMANA_KEY_DIR`;
+the key id is `PARMANA_GATEWAY_KEY_ID`, default `gateway`), deliberately separate from the
 authorization-verification key: see [Deploy patterns](/deployment/local) for why the keys
 are kept apart.
 
@@ -90,7 +91,7 @@ const valid = verifyGatewayAttestationSignature(attestation, gatewayPublicKey);
 
 <Warning>
   **This is the honest-scope note from the source code's own doc comment
-  (`GatewayAttestation.ts:10-29`), not a summary of it:** *"nonce is an
+  (`GatewayAttestation.ts:10-28`), not a summary of it:** *"nonce is an
   entropy/uniqueness field only, nothing in this file or in
   `SignedTokenConnectorAuthenticator` records consumed nonces, so it is not
   itself a replay defense. It exists so two attestations minted for the same
