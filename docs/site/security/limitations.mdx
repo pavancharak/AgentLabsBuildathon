@@ -42,12 +42,13 @@ not claim them:
 
 - **Envelope verification is non-bypassable only for a system that runs it.** A system you
   build that doesn't call `@parmana/envelope-verifier` gets none of this protection.
-- **Single-use enforcement is scoped to whichever nonce store checks it.** Independent
-  Gateway instances, each with their own in-memory store, can each accept the same
-  authorization once, not once fleet-wide.
-- **Credential isolation is proven for the connectors currently registered** (HubSpot,
-  GitHub, Paytm, Slack, each registering only when its own credentials are configured), not
-  automatically for a new one you add. The mechanism is generic and tested, but wiring a new
+- **Single use enforcement is scoped to whichever nonce store checks it.** Parmana's own
+  server keeps authorization and approval nonces in Postgres, so every instance on one database
+  accepts each once. A system you build with its own per instance store gets once per instance,
+  not once fleet wide.
+- **Credential isolation is proven for the built in connectors** (HubSpot, GitHub, Paytm,
+  Slack, each registering only when its own credentials are configured), not automatically for
+  a new built in one you add. An external connector holds no credential at all. The mechanism is generic and tested, but wiring a new
   connector into it is a deliberate step, not something the architecture does for you; see
   [Credential isolation](/concepts/credential-isolation).
 - **Key custody is local files or AWS KMS, nothing else.** `KEY_PROVIDER=local` reads PEM
@@ -61,8 +62,8 @@ not claim them:
   (ADR-0010). The Parmana TypeScript packages and the Python SDK verify it. A verifier you write
   yourself must accept the commitment form for messages over 4096 bytes, or it will reject large
   KMS signed records.
-- **Route access itself is not scoped.** Any authenticated caller can call any route, there
-  is no per-key allowlist of endpoints. What is scoped: which `authority.principalId` a
+- **Route access is scoped by kind of caller, not per route.** There is no per key allowlist
+  of endpoints; governance routes refuse a key not provisioned as a human. Also scoped: which `authority.principalId` a
   caller may assert (default: only itself), and which transactions/records a caller may
   read (cross-caller reads 404, not 403).
 - **Two people approve an approver change, not two proven people.** Adding or revoking an
@@ -142,11 +143,13 @@ and single-pass. Every independent check in the Gateway's pipeline is ANDed toge
 check failing denies the whole request even if every other check passed. Every connector
 adapter fails closed on a non-2xx response or a timeout, never a partial success.
 
-**Honest gap:** there's no throughput/load test in this codebase, per-operation latency is
-measured (roughly 0.1ms to sign, 3-8ms for a full in-memory authorization/execution pipeline
-round trip) but sustained concurrent throughput under real load is not. There's also no
-timeout concept in the authorization pipeline itself, whatever timeout behavior exists comes
-from the underlying HTTP server and database driver, not from Parmana's own logic.
+**Honest gap:** there's no throughput or load test in this codebase. In memory, one
+authorization and execution round trip takes a few milliseconds (roughly 0.1 ms to sign); in
+production on Vercel an approved request took 24 to 32 seconds end to end, most of it in
+sequential database and KMS round trips, not yet broken down (`docs/VERIFICATION-GAPS.md`
+G-84). Connector calls have timeouts (Paytm 10 s by default, an external connector its
+registered `timeoutMs`); the pipeline as a whole has none of its own, so a client should wait
+120 seconds and, after a timeout, read the record before sending again.
 
 ## Your responsibilities as an operator
 
@@ -156,9 +159,11 @@ from the underlying HTTP server and database driver, not from Parmana's own logi
   prove the policy itself is correct. Review policy content the way you'd review any access
   control rule.
 - **Connector scope.** Wiring in a new connector is a deliberate integration step. Credential
-  isolation is proven for the connectors already registered, not automatically inherited by
-  one you add without following the same pattern; see
-  [Add a connector](/guides/add-a-connector).
+  isolation is proven for the built in connectors, not automatically inherited by one you add
+  without following the same pattern; see the [Connector Development
+  Guide](/integrations/connector-development-guide). An [external
+  connector](/guides/connect-any-external-system) is your own endpoint: verify each signed
+  release and keep what it answers honest.
 - **Rate limiting and availability.** `/execute` is rate-limited per caller, `/health`/`/ready`
   per IP, this protects the service, it isn't a substitute for your own capacity planning.
 

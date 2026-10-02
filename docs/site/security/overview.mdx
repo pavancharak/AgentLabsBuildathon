@@ -15,15 +15,17 @@ description: "What Parmana actually guarantees, precisely scoped, and, as import
 cryptographically impossible to accept, **only** for a receiving system that (a) runs the
 verifier and (b) gates every execution-triggering code path behind its result. Parmana
 enforces nothing at the network level. The default local server does both (a) and (b) for
-each connector it registers, see [The gateway](/concepts/the-gateway) for the mechanism and
-its one real remaining caveat: a new connector isn't reachable without a bootstrap code
-change.
+each connector it registers, see [The gateway](/concepts/the-gateway) for the mechanism. A new
+built in connector is a code change; an [external connector](/guides/connect-any-external-system)
+is registered through maker checker with no code change, and Parmana signs each release to it.
 
-**Fleet-wide single-use requires a shared NonceStore (3.2).** Single-use enforcement is
-scoped to whichever `NonceStore` instance performs the check. Independent instances each
-using their own store can each accept the same authorization once. `MemoryNonceStore`
-loses all state on restart. Every envelope's bounded TTL limits, but does not eliminate,
-the exposure window from either gap.
+**Fleet wide single use requires a shared NonceStore (3.2).** Single use enforcement is
+scoped to whichever `NonceStore` instance performs the check. Parmana's own server shares one
+in Postgres (`SupabaseNonceStore`, and the same for approvals), so every instance on one
+database accepts an authorization once, and it fails closed at startup without one. A
+receiving system that runs `@parmana/envelope-verifier` with its own per instance store can
+accept the same authorization once per instance; `MemoryNonceStore`, for tests, loses all
+state on restart. Every envelope's bounded TTL limits, but does not eliminate, that exposure.
 
 **Durable, third-party-verifiable refusal and audit records (3.11).** Every
 policy rejection produces a signed Refusal Record, independently verifiable at `POST
@@ -127,8 +129,11 @@ and documentation/verification routes listed on
 [Authentication](/api-reference/authentication). Three distinct claims, not one, and it
 matters which one you're relying on:
 
-- **Route access is not scoped.** Any authenticated caller can call any route, there is no
-  per-key allowlist of which endpoints a given credential may reach.
+- **Route access is scoped by kind of caller, not per route.** There is no per key allowlist
+  of endpoints, but every governance route (policy changes, approvers, external connectors,
+  the Execution Intent list and finalize) refuses a key not provisioned as a human, with `403
+NON_HUMAN_CALLER_DENIED`, and `POST /execute` refuses a capability the key may not invoke
+  (`403 CAPABILITY_NOT_ALLOWED`).
 - **Principal assertion is scoped**, the fix described in "Known incidents" above. A caller
   may only submit a transaction whose `authority.principalId` is itself, or an identity
   explicitly granted via `ApiKeyEntry.allowedPrincipalIds`, never "anything," the default

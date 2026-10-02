@@ -198,18 +198,30 @@ if (hubspotCredentialProvider === undefined) {
 }
 ```
 
-Adding a connector to the running server means editing two files:
-`createConnectorRegistry.ts` (register it, following the shape above, return `undefined`
-in production until a real implementation exists, exactly like
-`createHubSpotCredentialProvider.ts` already does) and `createConnectorAuthenticator.ts`
-(trust its identity, add an entry to its hardcoded list). **Not** `createConnectorRoute.ts`,
-despite its name, that file's `route()` function is dead code in the current production
-wiring (`createExecutionGateway.ts` always supplies `executionControl.service`, which makes
-the only branch that calls `route()` unreachable); editing it has no effect on which
-connector actually handles a request. There is no dynamic registration path, no environment
-variable that adds a connector, this is a code change today. HubSpot, GitHub, Paytm, and
-Slack are the connectors actually reachable in the default production server, see
-[HubSpot](/integrations/hubspot) for that connector specifically.
+Adding a built in connector to the running server is more than one file. Slack, the most recent,
+touches these (checked against the source on 2026-10-02), and a new connector needs the same:
+
+| Where                                                                                                                            | What                                                                                                                                            |
+| -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/connector-<name>/`                                                                                                     | The client for the target system                                                                                                                |
+| `packages/execution-gateway/src/connector-execution/Gateway<Name>Adapter.ts`, `createGateway<Name>Connector.ts`, both `index.ts` | The gateway side that receives verified, frozen content and calls the client                                                                    |
+| `packages/api/src/bootstrap/create<Name>Connector.ts`, `create<Name>CredentialProvider.ts`                                       | Build the connector; resolve its credential (return `undefined` when it is not configured)                                                      |
+| `packages/api/src/bootstrap/createConnectorRegistry.ts`                                                                          | Register it, following the shape above                                                                                                          |
+| `packages/api/src/bootstrap/createConnectorAuthenticator.ts`                                                                     | Trust its identity                                                                                                                              |
+| `packages/api/src/bootstrap/ConnectorCatalog.ts`, `packages/connector-sdk/src/ConnectorFactory.ts`                               | List it                                                                                                                                         |
+| `packages/capability-registry/src/CapabilityPolicyBinding.ts`                                                                    | Bind its capability to one policy name; `assertConnectorCapabilitiesBound` refuses to start with an unbound one                                 |
+| `policies/<name>/<version>/policy.json`                                                                                          | The policy, with `approvalSignals`, then approved through [policy governance](/guides/policy-lifecycle-and-approvals)                           |
+| `packages/api/src/application.ts` and a `create<Name>...SignalVerifier.ts` (optional)                                            | Check a fact against the target system before release, as Slack does for its channel                                                            |
+| `tests/architecture/execution-boundary.test.ts`, `sandbox-connector-variables.test.ts`                                           | List the new connector class; add its variable prefix, and the variables to the guard in `createSandboxOptions.ts`, so the sandbox refuses them |
+
+**Not** `createConnectorRoute.ts`, despite its name: that file's `route()` function is dead
+code in the current production wiring (`createExecutionGateway.ts` always supplies
+`executionControl.service`, which makes the only branch that calls `route()` unreachable);
+editing it has no effect on which connector actually handles a request. There is no dynamic
+registration path for a built in connector and no environment variable that adds one. To
+connect a system with no code change, register it as an [external
+connector](/guides/connect-any-external-system) instead. HubSpot, GitHub, Paytm and Slack are
+the built in connectors, see [HubSpot](/integrations/hubspot) for that connector specifically.
 
 </Warning>
 
