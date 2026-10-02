@@ -13,7 +13,7 @@ reads production (`ProductionNames`) lists variable names only, never values.
 | Part                 | Where                                                  | What it is                                                                |
 | -------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------- |
 | Keys                 | `D:\key\parmana-sandbox` (never in the repository)     | Signing keys, the maker, checker and visitor API keys, the demo approver  |
-| Database             | A new Supabase project, `parmana-sandbox`, Mumbai      | Every migration applied; nothing shared with production                   |
+| Database             | A new Supabase project, Mumbai (see step 2)            | Every migration applied; nothing shared with production                   |
 | The API              | Vercel project `parmana-sandbox`, from this repository | `https://parmana-sandbox.vercel.app`, `PARMANA_SANDBOX=true`              |
 | The receipt endpoint | Vercel project `parmana-sandbox-receipt`               | `https://parmana-sandbox-receipt.vercel.app/api/release`, acts on nothing |
 | Governance           | In the sandbox, through maker checker                  | The demo approver, policy `sandbox-receipt` 1.0.0, the registration       |
@@ -42,8 +42,10 @@ Expect: `Wrote 8 files to D:\key\parmana-sandbox`, listing them, and `No key was
 
 ### 2. Create the Supabase project (in the browser)
 
-In the Supabase dashboard: **New project**, name `parmana-sandbox`, region **South Asia (Mumbai)**, a new database
-password. When it is ready, open **Connect** and keep the page open: stage 4 needs the **Session pooler** string
+In the Supabase dashboard: **New project**, a name such as `parmana-playground`, region **South Asia (Mumbai)**, a new
+database password. **Do not use the existing Supabase project named `parmana-sandbox`: despite its name, it is
+production's database** (project `ltjadvsjlpcygborxzet`); never pause or delete it. The sandbox set up on 2026-10-02 uses
+project `zkrfrfyokkpfwghoohne`. When it is ready, open **Connect** and keep the page open: stage 4 needs the **Session pooler** string
 (port 5432) and stage 7 the **Transaction pooler** string (port 6543), each with the password filled in. These are the
 sandbox's, not production's.
 
@@ -55,9 +57,14 @@ connects.
 ### 3. Create the Vercel project (in the browser)
 
 In the Vercel dashboard, team `pavan-dev-singh-charaks-projects`: **Add New**, **Project**, import
-`pavancharak/AgentLabsBuildathon`, name it **`parmana-sandbox`**, keep every other setting, **Deploy**. The first
-deployment starts without variables and its function will not answer yet; that is expected. Check that the project's
-**Domains** shows `parmana-sandbox.vercel.app`. If Vercel gave another address, pass it as `-ApiUrl` to every stage
+`pavancharak/AgentLabsBuildathon`, name it **`parmana-sandbox`**. Vercel offers **Services** and a suggested
+`vercel.json` because it sees several folders: do not use them. Set **Application Preset** to **Other** (the repository's
+own `vercel.json` defines the build, as for production), accept the "Possible configuration mismatch" warning, keep
+every other setting, **Deploy**. Check that the project's **Domains** shows `parmana-sandbox.vercel.app`.
+
+If **Domains** says "No Deployment", create the first one: **Deployments**, **Create Deployment**, branch `main`. Stage
+8 redeploys an existing deployment and stops when there is none. A deployment made before stage 7 has no variables and
+will not answer yet; that is expected. If Vercel gave another address, pass it as `-ApiUrl` to every stage
 below.
 
 From now on Vercel deploys the sandbox on every merge to `main`, as it does production.
