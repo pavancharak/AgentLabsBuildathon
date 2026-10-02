@@ -282,7 +282,7 @@ from parmana import ParmanaClient
 def smoke_test(endpoint: str, api_key: str) -> None:
     client = ParmanaClient(endpoint=endpoint, api_key=api_key)
     health = client.execution.health()
-    assert health.status == "UP", f"unexpected health status: {health.status}"
+    assert health["status"] == "UP", f"unexpected health status: {health['status']}"
     version = client.execution.version()
     print(f"Connected to {endpoint}, server version {version}")
 ```
