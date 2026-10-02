@@ -6,10 +6,13 @@ Encode Parmana domain models into Runtime JSON.
 
 from __future__ import annotations
 
+import copy
 from dataclasses import fields as dataclass_fields
 from dataclasses import is_dataclass
 from datetime import datetime, timezone
 from typing import Any
+
+from .decoder import SOURCE_JSON_ATTRIBUTE
 
 
 def _camel(name: str) -> str:
@@ -31,6 +34,17 @@ def encode(value: Any) -> Any:
     # Dataclass
     #
     if is_dataclass(value):
+        # A model decoded from the server's JSON goes back out as exactly
+        # that JSON (a copy, so the caller cannot change the model's
+        # source). Rebuilding it from the fields below would drop an
+        # explicit `null`, such as previousChainHash, and change a signed
+        # record's canonical hash (G-85). Models are frozen, and
+        # dataclasses.replace() makes a new instance without a source, so
+        # a changed model is always rebuilt from its fields.
+        source = getattr(value, SOURCE_JSON_ATTRIBUTE, None)
+        if source is not None:
+            return copy.deepcopy(source)
+
         # `is_dataclass` narrows to `DataclassInstance | type[DataclassInstance]`;
         # `encode()` is only ever called with instances, never a class.
         #
