@@ -123,7 +123,7 @@ the policy file itself.
 
 <Note>
   `PolicyValidator.validate()` fails closed on any rule-referenced fact that is
-  neither in `boundSignals` nor `unboundSignalReasons` — an uncovered,
+  neither in `boundSignals` nor `unboundSignalReasons`, an uncovered,
   unacknowledged fact throws `PolicyValidationError` and the policy never loads
   at all, it does not merely warn. This policy has one fact with a genuine
   Intent-side equivalent, `paymentAmount` (an amount, bound to
@@ -190,7 +190,7 @@ and doesn't catch.
 
 ## Verify
 
-Real output, captured from an actual run:
+Real output, from a run on 2026-10-02 (the hash differs on every run, because it covers timestamps and ids):
 
 ```json
 "decision": {
@@ -202,16 +202,17 @@ Real output, captured from an actual run:
 ```
 
 ```
-Verification: { "status": "VERIFIED", "trustRecordHash": "c22620765972e43e39470d1631cd061de156a4a3a2367d791a23c40dfd32ea3a" }
+Verification: { "status": "VERIFIED", "trustRecordHash": "0d0dbc6bf76e3bb30f44792e9de59b6e183ed12b4080f0587784a4831b293a70" }
 ```
 
-Now confirm the reject path. In a scratch copy of
-`examples/tutorials/14-custom-policy/transaction.json`, set
-`"financeDirectorApproved": false`, and rerun. This is what actually happens, not what you
-might expect (verified against a real run):
+Now confirm the reject path. The tutorial always attaches the Finance Director's signed
+approval (`withDemoApproval` sets `financeDirectorApproved` to true with a matching approval), so
+change a fact the approval does not cover. In a scratch copy of the tutorial folder, set
+`"vendorVerified": false` in `transaction.json`, and rerun. This is what actually happens
+(verified against a real run on 2026-10-02):
 
 ```
-RuntimeError: Execution rejected: High-value vendor payment rejected because Finance Director approval is required.
+RuntimeError: Execution rejected: Vendor payment rejected because the vendor has not been verified.
     at ExecutionGate.enforce (packages/runtime/src/ExecutionGate.ts:28:11)
 ```
 
@@ -220,25 +221,29 @@ A `REJECTED` decision does not come back as a normal object with `outcome: "REJE
 message is the matched rule's rejection reason. `examples/tutorials/14-custom-policy/run.ts`
 doesn't catch this specially, so an uncaught rejection crashes the script, that's expected,
 not a bug in the tutorial, a caller that wants to handle rejection gracefully needs a
-`try`/`catch` around `execute()`. The `reject-high-value-without-director-approval` rule is
-what matched, confirmed by the message, first-match-wins doing its job on different signals,
-same policy document, no code change.
+`try`/`catch` around `execute()`. The `reject-unverified-vendor` rule is what matched,
+confirmed by the message: first match wins, on different signals, same policy document, no code
+change. Over HTTP the same rejection is `403 POLICY_DENIED` with this reason, and a signed
+Refusal Record is stored. The `reject-high-value-without-director-approval` rule matches when a
+caller sends `financeDirectorApproved: false`; `true` without a valid signed approval is refused
+by the approval check instead (`financeDirectorApproved=true != verified
+financeDirectorApproved=false`).
 
 ## Why explicit rejection rules? (Auditability over simplicity)
 
 Parmana policies mix approval and rejection rules in one ordered array, exactly like
-`high-value-payment` above. That's a deliberate choice, not an oversight — some architectures
+`high-value-payment` above. That's a deliberate choice, not an oversight, some architectures
 prefer "approval-only + implicit default-reject" instead, and it's worth being explicit about
 why this codebase doesn't.
 
 **The engine is fail-closed by default, independent of how you write your policy.**
 `PolicyEngine.evaluate()`'s outcome-mapping switch (`PolicyEngine.ts`) treats any unmatched or
-unrecognized action as `REJECT` — this is the engine's own default branch, not something a
+unrecognized action as `REJECT`, this is the engine's own default branch, not something a
 policy author opts into. You don't have to remember a catch-all rule for the engine to fail
 closed; it already does.
 
 **So why write explicit rejection rules at all?** Because the audit trail records a specific,
-human-readable reason for every rejection — _"the vendor has not been verified"_, not a
+human-readable reason for every rejection, _"the vendor has not been verified"_, not a
 generic _"no rule matched."_ For a system whose refusals are independently, cryptographically
 verifiable (see [Refusal records](/concepts/refusal-records)), a specific reason is the whole
 point: compliance, debugging, and customer communication all need to know _why_, not just
@@ -246,13 +251,13 @@ _that_.
 
 **First-match-wins means rule order matters.** `PolicyEngine.findFirstMatch()` evaluates rules
 in the order they appear in the JSON file and returns on the first one whose condition is
-true — there is no priority system beyond array order. This is a real source of bugs if two
+true, there is no priority system beyond array order. This is a real source of bugs if two
 rules' conditions can both be true for the same input: whichever is listed first silently
 wins, with nothing surfacing that the second rule is partly or wholly shadowed.
 
 <Note>
-  `PolicyValidator.findRuleConflicts(policy)` checks for exactly this — pairs of
-  rules whose conditions can be true simultaneously — and `PolicyRouter.load()`
+  `PolicyValidator.findRuleConflicts(policy)` checks for exactly this, pairs of
+  rules whose conditions can be true simultaneously, and `PolicyRouter.load()`
   logs a `policy_rule_conflict_detected` warning naming them. It is **advisory,
   not fail-closed** (unlike `boundSignals` coverage): a flagged pair might be a
   genuine bug, or might be an intentional priority ordering between two
@@ -260,7 +265,7 @@ wins, with nothing surfacing that the second rule is partly or wholly shadowed.
   `hubspot-deal-update` policy has exactly one such case). It also only proves
   `NO_OVERLAP` for condition shapes it can fully reason about (same-fact
   `eq`/`neq`/numeric comparisons, and `all` conjunctions where at least one
-  conjunct is provably disjoint from the other side) — anything more complex is
+  conjunct is provably disjoint from the other side), anything more complex is
   reported as `NEEDS_REVIEW`, an honest "can't tell," never a guessed answer.
 </Note>
 
