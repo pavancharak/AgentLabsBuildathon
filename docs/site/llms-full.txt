@@ -1894,11 +1894,12 @@ names the version in effect. Agents must then send that version.
 Source: https://docs.parmanasystems.com/guides/connect-an-agent
 
 <Info>
-  Repo copy of this guide: `docs/connectors/CONNECTING_AN_AGENT.md`, kept in
-  sync with this page. Covers the caller/agent side only. For what happens after
-  `APPROVED` (Execution Gateway → connector → the real business system), see
-  [Add a connector](/guides/add-a-connector) and
-  `docs/connectors/PAYTM_CONNECTOR.md` (repo root).
+  Covers the caller (agent) side. The repository's
+  `docs/connectors/CONNECTING_AN_AGENT.md` points here. For what happens after
+  approval (gateway, connector, the real business system), see [Connect any
+  external system](/guides/connect-any-external-system), the [Connector
+  Development Guide](/integrations/connector-development-guide) and
+  `docs/connectors/PAYTM_CONNECTOR.md`.
 </Info>
 
 ## The mental model
@@ -1916,21 +1917,21 @@ AI Agent  --------------------------------------------------->  Parmana
 ```
 
 The agent proposes an intent. Parmana decides whether it's authorized. Only Parmana's decision can
-unlock execution. If your integration ever lets the agent set a value that determines the outcome —
-an approval flag, a fraud-check result, a policy name — the model is broken, even if it "works."
+unlock execution. If your integration ever lets the agent set a value that determines the outcome ,
+an approval flag, a fraud-check result, a policy name, the model is broken, even if it "works."
 
 ## What you need, and why
 
-| #   | You need                                                                           | Why                                                                                                                                                         |
-| --- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | A reachable Parmana deployment                                                     | Nothing to connect to without one.                                                                                                                          |
-| 2   | A capability name (e.g. `paytm:refund`)                                            | Parmana authorizes capabilities, not free-form actions. Exact string matching — `refund` ≠ `paytm:refund`.                                                  |
-| 3   | A deployed policy bound to that capability                                         | Decides APPROVE/REJECT. Missing → `404 PolicyNotFoundError`.                                                                                                |
-| 4   | The policy's exact `signalsSchema`/`boundSignals`                                  | You must send every referenced signal; any `boundSignals` entry must equal the real `intent.parameters` value or the request is rejected before evaluation. |
-| 5   | An API key scoped to exactly that capability                                       | Your agent's identity — see below.                                                                                                                          |
-| 6   | A trusted-signal source that is not the conversation                               | Signals must come from an independent business system, never inferred from what the customer said.                                                          |
-| 7   | Real UUID generation                                                               | `businessTransactionId` is checked against a UUID-shaped regex (versions 1–5); anything else is a `400` before any other logic runs.                        |
-| 8   | (For real execution) a registered connector for your capability on this deployment | `APPROVED` ≠ "executed." A separate, verifiable claim — see step 8 below.                                                                                   |
+| #   | You need                                                      | Why                                                                                                                                                         |
+| --- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | A reachable Parmana deployment                                | Nothing to connect to without one.                                                                                                                          |
+| 2   | A capability name (e.g. `paytm:refund`)                       | Parmana authorizes capabilities, not free-form actions. Exact string matching, `refund` ≠ `paytm:refund`.                                                   |
+| 3   | A deployed policy bound to that capability                    | Decides APPROVE/REJECT. Missing → `404`; a version other than the one in effect → `403 POLICY_DENIED`.                                                      |
+| 4   | The policy's exact `signalsSchema`/`boundSignals`             | You must send every referenced signal; any `boundSignals` entry must equal the real `intent.parameters` value or the request is rejected before evaluation. |
+| 5   | An API key scoped to exactly that capability                  | Your agent's identity, see below.                                                                                                                           |
+| 6   | A trusted-signal source that is not the conversation          | Signals must come from an independent business system, never inferred from what the customer said.                                                          |
+| 7   | Real UUID generation                                          | `businessTransactionId` is checked against a UUID shaped regex (versions 1 to 5); anything else is a `400` before any other logic runs.                     |
+| 8   | A registered connector for your capability on this deployment | Without one an approved request is refused with `503 CONNECTOR_NOT_REGISTERED` and nothing runs. See step 8 below.                                          |
 
 ## Step by step
 
@@ -1950,7 +1951,7 @@ npx tsx scripts/generate-api-key.ts \
   --credential-holder-type SERVICE
 ```
 
-Use `SERVICE`, never `"AGENT"` — that value doesn't exist in `AuthorityType`. Never grant `"*"` to a
+Use `SERVICE`, never `"AGENT"`, that value doesn't exist in `AuthorityType`. Never grant `"*"` to a
 single-purpose agent; `/callers/me`'s `unrestrictedCapabilities` is literally
 `allowedCapabilities.includes("*")`.
 
@@ -1959,9 +1960,9 @@ single-purpose agent; `/callers/me`'s `unrestrictedCapabilities` is literally
   developer): `PARMANA_API_KEYS` is one environment variable holding a JSON
   **array**. Two real mistakes were made hand-editing a live deployment's value
   in a hosting dashboard: pasting the new entry as the *entire* value instead of
-  appending it to the array (every caller gets a 500 until fixed — the server
+  appending it to the array (every caller gets a 500 until fixed, the server
   fails closed on malformed JSON), and losing existing entries by replacing
-  rather than appending. Always paste the complete array — every existing entry
+  rather than appending. Always paste the complete array, every existing entry
   plus the new one. Full account: the 2026-09-15 KMS migration troubleshooting
   guide (in git history).
 </Warning>
@@ -1972,15 +1973,15 @@ single-purpose agent; `/callers/me`'s `unrestrictedCapabilities` is literally
 curl -i "https://<deployment>/callers/me" -H "Authorization: Bearer <key>"
 ```
 
-If this fails, fix authentication first — nothing about your agent's request shape is relevant yet.
+If this fails, fix authentication first, nothing about your agent's request shape is relevant yet.
 
 **5. Wire up real trusted-signal sources** for every field in the policy's `signalsSchema`. Not a
-placeholder to fix later — from day one.
+placeholder to fix later, from day one.
 
 **6. Build the request:**
 
 <Warning>
-  **This example was missing `metadata` until 2026-09-14** — found while running
+  **This example was missing `metadata` until 2026-09-14**, found while running
   [End-to-end: agent → Parmana → Paytm](/guides/end-to-end-paytm-flow) against a real
   deployment. Omitting it fails with
   `{"error":"metadata.businessTransactionId must match businessTransactionId."}` (400),
@@ -2040,12 +2041,13 @@ caller could pair a real capability with an unrelated policy. Under `customer-re
 refund needs a signed manager approval (G-75); without one the request is refused with `403
 POLICY_DENIED`, whatever your agent declares about eligibility and fraud.
 
-**7. Send it, handle the response** — see the complete reference table below.
+**7. Send it, handle the response**, see the complete reference table below.
 
-**8. Before claiming real execution**, confirm a connector is actually registered for your
-capability on this deployment. `docs/site/guides/live-api-and-demos.mdx` documents that the
-general-purpose demo deployment historically had **no connector registered at all**. "Got APPROVED"
-and "the action executed" are two separately-verifiable claims — never conflate them.
+**8. Confirm a connector is registered** for your capability on this deployment. A `200` means
+the action was released and executed and its Trust Record signed; with no connector the answer is
+`503 CONNECTOR_NOT_REGISTERED` and nothing ran. To practise end to end with nothing installed, use
+the public sandbox's `sandbox:receipt` ([Playground](/playground)). To connect your own system
+without code, see [Connect any external system](/guides/connect-any-external-system).
 
 **9. Verify independently**: `GET /refusal/:id` + `POST /refusal/verify` for a rejection,
 `GET /trust-records/:id` (only once a connector is wired) for an execution, or fully offline with
@@ -2053,30 +2055,37 @@ and "the action executed" are two separately-verifiable claims — never conflat
 
 ## Complete response reference
 
-Every row is cited to the exact source producing it:
+Every row is what the server returns today (2026-10-02); the [Error
+catalog](/api-reference/error-catalog) has every code.
 
-| Status | `code`                   | Source                                                                                                                                                              | Meaning                                                                                                                                                                                                  | Do this                                                                                                                                                                                                                                  |
-| ------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `200`  | —                        | Decision `APPROVE`                                                                                                                                                  | Authorized; a signed decision exists. Dispatch (if any) happens after.                                                                                                                                   | Report authorization only — not execution, unless separately confirmed.                                                                                                                                                                  |
-| `400`  | —                        | Invalid `businessTransactionId` / body shape                                                                                                                        | Structural rejection, before auth or policy.                                                                                                                                                             | Fix request construction.                                                                                                                                                                                                                |
-| `403`  | (none)                   | `principalId` not permitted                                                                                                                                         | Caller can't assert that principal.                                                                                                                                                                      | Use your own `callerId`.                                                                                                                                                                                                                 |
-| `403`  | `CAPABILITY_NOT_ALLOWED` | `intent.action` not in your key's `allowedCapabilities`                                                                                                             | **Most common real-world bug.** Exact-string mismatch.                                                                                                                                                   | Compare `/callers/me`'s `allowedCapabilities` to your `intent.action`, character for character.                                                                                                                                          |
-| `403`  | `POLICY_DENIED`          | `ExecutionGate.enforce` — uniform for _every_ rejection cause                                                                                                       | A real, correct decision. `message` names the actual rule that matched (excessive amount, failed fraud check, etc.).                                                                                     | Respect it. Never retry with altered parameters.                                                                                                                                                                                         |
-| `404`  | —                        | `PolicyNotFoundError`                                                                                                                                               | `policy.name`/`version` not deployed on this instance.                                                                                                                                                   | Check spelling/version and confirm deployment.                                                                                                                                                                                           |
-| `409`  | —                        | `DuplicateBusinessTransactionError`                                                                                                                                 | Reused `businessTransactionId`.                                                                                                                                                                          | Fresh UUID per attempt; design idempotency separately if needed.                                                                                                                                                                         |
-| `500`  | —                        | Generic fallback — catches an unregistered-connector error **and** `ExecutionGateway` rejecting a signed envelope (bad signature, tampered content, replayed nonce) | Deliberately ambiguous by design, not a flaw in the error handler. Very often "APPROVED, but no connector registered" — or a Parmana-side signing/verification bug with nothing to do with your request. | Check server logs for the exact message before assuming it's your bug — the 2026-09-15 KMS migration troubleshooting guide (in git history) (repo root) documents a real example of this exact failure mode caused entirely server-side. |
-| (none) | —                        | Timeout/network                                                                                                                                                     | Unknown whether Parmana ever received it.                                                                                                                                                                | Treat as unresolved — never guess APPROVED or REJECTED.                                                                                                                                                                                  |
+| Status | `code`                                                | Meaning                                                                                                                                                                                 | Do this                                                                                                                                        |
+| ------ | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `200`  | none                                                  | Approved, released to the connector, executed, and the signed Execution Trust Record is the response.                                                                                   | Record the `trustRecordId`. This is the only answer that means the action ran.                                                                 |
+| `400`  | none                                                  | Invalid `businessTransactionId`, malformed JSON, or a field that breaks the transaction's own rules.                                                                                    | Fix the request. A body missing `metadata`, `intent` or `policy` is a bare `500` instead (G-87).                                               |
+| `401`  | none                                                  | No key, or a key the server does not know.                                                                                                                                              | Check the key with `GET /callers/me`.                                                                                                          |
+| `403`  | none                                                  | Your key may not assert this `authority.principalId`.                                                                                                                                   | Use your own `callerId`, or ask the operator for `allowedPrincipalIds`.                                                                        |
+| `403`  | `CAPABILITY_NOT_ALLOWED`                              | `intent.action` is not in your key's `allowedCapabilities`. **The most common real bug.**                                                                                               | Compare `/callers/me`'s `allowedCapabilities` with your `intent.action`, character for character.                                              |
+| `403`  | `POLICY_DENIED`                                       | The policy refused: a rule matched, the approval is missing, expired, for something else or already used, or the policy version is not the one in effect. The message names the reason. | Respect it. For a missing approval, get a signed approval and send a **new** request. Never retry with altered parameters.                     |
+| `404`  | none                                                  | `policy.name` or `version` does not exist on this deployment.                                                                                                                           | Ask `GET /policies/in-effect?capability=...`.                                                                                                  |
+| `409`  | none                                                  | `businessTransactionId` already used.                                                                                                                                                   | Read what happened to it, see [Idempotency](/api-reference/idempotency-and-nonces).                                                            |
+| `429`  | `RATE_LIMITED`                                        | Too many requests for this key.                                                                                                                                                         | Wait for `Retry-After`, then retry the same request.                                                                                           |
+| `502`  | `EXECUTION_OUTCOME_UNKNOWN`                           | Released, but the call to the connector failed. It may have run.                                                                                                                        | **Do not send it again as a new transaction.** The operator checks the target system and resolves the intent.                                  |
+| `503`  | `CONNECTOR_NOT_REGISTERED`                            | Approved, but no connector serves this capability here. Nothing ran.                                                                                                                    | The operator configures the connector; then send a new request.                                                                                |
+| `503`  | `SIGNING_UNAVAILABLE`, `EXECUTION_INTENT_UNAVAILABLE` | The server could not sign or store evidence before release. Nothing ran.                                                                                                                | Retry later with a new `businessTransactionId`.                                                                                                |
+| `500`  | `EXECUTION_RECORD_INCOMPLETE`                         | Released, then the Trust Record could not be stored. The action ran.                                                                                                                    | **Do not send it again.** The operator finalizes the intent.                                                                                   |
+| `500`  | none                                                  | Anything unexpected, including a gateway rejection of a tampered envelope.                                                                                                              | Ask the operator to read the server log before assuming your request was wrong.                                                                |
+| (none) | none                                                  | Timeout or network error. Unknown whether Parmana received it; an approved request can take tens of seconds (G-84).                                                                     | Set the timeout to 120 seconds. After a timeout, read `GET /trust-records/{id}` and `GET /refusal/{id}` with the same id before anything else. |
 
 ## Common mistakes
 
 - Capability string mismatch between `intent.action` and your key's `allowedCapabilities`.
-- `authorityType: "AGENT"` — invalid; use `"SERVICE"`.
+- `authorityType: "AGENT"`, invalid; use `"SERVICE"`.
 - A signal inferred from the customer's words instead of an independent business system.
 - Treating `POLICY_DENIED` as a bug instead of a correct decision.
-- Claiming execution from `APPROVED` alone, without confirming connector registration.
+- Treating a timeout as a failure and sending the action again under a new id.
 - Granting `"*"` "to get it working" and never narrowing it.
 - Hand-editing `PARMANA_API_KEYS` by pasting a single entry instead of the complete array.
-- Assuming a `500` always means your request was wrong — it's deliberately ambiguous by design.
+- Assuming a bare `500` means your request was wrong: ask for the server log first.
 
 ## Reference implementation
 
@@ -2091,7 +2100,7 @@ same integration hit a sequence of purely Parmana-operator issues onboarding as 
 freshly KMS-migrated deployment: no `PARMANA_API_KEYS` entry at all (401) → a malformed hand-edited
 entry (500 for every caller) → no `allowedPrincipalIds` grant for the asserted principal (403) → a
 genuine Parmana-side bug where the gateway's signing and verification paths silently used different
-keys after a KMS migration (500, unrelated to the request itself —
+keys after a KMS migration (500, unrelated to the request itself ,
 `examples/tutorials/114-signing-verification-key-agreement/` reproduces it). None of these were agent
 bugs. Full account: the 2026-09-15 KMS migration troubleshooting guide (in git history).
 
@@ -2890,7 +2899,7 @@ the policy file itself.
 
 <Note>
   `PolicyValidator.validate()` fails closed on any rule-referenced fact that is
-  neither in `boundSignals` nor `unboundSignalReasons` — an uncovered,
+  neither in `boundSignals` nor `unboundSignalReasons`, an uncovered,
   unacknowledged fact throws `PolicyValidationError` and the policy never loads
   at all, it does not merely warn. This policy has one fact with a genuine
   Intent-side equivalent, `paymentAmount` (an amount, bound to
@@ -2957,7 +2966,7 @@ and doesn't catch.
 
 ## Verify
 
-Real output, captured from an actual run:
+Real output, from a run on 2026-10-02 (the hash differs on every run, because it covers timestamps and ids):
 
 ```json
 "decision": {
@@ -2969,16 +2978,17 @@ Real output, captured from an actual run:
 ```
 
 ```
-Verification: { "status": "VERIFIED", "trustRecordHash": "c22620765972e43e39470d1631cd061de156a4a3a2367d791a23c40dfd32ea3a" }
+Verification: { "status": "VERIFIED", "trustRecordHash": "0d0dbc6bf76e3bb30f44792e9de59b6e183ed12b4080f0587784a4831b293a70" }
 ```
 
-Now confirm the reject path. In a scratch copy of
-`examples/tutorials/14-custom-policy/transaction.json`, set
-`"financeDirectorApproved": false`, and rerun. This is what actually happens, not what you
-might expect (verified against a real run):
+Now confirm the reject path. The tutorial always attaches the Finance Director's signed
+approval (`withDemoApproval` sets `financeDirectorApproved` to true with a matching approval), so
+change a fact the approval does not cover. In a scratch copy of the tutorial folder, set
+`"vendorVerified": false` in `transaction.json`, and rerun. This is what actually happens
+(verified against a real run on 2026-10-02):
 
 ```
-RuntimeError: Execution rejected: High-value vendor payment rejected because Finance Director approval is required.
+RuntimeError: Execution rejected: Vendor payment rejected because the vendor has not been verified.
     at ExecutionGate.enforce (packages/runtime/src/ExecutionGate.ts:28:11)
 ```
 
@@ -2987,25 +2997,29 @@ A `REJECTED` decision does not come back as a normal object with `outcome: "REJE
 message is the matched rule's rejection reason. `examples/tutorials/14-custom-policy/run.ts`
 doesn't catch this specially, so an uncaught rejection crashes the script, that's expected,
 not a bug in the tutorial, a caller that wants to handle rejection gracefully needs a
-`try`/`catch` around `execute()`. The `reject-high-value-without-director-approval` rule is
-what matched, confirmed by the message, first-match-wins doing its job on different signals,
-same policy document, no code change.
+`try`/`catch` around `execute()`. The `reject-unverified-vendor` rule is what matched,
+confirmed by the message: first match wins, on different signals, same policy document, no code
+change. Over HTTP the same rejection is `403 POLICY_DENIED` with this reason, and a signed
+Refusal Record is stored. The `reject-high-value-without-director-approval` rule matches when a
+caller sends `financeDirectorApproved: false`; `true` without a valid signed approval is refused
+by the approval check instead (`financeDirectorApproved=true != verified
+financeDirectorApproved=false`).
 
 ## Why explicit rejection rules? (Auditability over simplicity)
 
 Parmana policies mix approval and rejection rules in one ordered array, exactly like
-`high-value-payment` above. That's a deliberate choice, not an oversight — some architectures
+`high-value-payment` above. That's a deliberate choice, not an oversight, some architectures
 prefer "approval-only + implicit default-reject" instead, and it's worth being explicit about
 why this codebase doesn't.
 
 **The engine is fail-closed by default, independent of how you write your policy.**
 `PolicyEngine.evaluate()`'s outcome-mapping switch (`PolicyEngine.ts`) treats any unmatched or
-unrecognized action as `REJECT` — this is the engine's own default branch, not something a
+unrecognized action as `REJECT`, this is the engine's own default branch, not something a
 policy author opts into. You don't have to remember a catch-all rule for the engine to fail
 closed; it already does.
 
 **So why write explicit rejection rules at all?** Because the audit trail records a specific,
-human-readable reason for every rejection — _"the vendor has not been verified"_, not a
+human-readable reason for every rejection, _"the vendor has not been verified"_, not a
 generic _"no rule matched."_ For a system whose refusals are independently, cryptographically
 verifiable (see [Refusal records](/concepts/refusal-records)), a specific reason is the whole
 point: compliance, debugging, and customer communication all need to know _why_, not just
@@ -3013,13 +3027,13 @@ _that_.
 
 **First-match-wins means rule order matters.** `PolicyEngine.findFirstMatch()` evaluates rules
 in the order they appear in the JSON file and returns on the first one whose condition is
-true — there is no priority system beyond array order. This is a real source of bugs if two
+true, there is no priority system beyond array order. This is a real source of bugs if two
 rules' conditions can both be true for the same input: whichever is listed first silently
 wins, with nothing surfacing that the second rule is partly or wholly shadowed.
 
 <Note>
-  `PolicyValidator.findRuleConflicts(policy)` checks for exactly this — pairs of
-  rules whose conditions can be true simultaneously — and `PolicyRouter.load()`
+  `PolicyValidator.findRuleConflicts(policy)` checks for exactly this, pairs of
+  rules whose conditions can be true simultaneously, and `PolicyRouter.load()`
   logs a `policy_rule_conflict_detected` warning naming them. It is **advisory,
   not fail-closed** (unlike `boundSignals` coverage): a flagged pair might be a
   genuine bug, or might be an intentional priority ordering between two
@@ -3027,7 +3041,7 @@ wins, with nothing surfacing that the second rule is partly or wholly shadowed.
   `hubspot-deal-update` policy has exactly one such case). It also only proves
   `NO_OVERLAP` for condition shapes it can fully reason about (same-fact
   `eq`/`neq`/numeric comparisons, and `all` conjunctions where at least one
-  conjunct is provably disjoint from the other side) — anything more complex is
+  conjunct is provably disjoint from the other side), anything more complex is
   reported as `NEEDS_REVIEW`, an honest "can't tell," never a guessed answer.
 </Note>
 

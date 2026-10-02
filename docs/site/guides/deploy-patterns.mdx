@@ -30,23 +30,29 @@ switch (configuration.provider) {
   case "memory":
     return new MemoryStorageProvider();
   case "supabase":
-    return new SupabaseStorageProvider();
   case "postgres":
-    throw new Error("Postgres storage provider not implemented.");
+    // both need DATABASE_URL, and refuse to start without it
+    return new SupabaseStorageProvider();
   case "sqlite":
     throw new Error("SQLite storage provider not implemented.");
 }
 ```
 
-Only `memory` and `supabase` have a real class behind them, `postgres` and `sqlite` are
-declared in the type union and throw immediately at startup, by design, fails closed rather
-than silently falling back to something else.
+`memory` keeps everything in the process and loses it on restart. `supabase` and `postgres`
+are the same implementation: despite its name, `SupabaseStorageProvider` needs only a Postgres
+connection string, so a self hosted Postgres works under either name (G-57). Both refuse to
+start without `DATABASE_URL`. `sqlite` is declared and throws at startup, by design: it fails
+closed rather than silently falling back to something else.
 
 ```bash
-PARMANA_STORAGE=memory     # in-process, non-persistent, no external dependency
+PARMANA_STORAGE=memory     # in process, non persistent, no external dependency
 # or
-PARMANA_STORAGE=supabase   # this repo's committed .env default
+PARMANA_STORAGE=supabase   # or postgres; needs DATABASE_URL and every migration applied
+DATABASE_URL=postgresql://user:password@host:5432/parmana
 ```
+
+Apply the migrations before the first start: `npm run db:migrate -- apply` (status with
+`npm run db:migrate -- status`). See [Production deployment](/deployment/production).
 
 `PARMANA_STORAGE` is the only variable read for this. An older `DATABASE_PROVIDER` variable
 existed briefly as a second, disconnected path to the same setting and is now retired: if
@@ -71,10 +77,13 @@ if you sign with the wrong one for a configured provider.
 ### 3. Generate a caller API key for every system that will call this API
 
 ```bash
-npm run generate:api-key -- --caller-id orchestrator-1
+npm run generate:api-key -- --caller-id orchestrator-1 --allowed-capabilities "paytm:refund"
 ```
 
-Prints a raw key once, and the hash to add to `PARMANA_API_KEYS`. The raw key is never
+Prints a raw key once, and the entry to add to `PARMANA_API_KEYS`. A key with no
+`--allowed-capabilities` may invoke nothing (`403 CAPABILITY_NOT_ALLOWED`); a person who
+proposes or approves governance changes needs `--credential-holder-type USER` instead, see
+[Credentials](/guides/credentials-maker-checker-approver). The raw key is never
 written to disk by the script and cannot be recovered afterward, hand it to the calling
 system now. Repeat once per caller (your AI orchestration service, an internal dashboard,
 anything else that will call this API), and repeat again per caller whenever you rotate a
@@ -83,15 +92,19 @@ key, see [Rotating a caller's key](#rotating-a-callers-key) below.
 ### 4. Set the full environment checklist
 
 ```bash
-PARMANA_STORAGE=memory                        # or: supabase
+PARMANA_STORAGE=memory                        # or: supabase / postgres, with DATABASE_URL
 PARMANA_POLICY_DIR=/absolute/path/to/policies
 PARMANA_KEY_DIR=/absolute/path/to/keys
 PARMANA_GATEWAY_KEY_ID=gateway                 # optional, defaults to "gateway"
 HUBSPOT_PRIVATE_APP_TOKEN=...                  # credential for the hubspot connector, omit to leave it unregistered
 PRIMARY_SIGNATURE_PROVIDER=ed25519             # or: dilithium3, needs Node >= 24
 HASH_PROVIDER=sha256
-PARMANA_API_KEYS=[{"callerId":"orchestrator-1","keyHash":"..."}]  # from step 3, one entry per key
+PARMANA_API_KEYS=[{"callerId":"orchestrator-1","keyHash":"...","allowedCapabilities":["paytm:refund"]}]  # from step 3
 ```
+
+This is the minimum for a local start. Every variable, including `KEY_PROVIDER=aws-kms`,
+`PARMANA_SECRETS_PROVIDER`, the connector credentials and the approval webhook, is in
+[Environment variables](/deployment/environment-variables).
 
 `PARMANA_API_KEYS` is a JSON array. Multiple entries may share the same `callerId`, that is
 how rotation works, see below. The server refuses to start with this unset or empty, unless
@@ -135,8 +148,8 @@ logged or written to disk anywhere in this codebase.
 
 **This is only safe over TLS.** A bearer key sent over plaintext HTTP is readable by anything
 that can observe the connection. Terminate TLS in front of this server (a reverse proxy, load
-balancer, or service mesh sidecar in your own infrastructure, since Parmana does not run a
-hosted service for you), and never expose the API on plaintext HTTP outside `localhost`. This
+balancer, or service mesh sidecar in your own infrastructure when you host it yourself; on
+Vercel TLS is already terminated for you), and never expose the API on plaintext HTTP outside `localhost`. This
 is not a suggestion, it is the entire security value of the bearer-key scheme.
 
 Caller authentication is a distinct layer from everything else Parmana does. It runs first,
@@ -150,7 +163,8 @@ see [How Parmana thinks](/how-parmana-thinks).
 
 ### Rotating a caller's key
 
-No downtime, no restart required beyond a config reload:
+No downtime. The new list takes effect when the server reads its configuration again: a
+restart, or on Vercel a redeploy:
 
 1. Generate a new key for the same `callerId`: `npm run generate:api-key -- --caller-id
 orchestrator-1`.
@@ -226,14 +240,15 @@ environment-variable toggle for this today, it's a code change.
   `azure-key-vault`, `gcp-kms` and `hsm` are declared config values with no implementation.
   Setting `KEY_PROVIDER` to one of those fails startup loudly rather than silently running
   as if it were `local`.
-- **Single process, single instance.** Authorization and approval nonces are kept in Postgres
+- **No high availability setup.** Several instances on one database are safe for replay: authorization and approval nonces are kept in Postgres
   (`consumed_nonces`, `consumed_approval_nonces`), so several instances on the same database still
   accept each one once. Only the test suite (`NODE_ENV=test`) keeps them in memory.
 - **Connectors register only when their own credentials are configured.** HubSpot, GitHub,
   Paytm, and Slack each check for their own credential environment variable at startup and
   register only if it's present; with none configured, every capability fails closed with
-  `503 CONNECTOR_NOT_REGISTERED`. See [Add a connector with the Connector
-  SDK](/guides/add-a-connector) for what adding another requires today.
+  `503 CONNECTOR_NOT_REGISTERED`. Any other HTTPS endpoint can be registered with no code
+  as an [external connector](/guides/connect-any-external-system); a new built in connector is
+  a code change, see the [Connector Development Guide](/integrations/connector-development-guide).
 
 ## Troubleshoot
 
@@ -243,8 +258,10 @@ environment-variable toggle for this today, it's a code change.
   before the server starts, `FileKeyProvider` doesn't create it.
 - **Config loading fails naming `DATABASE_PROVIDER`.** Remove that variable from your
   environment, use `PARMANA_STORAGE` instead, see step 1.
-- **`Postgres storage provider not implemented.`** Expected, `postgres` and `sqlite` are
-  declared but not built, use `memory` or `supabase`.
+- **`PARMANA_STORAGE=supabase requires DATABASE_URL`.** Set `DATABASE_URL` to a Postgres
+  connection string (`postgres` gives the same message).
+- **`SQLite storage provider not implemented.`** Expected: use `memory`, `supabase` or
+  `postgres`.
 - **`No caller authentication keys are configured`.** `PARMANA_API_KEYS` is unset or `[]`.
   Generate a key (step 3) and add it, or set `PARMANA_AUTH_DISABLED=true` for local
   development only.
