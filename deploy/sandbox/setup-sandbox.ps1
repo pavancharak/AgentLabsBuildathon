@@ -21,6 +21,7 @@
 #   ProposeRegistration  maker proposes sandbox:receipt -> the receipt endpoint
 #   ApproveRegistration  checker approves it
 #   Check                the live check, with the published demo key only
+#   Retention            install the daily 7 day retention job in the sandbox database
 #
 # The sandbox's own keys are read from -KeyFolder and never printed. The two
 # database connection strings are read with hidden prompts and never stored.
@@ -30,7 +31,7 @@ param(
   [Parameter(Mandatory = $true)]
   [ValidateSet("Keys", "Migrate", "Link", "ProductionNames", "SetEnv", "Deploy", "Endpoint",
     "ProposeApprover", "ApproveApprover", "ProposePolicy", "ApprovePolicy",
-    "ProposeRegistration", "ApproveRegistration", "Check")]
+    "ProposeRegistration", "ApproveRegistration", "Check", "Retention")]
   [string]$Stage,
 
   [string]$KeyFolder = "D:\key\parmana-sandbox",
@@ -205,6 +206,27 @@ switch ($Stage) {
     Invoke-Native { npx tsx deploy/sandbox/make-keys.ts --out $KeyFolder 2>$null }
     if ($LASTEXITCODE -ne 0) { Stop-Run "Making the keys failed." }
     Say "Next: create the Supabase project (README step 2), then -Stage Migrate." Green
+  }
+
+  "Retention" {
+    Step "Install the daily retention job in the sandbox database (deploy/sandbox/retention.sql)"
+    $saved = (Read-State).sandboxProjectRef
+    if (-not $saved) { Stop-Run "Migrate has not recorded the sandbox project on this machine. Nothing was done." }
+    Say "Paste the SESSION pooler string of the sandbox project $saved (port 5432), never production's."
+    $url = Read-Secret "Sandbox DATABASE_URL, session pooler"
+    $ref = Assert-SandboxDatabase $url "5432"
+    $env:DATABASE_URL = $url
+    Remove-Variable url
+    try {
+      Invoke-Native { npx tsx deploy/sandbox/retention.ts check --project $ref }
+      if ($LASTEXITCODE -ne 0) { Stop-Run "The check failed. Nothing was installed." }
+      Confirm-Word "INSTALL" "install the function and the daily job (03:30 UTC, 7 days) in $ref"
+      Invoke-Native { npx tsx deploy/sandbox/retention.ts install --project $ref }
+      if ($LASTEXITCODE -ne 0) { Stop-Run "Installing failed. Read the line above." }
+    } finally {
+      Remove-Item Env:\DATABASE_URL -ErrorAction SilentlyContinue
+    }
+    Say "Installed. It first deletes at 03:30 UTC, anything older than 7 days." Green
   }
 
   "Migrate" {

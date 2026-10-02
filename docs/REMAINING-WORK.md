@@ -153,12 +153,12 @@ Goal: connect any external system with no change to Parmana's code (ADR-0013). B
 
 The sandbox is live and documented (ADR-0014 steps 1 to 4, `docs/CLAIMS.md` 2.51). Still open:
 
-| Item                                                                                  | State                                                                 |
-| ------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| Retention: delete sandbox records older than 7 days, daily (ADR-0014 open question 3) | Not built.                                                            |
-| `sandbox.parmanasystems.com` (ADR-0014 open question 1)                               | Not set up; `parmana-sandbox.vercel.app` is used.                     |
-| An in browser record check on the Playground (ADR-0014 section 5)                     | Not built; the page shows the offline check in each SDK.              |
-| Python SDK verifies its own decoded record (`docs/VERIFICATION-GAPS.md` G-85)         | Fixed in code 2026-10-02; reaches users with the next Python release. |
+| Item                                                                                  | State                                                                    |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Retention: delete sandbox records older than 7 days, daily (ADR-0014 open question 3) | Built 2026-10-02: `deploy/sandbox/retention.sql`, kit stage `Retention`. |
+| `sandbox.parmanasystems.com` (ADR-0014 open question 1)                               | Not set up; `parmana-sandbox.vercel.app` is used.                        |
+| An in browser record check on the Playground (ADR-0014 section 5)                     | Not built; the page shows the offline check in each SDK.                 |
+| Python SDK verifies its own decoded record (`docs/VERIFICATION-GAPS.md` G-85)         | Fixed in code 2026-10-02; reaches users with the next Python release.    |
 
 ## H. Considered, not built (moved here from the old root `ROADMAP.md`, 2026-09-28)
 
