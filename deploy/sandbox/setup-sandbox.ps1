@@ -290,7 +290,7 @@ switch ($Stage) {
     Step "Redeploy $Project with its variables"
     $lines = Invoke-Native { vercel ls $Project --scope $Scope --cwd $VercelLink 2>$null }
     $latest = ($lines | Where-Object { $_ -match "^https://" } | Select-Object -First 1)
-    if (-not $latest) { Stop-Run "No deployment of $Project found. Import the repository first (README step 3)." }
+    if (-not $latest) { Stop-Run "No deployment of $Project found. In the Vercel dashboard: $Project, Deployments, Create Deployment, branch main. Then run this stage again (README step 3)." }
     Confirm-Word "DEPLOY" "redeploy $($latest.Trim()) to production"
     Invoke-Native { vercel redeploy $latest.Trim() --target production --scope $Scope --cwd $VercelLink }
     if ($LASTEXITCODE -ne 0) { Stop-Run "The redeploy failed. Read the build log: vercel inspect --logs <url>." }
@@ -313,7 +313,9 @@ switch ($Stage) {
     }
     if ($LASTEXITCODE -ne 0) { Stop-Run "Building the endpoint failed." }
     Confirm-Word "DEPLOY" "deploy $EndpointFolder to Vercel"
-    Invoke-Native { vercel deploy --prod --yes --scope $Scope --cwd $EndpointFolder }
+    # From inside the folder: with --cwd, Vercel CLI 61 read this repository's vercel.json instead.
+    Push-Location $EndpointFolder
+    try { Invoke-Native { vercel deploy --prod --yes --scope $Scope } } finally { Pop-Location }
     if ($LASTEXITCODE -ne 0) { Stop-Run "Deploying the endpoint failed." }
 
     try {

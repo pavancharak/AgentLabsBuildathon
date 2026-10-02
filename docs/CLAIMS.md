@@ -652,6 +652,32 @@ Evidence: the live check, 2026-10-01 (`examples/live-checks/external-connector/R
 - Transaction `ec2f6c00-1009-43f0-9faf-1aeb84917860` (the first attempt, whose agent timed out at 30 s): the API answered `200`, and its record, fetched afterwards, is `APPROVED` and verifies offline. Record: `evidence/2026-10-01-ec2f6c00-record.json`.
 - The endpoint's log has exactly one `release_acted` line per approved transaction, each naming the capability, the target, `livecheck-receipt` 1.0.0 with its content hash, and the approver, and `release_refused` only for the unsigned probes.
 
+## 2.51 A Public Sandbox Runs the Same Governance With a Published Demo Key (Scoped, 2026-10-02)
+
+**Claim:** `https://parmana-sandbox.vercel.app` runs the same code as production with `PARMANA_SANDBOX=true`, its own Supabase database, its own signing keys and its own approver. With only the demo key `sandbox-visitor`, which may ask for `sandbox:receipt` alone, a visitor gets the same governance as production: a request with no signed approval is refused, a demo approval from `POST /sandbox/approvals` lets one request be released, signed, to the sandbox receipt endpoint, the signed record verifies offline, the same approval reused is refused, and the policy's own rule refuses a long note. The demo approver signs only for `sandbox:receipt`, and only the docs site may call the API from a browser. This is ADR-0014 steps 2 and 3.
+
+Scope, stated plainly:
+
+- **The sandbox acts on nothing.** Its one capability is released to an endpoint that answers with a receipt; no connector to a real system can be configured while `PARMANA_SANDBOX=true` (the server refuses to start).
+- **Anyone can approve in the sandbox.** That is its purpose: the demo approval shows how a signed approval is used, not who may give one. In production only registered approvers sign.
+- **The demo key is not published yet.** ADR-0014 step 4 puts it in the docs playground. Until then only the live check has used it.
+- **No retention yet.** ADR-0014 accepted deleting sandbox records older than 7 days, daily; that job is not built.
+- **Distinct credentials, not proven distinct people**, as in 2.49 and 2.50: the sandbox maker and checker keys are held by one person.
+- **Checked live once.** The approved request took 14.1 s (G-84 applies here too).
+
+Verification
+
+- `packages/api/tests/unit/createSandboxOptions.test.ts` and `tests/architecture/sandbox-connector-variables.test.ts`: sandbox mode refuses every connector variable, even empty, and the approver variables outside it.
+- `packages/api/tests/integration/sandbox.integration.test.ts`: `POST /sandbox/approvals` behind the key, for `sandbox:receipt` only, expiring in 300 s.
+- `tests/architecture/sandbox-policy.test.ts`: `deploy/sandbox/policy.json`.
+
+Evidence: the live check, 2026-10-02 (`deploy/sandbox/README.md`, stage `Check`)
+
+- Supabase project `zkrfrfyokkpfwghoohne` (not production's `ltjadvsjlpcygborxzet`): 33 migrations applied to an empty database. Vercel project `parmana-sandbox`: `GET /ready` `READY` with authentication on, `GET /keys/default` an ed25519 key. Production stayed `READY` throughout.
+- Receipt endpoint `https://parmana-sandbox-receipt.vercel.app/api/release` (Vercel project `parmana-sandbox-receipt`): `401` to an unsigned body, answered by the endpoint itself.
+- Through maker checker in the sandbox, each proposed by `sandbox-maker` and approved by the sandbox checker: the demo approver `sandbox-demo-approver` (`sandbox-demo-approver-key-1`, change `0143b0a5-ba0f-437a-945d-abeb73d9cdb4`, the public key identical to the key folder's); policy `sandbox-receipt` 1.0.0 (change `4ac16068-0f1b-46ee-b298-c3c0c9ce63e4`, identical to `deploy/sandbox/policy.json`); the registration of `sandbox:receipt` (change `752bea44-40c8-4c88-ba40-b5035c8420c7`, parameter `note` only, 10 s timeout).
+- The nine checks, with `sandbox-visitor` only: the key's scope; `sandbox-receipt` 1.0.0 in effect; no approval, refused with the policy's reason; a demo approval, `201`; with it, transaction `18ce9222-ca2e-434c-a47e-0a6f72fdd387` `APPROVED` in 14.1 s, receipt `RC-18ce9222`, the record verifying offline; the same approval again, refused (`receiptApproved=true != verified receiptApproved=false`); a note over 200 characters, refused; a demo approval for another capability, `400 INVALID_SANDBOX_APPROVAL_REQUEST`; a browser preflight from `https://docs.parmanasystems.com` `204`, from another site `403` with no allow origin header. Record: `deploy/sandbox/evidence/check-record.json` (trust record `4df9cdac-6e4a-4c19-b8cd-7b8f79724c8c`, policy governance anchor `VERIFIED`).
+
 ## 2.23 Independently Certified Authorization (Phase 3D)
 
 _"Even if AI has valid credentials, it still cannot execute anything your business hasn't authorized. No exceptions"_ — the specific claim tracked and re-verified across the Phase 2K capability policy binding record (in git history), the Phase 2L authorization exceptions record (in git history) (which found it **not fully supported**, naming two exceptions: Razorpay's caller-declared daily cumulative total, and HubSpot's caller-declared `preAuthorizedForAmountChange`) — was independently re-certified from current repository state in the Phase 3D independent authorization certification (in git history), treating every prior phase's conclusion as a claim to re-verify, not inherit.
