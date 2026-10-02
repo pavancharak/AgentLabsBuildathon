@@ -18,11 +18,11 @@ verify it with nothing but Parmana's public key, while Parmana itself is not run
 - A trust record to verify, saved as JSON. Get one from [Quickstart](/quickstart), or reuse
   any `ExecutionTrustRecord` you already have on disk.
 - Parmana's public key. Two ways to get it, covering both the local-dev case and the genuine
-  third-party case (2026-09-11 addition — see below):
+  third party case (added 2026-09-11, see below):
   - Already on this machine for local dev: `keys/default.public.pem`.
   - **A real third party (regulator, auditor, customer) who has never touched this
     deployment's filesystem** fetches it over HTTP instead: `GET /keys/default` or
-    `GET /.well-known/jwks.json` (unauthenticated, no API key needed — see
+    `GET /.well-known/jwks.json` (unauthenticated, no API key needed, see
     [Authentication](/api-reference/authentication)). This is what actually makes the claim
     below true for someone who isn't the operator, not just "the server process happens
     to be stopped on the same box the key file already lives on."
@@ -35,7 +35,9 @@ verify it with nothing but Parmana's public key, while Parmana itself is not run
 ### 1. Get a trust record and save it, then stop the server
 
 ```bash
-curl -s -X POST http://localhost:3000/execute -H "Content-Type: application/json" -d '{ ... }' \
+curl -s -X POST http://localhost:3000/execute \
+  -H "Authorization: Bearer $PARMANA_API_KEY" \
+  -H "Content-Type: application/json" -d '{ ... }' \
   > trust-record.json
 ```
 
@@ -67,17 +69,17 @@ const fullyVerified = await crypto.verify(trustRecord);
 ```
 
 `FileKeyProvider.getPublicKey()` only checks for `<keyId>.public.pem`
-(`packages/crypto/src/providers/key/FileKeyProvider.ts:118-133`), it never reads or checks
+(`packages/crypto/src/providers/key/FileKeyProvider.ts`), it never reads or checks
 for the private key. Verifying a record you received from someone else never needs, and
 never has access to, the key that signed it.
 
 ### 2b. Or: the standalone, zero-config offline verifier (2026-09-11)
 
 `VerificationCrypto` above still resolves its key through `FileKeyProvider`, i.e.
-`PARMANA_KEY_DIR` and a local file on disk — fine for local dev, but not what a genuine
+`PARMANA_KEY_DIR` and a local file on disk. That is fine for local dev, but not what a genuine
 third party (who fetched the key over HTTP per the prerequisites above, and has it as a
 PEM string, not a file at a path this process's env vars name) actually has. For that case,
-use `verifyExecutionTrustRecordOffline` instead — no `PARMANA_KEY_DIR`, no env vars, no
+use `verifyExecutionTrustRecordOffline` instead: no `PARMANA_KEY_DIR`, no env vars, no
 `FileKeyProvider` at all, just the record and the key string, and it also checks a hybrid
 `signatures` array (ML-DSA-65) if the record has one, which `VerificationCrypto.verify()`
 above does too but this function reports the hybrid result explicitly:
@@ -145,7 +147,7 @@ actually cover](/concepts/execution-trust-records).
   timestamps can change byte-level content even though the JSON is semantically identical,
   canonical serialization is order-sensitive by design.
 - **You need this in Python, not TypeScript.** The Python SDK's `client.verification.verify()`
-  calls `POST /verify` over HTTP and requires a running server — that one is not offline.
+  calls `POST /verify` over HTTP and requires a running server, so it is not offline.
   **As of 2026-09-11**, `parmana.crypto.verify_execution_trust_record_offline` (a separate,
   standalone module, `python/parmana/crypto/offline_verifier.py`) does the same offline
   check as the TypeScript example above, independently reimplemented, not a wrapper around
@@ -153,7 +155,10 @@ actually cover](/concepts/execution-trust-records).
   `python/tests/test_offline_verifier.py`, which signs a record with the real TypeScript
   signer and verifies it with only the Python module. Install it with
   `pip install "parmana[verify]"`, since the module needs the `cryptography` package,
-  which the `verify` extra provides. **Ed25519 only for now** — the
+  which the `verify` extra provides. On the published 1.4.0, pass the record as the plain
+  JSON the server returned, not a decoded model: a decoded record whose
+  `previousChainHash` is `null` fails to verify there (G-85, fixed for the next release).
+  **Ed25519 only for now**: the
   `cryptography` package version this SDK depends on has no `ml_dsa` module yet, so a
   hybrid-signed record's ML-DSA-65 signature cannot be checked from Python until that
   lands upstream; use the TypeScript version for a complete hybrid check today.

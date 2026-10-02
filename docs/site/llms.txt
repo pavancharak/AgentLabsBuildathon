@@ -53,7 +53,7 @@ This file is generated from the documentation navigation. Do not edit it by hand
 * [Storage](https://docs.parmanasystems.com/storage/overview): Append-only persistence for Business Transactions, Trust Records, and policies.
 ## Guides: Build with Parmana
 
-* [Full Integration Overview](https://docs.parmanasystems.com/guides/full-integration-overview): A map of the four independent pieces a real business-system integration needs — policy, caller, connector, signal verification — and how they fit together. Read this before the individual deep-dive guides.
+* [Full Integration Overview](https://docs.parmanasystems.com/guides/full-integration-overview): A map of the four independent pieces a real business system integration needs: policy, caller, connector and signal verification, and how they fit together. Read this before the individual guides.
 * [Write Your First Policy](https://docs.parmanasystems.com/guides/write-your-first-policy): Write a custom Policy, evaluate a transaction against it, and confirm both the approve and reject paths.
 * [Policy Governance: Maker-Checker Approval](https://docs.parmanasystems.com/guides/policy-governance-maker-checker): Propose, review, and approve a policy change end to end, with the exact commands and how to debug each failure mode.
 * [Policy lifecycle and approvals](https://docs.parmanasystems.com/guides/policy-lifecycle-and-approvals): End to end: write a policy, propose it, have a second person approve it, how it takes effect, and how a person signs off on a single critical action.
