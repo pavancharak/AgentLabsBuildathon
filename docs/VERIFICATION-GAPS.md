@@ -1413,6 +1413,16 @@ counts per table), so a future deletion says who ran it. Test: `tests/architectu
 runs the file and the job's exact command against PGlite. Open: reinstall the job (`setup-sandbox.ps1 -Stage
 Retention`) and check the first run's log row the next morning.
 
+**G-87. A `POST /execute` or `POST /transactions` body without `metadata`, `intent` or `policy` returns a bare
+`500`. FOUND 2026-10-02 in the API guide audit, `pre-production` (error reporting, not authorization; nothing is
+executed).** With a valid `businessTransactionId`, a body missing any of those objects reaches
+`BusinessTransactionValidator.validate` (`packages/runtime/src/validators/BusinessTransactionValidator.ts`), which
+reads a field of the missing object and throws a `TypeError`. The error handler does not recognize it, so the
+caller gets `500 {"error":"Internal Server Error"}` with no code and no hint of the missing object. Captured
+2026-10-02 against the in process app for all three objects. Documented on `docs/site/api-reference/error-handling.mdx`
+and in the error catalog. Fix, not built: check that each required object is present before validating and answer
+`400` naming it.
+
 ---
 
 ## Remaining gaps, by severity

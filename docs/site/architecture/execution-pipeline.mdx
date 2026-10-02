@@ -28,7 +28,7 @@ field, see [Security](/security/overview) for what this closed.
 
 All eleven stages run, in order, on every request. Stage 8's connector enforcement is real
 only for the connectors actually wired into `createConnectorRegistry.ts`, an action with no
-matching connector fails closed with "No connector registered for action," it does not
+matching connector fails closed with `503 CONNECTOR_NOT_REGISTERED` before anything is released, it does not
 silently skip stages 7-8. See [The gateway](/concepts/the-gateway) for the mechanism and
 [Quickstart](/quickstart) for a live run through the full pipeline. Stage 3 (signal/intent
 binding) is the one stage that can reject a transaction before stage 4 (policy evaluation)

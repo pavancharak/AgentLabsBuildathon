@@ -226,8 +226,9 @@ environment-variable toggle for this today, it's a code change.
   `azure-key-vault`, `gcp-kms` and `hsm` are declared config values with no implementation.
   Setting `KEY_PROVIDER` to one of those fails startup loudly rather than silently running
   as if it were `local`.
-- **Single process, single instance.** No shared `NonceStore` across replicas, a fleet of
-  these processes would each accept the same authorization once, not once fleet-wide.
+- **Single process, single instance.** Authorization and approval nonces are kept in Postgres
+  (`consumed_nonces`, `consumed_approval_nonces`), so several instances on the same database still
+  accept each one once. Only the test suite (`NODE_ENV=test`) keeps them in memory.
 - **Connectors register only when their own credentials are configured.** HubSpot, GitHub,
   Paytm, and Slack each check for their own credential environment variable at startup and
   register only if it's present; with none configured, every capability fails closed with
