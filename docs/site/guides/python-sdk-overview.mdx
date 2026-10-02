@@ -5,7 +5,7 @@ description: "What the Python SDK does, when to reach for it, and the three obje
 
 The Parmana Python SDK lets you integrate authorization into Python applications, AI agents, and
 microservices. Before any consequential action executes, your code asks Parmana: "is this
-allowed?" — and gets back either a signed proof of what happened, or a rejection with a reason.
+allowed?", and gets back either a signed proof of what happened, or a rejection with a reason.
 
 ## What it solves
 
@@ -15,7 +15,7 @@ credentials directly and trusts its judgment. Instead, with Parmana:
 1. **Your code proposes** the action (who, what, why, with what supporting facts).
 2. **A policy decides**, deterministically, based on the facts you supplied (amount limits,
    verification status, risk score, whatever the named policy actually checks).
-3. **Your system executes only if approved** — a rejected proposal raises an exception before any
+3. **Your system executes only if approved**, a rejected proposal raises an exception before any
    downstream call happens.
 4. **Proof is recorded**: a cryptographically signed [Execution Trust
    Record](/concepts/execution-trust-records), independently verifiable without trusting Parmana's
@@ -33,7 +33,7 @@ Reach for the SDK if:
   through agent code.
 - You're wiring an agent into a payment, CRM, or infrastructure connector.
 
-Skip it if the action is read-only or has no real consequence — plain application logging is
+Skip it if the action is read-only or has no real consequence, plain application logging is
 enough there; [The gateway](/concepts/the-gateway) exists to guard actions that actually change
 something.
 
@@ -46,7 +46,7 @@ BusinessTransaction  →  client.execution.execute(transaction)  →  ExecutionT
  (what you propose)         (policy runs, connector executes)      (signed proof of what happened)
 ```
 
-There's no separate "authorize" step to call — `execute()` runs the policy decision and the
+There's no separate "authorize" step to call, `execute()` runs the policy decision and the
 connector call in one request. If the policy denies the transaction, `execute()` raises
 [`ExecutionRejectedError`](/sdks/python#errors-correctly-mapped-to-real-conditions) instead of
 returning; if it approves, the connector runs and you get back a signed
@@ -54,7 +54,7 @@ returning; if it approves, the connector runs and you get back a signed
 
 ### BusinessTransaction
 
-What you propose, built with `create_business_transaction()` rather than assembled by hand — see
+What you propose, built with `create_business_transaction()` rather than assembled by hand, see
 [Why the builder function, not five nested
 objects](/sdks/python#create_business_transaction-no-more-hand-synced-ids) for what it protects
 you from:
@@ -83,18 +83,18 @@ transaction = create_business_transaction(
 )
 ```
 
-- `principal_id` — who's proposing this (an agent id, service name, or user id); checked against
+- `principal_id`, who's proposing this (an agent id, service name, or user id); checked against
   your API key's own `allowed_principal_ids` server-side before anything else runs.
-- `action` — the capability being invoked, e.g. `"paytm:refund"`.
-- `parameters` — the business data for the action itself (amount, currency, whatever the
+- `action`, the capability being invoked, e.g. `"paytm:refund"`.
+- `parameters`, the business data for the action itself (amount, currency, whatever the
   connector needs).
-- `policy` — which named, versioned policy evaluates this transaction.
-- `signals` — the facts the named policy actually checks. Every fact a policy rule references
+- `policy`, which named, versioned policy evaluates this transaction.
+- `signals`, the facts the named policy actually checks. Every fact a policy rule references
   must be present here, or the policy has nothing to evaluate.
 
 ### ExecutionTrustRecord
 
-What comes back once `execute()` succeeds — a signed record of the decision, the connector's
+What comes back once `execute()` succeeds, a signed record of the decision, the connector's
 evidence, and the resulting proof:
 
 ```python
@@ -108,11 +108,11 @@ print(trust_record.executions[0].evidence)               # what the connector ac
 ```
 
 You can [verify this independently](/guides/verify-independently) without trusting Parmana's
-word for it — the signature is checkable against a public key you control.
+word for it, the signature is checkable against a public key you control.
 
 ### Rejection is an exception, not a status field to check
 
-A denied transaction never produces a 200 response with a "REJECTED" status embedded in it — the
+A denied transaction never produces a 200 response with a "REJECTED" status embedded in it, the
 server returns a real `403` and the SDK raises:
 
 ```python
@@ -125,7 +125,7 @@ except ExecutionRejectedError as exc:
 ```
 
 See [Errors, correctly mapped to real conditions](/sdks/python#errors-correctly-mapped-to-real-conditions)
-for the full exception taxonomy — connection failures, malformed requests, and auth failures each
+for the full exception taxonomy, connection failures, malformed requests, and auth failures each
 raise their own distinct exception, not a generic one you have to string-match.
 
 ## Installation
@@ -140,9 +140,15 @@ current published version). Requires Python 3.8+.
 ## Quick example
 
 ```python
+import json
+
 from parmana import ParmanaClient, PolicyReference, create_business_transaction
 
 client = ParmanaClient(endpoint="http://localhost:3000", api_key="my-secret-api-key")
+
+# The approver's signed approval for vendor://payments up to 1000, made with
+# parmana.crypto.sign_approval on the approver's machine.
+approval = json.load(open("approval.json"))
 
 transaction = create_business_transaction(
     principal_id="python-sdk",
@@ -150,8 +156,12 @@ transaction = create_business_transaction(
     action="test:fixture-execute",
     target="vendor://payments",
     parameters={"amount": 1000, "currency": "USD"},
-    policy=PolicyReference(name="vendor-payment", version="2.0.0", schema_version="1.0.0"),
+    policy=PolicyReference(name="vendor-payment", version="2.1.0", schema_version="1.0.0"),
     signals={
+        # The approver's signed approval for this target, up to this amount
+        # (parmana.crypto.sign_approval). Without it the request is refused.
+        "humanApproved": True,
+        "approvalArtifact": approval,
         "vendorVerified": True,
         "invoiceVerified": True,
         "paymentApproved": True,
@@ -167,7 +177,7 @@ print(trust_record.trust_record_hash)
 ```
 
 This is the exact call [Quickstart](/quickstart) walks through against a local server, with real
-captured output — see there for the full step-by-step (installing, generating a local Gateway
+captured output, see there for the full step-by-step (installing, generating a local Gateway
 keypair, starting the Runtime) if you haven't set up a local server yet.
 
 ## Real-world example: a refund an agent proposes
@@ -204,22 +214,22 @@ except ExecutionRejectedError as exc:
     print(f"Denied: {exc}")
 ```
 
-No separate credential ever reaches the agent — the `paytm:refund` connector holds its own
+No separate credential ever reaches the agent, the `paytm:refund` connector holds its own
 credentials, resolved server-side; see [Credential isolation](/concepts/credential-isolation).
 
 ## What Parmana guarantees
 
-- The agent never holds the connector's own credentials — see [Credential
+- The agent never holds the connector's own credentials, see [Credential
   isolation](/concepts/credential-isolation).
-- The same transaction, evaluated against the same policy version, produces the same decision —
+- The same transaction, evaluated against the same policy version, produces the same decision ,
   policy decides, not agent judgment; see [Policies and the
   decision](/concepts/policies-and-the-decision).
-- Every authorization is single-use and time-bounded — see [The gateway](/concepts/the-gateway).
-- Execution produces a cryptographically signed proof, independently verifiable — see [Execution
+- Every authorization is single-use and time-bounded, see [The gateway](/concepts/the-gateway).
+- Execution produces a cryptographically signed proof, independently verifiable, see [Execution
   Trust Records](/concepts/execution-trust-records) and [Verify
   independently](/guides/verify-independently).
 - What's explicitly **not** guaranteed (compliance certifications, unscoped "non-bypassable"
-  claims, and more) is listed plainly in [Limitations](/security/limitations) — read that before
+  claims, and more) is listed plainly in [Limitations](/security/limitations), read that before
   making claims of your own downstream.
 
 ## Next

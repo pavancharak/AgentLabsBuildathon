@@ -4,7 +4,7 @@ description: "Integrate Parmana authorization into LangChain, CrewAI, FastAPI, a
 ---
 
 Integrate Parmana into your AI agents so a named policy decides before anything consequential
-executes — not the agent's own judgment call.
+executes, not the agent's own judgment call.
 
 ## The problem
 
@@ -17,7 +17,7 @@ if agent.decide_to_refund():
     payment_provider.refund(payment_id, amount)
 ```
 
-Whatever the agent decides, happens. No policy, no audit trail, no proof — and the agent needs the
+Whatever the agent decides, happens. No policy, no audit trail, no proof, and the agent needs the
 vendor's real credentials to act at all.
 
 ## The solution
@@ -31,7 +31,7 @@ except ExecutionRejectedError:
     ...  # denied; the agent's downstream code never runs
 ```
 
-The agent never holds the connector's credentials — those live server-side, resolved per-connector;
+The agent never holds the connector's credentials, those live server-side, resolved per-connector;
 see [Credential isolation](/concepts/credential-isolation). Every call is evaluated against a
 named, versioned policy, and every outcome (approved or denied) is recorded.
 
@@ -99,7 +99,7 @@ def refund_payment(payment_id: str, amount: int, reason: str) -> str:
 # agent, executor = ...  # standard LangChain agent wiring around `tools`
 ```
 
-The LLM decides _to call_ the tool; it never decides whether the refund is _allowed_ — that's the
+The LLM decides _to call_ the tool; it never decides whether the refund is _allowed_, that's the
 named `customer-refund` policy's job, and the tool never touches the payment provider's own
 credentials.
 
@@ -196,18 +196,18 @@ async def refund_endpoint(request: RefundRequest):
     # The manager's signed approval for this order and amount (every refund
     # needs one; see Human approval). It arrives from your approval flow,
     # for example the approval email.
-    approval = pending_approvals[payment_id]
+    approval = pending_approvals[request.payment_id]
     transaction = create_business_transaction(
         principal_id="ai-agent",
         purpose=request.reason,
         action="paytm:refund",
-        target=f"payment/{request.payment_id}",
-        parameters={"amount": request.amount, "currency": "INR"},
+        target=f"paytm://orders/{request.payment_id}",
+        parameters={"orderId": request.payment_id, "amount": request.amount},
         policy=PolicyReference(name="customer-refund", version="1.2.0", schema_version="1.0.0"),
         signals={
             "refundEligible": True,
             "fraudCheckPassed": True,
-            "refundAmount": amount,
+            "refundAmount": request.amount,
             "managerApproved": True,
             "approvalArtifact": approval,
         },
@@ -225,7 +225,7 @@ async def refund_endpoint(request: RefundRequest):
 ```
 
 An agent (or any other internal caller) then calls this endpoint instead of holding a Parmana
-client — or a Parmana client — of its own, which is a reasonable pattern when you want a single
+client, or a Parmana client, of its own, which is a reasonable pattern when you want a single
 service owning the Parmana connection and its API key.
 
 ## Pattern 4: Async
@@ -276,8 +276,8 @@ async def refund_payment_async(payment_id: str, amount: int, reason: str) -> dic
 # asyncio.run(refund_payment_async("pay_LiZx3eWa", 50000, "customer requested"))
 ```
 
-If your workflow needs to react to what the connector does _after_ Parmana's own response —
-settlement confirmation arriving later, for instance — that's a property of the specific
+If your workflow needs to react to what the connector does _after_ Parmana's own response ,
+settlement confirmation arriving later, for instance, that's a property of the specific
 connector, not the SDK; see [Session credentials](/guides/session-credentials) and the connector's
 own docs (e.g. [HubSpot](/integrations/hubspot)) for what each one actually confirms and when.
 
@@ -339,13 +339,13 @@ class CustomerServiceAgent:
 
 ## Key guarantees
 
-- The agent never holds the connector's own credentials — see [Credential
+- The agent never holds the connector's own credentials, see [Credential
   isolation](/concepts/credential-isolation).
-- A named, versioned policy decides, not the agent's own reasoning — see [Policies and the
+- A named, versioned policy decides, not the agent's own reasoning, see [Policies and the
   decision](/concepts/policies-and-the-decision).
-- A denied proposal raises before any downstream call happens — there's no code path where the
+- A denied proposal raises before any downstream call happens, there's no code path where the
   agent can override or retry around a rejection silently.
-- Every approved execution produces a signed, independently verifiable proof — see [Execution
+- Every approved execution produces a signed, independently verifiable proof, see [Execution
   Trust Records](/concepts/execution-trust-records).
 
 ## Next

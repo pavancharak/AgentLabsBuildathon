@@ -18,7 +18,7 @@ const refund = await stripe.refunds.create({ payment_intent: id, amount });
 ## The solution
 
 The agent proposes the action to Parmana as a Business Transaction. A named, versioned
-policy — not the agent — decides. Your code only calls the downstream system (or, in a
+policy, not the agent, decides. Your code only calls the downstream system (or, in a
 real deployment, a registered Connector calls it on Parmana's behalf) once Parmana returns
 an approved `ExecutionTrustRecord`.
 
@@ -53,20 +53,31 @@ const client = new ParmanaClient({
   }),
 });
 
+// Signed manager approvals, keyed by order id, filled by your approval flow
+// (for example the approval email). See Human approval.
+const pendingApprovals = new Map<string, unknown>(); // the later samples use it too
+
 export const refundTool = tool(
   async ({ orderId, amount, reason }) => {
     const transaction = createBusinessTransaction({
       principalId: "langchain-customer-service-agent",
       purpose: reason,
       action: "paytm:refund",
-      target: `paytm/${orderId}`,
-      parameters: { orderId, amount, reason },
+      target: `paytm://orders/${orderId}`,
+      parameters: { orderId, amount, refundReason: reason },
       policy: {
         name: "customer-refund",
-        version: "1.0.0",
+        version: "1.2.0",
         schemaVersion: "1.0.0",
       },
-      signals: { refundAmount: amount, orderId, customerVerified: true },
+      signals: {
+        refundEligible: true,
+        fraudCheckPassed: true,
+        refundAmount: amount,
+        managerApproved: true,
+        // The manager's signed approval for this order and amount (every refund needs one).
+        approvalArtifact: pendingApprovals.get(orderId),
+      },
     });
 
     try {
@@ -92,7 +103,7 @@ export const refundTool = tool(
 );
 ```
 
-The tool's return value is a string the agent reads — a denial reads as a normal tool
+The tool's return value is a string the agent reads, a denial reads as a normal tool
 result, not a thrown exception the agent has to recover from mid-conversation.
 
 ## Pattern 2: Vercel AI SDK tool calling
@@ -129,14 +140,21 @@ const issueRefund = tool({
       principalId: "ai-sdk-customer-service-agent",
       purpose: reason,
       action: "paytm:refund",
-      target: `paytm/${orderId}`,
-      parameters: { orderId, amount, reason },
+      target: `paytm://orders/${orderId}`,
+      parameters: { orderId, amount, refundReason: reason },
       policy: {
         name: "customer-refund",
-        version: "1.0.0",
+        version: "1.2.0",
         schemaVersion: "1.0.0",
       },
-      signals: { refundAmount: amount, orderId, customerVerified: true },
+      signals: {
+        refundEligible: true,
+        fraudCheckPassed: true,
+        refundAmount: amount,
+        managerApproved: true,
+        // The manager's signed approval for this order and amount (every refund needs one).
+        approvalArtifact: pendingApprovals.get(orderId),
+      },
     });
 
     try {
@@ -165,7 +183,7 @@ the model can reason over the fields directly in a follow-up turn.
 ## Pattern 3: Express / Fastify endpoint
 
 Putting the Parmana call behind your own endpoint keeps the agent's tool-calling surface
-thin — the agent calls your API, your API calls Parmana:
+thin, the agent calls your API, your API calls Parmana:
 
 ```typescript
 import express from "express";
@@ -196,14 +214,21 @@ app.post("/agent/refund", async (req, res) => {
     principalId: agentId,
     purpose: reason,
     action: "paytm:refund",
-    target: `paytm/${orderId}`,
-    parameters: { orderId, amount, reason },
+    target: `paytm://orders/${orderId}`,
+    parameters: { orderId, amount, refundReason: reason },
     policy: {
       name: "customer-refund",
-      version: "1.0.0",
+      version: "1.2.0",
       schemaVersion: "1.0.0",
     },
-    signals: { refundAmount: amount, orderId, customerVerified: true },
+    signals: {
+      refundEligible: true,
+      fraudCheckPassed: true,
+      refundAmount: amount,
+      managerApproved: true,
+      // The manager's signed approval for this order and amount (every refund needs one).
+      approvalArtifact: pendingApprovals.get(orderId),
+    },
   });
 
   try {
@@ -221,7 +246,7 @@ app.post("/agent/refund", async (req, res) => {
 });
 ```
 
-A Fastify route handler follows the same shape — swap `app.post(path, handler)` for
+A Fastify route handler follows the same shape, swap `app.post(path, handler)` for
 `fastify.post(path, async (request, reply) => { ... })` and the body is identical.
 
 ## Pattern 4: Async workflow with a webhook callback
@@ -239,17 +264,24 @@ async function proposeAndNotify(
     principalId: "async-refund-worker",
     purpose: input.reason,
     action: "paytm:refund",
-    target: `paytm/${input.orderId}`,
-    parameters: input,
+    target: `paytm://orders/${input.orderId}`,
+    parameters: {
+      orderId: input.orderId,
+      amount: input.amount,
+      refundReason: input.reason,
+    },
     policy: {
       name: "customer-refund",
-      version: "1.0.0",
+      version: "1.2.0",
       schemaVersion: "1.0.0",
     },
     signals: {
+      refundEligible: true,
+      fraudCheckPassed: true,
       refundAmount: input.amount,
-      orderId: input.orderId,
-      customerVerified: true,
+      managerApproved: true,
+      // The manager's signed approval for this order and amount (every refund needs one).
+      approvalArtifact: pendingApprovals.get(input.orderId),
     },
   });
 
@@ -271,7 +303,7 @@ async function proposeAndNotify(
 }
 ```
 
-`client.execute()` itself is a single request/response call, not a streaming one — this
+`client.execute()` itself is a single request/response call, not a streaming one, this
 pattern is about decoupling _your_ workflow from the caller's request/response cycle, not
 about Parmana's own API shape.
 
@@ -290,7 +322,6 @@ interface RefundRequest {
   orderId: string;
   amount: number;
   reason: string;
-  customerVerified: boolean;
 }
 
 type RefundResult =
@@ -322,21 +353,24 @@ export class CustomerServiceAgent {
       principalId: this.principalId,
       purpose: request.reason,
       action: "paytm:refund",
-      target: `paytm/${request.orderId}`,
+      target: `paytm://orders/${request.orderId}`,
       parameters: {
         orderId: request.orderId,
         amount: request.amount,
-        reason: request.reason,
+        refundReason: request.reason,
       },
       policy: {
         name: "customer-refund",
-        version: "1.0.0",
+        version: "1.2.0",
         schemaVersion: "1.0.0",
       },
       signals: {
+        refundEligible: true,
+        fraudCheckPassed: true,
         refundAmount: request.amount,
-        orderId: request.orderId,
-        customerVerified: request.customerVerified,
+        managerApproved: true,
+        // The manager's signed approval for this order and amount (every refund needs one).
+        approvalArtifact: pendingApprovals.get(request.orderId),
       },
     });
 
@@ -371,7 +405,6 @@ const result = await agent.issueRefund({
   orderId: "order-8842",
   amount: 500,
   reason: "Item arrived damaged",
-  customerVerified: true,
 });
 
 if (result.approved) {
@@ -384,11 +417,14 @@ if (result.approved) {
 ## Key guarantees
 
 - The agent (LangChain.js, the Vercel AI SDK, or a hand-rolled loop) never sees the
-  downstream connector credential — only a registered Connector does.
+  downstream connector credential, only a registered Connector does.
 - A denial surfaces as data (`ExecutionRejectedError`, or a `{ approved: false }` result),
-  not a crash — the calling agent framework's normal error/retry handling applies.
-- The policy version is explicit in every call (`policy: { name, version, schemaVersion }`)
-  — an agent can't silently drift onto a different policy between calls.
+  not a crash, the calling agent framework's normal error/retry handling applies.
+- Every refund needs a signed manager approval for that order and amount; without one the
+  request is refused with `403 POLICY_DENIED` ([Human approval](/concepts/human-approval)).
+- The policy version is explicit in every call (`policy: { name, version, schemaVersion }`),
+  and it must be the version in effect (`GET /policies/in-effect`), so an agent can't silently
+  drift onto a different policy between calls.
 - Every approved execution returns a signed `ExecutionTrustRecord`, independently
   verifiable later with `client.verify()` regardless of which pattern above produced it.
 - `signals` are checked against `boundSignals` before policy evaluation, so an agent can't
