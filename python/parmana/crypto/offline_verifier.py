@@ -41,10 +41,11 @@ from .canonical import canonical_serialize
 def _as_json(value: Any) -> dict[str, Any]:
     """
     Accept either the plain dict of a JSON response or file, or the SDK's
-    own decoded model (ExecutionTrustRecord, ExecutionIntent). A model is
-    turned back into the exact JSON the server sent: camelCase keys, unset
-    optional fields left out, and timestamps in JavaScript's toISOString()
-    form, the same encoding verify_refusal_record() relies on.
+    own decoded model (ExecutionTrustRecord, ExecutionIntent). A decoded
+    model is turned back into the exact JSON the server sent, which it
+    keeps from decoding, including any explicit `null` (G-85). A model built
+    by hand is encoded from its fields: camelCase keys, unset optional
+    fields left out, and timestamps in JavaScript's toISOString() form.
     """
 
     if is_dataclass(value) and not isinstance(value, type):

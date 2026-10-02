@@ -26,7 +26,9 @@ every commit, run `git log` in the repository for the complete record.
   says how an agent practises there.
 - Known issue, Python SDK 1.4.0: `verify_execution_trust_record_offline` reports a hash mismatch when given the decoded
   model of a record whose `previousChainHash` is `null`. Pass the record as plain JSON instead; the TypeScript SDK is
-  not affected.
+  not affected. Fixed in the repository the same day for the next Python release: a decoded model keeps the server's
+  JSON and encodes back to exactly it, which also fixes sending a decoded refusal record or Execution Intent back for
+  verification.
 
 ## 2026-10-01
 

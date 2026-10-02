@@ -17,6 +17,14 @@ T = TypeVar("T")
 
 _UNION_ORIGINS = {Union, types.UnionType}
 
+# The attribute a decoded model keeps the server's own JSON in. Not a
+# dataclass field, so it changes no equality, repr or fields(). encode()
+# returns it as is, so a decoded record goes back out byte for byte as the
+# server sent it: an explicit `null` (for example previousChainHash) stays
+# `null` instead of being dropped as an unset field, which changed the
+# canonical hash and made a valid record fail verification (G-85).
+SOURCE_JSON_ATTRIBUTE = "_parmana_source_json"
+
 
 def _snake(name: str) -> str:
     """
@@ -140,7 +148,14 @@ def _decode(
         # `is_dataclass` narrows to the `DataclassInstance` protocol, which
         # has no declared constructor -- this dynamic reflection-based
         # decoder has no static return type to give mypy here.
-        return model(**kwargs)  # type: ignore[operator]
+        instance = model(**kwargs)  # type: ignore[operator]
+
+        # Frozen dataclasses refuse normal attribute assignment;
+        # object.__setattr__ is the documented way around it, and the
+        # attribute is not a field (see SOURCE_JSON_ATTRIBUTE).
+        object.__setattr__(instance, SOURCE_JSON_ATTRIBUTE, value)
+
+        return instance
 
     #
     # Primitive
