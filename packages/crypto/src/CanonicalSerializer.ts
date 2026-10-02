@@ -63,7 +63,21 @@ export class CanonicalSerializer {
     return Object.keys(object)
       .sort()
       .reduce<Record<string, unknown>>((normalized, key) => {
-        normalized[key] = this.normalize(object[key]);
+        //
+        // Object.defineProperty, not normalized[key] = ...: a decoded
+        // JSON object can carry a literal "__proto__" key, and plain
+        // assignment sends that key to the prototype setter instead of
+        // creating an own property, so it silently vanished from the
+        // signed bytes. Its content was then not covered by the hash or
+        // signature, and the output disagreed with the Python SDK and
+        // @parmana/sign, which both keep it.
+        //
+        Object.defineProperty(normalized, key, {
+          value: this.normalize(object[key]),
+          enumerable: true,
+          writable: true,
+          configurable: true,
+        });
 
         return normalized;
       }, {});
