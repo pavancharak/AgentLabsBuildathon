@@ -3,7 +3,10 @@ title: "Detect Tampering"
 description: "Mutate a parameter, a signature, and a nonce, run the same verification each time, and watch each one fail. This mirrors the always-running negative-path tutorials."
 ---
 
-<Info>**[AVAILABLE]**, all three runs below are real output.</Info>
+<Info>
+  **[AVAILABLE]**, all three runs below are real output, run again on
+  2026-10-02.
+</Info>
 
 ## Goal
 
@@ -30,10 +33,10 @@ node_modules/.bin/tsx examples/tutorials/36-parameter-tampering/run.ts
 
 ```
 Original Hash
-4b7761f6f7bb6cf672d1193298423c60b39ac47d7c00dbfd2739b153c8abf015
+07731bf1f586ca5e3f450bad329888824d1a36502f7289652e4f26f10111b82c
 
 Tampered Hash
-82285dfe0635541f7f72e719b4e5eb959e581b1b0a69631789e4d6599983368a
+85e8dbd4f66058b39e7185ef5afba112edfd9ce8d0def2a4f5749eb951416eb7
 
 ✓ Parameter tampering detected.
 Execution rejected.
@@ -109,10 +112,11 @@ instead of the expected rejection.
 
 - **You expected an HTTP 4xx from the REST API and got something else.** These three
   scenarios operate on the authorization envelope directly, at the library level, they don't
-  go through `POST /execute`. The REST API's gateway rejection looks like a generic 500 with
-  a message naming the failed check (`ExecutionGateway.ts`'s `describeFailure`, see [The
-  gateway](/concepts/the-gateway)), not a per-check breakdown like `EnvelopeVerifier` gives
-  you here.
+  go through `POST /execute`. Over HTTP, a gateway rejection of this kind is a bare
+  `500 {"error":"Internal Server Error"}`; the failed checks are named only in the server log
+  (`ExecutionGateway.ts`'s `describeFailure`, see [The gateway](/concepts/the-gateway)).
+  Through the REST API you cannot cause one, because the server builds and checks the
+  authorization in the same call.
 - **Want to see more variants?** `examples/tutorials/` also covers action substitution (37),
   target substitution (38), policy substitution (39), expired authorization (41), stolen
   authorization (43), direct API bypass (44), connector bypass (45), and TOCTOU protection

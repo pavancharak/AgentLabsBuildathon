@@ -10,6 +10,14 @@ description: "Ed25519 by default, ML-DSA-65 (post-quantum) as a configured alter
 Sign and verify with Ed25519, then ML-DSA-65, then both together, and understand the one
 real cost difference between them: ML-DSA-65 signatures are randomized, Ed25519's are not.
 
+<Note>
+  **Production signs with AWS KMS, and KMS signing is Ed25519 only.** With
+  `KEY_PROVIDER=aws-kms`, `KmsSigner` accepts only an `ECC_NIST_EDWARDS25519`
+  key and fails closed on any other key spec. ML-DSA-65 and hybrid signing below
+  use local keys (`KEY_PROVIDER=local`). See [AWS KMS
+  signing](/deployment/aws-kms-signing).
+</Note>
+
 ## Prerequisites
 
 - **Node ≥ 24** for native `node:crypto` ML-DSA-65 support, this is a hard requirement, not

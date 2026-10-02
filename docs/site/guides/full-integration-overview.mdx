@@ -1,6 +1,6 @@
 ---
 title: "Full Integration Overview"
-description: "A map of the four independent pieces a real business-system integration needs — policy, caller, connector, signal verification — and how they fit together. Read this before the individual deep-dive guides."
+description: "A map of the four independent pieces a real business system integration needs: policy, caller, connector and signal verification, and how they fit together. Read this before the individual guides."
 ---
 
 <Info>
@@ -12,47 +12,50 @@ description: "A map of the four independent pieces a real business-system integr
 **A naming trap worth avoiding first:** this codebase has two different things called
 "connector." [`@parmana/connector-sdk`](/integrations/overview) is a generic library with
 reference mocks (`SapConnector`, `OracleConnector`, etc.) that never talk to a real system. The
-connectors the default server actually registers and runs in production — HubSpot, GitHub,
-Paytm, Slack — follow a different, simpler pattern documented in the
-[Connector Development Guide](/integrations/connector-development-guide). This page is about
-that second, real pattern.
+connectors the default server actually registers and runs in production, HubSpot, GitHub,
+Paytm and Slack, follow a different, simpler pattern documented in the
+[Connector Development Guide](/integrations/connector-development-guide). Any other HTTPS
+endpoint can be connected with no code at all, as an **external connector**: see [Connect any
+external system](/guides/connect-any-external-system). This page covers both real paths.
 
 ## The four pieces
 
-| #   | Piece                                      | Answers                                                       | Exists independently of the others?                                              |
-| --- | ------------------------------------------ | ------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| 1   | **A policy** bound to a capability         | Should this request be allowed?                               | Yes — can reject/approve with zero connectors or callers ever wired to it.       |
-| 2   | **A caller (agent)** with a scoped API key | Who's allowed to even ask?                                    | Yes — can get real `APPROVED`/`REJECTED` decisions with no connector registered. |
-| 3   | **A connector** for the capability         | Who performs the real-world action once approved?             | Yes — testable in isolation with `MockConnector`/hermetic tests.                 |
-| 4   | **A `SignalStateVerifier`** (optional)     | Are the caller's claims about real-world state actually true? | Yes — most capabilities don't have one; it's additive hardening.                 |
+| #   | Piece                                      | Answers                                                       | Exists independently of the others?                                                                                                           |
+| --- | ------------------------------------------ | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **A policy** bound to a capability         | Should this request be allowed?                               | Yes. It decides with no connector or caller wired to it. Every approve rule needs a signed human approval.                                    |
+| 2   | **A caller (agent)** with a scoped API key | Who's allowed to even ask?                                    | Yes. It gets real decisions with no connector registered.                                                                                     |
+| 3   | **A connector** for the capability         | Who performs the real world action once approved?             | Yes. A built in one is testable alone with `MockConnector`; an external one is your own endpoint.                                             |
+| 4   | **A `SignalStateVerifier`**                | Are the caller's claims about real world state actually true? | The human approval is always verified this way. Other facts are checked only where a verifier exists (HubSpot deal state, the Slack channel). |
 
-They're deliberately decoupled — that's exactly why "got `APPROVED`" and "the action actually
-happened" are two separate, independently-verifiable claims (see
+They're deliberately decoupled. That's why "got `APPROVED`" and "the action actually
+happened" are two separate, independently verifiable claims (see
 [Connect an Agent](/guides/connect-an-agent), Step 8).
 
 ## Recommended build order
 
-1. **Write the policy first** — [Write Your First Policy](/guides/write-your-first-policy).
+1. **Write the policy first**, see [Write Your First Policy](/guides/write-your-first-policy).
    Everything else needs the exact capability string and `signalsSchema` up front.
-2. **Onboard a caller and test authorization with no connector yet** —
-   [Connect an Agent](/guides/connect-an-agent). A `500` ("no connector registered") at this
-   stage is expected — it confirms authorization works before execution is wired.
-3. **Build the connector** — [Connector Development Guide](/integrations/connector-development-guide).
+2. **Onboard a caller and test authorization with no connector yet**, see
+   [Connect an Agent](/guides/connect-an-agent). A `503 CONNECTOR_NOT_REGISTERED` at this
+   stage is expected: the policy approved, and nothing was executed.
+3. **Connect the target system:** register your endpoint as an external connector ([Connect any
+   external system](/guides/connect-any-external-system)), or build a built in connector
+   ([Connector Development Guide](/integrations/connector-development-guide)).
 4. **Add a `SignalStateVerifier` only if a caller lying about a signal is a real risk** for this
-   capability that a policy rule alone can't catch.
+   capability that a policy rule alone can't catch. Built in connectors only.
 
 ## What breaks if you skip a piece
 
 Every row here is a real failure mode this codebase has actually hit and diagnosed, several the
-same night integrating a real refund-agent partner.
+same night integrating a real refund agent partner.
 
-| You have                                                  | Missing               | What happens                                                                                                                                                |
-| --------------------------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Policy + caller key                                       | Connector             | `APPROVED`, then `500` at dispatch — not a bug, see the response reference table.                                                                           |
-| Connector + caller key                                    | Policy                | `404 PolicyNotFoundError` — never reaches your connector.                                                                                                   |
-| Policy + connector                                        | Caller key / scoping  | `401`, or `403 CAPABILITY_NOT_ALLOWED`, or `403` (principal not permitted).                                                                                 |
-| All three                                                 | `SignalStateVerifier` | Works, but a caller's false signal claim is trusted at face value — a named, accepted scope limit, not a hidden bug.                                        |
-| Everything, but the deployment's signing config is broken | —                     | An otherwise-correct request fails with an opaque `500` unrelated to the caller — an operator-side problem none of the four pieces can detect from outside. |
+| You have                                                  | Missing               | What happens                                                                                                                                          |
+| --------------------------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Policy + caller key                                       | Connector             | Approved, then `503 CONNECTOR_NOT_REGISTERED` before release. Nothing was executed.                                                                   |
+| Connector + caller key                                    | Policy                | `404` (`Policy '<name>' version '<version>' was not found.`). Never reaches your connector.                                                           |
+| Policy + connector                                        | Caller key or scoping | `401`, or `403 CAPABILITY_NOT_ALLOWED`, or `403` (principal not permitted).                                                                           |
+| All three                                                 | `SignalStateVerifier` | Works, but a caller's false claim about an unverified fact is trusted. A named, accepted scope limit; the signed human approval still has to be real. |
+| Everything, but the deployment's signing config is broken | Nothing               | `503 SIGNING_UNAVAILABLE` before release. An operator problem none of the four pieces can fix from outside.                                           |
 
 ## Next
 
