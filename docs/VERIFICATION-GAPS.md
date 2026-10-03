@@ -416,6 +416,13 @@ Full verification: `npx tsc -b` clean; `npx eslint . --ext .ts` clean (repo-wide
 
 **Not fixed, by design, per this remediation's own explicit scope:** a Go reference verifier (the original remediation plan's TASK 1 as drafted) was not built -- this repository has no Go anywhere, and introducing an entire second language toolchain for one CLI was judged a real scope increase beyond "fix gaps, no redesign," confirmed with the user before starting. Python was used instead, since it already exists as a first-class SDK language here. Whether to also update the external `@parmana/sign` package (a separate, real, published, admin-accessible repository) was raised but deliberately left as a distinct decision, not folded into this remediation.
 
+**Update (2026-10-03):** the external-package half of this gap is now done. `@parmana/sign`
+0.2.0 (published on npm) ships the Execution Trust Record field mapping, the hybrid
+`signatures`/`schemaVersion` envelope and `verifyExecutionTrustRecordOffline`, tested
+against fixtures signed by this repository's `packages/crypto` code. The canonical
+serializer parity fix for literal `"__proto__"` keys landed here in
+pavancharak/AgentLabsBuildathon#128.
+
 ---
 
 ## Gaps closed in the 2026-09-14 execution-audit-trail hardening session
@@ -2415,6 +2422,10 @@ remains opt-in, not the production default (`parmana-api-live.fly.dev` still run
 (3.13's own "Required caveat" paragraph). The claim is capability-only, not a deployment
 claim: it does not say hybrid signing runs in staging or production anywhere, because it
 doesn't yet.
+
+**Update (2026-10-03):** `@parmana/sign` 0.2.0 recognizes the `signatures` envelope and
+checks every entry, so the "Required caveat" in 3.13 no longer applies to that version and
+later (see `docs/CLAIMS.md` 3.12 and 3.13 updates of the same date).
 
 **Decision still required for the remaining surfaces, see below** (D-2's Option A/B choice
 was written before this partial closure and should be re-read as applying only to the

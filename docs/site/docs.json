@@ -355,6 +355,27 @@
         ]
       },
       {
+        "tab": "Verification SDK",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": [
+              "sdks/parmana-sign/overview",
+              "sdks/parmana-sign/public-keys"
+            ]
+          },
+          {
+            "group": "API reference",
+            "pages": [
+              "sdks/parmana-sign/verify-trust-record",
+              "sdks/parmana-sign/verify-execution-intent",
+              "sdks/parmana-sign/signing-primitives",
+              "sdks/parmana-sign/results-and-errors"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "Connector SDKs",
         "groups": [
           {

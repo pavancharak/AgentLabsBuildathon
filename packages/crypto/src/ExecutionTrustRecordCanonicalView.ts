@@ -16,9 +16,9 @@ import type { ExecutionTrustRecord } from "@parmana/shared";
  * PQC audit RED-1 (docs/VERIFICATION-GAPS.md): before this file
  * existed, this mapping lived only as a private method on
  * VerificationCrypto, so a third party had no way to reconstruct it
- * without reading this repository's source directly -- not documented
- * anywhere @parmana/sign's own README or this project's public docs
- * describe.
+ * without reading this repository's source directly. @parmana/sign
+ * v0.2.0 now ships the same mapping (canonicalExecutionTrustRecord and
+ * hybridCanonicalExecutionTrustRecord); keep the two in sync.
  */
 export function canonicalExecutionTrustRecord(
   trustRecord: ExecutionTrustRecord,

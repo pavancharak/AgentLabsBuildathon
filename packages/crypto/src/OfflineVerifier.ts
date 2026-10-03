@@ -33,15 +33,13 @@ import { TrustRecordHasher } from "./TrustRecordHasher.js";
  * signature," not two implementations that could silently drift apart.
  *
  * This is the reference this repository's own VerificationCrypto is
- * built on; @parmana/sign (github.com/pavancharak/parmana-sign, a
- * real, separately published, independently maintained package --
- * see docs/CLAIMS.md 3.12) ships the lower-level primitives
- * (canonical serialization, Ed25519/ML-DSA-65 sign/verify) this module
- * also builds on, but does not yet know the Execution-Trust-Record-
- * specific canonical field mapping, or the `signatures`/`schemaVersion`
- * hybrid envelope shape -- syncing that into @parmana/sign itself is
- * separate, external work, not something this repository's build can
- * do on its own.
+ * built on. @parmana/sign (github.com/pavancharak/parmana-sign, a
+ * separately published package, see docs/CLAIMS.md 3.12) ports this
+ * module as of v0.2.0: the same canonical field mappings, the hybrid
+ * `signatures`/`schemaVersion` envelope, and the Ed25519 large-message
+ * commitment, checked against fixtures signed by this repository's
+ * code. Any change to what is signed here must be mirrored there, or
+ * third-party verification of new records will fail.
  */
 
 /**

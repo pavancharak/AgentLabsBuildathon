@@ -94,6 +94,10 @@ This file is generated from the documentation navigation. Do not edit it by hand
 
 * [Python SDK for AI Agents](https://docs.parmanasystems.com/guides/python-sdk-ai-agents): Integrate Parmana authorization into LangChain, CrewAI, FastAPI, and async agent code. Policy decides, not the agent.
 * [Python SDK Production Guide](https://docs.parmanasystems.com/guides/python-sdk-production): Deploy the Python SDK to production: real error handling, audit logging, and a deployment checklist.
+## Verification SDK: Get started
+
+* [Verification SDK](https://docs.parmanasystems.com/sdks/parmana-sign/overview): Verify Parmana records yourself, offline, with @parmana/sign.
+* [Public keys](https://docs.parmanasystems.com/sdks/parmana-sign/public-keys): Where verification keys come from, and how to pass them in.
 ## Connector SDKs: Overview
 
 * [Integrations](https://docs.parmanasystems.com/integrations/overview): The Connector SDK foundation is real. Four enterprise-named connectors exist as explicit, self-documented mocks; no real enterprise integration is built on it yet.

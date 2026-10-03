@@ -65,3 +65,20 @@ Real run, 2026-07-06, `python/examples/verify/`.
 `packages/api/test/verification-negative.integration.test.ts`, "reports FAILED when the
 persisted record is tampered after execution", proves this end to end, not just at the
 unit level.
+
+## Verify without Parmana's server
+
+The checks above run on Parmana's server. To check a record yourself, with no network
+access and no trust in Parmana's servers or database, use the
+[Verification SDK](/sdks/parmana-sign/overview), `@parmana/sign` on npm:
+
+```ts
+import { verifyExecutionTrustRecordOffline } from "@parmana/sign";
+
+const result = await verifyExecutionTrustRecordOffline(record, {
+  [key.keyId]: key.pem,
+});
+```
+
+It checks the record hash and every signature, including the ML-DSA-65 signature on hybrid
+records, using only the record and the public keys from `GET /keys/{keyId}`.
