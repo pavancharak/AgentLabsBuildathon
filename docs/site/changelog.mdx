@@ -10,7 +10,24 @@ product version). The SDKs are versioned independently on their own registries, 
 and per-version notes. This page covers changes that affect what you can build against, not
 every commit, run `git log` in the repository for the complete record.
 
+## 2026-10-03
+
+**Added: the Verification SDK (`@parmana/sign` 0.2.0)**
+
+- [`@parmana/sign`](/sdks/parmana-sign/overview) 0.2.0 is on npm. It verifies Execution Trust
+  Records and Execution Intents offline, with only the record and the public keys, including
+  hybrid (Ed25519 and ML-DSA-65) records and large records signed through AWS KMS.
+- New **Verification SDK** tab: overview and quick start, public keys, a reference page for
+  each verifier and for the signing primitives, and every error message with what to do.
+
 ## 2026-10-02
+
+**Fixed: canonical JSON keeps `"__proto__"` keys**
+
+- The server's canonical serializer and the TypeScript SDK's `canonicalSerialize` silently
+  dropped an object key named `"__proto__"`, so its content was not covered by the hash or
+  signature. Both now keep it, matching the Python SDK and `@parmana/sign`. Output for data
+  without that key is unchanged, so existing signatures stay valid.
 
 **Sandbox: visitor data deleted, retention paused**
 

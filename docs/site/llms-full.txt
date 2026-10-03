@@ -8187,14 +8187,12 @@ algorithm at once, with verification requiring both signatures independently, fa
 This is a built, tested capability (`CRYPTO_MODE=hybrid` is real, validated
 configuration), but it is opt-in and not running anywhere today: every deployed
 environment signs Ed25519 alone.
-**Caveat:** `@parmana/sign`, the public verification SDK, does not yet recognize the
-hybrid envelope shape; a third party verifying a hybrid-signed record through it today
-checks the legacy Ed25519 signature only, a genuine but partial verification, not the
-full hybrid guarantee. This repository's own `packages/crypto/src/OfflineVerifier.ts`
-(TypeScript) and `python/parmana/crypto/offline_verifier.py` (Python, Ed25519 only)
-do recognize the hybrid envelope and check both signatures independently, offline,
-with zero network access. Use these for a full hybrid check today, not `@parmana/sign`,
-until that separate, external package is updated.
+**Third-party verification:** `@parmana/sign` 0.2.0 and later, the public verification
+SDK on npm, recognizes the hybrid envelope: `verifyExecutionTrustRecordOffline` checks
+the record hash, the legacy Ed25519 signature, and every entry in `signatures`, offline,
+with only the record and the public keys. This repository's own
+`packages/crypto/src/OfflineVerifier.ts` (TypeScript) does the same, and
+`python/parmana/crypto/offline_verifier.py` (Python) checks Ed25519 only.
 
 **Hybrid-signature downgrade resistance, opt-in.** A genuinely hybrid-signed record's
 `signatures` array (the ML-DSA-65 half) can be stripped entirely with no cryptographic
